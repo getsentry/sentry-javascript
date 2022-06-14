@@ -23,7 +23,7 @@ sentryTest(
 
 // TODO this we can't really test until we actually propagate sentry- entries in baggage
 // skipping for now but this must be adjusted later on
-sentryTest.skip(
+sentryTest(
   'should pick up `baggage` <meta> tag and propagate the content in transaction',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });

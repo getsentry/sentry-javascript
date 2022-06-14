@@ -1,9 +1,11 @@
 import {
+  BaggageObj,
   DsnComponents,
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  EventTraceContext,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -120,6 +122,8 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
+  const baggage = event.contexts && (event.contexts.baggage as BaggageObj);
+
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
@@ -133,8 +137,17 @@ function createEventEnvelopeHeaders(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           trace_id: (event.contexts!.trace as Record<string, unknown>).trace_id as string,
           public_key: dsn.publicKey,
-          ...event.contexts.baggage,
-        }),
+          environment: baggage && baggage.environment,
+          release: baggage && baggage.release,
+          transaction: baggage && baggage.transaction,
+          ...(baggage &&
+            (baggage.userid || baggage.usersegment) && {
+              user: {
+                id: baggage.userid,
+                segment: baggage.usersegment,
+              },
+            }),
+        } as EventTraceContext),
       }),
   };
 }

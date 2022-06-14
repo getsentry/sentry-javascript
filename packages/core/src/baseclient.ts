@@ -507,6 +507,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (event.contexts && event.contexts.trace) {
       normalized.contexts = {};
       normalized.contexts.trace = event.contexts.trace;
+      normalized.contexts.baggage = event.contexts.baggage;
 
       // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
       if (event.contexts.trace.data) {

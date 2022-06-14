@@ -31,13 +31,15 @@ describe('createEventEnvelope', () => {
 
     const testTable: Array<[string, Event, EventTraceContext]> = [
       [
-        'adds only baggage item',
+        'adds only one baggage item',
         {
           type: 'transaction',
-          release: '1.0.0',
           contexts: {
             trace: {
               trace_id: '1234',
+            },
+            baggage: {
+              release: '1.0.0',
             },
           },
         },
@@ -47,11 +49,13 @@ describe('createEventEnvelope', () => {
         'adds two baggage items',
         {
           type: 'transaction',
-          release: '1.0.0',
-          environment: 'prod',
           contexts: {
             trace: {
               trace_id: '1234',
+            },
+            baggage: {
+              environment: 'prod',
+              release: '1.0.0',
             },
           },
         },
@@ -61,13 +65,16 @@ describe('createEventEnvelope', () => {
         'adds all baggageitems',
         {
           type: 'transaction',
-          release: '1.0.0',
-          environment: 'prod',
-          user: { id: 'bob', segment: 'segmentA' },
-          transaction: 'TX',
           contexts: {
             trace: {
               trace_id: '1234',
+            },
+            baggage: {
+              environment: 'prod',
+              release: '1.0.0',
+              userid: 'bob',
+              usersegment: 'segmentA',
+              transaction: 'TX',
             },
           },
         },

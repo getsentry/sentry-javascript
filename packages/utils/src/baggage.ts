@@ -151,14 +151,14 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
  * Extracted this logic to a function because it's duplicated in a lot of places.
  *
  * @param rawBaggageString
- * @param sentryTraceData
+ * @param sentryTraceHeader
  */
 export function parseBaggageSetMutability(
   rawBaggageString: string | false | undefined | null,
-  sentryTraceData: TraceparentData | string | false | undefined | null,
+  sentryTraceHeader: TraceparentData | string | false | undefined | null,
 ): Baggage {
   const baggage = parseBaggageString(rawBaggageString || '');
-  if (!isSentryBaggageEmpty(baggage) || (sentryTraceData && isSentryBaggageEmpty(baggage))) {
+  if (!isSentryBaggageEmpty(baggage) || (sentryTraceHeader && isSentryBaggageEmpty(baggage))) {
     setBaggageImmutable(baggage);
   }
   return baggage;
