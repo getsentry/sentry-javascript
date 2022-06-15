@@ -77,6 +77,34 @@
       "internalConsoleOptions": "neverOpen"
     },
 
+    // Run a specific test file in watch mode (must have file in currently active tab when hitting the play button).
+    // NOTE: If you try to run this and VSCode complains that the command `shellCommand.execute` can't be found, go
+    // install the recommended extension Tasks Shell Input.
+    {
+      "name": "Debug playwright tests (just open file)",
+      "type": "pwa-node",
+      "cwd": "${workspaceFolder}/packages/${input:getPackageName}",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        // `nodemon` is basically `node --watch`
+        "nodemon",
+        // be default it only watches JS files, so have it watch TS files instead
+        "--ext",
+        "ts",
+        "${workspaceFolder}/node_modules/playwright/node_modules/.bin/playwright",
+        "test",
+        "${file}"
+      ],
+      "skipFiles": ["<node_internals>/**"],
+      "outFiles": ["${workspaceFolder}/**/*.js", "!**/node_modules/**"],
+      "sourceMaps": true,
+      "smartStep": true,
+      "internalConsoleOptions": "openOnSessionStart",
+      // show stdout and stderr output in the debug console
+      "outputCapture": "std"
+    },
+
     // @sentry/nextjs - Run a specific integration test file
     // Must have test file in currently active tab when hitting the play button, and must already have run `yarn` in test app directory
     {
