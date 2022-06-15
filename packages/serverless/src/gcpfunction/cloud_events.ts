@@ -2,12 +2,7 @@ import { captureException, flush, getCurrentHub, startTransaction } from '@sentr
 import { logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
-import {
-  CloudEventFunction,
-  CloudEventFunctionWithCallback,
-  configureScopeWithContext,
-  WrapperOptions,
-} from './general';
+import { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
 
 export type CloudEventFunctionWrapperOptions = WrapperOptions;
 
@@ -44,7 +39,7 @@ function _wrapCloudEventFunction(
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
     getCurrentHub().configureScope(scope => {
-      configureScopeWithContext(scope, context);
+      scope.setContext('gcp.function.context', { ...context });
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
     });

@@ -12,6 +12,7 @@ export * from './normalize';
 export * from './object';
 export * from './path';
 export * from './promisebuffer';
+export * from './requestdata';
 export * from './severity';
 export * from './stacktrace';
 export * from './string';
