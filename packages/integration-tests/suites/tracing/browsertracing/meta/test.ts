@@ -29,7 +29,7 @@ sentryTest(
     const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
     expect(envHeader.trace).toBeDefined();
-    expect(envHeader.trace).toMatchObject({
+    expect(envHeader.trace).toEqual({
       public_key: 'public',
       trace_id: expect.any(String),
       release: '2.1.12',
