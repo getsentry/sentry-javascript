@@ -11,18 +11,18 @@
   },
   "private": true,
   "dependencies": {
-    "@sentry/core": "7.0.0-beta.0",
-    "@sentry/hub": "7.0.0-beta.0",
-    "@sentry/integrations": "7.0.0-beta.0",
-    "@sentry/node": "7.0.0-beta.0",
-    "@sentry/react": "7.0.0-beta.0",
-    "@sentry/tracing": "7.0.0-beta.0",
-    "@sentry/utils": "7.0.0-beta.0",
+    "@sentry/core": "7.1.1",
+    "@sentry/hub": "7.1.1",
+    "@sentry/integrations": "7.1.1",
+    "@sentry/node": "7.1.1",
+    "@sentry/react": "7.1.1",
+    "@sentry/tracing": "7.1.1",
+    "@sentry/utils": "7.1.1",
     "@sentry/webpack-plugin": "1.18.9",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/types": "7.0.0-beta.0",
+    "@sentry/types": "7.1.1",
     "@types/webpack": "^4.41.31",
     "@remix-run/node": "^1.4.3",
     "@remix-run/react": "^1.4.3"
