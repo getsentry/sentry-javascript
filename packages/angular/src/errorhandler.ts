@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorHandler as AngularErrorHandler, Inject, Injectable, VERSION } from '@angular/core';
+import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 
 import { runOutsideAngular } from './zone';
@@ -39,10 +39,7 @@ class SentryErrorHandler implements AngularErrorHandler {
     const extractedError = this._extractError(error) || 'Handled unknown error';
 
     // Capture handled exception and send it to Sentry.
-    const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : 0;
-    const eventId = runOutsideAngular(() =>
-      Sentry.captureException(extractedError, { contexts: { angular: { version: angularVersion } } }),
-    );
+    const eventId = runOutsideAngular(() => Sentry.captureException(extractedError));
 
     // When in development mode, log the error to console for immediate feedback.
     if (this._options.logErrors) {
