@@ -32,6 +32,7 @@ class SentryErrorHandler implements AngularErrorHandler {
       ...options,
     };
   }
+
   /**
    * Method called for every value captured through the ErrorHandler
    */
