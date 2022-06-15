@@ -1,5 +1,5 @@
 import { VERSION } from '@angular/core';
-import { BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { BrowserOptions, init as browserInit, SDK_VERSION, setContext } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
 import { ANGULAR_MINIMUM_VERSION } from './constants';
@@ -20,20 +20,23 @@ export function init(options: BrowserOptions): void {
     ],
     version: SDK_VERSION,
   };
-  checkAngularVersion();
+
+  checkAndSetAngularVersion();
   browserInit(options);
 }
 
-function checkAngularVersion(): void {
-  if (VERSION && VERSION.major) {
-    const major = parseInt(VERSION.major, 10);
-    if (major < ANGULAR_MINIMUM_VERSION) {
+function checkAndSetAngularVersion(): void {
+  const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : undefined;
+
+  if (angularVersion) {
+    if (angularVersion < ANGULAR_MINIMUM_VERSION) {
       IS_DEBUG_BUILD &&
         logger.warn(
-          `The Sentry SDK does not officially support Angular ${major}.`,
+          `The Sentry SDK does not officially support Angular ${angularVersion}.`,
           `This version of the Sentry SDK supports Angular ${ANGULAR_MINIMUM_VERSION} and above.`,
           'Please consider upgrading your Angular version or downgrading the Sentry SDK.',
         );
     }
+    setContext('angular', { version: angularVersion });
   }
 }

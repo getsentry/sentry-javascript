@@ -52,7 +52,10 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\""
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "test": "run-s test:unit",
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch"
   },
   "volta": {
     "extends": "../../package.json"
