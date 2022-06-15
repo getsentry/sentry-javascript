@@ -9,6 +9,10 @@
   "engines": {
     "node": ">=14"
   },
+  "main": "build/esm/index.js",
+  "module": "build/esm/index.js",
+  "browser": "build/esm/index.client.js",
+  "types": "build/types/index.d.ts",
   "private": true,
   "dependencies": {
     "@sentry/core": "7.1.1",
@@ -40,13 +44,11 @@
   },
   "scripts": {
     "build": "run-p build:rollup",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:dev": "run-s build",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:rollup": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:cjs:watch build:esm:watch",
-    "build:cjs:watch": "tsc -p tsconfig.cjs.json --watch",
+    "build:watch": "run-p build:esm:watch",
     "build:dev:watch": "run-s build:watch",
     "build:esm:watch": "tsc -p tsconfig.esm.json --watch",
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
