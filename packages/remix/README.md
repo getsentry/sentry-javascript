@@ -6,4 +6,4 @@
 
 # Official Sentry SDK for Remix
 
-< TBD >
+This SDK is work in progress, and should not be used before officially released.
