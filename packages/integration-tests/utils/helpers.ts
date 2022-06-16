@@ -70,26 +70,7 @@ async function getMultipleRequests(
       if (urlRgx.test(request.url())) {
         try {
           reqCount -= 1;
-
-          // TODO: This is to compensate for a temporary debugging hack which adds data the tests aren't anticipating to
-          // the request. The code can be restored to its original form (the commented-out line below) once that hack is
-          // removed. See https://github.com/getsentry/sentry-javascript/pull/4425.
-          const parsedRequest = requestParser(request);
-          if (parsedRequest.tags) {
-            if (
-              Object.keys(parsedRequest.tags).length === 0 ||
-              (Object.keys(parsedRequest.tags).length === 1 && 'skippedNormalization' in parsedRequest.tags)
-            ) {
-              delete parsedRequest.tags;
-            } else {
-              delete parsedRequest.tags.skippedNormalization;
-            }
-          }
-          if (parsedRequest.extra && Object.keys(parsedRequest.extra).length === 0) {
-            delete parsedRequest.extra;
-          }
-          requestData.push(parsedRequest);
-          // requestData.push(requestParser(request));
+          requestData.push(requestParser(request));
 
           if (reqCount === 0) {
             if (timeoutId) {
