@@ -884,29 +884,9 @@ describe('BaseClient', () => {
       const normalizedTransaction = JSON.parse(JSON.stringify(transaction)); // deep-copy
 
       client.captureEvent(transaction);
-
-      // TODO: This is to compensate for a temporary debugging hack which adds data the tests aren't anticipating to the
-      // event. The code can be restored to its original form (the commented-out line below) once that hack is
-      // removed. See https://github.com/getsentry/sentry-javascript/pull/4425 and
-      // https://github.com/getsentry/sentry-javascript/pull/4574
       const capturedEvent = TestClient.instance!.event!;
-      if (capturedEvent.sdkProcessingMetadata?.normalizeDepth) {
-        if (Object.keys(capturedEvent.sdkProcessingMetadata).length === 1) {
-          delete capturedEvent.sdkProcessingMetadata;
-        } else {
-          delete capturedEvent.sdkProcessingMetadata.normalizeDepth;
-        }
-      }
-      if (capturedEvent.sdkProcessingMetadata?.baseClientNormalized) {
-        if (Object.keys(capturedEvent.sdkProcessingMetadata).length === 1) {
-          delete capturedEvent.sdkProcessingMetadata;
-        } else {
-          delete capturedEvent.sdkProcessingMetadata.baseClientNormalized;
-        }
-      }
 
       expect(capturedEvent).toEqual(normalizedTransaction);
-      // expect(TestClient.instance!.event!).toEqual(normalizedTransaction);
     });
 
     test('calls beforeSend and uses original event without any changes', () => {
