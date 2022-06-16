@@ -2,8 +2,6 @@ import { Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as React from 'react';
 
-import { IS_DEBUG_BUILD } from '../flags';
-
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
 } as const;
@@ -85,7 +83,7 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
 export function withSentryRouteTracing<P extends Record<string, unknown>, R extends React.FC<P>>(OrigApp: R): R {
   // Early return when any of the required functions is not available.
   if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
-    IS_DEBUG_BUILD && logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
+    __DEBUG_BUILD__ && logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
