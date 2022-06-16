@@ -1,0 +1,195 @@
+import { captureException, configureScope, getCurrentHub, startTransaction } from '@sentry/node';
+import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { addExceptionMechanism, fill, loadModule, logger } from '@sentry/utils';
+
+import { IS_DEBUG_BUILD } from '../flags';
+
+type AppLoadContext = unknown;
+type AppData = unknown;
+type RequestHandler = (request: Request, loadContext?: AppLoadContext) => Promise<Response>;
+type CreateRequestHandlerFunction = (build: ServerBuild, mode?: string) => RequestHandler;
+type ServerRouteManifest = RouteManifest<Omit<ServerRoute, 'children'>>;
+type Params<Key extends string = string> = {
+  readonly [key in Key]: string | undefined;
+};
+
+interface Route {
+  index?: boolean;
+  caseSensitive?: boolean;
+  id: string;
+  parentId?: string;
+  path?: string;
+}
+
+interface ServerRouteModule {
+  action?: DataFunction;
+  headers?: unknown;
+  loader?: DataFunction;
+}
+
+interface ServerRoute extends Route {
+  children: ServerRoute[];
+  module: ServerRouteModule;
+}
+
+interface RouteManifest<Route> {
+  [routeId: string]: Route;
+}
+
+interface ServerBuild {
+  entry: {
+    module: ServerEntryModule;
+  };
+  routes: ServerRouteManifest;
+  assets: unknown;
+}
+
+interface HandleDocumentRequestFunction {
+  (request: Request, responseStatusCode: number, responseHeaders: Headers, context: Record<symbol, unknown>):
+    | Promise<Response>
+    | Response;
+}
+
+interface HandleDataRequestFunction {
+  (response: Response, args: DataFunctionArgs): Promise<Response> | Response;
+}
+
+interface ServerEntryModule {
+  default: HandleDocumentRequestFunction;
+  handleDataRequest?: HandleDataRequestFunction;
+}
+
+interface DataFunctionArgs {
+  request: Request;
+  context: AppLoadContext;
+  params: Params;
+}
+
+interface DataFunction {
+  (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
+}
+
+function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'): DataFunction {
+  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    let res: Response | AppData;
+    const activeTransaction = getActiveTransaction();
+    const currentScope = getCurrentHub().getScope();
+
+    try {
+      const span = activeTransaction?.startChild({
+        op: `remix.server.${name}`,
+        description: activeTransaction.name,
+        tags: {
+          name,
+        },
+      });
+
+      if (span) {
+        // Assign data function to hub to be able to see `db` transactions (if any) as children.
+        currentScope?.setSpan(span);
+      }
+
+      res = await origFn.call(this, args);
+      span?.finish();
+    } catch (err) {
+      configureScope(scope => {
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            type: 'instrument',
+            handled: true,
+            data: {
+              function: name,
+            },
+          });
+
+          return event;
+        });
+      });
+
+      captureException(err);
+
+      // Rethrow for other handlers
+      throw err;
+    }
+
+    return res;
+  };
+}
+
+function makeWrappedAction(origAction: DataFunction): DataFunction {
+  return makeWrappedDataFunction(origAction, 'action');
+}
+
+function makeWrappedLoader(origAction: DataFunction): DataFunction {
+  return makeWrappedDataFunction(origAction, 'loader');
+}
+
+function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
+  return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
+    const currentScope = getCurrentHub().getScope();
+
+    // debugger;
+    const transaction = hasTracingEnabled()
+      ? startTransaction({
+          name: request.url,
+          op: 'remix.server.requesthandler',
+          tags: {
+            method: request.method,
+          },
+        })
+      : undefined;
+
+    if (transaction) {
+      currentScope?.setSpan(transaction);
+    }
+
+    const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+
+    transaction?.setHttpStatus(res.status);
+    transaction?.finish();
+
+    return res;
+  };
+}
+
+function makeWrappedCreateRequestHandler(
+  origCreateRequestHandler: CreateRequestHandlerFunction,
+): CreateRequestHandlerFunction {
+  return function (this: unknown, build: ServerBuild, mode: string | undefined): RequestHandler {
+    const routes: ServerRouteManifest = {};
+
+    for (const [id, route] of Object.entries(build.routes)) {
+      const wrappedRoute = { ...route, module: { ...route.module } };
+
+      if (wrappedRoute.module.action) {
+        fill(wrappedRoute.module, 'action', makeWrappedAction);
+      }
+
+      if (wrappedRoute.module.loader) {
+        fill(wrappedRoute.module, 'loader', makeWrappedLoader);
+      }
+
+      routes[id] = wrappedRoute;
+    }
+
+    const requestHandler = origCreateRequestHandler.call(this, { ...build, routes }, mode);
+
+    return wrapRequestHandler(requestHandler);
+  };
+}
+
+/**
+ * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
+ * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
+ */
+export function instrumentServer(): void {
+  const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
+
+  if (!pkg) {
+    IS_DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
+
+    return;
+  }
+
+  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler);
+}
