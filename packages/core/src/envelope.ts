@@ -73,33 +73,12 @@ export function createEventEnvelope(
   const { transactionSampling } = event.sdkProcessingMetadata || {};
   const { method: samplingMethod, rate: sampleRate } = transactionSampling || {};
 
-  // TODO: Below is a temporary hack in order to debug a serialization error - see
-  // https://github.com/getsentry/sentry-javascript/issues/2809,
-  // https://github.com/getsentry/sentry-javascript/pull/4425, and
-  // https://github.com/getsentry/sentry-javascript/pull/4574.
-  //
-  // TL; DR: even though we normalize all events (which should prevent this), something is causing `JSON.stringify` to
-  // throw a circular reference error.
-  //
-  // When it's time to remove it:
-  // 1. Delete everything between here and where the request object `req` is created, EXCEPT the line deleting
-  //    `sdkProcessingMetadata`
-  // 2. Restore the original version of the request body, which is commented out
-  // 3. Search for either of the PR URLs above and pull out the companion hacks in the browser playwright tests and the
-  //    baseClient tests in this package
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-  event.tags = event.tags || {};
-  event.extra = event.extra || {};
 
-  // In theory, all events should be marked as having gone through normalization and so
-  // we should never set this tag/extra data
-  if (!(event.sdkProcessingMetadata && event.sdkProcessingMetadata.baseClientNormalized)) {
-    event.tags.skippedNormalization = true;
-    event.extra.normalizeDepth = event.sdkProcessingMetadata ? event.sdkProcessingMetadata.normalizeDepth : 'unset';
-  }
-
-  // prevent this data from being sent to sentry
-  // TODO: This is NOT part of the hack - DO NOT DELETE
+  // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
+  // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may
+  // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
+  // of this `delete`, lest we miss putting it back in the next time the property is in use.)
   delete event.sdkProcessingMetadata;
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);

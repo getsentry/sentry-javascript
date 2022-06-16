@@ -446,14 +446,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     return result.then(evt => {
-      if (evt) {
-        // TODO this is more of the hack trying to solve https://github.com/getsentry/sentry-javascript/issues/2809
-        // it is only attached as extra data to the event if the event somehow skips being normalized
-        evt.sdkProcessingMetadata = {
-          ...evt.sdkProcessingMetadata,
-          normalizeDepth: `${normalize(normalizeDepth)} (${typeof normalizeDepth})`,
-        };
-      }
       if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
         return this._normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
       }
@@ -524,8 +516,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return span;
       });
     }
-
-    normalized.sdkProcessingMetadata = { ...normalized.sdkProcessingMetadata, baseClientNormalized: true };
 
     return normalized;
   }
