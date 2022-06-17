@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.2.0
+
+- feat(angular): Add Angular 14 support (#5253)
+- feat(tracing): GraphQL and Apollo Integrations (#3953)
+- fix(docs): Adjust hash-link to propagation-of-baggage-header (#5235)
+- fix(docs): Update MIGRATION for SeverityLevel (#5225)
+- fix(nextjs): Export `showReportDialog` from NextJS SDK (#5242)
+- fix(vue): Accounts for undefined options when formatting component name (#5254)
+- ref(node): Move request-data-extraction functions to`@sentry/utils` (#5257)
+- ref(tracing): Check and set mutability of baggage (#5205)
+- ref(tracing): Sync baggage data in Http and envelope headers (#5218)
+- chore(angular): Add Angular version to event contexts (#5260)
+- chore(core): Remove circular JSON debugging hacks (#5267)
+- chore(integrations): Add trace to CONSOLE_LEVELS (#5249)
+
+Work in this release contributed by @Arinono and @slaesh. Thank you for your contributions!
+
 ## 7.1.1
 
 - **Revert** "ref(node): Move non-handler code out of handlers module" (#5223)
