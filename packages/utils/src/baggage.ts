@@ -1,4 +1,5 @@
 import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
+import { isString } from './is';
 
 import { logger } from './logger';
 
@@ -89,9 +90,28 @@ export function serializeBaggage(baggage: Baggage): string {
   }, baggage[1]);
 }
 
-/** Parse a baggage header from a string and return a Baggage object */
-export function parseBaggageString(inputBaggageString: string): Baggage {
-  return inputBaggageString.split(',').reduce(
+/** Parse a baggage header from a string or a string array and return a Baggage object */
+export function parseBaggageString(inputBaggageValue: string | string[]): Baggage {
+  // Adding this check here because we got reports of this function failing due to the input value
+  // not being a string. This debug log might help us determine what's going on here.
+  if (!Array.isArray(inputBaggageValue) && !isString(inputBaggageValue)) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        '[parseBaggageString] Received input value of unknown type: ',
+        typeof inputBaggageValue,
+        inputBaggageValue,
+      );
+
+    // Gonna early-return an empty baggage object so that we don't fail later on
+    return createBaggage({}, '');
+  }
+
+  const baggageEntries = (isString(inputBaggageValue) ? inputBaggageValue : inputBaggageValue.join(','))
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(entry => entry !== '');
+
+  return baggageEntries.reduce(
     ([baggageObj, baggageString], curr) => {
       const [key, val] = curr.split('=');
       if (SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(key)) {

@@ -113,6 +113,21 @@ describe('Baggage', () => {
           'userId=alice,serverNode=DF%2028,isProduction=false',
         ),
       ],
+      [
+        'parses a string array',
+        ['userId=alice', 'sentry-environment=production', 'foo=bar'],
+        createBaggage({ environment: 'production' }, 'userId=alice,foo=bar'),
+      ],
+      [
+        'parses a string array with items containing multiple entries',
+        ['userId=alice,   userName=bob', 'sentry-environment=production,sentry-release=1.0.1', 'foo=bar'],
+        createBaggage({ environment: 'production', release: '1.0.1' }, 'userId=alice,userName=bob,foo=bar'),
+      ],
+      [
+        'parses a string array with empty/blank entries',
+        ['', 'sentry-environment=production,sentry-release=1.0.1', '    ', 'foo=bar'],
+        createBaggage({ environment: 'production', release: '1.0.1' }, 'foo=bar'),
+      ],
     ])('%s', (_: string, baggageString, baggage) => {
       expect(parseBaggageString(baggageString)).toEqual(baggage);
     });
