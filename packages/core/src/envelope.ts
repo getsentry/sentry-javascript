@@ -131,6 +131,8 @@ function createEventEnvelopeHeaders(
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
+      // If we don't already have a trace context in the event, we can't get the trace id, which makes adding any other
+      // trace data pointless
       event.contexts &&
       event.contexts.trace && {
         trace: dropUndefinedKeys({
