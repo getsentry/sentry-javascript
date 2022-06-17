@@ -21,17 +21,19 @@ sentryTest(
   },
 );
 
-// TODO this we can't really test until we actually propagate sentry- entries in baggage
-// skipping for now but this must be adjusted later on
-sentryTest.skip(
-  'should pick up `baggage` <meta> tag and propagate the content in transaction',
+sentryTest(
+  'should pick up `baggage` <meta> tag, propagate the content in transaction and not add own data',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
     expect(envHeader.trace).toBeDefined();
-    expect(envHeader.trace).toEqual('{version:2.1.12}');
+    expect(envHeader.trace).toEqual({
+      public_key: 'public',
+      trace_id: expect.any(String),
+      release: '2.1.12',
+    });
   },
 );
 

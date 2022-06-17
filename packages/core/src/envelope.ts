@@ -1,9 +1,11 @@
 import {
+  BaggageObj,
   DsnComponents,
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  EventTraceContext,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -99,28 +101,34 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
+  const baggage = event.contexts && (event.contexts.baggage as BaggageObj);
+  const { environment, release, transaction, userid, usersegment } = baggage || {};
+
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
+      // If we don't already have a trace context in the event, we can't get the trace id, which makes adding any other
+      // trace data pointless
       event.contexts &&
       event.contexts.trace && {
-        // TODO: Grab this from baggage
         trace: dropUndefinedKeys({
           // Trace context must be defined for transactions
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          trace_id: event.contexts!.trace.trace_id as string,
-          environment: event.environment,
-          release: event.release,
-          transaction: event.transaction,
-          user: event.user && {
-            id: event.user.id,
-            segment: event.user.segment,
-          },
+          trace_id: (event.contexts!.trace as Record<string, unknown>).trace_id as string,
           public_key: dsn.publicKey,
-        }),
+          environment: environment,
+          release: release,
+          transaction: transaction,
+          ...((userid || usersegment) && {
+            user: {
+              id: userid,
+              segment: usersegment,
+            },
+          }),
+        }) as EventTraceContext,
       }),
   };
 }
