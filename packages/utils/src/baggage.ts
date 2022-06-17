@@ -1,6 +1,6 @@
 import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
-import { isString } from './is';
 
+import { isString } from './is';
 import { logger } from './logger';
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
