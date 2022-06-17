@@ -4,8 +4,11 @@ import { generateComponentTrace } from '../src/components';
 import { attachErrorHandler } from '../src/errorhandler';
 import { Operation, Options, ViewModel, Vue } from '../src/types';
 
+const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
+const describeSkipNode8 = CURRENT_NODE_VERSION === '8' ? xdescribe : describe;
+
 describe('attachErrorHandler', () => {
-  describe('attachProps', () => {
+  describeSkipNode8('attachProps', () => {
     describe("given I don't want to `attachProps`", () => {
       test('no `propsData` is added to the metadata', () => {
         // arrange
@@ -402,7 +405,7 @@ const testHarness = ({
       warnHandlerSpy: expect(warnHandlerSpy),
       consoleErrorSpy: expect(consoleErrorSpy),
       errorToHaveBeenCaptured: () => {
-        expect(captureExceptionSpy.mock.calls).toHaveLength(1);
+        expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         const error = captureExceptionSpy.mock.calls[0][0];
         const contexts = captureExceptionSpy.mock.calls[0][2]._contexts;
 
