@@ -100,6 +100,7 @@ describe('Baggage', () => {
   describe('parseBaggageString', () => {
     it.each([
       ['parses an empty string', '', createBaggage({})],
+      ['parses a blank string', '     ', createBaggage({})],
       [
         'parses sentry values into baggage',
         'sentry-environment=production,sentry-release=10.0.2',
@@ -108,6 +109,14 @@ describe('Baggage', () => {
       [
         'parses arbitrary baggage headers',
         'userId=alice,serverNode=DF%2028,isProduction=false,sentry-environment=production,sentry-release=10.0.2',
+        createBaggage(
+          { environment: 'production', release: '10.0.2' },
+          'userId=alice,serverNode=DF%2028,isProduction=false',
+        ),
+      ],
+      [
+        'parses arbitrary baggage headers from string with empty and blank entries',
+        'userId=alice,    serverNode=DF%2028   , isProduction=false,   ,,sentry-environment=production,,sentry-release=10.0.2',
         createBaggage(
           { environment: 'production', release: '10.0.2' },
           'userId=alice,serverNode=DF%2028,isProduction=false',
