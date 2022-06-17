@@ -25,7 +25,7 @@ targets:
           cacheControl: 'public, max-age=31536000'
   - name: github
     includeNames: /^sentry-.*$/
-    excludeNames: /^sentry-remix-.$/
+    excludeNames: /^sentry-remix-.*$/
   - name: npm
     excludeNames: /^sentry-remix-.*.tgz$/
   - name: registry
