@@ -26,6 +26,7 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: npm
+    excludeNames: /^sentry-remix-.*.tgz$/
   - name: registry
     sdks:
       'npm:@sentry/browser':
