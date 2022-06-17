@@ -17,10 +17,10 @@ export const attachErrorHandler = (app: Vue, options: Options): void => {
       trace,
     };
 
-    if (vm && options.attachProps) {
+    if (options.attachProps && vm && (vm.$options?.propsData || vm.$props)) {
       // Vue2 - $options.propsData
       // Vue3 - $props
-      metadata.propsData = vm.$options.propsData || vm.$props;
+      metadata.propsData = vm.$options?.propsData || vm.$props;
     }
 
     // Capture exception in the next event loop, to make sure that all breadcrumbs are recorded in time.
