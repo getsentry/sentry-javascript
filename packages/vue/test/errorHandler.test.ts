@@ -7,7 +7,7 @@ import { Operation, Options, ViewModel, Vue } from '../src/types';
 describe('attachErrorHandler', () => {
   describe('attachProps', () => {
     describe("given I don't want to `attachProps`", () => {
-      test('no `propsData` is added to the metadata', () => {
+      test.only('no `propsData` is added to the metadata', () => {
         // arrange
         const t = testHarness({
           enableErrorHandler: false,
