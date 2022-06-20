@@ -4,11 +4,12 @@ import { generateComponentTrace } from '../src/components';
 import { attachErrorHandler } from '../src/errorhandler';
 import { Operation, Options, ViewModel, Vue } from '../src/types';
 
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
-const describeSkipNode8 = CURRENT_NODE_VERSION === '8' ? xdescribe : describe;
-
 describe('attachErrorHandler', () => {
-  describeSkipNode8('attachProps', () => {
+  describe('attachProps', () => {
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
     describe("given I don't want to `attachProps`", () => {
       test('no `propsData` is added to the metadata', () => {
         // arrange
@@ -328,27 +329,11 @@ const testHarness = ({
   const providedErrorHandlerSpy = jest.fn();
   const warnHandlerSpy = jest.fn();
   const consoleErrorSpy = jest.fn();
-  const captureExceptionSpy = jest.fn();
 
-  getCurrentHub().bindClient({
-    // the only one I'm interested in
-    captureException: captureExceptionSpy,
-    // just to satisfy the interface
-    captureMessage: jest.fn(),
-    captureEvent: jest.fn(),
-    getDsn: jest.fn(),
-    getOptions: jest.fn(),
-    getTransport: jest.fn(),
-    close: jest.fn(),
-    flush: jest.fn(),
-    getIntegration: jest.fn(),
-    setupIntegrations: jest.fn(),
-    eventFromException: jest.fn(),
-    eventFromMessage: jest.fn(),
-    sendEvent: jest.fn(),
-    sendSession: jest.fn(),
-    recordDroppedEvent: jest.fn(),
-  });
+  const client: any = {
+    captureException: jest.fn(async () => Promise.resolve()),
+  };
+  getCurrentHub().bindClient(client);
 
   const app: Vue = {
     config: {
@@ -388,9 +373,6 @@ const testHarness = ({
 
   return {
     run: () => {
-      // Cleanup
-      jest.resetAllMocks();
-
       // inits the error handler
       attachErrorHandler(app, options);
 
@@ -405,6 +387,7 @@ const testHarness = ({
       warnHandlerSpy: expect(warnHandlerSpy),
       consoleErrorSpy: expect(consoleErrorSpy),
       errorToHaveBeenCaptured: () => {
+        const captureExceptionSpy = client.captureException;
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         const error = captureExceptionSpy.mock.calls[0][0];
         const contexts = captureExceptionSpy.mock.calls[0][2]._contexts;
