@@ -318,7 +318,7 @@ const testHarness = ({
   logErrors,
   enableWarnHandler,
   enableErrorHandler,
-  enableConsole,
+  // enableConsole,
   vm,
 }: TestHarnessOpts) => {
   jest.useFakeTimers();
@@ -331,6 +331,7 @@ const testHarness = ({
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: defaultStackParser,
     integrations: [],
+    debug: true,
   });
 
   getCurrentHub().bindClient(client);
@@ -353,15 +354,15 @@ const testHarness = ({
   }
 
   /* eslint-disable no-global-assign */
-  if (enableConsole) {
-    // I need to re-assign the whole console
-    // because at some point it can be set to undefined
-    // @ts-ignore for the sake of testing
-    console = { error: consoleErrorSpy };
-  } else {
-    // @ts-ignore for the sake of testing
-    console = undefined;
-  }
+  // if (enableConsole) {
+  //   // I need to re-assign the whole console
+  //   // because at some point it can be set to undefined
+  //   // @ts-ignore for the sake of testing
+  //   console = { error: consoleErrorSpy };
+  // } else {
+  //   // @ts-ignore for the sake of testing
+  //   console = undefined;
+  // }
   /* eslint-enable no-global-assign */
 
   const options: Options = {
