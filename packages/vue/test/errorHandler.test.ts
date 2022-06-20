@@ -4,11 +4,10 @@ import { generateComponentTrace } from '../src/components';
 import { attachErrorHandler } from '../src/errorhandler';
 import { Operation, Options, ViewModel, Vue } from '../src/types';
 
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
-const describeSkipNode8 = CURRENT_NODE_VERSION === '8' ? xdescribe : describe;
+jest.useFakeTimers();
 
 describe('attachErrorHandler', () => {
-  describeSkipNode8('attachProps', () => {
+  describe('attachProps', () => {
     describe("given I don't want to `attachProps`", () => {
       test('no `propsData` is added to the metadata', () => {
         // arrange
