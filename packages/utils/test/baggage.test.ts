@@ -7,8 +7,8 @@ import {
   isBaggageMutable,
   isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
+  parseBaggageHeader,
   parseBaggageSetMutability,
-  parseBaggageString,
   serializeBaggage,
   setBaggageImmutable,
   setBaggageValue,
@@ -97,7 +97,7 @@ describe('Baggage', () => {
     });
   });
 
-  describe('parseBaggageString', () => {
+  describe('parseBaggageHeader', () => {
     it.each([
       ['parses an empty string', '', createBaggage({})],
       ['parses a blank string', '     ', createBaggage({})],
@@ -137,8 +137,9 @@ describe('Baggage', () => {
         ['', 'sentry-environment=production,sentry-release=1.0.1', '    ', 'foo=bar'],
         createBaggage({ environment: 'production', release: '1.0.1' }, 'foo=bar'),
       ],
-    ])('%s', (_: string, baggageString, baggage) => {
-      expect(parseBaggageString(baggageString)).toEqual(baggage);
+      ['ignorese other input types than string and string[]', 42, createBaggage({}, '')],
+    ])('%s', (_: string, baggageValue, baggage) => {
+      expect(parseBaggageHeader(baggageValue)).toEqual(baggage);
     });
   });
 
