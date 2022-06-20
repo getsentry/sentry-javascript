@@ -1,26 +1,120 @@
 import { formatComponentName } from '../src/components';
 
-it('properly format component names', () => {
-  const vm: any = {
-    $options: {},
-  };
-  vm.$root = vm;
-  expect(formatComponentName(vm)).toBe('<Root>');
+describe('formatComponentName', () => {
+  describe('when the vm is not defined', () => {
+    it('returns the anonymous component name', () => {
+      // arrange
+      const vm = undefined;
 
-  vm.$root = null;
-  vm.$options.name = 'hello-there';
-  expect(formatComponentName(vm)).toBe('<HelloThere>');
+      // act
+      const formattedName = formatComponentName(vm);
 
-  vm.$options.name = null;
-  vm.$options._componentTag = 'foo-bar-1';
-  expect(formatComponentName(vm)).toBe('<FooBar1>');
+      // assert
+      expect(formattedName).toEqual('<Anonymous>');
+    });
+  });
 
-  vm.$options._componentTag = null;
-  vm.$options.__file = '/foo/bar/baz/SomeThing.vue';
-  expect(formatComponentName(vm)).toBe(`<SomeThing> at ${vm.$options.__file}`);
-  expect(formatComponentName(vm, false)).toBe('<SomeThing>');
+  describe('when the vm is defined', () => {
+    let vm: any = undefined;
 
-  vm.$options.__file = 'C:\\foo\\bar\\baz\\windows_file.vue';
-  expect(formatComponentName(vm)).toBe(`<WindowsFile> at ${vm.$options.__file}`);
-  expect(formatComponentName(vm, false)).toBe('<WindowsFile>');
+    beforeEach(() => {
+      vm = {};
+    });
+
+    describe('and when the $options is not defined', () => {
+      it('returns the anonymous component name', () => {
+        // arrange
+        vm.$options = undefined;
+
+        // act
+        const formattedName = formatComponentName(vm);
+
+        // assert
+        expect(formattedName).toEqual('<Anonymous>');
+      });
+    });
+
+    describe('when the $options is defined', () => {
+      beforeEach(() => {
+        vm = { $options: {} };
+      });
+
+      describe('when the vm is the $root', () => {
+        it('returns the root component name', () => {
+          // arrange
+          vm.$root = vm;
+
+          // act
+          const formattedName = formatComponentName(vm);
+
+          // assert
+          expect(formattedName).toEqual('<Root>');
+        });
+      });
+
+      describe('when the $options have a name', () => {
+        it('returns the name', () => {
+          // arrange
+          vm.$options.name = 'hello-there';
+
+          // act
+          const formattedName = formatComponentName(vm);
+
+          // assert
+          expect(formattedName).toEqual('<HelloThere>');
+        });
+      });
+
+      describe('when the options have a _componentTag', () => {
+        it('returns the _componentTag', () => {
+          // arrange
+          vm.$options._componentTag = 'foo-bar-1';
+
+          // act
+          const formattedName = formatComponentName(vm);
+
+          // assert
+          expect(formattedName).toEqual('<FooBar1>');
+        });
+      });
+
+      describe('when the options have a __file', () => {
+        describe('and we do not wish to include the filename', () => {
+          it.each([
+            ['unix', '/foo/bar/baz/SomeThing.vue', '<SomeThing>'],
+            ['unix', '/foo/bar/baz/SomeThing.ts', '<Anonymous>'],
+            ['windows', 'C:\\foo\\bar\\baz\\windows_file.vue', '<WindowsFile>'],
+            ['windows', 'C:\\foo\\bar\\baz\\windows_file.ts', '<Anonymous>'],
+          ])('returns the filename (%s)', (_, filePath, expected) => {
+            // arrange
+            vm.$options.__file = filePath;
+
+            // act
+            const formattedName = formatComponentName(vm, false);
+
+            // assert
+            expect(formattedName).toEqual(expected);
+          });
+        });
+
+        describe('and we wish to include the filename', () => {
+          it.each([
+            ['unix', '/foo/bar/baz/SomeThing.vue', '<SomeThing>'],
+            ['unix', '/foo/bar/baz/SomeThing.ts', '<Anonymous>'],
+            ['windows', 'C:\\foo\\bar\\baz\\windows_file.vue', '<WindowsFile>'],
+            ['windows', 'C:\\foo\\bar\\baz\\windows_file.ts', '<Anonymous>'],
+          ])('returns the filename (%s)', (_, filePath, expected) => {
+            // arrange
+            vm.$options.__file = filePath;
+
+            // act
+            const formattedName = formatComponentName(vm);
+
+            // assert
+            expect(formattedName).toEqual(`${expected} at ${filePath}`);
+          });
+        });
+      });
+    });
+  });
 });

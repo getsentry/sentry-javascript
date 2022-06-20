@@ -39,7 +39,6 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { IS_DEBUG_BUILD } from './flags';
 import { IntegrationIndex, setupIntegrations } from './integration';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -112,7 +111,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         url,
       });
     } else {
-      IS_DEBUG_BUILD && logger.warn('No DSN provided, client will not do anything.');
+      __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not do anything.');
     }
   }
 
@@ -123,7 +122,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      IS_DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
+      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -173,7 +172,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      IS_DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
+      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
@@ -193,12 +192,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureSession(session: Session): void {
     if (!this._isEnabled()) {
-      IS_DEBUG_BUILD && logger.warn('SDK not enabled, will not capture session.');
+      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture session.');
       return;
     }
 
     if (!(typeof session.release === 'string')) {
-      IS_DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
+      __DEBUG_BUILD__ && logger.warn('Discarded session because of missing or non-string release');
     } else {
       this.sendSession(session);
       // After sending, we set init false to indicate it's not the first occurrence
@@ -277,7 +276,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     try {
       return (this._integrations[integration.id] as T) || null;
     } catch (_oO) {
-      IS_DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
+      __DEBUG_BUILD__ && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
   }
@@ -322,7 +321,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      IS_DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
+      __DEBUG_BUILD__ && logger.log(`Adding outcome: "${key}"`);
 
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
@@ -447,14 +446,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     return result.then(evt => {
-      if (evt) {
-        // TODO this is more of the hack trying to solve https://github.com/getsentry/sentry-javascript/issues/2809
-        // it is only attached as extra data to the event if the event somehow skips being normalized
-        evt.sdkProcessingMetadata = {
-          ...evt.sdkProcessingMetadata,
-          normalizeDepth: `${normalize(normalizeDepth)} (${typeof normalizeDepth})`,
-        };
-      }
       if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
         return this._normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
       }
@@ -477,7 +468,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return null;
     }
 
-    const normalized = {
+    const normalized: Event = {
       ...event,
       ...(event.breadcrumbs && {
         breadcrumbs: event.breadcrumbs.map(b => ({
@@ -497,6 +488,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         extra: normalize(event.extra, depth, maxBreadth),
       }),
     };
+
     // event.contexts.trace stores information about a Transaction. Similarly,
     // event.spans[] stores information about child Spans. Given that a
     // Transaction is conceptually a Span, normalization should apply to both
@@ -504,12 +496,25 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // For now the decision is to skip normalization of Transactions and Spans,
     // so this block overwrites the normalized event to add back the original
     // Transaction information prior to normalization.
-    if (event.contexts && event.contexts.trace) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (event.contexts && event.contexts.trace && normalized.contexts) {
       normalized.contexts.trace = event.contexts.trace;
+
+      // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
+      if (event.contexts.trace.data) {
+        normalized.contexts.trace.data = normalize(event.contexts.trace.data, depth, maxBreadth);
+      }
     }
 
-    normalized.sdkProcessingMetadata = { ...normalized.sdkProcessingMetadata, baseClientNormalized: true };
+    // event.spans[].data may contain circular/dangerous data so we need to normalize it
+    if (event.spans) {
+      normalized.spans = event.spans.map(span => {
+        // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
+        if (span.data) {
+          span.data = normalize(span.data, depth, maxBreadth);
+        }
+        return span;
+      });
+    }
 
     return normalized;
   }
@@ -575,7 +580,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return finalEvent.event_id;
       },
       reason => {
-        IS_DEBUG_BUILD && logger.warn(reason);
+        __DEBUG_BUILD__ && logger.warn(reason);
         return undefined;
       },
     );
@@ -683,10 +688,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _sendEnvelope(envelope: Envelope): void {
     if (this._transport && this._dsn) {
       this._transport.send(envelope).then(null, reason => {
-        IS_DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });
     } else {
-      IS_DEBUG_BUILD && logger.error('Transport disabled');
+      __DEBUG_BUILD__ && logger.error('Transport disabled');
     }
   }
 

@@ -11,7 +11,8 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { extensionRelayDSN, isString, logger, parseBaggageString } from '@sentry/utils';
+import { isString, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { extensionRelayDSN } from '@sentry/utils'
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -22,7 +23,6 @@ import { performance } from 'perf_hooks';
 import { types } from 'util';
 
 import { AWSServices } from './awsservices';
-import { IS_DEBUG_BUILD } from './flags';
 import { serverlessEventProcessor } from './utils';
 
 export * from '@sentry/node';
@@ -127,7 +127,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   const handlerDesc = basename(handlerPath);
   const match = handlerDesc.match(/^([^.]*)\.(.*)$/);
   if (!match) {
-    IS_DEBUG_BUILD && logger.error(`Bad handler ${handlerDesc}`);
+    __DEBUG_BUILD__ && logger.error(`Bad handler ${handlerDesc}`);
     return;
   }
 
@@ -138,7 +138,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     const handlerDir = handlerPath.substring(0, handlerPath.indexOf(handlerDesc));
     obj = tryRequire(taskRoot, handlerDir, handlerMod);
   } catch (e) {
-    IS_DEBUG_BUILD && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
+    __DEBUG_BUILD__ && logger.error(`Cannot require ${handlerPath} in ${taskRoot}`, e);
     return;
   }
 
@@ -150,11 +150,11 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     functionName = name;
   });
   if (!obj) {
-    IS_DEBUG_BUILD && logger.error(`${handlerPath} is undefined or not exported`);
+    __DEBUG_BUILD__ && logger.error(`${handlerPath} is undefined or not exported`);
     return;
   }
   if (typeof obj !== 'function') {
-    IS_DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
+    __DEBUG_BUILD__ && logger.error(`${handlerPath} is not a function`);
     return;
   }
 
@@ -183,11 +183,6 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
 
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
-
-  scope.setContext('runtime', {
-    name: 'node',
-    version: global.process.version,
-  });
 
   scope.setContext('aws.lambda', {
     aws_request_id: context.awsRequestId,
@@ -290,16 +285,15 @@ export function wrapHandler<TEvent, TResult>(
       traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace']);
     }
 
-    const baggage =
-      eventWithHeaders.headers &&
-      isString(eventWithHeaders.headers.baggage) &&
-      parseBaggageString(eventWithHeaders.headers.baggage);
+    const rawBaggageString =
+      eventWithHeaders.headers && isString(eventWithHeaders.headers.baggage) && eventWithHeaders.headers.baggage;
+    const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
     const transaction = startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
-      ...(baggage && { metadata: { baggage: baggage } }),
+      metadata: { baggage: baggage },
     });
 
     const hub = getCurrentHub();
@@ -326,7 +320,7 @@ export function wrapHandler<TEvent, TResult>(
       transaction.finish();
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
-        IS_DEBUG_BUILD && logger.error(e);
+        __DEBUG_BUILD__ && logger.error(e);
       });
     }
     return rv;

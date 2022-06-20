@@ -12,8 +12,7 @@ test('should attach a `baggage` header to an outgoing request.', async () => {
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      // TODO this is currently still empty but eventually it should contain sentry data
-      baggage: expect.stringMatching(''),
+      baggage: expect.stringMatching('sentry-environment=prod,sentry-release=1.0'),
     },
   });
 });

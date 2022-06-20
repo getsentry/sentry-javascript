@@ -8,7 +8,9 @@ import {
 } from '@sentry/types';
 import * as http from 'http';
 import * as https from 'https';
+import { Readable } from 'stream';
 import { URL } from 'url';
+import { createGzip } from 'zlib';
 
 import { HTTPModule } from './http-module';
 
@@ -21,6 +23,22 @@ export interface NodeTransportOptions extends BaseTransportOptions {
   caCerts?: string | Buffer | Array<string | Buffer>;
   /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
   httpModule?: HTTPModule;
+}
+
+// Estimated maximum size for reasonable standalone event
+const GZIP_THRESHOLD = 1024 * 32;
+
+/**
+ * Gets a stream from a Uint8Array or string
+ * Readable.from is ideal but was added in node.js v12.3.0 and v10.17.0
+ */
+function streamFromBody(body: Uint8Array | string): Readable {
+  return new Readable({
+    read() {
+      this.push(body);
+      this.push(null);
+    },
+  });
 }
 
 /**
@@ -85,11 +103,20 @@ function createRequestExecutor(
   const { hostname, pathname, port, protocol, search } = new URL(options.url);
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
+      let body = streamFromBody(request.body);
+
+      const headers: Record<string, string> = { ...options.headers };
+
+      if (request.body.length > GZIP_THRESHOLD) {
+        headers['content-encoding'] = 'gzip';
+        body = body.pipe(createGzip());
+      }
+
       const req = httpModule.request(
         {
           method: 'POST',
           agent,
-          headers: options.headers,
+          headers,
           hostname,
           path: `${pathname}${search}`,
           port,
@@ -123,7 +150,7 @@ function createRequestExecutor(
       );
 
       req.on('error', reject);
-      req.end(request.body);
+      body.pipe(req);
     });
   };
 }

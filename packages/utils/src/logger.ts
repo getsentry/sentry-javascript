@@ -1,6 +1,5 @@
 import { WrappedFunction } from '@sentry/types';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { getGlobalObject, getGlobalSingleton } from './global';
 
 // TODO: Implement different loggers for different environments
@@ -9,7 +8,7 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
 
-export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert'] as const;
+export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'] as const;
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<typeof CONSOLE_LEVELS[number], LoggerMethod>;
@@ -68,7 +67,7 @@ function makeLogger(): Logger {
     },
   };
 
-  if (IS_DEBUG_BUILD) {
+  if (__DEBUG_BUILD__) {
     CONSOLE_LEVELS.forEach(name => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger[name] = (...args: any[]) => {
@@ -90,7 +89,7 @@ function makeLogger(): Logger {
 
 // Ensure we only have a single logger instance, even if multiple versions of @sentry/utils are being used
 let logger: Logger;
-if (IS_DEBUG_BUILD) {
+if (__DEBUG_BUILD__) {
   logger = getGlobalSingleton('logger', makeLogger);
 } else {
   logger = makeLogger();

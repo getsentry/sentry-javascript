@@ -1,0 +1,70 @@
+{
+  "name": "@sentry/remix",
+  "version": "7.2.0",
+  "description": "Official Sentry SDK for Remix",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "main": "build/esm/index.js",
+  "module": "build/esm/index.js",
+  "browser": "build/esm/index.client.js",
+  "types": "build/types/index.d.ts",
+  "private": true,
+  "dependencies": {
+    "@sentry/core": "7.2.0",
+    "@sentry/hub": "7.2.0",
+    "@sentry/integrations": "7.2.0",
+    "@sentry/node": "7.2.0",
+    "@sentry/react": "7.2.0",
+    "@sentry/tracing": "7.2.0",
+    "@sentry/types": "7.2.0",
+    "@sentry/utils": "7.2.0",
+    "@sentry/webpack-plugin": "1.18.9",
+    "tslib": "^1.9.3"
+  },
+  "devDependencies": {
+    "@remix-run/node": "^1.4.3",
+    "@remix-run/react": "^1.4.3",
+    "@types/webpack": "^4.41.31"
+  },
+  "peerDependencies": {
+    "@remix-run/node": "^1.4.3",
+    "@remix-run/react": "^1.4.3",
+    "react": "16.x || 17.x || 18.x",
+    "webpack": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "webpack": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "run-p build:rollup build:types",
+    "build:dev": "run-s build",
+    "build:rollup": "rollup -c rollup.npm.config.js",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:rollup:watch build:types:watch",
+    "build:dev:watch": "run-s build:watch",
+    "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf build coverage sentry-remix-*.tgz",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "test": "run-s test:unit",
+    "test:unit": "jest",
+    "test:watch": "jest --watch"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

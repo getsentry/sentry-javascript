@@ -200,28 +200,34 @@ describe('dropUndefinedKeys()', () => {
     });
   });
 
-  test('objects with circular reference', () => {
-    const dog: any = {
+  test('should not throw on objects with circular reference', () => {
+    const chicken: any = {
       food: undefined,
     };
 
-    const human = {
-      brain: undefined,
-      pets: dog,
+    const egg = {
+      edges: undefined,
+      contains: chicken,
     };
 
-    const rat = {
-      scares: human,
-      weight: '4kg',
-    };
+    chicken.lays = egg;
 
-    dog.chases = rat;
+    const droppedChicken = dropUndefinedKeys(chicken);
 
-    expect(dropUndefinedKeys(human)).toStrictEqual({
-      pets: {
-        chases: rat,
-      },
-    });
+    // Removes undefined keys
+    expect(Object.keys(droppedChicken)).toEqual(['lays']);
+    expect(Object.keys(droppedChicken.lays)).toEqual(['contains']);
+
+    // Returns new object
+    expect(chicken === droppedChicken).toBe(false);
+    expect(chicken.lays === droppedChicken.lays).toBe(false);
+
+    // Returns new references within objects
+    expect(chicken === droppedChicken.lays.contains).toBe(false);
+    expect(egg === droppedChicken.lays.contains.lays).toBe(false);
+
+    // Keeps circular reference
+    expect(droppedChicken.lays.contains === droppedChicken).toBe(true);
   });
 
   test('arrays with circular reference', () => {
@@ -235,10 +241,22 @@ describe('dropUndefinedKeys()', () => {
 
     egg[0] = chicken;
 
-    expect(dropUndefinedKeys(chicken)).toStrictEqual({
-      lays: egg,
-      weight: '1kg',
-    });
+    const droppedChicken = dropUndefinedKeys(chicken);
+
+    // Removes undefined keys
+    expect(Object.keys(droppedChicken)).toEqual(['weight', 'lays']);
+    expect(Object.keys(droppedChicken.lays)).toEqual(['0']);
+
+    // Returns new objects
+    expect(chicken === droppedChicken).toBe(false);
+    expect(egg === droppedChicken.lays).toBe(false);
+
+    // Returns new references within objects
+    expect(chicken === droppedChicken.lays[0]).toBe(false);
+    expect(egg === droppedChicken.lays[0].lays).toBe(false);
+
+    // Keeps circular reference
+    expect(droppedChicken.lays[0] === droppedChicken).toBe(true);
   });
 });
 

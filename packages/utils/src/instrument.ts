@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { getGlobalObject } from './global';
 import { isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
@@ -69,7 +68,7 @@ function instrument(type: InstrumentHandlerType): void {
       instrumentUnhandledRejection();
       break;
     default:
-      IS_DEBUG_BUILD && logger.warn('unknown instrumentation type:', type);
+      __DEBUG_BUILD__ && logger.warn('unknown instrumentation type:', type);
       return;
   }
 }
@@ -95,7 +94,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: any): void {
     try {
       handler(data);
     } catch (e) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,

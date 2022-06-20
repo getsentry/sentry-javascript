@@ -13,7 +13,6 @@ import {
 
 import { BrowserClient } from '../client';
 import { eventFromUnknownInput } from '../eventbuilder';
-import { IS_DEBUG_BUILD } from '../flags';
 import { shouldIgnoreOnError } from '../helpers';
 
 type GlobalHandlersIntegrationsOptionKeys = 'onerror' | 'onunhandledrejection';
@@ -238,7 +237,7 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
 }
 
 function globalHandlerLog(type: string): void {
-  IS_DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
+  __DEBUG_BUILD__ && logger.log(`Global Handler attached: ${type}`);
 }
 
 function addMechanismAndCapture(hub: Hub, error: EventHint['originalException'], event: Event, type: string): void {

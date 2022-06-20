@@ -2,10 +2,10 @@ import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
 import { SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
+import * as os from 'os';
 import { TextEncoder } from 'util';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
-import { IS_DEBUG_BUILD } from './flags';
 import { NodeClientOptions } from './types';
 
 /**
@@ -104,7 +104,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      IS_DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      __DEBUG_BUILD__ && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
       this._sessionFlusher = new SessionFlusher(this, {
         release,
@@ -140,9 +140,15 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'node';
-    if (this.getOptions().serverName) {
-      event.server_name = this.getOptions().serverName;
-    }
+    event.contexts = {
+      ...event.contexts,
+      runtime: event.contexts?.runtime || {
+        name: 'node',
+        version: global.process.version,
+      },
+    };
+    event.server_name =
+      event.server_name || this.getOptions().serverName || global.process.env.SENTRY_NAME || os.hostname();
     return super._prepareEvent(event, hint, scope);
   }
 
@@ -152,7 +158,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   protected _captureRequestSession(): void {
     if (!this._sessionFlusher) {
-      IS_DEBUG_BUILD && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
+      __DEBUG_BUILD__ && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
     } else {
       this._sessionFlusher.incrementSessionStatusCount();
     }

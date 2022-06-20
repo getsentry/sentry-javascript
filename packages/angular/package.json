@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "7.0.0",
+  "version": "7.2.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -15,15 +15,15 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": "10.x || 11.x || 12.x || 13.x",
-    "@angular/core": "10.x || 11.x || 12.x || 13.x",
-    "@angular/router": "10.x || 11.x || 12.x || 13.x",
+    "@angular/common": "10.x || 11.x || 12.x || 13.x || 14.x",
+    "@angular/core": "10.x || 11.x || 12.x || 13.x || 14.x",
+    "@angular/router": "10.x || 11.x || 12.x || 13.x || 14.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.0.0",
-    "@sentry/types": "7.0.0",
-    "@sentry/utils": "7.0.0",
+    "@sentry/browser": "7.2.0",
+    "@sentry/types": "7.2.0",
+    "@sentry/utils": "7.2.0",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
@@ -52,7 +52,10 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\""
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "test": "run-s test:unit",
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch"
   },
   "volta": {
     "extends": "../../package.json"

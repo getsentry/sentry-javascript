@@ -21,8 +21,6 @@ import {
   updateRateLimits,
 } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
-
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
 /**
@@ -73,13 +71,13 @@ export function createTransport(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
           if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
-            IS_DEBUG_BUILD && logger.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
+            __DEBUG_BUILD__ && logger.warn(`Sentry responded with status code ${response.statusCode} to sent event.`);
           }
 
           rateLimits = updateRateLimits(rateLimits, response);
         },
         error => {
-          IS_DEBUG_BUILD && logger.error('Failed while sending event:', error);
+          __DEBUG_BUILD__ && logger.error('Failed while sending event:', error);
           recordEnvelopeLoss('network_error');
         },
       );
@@ -88,7 +86,7 @@ export function createTransport(
       result => result,
       error => {
         if (error instanceof SentryError) {
-          IS_DEBUG_BUILD && logger.error('Skipped sending event due to full buffer');
+          __DEBUG_BUILD__ && logger.error('Skipped sending event due to full buffer');
           recordEnvelopeLoss('queue_overflow');
           return resolvedSyncPromise();
         } else {

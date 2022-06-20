@@ -6,9 +6,8 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, getSentryBaggageItems, logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -17,12 +16,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   public metadata: TransactionMetadata;
 
-  private _measurements: Measurements = {};
-
   /**
    * The reference to the current hub.
    */
-  private readonly _hub: Hub;
+  protected readonly _hub: Hub;
+
+  private _measurements: Measurements = {};
 
   private _trimEnd?: boolean;
 
@@ -90,7 +89,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     }
 
     if (!this.name) {
-      IS_DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      __DEBUG_BUILD__ && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
       this.name = '<unlabeled transaction>';
     }
 
@@ -99,7 +98,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
-      IS_DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+      __DEBUG_BUILD__ && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
       const client = this._hub.getClient();
       if (client) {
@@ -123,6 +122,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
+        baggage: getSentryBaggageItems(this.getBaggage()),
       },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
@@ -136,7 +136,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
     if (hasMeasurements) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.log(
           '[Measurements] Adding measurements to transaction',
           JSON.stringify(this._measurements, undefined, 2),
@@ -144,7 +144,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    IS_DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
+    __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
     return this._hub.captureEvent(transaction);
   }

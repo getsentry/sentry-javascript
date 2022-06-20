@@ -1,6 +1,7 @@
 import { EventDropReason } from './clientreport';
 import { DataCategory } from './datacategory';
 import { Envelope } from './envelope';
+import { TextEncoderInternal } from './textencoder';
 
 export type TransportRequest = {
   body: string | Uint8Array;
@@ -14,11 +15,6 @@ export type TransportMakeRequestResponse = {
     'retry-after': string | null;
   };
 };
-
-// Combination of global TextEncoder and Node require('util').TextEncoder
-interface TextEncoderInternal extends TextEncoderCommon {
-  encode(input?: string): Uint8Array;
-}
 
 export interface InternalBaseTransportOptions {
   bufferSize?: number;

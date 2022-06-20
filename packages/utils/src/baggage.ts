@@ -1,6 +1,5 @@
-import { Baggage, BaggageObj } from '@sentry/types';
+import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { logger } from './logger';
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
@@ -17,8 +16,8 @@ export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
 export const MAX_BAGGAGE_STRING_LENGTH = 8192;
 
 /** Create an instance of Baggage */
-export function createBaggage(initItems: BaggageObj, baggageString: string = ''): Baggage {
-  return [{ ...initItems }, baggageString];
+export function createBaggage(initItems: BaggageObj, baggageString: string = '', mutable: boolean = true): Baggage {
+  return [{ ...initItems }, baggageString, mutable];
 }
 
 /** Get a value from baggage */
@@ -28,12 +27,20 @@ export function getBaggageValue(baggage: Baggage, key: keyof BaggageObj): Baggag
 
 /** Add a value to baggage */
 export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: BaggageObj[keyof BaggageObj]): void {
-  baggage[0][key] = value;
+  if (isBaggageMutable(baggage)) {
+    baggage[0][key] = value;
+  }
 }
 
-/** Check if the baggage object (i.e. the first element in the tuple) is empty */
-export function isBaggageEmpty(baggage: Baggage): boolean {
+/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
+export function isSentryBaggageEmpty(baggage: Baggage): boolean {
   return Object.keys(baggage[0]).length === 0;
+}
+
+/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
+export function isBaggageEmpty(baggage: Baggage): boolean {
+  const thirdPartyBaggage = getThirdPartyBaggage(baggage);
+  return isSentryBaggageEmpty(baggage) && (thirdPartyBaggage == undefined || thirdPartyBaggage.length === 0);
 }
 
 /** Returns Sentry specific baggage values */
@@ -49,6 +56,23 @@ export function getThirdPartyBaggage(baggage: Baggage): string {
   return baggage[1];
 }
 
+/**
+ * Checks if baggage is mutable
+ * @param baggage
+ * @returns true if baggage is mutable, else false
+ */
+export function isBaggageMutable(baggage: Baggage): boolean {
+  return baggage[2];
+}
+
+/**
+ * Sets the passed baggage immutable
+ * @param baggage
+ */
+export function setBaggageImmutable(baggage: Baggage): void {
+  baggage[2] = false;
+}
+
 /** Serialize a baggage object */
 export function serializeBaggage(baggage: Baggage): string {
   return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
@@ -56,7 +80,7 @@ export function serializeBaggage(baggage: Baggage): string {
     const baggageEntry = `${SENTRY_BAGGAGE_KEY_PREFIX}${encodeURIComponent(key)}=${encodeURIComponent(val)}`;
     const newVal = prev === '' ? baggageEntry : `${prev},${baggageEntry}`;
     if (newVal.length > MAX_BAGGAGE_STRING_LENGTH) {
-      IS_DEBUG_BUILD &&
+      __DEBUG_BUILD__ &&
         logger.warn(`Not adding key: ${key} with val: ${val} to baggage due to exceeding baggage size limits.`);
       return prev;
     } else {
@@ -65,7 +89,7 @@ export function serializeBaggage(baggage: Baggage): string {
   }, baggage[1]);
 }
 
-/** Parse a baggage header to a string */
+/** Parse a baggage header from a string and return a Baggage object */
 export function parseBaggageString(inputBaggageString: string): Baggage {
   return inputBaggageString.split(',').reduce(
     ([baggageObj, baggageString], curr) => {
@@ -78,12 +102,13 @@ export function parseBaggageString(inputBaggageString: string): Baggage {
             [baggageKey]: decodeURIComponent(val),
           },
           baggageString,
+          true,
         ];
       } else {
-        return [baggageObj, baggageString === '' ? curr : `${baggageString},${curr}`];
+        return [baggageObj, baggageString === '' ? curr : `${baggageString},${curr}`, true];
       }
     },
-    [{}, ''],
+    [{}, '', true],
   );
 }
 
@@ -114,4 +139,27 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
     thirdPartyHeaderBaggage || (incomingBaggage && incomingBaggage[1]) || '',
   );
   return serializeBaggage(finalBaggage);
+}
+
+/**
+ * Helper function that takes a raw baggage string (if available) and the processed sentry-trace header
+ * data (if available), parses the baggage string and creates a Baggage object
+ * If there is no baggage string, it will create an empty Baggage object.
+ * In a second step, this functions determines if the created Baggage object should be set immutable
+ * to prevent mutation of the Sentry data.
+ *
+ * Extracted this logic to a function because it's duplicated in a lot of places.
+ *
+ * @param rawBaggageString
+ * @param sentryTraceHeader
+ */
+export function parseBaggageSetMutability(
+  rawBaggageString: string | false | undefined | null,
+  sentryTraceHeader: TraceparentData | string | false | undefined | null,
+): Baggage {
+  const baggage = parseBaggageString(rawBaggageString || '');
+  if (!isSentryBaggageEmpty(baggage) || (sentryTraceHeader && isSentryBaggageEmpty(baggage))) {
+    setBaggageImmutable(baggage);
+  }
+  return baggage;
 }

@@ -4,7 +4,6 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
 import { DEFAULT_HOOKS } from './constants';
-import { IS_DEBUG_BUILD } from './flags';
 import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
 const VUE_OP = 'ui.vue';
@@ -61,7 +60,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
     // eg. mount => ['beforeMount', 'mounted']
     const internalHooks = HOOKS[operation];
     if (!internalHooks) {
-      IS_DEBUG_BUILD && logger.warn(`Unknown hook: ${operation}`);
+      __DEBUG_BUILD__ && logger.warn(`Unknown hook: ${operation}`);
       continue;
     }
 

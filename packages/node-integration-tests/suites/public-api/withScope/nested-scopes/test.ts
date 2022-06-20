@@ -11,7 +11,6 @@ test('should allow nested scoping', async () => {
     user: {
       id: 'qux',
     },
-    tags: {},
   });
 
   assertSentryEvent(envelopes[3][2], {
@@ -49,6 +48,5 @@ test('should allow nested scoping', async () => {
     user: {
       id: 'qux',
     },
-    tags: {},
   });
 });

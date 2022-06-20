@@ -12,11 +12,12 @@ sentryTest('should send trace context data in transaction envelope header', asyn
   expect(envHeader.trace).toBeDefined();
   expect(envHeader.trace).toMatchObject({
     environment: 'production',
-    transaction: 'testTransactionBaggage',
-    user: {
-      id: 'user123',
-      segment: 'segmentB',
-    },
+    // TODO comment back in once we properly support transaction and user data in Baggage
+    // transaction: 'testTransactionBaggage',
+    // user: {
+    //   id: 'user123',
+    //   segment: 'segmentB',
+    // },
     public_key: 'public',
     trace_id: expect.any(String),
   });

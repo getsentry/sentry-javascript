@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import type { Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
@@ -7,7 +8,6 @@ import {
   mergeAndSerializeBaggage,
 } from '@sentry/utils';
 
-import { Span } from '../span';
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];

@@ -1,9 +1,8 @@
 import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
-import { configureScopeWithContext, EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
+import { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
 
@@ -40,7 +39,7 @@ function _wrapEventFunction(
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
     getCurrentHub().configureScope(scope => {
-      configureScopeWithContext(scope, context);
+      scope.setContext('gcp.function.context', { ...context });
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
     });
@@ -57,7 +56,7 @@ function _wrapEventFunction(
 
       void flush(options.flushTimeout)
         .then(null, e => {
-          IS_DEBUG_BUILD && logger.error(e);
+          __DEBUG_BUILD__ && logger.error(e);
         })
         .then(() => {
           callback(...args);

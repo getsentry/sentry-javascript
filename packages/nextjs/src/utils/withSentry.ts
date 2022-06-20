@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, Handlers, startTransaction } from '@sentry/node';
+import { addRequestDataToEvent, captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
@@ -6,15 +6,11 @@ import {
   isString,
   logger,
   objectify,
-  parseBaggageString,
+  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
-
-import { IS_DEBUG_BUILD } from '../flags';
-
-const { parseRequest } = Handlers;
 
 // This is the same as the `NextApiHandler` type, except instead of having a return type of `void | Promise<void>`, it's
 // only `Promise<void>`, because wrapped handlers are always async
@@ -45,17 +41,18 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, req));
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(req.headers['sentry-trace']);
-            IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const baggage = req.headers && isString(req.headers.baggage) && parseBaggageString(req.headers.baggage);
+          const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
+          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
           const url = `${req.url}`;
           // pull off query string, if any
@@ -75,7 +72,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              ...(baggage && { metadata: { baggage: baggage } }),
+              metadata: { baggage: baggage },
             },
             // extra context passed to the `tracesSampler`
             { request: req },
@@ -198,10 +195,10 @@ async function finishSentryProcessing(res: AugmentedNextApiResponse): Promise<vo
   // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
   // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
   try {
-    IS_DEBUG_BUILD && logger.log('Flushing events...');
+    __DEBUG_BUILD__ && logger.log('Flushing events...');
     await flush(2000);
-    IS_DEBUG_BUILD && logger.log('Done flushing events');
+    __DEBUG_BUILD__ && logger.log('Done flushing events');
   } catch (e) {
-    IS_DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+    __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
   }
 }

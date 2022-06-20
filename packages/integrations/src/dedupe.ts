@@ -1,8 +1,6 @@
 import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from './flags';
-
 /** Deduplication filter */
 export class Dedupe implements Integration {
   /**
@@ -30,7 +28,7 @@ export class Dedupe implements Integration {
         // Juuust in case something goes wrong
         try {
           if (_shouldDropEvent(currentEvent, self._previousEvent)) {
-            IS_DEBUG_BUILD && logger.warn('Event dropped due to being a duplicate of previously captured event.');
+            __DEBUG_BUILD__ && logger.warn('Event dropped due to being a duplicate of previously captured event.');
             return null;
           }
         } catch (_oO) {

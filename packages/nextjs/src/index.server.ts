@@ -7,7 +7,6 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
-import { IS_DEBUG_BUILD } from './flags';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
@@ -16,7 +15,7 @@ export * from '@sentry/node';
 
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
-export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
+export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
 
 type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
@@ -42,14 +41,14 @@ const isVercel = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
-  if (options.debug) {
+  if (__DEBUG_BUILD__ && options.debug) {
     logger.enable();
   }
 
-  IS_DEBUG_BUILD && logger.log('Initializing SDK...');
+  __DEBUG_BUILD__ && logger.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    IS_DEBUG_BUILD && logger.log('SDK already initialized');
+    __DEBUG_BUILD__ && logger.log('SDK already initialized');
     return;
   }
 
@@ -100,7 +99,7 @@ export function init(options: NextjsOptions): void {
     domain.active = activeDomain;
   }
 
-  IS_DEBUG_BUILD && logger.log('SDK successfully initialized');
+  __DEBUG_BUILD__ && logger.log('SDK successfully initialized');
 }
 
 function sdkAlreadyInitialized(): boolean {
@@ -153,6 +152,6 @@ if (!isVercel && !isBuild) {
     const { instrumentServer } = require('./utils/instrumentServer.js');
     instrumentServer();
   } catch (err) {
-    IS_DEBUG_BUILD && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
+    __DEBUG_BUILD__ && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
   }
 }

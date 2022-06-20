@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { IS_DEBUG_BUILD } from '../flags';
 import {
   BuildContext,
   EntryPropertyObject,
@@ -245,7 +244,7 @@ function checkWebpackPluginOverrides(
   // warn if any of the default options for the webpack plugin are getting overridden
   const sentryWebpackPluginOptionOverrides = Object.keys(defaultOptions).filter(key => key in userOptions);
   if (sentryWebpackPluginOptionOverrides.length > 0) {
-    IS_DEBUG_BUILD &&
+    __DEBUG_BUILD__ &&
       logger.warn(
         '[Sentry] You are overriding the following automatically-set SentryWebpackPlugin config options:\n' +
           `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +

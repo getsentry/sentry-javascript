@@ -1,7 +1,13 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-import { BaggageObj } from '@sentry/types';
-import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { Baggage, BaggageObj, BaseTransportOptions, ClientOptions } from '@sentry/types';
+import {
+  getGlobalObject,
+  InstrumentHandlerCallback,
+  InstrumentHandlerType,
+  isBaggageEmpty,
+  isSentryBaggageEmpty,
+} from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import {
@@ -228,7 +234,7 @@ describe('BrowserTracing', () => {
           parentSpanId: 'b6e54397b12a2a0f',
           parentSampled: true,
           metadata: {
-            baggage: [{ release: '2.1.14' }, 'foo=bar'],
+            baggage: [{ release: '2.1.14' }, 'foo=bar', false],
           },
         }),
         expect.any(Number),
@@ -390,7 +396,9 @@ describe('BrowserTracing', () => {
 
         const headerContext = extractTraceDataFromMetaTags();
 
-        expect(headerContext).toBeUndefined();
+        expect(headerContext).toBeDefined();
+        expect(headerContext?.metadata?.baggage).toBeDefined();
+        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
       });
 
       it('does not crash if the baggage header is malformed', () => {
@@ -406,16 +414,27 @@ describe('BrowserTracing', () => {
         expect(baggage && baggage[1]).toBeDefined();
       });
 
-      it("returns undefined if the header isn't there", () => {
+      it("returns default object if the header isn't there", () => {
         document.head.innerHTML = '<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">';
 
         const headerContext = extractTraceDataFromMetaTags();
 
-        expect(headerContext).toBeUndefined();
+        expect(headerContext).toBeDefined();
+        expect(headerContext?.metadata?.baggage).toBeDefined();
+        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
       });
     });
 
-    describe('using the data', () => {
+    describe('using the <meta> tag data', () => {
+      beforeEach(() => {
+        hub.getClient()!.getOptions = () => {
+          return {
+            release: '1.0.0',
+            environment: 'production',
+          } as ClientOptions<BaseTransportOptions>;
+        };
+      });
+
       it('uses the tracing data for pageload transactions', () => {
         // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
         document.head.innerHTML =
@@ -439,11 +458,33 @@ describe('BrowserTracing', () => {
         expect(baggage[1]).toEqual('foo=bar');
       });
 
+      it('does not add Sentry baggage data to pageload transactions if sentry-trace data is present but passes on 3rd party baggage', () => {
+        // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
+        document.head.innerHTML =
+          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
+          '<meta name="baggage" content="foo=bar">';
+
+        // pageload transactions are created as part of the BrowserTracing integration's initialization
+        createBrowserTracing(true);
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const baggage = transaction.getBaggage()!;
+
+        expect(transaction).toBeDefined();
+        expect(transaction.op).toBe('pageload');
+        expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+        expect(transaction.parentSpanId).toEqual('1121201211212012');
+        expect(transaction.sampled).toBe(false);
+        expect(baggage).toBeDefined();
+        expect(isSentryBaggageEmpty(baggage)).toBe(true);
+        expect(baggage[1]).toBeDefined();
+        expect(baggage[1]).toEqual('foo=bar');
+      });
+
       it('ignores the data for navigation transactions', () => {
         mockChangeHistory = () => undefined;
         document.head.innerHTML =
           '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
-          '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
+          '<meta name="baggage" content="sentry-release=2.1.14">';
 
         createBrowserTracing(true);
 
@@ -455,7 +496,11 @@ describe('BrowserTracing', () => {
         expect(transaction.op).toBe('navigation');
         expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toBeUndefined();
-        expect(baggage).toBeUndefined();
+        expect(baggage).toBeDefined();
+        expect(baggage[0]).toBeDefined();
+        expect(baggage[0]).toEqual({ release: '1.0.0', environment: 'production' });
+        expect(baggage[1]).toBeDefined();
+        expect(baggage[1]).toEqual('');
       });
     });
   });

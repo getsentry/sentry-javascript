@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
 import {
+  addRequestDataToEvent,
   captureException,
   configureScope,
   deepReadDirSync,
   getCurrentHub,
-  Handlers,
   startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
@@ -13,7 +13,7 @@ import {
   fill,
   isString,
   logger,
-  parseBaggageString,
+  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -21,10 +21,6 @@ import * as http from 'http';
 import { default as createNextServer } from 'next';
 import * as querystring from 'querystring';
 import * as url from 'url';
-
-import { IS_DEBUG_BUILD } from '../flags';
-
-const { parseRequest } = Handlers;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PlainObject<T = any> = { [key: string]: T };
@@ -248,7 +244,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => parseRequest(event, nextReq));
+        currentScope.addEventProcessor(event => addRequestDataToEvent(event, nextReq));
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
@@ -256,11 +252,11 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
           let traceparentData;
           if (nextReq.headers && isString(nextReq.headers['sentry-trace'])) {
             traceparentData = extractTraceparentData(nextReq.headers['sentry-trace']);
-            IS_DEBUG_BUILD && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
+            __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const baggage =
-            nextReq.headers && isString(nextReq.headers.baggage) && parseBaggageString(nextReq.headers.baggage);
+          const rawBaggageString = nextReq.headers && isString(nextReq.headers.baggage) && nextReq.headers.baggage;
+          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
           // pull off query string, if any
           const reqPath = stripUrlQueryAndFragment(nextReq.url);
@@ -273,9 +269,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
-              metadata: { requestPath: reqPath },
+              metadata: { requestPath: reqPath, baggage },
               ...traceparentData,
-              ...(baggage && { metadata: { baggage: baggage } }),
             },
             // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
             // to not break people's `tracesSampler` functions, even though the format of `nextReq` has changed (see

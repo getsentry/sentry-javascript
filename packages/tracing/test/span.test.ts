@@ -1,5 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/hub';
+import { BaseTransportOptions, ClientOptions } from '@sentry/types';
+import { createBaggage, getSentryBaggageItems, getThirdPartyBaggage, isSentryBaggageEmpty } from '@sentry/utils';
 
 import { Span, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';
@@ -388,6 +390,59 @@ describe('Span', () => {
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
       expect(span.data).toStrictEqual({ data0: 'foo', data1: 'bar' });
+    });
+  });
+
+  describe('getBaggage and _getBaggageWithSentryValues', () => {
+    beforeEach(() => {
+      hub.getClient()!.getOptions = () => {
+        return {
+          release: '1.0.1',
+          environment: 'production',
+        } as ClientOptions<BaseTransportOptions>;
+      };
+    });
+
+    test('leave baggage content untouched and just return baggage if there already is Sentry content in it', () => {
+      const transaction = new Transaction(
+        {
+          name: 'tx',
+          metadata: { baggage: createBaggage({ environment: 'myEnv' }, '') },
+        },
+        hub,
+      );
+
+      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
+
+      const span = transaction.startChild();
+
+      const baggage = span.getBaggage();
+
+      expect(hubSpy).toHaveBeenCalledTimes(0);
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ environment: 'myEnv' });
+      expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
+    });
+
+    test('add Sentry baggage data to baggage if Sentry content is empty and baggage is mutable', () => {
+      const transaction = new Transaction(
+        {
+          name: 'tx',
+          metadata: { baggage: createBaggage({}, '', true) },
+        },
+        hub,
+      );
+
+      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
+
+      const span = transaction.startChild();
+
+      const baggage = span.getBaggage();
+
+      expect(hubSpy).toHaveBeenCalledTimes(1);
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ release: '1.0.1', environment: 'production' });
+      expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
   });
 });

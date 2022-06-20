@@ -1,6 +1,16 @@
 /* eslint-disable max-lines */
-import { Baggage, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
-import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
+import { getCurrentHub } from '@sentry/hub';
+import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import {
+  createBaggage,
+  dropUndefinedKeys,
+  isBaggageMutable,
+  isSentryBaggageEmpty,
+  setBaggageImmutable,
+  setBaggageValue,
+  timestampWithMs,
+  uuid4,
+} from '@sentry/utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -301,8 +311,17 @@ export class Span implements SpanInterface {
   /**
    * @inheritdoc
    */
-  public getBaggage(): Baggage | undefined {
-    return this.transaction && this.transaction.metadata.baggage;
+  public getBaggage(): Baggage {
+    const existingBaggage = this.transaction && this.transaction.metadata.baggage;
+
+    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
+    // empty and mutable
+    const finalBaggage =
+      !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
+        ? this._getBaggageWithSentryValues(existingBaggage)
+        : existingBaggage;
+
+    return finalBaggage;
   }
 
   /**
@@ -333,6 +352,34 @@ export class Span implements SpanInterface {
       timestamp: this.endTimestamp,
       trace_id: this.traceId,
     });
+  }
+
+  /**
+   * Collects and adds data to the passed baggage object.
+   *
+   * Note: This function does not explicitly check if the passed baggage object is allowed
+   * to be modified. Implicitly, `setBaggageValue` will not make modification to the object
+   * if it was already set immutable.
+   *
+   * After adding the data, the baggage object is set immutable to prevent further modifications.
+   *
+   * @param baggage
+   *
+   * @returns modified and immutable baggage object
+   */
+  private _getBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
+    const client = hub.getClient();
+
+    const { environment, release } = (client && client.getOptions()) || {};
+
+    environment && setBaggageValue(baggage, 'environment', environment);
+    release && setBaggageValue(baggage, 'release', release);
+
+    setBaggageImmutable(baggage);
+
+    return baggage;
   }
 }
 

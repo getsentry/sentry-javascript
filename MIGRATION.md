@@ -11,7 +11,7 @@ Below we will outline all the breaking changes you should consider when upgradin
 - `whitelistUrls` and `blacklistUrls` have been renamed to `allowUrls` and `denyUrls` in the `Sentry.init()` options.
 - The `UserAgent` integration is now called `HttpContext`.
 - If you are using Performance Monitoring and with tracing enabled, you might have to [make adjustments to
-your server's CORS settings](#-propagation-of-baggage-header)
+your server's CORS settings](#propagation-of-baggage-header)
 
 ## Dropping Support for Node.js v6
 
@@ -478,11 +478,9 @@ const status = SpanStatus.fromHttpCode(403);
 
 We deprecated the `Severity` enum in `@sentry/types` and it will be removed in the next major release. We recommend using string literals (typed as `SeverityLevel`) to save on bundle size.
 
-`SeverityLevel` and `SeverityLevels` will continue to exist in v7, but they will live in `@sentry/utils` rather than `@sentry/types`. Currently, they live in both, for ease of migration. (`SeverityLevels` isn't included in the examples below because it is only useful internally.)
-
 ```js
 // New in 6.17.5:
-import { SeverityLevel } from '@sentry/utils';
+import { SeverityLevel } from '@sentry/types';
 
 const levelA = "error" as SeverityLevel;
 
