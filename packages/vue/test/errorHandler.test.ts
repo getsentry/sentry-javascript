@@ -1,10 +1,8 @@
-import { getCurrentHub } from '@sentry/browser';
+import { BrowserClient, createTransport, defaultStackParser, getCurrentHub } from '@sentry/browser';
 
 import { generateComponentTrace } from '../src/components';
 import { attachErrorHandler } from '../src/errorhandler';
 import { Operation, Options, ViewModel, Vue } from '../src/types';
-
-jest.useFakeTimers();
 
 describe('attachErrorHandler', () => {
   describe('attachProps', () => {
@@ -327,27 +325,17 @@ const testHarness = ({
   const providedErrorHandlerSpy = jest.fn();
   const warnHandlerSpy = jest.fn();
   const consoleErrorSpy = jest.fn();
-  const captureExceptionSpy = jest.fn();
 
-  getCurrentHub().bindClient({
-    // the only one I'm interested in
-    captureException: captureExceptionSpy,
-    // just to satisfy the interface
-    captureMessage: jest.fn(),
-    captureEvent: jest.fn(),
-    getDsn: jest.fn(),
-    getOptions: jest.fn(),
-    getTransport: jest.fn(),
-    close: jest.fn(),
-    flush: jest.fn(),
-    getIntegration: jest.fn(),
-    setupIntegrations: jest.fn(),
-    eventFromException: jest.fn(),
-    eventFromMessage: jest.fn(),
-    sendEvent: jest.fn(),
-    sendSession: jest.fn(),
-    recordDroppedEvent: jest.fn(),
+  const client = new BrowserClient({
+    dsn: 'https://username@domain/123',
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+    stackParser: defaultStackParser,
+    integrations: [],
   });
+
+  getCurrentHub().bindClient(client);
+
+  const captureExceptionSpy = jest.spyOn(client, 'captureException');
 
   const app: Vue = {
     config: {
