@@ -1,5 +1,5 @@
 import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
-import { HttpHeaderValue } from '@sentry/types/build/types/misc';
+import { HttpHeaderValue } from '@sentry/types';
 
 import { isString } from './is';
 import { logger } from './logger';
