@@ -17,7 +17,7 @@ export type ViewModel = {
   $root: ViewModel;
   $parent?: ViewModel;
   $props: { [key: string]: any };
-  $options: {
+  $options?: {
     name?: string;
     propsData?: { [key: string]: any };
     _componentTag?: string;
