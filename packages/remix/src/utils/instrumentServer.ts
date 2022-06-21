@@ -135,7 +135,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
     const currentScope = getCurrentHub().getScope();
     const transaction = startTransaction({
       name: request.url,
-      op: 'remix.server.requesthandler',
+      op: 'http.server',
       tags: {
         method: request.method,
       },
