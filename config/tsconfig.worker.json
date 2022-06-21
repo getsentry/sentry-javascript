@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": false,
+    "lib": ["webworker", "scripthost"],
+    "baseUrl": "../worker/src",
+    "outDir": "../src/worker",
+    "paths": {
+      "@worker": ["../worker/src"],
+      "@worker/*": ["../worker/src/*"]
+    }
+  },
+  "include": ["../worker/src/worker.ts", "../src/types.ts"]
+}

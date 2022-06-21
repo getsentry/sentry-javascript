@@ -22,7 +22,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
       - run: yarn test
-      - run: yarn build
+      - run: yarn build:prod
       - run: yarn pack
       - uses: actions/upload-artifact@v2
         with:

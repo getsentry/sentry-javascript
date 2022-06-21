@@ -1,23 +1,11 @@
 {
+  "extends": "./config/tsconfig.core.json",
   "compilerOptions": {
-    "allowJs": true,
-    "declaration": true,
-    "declarationDir": "./dist",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "noEmitOnError": false,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "baseUrl": ".",
-    "outDir": "./dist",
-    "target": "es5",
     "paths": {
-      "@": ["src"],
-      "@/*": ["src/*"],
-      "@test": ["test"],
-      "@test/*": ["test/*"]
+      "@": ["./src"],
+      "@/*": ["./src/*"],
+      "@test": ["./test"],
+      "@test/*": ["./test/*"]
     }
   },
   "include": [
@@ -26,6 +14,5 @@
     "rollup.config.ts",
     "jest.config.ts",
     "jest.setup.ts"
-  ],
-  "exclude": ["node_modules"]
+  ]
 }

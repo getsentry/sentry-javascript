@@ -6,16 +6,19 @@
   "module": "dist/index.es.js",
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn",
-    "build": "yarn run build-worker && yarn run build-src",
-    "build-src": "NODE_ENV=production yarn rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
-    "build-worker": "yarn rollup --config rollup.config.worker.ts",
+    "build": "yarn rollup --configPlugin @rollup/plugin-typescript",
+    "build:all": "yarn run build:worker && yarn run build:core",
+    "build:dev": "NODE_ENV=development yarn build:all",
+    "build:prod": "NODE_ENV=production yarn build:all",
+    "build:core": "yarn build --config config/rollup.config.core.ts",
+    "build:worker": "yarn build --config config/rollup.config.worker.ts",
     "clean": "yarn rimraf dist",
+    "dev": "yarn build:dev --watch",
     "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx",
     "prepare": "husky install",
-    "prepublishOnly": "yarn build",
-    "start:demo": "yarn build && cd demo && yarn start",
-    "test": "yarn jest",
-    "watch": "NODE_ENV=development yarn build --watch"
+    "prepublishOnly": "yarn build:prod",
+    "start:demo": "yarn build:dev && cd demo && yarn start",
+    "test": "yarn jest"
   },
   "files": [
     "dist"
