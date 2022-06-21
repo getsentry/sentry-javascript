@@ -12,6 +12,7 @@ import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/node';
+export { captureUnderscoreErrorException } from './utils/_error';
 
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
@@ -74,7 +75,7 @@ export function init(options: NextjsOptions): void {
     return event.type === 'transaction' && event.transaction === '/404' ? null : event;
   };
 
-  filterTransactions.id = 'NextServer404Filter';
+  filterTransactions.id = 'NextServer404TransactionFilter';
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');
