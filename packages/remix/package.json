@@ -9,10 +9,10 @@
   "engines": {
     "node": ">=14"
   },
-  "main": "build/esm/index.js",
-  "module": "build/esm/index.js",
+  "main": "build/esm/index.server.js",
+  "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
-  "types": "build/types/index.d.ts",
+  "types": "build/types/index.server.d.ts",
   "private": true,
   "dependencies": {
     "@sentry/core": "7.2.0",
@@ -52,7 +52,7 @@
     "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.server.ts",
     "clean": "rimraf build coverage sentry-remix-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
@@ -66,5 +66,9 @@
   },
   "volta": {
     "extends": "../../package.json"
-  }
+  },
+  "sideEffects": [
+    "./esm/index.server.js",
+    "./src/index.server.ts"
+  ]
 }
