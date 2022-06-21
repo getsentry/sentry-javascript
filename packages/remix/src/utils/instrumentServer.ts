@@ -1,9 +1,9 @@
 import { captureException, configureScope, getCurrentHub, startTransaction } from '@sentry/node';
-import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { getActiveTransaction } from '@sentry/tracing';
 import { addExceptionMechanism, fill, loadModule, logger } from '@sentry/utils';
 
-import { IS_DEBUG_BUILD } from '../flags';
-
+// Types vendored from @remix-run/server-runtime@1.6.0:
+// https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
 type AppLoadContext = unknown;
 type AppData = unknown;
 type RequestHandler = (request: Request, loadContext?: AppLoadContext) => Promise<Response>;
@@ -75,8 +75,12 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentHub().getScope();
 
+    if (!activeTransaction || !currentScope) {
+      return origFn.call(this, args);
+    }
+
     try {
-      const span = activeTransaction?.startChild({
+      const span = activeTransaction.startChild({
         op: `remix.server.${name}`,
         description: activeTransaction.name,
         tags: {
@@ -86,10 +90,12 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
 
       if (span) {
         // Assign data function to hub to be able to see `db` transactions (if any) as children.
-        currentScope?.setSpan(span);
+        currentScope.setSpan(span);
       }
 
       res = await origFn.call(this, args);
+
+      currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
       configureScope(scope => {
@@ -127,17 +133,13 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
 function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const currentScope = getCurrentHub().getScope();
-
-    // debugger;
-    const transaction = hasTracingEnabled()
-      ? startTransaction({
-          name: request.url,
-          op: 'remix.server.requesthandler',
-          tags: {
-            method: request.method,
-          },
-        })
-      : undefined;
+    const transaction = startTransaction({
+      name: request.url,
+      op: 'remix.server.requesthandler',
+      tags: {
+        method: request.method,
+      },
+    });
 
     if (transaction) {
       currentScope?.setSpan(transaction);
@@ -186,7 +188,7 @@ export function instrumentServer(): void {
   const pkg = loadModule<{ createRequestHandler: CreateRequestHandlerFunction }>('@remix-run/server-runtime');
 
   if (!pkg) {
-    IS_DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
+    __DEBUG_BUILD__ && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
 
     return;
   }
