@@ -178,7 +178,12 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
   };
 }
 
-/** Node.js stack line parser */
+/**
+ * Node.js stack line parser
+ *
+ * This is in @sentry/utils so it can be used from the Electron SDK in the browser for when `nodeIntegration == true`.
+ * This allows it to be used without referencing or importing any node specific code which causes bundlers to complain
+ */
 export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
   return [90, node(getModule)];
 }
