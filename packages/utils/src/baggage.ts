@@ -1,5 +1,7 @@
 import { Baggage, BaggageObj, TraceparentData } from '@sentry/types';
+import { HttpHeaderValue } from '@sentry/types';
 
+import { isString } from './is';
 import { logger } from './logger';
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
@@ -89,9 +91,28 @@ export function serializeBaggage(baggage: Baggage): string {
   }, baggage[1]);
 }
 
-/** Parse a baggage header from a string and return a Baggage object */
-export function parseBaggageString(inputBaggageString: string): Baggage {
-  return inputBaggageString.split(',').reduce(
+/** Parse a baggage header from a string or a string array and return a Baggage object */
+export function parseBaggageHeader(inputBaggageValue: HttpHeaderValue): Baggage {
+  // Adding this check here because we got reports of this function failing due to the input value
+  // not being a string. This debug log might help us determine what's going on here.
+  if ((!Array.isArray(inputBaggageValue) && !isString(inputBaggageValue)) || typeof inputBaggageValue === 'number') {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        '[parseBaggageHeader] Received input value of incompatible type: ',
+        typeof inputBaggageValue,
+        inputBaggageValue,
+      );
+
+    // Gonna early-return an empty baggage object so that we don't fail later on
+    return createBaggage({}, '');
+  }
+
+  const baggageEntries = (isString(inputBaggageValue) ? inputBaggageValue : inputBaggageValue.join(','))
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(entry => entry !== '');
+
+  return baggageEntries.reduce(
     ([baggageObj, baggageString], curr) => {
       const [key, val] = curr.split('=');
       if (SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(key)) {
@@ -122,16 +143,17 @@ export function parseBaggageString(inputBaggageString: string): Baggage {
  * it would only affect parts of the sentry baggage (@see Baggage interface).
  *
  * @param incomingBaggage the baggage header of the incoming request that might contain sentry entries
- * @param headerBaggageString possibly existing baggage header string added from a third party to request headers
+ * @param thirdPartyBaggageHeader possibly existing baggage header string or string[] added from a third
+ *        party to the request headers
  *
  * @return a merged and serialized baggage string to be propagated with the outgoing request
  */
-export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggageString?: string): string {
-  if (!incomingBaggage && !headerBaggageString) {
+export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, thirdPartyBaggageHeader?: HttpHeaderValue): string {
+  if (!incomingBaggage && !thirdPartyBaggageHeader) {
     return '';
   }
 
-  const headerBaggage = (headerBaggageString && parseBaggageString(headerBaggageString)) || undefined;
+  const headerBaggage = (thirdPartyBaggageHeader && parseBaggageHeader(thirdPartyBaggageHeader)) || undefined;
   const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
 
   const finalBaggage = createBaggage(
@@ -150,14 +172,14 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, headerBaggag
  *
  * Extracted this logic to a function because it's duplicated in a lot of places.
  *
- * @param rawBaggageString
+ * @param rawBaggageValue
  * @param sentryTraceHeader
  */
 export function parseBaggageSetMutability(
-  rawBaggageString: string | false | undefined | null,
+  rawBaggageValue: HttpHeaderValue | false | undefined,
   sentryTraceHeader: TraceparentData | string | false | undefined | null,
 ): Baggage {
-  const baggage = parseBaggageString(rawBaggageString || '');
+  const baggage = parseBaggageHeader(rawBaggageValue || '');
   if (!isSentryBaggageEmpty(baggage) || (sentryTraceHeader && isSentryBaggageEmpty(baggage))) {
     setBaggageImmutable(baggage);
   }

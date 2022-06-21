@@ -63,3 +63,5 @@ export interface WorkerLocation {
 }
 
 export type Primitive = number | string | boolean | bigint | symbol | null | undefined;
+
+export type HttpHeaderValue = string | string[] | number | null;
