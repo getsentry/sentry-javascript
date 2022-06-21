@@ -96,7 +96,7 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
       res = await origFn.call(this, args);
 
       currentScope.setSpan(activeTransaction);
-      span?.finish();
+      span.finish();
     } catch (err) {
       configureScope(scope => {
         scope.addEventProcessor(event => {
