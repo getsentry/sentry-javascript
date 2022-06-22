@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/hub';
-import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext } from '@sentry/types';
+import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import {
   createBaggage,
   dropUndefinedKeys,
@@ -11,8 +11,6 @@ import {
   timestampWithMs,
   uuid4,
 } from '@sentry/utils';
-
-import { Transaction } from './transaction';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -325,6 +323,11 @@ export class Span implements SpanInterface {
         ? this._populateBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
 
+    // In case, we poulated the DSC, we have update the stored one on the transaction.
+    if (existingBaggage !== finalBaggage && this.transaction) {
+      this.transaction.metadata.baggage = finalBaggage;
+    }
+
     return finalBaggage;
   }
 
@@ -372,7 +375,9 @@ export class Span implements SpanInterface {
    * @returns modified and immutable baggage object
    */
   private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
-    const hub: Hub = (this.transaction && this.transaction._hub) || getCurrentHub();
+    // Because of a cicular dependency, we cannot import the Transaction class here, hence the type casts
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
     const client = hub && hub.getClient();
 
     const { environment, release } = (client && client.getOptions()) || {};
