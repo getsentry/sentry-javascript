@@ -10,6 +10,7 @@ import {
   extractRequestData as _extractRequestData,
   getGlobalObject,
   logger,
+  nodeStackLineParser,
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -19,7 +20,6 @@ import * as url from 'url';
 import { NodeClient } from './client';
 import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
 import { getModule } from './module';
-import { nodeStackLineParser } from './stack-parser';
 import { makeNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
 

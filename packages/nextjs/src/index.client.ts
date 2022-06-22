@@ -9,6 +9,7 @@ import { addIntegration, UserIntegrations } from './utils/userIntegrations';
 
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
+export { captureUnderscoreErrorException } from './utils/_error';
 
 export { Integrations };
 

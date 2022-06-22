@@ -36,7 +36,7 @@ export type {} from './globals';
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';
-export type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent } from './polymorphics';

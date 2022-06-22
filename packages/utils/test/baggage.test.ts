@@ -7,8 +7,8 @@ import {
   isBaggageMutable,
   isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
+  parseBaggageHeader,
   parseBaggageSetMutability,
-  parseBaggageString,
   serializeBaggage,
   setBaggageImmutable,
   setBaggageValue,
@@ -97,9 +97,10 @@ describe('Baggage', () => {
     });
   });
 
-  describe('parseBaggageString', () => {
+  describe('parseBaggageHeader', () => {
     it.each([
       ['parses an empty string', '', createBaggage({})],
+      ['parses a blank string', '     ', createBaggage({})],
       [
         'parses sentry values into baggage',
         'sentry-environment=production,sentry-release=10.0.2',
@@ -113,8 +114,32 @@ describe('Baggage', () => {
           'userId=alice,serverNode=DF%2028,isProduction=false',
         ),
       ],
-    ])('%s', (_: string, baggageString, baggage) => {
-      expect(parseBaggageString(baggageString)).toEqual(baggage);
+      [
+        'parses arbitrary baggage headers from string with empty and blank entries',
+        'userId=alice,    serverNode=DF%2028   , isProduction=false,   ,,sentry-environment=production,,sentry-release=10.0.2',
+        createBaggage(
+          { environment: 'production', release: '10.0.2' },
+          'userId=alice,serverNode=DF%2028,isProduction=false',
+        ),
+      ],
+      [
+        'parses a string array',
+        ['userId=alice', 'sentry-environment=production', 'foo=bar'],
+        createBaggage({ environment: 'production' }, 'userId=alice,foo=bar'),
+      ],
+      [
+        'parses a string array with items containing multiple entries',
+        ['userId=alice,   userName=bob', 'sentry-environment=production,sentry-release=1.0.1', 'foo=bar'],
+        createBaggage({ environment: 'production', release: '1.0.1' }, 'userId=alice,userName=bob,foo=bar'),
+      ],
+      [
+        'parses a string array with empty/blank entries',
+        ['', 'sentry-environment=production,sentry-release=1.0.1', '    ', 'foo=bar'],
+        createBaggage({ environment: 'production', release: '1.0.1' }, 'foo=bar'),
+      ],
+      ['ignorese other input types than string and string[]', 42, createBaggage({}, '')],
+    ])('%s', (_: string, baggageValue, baggage) => {
+      expect(parseBaggageHeader(baggageValue)).toEqual(baggage);
     });
   });
 

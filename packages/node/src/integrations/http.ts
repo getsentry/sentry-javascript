@@ -123,7 +123,7 @@ function _createWrappedRequestMethodFactory(
               `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
             );
 
-          const headerBaggageString = requestOptions.headers && (requestOptions.headers.baggage as string);
+          const headerBaggageString = requestOptions.headers && requestOptions.headers.baggage;
 
           requestOptions.headers = {
             ...requestOptions.headers,
