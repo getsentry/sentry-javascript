@@ -30,9 +30,10 @@ sentryTest(
 
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
-      public_key: 'public',
-      trace_id: expect.any(String),
       release: '2.1.12',
+      sample_rate: '0.3232',
+      trace_id: '123',
+      public_key: 'public',
     });
   },
 );

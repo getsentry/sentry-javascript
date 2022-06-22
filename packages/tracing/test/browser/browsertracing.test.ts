@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-import type { Baggage, BaggageObj, BaseTransportOptions, ClientOptions } from '@sentry/types';
+import type { Baggage, BaggageObj, BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import {
   getGlobalObject,
   InstrumentHandlerCallback,
@@ -433,6 +433,12 @@ describe('BrowserTracing', () => {
             environment: 'production',
           } as ClientOptions<BaseTransportOptions>;
         };
+
+        hub.getClient()!.getDsn = () => {
+          return {
+            publicKey: 'pubKey',
+          } as DsnComponents;
+        };
       });
 
       it('uses the tracing data for pageload transactions', () => {
@@ -498,7 +504,13 @@ describe('BrowserTracing', () => {
         expect(transaction.parentSpanId).toBeUndefined();
         expect(baggage).toBeDefined();
         expect(baggage[0]).toBeDefined();
-        expect(baggage[0]).toEqual({ release: '1.0.0', environment: 'production' });
+        expect(baggage[0]).toEqual({
+          release: '1.0.0',
+          environment: 'production',
+          publickey: 'pubKey',
+          traceid: expect.any(String),
+          transaction: 'blank',
+        });
         expect(baggage[1]).toBeDefined();
         expect(baggage[1]).toEqual('');
       });

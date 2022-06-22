@@ -14,15 +14,14 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      // TODO comment back in once we properly support transaction and user data in Baggage
-      // transaction: 'testTransactionBaggage',
-      // user: {
-      //   id: 'user123',
-      //   segment: 'segmentB',
-      // },
+      transaction: expect.stringContaining('index.html'),
+      user: {
+        id: 'user123',
+        segment: 'segmentB',
+      },
       sample_rate: '1',
-      public_key: 'public',
       trace_id: expect.any(String),
+      public_key: 'public',
     });
   },
 );

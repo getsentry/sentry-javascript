@@ -393,7 +393,7 @@ describe('Span', () => {
     });
   });
 
-  describe('getBaggage and _getBaggageWithSentryValues', () => {
+  describe('getBaggage and _populateBaggageWithSentryValues', () => {
     beforeEach(() => {
       hub.getClient()!.getOptions = () => {
         return {
@@ -428,7 +428,10 @@ describe('Span', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({}, '', true) },
+          metadata: {
+            baggage: createBaggage({}, '', true),
+            transactionSampling: { rate: 0.56, method: 'client_rate' },
+          },
         },
         hub,
       );
@@ -441,7 +444,13 @@ describe('Span', () => {
 
       expect(hubSpy).toHaveBeenCalledTimes(1);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
-      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ release: '1.0.1', environment: 'production' });
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
+        release: '1.0.1',
+        environment: 'production',
+        transaction: 'tx',
+        samplerate: '0.56',
+        traceid: expect.any(String),
+      });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
   });

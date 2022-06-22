@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/hub';
-import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext } from '@sentry/types';
 import {
   createBaggage,
   dropUndefinedKeys,
@@ -11,6 +11,8 @@ import {
   timestampWithMs,
   uuid4,
 } from '@sentry/utils';
+
+import { Transaction } from './transaction';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -320,7 +322,7 @@ export class Span implements SpanInterface {
     //       custom sentry-values in DSC (added by users in the future)
     const finalBaggage =
       !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
-        ? this._getBaggageWithSentryValues(existingBaggage)
+        ? this._populateBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
 
     return finalBaggage;
@@ -369,19 +371,35 @@ export class Span implements SpanInterface {
    *
    * @returns modified and immutable baggage object
    */
-  private _getBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
-    const client = hub.getClient();
+  private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+    const hub: Hub = (this.transaction && this.transaction._hub) || getCurrentHub();
+    const client = hub && hub.getClient();
 
     const { environment, release } = (client && client.getOptions()) || {};
+    const { publicKey } = (client && client.getDsn()) || {};
 
     const metadata = this.transaction && this.transaction.metadata;
     const sampelRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
 
+    const traceId = this.traceId;
+
+    const transactionName = this.transaction && this.transaction.name;
+
+    let userId, userSegment;
+    hub.withScope(scope => {
+      const user = scope.getUser();
+      userId = user && user.id;
+      userSegment = user && user.segment;
+    });
+
     environment && setBaggageValue(baggage, 'environment', environment);
     release && setBaggageValue(baggage, 'release', release);
+    transactionName && setBaggageValue(baggage, 'transaction', transactionName);
+    userId && setBaggageValue(baggage, 'userid', userId);
+    userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
     sampelRate && setBaggageValue(baggage, 'samplerate', sampelRate.toString());
+    publicKey && setBaggageValue(baggage, 'publickey', publicKey);
+    traceId && setBaggageValue(baggage, 'traceid', traceId);
 
     setBaggageImmutable(baggage);
 

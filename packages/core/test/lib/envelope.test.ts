@@ -14,48 +14,23 @@ describe('createEventEnvelope', () => {
       expect(envelopeHeaders.trace).toBeUndefined();
     });
 
-    it('adds minimal trace data if event is a transaction and no other baggage-related data is available', () => {
-      const event: Event = {
-        type: 'transaction',
-        contexts: {
-          trace: {
-            trace_id: '1234',
-          },
-        },
-      };
-      const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
-
-      expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.trace).toEqual({ trace_id: '1234', public_key: 'pubKey123' });
-    });
-
     const testTable: Array<[string, Event, EventTraceContext]> = [
       [
-        'adds one baggage item',
+        'adds minimal baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-          },
           sdkProcessingMetadata: {
-            baggage: [{ release: '1.0.0' }, '', false],
+            baggage: [{ traceid: '1234', publickey: 'pubKey123' }, '', false],
           },
         },
-        { release: '1.0.0', trace_id: '1234', public_key: 'pubKey123' },
+        { trace_id: '1234', public_key: 'pubKey123' },
       ],
       [
-        'adds two baggage items',
+        'adds multiple baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-          },
           sdkProcessingMetadata: {
-            baggage: [{ environment: 'prod', release: '1.0.0' }, '', false],
+            baggage: [{ environment: 'prod', release: '1.0.0', publickey: 'pubKey123', traceid: '1234' }, '', false],
           },
         },
         { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
@@ -64,11 +39,6 @@ describe('createEventEnvelope', () => {
         'adds all baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-          },
           sdkProcessingMetadata: {
             baggage: [
               {
@@ -78,6 +48,8 @@ describe('createEventEnvelope', () => {
                 usersegment: 'segmentA',
                 transaction: 'TX',
                 samplerate: '0.95',
+                publickey: 'pubKey123',
+                traceid: '1234',
               },
               '',
               false,

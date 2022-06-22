@@ -19,7 +19,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  protected readonly _hub: Hub;
+  public readonly _hub: Hub;
 
   private _measurements: Measurements = {};
 

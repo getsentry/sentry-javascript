@@ -101,7 +101,7 @@ function createEventEnvelopeHeaders(
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
   const baggage = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
-  const { environment, release, transaction, userid, usersegment, samplerate } =
+  const { environment, release, transaction, userid, usersegment, samplerate, publickey, traceid } =
     (baggage && getSentryBaggageItems(baggage)) || {};
 
   return {
@@ -110,15 +110,10 @@ function createEventEnvelopeHeaders(
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
-      // If we don't already have a trace context in the event, we can't get the trace id, which makes adding any other
-      // trace data pointless
-      event.contexts &&
-      event.contexts.trace && {
+      baggage && {
         trace: dropUndefinedKeys({
-          // Trace context must be defined for transactions
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          trace_id: (event.contexts!.trace as Record<string, unknown>).trace_id as string,
-          public_key: dsn.publicKey,
+          trace_id: traceid,
+          public_key: publickey,
           sample_rate: samplerate,
           environment,
           release,
