@@ -38,9 +38,9 @@ describe('createEventEnvelope', () => {
             trace: {
               trace_id: '1234',
             },
-            baggage: {
-              release: '1.0.0',
-            },
+          },
+          sdkProcessingMetadata: {
+            baggage: [{ release: '1.0.0' }, '', false],
           },
         },
         { release: '1.0.0', trace_id: '1234', public_key: 'pubKey123' },
@@ -53,10 +53,9 @@ describe('createEventEnvelope', () => {
             trace: {
               trace_id: '1234',
             },
-            baggage: {
-              environment: 'prod',
-              release: '1.0.0',
-            },
+          },
+          sdkProcessingMetadata: {
+            baggage: [{ environment: 'prod', release: '1.0.0' }, '', false],
           },
         },
         { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
@@ -69,13 +68,20 @@ describe('createEventEnvelope', () => {
             trace: {
               trace_id: '1234',
             },
-            baggage: {
-              environment: 'prod',
-              release: '1.0.0',
-              userid: 'bob',
-              usersegment: 'segmentA',
-              transaction: 'TX',
-            },
+          },
+          sdkProcessingMetadata: {
+            baggage: [
+              {
+                environment: 'prod',
+                release: '1.0.0',
+                userid: 'bob',
+                usersegment: 'segmentA',
+                transaction: 'TX',
+                samplerate: '0.95',
+              },
+              '',
+              false,
+            ],
           },
         },
         {
@@ -85,6 +91,7 @@ describe('createEventEnvelope', () => {
           transaction: 'TX',
           trace_id: '1234',
           public_key: 'pubKey123',
+          sample_rate: '0.95',
         },
       ],
     ];

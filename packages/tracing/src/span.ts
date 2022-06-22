@@ -316,6 +316,8 @@ export class Span implements SpanInterface {
 
     // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
     // empty and mutable
+    // TODO: we might want to ditch the isSentryBaggageEmpty condition because it prevents
+    //       custom sentry-values in DSC (added by users in the future)
     const finalBaggage =
       !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
         ? this._getBaggageWithSentryValues(existingBaggage)
@@ -374,8 +376,12 @@ export class Span implements SpanInterface {
 
     const { environment, release } = (client && client.getOptions()) || {};
 
+    const metadata = this.transaction && this.transaction.metadata;
+    const sampelRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
+
     environment && setBaggageValue(baggage, 'environment', environment);
     release && setBaggageValue(baggage, 'release', release);
+    sampelRate && setBaggageValue(baggage, 'samplerate', sampelRate.toString());
 
     setBaggageImmutable(baggage);
 

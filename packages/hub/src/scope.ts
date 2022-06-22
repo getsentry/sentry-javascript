@@ -454,6 +454,7 @@ export class Scope implements ScopeInterface {
     if (this._transactionName) {
       event.transaction = this._transactionName;
     }
+
     // We want to set the trace context for normal events only if there isn't already
     // a trace context on the event. There is a product feature in place where we link
     // errors with transaction and it relies on that.
@@ -470,7 +471,12 @@ export class Scope implements ScopeInterface {
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
-    event.sdkProcessingMetadata = this._sdkProcessingMetadata;
+    // Since we're storing dynamic sampling context data in the event.sdkProcessingMetadata
+    // field We have to re-apply it after we applied the Scope's field.
+    // (This is because we're storing this data on the span and not on the scope)
+    const baggage = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
+    event.sdkProcessingMetadata = this._sdkProcessingMetadata || {};
+    event.sdkProcessingMetadata.baggage = baggage;
 
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }

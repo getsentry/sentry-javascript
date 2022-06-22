@@ -98,7 +98,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    expect(baggageHeader).toEqual('sentry-environment=production,sentry-release=1.0.0');
+    expect(baggageHeader).toEqual('sentry-environment=production,sentry-release=1.0.0,sentry-samplerate=1');
   });
 
   it('propagates 3rd party baggage header data to outgoing non-sentry requests', async () => {
@@ -110,7 +110,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    expect(baggageHeader).toEqual('dog=great,sentry-environment=production,sentry-release=1.0.0');
+    expect(baggageHeader).toEqual('dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-samplerate=1');
   });
 
   it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {

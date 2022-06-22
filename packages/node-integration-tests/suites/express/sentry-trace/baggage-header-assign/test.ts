@@ -77,7 +77,7 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'sentry-environment=prod,sentry-release=1.0',
+      baggage: 'sentry-environment=prod,sentry-release=1.0,sentry-samplerate=1',
     },
   });
 });
@@ -93,7 +93,7 @@ test('Should populate Sentry and propagate 3rd party content if sentry-trace hea
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0',
+      baggage: 'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0,sentry-samplerate=1',
     },
   });
 });

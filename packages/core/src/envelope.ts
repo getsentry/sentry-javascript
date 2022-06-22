@@ -1,5 +1,4 @@
 import {
-  BaggageObj,
   DsnComponents,
   Event,
   EventEnvelope,
@@ -13,7 +12,7 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString, getSentryBaggageItems } from '@sentry/utils';
 
 /** Extract sdk info from from the API metadata */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
@@ -77,13 +76,13 @@ export function createEventEnvelope(
 
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
 
+  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+
   // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
   // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may
   // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
   // of this `delete`, lest we miss putting it back in the next time the property is in use.)
   delete event.sdkProcessingMetadata;
-
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 
   const eventItem: EventItem = [
     {
@@ -101,8 +100,9 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
-  const baggage = event.contexts && (event.contexts.baggage as BaggageObj);
-  const { environment, release, transaction, userid, usersegment } = baggage || {};
+  const baggage = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
+  const { environment, release, transaction, userid, usersegment, samplerate } =
+    (baggage && getSentryBaggageItems(baggage)) || {};
 
   return {
     event_id: event.event_id as string,
@@ -119,9 +119,10 @@ function createEventEnvelopeHeaders(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           trace_id: (event.contexts!.trace as Record<string, unknown>).trace_id as string,
           public_key: dsn.publicKey,
-          environment: environment,
-          release: release,
-          transaction: transaction,
+          sample_rate: samplerate,
+          environment,
+          release,
+          transaction,
           ...((userid || usersegment) && {
             user: {
               id: userid,

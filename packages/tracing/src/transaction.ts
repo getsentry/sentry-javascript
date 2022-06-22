@@ -6,7 +6,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, getSentryBaggageItems, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -122,7 +122,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
-        baggage: getSentryBaggageItems(this.getBaggage()),
       },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
@@ -130,7 +129,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      sdkProcessingMetadata: this.metadata,
+      sdkProcessingMetadata: {
+        ...this.metadata,
+        baggage: this.getBaggage(),
+      },
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;

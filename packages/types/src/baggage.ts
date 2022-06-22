@@ -1,4 +1,4 @@
-export type AllowedBaggageKeys = 'environment' | 'release' | 'userid' | 'transaction' | 'usersegment';
+export type AllowedBaggageKeys = 'environment' | 'release' | 'userid' | 'transaction' | 'usersegment' | 'samplerate';
 export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
 
 /**

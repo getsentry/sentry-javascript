@@ -12,6 +12,7 @@ import { UserFeedback } from './user';
 export type EventTraceContext = {
   trace_id: Transaction['traceId'];
   public_key: DsnComponents['publicKey'];
+  sample_rate?: string;
   release?: string;
   user?: {
     id?: string;

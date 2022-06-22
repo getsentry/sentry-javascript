@@ -8,6 +8,7 @@ Sentry.init({
   integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] })],
   environment: 'production',
   tracesSampleRate: 1,
+  debug: true,
 });
 
 Sentry.configureScope(scope => {
