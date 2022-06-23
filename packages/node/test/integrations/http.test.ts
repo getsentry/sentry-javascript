@@ -108,10 +108,11 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
+    expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-userid=uid123,' +
-        'sentry-usersegment=segmentA,sentry-samplerate=1,sentry-publickey=dogsarebadatkeepingsecrets,' +
-        'sentry-traceid=12312012123120121231201212312012',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
+        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
   });
 
@@ -124,10 +125,11 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
+    expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
       'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-        'sentry-userid=uid123,sentry-usersegment=segmentA,sentry-samplerate=1,' +
-        'sentry-publickey=dogsarebadatkeepingsecrets,sentry-traceid=12312012123120121231201212312012',
+        'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
   });
 

@@ -1,10 +1,11 @@
 import {
+  Baggage,
   DsnComponents,
+  DynamicSamplingContext,
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
-  EventTraceContext,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -100,9 +101,8 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
-  const baggage = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
-  const { environment, release, transaction, userid, usersegment, samplerate, publickey, traceid } =
-    (baggage && getSentryBaggageItems(baggage)) || {};
+  const baggage: Baggage | undefined = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
+  const dynamicSamplingContext = baggage && getSentryBaggageItems(baggage);
 
   return {
     event_id: event.event_id as string,
@@ -110,21 +110,8 @@ function createEventEnvelopeHeaders(
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
-      baggage && {
-        trace: dropUndefinedKeys({
-          trace_id: traceid,
-          public_key: publickey,
-          sample_rate: samplerate,
-          environment,
-          release,
-          transaction,
-          ...((userid || usersegment) && {
-            user: {
-              id: userid,
-              segment: usersegment,
-            },
-          }),
-        }) as EventTraceContext,
+      dynamicSamplingContext && {
+        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
       }),
   };
 }

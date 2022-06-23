@@ -1,12 +1,6 @@
-export type AllowedBaggageKeys =
-  | 'environment'
-  | 'release'
-  | 'transaction'
-  | 'userid'
-  | 'usersegment'
-  | 'samplerate'
-  | 'traceid'
-  | 'publickey';
+import { DynamicSamplingContext } from './envelope';
+
+export type AllowedBaggageKeys = keyof DynamicSamplingContext;
 
 export type BaggageObj = Partial<Record<AllowedBaggageKeys, string> & Record<string, string>>;
 

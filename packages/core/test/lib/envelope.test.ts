@@ -20,7 +20,7 @@ describe('createEventEnvelope', () => {
         {
           type: 'transaction',
           sdkProcessingMetadata: {
-            baggage: [{ traceid: '1234', publickey: 'pubKey123' }, '', false],
+            baggage: [{ trace_id: '1234', public_key: 'pubKey123' }, '', false],
           },
         },
         { trace_id: '1234', public_key: 'pubKey123' },
@@ -30,7 +30,7 @@ describe('createEventEnvelope', () => {
         {
           type: 'transaction',
           sdkProcessingMetadata: {
-            baggage: [{ environment: 'prod', release: '1.0.0', publickey: 'pubKey123', traceid: '1234' }, '', false],
+            baggage: [{ environment: 'prod', release: '1.0.0', public_key: 'pubKey123', trace_id: '1234' }, '', false],
           },
         },
         { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
@@ -44,12 +44,12 @@ describe('createEventEnvelope', () => {
               {
                 environment: 'prod',
                 release: '1.0.0',
-                userid: 'bob',
-                usersegment: 'segmentA',
                 transaction: 'TX',
-                samplerate: '0.95',
-                publickey: 'pubKey123',
-                traceid: '1234',
+                user_id: 'bob',
+                user_segment: 'segmentA',
+                sample_rate: '0.95',
+                public_key: 'pubKey123',
+                trace_id: '1234',
               },
               '',
               false,
@@ -57,13 +57,14 @@ describe('createEventEnvelope', () => {
           },
         },
         {
-          release: '1.0.0',
           environment: 'prod',
-          user: { id: 'bob', segment: 'segmentA' },
+          release: '1.0.0',
           transaction: 'TX',
-          trace_id: '1234',
-          public_key: 'pubKey123',
+          user_id: 'bob',
+          user_segment: 'segmentA',
           sample_rate: '0.95',
+          public_key: 'pubKey123',
+          trace_id: '1234',
         },
       ],
     ];
