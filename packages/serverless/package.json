@@ -21,8 +21,7 @@
     "@sentry/types": "7.3.1",
     "@sentry/utils": "7.3.1",
     "@types/aws-lambda": "^8.10.62",
-    "@types/express": "^4.17.2",
-    "tslib": "^1.9.3"
+    "@types/express": "^4.17.2"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",

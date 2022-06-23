@@ -16,8 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.3.1",
-    "tslib": "^1.9.3"
+    "@sentry/types": "7.3.1"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",

@@ -18,8 +18,7 @@
   "dependencies": {
     "@sentry/hub": "7.3.1",
     "@sentry/types": "7.3.1",
-    "@sentry/utils": "7.3.1",
-    "tslib": "^1.9.3"
+    "@sentry/utils": "7.3.1"
   },
   "devDependencies": {
     "@sentry/browser": "7.3.1",
