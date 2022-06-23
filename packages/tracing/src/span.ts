@@ -316,10 +316,17 @@ export class Span implements SpanInterface {
 
     // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
     // empty and mutable
+    // TODO: we might want to ditch the isSentryBaggageEmpty condition because it prevents
+    //       custom sentry-values in DSC (added by users in the future)
     const finalBaggage =
       !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
-        ? this._getBaggageWithSentryValues(existingBaggage)
+        ? this._populateBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
+
+    // In case, we poulated the DSC, we have update the stored one on the transaction.
+    if (existingBaggage !== finalBaggage && this.transaction) {
+      this.transaction.metadata.baggage = finalBaggage;
+    }
 
     return finalBaggage;
   }
@@ -367,15 +374,46 @@ export class Span implements SpanInterface {
    *
    * @returns modified and immutable baggage object
    */
-  private _getBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+  private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+    // Because of a cicular dependency, we cannot import the Transaction class here, hence the type casts
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
-    const client = hub.getClient();
+    const client = hub && hub.getClient();
 
     const { environment, release } = (client && client.getOptions()) || {};
+    const { publicKey } = (client && client.getDsn()) || {};
+
+    const metadata = this.transaction && this.transaction.metadata;
+    const sampleRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
+
+    const traceId = this.traceId;
+
+    const transactionName = this.transaction && this.transaction.name;
+
+    let userId, userSegment;
+    hub.withScope(scope => {
+      const user = scope.getUser();
+      userId = user && user.id;
+      userSegment = user && user.segment;
+    });
 
     environment && setBaggageValue(baggage, 'environment', environment);
     release && setBaggageValue(baggage, 'release', release);
+    transactionName && setBaggageValue(baggage, 'transaction', transactionName);
+    userId && setBaggageValue(baggage, 'userid', userId);
+    userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
+    sampleRate &&
+      setBaggageValue(
+        baggage,
+        'samplerate',
+        // This will make sure that expnent notation (e.g. 1.45e-14) is converted to simple decimal representation
+        // Another edge case would be something like Number.NEGATIVE_INFINITY in which case we could still
+        // add something like .replace(/-?∞/, '0'). For the sake of saving bytes, I'll not add this until
+        // it becomes a problem
+        sampleRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
+      );
+    publicKey && setBaggageValue(baggage, 'publickey', publicKey);
+    traceId && setBaggageValue(baggage, 'traceid', traceId);
 
     setBaggageImmutable(baggage);
 

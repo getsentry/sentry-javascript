@@ -77,7 +77,10 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'sentry-environment=prod,sentry-release=1.0',
+      baggage: expect.stringContaining(
+        'sentry-environment=prod,sentry-release=1.0,sentry-transaction=GET%20%2Ftest%2Fexpress,sentry-samplerate=1,' +
+          'sentry-publickey=public,sentry-traceid=',
+      ),
     },
   });
 });
@@ -93,7 +96,11 @@ test('Should populate Sentry and propagate 3rd party content if sentry-trace hea
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0',
+      // TraceId changes, hence we only expect that the string contains the traceid key
+      baggage: expect.stringContaining(
+        'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0,sentry-transaction=GET%20%2Ftest%2Fexpress,' +
+          'sentry-samplerate=1,sentry-publickey=public,sentry-traceid=',
+      ),
     },
   });
 });
