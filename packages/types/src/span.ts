@@ -1,4 +1,3 @@
-import { Baggage } from './baggage';
 import { Primitive } from './misc';
 import { Transaction } from './transaction';
 
@@ -162,6 +161,7 @@ export interface Span extends SpanContext {
     tags?: { [key: string]: Primitive };
     trace_id: string;
   };
+
   /** Convert the object to JSON */
   toJSON(): {
     data?: { [key: string]: any };
@@ -175,7 +175,4 @@ export interface Span extends SpanContext {
     timestamp?: number;
     trace_id: string;
   };
-
-  /** return the baggage for dynamic sampling and trace propagation */
-  getBaggage(): Baggage | undefined;
 }
