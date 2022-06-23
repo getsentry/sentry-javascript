@@ -50,7 +50,7 @@ function _trackCLS(): void {
     }
 
     __DEBUG_BUILD__ && logger.log('[Measurements] Adding CLS');
-    _measurements['cls'] = { value: metric.value, unit: 'millisecond' };
+    _measurements['cls'] = { value: metric.value, unit: 'none' };
     _clsEntry = entry as LayoutShift;
   });
 }
@@ -172,7 +172,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
         // This is the time between the start of the request and the start of the response in milliseconds.
         _measurements['ttfb.requestTime'] = {
           value: (responseStartTimestamp - requestStartTimestamp) * 1000,
-          unit: 'second',
+          unit: 'millisecond',
         };
       }
     }
