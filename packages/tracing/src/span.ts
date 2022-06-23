@@ -402,7 +402,16 @@ export class Span implements SpanInterface {
     transactionName && setBaggageValue(baggage, 'transaction', transactionName);
     userId && setBaggageValue(baggage, 'userid', userId);
     userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
-    sampelRate && setBaggageValue(baggage, 'samplerate', sampelRate.toString());
+    sampelRate &&
+      setBaggageValue(
+        baggage,
+        'samplerate',
+        // This will make sure that expnent notation (e.g. 1.45e-14) is converted to simple decimal representation
+        // Another edge case would be something like Number.NEGATIVE_INFINITY in which case we could still
+        // add something like .replace(/-?∞/, '0'). For the sake of saving bytes, I'll not add this until
+        // it becomes a problem
+        sampelRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
+      );
     publicKey && setBaggageValue(baggage, 'publickey', publicKey);
     traceId && setBaggageValue(baggage, 'traceid', traceId);
 

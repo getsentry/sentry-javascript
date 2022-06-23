@@ -453,5 +453,29 @@ describe('Span', () => {
       });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
+
+    test('exponential sample rate notation is converted to decimal notation', () => {
+      const transaction = new Transaction(
+        {
+          name: 'tx',
+          metadata: {
+            transactionSampling: { rate: 1.45e-14, method: 'client_rate' },
+          },
+        },
+        hub,
+      );
+
+      const baggage = transaction.getBaggage();
+
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
+        release: '1.0.1',
+        environment: 'production',
+        transaction: 'tx',
+        samplerate: '0.0000000000000145',
+        traceid: expect.any(String),
+      });
+      expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
+    });
   });
 });
