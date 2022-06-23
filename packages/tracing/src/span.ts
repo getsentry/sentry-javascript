@@ -384,7 +384,7 @@ export class Span implements SpanInterface {
     const { publicKey } = (client && client.getDsn()) || {};
 
     const metadata = this.transaction && this.transaction.metadata;
-    const sampelRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
+    const sampleRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
 
     const traceId = this.traceId;
 
@@ -402,7 +402,7 @@ export class Span implements SpanInterface {
     transactionName && setBaggageValue(baggage, 'transaction', transactionName);
     userId && setBaggageValue(baggage, 'userid', userId);
     userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
-    sampelRate &&
+    sampleRate &&
       setBaggageValue(
         baggage,
         'samplerate',
@@ -410,7 +410,7 @@ export class Span implements SpanInterface {
         // Another edge case would be something like Number.NEGATIVE_INFINITY in which case we could still
         // add something like .replace(/-?∞/, '0'). For the sake of saving bytes, I'll not add this until
         // it becomes a problem
-        sampelRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
+        sampleRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
       );
     publicKey && setBaggageValue(baggage, 'publickey', publicKey);
     traceId && setBaggageValue(baggage, 'traceid', traceId);

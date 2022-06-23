@@ -471,12 +471,7 @@ export class Scope implements ScopeInterface {
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
-    // Since we're storing dynamic sampling context data in the event.sdkProcessingMetadata
-    // field We have to re-apply it after we applied the Scope's field.
-    // (This is because we're storing this data on the span and not on the scope)
-    const baggage = event.sdkProcessingMetadata && event.sdkProcessingMetadata.baggage;
-    event.sdkProcessingMetadata = this._sdkProcessingMetadata || {};
-    event.sdkProcessingMetadata.baggage = baggage;
+    event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, ...this._sdkProcessingMetadata };
 
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }
