@@ -87,6 +87,9 @@ export interface Transaction extends TransactionContext, Span {
 
   /** Updates the current transaction with a new `TransactionContext` */
   updateWithContext(transactionContext: TransactionContext): this;
+
+  /** return the baggage for dynamic sampling and trace propagation */
+  getBaggage(): Baggage;
 }
 
 /**

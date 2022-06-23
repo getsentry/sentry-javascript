@@ -1,16 +1,6 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/hub';
-import { Baggage, Hub, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
-import {
-  createBaggage,
-  dropUndefinedKeys,
-  isBaggageMutable,
-  isSentryBaggageEmpty,
-  setBaggageImmutable,
-  setBaggageValue,
-  timestampWithMs,
-  uuid4,
-} from '@sentry/utils';
+import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { dropUndefinedKeys, timestampWithMs, uuid4 } from '@sentry/utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -309,29 +299,6 @@ export class Span implements SpanInterface {
   }
 
   /**
-   * @inheritdoc
-   */
-  public getBaggage(): Baggage {
-    const existingBaggage = this.transaction && this.transaction.metadata.baggage;
-
-    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
-    // empty and mutable
-    // TODO: we might want to ditch the isSentryBaggageEmpty condition because it prevents
-    //       custom sentry-values in DSC (added by users in the future)
-    const finalBaggage =
-      !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
-        ? this._populateBaggageWithSentryValues(existingBaggage)
-        : existingBaggage;
-
-    // In case, we poulated the DSC, we have update the stored one on the transaction.
-    if (existingBaggage !== finalBaggage && this.transaction) {
-      this.transaction.metadata.baggage = finalBaggage;
-    }
-
-    return finalBaggage;
-  }
-
-  /**
    * @inheritDoc
    */
   public toJSON(): {
@@ -359,65 +326,6 @@ export class Span implements SpanInterface {
       timestamp: this.endTimestamp,
       trace_id: this.traceId,
     });
-  }
-
-  /**
-   * Collects and adds data to the passed baggage object.
-   *
-   * Note: This function does not explicitly check if the passed baggage object is allowed
-   * to be modified. Implicitly, `setBaggageValue` will not make modification to the object
-   * if it was already set immutable.
-   *
-   * After adding the data, the baggage object is set immutable to prevent further modifications.
-   *
-   * @param baggage
-   *
-   * @returns modified and immutable baggage object
-   */
-  private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
-    // Because of a cicular dependency, we cannot import the Transaction class here, hence the type casts
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const hub: Hub = ((this.transaction as any) && (this.transaction as any)._hub) || getCurrentHub();
-    const client = hub && hub.getClient();
-
-    const { environment, release } = (client && client.getOptions()) || {};
-    const { publicKey } = (client && client.getDsn()) || {};
-
-    const metadata = this.transaction && this.transaction.metadata;
-    const sampleRate = metadata && metadata.transactionSampling && metadata.transactionSampling.rate;
-
-    const traceId = this.traceId;
-
-    const transactionName = this.transaction && this.transaction.name;
-
-    let userId, userSegment;
-    hub.withScope(scope => {
-      const user = scope.getUser();
-      userId = user && user.id;
-      userSegment = user && user.segment;
-    });
-
-    environment && setBaggageValue(baggage, 'environment', environment);
-    release && setBaggageValue(baggage, 'release', release);
-    transactionName && setBaggageValue(baggage, 'transaction', transactionName);
-    userId && setBaggageValue(baggage, 'userid', userId);
-    userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
-    sampleRate &&
-      setBaggageValue(
-        baggage,
-        'samplerate',
-        // This will make sure that expnent notation (e.g. 1.45e-14) is converted to simple decimal representation
-        // Another edge case would be something like Number.NEGATIVE_INFINITY in which case we could still
-        // add something like .replace(/-?∞/, '0'). For the sake of saving bytes, I'll not add this until
-        // it becomes a problem
-        sampleRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
-      );
-    publicKey && setBaggageValue(baggage, 'publickey', publicKey);
-    traceId && setBaggageValue(baggage, 'traceid', traceId);
-
-    setBaggageImmutable(baggage);
-
-    return baggage;
   }
 }
 

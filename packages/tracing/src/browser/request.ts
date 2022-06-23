@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Span } from '@sentry/types';
+import type { Baggage, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
   BAGGAGE_HEADER_NAME,
@@ -198,12 +198,13 @@ export function fetchCallback(
     const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
-    options.headers = addTracingHeaders(request, span, options);
+    options.headers = addTracingHeaders(request, activeTransaction.getBaggage(), span, options);
   }
 }
 
 function addTracingHeaders(
   request: string | Request,
+  incomingBaggage: Baggage | undefined,
   span: Span,
   options: { [key: string]: any },
 ): PolymorphicRequestHeaders {
@@ -212,7 +213,6 @@ function addTracingHeaders(
   if (isInstanceOf(request, Request)) {
     headers = (request as Request).headers;
   }
-  const incomingBaggage = span.getBaggage();
 
   if (headers) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -302,7 +302,7 @@ export function xhrCallback(
 
         handlerData.xhr.setRequestHeader(
           BAGGAGE_HEADER_NAME,
-          mergeAndSerializeBaggage(span.getBaggage(), headerBaggageString),
+          mergeAndSerializeBaggage(activeTransaction.getBaggage(), headerBaggageString),
         );
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.

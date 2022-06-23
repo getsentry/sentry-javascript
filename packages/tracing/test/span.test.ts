@@ -414,9 +414,7 @@ describe('Span', () => {
 
       const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
-      const span = transaction.startChild();
-
-      const baggage = span.getBaggage();
+      const baggage = transaction.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(0);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
@@ -438,9 +436,7 @@ describe('Span', () => {
 
       const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
-      const span = transaction.startChild();
-
-      const baggage = span.getBaggage();
+      const baggage = transaction.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(1);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
