@@ -188,6 +188,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   /**
    * @inheritdoc
+   *
+   * @experimental
    */
   public getBaggage(): Baggage {
     const existingBaggage = this.metadata.baggage;
