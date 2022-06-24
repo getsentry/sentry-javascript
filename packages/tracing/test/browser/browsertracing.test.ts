@@ -507,9 +507,9 @@ describe('BrowserTracing', () => {
         expect(baggage[0]).toEqual({
           release: '1.0.0',
           environment: 'production',
-          publickey: 'pubKey',
-          traceid: expect.any(String),
           transaction: 'blank',
+          public_key: 'pubKey',
+          trace_id: expect.not.stringMatching('12312012123120121231201212312012'),
         });
         expect(baggage[1]).toBeDefined();
         expect(baggage[1]).toEqual('');

@@ -444,8 +444,8 @@ describe('Span', () => {
         release: '1.0.1',
         environment: 'production',
         transaction: 'tx',
-        samplerate: '0.56',
-        traceid: expect.any(String),
+        sample_rate: '0.56',
+        trace_id: expect.any(String),
       });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
@@ -468,8 +468,8 @@ describe('Span', () => {
         release: '1.0.1',
         environment: 'production',
         transaction: 'tx',
-        samplerate: '0.0000000000000145',
-        traceid: expect.any(String),
+        sample_rate: '0.0000000000000145',
+        trace_id: expect.any(String),
       });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });

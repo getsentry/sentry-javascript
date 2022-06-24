@@ -1,6 +1,7 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import {
   Baggage,
+  BaggageObj,
   Event,
   Measurements,
   Transaction as TransactionInterface,
@@ -10,11 +11,11 @@ import {
 import {
   createBaggage,
   dropUndefinedKeys,
+  getSentryBaggageItems,
+  getThirdPartyBaggage,
   isBaggageMutable,
   isSentryBaggageEmpty,
   logger,
-  setBaggageImmutable,
-  setBaggageValue,
 } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
@@ -228,40 +229,34 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hub: Hub = this._hub || getCurrentHub();
     const client = hub && hub.getClient();
 
-    const { environment, release } = (client && client.getOptions()) || {};
-    const { publicKey } = (client && client.getDsn()) || {};
+    if (!client) return baggage;
 
-    const sampleRate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
-    const traceId = this.traceId;
-    const transactionName = this.name;
+    const { environment, release } = client.getOptions() || {};
+    const { publicKey: public_key } = client.getDsn() || {};
 
-    let userId, userSegment;
-    hub.configureScope(scope => {
-      const { id, segment } = scope.getUser() || {};
-      userId = id;
-      userSegment = segment;
-    });
+    const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
+    const sample_rate =
+      rate !== undefined
+        ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
+        : undefined;
 
-    environment && setBaggageValue(baggage, 'environment', environment);
-    release && setBaggageValue(baggage, 'release', release);
-    transactionName && setBaggageValue(baggage, 'transaction', transactionName);
-    userId && setBaggageValue(baggage, 'userid', userId);
-    userSegment && setBaggageValue(baggage, 'usersegment', userSegment);
-    sampleRate &&
-      setBaggageValue(
-        baggage,
-        'samplerate',
-        // This will make sure that expnent notation (e.g. 1.45e-14) is converted to simple decimal representation
-        // Another edge case would be something like Number.NEGATIVE_INFINITY in which case we could still
-        // add something like .replace(/-?∞/, '0'). For the sake of saving bytes, I'll not add this until
-        // it becomes a problem
-        sampleRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 }),
-      );
-    publicKey && setBaggageValue(baggage, 'publickey', publicKey);
-    traceId && setBaggageValue(baggage, 'traceid', traceId);
+    const scope = hub.getScope();
+    const { id: user_id, segment: user_segment } = (scope && scope.getUser()) || {};
 
-    setBaggageImmutable(baggage);
-
-    return baggage;
+    return createBaggage(
+      dropUndefinedKeys({
+        environment,
+        release,
+        transaction: this.name,
+        user_id,
+        user_segment,
+        public_key,
+        trace_id: this.traceId,
+        sample_rate,
+        ...getSentryBaggageItems(baggage), // keep user-added values
+      } as BaggageObj),
+      getThirdPartyBaggage(baggage), // TODO: remove once we ignore 3rd party baggage
+      false, // set baggage immutable
+    );
   }
 }
