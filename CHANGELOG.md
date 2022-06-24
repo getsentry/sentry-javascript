@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.3.0
+
+- feat(nextjs): Add exception handler for `_error.js` (#5259)
+- feat(tracing): Add additional Dynamic Sampling Context items to baggage and envelope headers (#5292)
+- fix(node): Allow `ParseRequestOptions` to be passed to request handler (#5287)
+- fix(tracing): Baggage parsing fails when input is not of type string (#5276)
+- fix(tracing): Report the right units for CLS and TTFB (#5303)
+- fix(vue): Property access on undefined in errorHandler (#5279)
+- ref(node): Move stack parser to utils so it can be used from Electron (#5286)
+- ref(tracing): Move getBaggage() from Span to Transaction class (#5299)
+- ref(tracing): Unify DSC key names in envelope and baggage headers (#5302)
+
+Work in this release contributed by @Arinono. Thank you for your contribution!
+
 ## 7.2.0
 
 - feat(angular): Add Angular 14 support (#5253)
