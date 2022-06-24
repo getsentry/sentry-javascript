@@ -1,17 +1,12 @@
-import type { RRWebEvent } from '@/types';
-
 import { SentryReplay } from '@';
-import { ReplaySession } from '@/session';
+import { Session } from '@/session/Session';
 
 const ATTACHMENTS_URL_REGEX = new RegExp(
   'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
 );
 
 expect.extend({
-  toHaveSameSession(
-    received: jest.Mocked<SentryReplay>,
-    expected: ReplaySession
-  ) {
+  toHaveSameSession(received: jest.Mocked<SentryReplay>, expected: Session) {
     const pass = this.equals(received.session.id, expected.id);
 
     const options = {
@@ -83,7 +78,7 @@ declare global {
   namespace jest {
     interface Matchers<R> {
       toHaveSentReplay(expected?: string | Uint8Array): CustomMatcherResult;
-      toHaveSameSession(expected: ReplaySession): CustomMatcherResult;
+      toHaveSameSession(expected: Session): CustomMatcherResult;
     }
   }
 }

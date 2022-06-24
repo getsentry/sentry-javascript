@@ -7,9 +7,7 @@
     "outDir": "./dist",
     "paths": {
       "@": ["./src"],
-      "@/*": ["./src/*"],
-      "@test": ["./test"],
-      "@test/*": ["./test/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["../src/**/*.ts"],

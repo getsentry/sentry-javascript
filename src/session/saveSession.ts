@@ -1,7 +1,7 @@
 import { REPLAY_SESSION_KEY } from './constants';
-import { ReplaySession } from './types';
+import { Session } from './Session';
 
-export function saveSession(session: ReplaySession) {
+export function saveSession(session: Session) {
   const hasSessionStorage = 'sessionStorage' in window;
   if (!hasSessionStorage) {
     return;

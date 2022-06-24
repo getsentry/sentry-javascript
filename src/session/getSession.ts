@@ -2,7 +2,7 @@ import { isSessionExpired } from '@/util/isSessionExpired';
 import { logger } from '@/util/logger';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
-import { ReplaySession } from './types';
+import { Session } from './Session';
 
 interface GetSessionParams {
   /**
@@ -17,7 +17,7 @@ interface GetSessionParams {
   /**
    * The current session (e.g. if stickySession is off)
    */
-  currentSession?: ReplaySession;
+  currentSession?: Session;
 }
 
 /**

@@ -2,6 +2,7 @@ import * as CreateSession from './createSession';
 import * as FetchSession from './fetchSession';
 import { getSession } from './getSession';
 import { saveSession } from './saveSession';
+import { Session } from './Session';
 
 jest.mock('@sentry/utils', () => {
   return {
@@ -11,12 +12,12 @@ jest.mock('@sentry/utils', () => {
 });
 
 function createMockSession(when: number = new Date().getTime()) {
-  return {
+  return new Session({
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: when,
     started: when,
-  };
+  });
 }
 
 beforeAll(() => {
@@ -37,7 +38,7 @@ it('creates a non-sticky session when one does not exist', function () {
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();
   expect(CreateSession.createSession).toHaveBeenCalled();
 
-  expect(session).toEqual({
+  expect(session.toJSON()).toEqual({
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
@@ -63,12 +64,12 @@ it('creates a non-sticky session, when one is expired', function () {
   const session = getSession({
     expiry: 1000,
     stickySession: false,
-    currentSession: {
+    currentSession: new Session({
       id: 'old_session_id',
       lastActivity: new Date().getTime() - 1001,
       started: new Date().getTime() - 1001,
       sequenceId: 0,
-    },
+    }),
   });
 
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -86,7 +87,7 @@ it('creates a sticky session when one does not exist', function () {
   expect(FetchSession.fetchSession).toHaveBeenCalled();
   expect(CreateSession.createSession).toHaveBeenCalled();
 
-  expect(session).toEqual({
+  expect(session.toJSON()).toEqual({
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
@@ -94,7 +95,7 @@ it('creates a sticky session when one does not exist', function () {
   });
 
   // Should not have anything in storage
-  expect(FetchSession.fetchSession()).toEqual({
+  expect(FetchSession.fetchSession().toJSON()).toEqual({
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
@@ -111,7 +112,7 @@ it('fetches an existing sticky session', function () {
   expect(FetchSession.fetchSession).toHaveBeenCalled();
   expect(CreateSession.createSession).not.toHaveBeenCalled();
 
-  expect(session).toEqual({
+  expect(session.toJSON()).toEqual({
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: now,
@@ -138,12 +139,12 @@ it('fetches a non-expired non-sticky session', function () {
   const session = getSession({
     expiry: 1000,
     stickySession: false,
-    currentSession: {
+    currentSession: new Session({
       id: 'test_session_id_2',
       lastActivity: +new Date() - 500,
       started: +new Date() - 500,
       sequenceId: 0,
-    },
+    }),
   });
 
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();

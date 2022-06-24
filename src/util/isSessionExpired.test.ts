@@ -1,15 +1,13 @@
+import { Session } from '@/session/Session';
 import { isSessionExpired } from './isSessionExpired';
 
 function createSession(extra?: Record<string, any>) {
-  return {
-    id: 'id',
-    spanId: 'spanId',
-    traceId: 'trace',
+  return new Session({
     started: 0,
     lastActivity: 0,
     sequenceId: 0,
     ...extra,
-  };
+  });
 }
 
 it('session last activity is older than expiry time', function () {

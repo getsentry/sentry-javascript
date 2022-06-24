@@ -18,6 +18,10 @@ beforeAll(() => {
   window.sessionStorage.clear();
 });
 
+afterEach(() => {
+  (Sentry.getCurrentHub().captureEvent as captureEventMockType).mockReset();
+});
+
 it('creates a new session with no sticky sessions', function () {
   const newSession = createSession({ stickySession: false });
   expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
@@ -30,10 +34,6 @@ it('creates a new session with no sticky sessions', function () {
   expect(newSession.id).toBe('test_session_id');
   expect(newSession.started).toBeGreaterThan(0);
   expect(newSession.lastActivity).toEqual(newSession.started);
-
-  const captureEventMock = Sentry.getCurrentHub()
-    .captureEvent as captureEventMockType;
-  captureEventMock.mockReset();
 });
 
 it('creates a new session with sticky sessions', function () {
@@ -43,18 +43,16 @@ it('creates a new session with sticky sessions', function () {
     { event_id: 'test_session_id' }
   );
 
-  expect(saveSession).toHaveBeenCalledWith({
-    id: 'test_session_id',
-    sequenceId: 0,
-    started: expect.any(Number),
-    lastActivity: expect.any(Number),
-  });
+  expect(saveSession).toHaveBeenCalledWith(
+    expect.objectContaining({
+      id: 'test_session_id',
+      sequenceId: 0,
+      started: expect.any(Number),
+      lastActivity: expect.any(Number),
+    })
+  );
 
   expect(newSession.id).toBe('test_session_id');
   expect(newSession.started).toBeGreaterThan(0);
   expect(newSession.lastActivity).toEqual(newSession.started);
-  const captureMock = Sentry.getCurrentHub()
-    .captureEvent as captureEventMockType;
-
-  captureMock.mockReset();
 });

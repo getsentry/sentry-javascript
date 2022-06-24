@@ -11,7 +11,6 @@ import {
   ReplayPerformanceEntry,
 } from './createPerformanceEntry';
 import { createEventBuffer, IEventBuffer } from './eventBuffer';
-import { ReplaySession } from './session';
 import {
   REPLAY_EVENT_NAME,
   ROOT_REPLAY_NAME,
@@ -19,7 +18,6 @@ import {
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
 import { getSession } from './session/getSession';
-import { updateSessionActivity } from './session/updateSessionActivity';
 import type {
   RRWebEvent,
   RRWebOptions,
@@ -34,6 +32,7 @@ import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
 import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
 import createBreadcrumb from './util/createBreadcrumb';
+import { Session } from './session/Session';
 
 /**
  * Returns true if we want to flush immediately, otherwise continue with normal batching
@@ -94,7 +93,7 @@ export class SentryReplay implements Integration {
   private retryCount = 0;
   private retryInterval = BASE_RETRY_INTERVAL;
 
-  session: ReplaySession | undefined;
+  session: Session | undefined;
 
   static attachmentUrlFromDsn(dsn: DsnComponents, eventId: string) {
     const { host, projectId, protocol, publicKey } = dsn;
@@ -269,13 +268,6 @@ export class SentryReplay implements Integration {
     });
   }
 
-  updateSession(session: Partial<ReplaySession>) {
-    this.session = {
-      ...this.session,
-      ...session,
-    };
-  }
-
   addListeners() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
     window.addEventListener('beforeunload', this.handleWindowUnload);
@@ -353,12 +345,7 @@ export class SentryReplay implements Integration {
     // Update with current timestamp as the last session activity
     // Only updating session on visibility change to be conservative about
     // writing to session storage. This could be changed in the future.
-
-    this.updateSession(
-      updateSessionActivity({
-        stickySession: this.options.stickySession,
-      })
-    );
+    this.session.lastActivity = new Date().getTime();
 
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done

@@ -14,5 +14,6 @@
     "rollup.config.ts",
     "jest.config.ts",
     "jest.setup.ts"
-  ]
+  ],
+  "exclude": ["node_modules"]
 }
