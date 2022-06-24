@@ -229,8 +229,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hub: Hub = this._hub || getCurrentHub();
     const client = hub && hub.getClient();
 
-    const { environment, release } = (client && client.getOptions()) || {};
-    const { publicKey: public_key } = (client && client.getDsn()) || {};
+    if (!client) return baggage;
+
+    const { environment, release } = client.getOptions() || {};
+    const { publicKey: public_key } = client.getDsn() || {};
 
     const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
     const sample_rate =
@@ -238,12 +240,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
         ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
         : undefined;
 
-    let user_id, user_segment;
-    hub.configureScope(scope => {
-      const { id, segment } = scope.getUser() || {};
-      user_id = id;
-      user_segment = segment;
-    });
+    const scope = hub.getScope();
+    const { id: user_id, segment: user_segment } = (scope && scope.getUser()) || {};
 
     return createBaggage(
       dropUndefinedKeys({

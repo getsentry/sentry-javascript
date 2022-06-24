@@ -1,4 +1,4 @@
-import { DsnComponents, Event, EventTraceContext } from '@sentry/types';
+import { DsnComponents, Event, DynamicSamplingContext } from '@sentry/types';
 
 import { createEventEnvelope } from '../../src/envelope';
 
@@ -14,7 +14,7 @@ describe('createEventEnvelope', () => {
       expect(envelopeHeaders.trace).toBeUndefined();
     });
 
-    const testTable: Array<[string, Event, EventTraceContext]> = [
+    const testTable: Array<[string, Event, DynamicSamplingContext]> = [
       [
         'adds minimal baggage items',
         {

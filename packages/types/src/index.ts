@@ -14,8 +14,6 @@ export type {
   ClientReportEnvelope,
   ClientReportItem,
   DynamicSamplingContext,
-  // TODO(v8) remove this alias
-  DynamicSamplingContext as EventTraceContext,
   Envelope,
   EnvelopeItemType,
   EnvelopeItem,
