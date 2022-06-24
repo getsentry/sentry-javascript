@@ -4,13 +4,13 @@ import { Contexts } from './context';
 import { DebugMeta } from './debugMeta';
 import { Exception } from './exception';
 import { Extras } from './extra';
+import { Measurements } from './measurement';
 import { Primitive } from './misc';
 import { Request } from './request';
 import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity, SeverityLevel } from './severity';
 import { Span } from './span';
-import { Measurements } from './transaction';
 import { User } from './user';
 
 /** JSDoc */
