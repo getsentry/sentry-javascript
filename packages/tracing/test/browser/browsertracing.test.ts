@@ -234,7 +234,7 @@ describe('BrowserTracing', () => {
           parentSpanId: 'b6e54397b12a2a0f',
           parentSampled: true,
           metadata: {
-            baggage: [{ release: '2.1.14' }, 'foo=bar', false],
+            baggage: [{ release: '2.1.14' }, '', false],
           },
         }),
         expect.any(Number),
@@ -375,7 +375,7 @@ describe('BrowserTracing', () => {
         expect(headerContext!.parentSampled).toEqual(false);
       });
 
-      it('correctly parses a valid baggage meta header', () => {
+      it('correctly parses a valid baggage meta header and ignored 3rd party entries', () => {
         document.head.innerHTML = '<meta name="baggage" content="sentry-release=2.1.12,foo=bar">';
 
         const headerContext = extractTraceDataFromMetaTags();
@@ -388,7 +388,7 @@ describe('BrowserTracing', () => {
           release: '2.1.12',
         } as BaggageObj);
         expect(baggage && baggage[1]).toBeDefined();
-        expect(baggage && baggage[1]).toEqual('foo=bar');
+        expect(baggage && baggage[1]).toEqual('');
       });
 
       it('returns undefined if the sentry-trace header is malformed', () => {
@@ -461,7 +461,7 @@ describe('BrowserTracing', () => {
         expect(baggage[0]).toBeDefined();
         expect(baggage[0]).toEqual({ release: '2.1.14' });
         expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('foo=bar');
+        expect(baggage[1]).toEqual('');
       });
 
       it('does not add Sentry baggage data to pageload transactions if sentry-trace data is present but passes on 3rd party baggage', () => {
@@ -483,7 +483,7 @@ describe('BrowserTracing', () => {
         expect(baggage).toBeDefined();
         expect(isSentryBaggageEmpty(baggage)).toBe(true);
         expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('foo=bar');
+        expect(baggage[1]).toEqual('');
       });
 
       it('ignores the data for navigation transactions', () => {

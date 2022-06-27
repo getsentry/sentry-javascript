@@ -403,11 +403,11 @@ describe('Span', () => {
       };
     });
 
-    test('leave baggage content untouched and just return baggage if there already is Sentry content in it', () => {
+    test('leave baggage content untouched and just return baggage if it is immutable', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({ environment: 'myEnv' }, '') },
+          metadata: { baggage: createBaggage({ environment: 'myEnv' }, '', false) },
         },
         hub,
       );
