@@ -71,7 +71,7 @@
     "singleQuote": true
   },
   "volta": {
-    "node": "14.19.0",
+    "node": "16.15.1",
     "yarn": "1.22.19"
   },
   "lint-staged": {
