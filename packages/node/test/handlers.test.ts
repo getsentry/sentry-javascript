@@ -3,7 +3,7 @@ import * as sentryHub from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
 import { Baggage, Event } from '@sentry/types';
-import { isBaggageEmpty, isBaggageMutable, SentryError } from '@sentry/utils';
+import { getThirdPartyBaggage, isBaggageMutable, isSentryBaggageEmpty, SentryError } from '@sentry/utils';
 import * as http from 'http';
 
 import { NodeClient } from '../src/client';
@@ -193,7 +193,8 @@ describe('tracingHandler', () => {
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
     expect(transaction.metadata?.baggage).toBeDefined();
-    expect(isBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
+    expect(isSentryBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
+    expect(getThirdPartyBaggage(transaction.metadata?.baggage)).toEqual('');
     expect(isBaggageMutable(transaction.metadata?.baggage)).toBe(false);
   });
 

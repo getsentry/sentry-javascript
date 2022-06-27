@@ -3,7 +3,6 @@ import { Baggage } from '@sentry/types';
 import {
   createBaggage,
   getBaggageValue,
-  isBaggageEmpty,
   isBaggageMutable,
   isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
@@ -152,17 +151,6 @@ describe('Baggage', () => {
       ['ignorese other input types than string and string[]', 42, undefined, createBaggage({}, '')],
     ])('%s', (_: string, baggageValue, includeThirPartyEntries, expectedBaggage) => {
       expect(parseBaggageHeader(baggageValue, includeThirPartyEntries)).toEqual(expectedBaggage);
-    });
-  });
-
-  describe('isBaggageEmpty', () => {
-    it.each([
-      ['returns true if the entire baggage tuple is empty', createBaggage({}), true],
-      ['returns false if the Sentry part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
-      ['returns false if the 3rd party part of baggage is not empty', createBaggage({}, 'foo=bar'), false],
-      ['returns false if both parts of baggage are not empty', createBaggage({ release: '10.0.2' }, 'foo=bar'), false],
-    ])('%s', (_: string, baggage, outcome) => {
-      expect(isBaggageEmpty(baggage)).toEqual(outcome);
     });
   });
 

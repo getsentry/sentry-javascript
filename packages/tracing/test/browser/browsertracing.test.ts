@@ -3,9 +3,9 @@ import { Hub, makeMain } from '@sentry/hub';
 import type { Baggage, BaggageObj, BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import {
   getGlobalObject,
+  getThirdPartyBaggage,
   InstrumentHandlerCallback,
   InstrumentHandlerType,
-  isBaggageEmpty,
   isSentryBaggageEmpty,
 } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
@@ -398,7 +398,8 @@ describe('BrowserTracing', () => {
 
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
+        expect(isSentryBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
+        expect(getThirdPartyBaggage(headerContext?.metadata?.baggage as Baggage)).toEqual('');
       });
 
       it('does not crash if the baggage header is malformed', () => {
@@ -421,7 +422,8 @@ describe('BrowserTracing', () => {
 
         expect(headerContext).toBeDefined();
         expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
+        expect(isSentryBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
+        expect(getThirdPartyBaggage(headerContext?.metadata?.baggage as Baggage)).toEqual('');
       });
     });
 
