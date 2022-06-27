@@ -50,7 +50,7 @@ function _trackCLS(): void {
     }
 
     __DEBUG_BUILD__ && logger.log('[Measurements] Adding CLS');
-    _measurements['cls'] = { value: metric.value, unit: 'none' };
+    _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry as LayoutShift;
   });
 }

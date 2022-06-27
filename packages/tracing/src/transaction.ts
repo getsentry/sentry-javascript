@@ -4,6 +4,7 @@ import {
   BaggageObj,
   Event,
   Measurements,
+  MeasurementUnit,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
@@ -77,7 +78,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public setMeasurement(name: string, value: number, unit: string = ''): void {
+  public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
   }
 
