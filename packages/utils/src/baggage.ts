@@ -185,7 +185,12 @@ export function parseBaggageSetMutability(
   // we only need to check if we have a sentry-trace header or not. As soon as we have it,
   // we set baggage immutable. In case we don't get a sentry-trace header, we can assume that
   // this SDK is the head of the trace and thus we still permit mutation at this time.
-  sentryTraceHeader && setBaggageImmutable(baggage);
+  // There is one exception though, which is that we get a baggage-header with `sentry-`
+  // items but NO sentry-trace header. In this case we also set the baggage immutable for now
+  // but if smoething like this would ever happen, we should revisit this and determine
+  // what this would actually mean for the trace (i.e. is this SDK the head?, what happened
+  // before that we don't have a sentry-trace header?, etc)
+  (sentryTraceHeader || !isSentryBaggageEmpty(baggage)) && setBaggageImmutable(baggage);
 
   return baggage;
 }

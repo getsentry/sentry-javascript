@@ -7,7 +7,6 @@ test('Should not overwrite baggage if the incoming request already has Sentry ba
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
-    'sentry-trace': '',
     baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
   })) as TestAPIResponse;
 
