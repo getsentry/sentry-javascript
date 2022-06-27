@@ -12,7 +12,8 @@ on:
         required: false
 
 env:
-  DEFAULT_NODE_VERSION: '16'
+  # We pin the exact version to enforce reproducable builds with node + npm.
+  DEFAULT_NODE_VERSION: '16.15.1'
 
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
@@ -58,7 +59,7 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
     outputs:
-      commit_label: "${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}"
+      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
 
   job_install_deps:
     name: Install Dependencies
@@ -66,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: "Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})"
+      - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v2
         with:
           ref: ${{ env.HEAD_COMMIT }}
@@ -93,7 +94,7 @@ jobs:
 
   job_build:
     name: Build
-    needs: [ job_get_metadata, job_install_deps ]
+    needs: [job_get_metadata, job_install_deps]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

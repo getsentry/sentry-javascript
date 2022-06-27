@@ -1,3 +1,6 @@
+# Disable rules of .npmignore in workspace root for this package
+!*
+
 # compiled output
 /dist/
 /tmp/
@@ -24,6 +27,7 @@
 /testem.js
 /tests/
 /yarn.lock
+/.npmignore
 .gitkeep
 
 # ember-try
