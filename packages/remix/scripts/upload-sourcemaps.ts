@@ -1,6 +1,7 @@
-#! /usr/bin/env node
-const SentryCli = require('@sentry/cli');
-const yargs = require('yargs/yargs');
+#!/usr/bin/env node
+import yargs from 'yargs';
+
+import { createRelease } from './createRelease';
 
 const DEFAULT_URL_PREFIX = '~/build/';
 const DEFAULT_BUILD_PATH = 'public/build';
@@ -35,21 +36,4 @@ const argv = yargs(process.argv.slice(2))
   )
   .wrap(120).argv;
 
-const sentry = new SentryCli();
-
-async function createRelease() {
-  const RELEASE = argv.release || (await sentry.releases.proposeVersion());
-  const URL_PREFIX = argv.urlPrefix || DEFAULT_URL_PREFIX;
-  const BUILD_PATH = argv.buildPath || DEFAULT_BUILD_PATH;
-
-  await sentry.releases.new(RELEASE);
-
-  await sentry.releases.uploadSourceMaps(RELEASE, {
-    urlPrefix: URL_PREFIX,
-    include: [BUILD_PATH],
-  });
-
-  await sentry.releases.finalize(RELEASE);
-}
-
-createRelease();
+void createRelease(argv, DEFAULT_URL_PREFIX, DEFAULT_BUILD_PATH);

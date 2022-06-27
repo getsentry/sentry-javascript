@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "bin": {
-    "sentry-upload-sourcemaps": "scripts/upload-sourcemaps.js"
+    "upload-sourcemaps": "build/cjs/scripts/upload-sourcemaps.js"
   },
   "engines": {
     "node": ">=14"
@@ -18,6 +18,7 @@
   "types": "build/types/index.server.d.ts",
   "private": true,
   "dependencies": {
+    "@sentry/cli": "2.2.0",
     "@sentry/core": "7.3.1",
     "@sentry/hub": "7.3.1",
     "@sentry/integrations": "7.3.1",
@@ -31,7 +32,8 @@
   },
   "devDependencies": {
     "@remix-run/node": "^1.4.3",
-    "@remix-run/react": "^1.4.3"
+    "@remix-run/react": "^1.4.3",
+    "rollup-plugin-hashbang": "^3.0.0"
   },
   "peerDependencies": {
     "@remix-run/node": "^1.4.3",
