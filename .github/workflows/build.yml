@@ -187,7 +187,10 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+          # The size limit action runs `yarn` and `yarn build` when this job is executed on
+          # `master`. We can't change this without making changes to the action, so we'll
+          # use Node 14 for now.
+          node-version: '14'
       - name: Check dependency cache
         uses: actions/cache@v2
         with:
