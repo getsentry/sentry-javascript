@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.4.0-alpha.0
+
+- feat(remix): Add release / sourcemap upload script. (#5312)
+- feat(remix): Add Remix server SDK (#5269)
+- feat(remix): Add Remix client SDK (#5264)
+- feat(remix): Add Remix SDK package boilerplate (#5256)
+
 ## 7.3.1
 
 - feat(react): expose FallbackRender as top-level type (#5307)
