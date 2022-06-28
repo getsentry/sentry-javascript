@@ -14,6 +14,8 @@
 - ref(tracing): Ignore third party baggage entries from incoming requests (#5319)
 - ref(types): Add type for measurement unit (#5313)
 
+Work in this release contributed by @MasterOdin. Thank you for your contribution!
+
 ## 7.3.0
 
 - feat(nextjs): Add exception handler for `_error.js` (#5259)
