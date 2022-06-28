@@ -9,9 +9,11 @@ export function handleXhr(handlerData: any): ReplaySpan {
     return null;
   }
 
+  const [op, description] = handlerData.args;
+
   return {
-    description: handlerData.args[1],
-    op: handlerData.args[0],
+    description,
+    op,
     startTimestamp:
       handlerData.xhr.__sentry_xhr__.startTimestamp / 1000 ||
       handlerData.endTimestamp / 1000.0,

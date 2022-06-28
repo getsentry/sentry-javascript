@@ -1,5 +1,4 @@
 import { ReplaySpan } from '@/types';
-import { getCurrentHub } from '@sentry/browser';
 
 export function handleFetch(handlerData: any): ReplaySpan {
   if (!handlerData.endTimestamp) {
