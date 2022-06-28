@@ -17,7 +17,8 @@ jest.mock('@sentry/cli', () => {
   });
 });
 
-import { createRelease } from '../../scripts/createRelease';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { createRelease } = require('../../scripts/createRelease');
 
 beforeEach(() => {
   newMock.mockClear();
@@ -70,3 +71,7 @@ describe('createRelease', () => {
     expect(finalizeMock).toHaveBeenCalledWith('0.1.2.3.4');
   });
 });
+
+// To avoid `--isolatedModules` flag as we're not importing
+// anything for these tests.
+export {};

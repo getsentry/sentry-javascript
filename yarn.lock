@@ -22634,13 +22634,6 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
-rollup-plugin-hashbang@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/rollup-plugin-hashbang/-/rollup-plugin-hashbang-3.0.0.tgz#6173df959592ba73d2e8ce01816a37c511a5e005"
-  integrity sha512-nNC2NeNcvkklPhPCUF8Yb+2a19xI0dSBBJJ2x814+Al2BqIEWOyaGIgEjPVSjjgxhoabkJC5vbO4AeI3cxx3wg==
-  dependencies:
-    magic-string "^0.25.7"
-
 rollup-plugin-license@^2.6.1:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/rollup-plugin-license/-/rollup-plugin-license-2.6.1.tgz#20f15cc37950f362f8eefdc6e3a2e659d0cad9eb"

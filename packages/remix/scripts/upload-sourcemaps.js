@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import yargs from 'yargs';
+const yargs = require('yargs');
 
-import { createRelease } from './createRelease';
+const { createRelease } = require('./createRelease');
 
 const DEFAULT_URL_PREFIX = '~/build/';
 const DEFAULT_BUILD_PATH = 'public/build';
@@ -36,4 +36,4 @@ const argv = yargs(process.argv.slice(2))
   )
   .wrap(120).argv;
 
-void createRelease(argv, DEFAULT_URL_PREFIX, DEFAULT_BUILD_PATH);
+createRelease(argv, DEFAULT_URL_PREFIX, DEFAULT_BUILD_PATH);
