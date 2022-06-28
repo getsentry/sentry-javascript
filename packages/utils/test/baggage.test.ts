@@ -3,7 +3,6 @@ import { Baggage } from '@sentry/types';
 import {
   createBaggage,
   getBaggageValue,
-  isBaggageEmpty,
   isBaggageMutable,
   isSentryBaggageEmpty,
   mergeAndSerializeBaggage,
@@ -99,24 +98,33 @@ describe('Baggage', () => {
 
   describe('parseBaggageHeader', () => {
     it.each([
-      ['parses an empty string', '', createBaggage({})],
-      ['parses a blank string', '     ', createBaggage({})],
+      ['parses an empty string', '', undefined, createBaggage({})],
+      ['parses a blank string', '     ', undefined, createBaggage({})],
       [
         'parses sentry values into baggage',
         'sentry-environment=production,sentry-release=10.0.2',
+        undefined,
         createBaggage({ environment: 'production', release: '10.0.2' }),
       ],
       [
-        'parses arbitrary baggage headers',
+        'ignores 3rd party entries by default',
         'userId=alice,serverNode=DF%2028,isProduction=false,sentry-environment=production,sentry-release=10.0.2',
+        undefined,
+        createBaggage({ environment: 'production', release: '10.0.2' }, ''),
+      ],
+      [
+        'parses sentry- and arbitrary 3rd party values if the 3rd party entries flag is set to true',
+        'userId=alice,serverNode=DF%2028,isProduction=false,sentry-environment=production,sentry-release=10.0.2',
+        true,
         createBaggage(
           { environment: 'production', release: '10.0.2' },
           'userId=alice,serverNode=DF%2028,isProduction=false',
         ),
       ],
       [
-        'parses arbitrary baggage headers from string with empty and blank entries',
+        'parses arbitrary baggage entries from string with empty and blank entries',
         'userId=alice,    serverNode=DF%2028   , isProduction=false,   ,,sentry-environment=production,,sentry-release=10.0.2',
+        true,
         createBaggage(
           { environment: 'production', release: '10.0.2' },
           'userId=alice,serverNode=DF%2028,isProduction=false',
@@ -125,32 +133,24 @@ describe('Baggage', () => {
       [
         'parses a string array',
         ['userId=alice', 'sentry-environment=production', 'foo=bar'],
+        true,
         createBaggage({ environment: 'production' }, 'userId=alice,foo=bar'),
       ],
       [
         'parses a string array with items containing multiple entries',
         ['userId=alice,   userName=bob', 'sentry-environment=production,sentry-release=1.0.1', 'foo=bar'],
+        true,
         createBaggage({ environment: 'production', release: '1.0.1' }, 'userId=alice,userName=bob,foo=bar'),
       ],
       [
         'parses a string array with empty/blank entries',
         ['', 'sentry-environment=production,sentry-release=1.0.1', '    ', 'foo=bar'],
+        true,
         createBaggage({ environment: 'production', release: '1.0.1' }, 'foo=bar'),
       ],
-      ['ignorese other input types than string and string[]', 42, createBaggage({}, '')],
-    ])('%s', (_: string, baggageValue, baggage) => {
-      expect(parseBaggageHeader(baggageValue)).toEqual(baggage);
-    });
-  });
-
-  describe('isBaggageEmpty', () => {
-    it.each([
-      ['returns true if the entire baggage tuple is empty', createBaggage({}), true],
-      ['returns false if the Sentry part of baggage is not empty', createBaggage({ release: '10.0.2' }), false],
-      ['returns false if the 3rd party part of baggage is not empty', createBaggage({}, 'foo=bar'), false],
-      ['returns false if both parts of baggage are not empty', createBaggage({ release: '10.0.2' }, 'foo=bar'), false],
-    ])('%s', (_: string, baggage, outcome) => {
-      expect(isBaggageEmpty(baggage)).toEqual(outcome);
+      ['ignorese other input types than string and string[]', 42, undefined, createBaggage({}, '')],
+    ])('%s', (_: string, baggageValue, includeThirPartyEntries, expectedBaggage) => {
+      expect(parseBaggageHeader(baggageValue, includeThirPartyEntries)).toEqual(expectedBaggage);
     });
   });
 
@@ -166,18 +166,24 @@ describe('Baggage', () => {
   describe('mergeAndSerializeBaggage', () => {
     it.each([
       [
-        'returns original baggage when there is no additional baggage',
-        createBaggage({ release: '1.1.1', userid: '1234' }, 'foo=bar'),
+        'returns original baggage when there is no additional baggage header',
+        createBaggage({ release: '1.1.1', user_id: '1234' }),
         undefined,
-        'foo=bar,sentry-release=1.1.1,sentry-userid=1234',
+        'sentry-release=1.1.1,sentry-user_id=1234',
       ],
       [
         'returns merged baggage when there is a 3rd party header added',
-        createBaggage({ release: '1.1.1', userid: '1234' }, 'foo=bar'),
+        createBaggage({ release: '1.1.1', user_id: '1234' }, 'foo=bar'),
         'bar=baz,key=value',
-        'bar=baz,key=value,sentry-release=1.1.1,sentry-userid=1234',
+        'bar=baz,key=value,sentry-release=1.1.1,sentry-user_id=1234',
       ],
       ['returns merged baggage original baggage is empty', createBaggage({}), 'bar=baz,key=value', 'bar=baz,key=value'],
+      [
+        'ignores sentry- items in 3rd party baggage header',
+        createBaggage({}),
+        'bar=baz,sentry-user_id=abc,key=value,sentry-sample_rate=0.76',
+        'bar=baz,key=value',
+      ],
       ['returns empty string when original and 3rd party baggage are empty', createBaggage({}), '', ''],
       ['returns merged baggage original baggage is undefined', undefined, 'bar=baz,key=value', 'bar=baz,key=value'],
       ['returns empty string when both params are undefined', undefined, undefined, ''],
@@ -207,22 +213,16 @@ describe('Baggage', () => {
         [{}, '', false] as Baggage,
       ],
       [
-        'returns a non-empty, mutable baggage object if sentry-trace is not defined and only 3rd party baggage items are passed',
+        'returns a non-empty, mutable baggage object if sentry-trace is not defined and ignores 3rd party baggage items',
         'foo=bar',
         undefined,
-        [{}, 'foo=bar', true] as Baggage,
-      ],
-      [
-        'returns a non-empty, immutable baggage object if sentry-trace is not defined and Sentry baggage items are passed',
-        'sentry-environment=production,foo=bar',
-        undefined,
-        [{ environment: 'production' }, 'foo=bar', false] as Baggage,
+        [{}, '', true] as Baggage,
       ],
       [
         'returns a non-empty, immutable baggage object if sentry-trace is defined',
-        'foo=bar',
+        'foo=bar,sentry-environment=production,sentry-sample_rate=0.96',
         {},
-        [{}, 'foo=bar', false] as Baggage,
+        [{ environment: 'production', sample_rate: '0.96' }, '', false] as Baggage,
       ],
     ])(
       '%s',

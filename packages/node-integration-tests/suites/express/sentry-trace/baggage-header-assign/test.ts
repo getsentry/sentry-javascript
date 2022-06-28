@@ -7,30 +7,31 @@ test('Should not overwrite baggage if the incoming request already has Sentry ba
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
-    baggage: 'sentry-version=2.0.0,sentry-environment=myEnv',
+    baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
   })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'sentry-version=2.0.0,sentry-environment=myEnv',
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
     },
   });
 });
 
-test('Should pass along sentry and 3rd party trace baggage data from an incoming to an outgoing request.', async () => {
+test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
-    baggage: 'sentry-version=2.0.0,sentry-environment=myEnv,dogs=great',
+    'sentry-trace': '',
+    baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
   })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: expect.stringContaining('dogs=great,sentry-version=2.0.0,sentry-environment=myEnv'),
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
     },
   });
 });
@@ -51,7 +52,7 @@ test('Should propagate empty baggage if sentry-trace header is present in incomi
   });
 });
 
-test('Should propagate empty sentry and original 3rd party baggage if sentry-trace header is present', async () => {
+test('Should propagate empty sentry and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
@@ -63,7 +64,7 @@ test('Should propagate empty sentry and original 3rd party baggage if sentry-tra
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: 'foo=bar',
+      baggage: '',
     },
   });
 });
@@ -85,7 +86,7 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
   });
 });
 
-test('Should populate Sentry and propagate 3rd party content if sentry-trace header does not exist', async () => {
+test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`), {
@@ -98,7 +99,7 @@ test('Should populate Sentry and propagate 3rd party content if sentry-trace hea
       host: 'somewhere.not.sentry',
       // TraceId changes, hence we only expect that the string contains the traceid key
       baggage: expect.stringContaining(
-        'foo=bar,bar=baz,sentry-environment=prod,sentry-release=1.0,sentry-transaction=GET%20%2Ftest%2Fexpress,' +
+        'sentry-environment=prod,sentry-release=1.0,sentry-transaction=GET%20%2Ftest%2Fexpress,' +
           'sentry-public_key=public,sentry-trace_id=',
       ),
     },

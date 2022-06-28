@@ -3,7 +3,7 @@ import * as sentryHub from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
 import { Baggage, Event } from '@sentry/types';
-import { isBaggageEmpty, isBaggageMutable, SentryError } from '@sentry/utils';
+import { getThirdPartyBaggage, isBaggageMutable, isSentryBaggageEmpty, SentryError } from '@sentry/utils';
 import * as http from 'http';
 
 import { NodeClient } from '../src/client';
@@ -193,7 +193,8 @@ describe('tracingHandler', () => {
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
     expect(transaction.metadata?.baggage).toBeDefined();
-    expect(isBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
+    expect(isSentryBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
+    expect(getThirdPartyBaggage(transaction.metadata?.baggage)).toEqual('');
     expect(isBaggageMutable(transaction.metadata?.baggage)).toBe(false);
   });
 
@@ -219,8 +220,9 @@ describe('tracingHandler', () => {
     ] as Baggage);
   });
 
-  it("pulls parent's baggage (sentry + third party entries) headers on the request", () => {
+  it('ignores 3rd party entries in incoming baggage header', () => {
     req.headers = {
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
       baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
     };
 
@@ -231,7 +233,7 @@ describe('tracingHandler', () => {
     expect(transaction.metadata?.baggage).toBeDefined();
     expect(transaction.metadata?.baggage).toEqual([
       { version: '1.0', environment: 'production' },
-      'dogs=great,cats=boring',
+      '',
       false,
     ] as Baggage);
   });

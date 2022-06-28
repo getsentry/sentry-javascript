@@ -9,15 +9,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import {
-  createBaggage,
-  dropUndefinedKeys,
-  getSentryBaggageItems,
-  getThirdPartyBaggage,
-  isBaggageMutable,
-  isSentryBaggageEmpty,
-  logger,
-} from '@sentry/utils';
+import { createBaggage, dropUndefinedKeys, getSentryBaggageItems, isBaggageMutable, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -198,17 +190,13 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
     // empty and mutable
-    // TODO: we might want to ditch the isSentryBaggageEmpty condition because it prevents
-    //       custom sentry-values in DSC (added by users in the future)
     const finalBaggage =
-      !existingBaggage || (isBaggageMutable(existingBaggage) && isSentryBaggageEmpty(existingBaggage))
+      !existingBaggage || isBaggageMutable(existingBaggage)
         ? this._populateBaggageWithSentryValues(existingBaggage)
         : existingBaggage;
 
-    // In case, we poulated the DSC, we have update the stored one on the transaction.
-    if (existingBaggage !== finalBaggage) {
-      this.metadata.baggage = finalBaggage;
-    }
+    // Update the baggage stored on the transaction.
+    this.metadata.baggage = finalBaggage;
 
     return finalBaggage;
   }
@@ -256,7 +244,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
         sample_rate,
         ...getSentryBaggageItems(baggage), // keep user-added values
       } as BaggageObj),
-      getThirdPartyBaggage(baggage), // TODO: remove once we ignore 3rd party baggage
+      '',
       false, // set baggage immutable
     );
   }

@@ -45,7 +45,7 @@ export function tracingHandler(): (
         name: extractPathForTransaction(req, { path: true, method: true }),
         op: 'http.server',
         ...traceparentData,
-        metadata: { baggage: baggage },
+        metadata: { baggage },
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

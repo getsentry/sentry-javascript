@@ -38,12 +38,6 @@ export function isSentryBaggageEmpty(baggage: Baggage): boolean {
   return Object.keys(baggage[0]).length === 0;
 }
 
-/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
-export function isBaggageEmpty(baggage: Baggage): boolean {
-  const thirdPartyBaggage = getThirdPartyBaggage(baggage);
-  return isSentryBaggageEmpty(baggage) && (thirdPartyBaggage == undefined || thirdPartyBaggage.length === 0);
-}
-
 /** Returns Sentry specific baggage values */
 export function getSentryBaggageItems(baggage: Baggage): BaggageObj {
   return baggage[0];
@@ -90,8 +84,17 @@ export function serializeBaggage(baggage: Baggage): string {
   }, baggage[1]);
 }
 
-/** Parse a baggage header from a string or a string array and return a Baggage object */
-export function parseBaggageHeader(inputBaggageValue: HttpHeaderValue): Baggage {
+/**
+ * Parse a baggage header from a string or a string array and return a Baggage object
+ *
+ * If @param includeThirdPartyEntries is set to true, thir party baggage entries are added to the Baggage object
+ * (This is necessary for merging potentially pre-existing baggage headers in outgoing requests with
+ * our `sentry-` values)
+ */
+export function parseBaggageHeader(
+  inputBaggageValue: HttpHeaderValue,
+  includeThirdPartyEntries: boolean = false,
+): Baggage {
   // Adding this check here because we got reports of this function failing due to the input value
   // not being a string. This debug log might help us determine what's going on here.
   if ((!Array.isArray(inputBaggageValue) && !isString(inputBaggageValue)) || typeof inputBaggageValue === 'number') {
@@ -109,7 +112,7 @@ export function parseBaggageHeader(inputBaggageValue: HttpHeaderValue): Baggage 
   const baggageEntries = (isString(inputBaggageValue) ? inputBaggageValue : inputBaggageValue.join(','))
     .split(',')
     .map(entry => entry.trim())
-    .filter(entry => entry !== '');
+    .filter(entry => entry !== '' && (includeThirdPartyEntries || SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(entry)));
 
   return baggageEntries.reduce(
     ([baggageObj, baggageString], curr) => {
@@ -152,13 +155,10 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, thirdPartyBa
     return '';
   }
 
-  const headerBaggage = (thirdPartyBaggageHeader && parseBaggageHeader(thirdPartyBaggageHeader)) || undefined;
+  const headerBaggage = (thirdPartyBaggageHeader && parseBaggageHeader(thirdPartyBaggageHeader, true)) || undefined;
   const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
 
-  const finalBaggage = createBaggage(
-    (incomingBaggage && incomingBaggage[0]) || {},
-    thirdPartyHeaderBaggage || (incomingBaggage && incomingBaggage[1]) || '',
-  );
+  const finalBaggage = createBaggage((incomingBaggage && incomingBaggage[0]) || {}, thirdPartyHeaderBaggage || '');
   return serializeBaggage(finalBaggage);
 }
 
@@ -179,8 +179,18 @@ export function parseBaggageSetMutability(
   sentryTraceHeader: TraceparentData | string | false | undefined | null,
 ): Baggage {
   const baggage = parseBaggageHeader(rawBaggageValue || '');
-  if (!isSentryBaggageEmpty(baggage) || (sentryTraceHeader && isSentryBaggageEmpty(baggage))) {
-    setBaggageImmutable(baggage);
-  }
+
+  // Because we are always creating a Baggage object by calling `parseBaggageHeader` above
+  // (either a filled one or an empty one, even if we didn't get a `baggage` header),
+  // we only need to check if we have a sentry-trace header or not. As soon as we have it,
+  // we set baggage immutable. In case we don't get a sentry-trace header, we can assume that
+  // this SDK is the head of the trace and thus we still permit mutation at this time.
+  // There is one exception though, which is that we get a baggage-header with `sentry-`
+  // items but NO sentry-trace header. In this case we also set the baggage immutable for now
+  // but if smoething like this would ever happen, we should revisit this and determine
+  // what this would actually mean for the trace (i.e. is this SDK the head?, what happened
+  // before that we don't have a sentry-trace header?, etc)
+  (sentryTraceHeader || !isSentryBaggageEmpty(baggage)) && setBaggageImmutable(baggage);
+
   return baggage;
 }
