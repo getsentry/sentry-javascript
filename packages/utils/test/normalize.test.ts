@@ -286,7 +286,7 @@ describe('normalize()', () => {
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
 
-    test('should return return normalized object even if toJSON throws', () => {
+    test('should return a normalized object even if toJSON throws', () => {
       const subject = { a: 1, foo: 'bar' } as any;
       subject.toJSON = () => {
         throw new Error("I'm faulty!");
@@ -294,7 +294,7 @@ describe('normalize()', () => {
       expect(normalize(subject)).toEqual({ a: 1, foo: 'bar', toJSON: '[Function: <anonymous>]' });
     });
 
-    test('should return return object without circular references when toJSON returns an object with circular references', () => {
+    test('should return an object without circular references when toJSON returns an object with circular references', () => {
       const subject: any = {};
       subject.toJSON = () => {
         const egg: any = {};
