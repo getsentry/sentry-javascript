@@ -87,7 +87,7 @@ export function serializeBaggage(baggage: Baggage): string {
 /**
  * Parse a baggage header from a string or a string array and return a Baggage object
  *
- * If @param includeThirdPartyEntries is set to true, thir party baggage entries are added to the Baggage object
+ * If @param includeThirdPartyEntries is set to true, third party baggage entries are added to the Baggage object
  * (This is necessary for merging potentially pre-existing baggage headers in outgoing requests with
  * our `sentry-` values)
  */
