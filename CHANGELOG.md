@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.3.1
+
+- feat(react): expose FallbackRender as top-level type (#5307)
+- fix(core): Remove optional chaining usage (#5304)
+- fix(ember): Restore ember package contents (#5318)
+- fix(ember): Update README docs to match sentry-docs (#5315)
+- ref(hub): Reduce hub bundle size (#5306)
+- ref(tracing): Ignore third party baggage entries from incoming requests (#5319)
+- ref(types): Add type for measurement unit (#5313)
+
+Work in this release contributed by @MasterOdin. Thank you for your contribution!
+
 ## 7.3.0
 
 - feat(nextjs): Add exception handler for `_error.js` (#5259)
