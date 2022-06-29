@@ -11,8 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger, parseBaggageSetMutability } from '@sentry/utils';
-import { extensionRelayDSN } from '@sentry/utils'
+import { extensionRelayDSN, isString, logger, parseBaggageSetMutability } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
