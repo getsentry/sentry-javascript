@@ -14,11 +14,11 @@
 This SDK is considering experimental and in an alpha state. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
 ## General
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
+This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Remix.
 
-To use this SDK, init Sentry in your remix entry points for both the client and server.
+To use this SDK, init Sentry in your Remix entry points for both the client and server.
 
-```javascript
+```typescript
 // entry.client.tsx
 
 import { useLocation, useMatches } from "@remix-run/react";
@@ -41,7 +41,7 @@ Sentry.init({
 });
 ```
 
-```javascript
+```typescript
 // entry.server.tsx
 
 import { prisma } from "~/db.server";
@@ -89,6 +89,7 @@ Sentry.captureEvent({
 ## Sourcemaps and Releases
 
 The Remix SDK provides a script that automatically creates a release and uploads sourcemaps.
+To generate sourcemaps with Remix, you need to call `remix build` with `--sourcemap` option. 
 
 On release, call `sentry-upload-sourcemaps` to upload source maps and create a release. To see more details on how to use the command, call `sentry-upload-sourcemaps --help`.
 
