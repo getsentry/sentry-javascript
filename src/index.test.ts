@@ -157,7 +157,7 @@ describe('SentryReplay', () => {
     });
     // Session's last activity should be updated
     expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
-    // // events array should be empty
+    // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
   });
 
