@@ -1,4 +1,5 @@
 import { Baggage } from './baggage';
+import { MeasurementUnit } from './measurement';
 import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import { Span, SpanContext } from './span';
 /**
@@ -80,13 +81,16 @@ export interface Transaction extends TransactionContext, Span {
    * @param value Value of the measurement
    * @param unit Unit of the measurement. (Defaults to an empty string)
    */
-  setMeasurement(name: string, value: number, unit: string): void;
+  setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 
   /** Returns the current transaction properties as a `TransactionContext` */
   toContext(): TransactionContext;
 
   /** Updates the current transaction with a new `TransactionContext` */
   updateWithContext(transactionContext: TransactionContext): this;
+
+  /** return the baggage for dynamic sampling and trace propagation */
+  getBaggage(): Baggage;
 }
 
 /**
@@ -123,8 +127,6 @@ export interface SamplingContext extends CustomSamplingContext {
    */
   request?: ExtractedNodeRequestData;
 }
-
-export type Measurements = Record<string, { value: number; unit: string }>;
 
 export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
 

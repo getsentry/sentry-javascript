@@ -27,12 +27,22 @@ describe('tracing', () => {
     const hub = new Hub(new NodeClient(options));
     addExtensionMethods();
 
+    hub.configureScope(scope =>
+      scope.setUser({
+        id: 'uid123',
+        segment: 'segmentA',
+      }),
+    );
+
     // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
     // `@sentry/hub`, and mocking breaks the link between the two
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
-    const transaction = hub.startTransaction({ name: 'dogpark' });
+    const transaction = hub.startTransaction({
+      name: 'dogpark',
+      traceId: '12312012123120121231201212312012',
+    });
     hub.getScope()?.setSpan(transaction);
 
     return transaction;
@@ -98,7 +108,12 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    expect(baggageHeader).toEqual('sentry-environment=production,sentry-release=1.0.0');
+    expect(typeof baggageHeader).toEqual('string');
+    expect(baggageHeader).toEqual(
+      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
+        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+    );
   });
 
   it('propagates 3rd party baggage header data to outgoing non-sentry requests', async () => {
@@ -110,7 +125,12 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toBeDefined();
-    expect(baggageHeader).toEqual('dog=great,sentry-environment=production,sentry-release=1.0.0');
+    expect(typeof baggageHeader).toEqual('string');
+    expect(baggageHeader).toEqual(
+      'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+        'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+    );
   });
 
   it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {

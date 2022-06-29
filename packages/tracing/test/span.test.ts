@@ -393,7 +393,7 @@ describe('Span', () => {
     });
   });
 
-  describe('getBaggage and _getBaggageWithSentryValues', () => {
+  describe('getBaggage and _populateBaggageWithSentryValues', () => {
     beforeEach(() => {
       hub.getClient()!.getOptions = () => {
         return {
@@ -403,20 +403,18 @@ describe('Span', () => {
       };
     });
 
-    test('leave baggage content untouched and just return baggage if there already is Sentry content in it', () => {
+    test('leave baggage content untouched and just return baggage if it is immutable', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({ environment: 'myEnv' }, '') },
+          metadata: { baggage: createBaggage({ environment: 'myEnv' }, '', false) },
         },
         hub,
       );
 
       const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
-      const span = transaction.startChild();
-
-      const baggage = span.getBaggage();
+      const baggage = transaction.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(0);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
@@ -428,20 +426,51 @@ describe('Span', () => {
       const transaction = new Transaction(
         {
           name: 'tx',
-          metadata: { baggage: createBaggage({}, '', true) },
+          metadata: {
+            baggage: createBaggage({}, '', true),
+            transactionSampling: { rate: 0.56, method: 'client_rate' },
+          },
         },
         hub,
       );
 
       const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
-      const span = transaction.startChild();
-
-      const baggage = span.getBaggage();
+      const baggage = transaction.getBaggage();
 
       expect(hubSpy).toHaveBeenCalledTimes(1);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
-      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({ release: '1.0.1', environment: 'production' });
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
+        release: '1.0.1',
+        environment: 'production',
+        transaction: 'tx',
+        sample_rate: '0.56',
+        trace_id: expect.any(String),
+      });
+      expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
+    });
+
+    test('exponential sample rate notation is converted to decimal notation', () => {
+      const transaction = new Transaction(
+        {
+          name: 'tx',
+          metadata: {
+            transactionSampling: { rate: 1.45e-14, method: 'client_rate' },
+          },
+        },
+        hub,
+      );
+
+      const baggage = transaction.getBaggage();
+
+      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
+      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
+        release: '1.0.1',
+        environment: 'production',
+        transaction: 'tx',
+        sample_rate: '0.0000000000000145',
+        trace_id: expect.any(String),
+      });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
   });

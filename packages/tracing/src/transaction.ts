@@ -1,12 +1,15 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import {
+  Baggage,
+  BaggageObj,
   Event,
   Measurements,
+  MeasurementUnit,
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, getSentryBaggageItems, logger } from '@sentry/utils';
+import { createBaggage, dropUndefinedKeys, getSentryBaggageItems, isBaggageMutable, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -19,7 +22,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  protected readonly _hub: Hub;
+  public readonly _hub: Hub;
 
   private _measurements: Measurements = {};
 
@@ -67,7 +70,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public setMeasurement(name: string, value: number, unit: string = ''): void {
+  public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
   }
 
@@ -122,7 +125,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
-        baggage: getSentryBaggageItems(this.getBaggage()),
       },
       spans: finishedSpans,
       start_timestamp: this.startTimestamp,
@@ -130,7 +132,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       timestamp: this.endTimestamp,
       transaction: this.name,
       type: 'transaction',
-      sdkProcessingMetadata: this.metadata,
+      sdkProcessingMetadata: {
+        ...this.metadata,
+        baggage: this.getBaggage(),
+      },
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
@@ -173,5 +178,74 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._trimEnd = transactionContext.trimEnd;
 
     return this;
+  }
+
+  /**
+   * @inheritdoc
+   *
+   * @experimental
+   */
+  public getBaggage(): Baggage {
+    const existingBaggage = this.metadata.baggage;
+
+    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
+    // empty and mutable
+    const finalBaggage =
+      !existingBaggage || isBaggageMutable(existingBaggage)
+        ? this._populateBaggageWithSentryValues(existingBaggage)
+        : existingBaggage;
+
+    // Update the baggage stored on the transaction.
+    this.metadata.baggage = finalBaggage;
+
+    return finalBaggage;
+  }
+
+  /**
+   * Collects and adds data to the passed baggage object.
+   *
+   * Note: This function does not explicitly check if the passed baggage object is allowed
+   * to be modified. Implicitly, `setBaggageValue` will not make modification to the object
+   * if it was already set immutable.
+   *
+   * After adding the data, the baggage object is set immutable to prevent further modifications.
+   *
+   * @param baggage
+   *
+   * @returns modified and immutable baggage object
+   */
+  private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
+    const hub: Hub = this._hub || getCurrentHub();
+    const client = hub && hub.getClient();
+
+    if (!client) return baggage;
+
+    const { environment, release } = client.getOptions() || {};
+    const { publicKey: public_key } = client.getDsn() || {};
+
+    const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
+    const sample_rate =
+      rate !== undefined
+        ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
+        : undefined;
+
+    const scope = hub.getScope();
+    const { id: user_id, segment: user_segment } = (scope && scope.getUser()) || {};
+
+    return createBaggage(
+      dropUndefinedKeys({
+        environment,
+        release,
+        transaction: this.name,
+        user_id,
+        user_segment,
+        public_key,
+        trace_id: this.traceId,
+        sample_rate,
+        ...getSentryBaggageItems(baggage), // keep user-added values
+      } as BaggageObj),
+      '',
+      false, // set baggage immutable
+    );
   }
 }

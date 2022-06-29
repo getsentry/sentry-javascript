@@ -8,9 +8,10 @@ Sentry.init({
   integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] })],
   environment: 'production',
   tracesSampleRate: 1,
+  debug: true,
 });
 
 Sentry.configureScope(scope => {
   scope.setUser({ id: 'user123', segment: 'segmentB' });
-  scope.setTransactionName('testTransactionBaggage');
+  scope.setTransactionName('testTransactionDSC');
 });

@@ -1,11 +1,14 @@
 {
   "name": "@sentry/remix",
-  "version": "7.2.0",
+  "version": "7.3.1",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
   "author": "Sentry",
   "license": "MIT",
+  "bin": {
+    "upload-sourcemaps": "scripts/upload-sourcemaps.js"
+  },
   "engines": {
     "node": ">=14"
   },
@@ -15,32 +18,26 @@
   "types": "build/types/index.server.d.ts",
   "private": true,
   "dependencies": {
-    "@sentry/core": "7.2.0",
-    "@sentry/hub": "7.2.0",
-    "@sentry/integrations": "7.2.0",
-    "@sentry/node": "7.2.0",
-    "@sentry/react": "7.2.0",
-    "@sentry/tracing": "7.2.0",
-    "@sentry/types": "7.2.0",
-    "@sentry/utils": "7.2.0",
+    "@sentry/cli": "2.2.0",
+    "@sentry/core": "7.3.1",
+    "@sentry/hub": "7.3.1",
+    "@sentry/integrations": "7.3.1",
+    "@sentry/node": "7.3.1",
+    "@sentry/react": "7.3.1",
+    "@sentry/tracing": "7.3.1",
+    "@sentry/types": "7.3.1",
+    "@sentry/utils": "7.3.1",
     "@sentry/webpack-plugin": "1.18.9",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@remix-run/node": "^1.4.3",
-    "@remix-run/react": "^1.4.3",
-    "@types/webpack": "^4.41.31"
+    "@remix-run/react": "^1.4.3"
   },
   "peerDependencies": {
     "@remix-run/node": "^1.4.3",
     "@remix-run/react": "^1.4.3",
-    "react": "16.x || 17.x || 18.x",
-    "webpack": ">=4.0.0"
-  },
-  "peerDependenciesMeta": {
-    "webpack": {
-      "optional": true
-    }
+    "react": "16.x || 17.x || 18.x"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",

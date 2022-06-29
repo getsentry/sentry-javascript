@@ -293,7 +293,7 @@ export function wrapHandler<TEvent, TResult>(
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
-      metadata: { baggage: baggage },
+      metadata: { baggage },
     });
 
     const hub = getCurrentHub();

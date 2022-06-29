@@ -285,6 +285,30 @@ describe('normalize()', () => {
       // @ts-ignore target lacks a construct signature
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
+
+    test('should return a normalized object even if toJSON throws', () => {
+      const subject = { a: 1, foo: 'bar' } as any;
+      subject.toJSON = () => {
+        throw new Error("I'm faulty!");
+      };
+      expect(normalize(subject)).toEqual({ a: 1, foo: 'bar', toJSON: '[Function: <anonymous>]' });
+    });
+
+    test('should return an object without circular references when toJSON returns an object with circular references', () => {
+      const subject: any = {};
+      subject.toJSON = () => {
+        const egg: any = {};
+        egg.chicken = egg;
+        return egg;
+      };
+      expect(normalize(subject)).toEqual({ chicken: '[Circular ~]' });
+    });
+
+    test('should detect circular reference when toJSON returns the original object', () => {
+      const subject: any = {};
+      subject.toJSON = () => subject;
+      expect(normalize(subject)).toEqual('[Circular ~]');
+    });
   });
 
   describe('changes unserializeable/global values/classes to its string representation', () => {

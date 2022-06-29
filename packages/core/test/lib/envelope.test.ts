@@ -1,4 +1,4 @@
-import { DsnComponents, Event, EventTraceContext } from '@sentry/types';
+import { DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
 
 import { createEventEnvelope } from '../../src/envelope';
 
@@ -14,49 +14,23 @@ describe('createEventEnvelope', () => {
       expect(envelopeHeaders.trace).toBeUndefined();
     });
 
-    it('adds minimal trace data if event is a transaction and no other baggage-related data is available', () => {
-      const event: Event = {
-        type: 'transaction',
-        contexts: {
-          trace: {
-            trace_id: '1234',
-          },
-        },
-      };
-      const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
-
-      expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.trace).toEqual({ trace_id: '1234', public_key: 'pubKey123' });
-    });
-
-    const testTable: Array<[string, Event, EventTraceContext]> = [
+    const testTable: Array<[string, Event, DynamicSamplingContext]> = [
       [
-        'adds one baggage item',
+        'adds minimal baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-            baggage: {
-              release: '1.0.0',
-            },
+          sdkProcessingMetadata: {
+            baggage: [{ trace_id: '1234', public_key: 'pubKey123' }, '', false],
           },
         },
-        { release: '1.0.0', trace_id: '1234', public_key: 'pubKey123' },
+        { trace_id: '1234', public_key: 'pubKey123' },
       ],
       [
-        'adds two baggage items',
+        'adds multiple baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-            baggage: {
-              environment: 'prod',
-              release: '1.0.0',
-            },
+          sdkProcessingMetadata: {
+            baggage: [{ environment: 'prod', release: '1.0.0', public_key: 'pubKey123', trace_id: '1234' }, '', false],
           },
         },
         { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
@@ -65,26 +39,32 @@ describe('createEventEnvelope', () => {
         'adds all baggage items',
         {
           type: 'transaction',
-          contexts: {
-            trace: {
-              trace_id: '1234',
-            },
-            baggage: {
-              environment: 'prod',
-              release: '1.0.0',
-              userid: 'bob',
-              usersegment: 'segmentA',
-              transaction: 'TX',
-            },
+          sdkProcessingMetadata: {
+            baggage: [
+              {
+                environment: 'prod',
+                release: '1.0.0',
+                transaction: 'TX',
+                user_id: 'bob',
+                user_segment: 'segmentA',
+                sample_rate: '0.95',
+                public_key: 'pubKey123',
+                trace_id: '1234',
+              },
+              '',
+              false,
+            ],
           },
         },
         {
-          release: '1.0.0',
           environment: 'prod',
-          user: { id: 'bob', segment: 'segmentA' },
+          release: '1.0.0',
           transaction: 'TX',
-          trace_id: '1234',
+          user_id: 'bob',
+          user_segment: 'segmentA',
+          sample_rate: '0.95',
           public_key: 'pubKey123',
+          trace_id: '1234',
         },
       ],
     ];

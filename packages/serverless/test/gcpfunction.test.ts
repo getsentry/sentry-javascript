@@ -150,7 +150,7 @@ describe('GCPFunction', () => {
               {
                 release: '2.12.1',
               },
-              'maisey=silly,charlie=goofy',
+              '',
               false,
             ],
           },

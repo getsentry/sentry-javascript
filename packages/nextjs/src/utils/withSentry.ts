@@ -72,7 +72,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              metadata: { baggage: baggage },
+              metadata: { baggage },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

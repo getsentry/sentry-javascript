@@ -9,16 +9,15 @@ import { UserFeedback } from './user';
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
 // Based on https://github.com/getsentry/relay/blob/b23b8d3b2360a54aaa4d19ecae0231201f31df5e/relay-sampling/src/lib.rs#L685-L707
-export type EventTraceContext = {
+export type DynamicSamplingContext = {
   trace_id: Transaction['traceId'];
   public_key: DsnComponents['publicKey'];
+  sample_rate?: string;
   release?: string;
-  user?: {
-    id?: string;
-    segment?: string;
-  };
   environment?: string;
   transaction?: string;
+  user_id?: string;
+  user_segment?: string;
 };
 
 export type EnvelopeItemType =
@@ -73,7 +72,7 @@ export type SessionItem =
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 
-export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: EventTraceContext };
+export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 

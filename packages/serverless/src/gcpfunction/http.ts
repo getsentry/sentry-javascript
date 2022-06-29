@@ -13,11 +13,16 @@ import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff
+type ParseRequestOptions = AddRequestDataToEventOptions['include'] & {
+  serverName?: boolean;
+  version?: boolean;
+};
+
 interface OldHttpFunctionWrapperOptions extends WrapperOptions {
   /**
    * @deprecated Use `addRequestDataToEventOptions` instead.
    */
-  parseRequestOptions: AddRequestDataToEventOptions;
+  parseRequestOptions: ParseRequestOptions;
 }
 interface NewHttpFunctionWrapperOptions extends WrapperOptions {
   addRequestDataToEventOptions: AddRequestDataToEventOptions;
@@ -58,7 +63,8 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
   const options: HttpFunctionWrapperOptions = {
     flushTimeout: 2000,
-    addRequestDataToEventOptions: parseRequestOptions ? parseRequestOptions : {},
+    // TODO (v8 / xxx): Remove this line, since `addRequestDataToEventOptions` will be included in the spread of `wrapOptions`
+    addRequestDataToEventOptions: parseRequestOptions ? { include: parseRequestOptions } : {},
     ...wrapOptions,
   };
   return (req, res) => {
@@ -81,7 +87,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
-      metadata: { baggage: baggage },
+      metadata: { baggage },
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

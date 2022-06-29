@@ -13,13 +13,13 @@ export type {
   BaseEnvelopeItemHeaders,
   ClientReportEnvelope,
   ClientReportItem,
+  DynamicSamplingContext,
   Envelope,
   EnvelopeItemType,
   EnvelopeItem,
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
-  EventTraceContext,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
@@ -65,7 +65,6 @@ export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from
 export type { TextEncoderInternal } from './textencoder';
 export type {
   CustomSamplingContext,
-  Measurements,
   SamplingContext,
   TraceparentData,
   Transaction,
@@ -73,6 +72,14 @@ export type {
   TransactionMetadata,
   TransactionSamplingMethod,
 } from './transaction';
+export type {
+  DurationUnit,
+  InformationUnit,
+  FractionUnit,
+  MeasurementUnit,
+  NoneUnit,
+  Measurements,
+} from './measurement';
 export type { Thread } from './thread';
 export type {
   Transport,

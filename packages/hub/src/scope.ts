@@ -44,28 +44,37 @@ const MAX_BREADCRUMBS = 100;
  */
 export class Scope implements ScopeInterface {
   /** Flag if notifying is happening. */
-  protected _notifyingListeners: boolean = false;
+  protected _notifyingListeners: boolean;
 
   /** Callback for client to receive scope changes. */
-  protected _scopeListeners: Array<(scope: Scope) => void> = [];
+  protected _scopeListeners: Array<(scope: Scope) => void>;
 
   /** Callback list that will be called after {@link applyToEvent}. */
-  protected _eventProcessors: EventProcessor[] = [];
+  protected _eventProcessors: EventProcessor[];
 
   /** Array of breadcrumbs. */
-  protected _breadcrumbs: Breadcrumb[] = [];
+  protected _breadcrumbs: Breadcrumb[];
 
   /** User */
-  protected _user: User = {};
+  protected _user: User;
 
   /** Tags */
-  protected _tags: { [key: string]: Primitive } = {};
+  protected _tags: { [key: string]: Primitive };
 
   /** Extra */
-  protected _extra: Extras = {};
+  protected _extra: Extras;
 
   /** Contexts */
-  protected _contexts: Contexts = {};
+  protected _contexts: Contexts;
+
+  /** Attachments */
+  protected _attachments: Attachment[];
+
+  /**
+   * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
+   * sent to Sentry
+   */
+  protected _sdkProcessingMetadata: { [key: string]: unknown };
 
   /** Fingerprint */
   protected _fingerprint?: string[];
@@ -86,14 +95,18 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
-  /** Attachments */
-  protected _attachments: Attachment[] = [];
-
-  /**
-   * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
-   * sent to Sentry
-   */
-  protected _sdkProcessingMetadata?: { [key: string]: unknown } = {};
+  public constructor() {
+    this._notifyingListeners = false;
+    this._scopeListeners = [];
+    this._eventProcessors = [];
+    this._breadcrumbs = [];
+    this._attachments = [];
+    this._user = {};
+    this._tags = {};
+    this._extra = {};
+    this._contexts = {};
+    this._sdkProcessingMetadata = {};
+  }
 
   /**
    * Inherit values from the parent scope.
@@ -454,6 +467,7 @@ export class Scope implements ScopeInterface {
     if (this._transactionName) {
       event.transaction = this._transactionName;
     }
+
     // We want to set the trace context for normal events only if there isn't already
     // a trace context on the event. There is a product feature in place where we link
     // errors with transaction and it relies on that.
@@ -470,7 +484,7 @@ export class Scope implements ScopeInterface {
     event.breadcrumbs = [...(event.breadcrumbs || []), ...this._breadcrumbs];
     event.breadcrumbs = event.breadcrumbs.length > 0 ? event.breadcrumbs : undefined;
 
-    event.sdkProcessingMetadata = this._sdkProcessingMetadata;
+    event.sdkProcessingMetadata = { ...event.sdkProcessingMetadata, ...this._sdkProcessingMetadata };
 
     return this._notifyEventProcessors([...getGlobalEventProcessors(), ...this._eventProcessors], event, hint);
   }

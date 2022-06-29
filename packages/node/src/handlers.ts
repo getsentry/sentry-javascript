@@ -14,6 +14,9 @@ import * as domain from 'domain';
 import * as http from 'http';
 
 import { NodeClient } from './client';
+// TODO (v8 / XXX) Remove these imports
+import type { ParseRequestOptions } from './requestDataDeprecated';
+import { parseRequest } from './requestDataDeprecated';
 import { addRequestDataToEvent, extractRequestData, flush, isAutoSessionTrackingEnabled } from './sdk';
 
 /**
@@ -42,7 +45,7 @@ export function tracingHandler(): (
         name: extractPathForTransaction(req, { path: true, method: true }),
         op: 'http.server',
         ...traceparentData,
-        metadata: { baggage: baggage },
+        metadata: { baggage },
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },
@@ -72,9 +75,12 @@ export function tracingHandler(): (
   };
 }
 
-export type RequestHandlerOptions = AddRequestDataToEventOptions & {
-  flushTimeout?: number;
-};
+export type RequestHandlerOptions =
+  // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
+  // eslint-disable-next-line deprecation/deprecation
+  | (ParseRequestOptions | AddRequestDataToEventOptions) & {
+      flushTimeout?: number;
+    };
 
 /**
  * Express compatible request handler.
@@ -96,11 +102,21 @@ export function requestHandler(
       scope.setSession();
     }
   }
+
   return function sentryRequestMiddleware(
     req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
+    // TODO (v8 / XXX) Remove this shim and just use `addRequestDataToEvent`
+    let backwardsCompatibleEventProcessor: (event: Event) => Event;
+    if (options && 'include' in options) {
+      backwardsCompatibleEventProcessor = (event: Event) => addRequestDataToEvent(event, req, options);
+    } else {
+      // eslint-disable-next-line deprecation/deprecation
+      backwardsCompatibleEventProcessor = (event: Event) => parseRequest(event, req, options as ParseRequestOptions);
+    }
+
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
@@ -124,7 +140,7 @@ export function requestHandler(
       const currentHub = getCurrentHub();
 
       currentHub.configureScope(scope => {
-        scope.addEventProcessor((event: Event) => addRequestDataToEvent(event, req, options));
+        scope.addEventProcessor(backwardsCompatibleEventProcessor);
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
