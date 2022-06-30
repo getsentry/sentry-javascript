@@ -55,6 +55,8 @@ describe('SentryReplay', () => {
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
+    // @ts-expect-error private property
+    replay.isActive = true;
   });
 
   afterAll(() => {
@@ -102,7 +104,27 @@ describe('SentryReplay', () => {
     expect(replay).not.toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session if user hides the tab and comes back within 60 seconds', () => {
+  it('creates a new session and triggers a full dom snapshot when document becomes active after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'visible';
+      },
+    });
+
+    const initialSession = replay.session;
+
+    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+
+    window.dispatchEvent(new Event('focus'));
+
+    expect(mockRecord.takeFullSnapshot).toHaveBeenLastCalledWith(true);
+
+    // Should have created a new session
+    expect(replay).not.toHaveSameSession(initialSession);
+  });
+
+  it('does not create a new session if user hides the tab and comes back within [VISIBILITY_CHANGE_TIMEOUT] seconds', () => {
     const initialSession = replay.session;
 
     Object.defineProperty(document, 'visibilityState', {
@@ -130,8 +152,47 @@ describe('SentryReplay', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
+  it('uploads a replay event when window is blurred', async () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const hiddenBreadcrumb = {
+      type: 5,
+      timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+      data: {
+        tag: 'breadcrumb',
+        payload: {
+          timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+          type: 'default',
+          category: 'ui.blur',
+        },
+      },
+    };
+
+    replay.eventBuffer.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay.sendReplayRequest).toHaveBeenCalled();
+    expect(replay).toHaveSentReplay(
+      JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
+    );
+    // Session's last activity should be updated
+    expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    // events array should be empty
+    expect(replay.eventBuffer.length).toBe(0);
+  });
+
   it('uploads a replay event when document becomes hidden', async () => {
-    mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -143,22 +204,83 @@ describe('SentryReplay', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const hiddenBreadcrumb = {
+      type: 5,
+      timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+      data: {
+        tag: 'breadcrumb',
+        payload: {
+          timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+          type: 'default',
+          category: 'ui.other',
+          data: {
+            label: 'Page is hidden',
+          },
+        },
+      },
+    };
+
     replay.eventBuffer.addEvent(TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
+
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    const regex = new RegExp(
-      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
-    );
     expect(replay.sendReplayRequest).toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
-      endpoint: expect.stringMatching(regex),
-      events: JSON.stringify([TEST_EVENT]),
-    });
+    expect(replay).toHaveSentReplay(
+      JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
+    );
+
     // Session's last activity should be updated
     expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
+  });
+
+  it('does not record both a blur and visibility change', async () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const hiddenBreadcrumb = {
+      type: 5,
+      timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+      data: {
+        tag: 'breadcrumb',
+        payload: {
+          timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
+          type: 'default',
+          category: 'ui.blur',
+        },
+      },
+    };
+
+    replay.eventBuffer.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+
+    expect(replay.sendReplayRequest).toHaveBeenCalled();
+    expect(replay).toHaveSentReplay(
+      JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
+    );
+    // Session's last activity should be updated
+    expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    // events array should be empty
+    expect(replay.eventBuffer.length).toBe(0);
+
+    mockSendReplayRequest.mockClear();
+    // Now dispatch visibility change immediately after blur
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(process.nextTick);
+
+    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
@@ -169,16 +291,8 @@ describe('SentryReplay', () => {
     await advanceTimers(ELAPSED);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-
-    const regex = new RegExp(
-      'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
-    );
-
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay.sendReplayRequest).toHaveBeenCalledWith({
-      endpoint: expect.stringMatching(regex),
-      events: JSON.stringify([TEST_EVENT]),
-    });
+    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);

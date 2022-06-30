@@ -93,6 +93,11 @@ export class SentryReplay implements Integration {
   private retryCount = 0;
   private retryInterval = BASE_RETRY_INTERVAL;
 
+  /**
+   * If current browser window in an active state
+   */
+  private isActive = true;
+
   session: Session | undefined;
 
   static attachmentUrlFromDsn(dsn: DsnComponents, eventId: string) {
@@ -270,6 +275,8 @@ export class SentryReplay implements Integration {
 
   addListeners() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    window.addEventListener('blur', this.handleWindowBlur);
+    window.addEventListener('focus', this.handleWindowFocus);
     window.addEventListener('beforeunload', this.handleWindowUnload);
 
     // Listeners from core SDK //
@@ -320,59 +327,54 @@ export class SentryReplay implements Integration {
   }
 
   /**
-   * Handle when visibility of the page changes. (e.g. new tab is opened)
+   * Handle when visibility of the page content changes. Opening a new tab will
+   * cause the state to change to hidden because of content of current page will
+   * be hidden. Likewise, moving a different window to cover the contents of the
+   * page will also trigger a change to a hidden state.
    */
   handleVisibilityChange = () => {
-    const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
-    if (isExpired) {
-      if (document.visibilityState === 'visible') {
-        // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
-        // ms, we will re-use the existing session, otherwise create a new
-        // session
-        logger.log('Document has become active, but session has expired');
-        this.loadSession({ expiry: VISIBILITY_CHANGE_TIMEOUT });
-        this.triggerFullSnapshot();
-      }
-      // We definitely want to return if visibilityState is "visible", and I
-      // think we also want to do the same when "hidden", as there shouldn't be
-      // any action to take if user has gone idle for a long period and then
-      // comes back to hide the tab. We don't trigger a full snapshot because
-      // we don't want to start a new session as they immediately have hidden
-      // the tab.
-      return;
-    }
-    // Otherwise if session is not expired...
-    // Update with current timestamp as the last session activity
-    // Only updating session on visibility change to be conservative about
-    // writing to session storage. This could be changed in the future.
-    this.session.lastActivity = new Date().getTime();
+    const breadcrumb = createBreadcrumb({
+      category: 'ui.other',
+      data: {
+        label: `Page is ${document.visibilityState}`,
+      },
+    });
 
-    // Send replay when the page/tab becomes hidden. There is no reason to send
-    // replay if it becomes visible, since no actions we care about were done
-    // while it was hidden
-    if (document.visibilityState !== 'visible') {
-      this.flushUpdate();
+    if (document.visibilityState === 'visible') {
+      this.doChangeToForegroundTasks(breadcrumb);
+    } else {
+      this.doChangeToBackgroundTasks(breadcrumb);
     }
   };
 
-  handleWindowUnload = () => {
+  /**
+   * Handle when page is blurred
+   */
+  handleWindowBlur = () => {
     const breadcrumb = createBreadcrumb({
-      category: 'ui.exit',
-      message: '',
+      category: 'ui.blur',
     });
 
-    this.addUpdate(() => {
-      this.eventBuffer.addEvent({
-        type: EventType.Custom,
-        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-        // but maybe we should just keep them as milliseconds
-        timestamp: breadcrumb.timestamp,
-        data: {
-          tag: 'breadcrumb',
-          payload: breadcrumb,
-        },
-      });
+    this.doChangeToBackgroundTasks(breadcrumb);
+  };
+
+  /**
+   * Handle when page is focused
+   */
+  handleWindowFocus = () => {
+    const breadcrumb = createBreadcrumb({
+      category: 'ui.focus',
     });
+
+    this.doChangeToForegroundTasks(breadcrumb);
+  };
+
+  handleWindowUnload = () => {
+    this.createCustomBreadcrumb(
+      createBreadcrumb({
+        category: 'ui.exit',
+      })
+    );
   };
 
   handleCoreListener = (type: InstrumentationType) => (handlerData: any) => {
@@ -434,12 +436,86 @@ export class SentryReplay implements Integration {
   };
 
   /**
+   * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
+   */
+  doChangeToBackgroundTasks(breadcrumb: Breadcrumb) {
+    const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
+
+    // We check current state to make sure that we do nothing if the page is already inactive
+    if (!this.isActive) {
+      return;
+    }
+
+    this.createCustomBreadcrumb({
+      ...breadcrumb,
+      // if somehow the page went hidden while session is expired, attach to previous session
+      timestamp: isExpired
+        ? this.session.lastActivity / 1000
+        : breadcrumb.timestamp,
+    });
+
+    this.isActive = false;
+
+    // Send replay when the page/tab becomes hidden. There is no reason to send
+    // replay if it becomes visible, since no actions we care about were done
+    // while it was hidden
+    this.flushUpdate();
+  }
+
+  /**
+   * Tasks to run when we consider a page to be visible (via focus and/or visibility)
+   */
+  doChangeToForegroundTasks(breadcrumb: Breadcrumb) {
+    const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
+
+    this.isActive = true;
+
+    this.createCustomBreadcrumb({
+      ...breadcrumb,
+      timestamp: isExpired ? new Date().getTime() / 1000 : breadcrumb.timestamp,
+    });
+
+    if (isExpired) {
+      // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
+      // ms, we will re-use the existing session, otherwise create a new
+      // session
+      logger.log('Document has become active, but session has expired');
+      this.loadSession({ expiry: VISIBILITY_CHANGE_TIMEOUT });
+      this.triggerFullSnapshot();
+      return;
+    }
+
+    // Otherwise if session is not expired...
+    // Update with current timestamp as the last session activity
+    // Only updating session on visibility change to be conservative about
+    // writing to session storage. This could be changed in the future.
+    this.updateLastActivity();
+  }
+
+  /**
    * Trigger rrweb to take a full snapshot which will cause this plugin to
    * create a new Replay event.
    */
   triggerFullSnapshot() {
     logger.log('Taking full rrweb snapshot');
     record.takeFullSnapshot(true);
+  }
+
+  updateLastActivity(lastActivity: number = new Date().getTime()) {
+    this.session.lastActivity = lastActivity;
+  }
+
+  createCustomBreadcrumb(breadcrumb: Breadcrumb) {
+    this.addUpdate(() => {
+      this.eventBuffer.addEvent({
+        type: EventType.Custom,
+        timestamp: breadcrumb.timestamp,
+        data: {
+          tag: 'breadcrumb',
+          payload: breadcrumb,
+        },
+      });
+    });
   }
 
   /**
@@ -540,7 +616,7 @@ export class SentryReplay implements Integration {
 
     this.initialEventTimestampSinceFlush = null;
     // TBD: Alternatively we could update this after every rrweb event
-    this.session.lastActivity = lastActivity || new Date().getTime();
+    this.updateLastActivity(lastActivity);
   }
 
   /**
