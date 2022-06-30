@@ -8,7 +8,6 @@ Sentry.init({
   integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] })],
   environment: 'production',
   tracesSampleRate: 1,
-  sendDefaultPii: true,
   debug: true,
 });
 
