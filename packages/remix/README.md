@@ -16,9 +16,9 @@ This SDK is considering experimental and in an alpha state. It may experience br
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Remix.
 
-To use this SDK, init Sentry in your Remix entry points for both the client and server.
+To use this SDK, initialize Sentry in your Remix entry points for both the client and server.
 
-```typescript
+```ts
 // entry.client.tsx
 
 import { useLocation, useMatches } from "@remix-run/react";
@@ -41,9 +41,24 @@ Sentry.init({
 });
 ```
 
-Also, wrap your Remix root, with `ErrorBoundary` to catch React errors, and `withSentryRouteTracing` to get parameterized router transactions.
+```ts
+// entry.server.tsx
 
-```typescript
+import { prisma } from "~/db.server";
+
+import * as Sentry from "@sentry/remix";
+
+Sentry.init({
+  dsn: "__DSN__",
+  tracesSampleRate: 1,
+  integrations: [new Sentry.Integrations.Prisma({ client: prisma })],
+  // ...
+});
+```
+
+Also, wrap your Remix root, with Sentry's `ErrorBoundary` component to catch React component errors, and `withSentryRouteTracing` to get parameterized router transactions.
+
+```ts
 // root.tsx
 
 import {
@@ -77,25 +92,11 @@ function App() {
 }
 
 export default withSentryRouteTracing(App);
-
-```typescript
-// entry.server.tsx
-
-import { prisma } from "~/db.server";
-
-import * as Sentry from "@sentry/remix";
-
-Sentry.init({
-  dsn: "__DSN__",
-  tracesSampleRate: 1,
-  integrations: [new Sentry.Integrations.Prisma({ client: prisma })],
-  // ...
-});
 ```
 
 To set context information or send manual events, use the exported functions of `@sentry/remix`.
 
-```javascript
+```ts
 import * as Sentry from '@sentry/remix';
 
 // Set user information, as well as tags and further extras
@@ -125,8 +126,7 @@ Sentry.captureEvent({
 
 ## Sourcemaps and Releases
 
-The Remix SDK provides a script that automatically creates a release and uploads sourcemaps.
-To generate sourcemaps with Remix, you need to call `remix build` with `--sourcemap` option. 
+The Remix SDK provides a script that automatically creates a release and uploads sourcemaps. To generate sourcemaps with Remix, you need to call `remix build` with `--sourcemap` option.
 
 On release, call `sentry-upload-sourcemaps` to upload source maps and create a release. To see more details on how to use the command, call `sentry-upload-sourcemaps --help`.
 
