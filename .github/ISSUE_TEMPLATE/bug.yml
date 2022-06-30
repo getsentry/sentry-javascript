@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way we (probably) intend.
-labels: 'Type: Bug'
+labels: "Type: Bug"
 body:
   - type: checkboxes
     attributes:
@@ -32,6 +32,7 @@ body:
         - "@sentry/ember"
         - "@sentry/gatsby"
         - "@sentry/nextjs"
+        - "@sentry/remix"
         - "@sentry/node"
         - "@sentry/react"
         - "@sentry/serverless"
