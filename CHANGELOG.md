@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.4.0
+
+This release contains the first alpha release of `@sentry/remix`, our newest JavaScript SDK! For details on how to use
+it, please see the [README](./packages/remix/README.md) and [the tracking GitHub issue](https://github.com/getsentry/sentry-javascript/issues/4894).
+
+- feat(remix): Enable Remix SDK #5327
+- feat(remix): Add release / sourcemap upload script. (#5312)
+- feat(remix): Add Remix server SDK (#5269)
+- feat(remix): Add Remix client SDK (#5264)
+- feat(remix): Add Remix SDK package boilerplate (#5256)
+- fix(utils): Handle toJSON methods that return circular references (#5323)
+
+Work in this release contributed by @MichaelDeBoey. Thank you for your contribution!
+
+Special thank you to @jacob-ebey for pointing us in the right direction while we were working on the Remix SDK:
+https://github.com/jacob-ebey/remix-sentry.
+
 ## 7.3.1
 
 - feat(react): expose FallbackRender as top-level type (#5307)
