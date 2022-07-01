@@ -16,6 +16,9 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.server.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@sentry/cli": "2.2.0",
     "@sentry/core": "7.3.1",
