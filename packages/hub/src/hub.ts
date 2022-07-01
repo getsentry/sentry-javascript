@@ -444,7 +444,7 @@ export class Hub implements HubInterface {
    * when Tracing is used.
    */
   public shouldSendDefaultPii(): boolean {
-    const { client } = this.getStackTop();
+    const client = this.getClient();
     const options = client && client.getOptions();
     return Boolean(options && options.sendDefaultPii);
   }
