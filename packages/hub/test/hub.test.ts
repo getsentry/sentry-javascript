@@ -431,4 +431,23 @@ describe('Hub', () => {
       });
     });
   });
+
+  describe('shouldSendDefaultPii()', () => {
+    test('return false if sendDefaultPii is not set', () => {
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
+      expect(hub.shouldSendDefaultPii()).toBe(false);
+    });
+
+    test('return true if sendDefaultPii is set in the client options', () => {
+      const testClient = makeClient();
+      testClient.getOptions = () => {
+        return {
+          sendDefaultPii: true,
+        } as unknown as any;
+      };
+      const hub = new Hub(testClient);
+      expect(hub.shouldSendDefaultPii()).toBe(true);
+    });
+  });
 });
