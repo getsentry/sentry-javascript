@@ -4,12 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.4.1
+
+This release includes the first *published* version of `@sentry/remix`.
+
+- build(remix): Make remix package public (#5349)
+
 ## 7.4.0
 
-This release contains the first alpha release of `@sentry/remix`, our newest JavaScript SDK! For details on how to use
+This release contains the alpha version of `@sentry/remix`, our newest JavaScript SDK! For details on how to use
 it, please see the [README](./packages/remix/README.md) and [the tracking GitHub issue](https://github.com/getsentry/sentry-javascript/issues/4894).
 
-- feat(remix): Enable Remix SDK #5327
+Attention: Due to an oversight, the `@sentry/remix` package is only published as part of the `7.4.1` release.
+
+- feat(remix): Enable Remix SDK (#5327)
 - feat(remix): Add release / sourcemap upload script. (#5312)
 - feat(remix): Add Remix server SDK (#5269)
 - feat(remix): Add Remix client SDK (#5264)
