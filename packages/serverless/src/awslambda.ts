@@ -57,10 +57,18 @@ export interface WrapperOptions {
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
 
+interface AWSLambdaOptions extends Sentry.NodeOptions {
+  /**
+   * Internal field that is set to `true` when init() is called by the Sentry AWS Lambda layer.
+   *
+   */
+  _invokedByLambdaLayer?: boolean;
+}
+
 /**
  * @see {@link Sentry.init}
  */
-export function init(options: Sentry.NodeOptions = {}): void {
+export function init(options: AWSLambdaOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
@@ -78,13 +86,11 @@ export function init(options: Sentry.NodeOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  // If invoked by the Sentry Lambda Layer,
-  // point the SDK to the Lambda Extension (inside the layer) instead of the host specified in the DSN
-  if ('invokedByAWSLambdaLayer' in options && options.invokedByAWSLambdaLayer === true) {
+  // If invoked by the Sentry Lambda Layer point the SDK to the Lambda Extension (inside the layer) instead of the host
+  // specified in the DSN
+  if (options._invokedByLambdaLayer) {
     options.dsn = extensionRelayDSN(options.dsn);
   }
-  // Do not leak `invokedByAWSLambdaLayer` into the call to Sentry.init().
-  delete options.invokedByAWSLambdaLayer;
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);

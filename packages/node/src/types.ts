@@ -10,16 +10,11 @@ export interface BaseNodeOptions {
   onFatalError?(error: Error): void;
 }
 
-export interface AWSLambdaOptions {
-  /** Set when init() is called by the Sentry AWS Lambda layer. */
-  invokedByLambdaLayer?: boolean;
-}
-
 /**
  * Configuration options for the Sentry Node SDK
  * @see @sentry/types Options for more information.
  */
-export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions, AWSLambdaOptions {}
+export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOptions {}
 
 /**
  * Configuration options for the Sentry Node SDK Client class
