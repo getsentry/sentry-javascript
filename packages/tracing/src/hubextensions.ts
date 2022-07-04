@@ -53,6 +53,7 @@ function sample<T extends Transaction>(
   }
 
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
+  // So this could be either true, false or undefined. Q: what does transaction.sampled===false mean?
   if (transaction.sampled !== undefined) {
     transaction.setMetadata({
       transactionSampling: { method: 'explicitly_set' },

@@ -11,19 +11,21 @@ import * as nock from 'nock';
 import { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
-  function createTransactionOnScope(sendDefaultPii: boolean = true) {
+  function createTransactionOnScope(customOptions: Partial<NodeClientOptions> = {}) {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
-      sendDefaultPii,
+      sendDefaultPii: true,
+      ...customOptions,
     });
     const hub = new Hub(new NodeClient(options));
     addExtensionMethods();
@@ -137,7 +139,7 @@ describe('tracing', () => {
   it('does not add the user_id to the baggage header if sendDefaultPii is set to false', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope(false);
+    createTransactionOnScope({ sendDefaultPii: false });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
