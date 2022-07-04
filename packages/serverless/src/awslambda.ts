@@ -78,8 +78,13 @@ export function init(options: Sentry.NodeOptions = {}): void {
     version: Sentry.SDK_VERSION,
   };
 
-  // Point the SDK to the Lambda Extension instead of the host specified in the DSN
-  options.dsn = extensionRelayDSN(options.dsn);
+  // If invoked by the Sentry Lambda Layer,
+  // point the SDK to the Lambda Extension (inside the layer) instead of the host specified in the DSN
+  if ('invokedByAWSLambdaLayer' in options && options.invokedByAWSLambdaLayer === true) {
+    options.dsn = extensionRelayDSN(options.dsn);
+  }
+  // Do not leak `invokedByAWSLambdaLayer` into the call to Sentry.init().
+  delete options.invokedByAWSLambdaLayer;
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);
