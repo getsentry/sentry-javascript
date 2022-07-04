@@ -10,4 +10,12 @@ module.exports = {
   rules: {
     '@sentry-internal/sdk/no-async-await': 'off',
   },
+  overrides: [
+    {
+      files: ['scripts/**/*.ts'],
+      parserOptions: {
+        project: ['../../tsconfig.dev.json'],
+      },
+    },
+  ],
 };
