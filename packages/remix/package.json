@@ -12,7 +12,7 @@
   "engines": {
     "node": ">=14"
   },
-  "main": "build/esm/index.server.js",
+  "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.server.d.ts",
