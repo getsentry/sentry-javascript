@@ -11,7 +11,8 @@
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nextjs.svg)](https://www.npmjs.com/package/@sentry/remix)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
-This SDK is considering experimental and in an alpha state. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+This SDK is considered experimental and in an alpha state. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Remix.
@@ -73,21 +74,21 @@ import {
 import { ErrorBoundary, withSentryRouteTracing } from "@sentry/remix";
 
 function App() {
-    return (
-      <ErrorBoundary>
-        <html>
-          <head>
-            <Meta />
-            <Links />
-          </head>
-          <body>
-            <Outlet />
-            <ScrollRestoration />
-            <Scripts />
-            <LiveReload />
-          </body>
-        </html>
-      </ErrorBoundary>
+  return (
+    <ErrorBoundary>
+      <html>
+        <head>
+          <Meta />
+          <Links />
+        </head>
+        <body>
+          <Outlet />
+          <ScrollRestoration />
+          <Scripts />
+          <LiveReload />
+        </body>
+      </html>
+    </ErrorBoundary>
   );
 }
 
@@ -126,7 +127,7 @@ Sentry.captureEvent({
 
 ## Sourcemaps and Releases
 
-The Remix SDK provides a script that automatically creates a release and uploads sourcemaps. To generate sourcemaps with Remix, you need to call `remix build` with `--sourcemap` option.
+The Remix SDK provides a script that automatically creates a release and uploads sourcemaps. To generate sourcemaps with Remix, you need to call `remix build` with the `--sourcemap` option.
 
 On release, call `sentry-upload-sourcemaps` to upload source maps and create a release. To see more details on how to use the command, call `sentry-upload-sourcemaps --help`.
 
