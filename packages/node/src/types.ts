@@ -6,8 +6,6 @@ export interface BaseNodeOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
-  invokedByLambdaLayer?: boolean;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }
