@@ -12,6 +12,7 @@ This flag is set to `false` per default, and acts as an opt-in mechanism for sen
 If you want to attach user IDs to Sentry transactions and traces, set this flag to `true` but keep in mind that this is potentially sensitive information.
 
 - feat(sdk): Add sendDefaultPii option to the JS SDKs (#5341)
+- fix(remix): Sourcemaps upload script is missing in the tarball (#5356)
 - fix(remix): Use cjs for main entry point (#5352)
 - ref(tracing): Only add `user_id` to DSC if `sendDefaultPii` is `true` (#5344)
 
