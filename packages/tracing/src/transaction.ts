@@ -9,7 +9,14 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { createBaggage, dropUndefinedKeys, getSentryBaggageItems, isBaggageMutable, logger } from '@sentry/utils';
+import {
+  createBaggage,
+  dropUndefinedKeys,
+  getSentryBaggageItems,
+  isBaggageMutable,
+  isNaN,
+  logger,
+} from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -223,11 +230,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const { environment, release } = client.getOptions() || {};
     const { publicKey: public_key } = client.getDsn() || {};
 
-    const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
-    const sample_rate =
-      rate !== undefined
-        ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
-        : undefined;
+    const sample_rate = getDSCSampleRate(
+      this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate,
+    );
 
     const scope = hub.getScope();
     const { id: user_id, segment: user_segment } = (scope && scope.getUser()) || {};
@@ -248,4 +253,20 @@ export class Transaction extends SpanClass implements TransactionInterface {
       false, // set baggage immutable
     );
   }
+}
+
+/**
+ * Takes the sample rate as recorded in event.metadata.transactionSampling and returns a
+ * string representation of this sample rate that is safety checked and converted to a
+ * simple decimap representation.
+ */
+export function getDSCSampleRate(rate: number | undefined): string | undefined {
+  if (rate === undefined || rate === null || isNaN(rate)) return undefined;
+  if (rate < 0) return '0';
+  if (rate > 1) return '1';
+
+  const fractionDigits = 16;
+  const finalRate = rate < 10 ** -fractionDigits ? 10 ** -fractionDigits : rate;
+
+  return finalRate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: fractionDigits });
 }

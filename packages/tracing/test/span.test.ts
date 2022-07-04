@@ -4,6 +4,7 @@ import { BaseTransportOptions, ClientOptions } from '@sentry/types';
 import { createBaggage, getSentryBaggageItems, getThirdPartyBaggage, isSentryBaggageEmpty } from '@sentry/utils';
 
 import { Span, Transaction } from '../src';
+import { getDSCSampleRate } from '../src/transaction';
 import { TRACEPARENT_REGEXP } from '../src/utils';
 import { getDefaultBrowserClientOptions } from './testutils';
 
@@ -451,28 +452,24 @@ describe('Span', () => {
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
 
-    test('exponential sample rate notation is converted to decimal notation', () => {
-      const transaction = new Transaction(
-        {
-          name: 'tx',
-          metadata: {
-            transactionSampling: { rate: 1.45e-14, method: 'client_rate' },
-          },
-        },
-        hub,
-      );
-
-      const baggage = transaction.getBaggage();
-
-      expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
-      expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
-        release: '1.0.1',
-        environment: 'production',
-        transaction: 'tx',
-        sample_rate: '0.0000000000000145',
-        trace_id: expect.any(String),
+    describe('sample rate edge cases', () => {
+      it.each([
+        ['NaN is converted to undefined', NaN, undefined],
+        ['null is converted to undefined', NaN, undefined],
+        ['undefined stays undefined', undefined, undefined],
+        ['exponential sample rate notation is converted to decimal notation', 1.45e-14, '0.0000000000000145'],
+        ['-inf is converted to 0', Number.NEGATIVE_INFINITY, '0'],
+        ['+inf is converted to 0', Number.POSITIVE_INFINITY, '1'],
+        ['number < 0 is converted to 0', -0.1, '0'],
+        ['number > 0 converted to 1', 1.1, '1'],
+        [
+          'numbers smaller than 16 decimal digits should be rounded to 16 decimal digits',
+          0.00000000000000009,
+          '0.0000000000000001',
+        ],
+      ])('%s', (_: string, rate, outcome) => {
+        expect(getDSCSampleRate(rate)).toEqual(outcome);
       });
-      expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
   });
 });
