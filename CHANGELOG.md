@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.5.0
+
+This release adds the `sendDefaultPii` flag to the `Sentry.init` options.
+When using performance monitoring capabilities of the SDK, it controls whether user IDs (set via `Sentry.setUser`) are propagated in the `baggage` header of outgoing HTTP requests.
+This flag is set to `false` per default, and acts as an opt-in mechanism for sending potentially sensitive data.
+If you want to attach user IDs to Sentry transactions and traces, set this flag to `true` but keep in mind that this is potentially sensitive information.
+
+- feat(sdk): Add sendDefaultPii option to the JS SDKs (#5341)
+- fix(remix): Use cjs for main entry point (#5352)
+- ref(tracing): Only add `user_id` to DSC if `sendDefaultPii` is `true` (#5344)
+
+Work in this release contributed by @jkcorrea and @nfelger. Thank you for your contributions!
+
 ## 7.4.1
 
 This release includes the first *published* version of `@sentry/remix`.
