@@ -434,11 +434,12 @@ describe('Span', () => {
         hub,
       );
 
-      const hubSpy = jest.spyOn(hub.getClient()!, 'getOptions');
+      const getOptionsSpy = jest.spyOn(hub.getClient()!, 'getOptions');
 
       const baggage = transaction.getBaggage();
 
-      expect(hubSpy).toHaveBeenCalledTimes(1);
+      // this is called twice because hub.shouldSendDefaultPii also calls getOptions()
+      expect(getOptionsSpy).toHaveBeenCalledTimes(2);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
         release: '1.0.1',
