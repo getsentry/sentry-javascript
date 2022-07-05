@@ -8,7 +8,8 @@ Sentry.init({
   integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] })],
   environment: 'production',
   tracesSampleRate: 1,
-  sendDefaultPii: true,
+  // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
+  // sendDefaultPii: true,
   debug: true,
 });
 

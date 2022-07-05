@@ -153,17 +153,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Currently controls if the user id (e.g. set by `Sentry.setUser`) should
-   * be used for dynamic sampling. Only if this flag is set to `true`, the user id
-   * will be propagated to outgoing requests in the `baggage` Http header.
+   * Important: This option is currently unused and will only work in the next major version of the SDK
    *
-   * Note that in the next major version of this SDK, this option will not only
-   * control dynamic sampling data: As long as this flag is not set to `true`,
-   * the SDK will not send sensitive data by default.
+   * Controls if potentially sensitive data should be sent to Sentry by default.
+   * Note that this only applies to data that the SDK is sending by default
+   * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
+   * Details about the implementation are TBD.
    *
    * Defaults to `false`.
    *
-   * @experimental (will be fully introduced in the next major version)
+   * @ignore
    */
   sendDefaultPii?: boolean;
 

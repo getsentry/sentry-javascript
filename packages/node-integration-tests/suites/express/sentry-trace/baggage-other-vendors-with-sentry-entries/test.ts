@@ -30,8 +30,10 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
     test_data: {
       host: 'somewhere.not.sentry',
       baggage: expect.stringContaining(
-        'other=vendor,foo=bar,third=party,last=item,sentry-environment=prod,sentry-release=1.0,' +
-          'sentry-transaction=GET%20%2Ftest%2Fexpress,sentry-public_key=public',
+        // Commented out as long as transaction and user_id are not part of DSC
+        // 'other=vendor,foo=bar,third=party,last=item,sentry-environment=prod,sentry-release=1.0,' +
+        // 'sentry-transaction=GET%20%2Ftest%2Fexpress,sentry-public_key=public',
+        'other=vendor,foo=bar,third=party,last=item,sentry-environment=prod,sentry-release=1.0,sentry-public_key=public',
       ),
     },
   });

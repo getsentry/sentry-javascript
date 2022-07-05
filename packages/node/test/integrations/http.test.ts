@@ -24,7 +24,6 @@ describe('tracing', () => {
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
-      sendDefaultPii: true,
       ...customOptions,
     });
     const hub = new Hub(new NodeClient(options));
@@ -113,7 +112,9 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
+      'sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
@@ -130,16 +131,21 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-        'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+      // 'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+      // 'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+      'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
+        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
   });
 
-  it('does not add the user_id to the baggage header if sendDefaultPii is set to false', async () => {
+  // TODO: Skipping this test because right now we're rethinking the mechanism for including such data
+  it.skip('does not add the user_id to the baggage header if <optionTBA> is set to false', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({ sendDefaultPii: false });
+    createTransactionOnScope();
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -147,7 +153,9 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+      'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
