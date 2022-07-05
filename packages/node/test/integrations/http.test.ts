@@ -112,6 +112,8 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
       'sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
@@ -129,6 +131,10 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+      // 'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+      // 'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
       'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
@@ -147,6 +153,8 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
+      // Commented out as long as transaction and user_id are not part of DSC
+      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
       'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',

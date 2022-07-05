@@ -13,6 +13,8 @@ test('should attach a `baggage` header to an outgoing request.', async () => {
     test_data: {
       host: 'somewhere.not.sentry',
       baggage:
+        // Commented out as long as transaction and user_id are not part of DSC
+        // 'sentry-environment=prod,sentry-release=1.0,sentry-transaction=GET%20%2Ftest%2Fexpress,sentry-user_segment=SegmentA' +
         'sentry-environment=prod,sentry-release=1.0,sentry-user_segment=SegmentA' +
         ',sentry-public_key=public,sentry-trace_id=86f39e84263a4de99c326acab3bfe3bd,sentry-sample_rate=1',
     },
