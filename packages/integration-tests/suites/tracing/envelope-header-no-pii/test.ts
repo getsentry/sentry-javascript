@@ -5,7 +5,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest(
-  'should not send user_id and trabsaction in DSC data in trace envelope header (for now)',
+  'should not send user_id and transaction in DSC data in trace envelope header (for now)',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
