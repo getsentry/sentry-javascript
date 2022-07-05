@@ -229,15 +229,18 @@ export class Transaction extends SpanClass implements TransactionInterface {
         ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
         : undefined;
 
+    // For now we're not sending the transaction name and user_id due to PII concerns
+    // commenting it out for now because we'll probably need it in the future
+
     const scope = hub.getScope();
-    const { id: user_id, segment: user_segment } = (scope && scope.getUser()) || {};
+    const { /* id: user_id, */ segment: user_segment } = (scope && scope.getUser()) || {};
 
     return createBaggage(
       dropUndefinedKeys({
         environment,
         release,
-        transaction: this.name,
-        ...(hub.shouldSendDefaultPii() && { user_id }),
+        // transaction: this.name,
+        // ...(hub.shouldSendDefaultPii() && { user_id }),
         user_segment,
         public_key,
         trace_id: this.traceId,

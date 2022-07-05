@@ -439,12 +439,12 @@ describe('Span', () => {
       const baggage = transaction.getBaggage();
 
       // this is called twice because hub.shouldSendDefaultPii also calls getOptions()
-      expect(getOptionsSpy).toHaveBeenCalledTimes(2);
+      expect(getOptionsSpy).toHaveBeenCalledTimes(1);
       expect(baggage && isSentryBaggageEmpty(baggage)).toBe(false);
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
-        transaction: 'tx',
+        // transaction: 'tx',
         sample_rate: '0.56',
         trace_id: expect.any(String),
       });
@@ -468,7 +468,7 @@ describe('Span', () => {
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
-        transaction: 'tx',
+        // transaction: 'tx',
         sample_rate: '0.0000000000000145',
         trace_id: expect.any(String),
       });
