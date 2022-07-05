@@ -1,3 +1,4 @@
+import { withErrorBoundary } from '@sentry/react';
 import { Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as React from 'react';
@@ -91,6 +92,7 @@ export function withSentryRouteTracing<P extends Record<string, unknown>, R exte
       // will break advanced type inference done by react router params
       return <OrigApp {...props} />;
     }
+
     let isBaseLocation: boolean = false;
 
     const location = _useLocation();
@@ -135,5 +137,5 @@ export function withSentryRouteTracing<P extends Record<string, unknown>, R exte
 
   // @ts-ignore Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
-  return SentryRoot;
+  return withErrorBoundary(SentryRoot);
 }
