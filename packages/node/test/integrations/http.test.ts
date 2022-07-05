@@ -24,7 +24,6 @@ describe('tracing', () => {
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
-      sendDefaultPii: true,
       ...customOptions,
     });
     const hub = new Hub(new NodeClient(options));
@@ -136,10 +135,11 @@ describe('tracing', () => {
     );
   });
 
-  it('does not add the user_id to the baggage header if sendDefaultPii is set to false', async () => {
+  // TODO: Skipping this test because right now we're rethinking the mechanism for including such data
+  it.skip('does not add the user_id to the baggage header if <optionTBA> is set to false', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({ sendDefaultPii: false });
+    createTransactionOnScope();
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;

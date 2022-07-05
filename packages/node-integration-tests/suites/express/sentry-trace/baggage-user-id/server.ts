@@ -15,7 +15,7 @@ Sentry.init({
   integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
-  //sendDefaultPii: true,
+  // sendDefaultPii: true,
 });
 
 Sentry.setUser({ id: 'user123', segment: 'SegmentA' });

@@ -240,7 +240,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
         environment,
         release,
         // transaction: this.name,
-        // ...(hub.shouldSendDefaultPii() && { user_id }),
+        // replace `someContidion` with whatever decision we come up with to guard PII in DSC
+        // ...(someCondition && { user_id }),
         user_segment,
         public_key,
         trace_id: this.traceId,
