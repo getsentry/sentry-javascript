@@ -1,6 +1,6 @@
 import { captureException, configureScope, getCurrentHub, startTransaction } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
-import { addExceptionMechanism, fill, loadModule, logger } from '@sentry/utils';
+import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -134,7 +134,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const currentScope = getCurrentHub().getScope();
     const transaction = startTransaction({
-      name: request.url,
+      name: stripUrlQueryAndFragment(request.url),
       op: 'http.server',
       tags: {
         method: request.method,
