@@ -89,6 +89,12 @@ export interface Transaction extends TransactionContext, Span {
   /** Updates the current transaction with a new `TransactionContext` */
   updateWithContext(transactionContext: TransactionContext): this;
 
+  /**
+   * Set metadata for this transaction.
+   * @hidden
+   */
+  setMetadata(newMetadata: TransactionMetadata): void;
+
   /** return the baggage for dynamic sampling and trace propagation */
   getBaggage(): Baggage;
 }
@@ -138,4 +144,27 @@ export interface TransactionMetadata {
 
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   requestPath?: string;
+
+  /** Information on how a transaction name was generated. */
+  source?: TransactionSource;
 }
+
+/**
+ * Contains information about how the name of the transaction was determined. This will be used by the server to decide
+ * whether or not to scrub identifiers from the transaction name, or replace the entire name with a placeholder.
+ */
+export type TransactionSource =
+  /** User-defined name */
+  | 'custom'
+  /** Raw URL, potentially containing identifiers */
+  | 'url'
+  /** Parametrized URL / route */
+  | 'route'
+  /** Name of the view handling the request */
+  | 'view'
+  /** This is the default value set by Relay for legacy SDKs. */
+  | 'unknown'
+  /** Named after a software component, such as a function or class name. */
+  | 'component'
+  /** Name of a background task (e.g. a Celery task) */
+  | 'task';
