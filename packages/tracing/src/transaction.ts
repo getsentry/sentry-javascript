@@ -258,7 +258,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 /**
  * Takes the sample rate as recorded in event.metadata.transactionSampling and returns a
  * string representation of this sample rate that is safety checked and converted to a
- * simple decimap representation.
+ * simple decimal representation.
  */
 export function getDSCSampleRate(rate: number | undefined): string | undefined {
   if (rate === undefined || rate === null || isNaN(rate)) return undefined;
