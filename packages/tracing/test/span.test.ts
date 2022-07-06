@@ -474,4 +474,42 @@ describe('Span', () => {
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
     });
   });
+
+  describe('Transaction source', () => {
+    test('is not included by default', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+      const transaction = hub.startTransaction({ name: 'test', sampled: true });
+      expect(spy).toHaveBeenCalledTimes(0);
+
+      transaction.finish();
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({
+          transaction_info: {
+            source: expect.any(String),
+          },
+        }),
+      );
+    });
+
+    test('is included when transaction metadata is set', () => {
+      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
+      const transaction = hub.startTransaction({ name: 'test', sampled: true });
+      transaction.setMetadata({
+        source: 'url',
+      });
+      expect(spy).toHaveBeenCalledTimes(0);
+
+      transaction.finish();
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          transaction_info: {
+            source: 'url',
+          },
+        }),
+      );
+    });
+  });
 });

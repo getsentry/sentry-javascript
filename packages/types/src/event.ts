@@ -11,6 +11,7 @@ import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity, SeverityLevel } from './severity';
 import { Span } from './span';
+import { TransactionSource } from './transaction';
 import { User } from './user';
 
 /** JSDoc */
@@ -46,6 +47,9 @@ export interface Event {
   debug_meta?: DebugMeta;
   // A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get sent to Sentry
   sdkProcessingMetadata?: { [key: string]: any };
+  transaction_info?: {
+    source: TransactionSource;
+  };
 }
 
 /** JSDoc */

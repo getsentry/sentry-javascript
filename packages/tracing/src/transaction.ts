@@ -75,8 +75,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * Set metadata for this transaction.
-   * @hidden
+   * @inheritDoc
    */
   public setMetadata(newMetadata: TransactionMetadata): void {
     this.metadata = { ...this.metadata, ...newMetadata };
@@ -122,6 +121,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
+    const metadata = this.metadata;
+
     const transaction: Event = {
       contexts: {
         trace: this.getTraceContext(),
@@ -133,9 +134,14 @@ export class Transaction extends SpanClass implements TransactionInterface {
       transaction: this.name,
       type: 'transaction',
       sdkProcessingMetadata: {
-        ...this.metadata,
+        ...metadata,
         baggage: this.getBaggage(),
       },
+      ...(metadata.source && {
+        transaction_info: {
+          source: metadata.source,
+        },
+      }),
     };
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
