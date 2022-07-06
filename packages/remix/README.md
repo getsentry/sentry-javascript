@@ -90,11 +90,23 @@ function App() {
   );
 }
 
-export default withSentryRouteTracing(App, {
-  wrapWithErrorBoundary: false // default: true
+export default withSentryRouteTracing(App);
+```
+
+You can disable or configure `ErrorBoundary` using a second parameter to `withSentryRouteTracing`.
+
+```ts
+
+withSentryRouteTracing(App, {
+  wrapWithErrorBoundary: false
+});
+
+// or
+
+withSentryRouteTracing(App, {
   errorBoundaryOptions: {
     fallback: <p>An error has occurred</p>
-  } // optional
+  }
 });
 ```
 
