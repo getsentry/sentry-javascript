@@ -90,7 +90,12 @@ function App() {
   );
 }
 
-export default withSentryRouteTracing(App);
+export default withSentryRouteTracing(App, {
+  wrapWithErrorBoundary: false // default: true
+  errorBoundaryOptions: {
+    fallback: <p>An error has occurred</p>
+  } // optional
+});
 ```
 
 To set context information or send manual events, use the exported functions of `@sentry/remix`.
