@@ -3,7 +3,7 @@ import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 
 import { buildMetadata } from './utils/metadata';
 import { RemixOptions } from './utils/remixOptions';
-export { remixRouterInstrumentation, withSentryRouteTracing } from './performance/client';
+export { remixRouterInstrumentation, withSentry, withSentryRouteTracing } from './performance/client';
 export { BrowserTracing } from '@sentry/tracing';
 export * from '@sentry/react';
 

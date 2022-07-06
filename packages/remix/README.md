@@ -57,7 +57,7 @@ Sentry.init({
 });
 ```
 
-Also, wrap your Remix root with `withSentryRouteTracing` to catch React component errors and to get parameterized router transactions.
+Also, wrap your Remix root with `withSentry` to catch React component errors and to get parameterized router transactions.
 
 ```ts
 // root.tsx
@@ -71,7 +71,7 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 
-import { withSentryRouteTracing } from "@sentry/remix";
+import { withSentry } from "@sentry/remix";
 
 function App() {
   return (
@@ -90,20 +90,20 @@ function App() {
   );
 }
 
-export default withSentryRouteTracing(App);
+export default withSentry(App);
 ```
 
-You can disable or configure `ErrorBoundary` using a second parameter to `withSentryRouteTracing`.
+You can disable or configure `ErrorBoundary` using a second parameter to `withSentry`.
 
 ```ts
 
-withSentryRouteTracing(App, {
+withSentry(App, {
   wrapWithErrorBoundary: false
 });
 
 // or
 
-withSentryRouteTracing(App, {
+withSentry(App, {
   errorBoundaryOptions: {
     fallback: <p>An error has occurred</p>
   }
