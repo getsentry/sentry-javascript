@@ -6,9 +6,7 @@
 
 ## 7.5.1
 
-This release removes the `user_id` and the `transaction` field from the dynamic sampling context data that is
-attached to outgoing requests as well as sent to Relay.
-We're taking this measure to avoid potential PII-related issues until we find a more robust solution.
+This release removes the `user_id` and the `transaction` field from the dynamic sampling context data that is attached to outgoing requests as well as sent to Relay.
 
 - ref(tracing): Remove transaction name and user_id from DSC (#5363)
 
