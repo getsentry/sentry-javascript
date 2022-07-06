@@ -81,16 +81,16 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
  * To enable pageload/navigation tracing on every route.
  */
 export function withSentryRouteTracing<P extends Record<string, unknown>, R extends React.FC<P>>(OrigApp: R): R {
-  // Early return when any of the required functions is not available.
-  if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
-    __DEBUG_BUILD__ && logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
-
-    // @ts-ignore Setting more specific React Component typing for `R` generic above
-    // will break advanced type inference done by react router params
-    return OrigApp;
-  }
-
   const SentryRoot: React.FC<P> = (props: P) => {
+    // Early return when any of the required functions is not available.
+    if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
+      __DEBUG_BUILD__ &&
+        logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
+
+      // @ts-ignore Setting more specific React Component typing for `R` generic above
+      // will break advanced type inference done by react router params
+      return <OrigApp {...props} />;
+    }
     let isBaseLocation: boolean = false;
 
     const location = _useLocation();
