@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.5.1
+
+This release removes the `user_id` and the `transaction` field from the dynamic sampling context data that is attached to outgoing requests as well as sent to Relay.
+
+- ref(tracing): Remove transaction name and user_id from DSC (#5363)
+
 ## 7.5.0
 
 This release adds the `sendDefaultPii` flag to the `Sentry.init` options.
