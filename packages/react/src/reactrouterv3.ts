@@ -1,4 +1,4 @@
-import { Primitive, Transaction, TransactionContext } from '@sentry/types';
+import { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 
 import { Location, ReactRouterInstrumentation } from './types';
@@ -18,6 +18,8 @@ export type Match = (
   props: { location: Location; routes: Route[] },
   cb: (error?: Error, _redirectLocation?: Location, renderProps?: { routes?: Route[] }) => void,
 ) => void;
+
+type ReactRouterV3TransactionSource = Extract<TransactionSource, 'url' | 'route'>;
 
 const global = getGlobalObject<Window>();
 
@@ -44,16 +46,24 @@ export function reactRouterV3Instrumentation(
 
     // Have to use global.location because history.location might not be defined.
     if (startTransactionOnPageLoad && global && global.location) {
-      normalizeTransactionName(routes, global.location as unknown as Location, match, (localName: string) => {
-        prevName = localName;
-        activeTransaction = startTransaction({
-          name: prevName,
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'react-router-v3',
-          },
-        });
-      });
+      normalizeTransactionName(
+        routes,
+        global.location as unknown as Location,
+        match,
+        (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
+          prevName = localName;
+          activeTransaction = startTransaction({
+            name: prevName,
+            op: 'pageload',
+            tags: {
+              'routing.instrumentation': 'react-router-v3',
+            },
+            metadata: {
+              source,
+            },
+          });
+        },
+      );
     }
 
     if (startTransactionOnLocationChange && history.listen) {
@@ -68,12 +78,15 @@ export function reactRouterV3Instrumentation(
           if (prevName) {
             tags.from = prevName;
           }
-          normalizeTransactionName(routes, location, match, (localName: string) => {
+          normalizeTransactionName(routes, location, match, (localName: string, source: TransactionSource = 'url') => {
             prevName = localName;
             activeTransaction = startTransaction({
               name: prevName,
               op: 'navigation',
               tags,
+              metadata: {
+                source,
+              },
             });
           });
         }
@@ -89,7 +102,7 @@ function normalizeTransactionName(
   appRoutes: Route[],
   location: Location,
   match: Match,
-  callback: (pathname: string) => void,
+  callback: (pathname: string, source?: ReactRouterV3TransactionSource) => void,
 ): void {
   let name = location.pathname;
   match(
@@ -108,7 +121,7 @@ function normalizeTransactionName(
       }
 
       name = routePath;
-      return callback(name);
+      return callback(name, 'route');
     },
   );
 }
