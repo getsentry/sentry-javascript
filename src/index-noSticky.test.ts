@@ -114,21 +114,6 @@ describe('SentryReplay (no sticky)', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     replay.eventBuffer.addEvent(TEST_EVENT);
-    const hiddenBreadcrumb = {
-      type: 5,
-      timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
-      data: {
-        tag: 'breadcrumb',
-        payload: {
-          timestamp: +new Date(BASE_TIMESTAMP + ELAPSED) / 1000,
-          type: 'default',
-          category: 'ui.other',
-          data: {
-            label: 'Page is hidden',
-          },
-        },
-      },
-    };
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -136,9 +121,7 @@ describe('SentryReplay (no sticky)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
-    );
+    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // Session's last activity should be updated
     expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);

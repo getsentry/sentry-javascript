@@ -93,11 +93,6 @@ export class SentryReplay implements Integration {
   private retryCount = 0;
   private retryInterval = BASE_RETRY_INTERVAL;
 
-  /**
-   * If current browser window in an active state
-   */
-  private isActive = true;
-
   session: Session | undefined;
 
   static attachmentUrlFromDsn(dsn: DsnComponents, eventId: string) {
@@ -333,17 +328,10 @@ export class SentryReplay implements Integration {
    * page will also trigger a change to a hidden state.
    */
   handleVisibilityChange = () => {
-    const breadcrumb = createBreadcrumb({
-      category: 'ui.other',
-      data: {
-        label: `Page is ${document.visibilityState}`,
-      },
-    });
-
     if (document.visibilityState === 'visible') {
-      this.doChangeToForegroundTasks(breadcrumb);
+      this.doChangeToForegroundTasks();
     } else {
-      this.doChangeToBackgroundTasks(breadcrumb);
+      this.doChangeToBackgroundTasks();
     }
   };
 
@@ -438,23 +426,18 @@ export class SentryReplay implements Integration {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  doChangeToBackgroundTasks(breadcrumb: Breadcrumb) {
+  doChangeToBackgroundTasks(breadcrumb?: Breadcrumb) {
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
-    // We check current state to make sure that we do nothing if the page is already inactive
-    if (!this.isActive) {
-      return;
+    if (breadcrumb) {
+      this.createCustomBreadcrumb({
+        ...breadcrumb,
+        // if somehow the page went hidden while session is expired, attach to previous session
+        timestamp: isExpired
+          ? this.session.lastActivity / 1000
+          : breadcrumb.timestamp,
+      });
     }
-
-    this.createCustomBreadcrumb({
-      ...breadcrumb,
-      // if somehow the page went hidden while session is expired, attach to previous session
-      timestamp: isExpired
-        ? this.session.lastActivity / 1000
-        : breadcrumb.timestamp,
-    });
-
-    this.isActive = false;
 
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
@@ -465,15 +448,17 @@ export class SentryReplay implements Integration {
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  doChangeToForegroundTasks(breadcrumb: Breadcrumb) {
+  doChangeToForegroundTasks(breadcrumb?: Breadcrumb) {
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
-    this.isActive = true;
-
-    this.createCustomBreadcrumb({
-      ...breadcrumb,
-      timestamp: isExpired ? new Date().getTime() / 1000 : breadcrumb.timestamp,
-    });
+    if (breadcrumb) {
+      this.createCustomBreadcrumb({
+        ...breadcrumb,
+        timestamp: isExpired
+          ? new Date().getTime() / 1000
+          : breadcrumb.timestamp,
+      });
+    }
 
     if (isExpired) {
       // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
