@@ -7,6 +7,7 @@ import { buildMetadata } from './utils/metadata';
 import { RemixOptions } from './utils/remixOptions';
 
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
+// eslint-disable-next-line deprecation/deprecation
 export { remixRouterInstrumentation, withSentry, withSentryRouteTracing } from './performance/client';
 export { BrowserTracing, Integrations } from '@sentry/tracing';
 export * from '@sentry/node';
