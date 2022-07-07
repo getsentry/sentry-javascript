@@ -11,7 +11,7 @@ describe('React Router v5', () => {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
     routes?: RouteConfig[];
-  }): [jest.Mock, any, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
+  }): [jest.Mock, any, { mockSetName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
     const options = {
       matchPath: _opts && _opts.routes !== undefined ? matchPath : undefined,
       routes: undefined,
@@ -22,13 +22,16 @@ describe('React Router v5', () => {
     const history = createMemoryHistory();
     const mockFinish = jest.fn();
     const mockSetName = jest.fn();
-    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
+    const mockSetMetadata = jest.fn();
+    const mockStartTransaction = jest
+      .fn()
+      .mockReturnValue({ setName: mockSetName, finish: mockFinish, setMetadata: mockSetMetadata });
     reactRouterV5Instrumentation(history, options.routes, options.matchPath)(
       mockStartTransaction,
       options.startTransactionOnPageLoad,
       options.startTransactionOnLocationChange,
     );
-    return [mockStartTransaction, history, { mockSetName, mockFinish }];
+    return [mockStartTransaction, history, { mockSetName, mockFinish, mockSetMetadata }];
   }
 
   it('starts a pageload transaction when instrumentation is started', () => {
@@ -38,6 +41,7 @@ describe('React Router v5', () => {
       name: '/',
       op: 'pageload',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
   });
 
@@ -66,6 +70,7 @@ describe('React Router v5', () => {
       name: '/about',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
 
     act(() => {
@@ -76,6 +81,7 @@ describe('React Router v5', () => {
       name: '/features',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
   });
 
@@ -153,11 +159,12 @@ describe('React Router v5', () => {
       name: '/users/123',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
   });
 
   it('normalizes transaction name with custom Route', () => {
-    const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockSetName, mockSetMetadata }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
 
     const { getByText } = render(
@@ -179,13 +186,15 @@ describe('React Router v5', () => {
       name: '/users/123',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(2);
     expect(mockSetName).toHaveBeenLastCalledWith('/users/:userid');
+    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
   });
 
   it('normalizes nested transaction names with custom Route', () => {
-    const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockSetName, mockSetMetadata }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
 
     const { getByText } = render(
@@ -208,9 +217,11 @@ describe('React Router v5', () => {
       name: '/organizations/1234/v1/758',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(2);
     expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
+    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
 
     act(() => {
       history.push('/organizations/543');
@@ -222,9 +233,11 @@ describe('React Router v5', () => {
       name: '/organizations/543',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(3);
     expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid');
+    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
   });
 
   it('matches with route object', () => {
@@ -254,6 +267,7 @@ describe('React Router v5', () => {
       name: '/organizations/:orgid/v1/:teamid',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'route' },
     });
 
     act(() => {
@@ -264,6 +278,7 @@ describe('React Router v5', () => {
       name: '/organizations/:orgid',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v5' },
+      metadata: { source: 'route' },
     });
   });
 });

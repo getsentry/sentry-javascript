@@ -1,4 +1,4 @@
-import { Transaction } from '@sentry/types';
+import { Transaction, TransactionSource } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -64,30 +64,42 @@ function createReactRouterInstrumentation(
     return undefined;
   }
 
-  function getTransactionName(pathname: string): string {
+  /**
+   * Normalizes a transaction name. Returns the new name as well as the
+   * source of the transaction.
+   *
+   * @param pathname The initial pathname we normalize
+   */
+  function normalizeTransactionName(pathname: string): [string, TransactionSource] {
     if (allRoutes.length === 0 || !matchPath) {
-      return pathname;
+      return [pathname, 'url'];
     }
 
     const branches = matchRoutes(allRoutes, pathname, matchPath);
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let x = 0; x < branches.length; x++) {
       if (branches[x].match.isExact) {
-        return branches[x].match.path;
+        return [branches[x].match.path, 'route'];
       }
     }
 
-    return pathname;
+    return [pathname, 'url'];
   }
+
+  const tags = {
+    'routing.instrumentation': name,
+  };
 
   return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
     const initPathName = getInitPathName();
     if (startTransactionOnPageLoad && initPathName) {
+      const [name, source] = normalizeTransactionName(initPathName);
       activeTransaction = customStartTransaction({
-        name: getTransactionName(initPathName),
+        name,
         op: 'pageload',
-        tags: {
-          'routing.instrumentation': name,
+        tags,
+        metadata: {
+          source,
         },
       });
     }
@@ -98,14 +110,15 @@ function createReactRouterInstrumentation(
           if (activeTransaction) {
             activeTransaction.finish();
           }
-          const tags = {
-            'routing.instrumentation': name,
-          };
 
+          const [name, source] = normalizeTransactionName(location.pathname);
           activeTransaction = customStartTransaction({
-            name: getTransactionName(location.pathname),
+            name,
             op: 'navigation',
             tags,
+            metadata: {
+              source,
+            },
           });
         }
       });
@@ -155,6 +168,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   const WrappedRoute: React.FC<P> = (props: P) => {
     if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
       activeTransaction.setName(props.computedMatch.path);
+      activeTransaction.setMetadata({ source: 'route' });
     }
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
