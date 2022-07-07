@@ -10,8 +10,6 @@ sentryTest('transactions should contain transaction source', async ({ getLocalTe
   const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
 
-  expect(pageloadRequest).toEqual({});
-
   expect(pageloadRequest.transaction_info?.source).toEqual('url');
   expect(navigationRequest.transaction_info?.source).toEqual('url');
 });
