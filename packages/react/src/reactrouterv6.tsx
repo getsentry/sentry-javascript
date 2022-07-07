@@ -1,7 +1,7 @@
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
-import { Transaction, TransactionContext } from '@sentry/types';
+import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
@@ -48,14 +48,6 @@ const SENTRY_TAGS = {
   'routing.instrumentation': 'react-router-v6',
 };
 
-function getInitPathName(): string | undefined {
-  if (global && global.location) {
-    return global.location.pathname;
-  }
-
-  return undefined;
-}
-
 export function reactRouterV6Instrumentation(
   useEffect: UseEffect,
   useLocation: UseLocation,
@@ -68,12 +60,15 @@ export function reactRouterV6Instrumentation(
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
-    const initPathName = getInitPathName();
+    const initPathName = global && global.location && global.location.pathname;
     if (startTransactionOnPageLoad && initPathName) {
       activeTransaction = customStartTransaction({
         name: initPathName,
         op: 'pageload',
         tags: SENTRY_TAGS,
+        metadata: {
+          source: 'url',
+        },
       });
     }
 
@@ -88,9 +83,13 @@ export function reactRouterV6Instrumentation(
   };
 }
 
-const getTransactionName = (routes: RouteObject[], location: Location, matchRoutes: MatchRoutes): string => {
+function getNormalizedName(
+  routes: RouteObject[],
+  location: Location,
+  matchRoutes: MatchRoutes,
+): [string, TransactionSource] {
   if (!routes || routes.length === 0 || !matchRoutes) {
-    return location.pathname;
+    return [location.pathname, 'url'];
   }
 
   const branches = matchRoutes(routes, location);
@@ -99,13 +98,16 @@ const getTransactionName = (routes: RouteObject[], location: Location, matchRout
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let x = 0; x < branches.length; x++) {
       if (branches[x].route && branches[x].route.path && branches[x].pathname === location.pathname) {
-        return branches[x].route.path || location.pathname;
+        const path = branches[x].route.path;
+        if (path) {
+          return [path, 'route'];
+        }
       }
     }
   }
 
-  return location.pathname;
-};
+  return [location.pathname, 'url'];
+}
 
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
   if (
@@ -136,7 +138,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       isBaseLocation = true;
 
       if (activeTransaction) {
-        activeTransaction.setName(getTransactionName(routes, location, _matchRoutes));
+        const [name, source] = getNormalizedName(routes, location, _matchRoutes);
+        activeTransaction.setName(name);
+        activeTransaction.setMetadata({ source });
       }
 
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,10 +160,14 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
           activeTransaction.finish();
         }
 
+        const [name, source] = getNormalizedName(routes, location, _matchRoutes);
         activeTransaction = _customStartTransaction({
-          name: getTransactionName(routes, location, _matchRoutes),
+          name,
           op: 'navigation',
           tags: SENTRY_TAGS,
+          metadata: {
+            source,
+          },
         });
       }
     }, [props.children, location, navigationType, isBaseLocation]);

@@ -19,7 +19,7 @@ describe('React Router v6', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
+  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -28,7 +28,10 @@ describe('React Router v6', () => {
     };
     const mockFinish = jest.fn();
     const mockSetName = jest.fn();
-    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
+    const mockSetMetadata = jest.fn();
+    const mockStartTransaction = jest
+      .fn()
+      .mockReturnValue({ setName: mockSetName, finish: mockFinish, setMetadata: mockSetMetadata });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -37,7 +40,7 @@ describe('React Router v6', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockSetName, mockFinish }];
+    return [mockStartTransaction, { mockSetName, mockFinish, mockSetMetadata }];
   }
 
   it('starts a pageload transaction', () => {
@@ -57,6 +60,7 @@ describe('React Router v6', () => {
       name: '/',
       op: 'pageload',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'url' },
     });
   });
 
@@ -93,6 +97,7 @@ describe('React Router v6', () => {
       name: '/',
       op: 'pageload',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'url' },
     });
   });
 
@@ -114,6 +119,7 @@ describe('React Router v6', () => {
       name: '/about',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'route' },
     });
   });
 
@@ -137,6 +143,7 @@ describe('React Router v6', () => {
       name: '/about/us',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'route' },
     });
   });
 
@@ -160,6 +167,7 @@ describe('React Router v6', () => {
       name: '/about/:page',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'route' },
     });
   });
 
@@ -185,6 +193,7 @@ describe('React Router v6', () => {
       name: '/stores/:storeId/products/:productId',
       op: 'navigation',
       tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'route' },
     });
   });
 });
