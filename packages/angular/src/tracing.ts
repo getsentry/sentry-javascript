@@ -32,6 +32,7 @@ export function routingInstrumentation(
     customStartTransaction({
       name: global.location.pathname,
       op: 'pageload',
+      metadata: { source: 'url' },
     });
   }
 }
@@ -77,6 +78,7 @@ export class TraceService implements OnDestroy {
         activeTransaction = stashedStartTransaction({
           name: strippedUrl,
           op: 'navigation',
+          metadata: { source: 'url' },
         });
       }
 
