@@ -13,6 +13,8 @@ sentryTest('should create a navigation transaction on page navigation', async ({
   expect(pageloadRequest.contexts?.trace.op).toBe('pageload');
   expect(navigationRequest.contexts?.trace.op).toBe('navigation');
 
+  expect(navigationRequest.transaction_info?.source).toEqual('url');
+
   const pageloadTraceId = pageloadRequest.contexts?.trace.trace_id;
   const navigationTraceId = navigationRequest.contexts?.trace.trace_id;
 
