@@ -11,7 +11,7 @@ import {
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { isString, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { dsnFromString, dsnToString, isString, logger, parseBaggageSetMutability } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -58,9 +58,38 @@ export interface WrapperOptions {
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
 
 /**
+ * Changes a Dsn to point to the `relay` server running in the Lambda Extension.
+ *
+ * This is only used by the serverless integration for AWS Lambda.
+ *
+ * @param originalDsn The original Dsn of the customer.
+ * @returns Dsn pointing to Lambda extension.
+ */
+function extensionRelayDSN(originalDsn: string | undefined): string | undefined {
+  if (originalDsn === undefined) {
+    return undefined;
+  }
+
+  const dsn = dsnFromString(originalDsn);
+  dsn.host = 'localhost';
+  dsn.port = '3000';
+  dsn.protocol = 'http';
+
+  return dsnToString(dsn);
+}
+
+interface AWSLambdaOptions extends Sentry.NodeOptions {
+  /**
+   * Internal field that is set to `true` when init() is called by the Sentry AWS Lambda layer.
+   *
+   */
+  _invokedByLambdaLayer?: boolean;
+}
+
+/**
  * @see {@link Sentry.init}
  */
-export function init(options: Sentry.NodeOptions = {}): void {
+export function init(options: AWSLambdaOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = defaultIntegrations;
   }
@@ -77,6 +106,12 @@ export function init(options: Sentry.NodeOptions = {}): void {
     ],
     version: Sentry.SDK_VERSION,
   };
+
+  // If invoked by the Sentry Lambda Layer point the SDK to the Lambda Extension (inside the layer) instead of the host
+  // specified in the DSN
+  if (options._invokedByLambdaLayer) {
+    options.dsn = extensionRelayDSN(options.dsn);
+  }
 
   Sentry.init(options);
   Sentry.addGlobalEventProcessor(serverlessEventProcessor);

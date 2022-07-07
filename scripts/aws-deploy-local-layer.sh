@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-# Cleanup
+# Remove old distribution directories and zip files.
 echo "Preparing local directories for new build..."
 rm -rf dist-serverless/
 rm -rf ./packages/serverless/build
@@ -37,12 +37,36 @@ echo "Done copying Lambda layer in ./packages/serverless/build/aws/dist-serverle
 # is building the Lambda layer in production!
 # see: https://github.com/getsentry/action-build-aws-lambda-extension/blob/main/action.yml#L23-L40
 
-# Adding Sentry Lambda extension to Lambda layer
-echo "Adding Sentry Lambda extension to Lambda layer in ./dist-serverless..."
+echo "Downloading relay..."
+# Make directory (if not existing)
+mkdir -p dist-serverless/relay
+# Download releay from release registry to dist-serverless/relay/relay
+curl -0 --silent \
+    --output dist-serverless/relay/relay \
+    "$(curl -s https://release-registry.services.sentry.io/apps/relay/latest | jq -r .files.\"relay-Linux-x86_64\".url)"
+# Make file executable
+chmod +x dist-serverless/relay/relay
+echo "Done downloading relay."
+
+echo "Creating start script..."
+# Make directory (if not existing)
 mkdir -p dist-serverless/extensions
-curl -0 --silent --output dist-serverless/extensions/sentry-lambda-extension $(curl -s https://release-registry.services.sentry.io/apps/sentry-lambda-extension/latest | jq -r .files.\"sentry-lambda-extension\".url)
+# Create 'sentry-lambda-extension' script that starts relay.
+# The file has to have exactly this name, because the executable files of
+# Lambda extensions need to have same file name as the name that they use
+# to register with AWS Lambda environment
+cat > dist-serverless/extensions/sentry-lambda-extension << EOT
+#!/bin/bash
+set -euo pipefail
+exec /opt/relay/relay run \
+    --mode=proxy \
+    --shutdown-timeout=2 \
+    --upstream-dsn="\$SENTRY_DSN" \
+    --aws-runtime-api="\$AWS_LAMBDA_RUNTIME_API"
+EOT
+# Make script executable
 chmod +x dist-serverless/extensions/sentry-lambda-extension
-echo "Done adding Sentry Lambda extension to Lambda layer in ./dist-serverless."
+echo "Done creating start script."
 
 # Zip Lambda layer and included Lambda extension
 echo "Zipping Lambda layer and included Lambda extension..."

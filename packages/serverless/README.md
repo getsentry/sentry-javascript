@@ -63,7 +63,6 @@ Another and much simpler way to integrate Sentry to your AWS Lambda function is 
    - `SENTRY_DSN`: `your dsn`.
    - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For more information, see [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
 
-
 ### Google Cloud Functions
 
 To use this SDK, call `Sentry.GCPFunction.init(options)` at the very beginning of your JavaScript file.
