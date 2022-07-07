@@ -11,4 +11,5 @@ sentryTest('should create a pageload transaction', async ({ getLocalTestPath, pa
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');
   expect(eventData.spans?.length).toBeGreaterThan(0);
+  expect(eventData.transaction_info?.source).toEqual('url');
 });

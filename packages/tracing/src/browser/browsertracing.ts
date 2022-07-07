@@ -208,6 +208,12 @@ export class BrowserTracing implements Integration {
     const expandedContext = {
       ...context,
       ...parentContextFromHeader,
+      ...(parentContextFromHeader && {
+        metadata: {
+          ...context.metadata,
+          ...parentContextFromHeader.metadata,
+        },
+      }),
       trimEnd: true,
     };
     const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
