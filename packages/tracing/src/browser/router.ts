@@ -20,7 +20,11 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
 
   let activeTransaction: T | undefined;
   if (startTransactionOnPageLoad) {
-    activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'pageload' });
+    activeTransaction = customStartTransaction({
+      name: global.location.pathname,
+      op: 'pageload',
+      metadata: { source: 'url' },
+    });
   }
 
   if (startTransactionOnLocationChange) {
@@ -46,7 +50,11 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeTransaction.finish();
         }
-        activeTransaction = customStartTransaction({ name: global.location.pathname, op: 'navigation' });
+        activeTransaction = customStartTransaction({
+          name: global.location.pathname,
+          op: 'navigation',
+          metadata: { source: 'url' },
+        });
       }
     });
   }

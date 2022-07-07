@@ -42,7 +42,11 @@ describe('instrumentRoutingWithDefaults', () => {
   it('starts a pageload transaction', () => {
     instrumentRoutingWithDefaults(customStartTransaction);
     expect(customStartTransaction).toHaveBeenCalledTimes(1);
-    expect(customStartTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'pageload' });
+    expect(customStartTransaction).toHaveBeenLastCalledWith({
+      name: 'blank',
+      op: 'pageload',
+      metadata: { source: 'url' },
+    });
   });
 
   it('does not start a pageload transaction if startTransactionOnPageLoad is false', () => {
@@ -58,7 +62,11 @@ describe('instrumentRoutingWithDefaults', () => {
 
     it('it is not created automatically', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
-      expect(customStartTransaction).not.toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
+      expect(customStartTransaction).not.toHaveBeenLastCalledWith({
+        name: 'blank',
+        op: 'navigation',
+        metadata: { source: 'url' },
+      });
     });
 
     it('is created on location change', () => {
@@ -67,7 +75,11 @@ describe('instrumentRoutingWithDefaults', () => {
       expect(addInstrumentationHandlerType).toBe('history');
 
       expect(customStartTransaction).toHaveBeenCalledTimes(2);
-      expect(customStartTransaction).toHaveBeenLastCalledWith({ name: 'blank', op: 'navigation' });
+      expect(customStartTransaction).toHaveBeenLastCalledWith({
+        name: 'blank',
+        op: 'navigation',
+        metadata: { source: 'url' },
+      });
     });
 
     it('is not created if startTransactionOnLocationChange is false', () => {
