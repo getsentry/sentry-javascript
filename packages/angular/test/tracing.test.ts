@@ -1,7 +1,7 @@
-import { instrumentAngularRouting, TraceService } from '../src/index';
-
 import { NavigationStart, Router, RouterEvent } from '@angular/router';
 import { Subject } from 'rxjs';
+
+import { instrumentAngularRouting, TraceService } from '../src/index';
 
 describe('Angular Tracing', () => {
   const startTransaction = jest.fn();
@@ -18,7 +18,7 @@ describe('Angular Tracing', () => {
 
   describe('TraceService', () => {
     let traceService: TraceService;
-    let routerEvents$: Subject<RouterEvent> = new Subject();
+    const routerEvents$: Subject<RouterEvent> = new Subject();
 
     beforeAll(() => instrumentAngularRouting(startTransaction));
     beforeEach(() => {
