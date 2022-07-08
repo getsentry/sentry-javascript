@@ -1,4 +1,4 @@
-import { captureException, configureScope, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -69,6 +69,65 @@ interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
 }
 
+function captureRemixServerException(err: Error, name: string): void {
+  captureException(err, scope => {
+    scope.addEventProcessor(event => {
+      addExceptionMechanism(event, {
+        type: 'instrument',
+        handled: true,
+        data: {
+          function: name,
+        },
+      });
+
+      return event;
+    });
+
+    return scope;
+  });
+}
+
+function makeWrappedDocumentRequestFunction(
+  origDocumentRequestFunction: HandleDocumentRequestFunction,
+): HandleDocumentRequestFunction {
+  return async function (
+    this: unknown,
+    request: Request,
+    responseStatusCode: number,
+    responseHeaders: Headers,
+    context: Record<symbol, unknown>,
+  ): Promise<Response> {
+    let res: Response;
+
+    const activeTransaction = getActiveTransaction();
+    const currentScope = getCurrentHub().getScope();
+
+    if (!activeTransaction || !currentScope) {
+      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
+    }
+
+    try {
+      const span = activeTransaction.startChild({
+        op: 'remix.server.documentRequest',
+        description: activeTransaction.name,
+        tags: {
+          method: request.method,
+          url: request.url,
+        },
+      });
+
+      res = await origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
+
+      span.finish();
+    } catch (err) {
+      captureRemixServerException(err, name);
+      throw err;
+    }
+
+    return res;
+  };
+}
+
 function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     let res: Response | AppData;
@@ -98,23 +157,7 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
       currentScope.setSpan(activeTransaction);
       span.finish();
     } catch (err) {
-      configureScope(scope => {
-        scope.addEventProcessor(event => {
-          addExceptionMechanism(event, {
-            type: 'instrument',
-            handled: true,
-            data: {
-              function: name,
-            },
-          });
-
-          return event;
-        });
-      });
-
-      captureException(err);
-
-      // Rethrow for other handlers
+      captureRemixServerException(err, name);
       throw err;
     }
 
@@ -160,6 +203,10 @@ function makeWrappedCreateRequestHandler(
   return function (this: unknown, build: ServerBuild, mode: string | undefined): RequestHandler {
     const routes: ServerRouteManifest = {};
 
+    const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
+
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
+
     for (const [id, route] of Object.entries(build.routes)) {
       const wrappedRoute = { ...route, module: { ...route.module } };
 
@@ -174,7 +221,7 @@ function makeWrappedCreateRequestHandler(
       routes[id] = wrappedRoute;
     }
 
-    const requestHandler = origCreateRequestHandler.call(this, { ...build, routes }, mode);
+    const requestHandler = origCreateRequestHandler.call(this, { ...build, routes, entry: wrappedEntry }, mode);
 
     return wrapRequestHandler(requestHandler);
   };
