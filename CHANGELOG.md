@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.6.0
+
+This release adds [the `source` field](https://develop.sentry.dev/sdk/event-payloads/properties/transaction_info/) to all outgoing transactions.
+See the [tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/5345) for more details.
+
+This release also re-enables lambda layer releases for the Node Serverless SDK.
+
+- ref(angular): Add transaction source for Angular Router (#5382)
+- ref(build): Reenable lambda layer release in craft (#5207)
+- feat(nextjs): Record transaction name source when creating transactions (#5391)
+- ref(react): Add source to react-router-v3 (#5377)
+- ref(react): Add transaction source for react router v4/v5 (#5384)
+- ref(react): Add transaction source for react router v6 (#5385)
+- feat(remix): Wrap root with ErrorBoundary (#5365)
+- fix(remix): Move hook checks inside the wrapper component (#5371)
+- fix(remix): Strip query params from transaction names (#5368)
+- fix(remix): Make peer deps less restrictive (#5369)
+- fix(remix): Wrap handleDocumentRequest functions (#5387)
+- ref(serverless): Add transaction source (#5394)
+- feat(tracing): Add transaction source field (#5367)
+- feat(tracing): Record transaction name source when name set directly (#5396)
+- ref(tracing): Add transaction source to default router (#5386)
+- ref(tracing): Include transaction in DSC if transaction source is not an unparameterized URL (#5392)
+- feat(vue): Add transaction source to VueRouter instrumentation (#5381)
+
+Work in this release contributed by @moishinetzer. Thank you for your contribution!
+
 ## 7.5.1
 
 This release removes the `user_id` and the `transaction` field from the dynamic sampling context data that is attached to outgoing requests as well as sent to Relay.
