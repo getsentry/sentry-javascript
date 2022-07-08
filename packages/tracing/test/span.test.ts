@@ -477,7 +477,6 @@ describe('Span', () => {
       test.each([
         ['is not included if transaction source is not set', undefined],
         ['is not included if transaction source is url', 'url'],
-        ['is not included if transaction source is unknown', 'unknown'],
       ])('%s', (_: string, source) => {
         const transaction = new Transaction(
           {

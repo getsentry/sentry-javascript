@@ -239,7 +239,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const { segment: user_segment } = (scope && scope.getUser()) || {};
 
     const source = this.metadata.source;
-    const transaction = source && source !== 'url' && source !== 'unknown' ? this.name : undefined;
+    const transaction = source && source !== 'url' ? this.name : undefined;
 
     return createBaggage(
       dropUndefinedKeys({
