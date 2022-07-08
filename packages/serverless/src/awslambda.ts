@@ -1,14 +1,6 @@
 /* eslint-disable max-lines */
 import * as Sentry from '@sentry/node';
-import {
-  captureException,
-  captureMessage,
-  flush,
-  getCurrentHub,
-  Scope,
-  startTransaction,
-  withScope,
-} from '@sentry/node';
+import { captureException, captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { dsnFromString, dsnToString, isString, logger, parseBaggageSetMutability } from '@sentry/utils';
@@ -320,14 +312,15 @@ export function wrapHandler<TEvent, TResult>(
       eventWithHeaders.headers && isString(eventWithHeaders.headers.baggage) && eventWithHeaders.headers.baggage;
     const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
-    const transaction = startTransaction({
+    const hub = getCurrentHub();
+
+    const transaction = hub.startTransaction({
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
       metadata: { baggage, source: 'component' },
     });
 
-    const hub = getCurrentHub();
     const scope = hub.pushScope();
     let rv: TResult;
     try {

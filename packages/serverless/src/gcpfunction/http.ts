@@ -4,7 +4,6 @@ import {
   captureException,
   flush,
   getCurrentHub,
-  startTransaction,
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { isString, logger, parseBaggageSetMutability, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -83,7 +82,9 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
     const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
-    const transaction = startTransaction({
+    const hub = getCurrentHub();
+
+    const transaction = hub.startTransaction({
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
@@ -93,7 +94,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
-    getCurrentHub().configureScope(scope => {
+    hub.configureScope(scope => {
       scope.addEventProcessor(event => addRequestDataToEvent(event, req, options.addRequestDataToEventOptions));
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);

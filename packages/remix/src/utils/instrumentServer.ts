@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -175,8 +175,9 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
 
 function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
-    const currentScope = getCurrentHub().getScope();
-    const transaction = startTransaction({
+    const hub = getCurrentHub();
+    const currentScope = hub.getScope();
+    const transaction = hub.startTransaction({
       name: stripUrlQueryAndFragment(request.url),
       op: 'http.server',
       tags: {
