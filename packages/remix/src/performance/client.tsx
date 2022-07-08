@@ -1,3 +1,5 @@
+import type { ErrorBoundaryProps } from '@sentry/react';
+import { withErrorBoundary } from '@sentry/react';
 import { Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger } from '@sentry/utils';
 import * as React from 'react';
@@ -79,8 +81,21 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
 /**
  * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
  * To enable pageload/navigation tracing on every route.
+ * Also wraps the application with `ErrorBoundary`.
+ *
+ * @param OrigApp The Remix root to wrap
+ * @param options The options for ErrorBoundary wrapper.
  */
-export function withSentryRouteTracing<P extends Record<string, unknown>, R extends React.FC<P>>(OrigApp: R): R {
+export function withSentry<P extends Record<string, unknown>, R extends React.FC<P>>(
+  OrigApp: R,
+  options: {
+    wrapWithErrorBoundary?: boolean;
+    errorBoundaryOptions?: ErrorBoundaryProps;
+  } = {
+    wrapWithErrorBoundary: true,
+    errorBoundaryOptions: {},
+  },
+): R {
   const SentryRoot: React.FC<P> = (props: P) => {
     // Early return when any of the required functions is not available.
     if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
@@ -91,6 +106,7 @@ export function withSentryRouteTracing<P extends Record<string, unknown>, R exte
       // will break advanced type inference done by react router params
       return <OrigApp {...props} />;
     }
+
     let isBaseLocation: boolean = false;
 
     const location = _useLocation();
@@ -132,6 +148,12 @@ export function withSentryRouteTracing<P extends Record<string, unknown>, R exte
     // will break advanced type inference done by react router params
     return <OrigApp {...props} />;
   };
+
+  if (options.wrapWithErrorBoundary) {
+    // @ts-ignore Setting more specific React Component typing for `R` generic above
+    // will break advanced type inference done by react router params
+    return withErrorBoundary(SentryRoot, options.errorBoundaryOptions);
+  }
 
   // @ts-ignore Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params

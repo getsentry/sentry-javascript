@@ -7,7 +7,7 @@ import { buildMetadata } from './utils/metadata';
 import { RemixOptions } from './utils/remixOptions';
 
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-export { remixRouterInstrumentation, withSentryRouteTracing } from './performance/client';
+export { remixRouterInstrumentation, withSentry } from './performance/client';
 export { BrowserTracing, Integrations } from '@sentry/tracing';
 export * from '@sentry/node';
 
