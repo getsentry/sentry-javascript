@@ -475,12 +475,10 @@ describe('Span', () => {
 
     describe('Including transaction name in DSC', () => {
       test.each([
-        ['is not included if transaction source is not set', undefined, false],
-        ['is not included if transaction source is url', 'url', false],
-        ['is not included if transaction source is unknown', 'unknown', false],
-        ['is included if transaction source is paremeterized route/url', 'route', true],
-        ['is included if transaction source is a custom name', 'custom', true],
-      ])('%s', (_: string, source, shouldBeIncluded) => {
+        ['is not included if transaction source is not set', undefined],
+        ['is not included if transaction source is url', 'url'],
+        ['is not included if transaction source is unknown', 'unknown'],
+      ])('%s', (_: string, source) => {
         const transaction = new Transaction(
           {
             name: 'tx',
@@ -493,11 +491,26 @@ describe('Span', () => {
 
         const dsc = getSentryBaggageItems(transaction.getBaggage());
 
-        if (shouldBeIncluded) {
-          expect(dsc.transaction).toEqual('tx');
-        } else {
-          expect(dsc.transaction).toBeUndefined();
-        }
+        expect(dsc.transaction).toBeUndefined();
+      });
+
+      test.each([
+        ['is included if transaction source is paremeterized route/url', 'route'],
+        ['is included if transaction source is a custom name', 'custom'],
+      ])('%s', (_: string, source) => {
+        const transaction = new Transaction(
+          {
+            name: 'tx',
+            metadata: {
+              ...(source && { source: source as TransactionSource }),
+            },
+          },
+          hub,
+        );
+
+        const dsc = getSentryBaggageItems(transaction.getBaggage());
+
+        expect(dsc.transaction).toEqual('tx');
       });
     });
   });
