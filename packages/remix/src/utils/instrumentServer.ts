@@ -1,4 +1,4 @@
-import { captureException, configureScope, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -70,7 +70,7 @@ interface DataFunction {
 }
 
 function captureRemixServerException(err: Error, name: string): void {
-  configureScope(scope => {
+  captureException(err, scope => {
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
@@ -82,9 +82,9 @@ function captureRemixServerException(err: Error, name: string): void {
 
       return event;
     });
-  });
 
-  captureException(err);
+    return scope;
+  });
 }
 
 function makeWrappedDocumentRequestFunction(
