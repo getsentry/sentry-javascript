@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import * as hubModule from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
-import { TransactionSource } from '@sentry/types';
+import { TransactionContext } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -20,7 +20,7 @@ const NODE_VERSION = parseSemver(process.versions.node);
 describe('tracing', () => {
   function createTransactionOnScope(
     customOptions: Partial<NodeClientOptions> = {},
-    transactionSource?: TransactionSource,
+    customContext?: Partial<TransactionContext>,
   ) {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
@@ -48,7 +48,7 @@ describe('tracing', () => {
     const transaction = hub.startTransaction({
       name: 'dogpark',
       traceId: '12312012123120121231201212312012',
-      metadata: { source: transactionSource },
+      ...customContext,
     });
 
     hub.getScope()?.setSpan(transaction);
@@ -144,7 +144,7 @@ describe('tracing', () => {
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, 'custom');
+    createTransactionOnScope({}, { metadata: { source: 'custom' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
