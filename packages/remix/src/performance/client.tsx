@@ -66,6 +66,9 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
         name: initPathName,
         op: 'pageload',
         tags: DEFAULT_TAGS,
+        metadata: {
+          source: 'url',
+        },
       });
     }
 
@@ -114,7 +117,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
 
     _useEffect(() => {
       if (activeTransaction && matches && matches.length) {
-        activeTransaction.setName(matches[matches.length - 1].id);
+        activeTransaction.setName(matches[matches.length - 1].id, 'route');
       }
 
       isBaseLocation = true;
@@ -138,6 +141,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.FC
           name: matches[matches.length - 1].id,
           op: 'navigation',
           tags: DEFAULT_TAGS,
+          metadata: {
+            source: 'route',
+          },
         });
       }
     }, [location]);
