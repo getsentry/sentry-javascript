@@ -14,4 +14,5 @@ Sentry.init({
 Sentry.configureScope(scope => {
   scope.setUser({ id: 'user123', segment: 'segmentB' });
   scope.setTransactionName('testTransactionDSC');
+  scope.getTransaction().setMetadata({ source: 'custom' });
 });

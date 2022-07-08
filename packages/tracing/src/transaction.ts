@@ -235,19 +235,17 @@ export class Transaction extends SpanClass implements TransactionInterface {
         ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
         : undefined;
 
-    // For now we're not sending the transaction name and user_id due to PII concerns
-    // commenting it out for now because we'll probably need it in the future
-
     const scope = hub.getScope();
-    const { /* id: user_id, */ segment: user_segment } = (scope && scope.getUser()) || {};
+    const { segment: user_segment } = (scope && scope.getUser()) || {};
+
+    const source = this.metadata.source;
+    const transaction = source && source !== 'url' ? this.name : undefined;
 
     return createBaggage(
       dropUndefinedKeys({
         environment,
         release,
-        // transaction: this.name,
-        // replace `someContidion` with whatever decision we come up with to guard PII in DSC
-        // ...(someCondition && { user_id }),
+        transaction,
         user_segment,
         public_key,
         trace_id: this.traceId,

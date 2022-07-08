@@ -3,8 +3,7 @@ import * as path from 'path';
 import { getAPIResponse, runServer } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
-// TODO: Skipping this test because right now we're rethinking the mechanism for including such data
-test.skip('Includes user_id in baggage if <optionTBA> is set to true', async () => {
+test('Includes transaction in baggage if the transaction name is parameterized', async () => {
   const url = await runServer(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
 
   const response = (await getAPIResponse(new URL(`${url}/express`))) as TestAPIResponse;
@@ -13,7 +12,7 @@ test.skip('Includes user_id in baggage if <optionTBA> is set to true', async () 
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: expect.stringContaining('sentry-user_id=user123'),
+      baggage: expect.stringContaining('sentry-transaction=GET%20%2Ftest%2Fexpress'),
     },
   });
 });

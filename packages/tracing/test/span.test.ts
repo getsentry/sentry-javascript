@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/hub';
-import { BaseTransportOptions, ClientOptions } from '@sentry/types';
+import { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 import { createBaggage, getSentryBaggageItems, getThirdPartyBaggage, isSentryBaggageEmpty } from '@sentry/utils';
 
 import { Span, Transaction } from '../src';
@@ -443,7 +443,6 @@ describe('Span', () => {
       expect(baggage && getSentryBaggageItems(baggage)).toStrictEqual({
         release: '1.0.1',
         environment: 'production',
-        // transaction: 'tx',
         sample_rate: '0.56',
         trace_id: expect.any(String),
       });
@@ -472,6 +471,46 @@ describe('Span', () => {
         trace_id: expect.any(String),
       });
       expect(baggage && getThirdPartyBaggage(baggage)).toStrictEqual('');
+    });
+
+    describe('Including transaction name in DSC', () => {
+      test.each([
+        ['is not included if transaction source is not set', undefined],
+        ['is not included if transaction source is url', 'url'],
+      ])('%s', (_: string, source) => {
+        const transaction = new Transaction(
+          {
+            name: 'tx',
+            metadata: {
+              ...(source && { source: source as TransactionSource }),
+            },
+          },
+          hub,
+        );
+
+        const dsc = getSentryBaggageItems(transaction.getBaggage());
+
+        expect(dsc.transaction).toBeUndefined();
+      });
+
+      test.each([
+        ['is included if transaction source is paremeterized route/url', 'route'],
+        ['is included if transaction source is a custom name', 'custom'],
+      ])('%s', (_: string, source) => {
+        const transaction = new Transaction(
+          {
+            name: 'tx',
+            metadata: {
+              ...(source && { source: source as TransactionSource }),
+            },
+          },
+          hub,
+        );
+
+        const dsc = getSentryBaggageItems(transaction.getBaggage());
+
+        expect(dsc.transaction).toEqual('tx');
+      });
     });
   });
 

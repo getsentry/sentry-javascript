@@ -29,6 +29,7 @@ app.get('/test/express', (_req, res) => {
   const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   if (transaction) {
     transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
+    transaction.setMetadata({ source: 'route' });
   }
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
 

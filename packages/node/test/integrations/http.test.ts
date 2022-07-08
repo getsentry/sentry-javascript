@@ -2,6 +2,7 @@ import * as sentryCore from '@sentry/core';
 import * as hubModule from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
+import { TransactionContext } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -17,7 +18,10 @@ import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 const NODE_VERSION = parseSemver(process.versions.node);
 
 describe('tracing', () => {
-  function createTransactionOnScope(customOptions: Partial<NodeClientOptions> = {}) {
+  function createTransactionOnScope(
+    customOptions: Partial<NodeClientOptions> = {},
+    customContext?: Partial<TransactionContext>,
+  ) {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
@@ -44,7 +48,9 @@ describe('tracing', () => {
     const transaction = hub.startTransaction({
       name: 'dogpark',
       traceId: '12312012123120121231201212312012',
+      ...customContext,
     });
+
     hub.getScope()?.setSpan(transaction);
 
     return transaction;
@@ -112,8 +118,6 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      // Commented out as long as transaction and user_id are not part of DSC
-      // 'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_id=uid123,' +
       'sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
@@ -131,21 +135,16 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      // Commented out as long as transaction and user_id are not part of DSC
-      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-      // 'sentry-user_id=uid123,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-      // 'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
       'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
   });
 
-  // TODO: Skipping this test because right now we're rethinking the mechanism for including such data
-  it.skip('does not add the user_id to the baggage header if <optionTBA> is set to false', async () => {
+  it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope();
+    createTransactionOnScope({}, { metadata: { source: 'custom' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -153,9 +152,7 @@ describe('tracing', () => {
     expect(baggageHeader).toBeDefined();
     expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
-      // Commented out as long as transaction and user_id are not part of DSC
-      // 'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-      'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
+      'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );

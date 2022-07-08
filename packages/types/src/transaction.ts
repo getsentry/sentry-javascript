@@ -162,8 +162,6 @@ export type TransactionSource =
   | 'route'
   /** Name of the view handling the request */
   | 'view'
-  /** This is the default value set by Relay for legacy SDKs. */
-  | 'unknown'
   /** Named after a software component, such as a function or class name. */
   | 'component'
   /** Name of a background task (e.g. a Celery task) */
