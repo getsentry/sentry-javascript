@@ -33,6 +33,7 @@ function _wrapCloudEventFunction(
     const transaction = startTransaction({
       name: context.type || '<unknown>',
       op: 'gcp.function.cloud_event',
+      metadata: { source: 'component' },
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

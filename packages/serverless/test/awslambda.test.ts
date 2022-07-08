@@ -190,7 +190,7 @@ describe('AWSLambda', () => {
       expect(Sentry.startTransaction).toBeCalledWith({
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true] },
+        metadata: { baggage: [{}, '', true], source: 'component' },
       });
       expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
@@ -213,7 +213,7 @@ describe('AWSLambda', () => {
         expect(Sentry.startTransaction).toBeCalledWith({
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true] },
+          metadata: { baggage: [{}, '', true], source: 'component' },
         });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
@@ -259,6 +259,7 @@ describe('AWSLambda', () => {
                 '',
                 false,
               ],
+              source: 'component',
             },
           }),
         );
@@ -289,7 +290,7 @@ describe('AWSLambda', () => {
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
-          metadata: { baggage: [{}, '', false] },
+          metadata: { baggage: [{}, '', false], source: 'component' },
         });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(e);
@@ -313,7 +314,7 @@ describe('AWSLambda', () => {
       expect(Sentry.startTransaction).toBeCalledWith({
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true] },
+        metadata: { baggage: [{}, '', true], source: 'component' },
       });
       expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
@@ -347,7 +348,7 @@ describe('AWSLambda', () => {
         expect(Sentry.startTransaction).toBeCalledWith({
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true] },
+          metadata: { baggage: [{}, '', true], source: 'component' },
         });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
@@ -386,7 +387,7 @@ describe('AWSLambda', () => {
       expect(Sentry.startTransaction).toBeCalledWith({
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true] },
+        metadata: { baggage: [{}, '', true], source: 'component' },
       });
       expectScopeSettings();
       // @ts-ignore see "Why @ts-ignore" note
@@ -420,7 +421,7 @@ describe('AWSLambda', () => {
         expect(Sentry.startTransaction).toBeCalledWith({
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true] },
+          metadata: { baggage: [{}, '', true], source: 'component' },
         });
         expectScopeSettings();
         expect(Sentry.captureException).toBeCalledWith(error);
