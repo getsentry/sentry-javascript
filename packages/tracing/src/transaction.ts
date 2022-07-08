@@ -15,14 +15,14 @@ import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
-  public name: string;
-
   public metadata: TransactionMetadata;
 
   /**
    * The reference to the current hub.
    */
   public readonly _hub: Hub;
+
+  private _name: string;
 
   private _measurements: Measurements = {};
 
@@ -40,7 +40,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._hub = hub || getCurrentHub();
 
-    this.name = transactionContext.name || '';
+    this._name = transactionContext.name || '';
 
     this.metadata = transactionContext.metadata || {};
     this._trimEnd = transactionContext.trimEnd;
@@ -49,11 +49,23 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this.transaction = this;
   }
 
+  /** Getter for `name` property */
+  public get name(): string {
+    return this._name;
+  }
+
+  /** Setter for `name` property, which also sets `source` */
+  public set name(newName: string) {
+    this._name = newName;
+    this.metadata.source = 'custom';
+  }
+
   /**
    * JSDoc
    */
-  public setName(name: string): void {
+  public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this.name = name;
+    this.metadata.source = source;
   }
 
   /**
