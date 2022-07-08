@@ -113,7 +113,7 @@ describe('GCPFunction', () => {
       expect(Sentry.startTransaction).toBeCalledWith({
         name: 'POST /path',
         op: 'gcp.function.http',
-        metadata: { baggage: [{}, '', true], source: 'url' },
+        metadata: { baggage: [{}, '', true], source: 'route' },
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
@@ -153,7 +153,7 @@ describe('GCPFunction', () => {
               '',
               false,
             ],
-            source: 'url',
+            source: 'route',
           },
         }),
       );
@@ -179,7 +179,7 @@ describe('GCPFunction', () => {
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
-        metadata: { baggage: [{}, '', false], source: 'url' },
+        metadata: { baggage: [{}, '', false], source: 'route' },
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
