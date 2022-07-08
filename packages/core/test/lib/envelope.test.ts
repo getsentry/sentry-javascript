@@ -44,8 +44,7 @@ describe('createEventEnvelope', () => {
               {
                 environment: 'prod',
                 release: '1.0.0',
-                // transaction: 'TX',
-                // user_id: 'bob',
+                transaction: 'TX',
                 user_segment: 'segmentA',
                 sample_rate: '0.95',
                 public_key: 'pubKey123',
@@ -59,8 +58,7 @@ describe('createEventEnvelope', () => {
         {
           environment: 'prod',
           release: '1.0.0',
-          // transaction: 'TX',
-          // user_id: 'bob',
+          transaction: 'TX',
           user_segment: 'segmentA',
           sample_rate: '0.95',
           public_key: 'pubKey123',

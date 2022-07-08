@@ -5,7 +5,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest(
-  'should not send user_id and transaction in DSC data in trace envelope header (for now)',
+  'should only include transaction name if source is better than an unparameterized URL',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
@@ -16,6 +16,7 @@ sentryTest(
       environment: 'production',
       user_segment: 'segmentB',
       sample_rate: '1',
+      transaction: expect.stringContaining('/index.html'),
       trace_id: expect.any(String),
       public_key: 'public',
     });
