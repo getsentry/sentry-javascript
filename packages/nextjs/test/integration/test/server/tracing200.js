@@ -16,6 +16,9 @@ module.exports = async ({ url: urlBase, argv }) => {
         },
       },
       transaction: 'GET /api/users',
+      transaction_info: {
+        source: 'route',
+      },
       type: 'transaction',
       request: {
         url,

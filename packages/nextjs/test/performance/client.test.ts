@@ -45,6 +45,9 @@ describe('client', () => {
         tags: {
           'routing.instrumentation': 'next-router',
         },
+        metadata: {
+          source: 'route',
+        },
       });
     });
 
@@ -68,6 +71,9 @@ describe('client', () => {
               method: 'pushState',
               'routing.instrumentation': 'next-router',
             },
+            metadata: {
+              source: 'route',
+            },
           },
         ],
         [
@@ -81,6 +87,9 @@ describe('client', () => {
               method: 'replaceState',
               'routing.instrumentation': 'next-router',
             },
+            metadata: {
+              source: 'route',
+            },
           },
         ],
         [
@@ -93,6 +102,9 @@ describe('client', () => {
               from: '/[user]/posts/[id]',
               method: 'pushState',
               'routing.instrumentation': 'next-router',
+            },
+            metadata: {
+              source: 'route',
             },
           },
         ],
@@ -120,6 +132,9 @@ describe('client', () => {
         name: '/login',
         op: 'navigation',
         tags: { from: '/[user]/posts/[id]', method: 'pushState', 'routing.instrumentation': 'next-router' },
+        metadata: {
+          source: 'route',
+        },
       });
 
       Router.router?.changeState('pushState', '/login', '/login', {});
@@ -131,6 +146,9 @@ describe('client', () => {
         name: '/posts/[id]',
         op: 'navigation',
         tags: { from: '/login', method: 'pushState', 'routing.instrumentation': 'next-router' },
+        metadata: {
+          source: 'route',
+        },
       });
     });
   });
