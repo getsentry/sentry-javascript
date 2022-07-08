@@ -79,18 +79,6 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
 }
 
 /**
- * @deprecated Please use `withSentry` instead.
- *
- * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
- * To enable pageload/navigation tracing on every route.
- */
-export function withSentryRouteTracing<P extends Record<string, unknown>, R extends React.FC<P>>(App: R): R {
-  // @ts-ignore Setting more specific React Component typing for `R` generic above
-  // will break advanced type inference done by react router params
-  return withSentry(App);
-}
-
-/**
  * Wraps a remix `root` (see: https://remix.run/docs/en/v1/guides/migrating-react-router-app#creating-the-root-route)
  * To enable pageload/navigation tracing on every route.
  * Also wraps the application with `ErrorBoundary`.
