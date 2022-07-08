@@ -1,4 +1,4 @@
-import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
@@ -30,7 +30,9 @@ function _wrapCloudEventFunction(
     ...wrapOptions,
   };
   return (context, callback) => {
-    const transaction = startTransaction({
+    const hub = getCurrentHub();
+
+    const transaction = hub.startTransaction({
       name: context.type || '<unknown>',
       op: 'gcp.function.cloud_event',
       metadata: { source: 'component' },
@@ -39,7 +41,7 @@ function _wrapCloudEventFunction(
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
-    getCurrentHub().configureScope(scope => {
+    hub.configureScope(scope => {
       scope.setContext('gcp.function.context', { ...context });
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);

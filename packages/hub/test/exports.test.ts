@@ -10,6 +10,7 @@ import {
   setTag,
   setTags,
   setUser,
+  startTransaction,
   withScope,
 } from '../src/exports';
 
@@ -181,6 +182,35 @@ describe('Top Level API', () => {
       getCurrentHub().bindClient(client);
       scope.setLevel('warning');
       expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+    });
+  });
+
+  describe('startTransaction', () => {
+    beforeEach(() => {
+      global.__SENTRY__ = {
+        hub: undefined,
+        extensions: {
+          startTransaction: (context: any) => ({
+            name: context.name,
+            // Spread rather than assign in case it's undefined
+            metadata: { ...context.metadata },
+          }),
+        },
+      };
+    });
+
+    it("sets source to `'custom'` if no source provided", () => {
+      const transaction = startTransaction({ name: 'dogpark' });
+
+      expect(transaction.name).toEqual('dogpark');
+      expect(transaction.metadata.source).toEqual('custom');
+    });
+
+    it('uses given `source` value', () => {
+      const transaction = startTransaction({ name: 'dogpark', metadata: { source: 'route' } });
+
+      expect(transaction.name).toEqual('dogpark');
+      expect(transaction.metadata.source).toEqual('route');
     });
   });
 
