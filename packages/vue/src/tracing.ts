@@ -83,7 +83,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
         const name = formatComponentName(this, false);
         const shouldTrack = Array.isArray(options.trackComponents)
-          ? options.trackComponents.includes(name)
+          ? options.trackComponents.indexOf(name) > -1
           : options.trackComponents;
 
         // We always want to track root component

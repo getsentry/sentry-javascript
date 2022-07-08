@@ -9,7 +9,7 @@ export type VueRouterInstrumentation = <T extends Transaction>(
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
-type Route = {
+export type Route = {
   /** Unparameterized URL */
   path: string;
   /**
