@@ -222,6 +222,12 @@ export class BrowserTracing implements Integration {
     // from being sent to Sentry).
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
+    // If `beforeNavigate` set a custom name, record that fact
+    finalContext.metadata =
+      finalContext.name !== expandedContext.name
+        ? { ...finalContext.metadata, source: 'custom' }
+        : finalContext.metadata;
+
     if (finalContext.sampled === false) {
       __DEBUG_BUILD__ &&
         logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
