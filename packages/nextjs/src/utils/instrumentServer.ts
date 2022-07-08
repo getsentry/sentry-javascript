@@ -269,7 +269,14 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
-              metadata: { requestPath: reqPath, baggage },
+              metadata: {
+                baggage,
+                requestPath: reqPath,
+                // TODO: Investigate if there's a way to tell if this is a dynamic route, so that we can make this more
+                // like `source: isDynamicRoute? 'url' : 'route'`
+                // TODO: What happens when `withSentry` is used also? Which values of `name` and `source` win?
+                source: 'url',
+              },
               ...traceparentData,
             },
             // Extra context passed to the `tracesSampler` (Note: We're combining `nextReq` and `req` this way in order
@@ -326,6 +333,7 @@ function makeWrappedMethodForGettingParameterizedPath(
     if (transaction && transaction.metadata.requestPath) {
       const origPath = transaction.metadata.requestPath;
       transaction.name = transaction.name.replace(origPath, parameterizedPath);
+      transaction.setMetadata({ source: 'route' });
     }
 
     return origMethod.call(this, parameterizedPath, ...args);

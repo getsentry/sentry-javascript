@@ -60,7 +60,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
           // Replace with placeholder
           if (req.query) {
             // TODO get this from next if possible, to avoid accidentally replacing non-dynamic parts of the path if
-            // they match dynamic parts
+            // they happen to match the values of any of the dynamic parts
             for (const [key, value] of Object.entries(req.query)) {
               reqPath = reqPath.replace(`${value}`, `[${key}]`);
             }
@@ -72,7 +72,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              metadata: { baggage },
+              metadata: { baggage, source: 'route' },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

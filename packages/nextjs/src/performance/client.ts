@@ -35,11 +35,16 @@ export function nextRouterInstrumentation(
     // route name. Setting the transaction name after the transaction is started could lead
     // to possible race conditions with the router, so this approach was taken.
     if (startTransactionOnPageLoad) {
-      prevTransactionName = Router.route !== null ? stripUrlQueryAndFragment(Router.route) : global.location.pathname;
+      const pathIsRoute = Router.route !== null;
+
+      prevTransactionName = pathIsRoute ? stripUrlQueryAndFragment(Router.route) : global.location.pathname;
       activeTransaction = startTransactionCb({
         name: prevTransactionName,
         op: 'pageload',
         tags: DEFAULT_TAGS,
+        metadata: {
+          source: pathIsRoute ? 'route' : 'url',
+        },
       });
     }
 
@@ -105,6 +110,7 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
         name: prevTransactionName,
         op: 'navigation',
         tags,
+        metadata: { source: 'route' },
       });
     }
     return originalChangeStateWrapper.call(this, method, url, as, options, ...args);

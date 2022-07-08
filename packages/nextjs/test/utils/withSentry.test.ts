@@ -1,4 +1,6 @@
+import * as hub from '@sentry/hub';
 import * as Sentry from '@sentry/node';
+import { Client, ClientOptions } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
@@ -43,6 +45,7 @@ const flushSpy = jest.spyOn(Sentry, 'flush').mockImplementation(async () => {
   await sleep(FLUSH_DURATION);
   return true;
 });
+const startTransactionSpy = jest.spyOn(Sentry, 'startTransaction');
 
 describe('withSentry', () => {
   let req: NextApiRequest, res: NextApiResponse;
@@ -97,6 +100,29 @@ describe('withSentry', () => {
 
       expect(flushSpy).toHaveBeenCalled();
       expect(loggerSpy).toHaveBeenCalledWith('Done flushing events');
+    });
+  });
+
+  describe('tracing', () => {
+    it('starts a transaction when tracing is enabled', async () => {
+      jest
+        .spyOn(hub.Hub.prototype, 'getClient')
+        .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
+
+      await callWrappedHandler(wrappedHandlerNoError, req, res);
+
+      expect(startTransactionSpy).toHaveBeenCalledWith(
+        {
+          name: 'GET http://dogs.are.great',
+          op: 'http.server',
+
+          metadata: {
+            baggage: expect.any(Array),
+            source: 'route',
+          },
+        },
+        { request: expect.objectContaining({ url: 'http://dogs.are.great' }) },
+      );
     });
   });
 });
