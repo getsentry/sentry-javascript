@@ -1,5 +1,5 @@
 import { captureException } from '@sentry/browser';
-import { Transaction, TransactionContext } from '@sentry/types';
+import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -64,7 +64,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
 
       // Determine a name for the routing transaction and where that name came from
       let transactionName: string = to.path;
-      let transactionSource: 'url' | 'custom' | 'route' = 'url';
+      let transactionSource: TransactionSource = 'url';
       if (to.name) {
         transactionName = to.name.toString();
         transactionSource = 'custom';
