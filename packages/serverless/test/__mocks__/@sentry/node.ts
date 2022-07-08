@@ -11,6 +11,7 @@ export const fakeHub = {
   pushScope: jest.fn(() => fakeScope),
   popScope: jest.fn(),
   getScope: jest.fn(() => fakeScope),
+  startTransaction: jest.fn(context => ({ ...fakeTransaction, ...context })),
 };
 export const fakeScope = {
   addEventProcessor: jest.fn(),

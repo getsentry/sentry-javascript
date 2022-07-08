@@ -110,13 +110,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
       await handleHttp(wrappedHandler);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'POST /path',
         op: 'gcp.function.http',
         metadata: { baggage: [{}, '', true], source: 'route' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.setHttpStatus).toBeCalledWith(200);
       // @ts-ignore see "Why @ts-ignore" note
@@ -138,25 +144,29 @@ describe('GCPFunction', () => {
       };
       await handleHttp(wrappedHandler, traceHeaders);
 
-      expect(Sentry.startTransaction).toBeCalledWith(
-        expect.objectContaining({
-          name: 'POST /path',
-          op: 'gcp.function.http',
-          traceId: '12312012123120121231201212312012',
-          parentSpanId: '1121201211212012',
-          parentSampled: false,
-          metadata: {
-            baggage: [
-              {
-                release: '2.12.1',
-              },
-              '',
-              false,
-            ],
-            source: 'route',
-          },
-        }),
-      );
+      const fakeTransactionContext = {
+        name: 'POST /path',
+        op: 'gcp.function.http',
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        parentSampled: false,
+        metadata: {
+          baggage: [
+            {
+              release: '2.12.1',
+            },
+            '',
+            false,
+          ],
+          source: 'route',
+        },
+      };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+
+      // @ts-ignore see "Why @ts-ignore" note
+      // expect(Sentry.fakeHub.startTransaction).toBeCalledWith(expect.objectContaining(fakeTransactionContext));
     });
 
     test('capture error', async () => {
@@ -173,16 +183,22 @@ describe('GCPFunction', () => {
       };
 
       await handleHttp(wrappedHandler, trace_headers);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'POST /path',
         op: 'gcp.function.http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
         metadata: { baggage: [{}, '', false], source: 'route' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -246,13 +262,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -267,13 +289,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -293,13 +321,19 @@ describe('GCPFunction', () => {
         });
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -318,13 +352,19 @@ describe('GCPFunction', () => {
 
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -341,13 +381,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapEventFunction(func);
       await expect(handleEvent(wrappedHandler)).resolves.toBe(42);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -362,13 +408,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -384,13 +436,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapEventFunction(handler);
       await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
     });
   });
@@ -417,13 +475,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapCloudEventFunction(func);
       await expect(handleCloudEvent(wrappedHandler)).resolves.toBe(42);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.cloud_event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -438,13 +502,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.cloud_event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -461,13 +531,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapCloudEventFunction(func);
       await expect(handleCloudEvent(wrappedHandler)).resolves.toBe(42);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.cloud_event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalledWith(2000);
@@ -482,13 +558,19 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.cloud_event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
       expect(Sentry.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
@@ -504,13 +586,20 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
       await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
-      expect(Sentry.startTransaction).toBeCalledWith({
+
+      const fakeTransactionContext = {
         name: 'event.type',
         op: 'gcp.function.cloud_event',
         metadata: { source: 'component' },
-      });
+      };
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setSpan).toBeCalledWith(Sentry.fakeTransaction);
+      const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      // @ts-ignore see "Why @ts-ignore" note
+      expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+
       expect(Sentry.captureException).toBeCalledWith(error);
     });
   });
