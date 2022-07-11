@@ -69,7 +69,6 @@ interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
 }
 
-
 // Taken from Remix Implementation
 // https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L54-L62
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,14 +84,26 @@ function isResponse(value: any): value is Response {
   );
 }
 
+// Taken from Remix Implementation
+// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/data.ts#L131-L145
+function extractData(response: Response): Promise<unknown> {
+  const contentType = response.headers.get('Content-Type');
+
+  if (contentType && /\bapplication\/json\b/.test(contentType)) {
+    return response.json();
+  }
+
+  return response.text();
+}
+
 function captureRemixServerException(err: Error, name: string): void {
-  // Skip capturing if the thrown error is a Response
+  // Skip capturing if the thrown error is an OK Response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (isResponse(err)) {
+  if (isResponse(err) && err.status < 400) {
     return;
   }
 
-  captureException(err, scope => {
+  captureException(isResponse(err) ? extractData(err) : err, scope => {
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
