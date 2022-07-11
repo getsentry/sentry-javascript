@@ -120,7 +120,7 @@ function makeWrappedDocumentRequestFunction(
 
       span.finish();
     } catch (err) {
-      captureRemixServerException(err, name);
+      captureRemixServerException(err, 'documentRequest');
       throw err;
     }
 
