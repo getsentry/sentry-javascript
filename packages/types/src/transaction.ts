@@ -72,7 +72,7 @@ export interface Transaction extends TransactionContext, Span {
   /**
    * Set the name of the transaction
    */
-  setName(name: string): void;
+  setName(name: string, source?: TransactionMetadata['source']): void;
 
   /**
    * Set observed measurement for this transaction.

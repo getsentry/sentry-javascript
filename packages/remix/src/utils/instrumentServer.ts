@@ -183,6 +183,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
       tags: {
         method: request.method,
       },
+      metadata: {
+        source: 'url',
+      },
     });
 
     if (transaction) {
