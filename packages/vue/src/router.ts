@@ -25,7 +25,7 @@ export type Route = {
   matched: { path: string }[];
 };
 
-interface VueRouter {
+export interface VueRouter {
   onError: (fn: (err: Error) => void) => void;
   beforeEach: (fn: (to: Route, from: Route, next: () => void) => void) => void;
 }
