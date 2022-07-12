@@ -305,6 +305,22 @@ describe('tracingHandler', () => {
     });
   });
 
+  it('allows downstream functions to override transaction values', done => {
+    const transaction = new Transaction({ name: 'mockTransaction' });
+    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
+    const finishTransaction = jest.spyOn(transaction, 'finish');
+
+    sentryTracingMiddleware(req, res, next);
+    transaction.name = 'overriddenName';
+    res.emit('finish');
+
+    setImmediate(() => {
+      expect(finishTransaction).toHaveBeenCalled();
+      expect(transaction.name).toBe('overriddenName');
+      done();
+    });
+  });
+
   it('strips query string from request path', () => {
     req.url = `${path}?${queryString}`;
 
