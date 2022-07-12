@@ -1,5 +1,13 @@
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
-import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  ActivationEnd,
+  Event,
+  NavigationEnd,
+  NavigationStart,
+  Params,
+  Router,
+} from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
@@ -83,6 +91,8 @@ export class TraceService implements OnDestroy {
       }
 
       if (activeTransaction) {
+        this._activeTransaction = activeTransaction;
+
         if (this._routingSpan) {
           this._routingSpan.finish();
         }
@@ -101,6 +111,20 @@ export class TraceService implements OnDestroy {
     }),
   );
 
+  public actEnd$: Observable<Event> = this._router.events.pipe(
+    filter(event => event instanceof ActivationEnd),
+    tap(() => {
+      const params = getParamsOfRoute(this._router.routerState.snapshot.root);
+      const route = getParameterizedRouteFromUrlAndParams(this._router.url, params);
+
+      const transaction = this._activeTransaction;
+      if (transaction) {
+        transaction.setName(route);
+        transaction.setMetadata({ source: 'route' });
+      }
+    }),
+  );
+
   public navEnd$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof NavigationEnd),
     tap(() => {
@@ -115,10 +139,13 @@ export class TraceService implements OnDestroy {
   );
 
   private _routingSpan: Span | null = null;
+  private _activeTransaction?: Transaction;
+
   private _subscription: Subscription = new Subscription();
 
   public constructor(private readonly _router: Router) {
     this._subscription.add(this.navStart$.subscribe());
+    this._subscription.add(this.actEnd$.subscribe());
     this._subscription.add(this.navEnd$.subscribe());
   }
 
@@ -240,4 +267,25 @@ export function TraceMethodDecorator(): MethodDecorator {
     };
     return descriptor;
   };
+}
+
+function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): Params {
+  let params = {};
+  const stack: ActivatedRouteSnapshot[] = [activatedRouteSnapshot];
+  while (stack.length > 0) {
+    const route = stack.pop();
+    params = { ...params, ...(route && route.params) };
+    route && stack.push(...route.children);
+  }
+  return params;
+}
+
+function getParameterizedRouteFromUrlAndParams(url: string, params: Params): string {
+  if (params && typeof params === 'object') {
+    const parameterized = Object.keys(params).reduce((prev, curr: string) => {
+      return prev.replace(params[curr], `:${curr}`);
+    }, url);
+    return parameterized;
+  }
+  return url;
 }
