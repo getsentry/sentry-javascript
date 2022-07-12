@@ -56,6 +56,9 @@ export function tracingHandler(): (
       scope.setSpan(transaction);
     });
 
+    // Add the request data to the transaction first, so others can override downstream if necessary
+    addRequestDataToTransaction(transaction, req);
+
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -65,7 +68,6 @@ export function tracingHandler(): (
       // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
       // closes
       setImmediate(() => {
-        addRequestDataToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
         transaction.finish();
       });
