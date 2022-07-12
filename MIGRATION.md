@@ -422,8 +422,8 @@ import {
 
 const dsn = initAPIDetails(dsn, metadata, tunnel);
 const dsn = api.dsn;
-const storeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
-const envelopeEndpoint = getStoreEndpointWithUrlEncodedAuth(api.dsn);
+const storeEndpoint = getStoreEndpointWithUrlEncodedAuth(api.dsn);
+const envelopeEndpoint = getEnvelopeEndpointWithUrlEncodedAuth(api.dsn, api.tunnel);
 
 // Before:
 import { API } from '@sentry/core';
