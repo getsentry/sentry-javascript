@@ -1,13 +1,7 @@
-import { ActivatedRouteSnapshot, ActivationEnd, Event, NavigationStart, Router } from '@angular/router';
+import { Event, NavigationStart, ResolveEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 
 import { instrumentAngularRouting, TraceService } from '../src/index';
-
-type MockedRouter = Router & {
-  setMockParams: (params: any) => void;
-  setMockUrl: (url: string) => void;
-  mockUrl: string;
-};
 
 describe('Angular Tracing', () => {
   const startTransaction = jest.fn();
@@ -26,35 +20,14 @@ describe('Angular Tracing', () => {
   describe('TraceService', () => {
     let traceService: TraceService;
     const routerEvents$: Subject<Event> = new Subject();
-    const mockedRouter = {
+    const mockedRouter: Partial<Router> = {
       events: routerEvents$,
-      routerState: {
-        snapshot: {
-          root: {
-            params: {},
-            children: [],
-          },
-        },
-      },
-
-      // router.url is readonly originally.Using a getter lets us return a previously changed URL
-      get url() {
-        return mockedRouter.mockUrl;
-      },
-
-      setMockParams: (params: any) => {
-        mockedRouter.routerState.snapshot.root.params = params;
-      },
-
-      setMockUrl: (url: string) => {
-        mockedRouter.mockUrl = url;
-      },
-    } as unknown as MockedRouter;
+    };
 
     beforeEach(() => {
       instrumentAngularRouting(startTransaction);
       jest.resetAllMocks();
-      traceService = new TraceService(mockedRouter);
+      traceService = new TraceService(mockedRouter as Router);
     });
 
     afterEach(() => {
@@ -82,7 +55,7 @@ describe('Angular Tracing', () => {
       //       Once we set up Jest for testing Angular, we can use TestBed to inject an actual
       //       router instance into TraceService and add more tests.
       it.each([
-        ['does not parameterize static routes', '/books/', {}, '/books/'],
+        ['does not alter static routes', '/books/', {}, '/books/'],
         ['parameterizes number IDs in the URL', '/books/1/details', { bookId: '1' }, '/books/:bookId/details'],
         [
           'parameterizes string IDs in the URL',
@@ -117,9 +90,6 @@ describe('Angular Tracing', () => {
 
         instrumentAngularRouting(customStartTransaction);
 
-        mockedRouter.setMockParams(params);
-        mockedRouter.setMockUrl(url);
-
         // this event starts the transaction
         routerEvents$.next(new NavigationStart(0, url));
 
@@ -130,7 +100,7 @@ describe('Angular Tracing', () => {
         });
 
         // this event starts the parameterization
-        routerEvents$.next(new ActivationEnd(new ActivatedRouteSnapshot()));
+        routerEvents$.next(new ResolveEnd(1, url, url, { root: { params, children: [] } } as any));
 
         expect(transaction.setName).toHaveBeenCalledWith(result);
         expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });

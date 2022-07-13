@@ -1,11 +1,12 @@
+/* eslint-disable max-lines */
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
 import {
   ActivatedRouteSnapshot,
-  ActivationEnd,
   Event,
   NavigationEnd,
   NavigationStart,
   Params,
+  ResolveEnd,
   Router,
 } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
@@ -110,11 +111,29 @@ export class TraceService implements OnDestroy {
     }),
   );
 
-  public actEnd$: Observable<Event> = this._router.events.pipe(
-    filter(event => event instanceof ActivationEnd),
-    tap(() => {
-      const params = getParamsOfRoute(this._router.routerState.snapshot.root);
-      const route = getParameterizedRouteFromUrlAndParams(this._router.url, params);
+  // The ResolveEnd event is fired when the Angular router has resolved the URL
+  // and activated the route. It holds the new resolved router state and the
+  // new URL.
+  // Only After this event, the route is activated, meaning that the transaction
+  // can be updated with the parameterized route name before e.g. the route's root
+  // component is initialized. This should be early enough before outgoing requests
+  // are made from the new route.
+  // In any case, this is the earliest stage where we can reliably get a resolved
+  //
+  public resEnd: Observable<Event> = this._router.events.pipe(
+    filter(event => event instanceof ResolveEnd),
+    tap(event => {
+      const ev = event as ResolveEnd;
+
+      const params = getParamsOfRoute(ev.state.root);
+
+      // ev.urlAfterRedirects is the one we prefer because it should hold the most recent
+      // one that holds information about a redirect to another route if this was specified
+      // in the Angular router config. In case this doesn't exist (for whatever reason),
+      // we fall back to ev.url which holds the primarily resolved URL before a potential
+      // redirect.
+      const url = ev.urlAfterRedirects || ev.url;
+      const route = getParameterizedRouteFromUrlAndParams(url, params);
 
       const transaction = this._activeTransaction;
       if (transaction) {
@@ -144,7 +163,7 @@ export class TraceService implements OnDestroy {
 
   public constructor(private readonly _router: Router) {
     this._subscription.add(this.navStart$.subscribe());
-    this._subscription.add(this.actEnd$.subscribe());
+    this._subscription.add(this.resEnd.subscribe());
     this._subscription.add(this.navEnd$.subscribe());
   }
 
