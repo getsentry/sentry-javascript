@@ -136,7 +136,7 @@ export class TraceService implements OnDestroy {
       const route = getParameterizedRouteFromUrlAndParams(url, params);
 
       const transaction = this._activeTransaction;
-      if (transaction) {
+      if (transaction && transaction.metadata.source === 'url') {
         transaction.setName(route);
         transaction.setMetadata({ source: 'route' });
       }
