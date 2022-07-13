@@ -120,7 +120,7 @@ export class TraceService implements OnDestroy {
   // are made from the new route.
   // In any case, this is the earliest stage where we can reliably get a resolved
   //
-  public resEnd: Observable<Event> = this._router.events.pipe(
+  public resEnd$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof ResolveEnd),
     tap(event => {
       const ev = event as ResolveEnd;
@@ -163,7 +163,7 @@ export class TraceService implements OnDestroy {
 
   public constructor(private readonly _router: Router) {
     this._subscription.add(this.navStart$.subscribe());
-    this._subscription.add(this.resEnd.subscribe());
+    this._subscription.add(this.resEnd$.subscribe());
     this._subscription.add(this.navEnd$.subscribe());
   }
 
