@@ -54,6 +54,23 @@ describe('Angular Tracing', () => {
       //       reacts to it.
       //       Once we set up Jest for testing Angular, we can use TestBed to inject an actual
       //       router instance into TraceService and add more tests.
+
+      let transaction: any;
+      let customStartTransaction: any;
+      beforeEach(() => {
+        transaction = {
+          setName: jest.fn(name => (transaction.name = name)),
+          setMetadata: jest.fn(metadata => (transaction.metadata = metadata)),
+        };
+
+        customStartTransaction = jest.fn((ctx: any) => {
+          transaction.name = ctx.name;
+          transaction.op = ctx.op;
+          transaction.metadata = ctx.metadata;
+          return transaction;
+        });
+      });
+
       it.each([
         ['does not alter static routes', '/books/', {}, '/books/'],
         ['parameterizes number IDs in the URL', '/books/1/details', { bookId: '1' }, '/books/:bookId/details'],
@@ -76,18 +93,6 @@ describe('Angular Tracing', () => {
           '/org/:orgId/projects/:projId/events/:eventId',
         ],
       ])('%s and sets the source to `route`', (_, url, params, result) => {
-        const transaction: any = {
-          setName: jest.fn(name => (transaction.name = name)),
-          setMetadata: jest.fn(metadata => (transaction.metadata = metadata)),
-        };
-
-        const customStartTransaction = jest.fn((ctx: any) => {
-          transaction.name = ctx.name;
-          transaction.op = ctx.op;
-          transaction.metadata = ctx.metadata;
-          return transaction;
-        });
-
         instrumentAngularRouting(customStartTransaction);
 
         // this event starts the transaction
@@ -104,6 +109,30 @@ describe('Angular Tracing', () => {
 
         expect(transaction.setName).toHaveBeenCalledWith(result);
         expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+      });
+
+      it('does not change the transaction name if the source is something other than `url`', () => {
+        instrumentAngularRouting(customStartTransaction);
+
+        const url = '/user/12345/test';
+
+        routerEvents$.next(new NavigationStart(0, url));
+
+        expect(customStartTransaction).toHaveBeenCalledWith({
+          name: url,
+          op: 'navigation',
+          metadata: { source: 'url' },
+        });
+
+        // Simulate that this transaction has a custom name:
+        transaction.metadata.source = 'custom';
+
+        // this event starts the parameterization
+        routerEvents$.next(new ResolveEnd(1, url, url, { root: { params: { userId: '12345' }, children: [] } } as any));
+
+        expect(transaction.setName).toHaveBeenCalledTimes(0);
+        expect(transaction.setMetadata).toHaveBeenCalledTimes(0);
+        expect(transaction.name).toEqual(url);
       });
     });
   });
