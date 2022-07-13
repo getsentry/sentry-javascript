@@ -92,7 +92,6 @@ export class TraceService implements OnDestroy {
 
       if (activeTransaction) {
         this._activeTransaction = activeTransaction;
-
         if (this._routingSpan) {
           this._routingSpan.finish();
         }
