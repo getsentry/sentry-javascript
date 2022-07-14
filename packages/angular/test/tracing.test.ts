@@ -1,7 +1,32 @@
 import { Event, NavigationStart, ResolveEnd, Router } from '@angular/router';
+import { Hub, Transaction } from '@sentry/types';
 import { Subject } from 'rxjs';
 
 import { instrumentAngularRouting, TraceService } from '../src/index';
+
+//import * as Sentry from '../src/index';
+// import { Transaction } from '@sentry/types';
+let transaction: any;
+let customStartTransaction: (context: any) => Transaction | undefined;
+
+jest.mock('@sentry/browser', () => {
+  const original = jest.requireActual('@sentry/browser');
+
+  return {
+    ...original,
+    getCurrentHub: () => {
+      return {
+        getScope: () => {
+          return {
+            getTransaction: () => {
+              return transaction;
+            },
+          };
+        },
+      } as unknown as Hub;
+    },
+  };
+});
 
 describe('Angular Tracing', () => {
   const startTransaction = jest.fn();
@@ -55,18 +80,15 @@ describe('Angular Tracing', () => {
       //       Once we set up Jest for testing Angular, we can use TestBed to inject an actual
       //       router instance into TraceService and add more tests.
 
-      let transaction: any;
-      let customStartTransaction: any;
       beforeEach(() => {
-        transaction = {
-          setName: jest.fn(name => (transaction.name = name)),
-          setMetadata: jest.fn(metadata => (transaction.metadata = metadata)),
-        };
-
+        transaction = undefined;
         customStartTransaction = jest.fn((ctx: any) => {
+          transaction = {};
           transaction.name = ctx.name;
           transaction.op = ctx.op;
           transaction.metadata = ctx.metadata;
+          transaction.setName = jest.fn(name => (transaction.name = name));
+          transaction.setMetadata = jest.fn(metadata => (transaction.metadata = metadata));
           return transaction;
         });
       });
@@ -93,7 +115,7 @@ describe('Angular Tracing', () => {
           '/org/:orgId/projects/:projId/events/:eventId',
         ],
       ])('%s and sets the source to `route`', (_, url, params, result) => {
-        instrumentAngularRouting(customStartTransaction);
+        instrumentAngularRouting(customStartTransaction, false, true);
 
         // this event starts the transaction
         routerEvents$.next(new NavigationStart(0, url));
@@ -112,7 +134,7 @@ describe('Angular Tracing', () => {
       });
 
       it('does not change the transaction name if the source is something other than `url`', () => {
-        instrumentAngularRouting(customStartTransaction);
+        instrumentAngularRouting(customStartTransaction, false, true);
 
         const url = '/user/12345/test';
 

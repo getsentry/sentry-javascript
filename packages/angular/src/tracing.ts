@@ -132,6 +132,7 @@ export class TraceService implements OnDestroy {
       // we fall back to ev.url which holds the primarily resolved URL before a potential
       // redirect.
       const url = ev.urlAfterRedirects || ev.url;
+
       const route = getParameterizedRouteFromUrlAndParams(url, params);
 
       const transaction = getActiveTransaction();
