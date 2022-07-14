@@ -18,7 +18,7 @@ class MockTransport implements Transport {
   async flush() {
     return true;
   }
-  async sendEvent(e: Event) {
+  async sendEvent(_e: Event) {
     return {
       status: 'skipped',
       event: 'ok',

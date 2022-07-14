@@ -81,7 +81,7 @@ class MockWorker implements Worker {
   onmessageerror: (this: Worker, ev: MessageEvent<any>) => any;
   onmessage: (this: Worker, ev: MessageEvent<any>) => any;
   onerror: (this: AbstractWorker, ev: ErrorEvent) => any;
-  dispatchEvent(event: Event): boolean {
+  dispatchEvent(_event: Event): boolean {
     return true;
   }
 }

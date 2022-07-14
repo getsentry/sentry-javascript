@@ -1,5 +1,4 @@
 import { record } from 'rrweb';
-import { getCurrentHub } from '@sentry/browser';
 import { isIngestHost } from './util/isIngestHost';
 
 export interface ReplayPerformanceEntry {

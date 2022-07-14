@@ -76,6 +76,7 @@ expect.extend({
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace jest {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface Matchers<R> {
       toHaveSentReplay(expected?: string | Uint8Array): CustomMatcherResult;
       toHaveSameSession(expected: Session): CustomMatcherResult;
