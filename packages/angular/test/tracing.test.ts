@@ -1,8 +1,9 @@
-import { Event, NavigationStart, ResolveEnd, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, Event, NavigationStart, ResolveEnd, Router } from '@angular/router';
 import { Hub, Transaction } from '@sentry/types';
 import { Subject } from 'rxjs';
 
 import { instrumentAngularRouting, TraceService } from '../src/index';
+import { getParameterizedRouteFromUrlAndParams, getParamsOfRoute } from '../src/tracing';
 
 //import * as Sentry from '../src/index';
 // import { Transaction } from '@sentry/types';
@@ -11,7 +12,6 @@ let customStartTransaction: (context: any) => Transaction | undefined;
 
 jest.mock('@sentry/browser', () => {
   const original = jest.requireActual('@sentry/browser');
-
   return {
     ...original,
     getCurrentHub: () => {
@@ -83,12 +83,11 @@ describe('Angular Tracing', () => {
       beforeEach(() => {
         transaction = undefined;
         customStartTransaction = jest.fn((ctx: any) => {
-          transaction = {};
-          transaction.name = ctx.name;
-          transaction.op = ctx.op;
-          transaction.metadata = ctx.metadata;
-          transaction.setName = jest.fn(name => (transaction.name = name));
-          transaction.setMetadata = jest.fn(metadata => (transaction.metadata = metadata));
+          transaction = {
+            ...ctx,
+            setName: jest.fn(name => (transaction.name = name)),
+            setMetadata: jest.fn(metadata => (transaction.metadata = metadata)),
+          };
           return transaction;
         });
       });
@@ -156,6 +155,73 @@ describe('Angular Tracing', () => {
         expect(transaction.setMetadata).toHaveBeenCalledTimes(0);
         expect(transaction.name).toEqual(url);
       });
+    });
+  });
+
+  describe('getParamsOfRoute', () => {
+    it.each([
+      ['returns an empty object if the route has no params', { params: {}, children: [] }, {}],
+      [
+        'returns an params of a route without children',
+        { params: { bookId: '1234' }, children: [] },
+        { bookId: ['1234'] },
+      ],
+      [
+        'returns an params of a route with children',
+        {
+          params: { bookId: '1234' },
+          children: [
+            { params: { authorId: 'abc' }, children: [] },
+            { params: { pageNum: '66' }, children: [{ params: { userId: 'xyz' }, children: [] }] },
+          ],
+        },
+        { bookId: ['1234'], authorId: ['abc'], pageNum: ['66'], userId: ['xyz'] },
+      ],
+      [
+        'returns an params of a route with children where param names are identical',
+        {
+          params: { id: '1234' },
+          children: [
+            { params: { id: 'abc' }, children: [] },
+            { params: { pageNum: '66' }, children: [{ params: { id: 'xyz', somethingElse: '789' }, children: [] }] },
+          ],
+        },
+        { id: ['1234', 'abc', 'xyz'], pageNum: ['66'], somethingElse: ['789'] },
+      ],
+    ])('%s', (_, routeSnapshot, expectedParams) => {
+      expect(getParamsOfRoute(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(expectedParams);
+    });
+  });
+
+  describe('getParameterizedRouteFromUrlAndParams', () => {
+    it.each([
+      ['returns untouched URL if no params are passed', '/static/route', {}, '/static/route'],
+      [
+        'returns parameterized URL if params are passed',
+        '/books/1234/read/0',
+        { bookId: ['1234'], pageNum: ['0'] },
+        '/books/:bookId/read/:pageNum',
+      ],
+      [
+        'does not replace partially matching URL segments',
+        '/books/1234/read/0',
+        { wrongId: ['12'] },
+        '/books/1234/read/0',
+      ],
+      [
+        'does not replace partially matching URL segments',
+        '/books/1234/read/04',
+        { wrongId: ['12'], bookId: ['1234'], pageNum: ['4'] },
+        '/books/:bookId/read/04',
+      ],
+      [
+        'correctly matches URLs containing multiple identical param names',
+        '/books/1234/read/4/abc/test/123',
+        { id: ['1234', '123', 'abc'], pageNum: ['4'] },
+        '/books/:id/read/:pageNum/:id/test/:id',
+      ],
+    ])('%s', (_, url, params, expectedRoute) => {
+      expect(getParameterizedRouteFromUrlAndParams(url, params)).toEqual(expectedRoute);
     });
   });
 });

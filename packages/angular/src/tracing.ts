@@ -1,14 +1,6 @@
 /* eslint-disable max-lines */
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
-import {
-  ActivatedRouteSnapshot,
-  Event,
-  NavigationEnd,
-  NavigationStart,
-  Params,
-  ResolveEnd,
-  Router,
-} from '@angular/router';
+import { ActivatedRouteSnapshot, Event, NavigationEnd, NavigationStart, ResolveEnd, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
@@ -18,6 +10,8 @@ import { filter, tap } from 'rxjs/operators';
 import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
+
+type ParamMap = { [key: string]: string[] };
 
 let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
@@ -287,27 +281,43 @@ export function TraceMethodDecorator(): MethodDecorator {
   };
 }
 
-// TODO unit test
-// TODO recursion
-function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): Params {
-  let params = {};
-  const stack: ActivatedRouteSnapshot[] = [activatedRouteSnapshot];
-  while (stack.length > 0) {
-    const route = stack.pop();
-    params = { ...params, ...(route && route.params) };
-    route && stack.push(...route.children);
+/**
+ * Recursively traverses the routerstate and its children to collect a map of parameters on the entire route.
+ *
+ * Because Angular supports child routes (e.g. when creating nested routes or lazy loaded routes), we have
+ * to not only visit the root router snapshot but also its children to get all parameters of the entire route.
+ *
+ * @param activatedRouteSnapshot the root router snapshot
+ * @returns a map of params, mapping from a key to an array of values
+ */
+export function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): ParamMap {
+  function getParamsOfRouteH(routeSnapshot: ActivatedRouteSnapshot, accParams: ParamMap): ParamMap {
+    Object.keys(routeSnapshot.params).forEach(key => {
+      accParams[key] = [...(accParams[key] || []), routeSnapshot.params[key]];
+    });
+    routeSnapshot.children.forEach(child => getParamsOfRouteH(child, accParams));
+    return accParams;
   }
-  return params;
+
+  return getParamsOfRouteH(activatedRouteSnapshot, {});
 }
 
-// TODO unit tests
-// TODO robustness
-function getParameterizedRouteFromUrlAndParams(url: string, params: Params): string {
+/**
+ * Takes a raw URl and a map of params and replaces each values occuring in the raw URL with
+ * the name of the parameter.
+ *
+ * @param url raw URL (e.g. /user/1234/details)
+ * @param params a map of type ParamMap
+ * @returns the parameterized URL (e.g. /user/:userId/details)
+ */
+export function getParameterizedRouteFromUrlAndParams(url: string, params: ParamMap): string {
   if (params) {
-    const parameterized = Object.keys(params).reduce((prev, curr: string) => {
-      return prev.replace(params[curr], `:${curr}`);
+    return Object.keys(params).reduce((prevUrl: string, paramName: string) => {
+      return prevUrl
+        .split('/')
+        .map(segment => (params[paramName].find(p => p === segment) ? `:${paramName}` : segment))
+        .join('/');
     }, url);
-    return parameterized;
   }
   return url;
 }
