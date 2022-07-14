@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
-import { ReportDialogOptions, showReportDialog } from '@sentry/browser';
 
 import { runOutsideAngular } from './zone';
 
@@ -11,7 +10,7 @@ import { runOutsideAngular } from './zone';
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
   showDialog?: boolean;
-  dialogOptions?: ReportDialogOptions;
+  dialogOptions?: Sentry.ReportDialogOptions;
   /**
    * Custom implementation of error extraction from the raw value captured by the Angular.
    * @param error Value captured by Angular's ErrorHandler provider
@@ -51,7 +50,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
     // Optionally show user dialog to provide details on what happened.
     if (this._options.showDialog) {
-      showReportDialog({ ...this._options.dialogOptions, eventId });
+      Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
     }
   }
 
