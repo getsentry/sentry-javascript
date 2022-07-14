@@ -161,7 +161,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
     __DEBUG_BUILD__ && logger.log('Sending outcomes:', outcomes);
 
-    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, this._options.tunnel);
+    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, this._options);
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
     try {

@@ -1,4 +1,5 @@
 /* eslint-disable deprecation/deprecation */
+import { ClientOptions, DsnComponents } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
@@ -6,15 +7,49 @@ import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
+const _metadata = { sdk: { name: 'sentry.javascript.browser', version: '12.31.12' } } as ClientOptions['_metadata'];
 
 const dsnPublicComponents = makeDsn(dsnPublic);
 
 describe('API', () => {
-  test('getEnvelopeEndpoint', () => {
-    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicComponents)).toEqual(
-      'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
+  describe('getEnvelopeEndpointWithUrlEncodedAuth', () => {
+    it.each([
+      [
+        "doesn't include `sentry_client` when called with only DSN",
+        dsnPublicComponents,
+        undefined,
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
+      ],
+      ['uses `tunnel` value when called with `tunnel` as string', dsnPublicComponents, tunnel, tunnel],
+      [
+        'uses `tunnel` value when called with `tunnel` in options',
+        dsnPublicComponents,
+        { tunnel } as ClientOptions,
+        tunnel,
+      ],
+      [
+        'uses `tunnel` value when called with `tunnel` and `_metadata` in options',
+        dsnPublicComponents,
+        { tunnel, _metadata } as ClientOptions,
+        tunnel,
+      ],
+      [
+        'includes `sentry_client` when called with `_metadata` in options and no tunnel',
+        dsnPublicComponents,
+        { _metadata } as ClientOptions,
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7&sentry_client=sentry.javascript.browser%2F12.31.12',
+      ],
+    ])(
+      '%s',
+      (
+        _testName: string,
+        dsnComponents: DsnComponents,
+        tunnelOrOptions: string | ClientOptions | undefined,
+        expected: string,
+      ) => {
+        expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents, tunnelOrOptions)).toBe(expected);
+      },
     );
-    expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnPublicComponents, tunnel)).toEqual(tunnel);
   });
 
   describe('getReportDialogEndpoint', () => {
