@@ -92,7 +92,6 @@ export class TraceService implements OnDestroy {
       }
 
       if (activeTransaction) {
-        this._activeTransaction = activeTransaction;
         if (this._routingSpan) {
           this._routingSpan.finish();
         }
@@ -135,7 +134,8 @@ export class TraceService implements OnDestroy {
       const url = ev.urlAfterRedirects || ev.url;
       const route = getParameterizedRouteFromUrlAndParams(url, params);
 
-      const transaction = this._activeTransaction;
+      const transaction = getActiveTransaction();
+      // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
       if (transaction && transaction.metadata.source === 'url') {
         transaction.setName(route);
         transaction.setMetadata({ source: 'route' });
@@ -157,7 +157,6 @@ export class TraceService implements OnDestroy {
   );
 
   private _routingSpan: Span | null = null;
-  private _activeTransaction?: Transaction;
 
   private _subscription: Subscription = new Subscription();
 
@@ -287,6 +286,8 @@ export function TraceMethodDecorator(): MethodDecorator {
   };
 }
 
+// TODO unit test
+// TODO recursion
 function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): Params {
   let params = {};
   const stack: ActivatedRouteSnapshot[] = [activatedRouteSnapshot];
@@ -298,8 +299,10 @@ function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): Param
   return params;
 }
 
+// TODO unit tests
+// TODO robustness
 function getParameterizedRouteFromUrlAndParams(url: string, params: Params): string {
-  if (params && typeof params === 'object') {
+  if (params) {
     const parameterized = Object.keys(params).reduce((prev, curr: string) => {
       return prev.replace(params[curr], `:${curr}`);
     }, url);
