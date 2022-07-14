@@ -65,15 +65,14 @@ export function getActiveTransaction(): Transaction | undefined {
 @Injectable({ providedIn: 'root' })
 export class TraceService implements OnDestroy {
   public navStart$: Observable<Event> = this._router.events.pipe(
-    filter(event => event instanceof NavigationStart),
-    tap(event => {
+    filter((event): event is NavigationStart => event instanceof NavigationStart),
+    tap(navigationEvent => {
       if (!instrumentationInitialized) {
         IS_DEBUG_BUILD &&
           logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
         return;
       }
 
-      const navigationEvent = event as NavigationStart;
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
       let activeTransaction = getActiveTransaction();
 
@@ -113,18 +112,16 @@ export class TraceService implements OnDestroy {
   // are made from the new route, with the exceptions of requests being made during
   // a navigation.
   public resEnd$: Observable<Event> = this._router.events.pipe(
-    filter(event => event instanceof ResolveEnd),
+    filter((event): event is ResolveEnd => event instanceof ResolveEnd),
     tap(event => {
-      const ev = event as ResolveEnd;
+      const params = getParamsOfRoute(event.state.root);
 
-      const params = getParamsOfRoute(ev.state.root);
-
-      // ev.urlAfterRedirects is the one we prefer because it should hold the most recent
+      // event.urlAfterRedirects is the one we prefer because it should hold the most recent
       // one that holds information about a redirect to another route if this was specified
       // in the Angular router config. In case this doesn't exist (for whatever reason),
-      // we fall back to ev.url which holds the primarily resolved URL before a potential
+      // we fall back to event.url which holds the primarily resolved URL before a potential
       // redirect.
-      const url = ev.urlAfterRedirects || ev.url;
+      const url = event.urlAfterRedirects || event.url;
 
       const route = getParameterizedRouteFromUrlAndParams(url, params);
 
