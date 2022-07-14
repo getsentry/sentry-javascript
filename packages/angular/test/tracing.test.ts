@@ -5,8 +5,6 @@ import { Subject } from 'rxjs';
 import { instrumentAngularRouting, TraceService } from '../src/index';
 import { getParameterizedRouteFromUrlAndParams, getParamsOfRoute } from '../src/tracing';
 
-//import * as Sentry from '../src/index';
-// import { Transaction } from '@sentry/types';
 let transaction: any;
 let customStartTransaction: (context: any) => Transaction | undefined;
 
