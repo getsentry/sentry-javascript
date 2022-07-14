@@ -104,15 +104,14 @@ export class TraceService implements OnDestroy {
     }),
   );
 
-  // The ResolveEnd event is fired when the Angular router has resolved the URL
-  // and activated the route. It holds the new resolved router state and the
-  // new URL.
+  // The ResolveEnd event is fired when the Angular router has resolved the URL and
+  // the parameter<->value mapping. It holds the new resolved router state with
+  // the mapping and the new URL.
   // Only After this event, the route is activated, meaning that the transaction
   // can be updated with the parameterized route name before e.g. the route's root
   // component is initialized. This should be early enough before outgoing requests
-  // are made from the new route.
-  // In any case, this is the earliest stage where we can reliably get a resolved
-  //
+  // are made from the new route, with the exceptions of requests being made during
+  // a navigation.
   public resEnd$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof ResolveEnd),
     tap(event => {
