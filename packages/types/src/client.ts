@@ -8,6 +8,7 @@ import { Scope } from './scope';
 import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
 import { Transport } from './transport';
+import { Hub } from './hub';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -101,7 +102,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /** This is an internal function to setup all integrations that should run on the client */
-  setupIntegrations(): void;
+  setupIntegrations(hub: Hub): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

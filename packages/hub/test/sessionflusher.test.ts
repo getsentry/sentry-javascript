@@ -1,10 +1,12 @@
 import { Client } from '@sentry/types';
 
+import { Hub } from '../src/hub';
 import { SessionFlusher } from '../src/sessionflusher';
 
 describe('Session Flusher', () => {
   let sendSession: jest.Mock;
   let mockClient: Client;
+  let hub: Hub;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -12,6 +14,7 @@ describe('Session Flusher', () => {
     mockClient = {
       sendSession,
     } as unknown as Client;
+    hub = new Hub();
   });
 
   afterEach(() => {
@@ -19,7 +22,7 @@ describe('Session Flusher', () => {
   });
 
   test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.0', environment: 'dev' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
     let count = (flusher as any)._incrementSessionStatusCount('ok', date);
@@ -42,7 +45,7 @@ describe('Session Flusher', () => {
   });
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.0' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.0' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
     (flusher as any)._incrementSessionStatusCount('ok', date);
@@ -55,7 +58,7 @@ describe('Session Flusher', () => {
   });
 
   test('flush is called every 60 seconds after initialisation of an instance of SessionFlusher', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     jest.advanceTimersByTime(59000);
     expect(flusherFlushFunc).toHaveBeenCalledTimes(0);
@@ -68,7 +71,7 @@ describe('Session Flusher', () => {
   });
 
   test('sendSessions is called on flush if sessions were captured', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
     (flusher as any)._incrementSessionStatusCount('ok', date);
@@ -88,7 +91,7 @@ describe('Session Flusher', () => {
   });
 
   test('sendSessions is not called on flush if no sessions were captured', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
 
     expect(sendSession).toHaveBeenCalledTimes(0);
@@ -98,13 +101,13 @@ describe('Session Flusher', () => {
   });
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.x' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.x' });
     flusher.close();
     expect((flusher as any)._isEnabled).toEqual(false);
   });
 
   test('calling close on SessionFlusher will force call flush', () => {
-    const flusher = new SessionFlusher(mockClient, { release: '1.0.x' });
+    const flusher = new SessionFlusher(hub, mockClient, { release: '1.0.x' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
     (flusher as any)._incrementSessionStatusCount('ok', date);

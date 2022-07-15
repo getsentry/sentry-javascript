@@ -1,5 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
-import { Client, ClientOptions } from '@sentry/types';
+import { Client, ClientOptions, Hub } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 /** A class object that can instantiate Client objects. */
@@ -9,10 +8,12 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
  * Internal function to create a new SDK client instance. The client is
  * installed and then bound to the current scope.
  *
+ * @param hub
  * @param clientClass The client class to instantiate.
  * @param options Options to pass to the client.
  */
 export function initAndBind<F extends Client, O extends ClientOptions>(
+  hub: Hub,
   clientClass: ClientClass<F, O>,
   options: O,
 ): void {
@@ -25,12 +26,15 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
       console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
     }
   }
-  const hub = getCurrentHub();
+
+  // @ts-ignore this is where things dont work, the Hub interface is missing `getStope`
   const scope = hub.getScope();
   if (scope) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     scope.update(options.initialScope);
   }
 
   const client = new clientClass(options);
   hub.bindClient(client);
+  client.setupIntegrations(hub);
 }

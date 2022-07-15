@@ -1,5 +1,5 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
-import { Integration, Options } from '@sentry/types';
+import { addGlobalEventProcessor } from '@sentry/hub';
+import { Hub, Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 export const installedIntegrations: string[] = [];
@@ -55,17 +55,17 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
 /**
  * Given a list of integration instances this installs them all. When `withDefaults` is set to `true` then all default
  * integrations are added unless they were already provided before.
+ * @param hub
  * @param integrations array of integration instances
- * @param withDefault should enable default integrations
  */
-export function setupIntegrations(integrations: Integration[]): IntegrationIndex {
+export function setupIntegrations(hub: Hub, integrations: Integration[]): IntegrationIndex {
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
     integrationIndex[integration.name] = integration;
 
     if (installedIntegrations.indexOf(integration.name) === -1) {
-      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+      integration.setupOnce(addGlobalEventProcessor, ()=> hub);
       installedIntegrations.push(integration.name);
       __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
     }

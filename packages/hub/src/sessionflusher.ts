@@ -1,7 +1,7 @@
 import { AggregationCounts, Client, RequestSessionStatus, SessionAggregates, SessionFlusherLike } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
-import { getCurrentHub } from './hub';
+import { Hub } from './hub';
 
 type ReleaseHealthAttributes = {
   environment?: string;
@@ -18,12 +18,14 @@ export class SessionFlusher implements SessionFlusherLike {
   private _intervalId: ReturnType<typeof setInterval>;
   private _isEnabled: boolean = true;
   private _client: Client;
+  private _hub: Hub;
 
-  public constructor(client: Client, attrs: ReleaseHealthAttributes) {
+  public constructor(hub: Hub, client: Client, attrs: ReleaseHealthAttributes) {
     this._client = client;
     // Call to setInterval, so that flush is called every 60 seconds
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
     this._sessionAttrs = attrs;
+    this._hub = hub;
   }
 
   /** Checks if `pendingAggregates` has entries, and if it does flushes them by calling `sendSession` */
@@ -65,7 +67,7 @@ export class SessionFlusher implements SessionFlusherLike {
     if (!this._isEnabled) {
       return;
     }
-    const scope = getCurrentHub().getScope();
+    const scope = this._hub.getScope();
     const requestSession = scope && scope.getRequestSession();
 
     if (requestSession && requestSession.status) {

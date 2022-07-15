@@ -13,7 +13,7 @@ import {
   User,
 } from '@sentry/types';
 
-import { getCurrentHub, Hub } from './hub';
+import { Hub } from './hub';
 import { Scope } from './scope';
 
 // Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
@@ -26,23 +26,26 @@ import { Scope } from './scope';
 /**
  * Captures an exception event and sends it to Sentry.
  *
+ * @param hub The Hub instance.
  * @param exception An exception-like object.
  * @param captureContext Additional scope data to apply to exception event.
  * @returns The generated eventId.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
-  return getCurrentHub().captureException(exception, { captureContext });
+export function captureException(hub: Hub, exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
+  return hub.captureException(exception, { captureContext });
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
+ * @param hub The Hub instance.
  * @param message The message to send to Sentry.
- * @param Severity Define the level of the message.
+ * @param captureContext
  * @returns The generated eventId.
  */
 export function captureMessage(
+  hub: Hub,
   message: string,
   // eslint-disable-next-line deprecation/deprecation
   captureContext?: CaptureContext | Severity | SeverityLevel,
@@ -51,25 +54,28 @@ export function captureMessage(
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-  return getCurrentHub().captureMessage(message, level, context);
+  return hub.captureMessage(message, level, context);
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
+ * @param hub The Hub instance.
  * @param event The event to send to Sentry.
+ * @param hint The Event Hint.
  * @returns The generated eventId.
  */
-export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['captureEvent']> {
-  return getCurrentHub().captureEvent(event, hint);
+export function captureEvent(hub: Hub, event: Event, hint?: EventHint): ReturnType<Hub['captureEvent']> {
+  return hub.captureEvent(event, hint);
 }
 
 /**
  * Callback to set context information onto the scope.
+ * @param hub The Hub instance.
  * @param callback Callback function that receives Scope.
  */
-export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
-  getCurrentHub().configureScope(callback);
+export function configureScope(hub: Hub, callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+  hub.configureScope(callback);
 }
 
 /**
@@ -80,8 +86,8 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  *
  * @param breadcrumb The breadcrumb to record.
  */
-export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
-  getCurrentHub().addBreadcrumb(breadcrumb);
+export function addBreadcrumb(hub: Hub, breadcrumb: Breadcrumb): ReturnType<Hub['addBreadcrumb']> {
+  hub.addBreadcrumb(breadcrumb);
 }
 
 /**
@@ -90,16 +96,16 @@ export function addBreadcrumb(breadcrumb: Breadcrumb): ReturnType<Hub['addBreadc
  * @param context Any kind of data. This data will be normalized.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  getCurrentHub().setContext(name, context);
+export function setContext(hub: Hub, name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
+  hub.setContext(name, context);
 }
 
 /**
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
-  getCurrentHub().setExtras(extras);
+export function setExtras(hub: Hub, extras: Extras): ReturnType<Hub['setExtras']> {
+  hub.setExtras(extras);
 }
 
 /**
@@ -107,16 +113,16 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
-  getCurrentHub().setExtra(key, extra);
+export function setExtra(hub: Hub, key: string, extra: Extra): ReturnType<Hub['setExtra']> {
+  hub.setExtra(key, extra);
 }
 
 /**
  * Set an object that will be merged sent as tags data with the event.
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
-  getCurrentHub().setTags(tags);
+export function setTags(hub: Hub, tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
+  hub.setTags(tags);
 }
 
 /**
@@ -127,8 +133,8 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
-  getCurrentHub().setTag(key, value);
+export function setTag(hub: Hub, key: string, value: Primitive): ReturnType<Hub['setTag']> {
+  hub.setTag(key, value);
 }
 
 /**
@@ -136,8 +142,8 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(user: User | null): ReturnType<Hub['setUser']> {
-  getCurrentHub().setUser(user);
+export function setUser(hub: Hub, user: User | null): ReturnType<Hub['setUser']> {
+  hub.setUser(user);
 }
 
 /**
@@ -153,8 +159,8 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *
  * @param callback that will be enclosed into push/popScope.
  */
-export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
-  getCurrentHub().withScope(callback);
+export function withScope(hub: Hub, callback: (scope: Scope) => void): ReturnType<Hub['withScope']> {
+  hub.withScope(callback);
 }
 
 /**
@@ -178,10 +184,11 @@ export function withScope(callback: (scope: Scope) => void): ReturnType<Hub['wit
  * @returns The transaction which was just started
  */
 export function startTransaction(
+  hub: Hub,
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
-  return getCurrentHub().startTransaction(
+  return hub.startTransaction(
     {
       metadata: { source: 'custom' },
       ...context,

@@ -1,5 +1,5 @@
 import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { SessionFlusher } from '@sentry/hub';
+import { Hub, SessionFlusher } from '@sentry/hub';
 import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
 import * as os from 'os';
@@ -101,12 +101,12 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   }
 
   /** Method that initialises an instance of SessionFlusher on Client */
-  public initSessionFlusher(): void {
+  public initSessionFlusher(hub: Hub): void {
     const { release, environment } = this._options;
     if (!release) {
       __DEBUG_BUILD__ && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
     } else {
-      this._sessionFlusher = new SessionFlusher(this, {
+      this._sessionFlusher = new SessionFlusher(hub, this, {
         release,
         environment,
       });

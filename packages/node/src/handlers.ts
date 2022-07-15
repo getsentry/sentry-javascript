@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { Hub } from '@sentry/hub';
 import { Event, Span } from '@sentry/types';
 import {
   AddRequestDataToEventOptions,
@@ -23,7 +24,7 @@ import { addRequestDataToEvent, extractRequestData, flush, isAutoSessionTracking
  * Express-compatible tracing handler.
  * @see Exposed as `Handlers.tracingHandler`
  */
-export function tracingHandler(): (
+export function tracingHandler(hub: Hub): (
   req: http.IncomingMessage,
   res: http.ServerResponse,
   next: (error?: any) => void,
@@ -41,6 +42,7 @@ export function tracingHandler(): (
     const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
     const transaction = startTransaction(
+      hub,
       {
         name: extractPathForTransaction(req, { path: true, method: true }),
         op: 'http.server',
@@ -76,28 +78,28 @@ export function tracingHandler(): (
 }
 
 export type RequestHandlerOptions =
-  // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
-  // eslint-disable-next-line deprecation/deprecation
+// TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
+// eslint-disable-next-line deprecation/deprecation
   | (ParseRequestOptions | AddRequestDataToEventOptions) & {
-      flushTimeout?: number;
-    };
+  flushTimeout?: number;
+};
 
 /**
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
 export function requestHandler(
+  hub: Hub,
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
-  const currentHub = getCurrentHub();
-  const client = currentHub.getClient<NodeClient>();
+  const client = hub.getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
   if (client && isAutoSessionTrackingEnabled(client)) {
-    client.initSessionFlusher();
+    client.initSessionFlusher(hub);
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = currentHub.getScope();
+    const scope = hub.getScope();
     if (scope && scope.getSession()) {
       scope.setSession();
     }
@@ -196,7 +198,7 @@ function defaultShouldHandleError(error: MiddlewareError): boolean {
  * Express compatible error handler.
  * @see Exposed as `Handlers.errorHandler`
  */
-export function errorHandler(options?: {
+export function errorHandler(hub: Hub, options?: {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
    * @param error Captured middleware error
@@ -218,7 +220,7 @@ export function errorHandler(options?: {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      withScope(_scope => {
+      withScope(hub, _scope => {
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
@@ -245,9 +247,8 @@ export function errorHandler(options?: {
           }
         }
 
-        const eventId = captureException(error);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (res as any).sentry = eventId;
+        (res as any).sentry = captureException(hub, error);
         next(error);
       });
 
