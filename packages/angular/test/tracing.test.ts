@@ -190,13 +190,7 @@ describe('Angular Tracing', () => {
 
   describe('getParameterizedRouteFromSnapshot', () => {
     it.each([
-      [
-        'returns `/` empty object if the route no children',
-        {
-          firstChild: { routeConfig: null },
-        },
-        '/',
-      ],
+      ['returns `/` empty object if the route no children', {}, '/'],
       [
         'returns the route of a snapshot without children',
         {
