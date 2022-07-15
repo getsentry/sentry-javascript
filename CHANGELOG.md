@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.7.0
+
+- feat(angular): Add URL parameterization of transaction names (#5416)
+- fix(core): Add `sentry_client` to auth headers (#5413)
+- fix(remix): Add `documentRequest` function name. (#5404)
+- fix(remix): Skip capturing `ok` responses as errors. (#5405)
+- ref(remix): Add transaction source (#5398)
+
 ## 7.6.0
 
 This release adds [the `source` field](https://develop.sentry.dev/sdk/event-payloads/properties/transaction_info/) to all outgoing transactions.
