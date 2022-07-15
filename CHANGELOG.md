@@ -6,7 +6,6 @@
 
 ## 7.6.1
 
-- build: Upgrade prettier to 2.7.1 (#5395)
 - chore: Use correct function call in migration docs (#5414)
 - feat(angular): Add URL Parameterization of transaction names (#5416)
 - fix(core): Add `sentry_client` to auth headers (#5413)
