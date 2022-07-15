@@ -1,5 +1,6 @@
+/* eslint-disable max-lines */
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
-import { Event, NavigationEnd, NavigationStart, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, Event, NavigationEnd, NavigationStart, ResolveEnd, Router } from '@angular/router';
 import { getCurrentHub } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
@@ -62,15 +63,14 @@ export function getActiveTransaction(): Transaction | undefined {
 @Injectable({ providedIn: 'root' })
 export class TraceService implements OnDestroy {
   public navStart$: Observable<Event> = this._router.events.pipe(
-    filter(event => event instanceof NavigationStart),
-    tap(event => {
+    filter((event): event is NavigationStart => event instanceof NavigationStart),
+    tap(navigationEvent => {
       if (!instrumentationInitialized) {
         IS_DEBUG_BUILD &&
           logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
         return;
       }
 
-      const navigationEvent = event as NavigationStart;
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
       let activeTransaction = getActiveTransaction();
 
@@ -101,6 +101,28 @@ export class TraceService implements OnDestroy {
     }),
   );
 
+  // The ResolveEnd event is fired when the Angular router has resolved the URL and
+  // the parameter<->value mapping. It holds the new resolved router state with
+  // the mapping and the new URL.
+  // Only After this event, the route is activated, meaning that the transaction
+  // can be updated with the parameterized route name before e.g. the route's root
+  // component is initialized. This should be early enough before outgoing requests
+  // are made from the new route, with the exceptions of requests being made during
+  // a navigation.
+  public resEnd$: Observable<Event> = this._router.events.pipe(
+    filter((event): event is ResolveEnd => event instanceof ResolveEnd),
+    tap(event => {
+      const route = getParameterizedRouteFromSnapshot(event.state.root);
+
+      const transaction = getActiveTransaction();
+      // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
+      if (transaction && transaction.metadata.source === 'url') {
+        transaction.setName(route);
+        transaction.setMetadata({ source: 'route' });
+      }
+    }),
+  );
+
   public navEnd$: Observable<Event> = this._router.events.pipe(
     filter(event => event instanceof NavigationEnd),
     tap(() => {
@@ -115,10 +137,12 @@ export class TraceService implements OnDestroy {
   );
 
   private _routingSpan: Span | null = null;
+
   private _subscription: Subscription = new Subscription();
 
   public constructor(private readonly _router: Router) {
     this._subscription.add(this.navStart$.subscribe());
+    this._subscription.add(this.resEnd$.subscribe());
     this._subscription.add(this.navEnd$.subscribe());
   }
 
@@ -240,4 +264,21 @@ export function TraceMethodDecorator(): MethodDecorator {
     };
     return descriptor;
   };
+}
+
+/**
+ * Takes the parameterized route from a given ActivatedRouteSnapshot and concatenates the snapshot's
+ * child route with its parent to produce the complete parameterized URL of the activated route.
+ * This happens recursively until the last child (i.e. the end of the URL) is reached.
+ *
+ * @param route the ActivatedRouteSnapshot of which its path and its child's path is concantenated
+ *
+ * @returns the concatenated parameterzited route string
+ */
+export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot | null): string {
+  const path = route && route.firstChild && route.firstChild.routeConfig && route.firstChild.routeConfig.path;
+  if (!path) {
+    return '/';
+  }
+  return `/${path}${getParameterizedRouteFromSnapshot(route && route.firstChild)}`;
 }
