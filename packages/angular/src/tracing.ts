@@ -11,8 +11,6 @@ import { ANGULAR_INIT_OP, ANGULAR_OP, ANGULAR_ROUTING_OP } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
-type ParamMap = { [key: string]: string[] };
-
 let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let stashedStartTransactionOnLocationChange: boolean;
@@ -114,16 +112,7 @@ export class TraceService implements OnDestroy {
   public resEnd$: Observable<Event> = this._router.events.pipe(
     filter((event): event is ResolveEnd => event instanceof ResolveEnd),
     tap(event => {
-      const params = getParamsOfRoute(event.state.root);
-
-      // event.urlAfterRedirects is the one we prefer because it should hold the most recent
-      // one that holds information about a redirect to another route if this was specified
-      // in the Angular router config. In case this doesn't exist (for whatever reason),
-      // we fall back to event.url which holds the primarily resolved URL before a potential
-      // redirect.
-      const url = event.urlAfterRedirects || event.url;
-
-      const route = getParameterizedRouteFromUrlAndParams(url, params);
+      const route = getParameterizedRouteFromSnapshot(event.state.root);
 
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
@@ -278,42 +267,18 @@ export function TraceMethodDecorator(): MethodDecorator {
 }
 
 /**
- * Recursively traverses the routerstate and its children to collect a map of parameters on the entire route.
+ * Takes the parameterized route from a given ActivatedRouteSnapshot and concatenates the snapshot's
+ * child route with its parent to produce the complete parameterized URL of the activated route.
+ * This happens recursively until the last child (i.e. the end of the URL) is reached.
  *
- * Because Angular supports child routes (e.g. when creating nested routes or lazy loaded routes), we have
- * to not only visit the root router snapshot but also its children to get all parameters of the entire route.
+ * @param route the ActivatedRouteSnapshot of which its path and its child's path is concantenated
  *
- * @param activatedRouteSnapshot the root router snapshot
- * @returns a map of params, mapping from a key to an array of values
+ * @returns the concatenated parameterzited route string
  */
-export function getParamsOfRoute(activatedRouteSnapshot: ActivatedRouteSnapshot): ParamMap {
-  function getParamsOfRouteH(routeSnapshot: ActivatedRouteSnapshot, accParams: ParamMap): ParamMap {
-    Object.keys(routeSnapshot.params).forEach(key => {
-      accParams[key] = [...(accParams[key] || []), routeSnapshot.params[key]];
-    });
-    routeSnapshot.children.forEach(child => getParamsOfRouteH(child, accParams));
-    return accParams;
+export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot | null): string {
+  const path = route && route.firstChild && route.firstChild.routeConfig && route.firstChild.routeConfig.path;
+  if (!path) {
+    return '/';
   }
-
-  return getParamsOfRouteH(activatedRouteSnapshot, {});
-}
-
-/**
- * Takes a raw URl and a map of params and replaces each values occuring in the raw URL with
- * the name of the parameter.
- *
- * @param url raw URL (e.g. /user/1234/details)
- * @param params a map of type ParamMap
- * @returns the parameterized URL (e.g. /user/:userId/details)
- */
-export function getParameterizedRouteFromUrlAndParams(url: string, params: ParamMap): string {
-  if (params) {
-    return Object.keys(params).reduce((prevUrl: string, paramName: string) => {
-      return prevUrl
-        .split('/')
-        .map(segment => (params[paramName].find(p => p === segment) ? `:${paramName}` : segment))
-        .join('/');
-    }, url);
-  }
-  return url;
+  return `/${path}${getParameterizedRouteFromSnapshot(route && route.firstChild)}`;
 }

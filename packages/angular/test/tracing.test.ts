@@ -3,7 +3,7 @@ import { Hub, Transaction } from '@sentry/types';
 import { Subject } from 'rxjs';
 
 import { instrumentAngularRouting, TraceService } from '../src/index';
-import { getParameterizedRouteFromUrlAndParams, getParamsOfRoute } from '../src/tracing';
+import { getParameterizedRouteFromSnapshot } from '../src/tracing';
 
 let transaction: any;
 let customStartTransaction: (context: any) => Transaction | undefined;
@@ -91,27 +91,55 @@ describe('Angular Tracing', () => {
       });
 
       it.each([
-        ['does not alter static routes', '/books/', {}, '/books/'],
-        ['parameterizes number IDs in the URL', '/books/1/details', { bookId: '1' }, '/books/:bookId/details'],
         [
-          'parameterizes string IDs in the URL',
-          '/books/asd123/details',
-          { bookId: 'asd123' },
-          '/books/:bookId/details',
+          'handles the root URL correctly',
+          '',
+          {
+            root: { firstChild: { routeConfig: null } },
+          },
+          '/',
         ],
         [
-          'parameterizes UUID4 IDs in the URL',
-          '/books/04bc6846-4a1e-4af5-984a-003258f33e31/details',
-          { bookId: '04bc6846-4a1e-4af5-984a-003258f33e31' },
-          '/books/:bookId/details',
+          'does not alter static routes',
+          '/books/',
+          {
+            root: { firstChild: { routeConfig: { path: 'books' } } },
+          },
+          '/books/',
+        ],
+        [
+          'parameterizes IDs in the URL',
+          '/books/1/details',
+          {
+            root: { firstChild: { routeConfig: { path: 'books/:bookId/details' } } },
+          },
+          '/books/:bookId/details/',
         ],
         [
           'parameterizes multiple IDs in the URL',
           '/org/sentry/projects/1234/events/04bc6846-4a1e-4af5-984a-003258f33e31',
-          { orgId: 'sentry', projId: '1234', eventId: '04bc6846-4a1e-4af5-984a-003258f33e31' },
-          '/org/:orgId/projects/:projId/events/:eventId',
+          {
+            root: { firstChild: { routeConfig: { path: 'org/:orgId/projects/:projId/events/:eventId' } } },
+          },
+          '/org/:orgId/projects/:projId/events/:eventId/',
         ],
-      ])('%s and sets the source to `route`', (_, url, params, result) => {
+        [
+          'parameterizes URLs from route with child routes',
+          '/org/sentry/projects/1234/events/04bc6846-4a1e-4af5-984a-003258f33e31',
+          {
+            root: {
+              firstChild: {
+                routeConfig: { path: 'org/:orgId' },
+                firstChild: {
+                  routeConfig: { path: 'projects/:projId' },
+                  firstChild: { routeConfig: { path: 'events/:eventId' } },
+                },
+              },
+            },
+          },
+          '/org/:orgId/projects/:projId/events/:eventId/',
+        ],
+      ])('%s and sets the source to `route`', (_, url, routerState, result) => {
         instrumentAngularRouting(customStartTransaction, false, true);
 
         // this event starts the transaction
@@ -124,7 +152,7 @@ describe('Angular Tracing', () => {
         });
 
         // this event starts the parameterization
-        routerEvents$.next(new ResolveEnd(1, url, url, { root: { params, children: [] } } as any));
+        routerEvents$.next(new ResolveEnd(1, url, url, routerState as any));
 
         expect(transaction.setName).toHaveBeenCalledWith(result);
         expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
@@ -147,7 +175,11 @@ describe('Angular Tracing', () => {
         transaction.metadata.source = 'custom';
 
         // this event starts the parameterization
-        routerEvents$.next(new ResolveEnd(1, url, url, { root: { params: { userId: '12345' }, children: [] } } as any));
+        routerEvents$.next(
+          new ResolveEnd(1, url, url, {
+            root: { firstChild: { routeConfig: { path: 'org/:orgId/projects/:projId/events/:eventId' } } },
+          } as any),
+        );
 
         expect(transaction.setName).toHaveBeenCalledTimes(0);
         expect(transaction.setMetadata).toHaveBeenCalledTimes(0);
@@ -156,70 +188,39 @@ describe('Angular Tracing', () => {
     });
   });
 
-  describe('getParamsOfRoute', () => {
+  describe('getParameterizedRouteFromSnapshot', () => {
     it.each([
-      ['returns an empty object if the route has no params', { params: {}, children: [] }, {}],
       [
-        'returns an params of a route without children',
-        { params: { bookId: '1234' }, children: [] },
-        { bookId: ['1234'] },
+        'returns `/` empty object if the route no children',
+        {
+          firstChild: { routeConfig: null },
+        },
+        '/',
       ],
       [
-        'returns an params of a route with children',
+        'returns the route of a snapshot without children',
         {
-          params: { bookId: '1234' },
-          children: [
-            { params: { authorId: 'abc' }, children: [] },
-            { params: { pageNum: '66' }, children: [{ params: { userId: 'xyz' }, children: [] }] },
-          ],
+          firstChild: { routeConfig: { path: 'users/:id' } },
         },
-        { bookId: ['1234'], authorId: ['abc'], pageNum: ['66'], userId: ['xyz'] },
+        '/users/:id/',
       ],
       [
-        'returns an params of a route with children where param names are identical',
+        'returns the complete route of a snapshot with children',
         {
-          params: { id: '1234' },
-          children: [
-            { params: { id: 'abc' }, children: [] },
-            { params: { pageNum: '66' }, children: [{ params: { id: 'xyz', somethingElse: '789' }, children: [] }] },
-          ],
+          firstChild: {
+            routeConfig: { path: 'orgs/:orgId' },
+            firstChild: {
+              routeConfig: { path: 'projects/:projId' },
+              firstChild: { routeConfig: { path: 'overview' } },
+            },
+          },
         },
-        { id: ['1234', 'abc', 'xyz'], pageNum: ['66'], somethingElse: ['789'] },
+        '/orgs/:orgId/projects/:projId/overview/',
       ],
     ])('%s', (_, routeSnapshot, expectedParams) => {
-      expect(getParamsOfRoute(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(expectedParams);
-    });
-  });
-
-  describe('getParameterizedRouteFromUrlAndParams', () => {
-    it.each([
-      ['returns untouched URL if no params are passed', '/static/route', {}, '/static/route'],
-      [
-        'returns parameterized URL if params are passed',
-        '/books/1234/read/0',
-        { bookId: ['1234'], pageNum: ['0'] },
-        '/books/:bookId/read/:pageNum',
-      ],
-      [
-        'does not replace partially matching URL segments',
-        '/books/1234/read/0',
-        { wrongId: ['12'] },
-        '/books/1234/read/0',
-      ],
-      [
-        'does not replace partially matching URL segments',
-        '/books/1234/read/04',
-        { wrongId: ['12'], bookId: ['1234'], pageNum: ['4'] },
-        '/books/:bookId/read/04',
-      ],
-      [
-        'correctly matches URLs containing multiple identical param names',
-        '/books/1234/read/4/abc/test/123',
-        { id: ['1234', '123', 'abc'], pageNum: ['4'] },
-        '/books/:id/read/:pageNum/:id/test/:id',
-      ],
-    ])('%s', (_, url, params, expectedRoute) => {
-      expect(getParameterizedRouteFromUrlAndParams(url, params)).toEqual(expectedRoute);
+      expect(getParameterizedRouteFromSnapshot(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(
+        expectedParams,
+      );
     });
   });
 });
