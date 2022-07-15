@@ -4,9 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.6.1
+## 7.7.0
 
-- chore: Use correct function call in migration docs (#5414)
 - feat(angular): Add URL Parameterization of transaction names (#5416)
 - fix(core): Add `sentry_client` to auth headers (#5413)
 - fix(remix): Add `documentRequest` function name. (#5404)
