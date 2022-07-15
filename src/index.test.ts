@@ -2,6 +2,7 @@
 import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
 
 import * as SentryUtils from '@sentry/utils';
+import * as CaptureReplay from '@/api/captureReplay';
 
 import { SentryReplay } from '@';
 import {
@@ -24,6 +25,10 @@ describe('SentryReplay', () => {
   let mockSendReplayRequest: MockSendReplayRequest;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
+  jest.spyOn(CaptureReplay, 'captureReplay');
+  const captureReplayMock = CaptureReplay.captureReplay as jest.MockedFunction<
+    typeof CaptureReplay.captureReplay
+  >;
 
   beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
@@ -80,6 +85,7 @@ describe('SentryReplay', () => {
     });
     expect(replay.session.id).toBeDefined();
     expect(replay.session.sequenceId).toBeDefined();
+    expect(captureReplayMock).not.toHaveBeenCalled();
   });
 
   it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
@@ -391,5 +397,57 @@ describe('SentryReplay', () => {
     });
     advanceTimers(5000);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+  });
+
+  it('does not create more than one root event', async () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+
+    replay.eventBuffer.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+    expect(replay.sendReplayRequest).toHaveBeenCalled();
+    expect(captureReplayMock).toHaveBeenCalled();
+
+    (
+      replay.sendReplayRequest as jest.MockedFunction<
+        typeof replay.sendReplayRequest
+      >
+    ).mockClear();
+    captureReplayMock.mockClear();
+
+    replay.eventBuffer.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+    expect(replay.sendReplayRequest).toHaveBeenCalled();
+    expect(captureReplayMock).not.toHaveBeenCalled();
+    expect(replay.session.sequenceId).toBe(2);
+  });
+
+  it('does not create root event when there are no events to send', async () => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(process.nextTick);
+    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+    expect(captureReplayMock).not.toHaveBeenCalled();
   });
 });

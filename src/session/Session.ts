@@ -45,7 +45,7 @@ export class Session {
    */
   private _sequenceId;
 
-  private options: Record<string, any>;
+  public readonly options: Required<SessionOptions>;
 
   constructor(
     session: Partial<SessionObject> = {},

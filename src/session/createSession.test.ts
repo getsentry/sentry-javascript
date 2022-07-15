@@ -2,8 +2,6 @@ import * as Sentry from '@sentry/core';
 import { createSession } from './createSession';
 import { saveSession } from './saveSession';
 
-type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
-
 jest.mock('./saveSession');
 
 jest.mock('@sentry/utils', () => {
@@ -12,6 +10,8 @@ jest.mock('@sentry/utils', () => {
     uuid4: jest.fn(() => 'test_session_id'),
   };
 });
+
+type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
 const captureEventMock: captureEventMockType = jest.fn();
 
@@ -29,10 +29,7 @@ afterEach(() => {
 
 it('creates a new session with no sticky sessions', function () {
   const newSession = createSession({ stickySession: false });
-  expect(captureEventMock).toHaveBeenCalledWith(
-    { message: 'sentry-replay', tags: { sequenceId: 0 } },
-    { event_id: 'test_session_id' }
-  );
+  expect(captureEventMock).not.toHaveBeenCalled();
 
   expect(saveSession).not.toHaveBeenCalled();
 
@@ -43,10 +40,7 @@ it('creates a new session with no sticky sessions', function () {
 
 it('creates a new session with sticky sessions', function () {
   const newSession = createSession({ stickySession: true });
-  expect(captureEventMock).toHaveBeenCalledWith(
-    { message: 'sentry-replay', tags: { sequenceId: 0 } },
-    { event_id: 'test_session_id' }
-  );
+  expect(captureEventMock).not.toHaveBeenCalled();
 
   expect(saveSession).toHaveBeenCalledWith(
     expect.objectContaining({

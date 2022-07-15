@@ -36,6 +36,7 @@ import { logger } from './util/logger';
 import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
 import createBreadcrumb from './util/createBreadcrumb';
 import { Session } from './session/Session';
+import { captureReplay } from './api/captureReplay';
 
 /**
  * Returns true if we want to flush immediately, otherwise continue with normal batching
@@ -95,6 +96,14 @@ export class SentryReplay implements Integration {
 
   private retryCount = 0;
   private retryInterval = BASE_RETRY_INTERVAL;
+
+  /**
+   * Flag to make sure we only create a replay event when
+   * necessary (i.e. we only want to have a single replay
+   * event per session and it should only be created
+   * immediately before sending recording)
+   */
+  private needsCaptureReplay = false;
 
   session: Session | undefined;
 
@@ -261,14 +270,23 @@ export class SentryReplay implements Integration {
   }
 
   /**
-   * Loads a session from storage, or creates a new one
+   * Loads a session from storage, or creates a new one if it does not exist or
+   * is expired.
    */
   loadSession({ expiry }: { expiry: number }): void {
-    this.session = getSession({
+    const { type, session } = getSession({
       expiry,
       stickySession: this.options.stickySession,
       currentSession: this.session,
     });
+
+    // If session was newly created (i.e. was not loaded from storage), then
+    // enable flag to create the root replay
+    if (type === 'new') {
+      this.needsCaptureReplay = true;
+    }
+
+    this.session = session;
   }
 
   addListeners() {
@@ -589,7 +607,26 @@ export class SentryReplay implements Integration {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
     }
-    // // TEMP: keep sending a replay event just for the duration
+
+    this.addPerformanceEntries();
+
+    if (!this.eventBuffer.length) {
+      return;
+    }
+
+    const recordingData = await this.eventBuffer.finish();
+    this.sendReplay(this.session.id, recordingData);
+
+    this.initialEventTimestampSinceFlush = null;
+    // TBD: Alternatively we could update this after every rrweb event
+    this.updateLastActivity(lastActivity);
+
+    // Only want to create replay event if session is new
+    if (this.needsCaptureReplay) {
+      captureReplay(this.session);
+      this.needsCaptureReplay = false;
+    }
+
     captureEvent({
       message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
       tags: {
@@ -597,14 +634,6 @@ export class SentryReplay implements Integration {
         sequenceId: this.session.sequenceId++,
       },
     });
-
-    this.addPerformanceEntries();
-    const recordingData = await this.eventBuffer.finish();
-    this.sendReplay(this.session.id, recordingData);
-
-    this.initialEventTimestampSinceFlush = null;
-    // TBD: Alternatively we could update this after every rrweb event
-    this.updateLastActivity(lastActivity);
   }
 
   /**

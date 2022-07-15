@@ -37,7 +37,7 @@ export function getSession({
 
     if (!isExpired) {
       logger.log(`Using existing session: ${session.id}`);
-      return session;
+      return { type: 'saved', session };
     } else {
       logger.log(`Session has expired`);
     }
@@ -46,5 +46,5 @@ export function getSession({
 
   const newSession = createSession({ stickySession });
 
-  return newSession;
+  return { type: 'new', session: newSession };
 }

@@ -20,7 +20,6 @@ export function createSession({
   stickySession = false,
 }: CreateSessionParams): Session {
   const session = new Session(undefined, { stickySession });
-  captureReplay(session);
 
   logger.log(`Creating new session: ${session.id}`);
 
