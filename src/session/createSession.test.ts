@@ -1,11 +1,10 @@
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/core';
 import { createSession } from './createSession';
 import { saveSession } from './saveSession';
 
 type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
 jest.mock('./saveSession');
-jest.mock('@sentry/browser');
 
 jest.mock('@sentry/utils', () => {
   return {
@@ -14,17 +13,23 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
+const captureEventMock: captureEventMockType = jest.fn();
+
 beforeAll(() => {
   window.sessionStorage.clear();
+  jest.spyOn(Sentry, 'getCurrentHub');
+  (Sentry.getCurrentHub as jest.Mock).mockImplementation(() => ({
+    captureEvent: captureEventMock,
+  }));
 });
 
 afterEach(() => {
-  (Sentry.getCurrentHub().captureEvent as captureEventMockType).mockReset();
+  captureEventMock.mockReset();
 });
 
 it('creates a new session with no sticky sessions', function () {
   const newSession = createSession({ stickySession: false });
-  expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
+  expect(captureEventMock).toHaveBeenCalledWith(
     { message: 'sentry-replay', tags: { sequenceId: 0 } },
     { event_id: 'test_session_id' }
   );
@@ -38,7 +43,7 @@ it('creates a new session with no sticky sessions', function () {
 
 it('creates a new session with sticky sessions', function () {
   const newSession = createSession({ stickySession: true });
-  expect(Sentry.getCurrentHub().captureEvent).toHaveBeenCalledWith(
+  expect(captureEventMock).toHaveBeenCalledWith(
     { message: 'sentry-replay', tags: { sequenceId: 0 } },
     { event_id: 'test_session_id' }
   );

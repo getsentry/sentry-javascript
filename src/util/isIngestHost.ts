@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentHub } from '@sentry/core';
 
 /**
  * Checks is `targetHost` is a Sentry ingestion host

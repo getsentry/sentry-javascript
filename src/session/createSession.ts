@@ -1,7 +1,8 @@
 import { logger } from '@/util/logger';
+import { captureReplay } from '@/api/captureReplay';
+
 import { saveSession } from './saveSession';
 import { Session } from './Session';
-import { captureReplay } from '@/api/captureReplay';
 
 interface CreateSessionParams {
   /**

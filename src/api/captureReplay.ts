@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentHub } from '@sentry/core';
 
 import { ROOT_REPLAY_NAME } from '@/session/constants';
 import type { Session } from '@/session/Session';

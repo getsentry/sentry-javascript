@@ -1,5 +1,8 @@
-import * as Sentry from '@sentry/browser';
-import { captureEvent } from '@sentry/browser';
+import {
+  addGlobalEventProcessor,
+  captureEvent,
+  getCurrentHub,
+} from '@sentry/core';
 import { addInstrumentationHandler, uuid4 } from '@sentry/utils';
 import { DsnComponents, Event, Integration, Breadcrumb } from '@sentry/types';
 
@@ -153,7 +156,7 @@ export class SentryReplay implements Integration {
 
     // Tag all (non replay) events that get sent to Sentry with the current
     // replay ID so that we can reference them later in the UI
-    Sentry.addGlobalEventProcessor((event: Event) => {
+    addGlobalEventProcessor((event: Event) => {
       // Do not apply replayId to the root event
       if (event.message === ROOT_REPLAY_NAME) {
         return event;
@@ -275,7 +278,7 @@ export class SentryReplay implements Integration {
     window.addEventListener('beforeunload', this.handleWindowUnload);
 
     // Listeners from core SDK //
-    const scope = Sentry.getCurrentHub().getScope();
+    const scope = getCurrentHub().getScope();
     scope.addScopeListener(this.handleCoreListener('scope'));
     addInstrumentationHandler('dom', this.handleCoreListener('dom'));
 
@@ -653,7 +656,7 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    const client = Sentry.getCurrentHub().getClient();
+    const client = getCurrentHub().getClient();
     const endpoint = SentryReplay.attachmentUrlFromDsn(
       client.getDsn(),
       eventId
