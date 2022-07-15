@@ -6,7 +6,7 @@
 
 ## 7.7.0
 
-- feat(angular): Add URL Parameterization of transaction names (#5416)
+- feat(angular): Add URL parameterization of transaction names (#5416)
 - fix(core): Add `sentry_client` to auth headers (#5413)
 - fix(remix): Add `documentRequest` function name. (#5404)
 - fix(remix): Skip capturing `ok` responses as errors. (#5405)
