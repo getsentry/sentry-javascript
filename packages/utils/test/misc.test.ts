@@ -6,6 +6,7 @@ import {
   checkOrSetAlreadyCaught,
   getEventDescription,
   stripUrlQueryAndFragment,
+  uuid4,
 } from '../src/misc';
 
 describe('getEventDescription()', () => {
@@ -296,5 +297,13 @@ describe('checkOrSetAlreadyCaught()', () => {
 
     expect(checkOrSetAlreadyCaught(exception)).toBe(false);
     expect((exception as any).__sentry_captured__).toBe(true);
+  });
+});
+
+describe('uuid4 generation', () => {
+  it('returns valid uuid v4 ids', () => {
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+    }
   });
 });
