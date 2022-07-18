@@ -45,6 +45,11 @@ export class Session {
    */
   private _sequenceId;
 
+  /**
+   * Previous session ID
+   */
+  private _previousSessionId: string | undefined;
+
   public readonly options: Required<SessionOptions>;
 
   constructor(
@@ -90,6 +95,14 @@ export class Session {
     if (this.options.stickySession) {
       saveSession(this);
     }
+  }
+
+  get previousSessionId() {
+    return this._previousSessionId;
+  }
+
+  set previousSessionId(id: string) {
+    this._previousSessionId = id;
   }
 
   toJSON() {

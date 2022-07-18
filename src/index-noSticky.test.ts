@@ -1,6 +1,7 @@
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
 
+import * as SentryUtils from '@sentry/utils';
 import { SentryReplay } from '@';
 import {
   SESSION_IDLE_DURATION,
@@ -20,10 +21,17 @@ describe('SentryReplay (no sticky)', () => {
     typeof replay.sendReplayRequest
   >;
   let mockSendReplayRequest: MockSendReplayRequest;
+  let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    jest
+      .spyOn(SentryUtils, 'addInstrumentationHandler')
+      .mockImplementation((_type, handler: (args: any) => any) => {
+        domHandler = handler;
+      });
+
     ({ replay } = mockSdk({ replayOptions: { stickySession: false } }));
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
@@ -193,7 +201,8 @@ describe('SentryReplay (no sticky)', () => {
     expect(initialSession.id).toBeDefined();
 
     // Idle for 15 minutes
-    jest.advanceTimersByTime(15 * 60000);
+    const FIFTEEN_MINUTES = 15 * 60000;
+    jest.advanceTimersByTime(FIFTEEN_MINUTES);
 
     // TBD: We are currently deciding that this event will get dropped, but
     // this could/should change in the future.
@@ -213,17 +222,42 @@ describe('SentryReplay (no sticky)', () => {
     // and produce a checkout based on a previous checkout + updates, and then
     // replay the event on top. Or maybe replay the event on top of a refresh
     // snapshot.
-
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([
-        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
-      ])
-    );
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
 
     // Should be a new session
     expect(replay).not.toHaveSameSession(initialSession);
 
-    mockSendReplayRequest.mockReset();
+    // Replay does not send immediately because checkout was due to expired session
+    expect(replay).not.toHaveSentReplay();
+
+    // Now do a click
+    domHandler({
+      name: 'click',
+    });
+
+    await advanceTimers(5000);
+
+    const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
+    const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
+
+    expect(replay).toHaveSentReplay(
+      JSON.stringify([
+        { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        {
+          type: 5,
+          timestamp: breadcrumbTimestamp,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: breadcrumbTimestamp / 1000,
+              type: 'default',
+              category: `ui.click`,
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ])
+    );
   });
 });

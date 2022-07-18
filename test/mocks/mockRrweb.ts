@@ -1,4 +1,3 @@
-import { BASE_TIMESTAMP } from '@test';
 import { RRWebEvent } from '@/types';
 
 type RecordAdditionalProperties = {
@@ -31,7 +30,7 @@ jest.mock('rrweb', () => {
     mockRecordFn._emitter(
       {
         data: { isCheckout },
-        timestamp: BASE_TIMESTAMP,
+        timestamp: new Date().getTime(),
         type: isCheckout ? 2 : 3,
       },
       isCheckout

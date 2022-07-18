@@ -41,12 +41,17 @@ export interface SentryReplayPluginOptions {
   /**
    * The amount of time to wait before sending a replay
    */
-  uploadMinDelay?: number;
+  flushMinDelay?: number;
 
   /**
    * The max amount of time to wait before sending a replay
    */
-  uploadMaxDelay?: number;
+  flushMaxDelay?: number;
+
+  /**
+   * The amount of time to buffer the initial snapshot
+   */
+  initialFlushDelay?: number;
 
   /**
    * If false, will create a new session per pageload
