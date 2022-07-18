@@ -84,16 +84,19 @@ function isResponse(value: any): value is Response {
   );
 }
 
-// Taken from Remix Implementation
+// Based on Remix Implementation
 // https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/data.ts#L131-L145
 function extractData(response: Response): Promise<unknown> {
   const contentType = response.headers.get('Content-Type');
 
+  // Cloning the response to avoid consuming the original body stream
+  const responseClone = response.clone();
+
   if (contentType && /\bapplication\/json\b/.test(contentType)) {
-    return response.json();
+    return responseClone.json();
   }
 
-  return response.text();
+  return responseClone.text();
 }
 
 function captureRemixServerException(err: Error, name: string): void {
