@@ -2,6 +2,7 @@
 import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
 
 import * as SentryUtils from '@sentry/utils';
+import * as SentryCore from '@sentry/core';
 import * as CaptureReplay from '@/api/captureReplay';
 
 import { SentryReplay } from '@';
@@ -28,6 +29,10 @@ describe('SentryReplay', () => {
   jest.spyOn(CaptureReplay, 'captureReplay');
   const captureReplayMock = CaptureReplay.captureReplay as jest.MockedFunction<
     typeof CaptureReplay.captureReplay
+  >;
+  jest.spyOn(SentryCore, 'captureEvent');
+  const captureEventMock = SentryCore.captureEvent as jest.MockedFunction<
+    typeof SentryCore.captureEvent
   >;
 
   beforeAll(() => {
@@ -353,14 +358,15 @@ describe('SentryReplay', () => {
     expect(replay.breadcrumbs).toHaveLength(0);
   });
 
-  it('fails to upload data on first call and retries after five seconds, sending successfully', async () => {
+  it('fails to upload data on first two calls and succeeds on the third', async () => {
+    captureEventMock.mockReset();
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     // Suppress console.errors
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const mockConsole = console.error as jest.MockedFunction<
       typeof console.error
     >;
-    // fail the first request and pass the second one
+    // fail the first and second requests and pass the third one
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
     });
@@ -369,6 +375,7 @@ describe('SentryReplay', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(captureEventMock).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
@@ -376,17 +383,33 @@ describe('SentryReplay', () => {
     // console messages in case an error happens after
     mockConsole.mockClear();
 
+    mockSendReplayRequest.mockReset();
+    mockSendReplayRequest.mockImplementationOnce(() => {
+      throw new Error('Something bad happened');
+    });
+    await advanceTimers(5000);
+    expect(captureEventMock).not.toHaveBeenCalled();
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
+
     // next tick should retry and succeed
+    mockConsole.mockClear();
     mockSendReplayRequest.mockReset();
     mockSendReplayRequest.mockImplementationOnce(() => {
       return Promise.resolve();
     });
-    advanceTimers(5000);
+
+    await advanceTimers(8000);
+    expect(captureEventMock).not.toHaveBeenCalled();
+    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+    await advanceTimers(2000);
+    expect(captureEventMock).toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
+    expect(replay.session.lastActivity).toBeGreaterThanOrEqual(
+      BASE_TIMESTAMP + 15000
+    );
     expect(replay.session.sequenceId).toBe(1);
 
     // next tick should do nothing
@@ -395,7 +418,7 @@ describe('SentryReplay', () => {
     mockSendReplayRequest.mockImplementationOnce(() => {
       return Promise.resolve();
     });
-    advanceTimers(5000);
+    await advanceTimers(5000);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
   });
 
@@ -418,6 +441,7 @@ describe('SentryReplay', () => {
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(captureReplayMock).toHaveBeenCalled();
+    expect(replay.session.sequenceId).toBe(1);
 
     (
       replay.sendReplayRequest as jest.MockedFunction<

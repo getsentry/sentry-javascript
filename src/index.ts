@@ -614,26 +614,35 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    const recordingData = await this.eventBuffer.finish();
-    this.sendReplay(this.session.id, recordingData);
-
-    this.initialEventTimestampSinceFlush = null;
-    // TBD: Alternatively we could update this after every rrweb event
-    this.updateLastActivity(lastActivity);
-
     // Only want to create replay event if session is new
     if (this.needsCaptureReplay) {
+      // This event needs to exist before calling `sendReplay`
       captureReplay(this.session);
       this.needsCaptureReplay = false;
     }
 
-    captureEvent({
-      message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
-      tags: {
-        replayId: this.session.id,
-        sequenceId: this.session.sequenceId++,
-      },
-    });
+    // Reset this to null regardless of `sendReplay` result so that future
+    // events will get flushed properly
+    this.initialEventTimestampSinceFlush = null;
+
+    try {
+      const recordingData = await this.eventBuffer.finish();
+      await this.sendReplay(this.session.id, recordingData);
+      // The below will only happen after successfully sending replay //
+
+      // TBD: Alternatively we could update this after every rrweb event
+      this.updateLastActivity(lastActivity);
+
+      captureEvent({
+        message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
+        tags: {
+          replayId: this.session.id,
+          sequenceId: this.session.sequenceId++,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   /**
@@ -706,13 +715,29 @@ export class SentryReplay implements Integration {
       // failed, we'll can retry with the same events payload
       if (this.retryCount >= MAX_RETRY_COUNT) {
         this.resetRetries();
-      } else {
-        this.retryCount = this.retryCount + 1;
-        // will retry in intervals of 5, 10, 15, 20, 25 seconds
-        this.retryInterval = this.retryCount * this.retryInterval;
-        setTimeout(() => this.sendReplay(eventId, events), this.retryInterval);
+        return false;
       }
-      return false;
+
+      this.retryCount = this.retryCount + 1;
+      // will retry in intervals of 5, 10, 15, 20, 25 seconds
+      this.retryInterval = this.retryCount * this.retryInterval;
+      try {
+        await new Promise((resolve, reject) => {
+          setTimeout(async () => {
+            const result = await this.sendReplay(eventId, events);
+
+            if (result) {
+              resolve(true);
+            } else {
+              reject(new Error('Could not send replay'));
+            }
+          }, this.retryInterval);
+        });
+
+        return true;
+      } catch {
+        return false;
+      }
     }
   }
 }
