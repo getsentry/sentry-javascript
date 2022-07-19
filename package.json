@@ -16,7 +16,7 @@
     "dev": "yarn build:dev --watch",
     "lint": "yarn eslint . --ext .js,.jsx,.ts,.tsx",
     "prepare": "husky install",
-    "prepublishOnly": "yarn build:prod",
+    "prepack": "yarn build:prod",
     "start:demo": "yarn build:dev && cd demo && yarn start",
     "test": "yarn jest"
   },
