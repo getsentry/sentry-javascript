@@ -1,6 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
-import { addExceptionMechanism, addRequestDataToEvent, objectify } from '@sentry/utils';
+import { addExceptionMechanism, addRequestDataToEvent } from '@sentry/utils';
 import { NextPageContext } from 'next';
 
 type ContextOrProps = {
@@ -31,15 +31,14 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     return Promise.resolve();
   }
 
-  // Nextjs only passes the pathname in the context data given to `getInitialProps`, not the main render function, but
-  // unlike `req` and `res`, for which that also applies, it passes it on both server and client.
-  //
-  // TODO: This check is only necessary because of the workaround for https://github.com/vercel/next.js/issues/8592
-  // explained below. Once that's fixed, we'll have to keep the `inGetInitialProps` check, because lots of people will
-  // still call this function in their custom error component's `render` function, but we can get rid of the check for
-  // `err` and just always bail if we're not in `getInitialProps`.
-  const inGetInitialProps = contextOrProps.pathname !== undefined;
-  if (!inGetInitialProps && !err) {
+  // In previous versions of the suggested `_error.js` page in which this function is meant to be used, there was a
+  // workaround for https://github.com/vercel/next.js/issues/8592 which involved an extra call to this function, in the
+  // custom error component's `render` method, just in case it hadn't been called by `getInitialProps`. Now that that
+  // issue has been fixed, the second call is unnecessary, but since it lives in user code rather than our code, users
+  // have to be the ones to get rid of it, and guaraneteedly, not all of them will. So, rather than capture the error
+  // twice, we just bail if we sense we're in that now-extraneous second call. (We can tell which function we're in
+  // because Nextjs passes `pathname` to `getInitialProps` but not to `render`.)
+  if (!contextOrProps.pathname) {
     return Promise.resolve();
   }
 
@@ -49,8 +48,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
         type: 'instrument',
         handled: true,
         data: {
-          // TODO: Get rid of second half of ternary once https://github.com/vercel/next.js/issues/8592 is fixed.
-          function: inGetInitialProps ? '_error.getInitialProps' : '_error.customErrorComponent',
+          function: '_error.getInitialProps',
         },
       });
       return event;
@@ -62,14 +60,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
     // If third-party libraries (or users themselves) throw something falsy, we want to capture it as a message (which
     // is what passing a string to `captureException` will wind up doing)
-    const finalError = err || `_error.js called with falsy error (${err})`;
-
-    // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-    // store a seen flag on it. (Because of https://github.com/vercel/next.js/issues/8592, it can happen that the custom
-    // error component's `getInitialProps` won't have run, so we have people call this function in their error
-    // component's main render function in addition to in its `getInitialProps`, just in case. By forcing it to be an
-    // object, we can flag it as seen, so that if we hit this a second time, we can no-op.)
-    captureException(objectify(finalError));
+    captureException(err || `_error.js called with falsy error (${err})`);
   });
 
   // In case this is being run as part of a serverless function (as is the case with the server half of nextjs apps
