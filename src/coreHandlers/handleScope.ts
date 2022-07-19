@@ -9,7 +9,7 @@ export function handleScope(scope: Scope) {
 
   // Listener can be called when breadcrumbs have not changed, so we store the
   // reference to the last crumb and only return a crumb if it has changed
-  if (_LAST_BREADCRUMB === newBreadcrumb) {
+  if (_LAST_BREADCRUMB === newBreadcrumb || !newBreadcrumb) {
     return null;
   }
 
