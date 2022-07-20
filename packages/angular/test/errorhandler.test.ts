@@ -1,9 +1,9 @@
-import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
-
-import * as SentryBrowser from '@sentry/browser';
-import * as SentryUtils from '@sentry/utils';
 import { HttpErrorResponse } from '@angular/common/http';
+import * as SentryBrowser from '@sentry/browser';
 import { Scope } from '@sentry/browser';
+import * as SentryUtils from '@sentry/utils';
+
+import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
 
 const FakeScope = new Scope();
 
