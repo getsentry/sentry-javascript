@@ -160,12 +160,8 @@ export function eventFromException(
   const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
   const providedMechanism: Mechanism | undefined =
     hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
-  const mechanism: Mechanism = providedMechanism || {
-    handled: true,
-    type: 'generic',
-  };
 
-  addExceptionMechanism(event, mechanism);
+  addExceptionMechanism(event, providedMechanism);
 
   event.level = 'error';
 
