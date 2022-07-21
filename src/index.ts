@@ -161,6 +161,11 @@ export class SentryReplay implements Integration {
     window.setTimeout(() => this.setup());
   }
 
+  /**
+   * Initializes the plugin.
+   *
+   * Creates or loads a session, attaches listeners to varying events (DOM, PerformanceObserver, Recording, Sentry SDK, etc)
+   */
   setup() {
     this.loadSession({ expiry: SESSION_IDLE_DURATION });
 
@@ -185,48 +190,7 @@ export class SentryReplay implements Integration {
 
     record({
       ...this.rrwebRecordOptions,
-      emit: (event: RRWebEvent, isCheckout?: boolean) => {
-        // If this is false, it means session is expired, create and a new session and wait for checkout
-        if (!this.checkAndHandleExpiredSession()) {
-          logger.error(
-            new Error('Received replay event after session expired.')
-          );
-
-          return;
-        }
-
-        this.addUpdate(() => {
-          // We need to clear existing events on a checkout, otherwise they are
-          // incremental event updates and should be appended
-          this.eventBuffer.addEvent(event, isCheckout);
-
-          // This event type is a fullsnapshot
-          // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-          if (event.type === 2) {
-            // If the full snapshot is due to an initial load, we will not have
-            // a previous session ID. In this case, we want to buffer events
-            // for a set amount of time before flushing. This can help avoid
-            // capturing replays of users that immediately close the window.
-            if (!this.session.previousSessionId) {
-              const now = new Date().getTime();
-              setTimeout(
-                () => this.flushUpdate(now),
-                this.options.initialFlushDelay
-              );
-
-              return true;
-            }
-
-            // The other case where a full snapshot occurs is when a new replay
-            // needs to be started due to session expiration. The new session
-            // is started before triggering a new checkout and contains the id
-            // of the previous session. Do not immediately flush in this case
-            // to avoid capturing only the checkout and instead the replay will
-            // be captured if they perform any follow-up actions.
-            return true;
-          }
-        });
-      },
+      emit: this.handleRecordingEmit,
     });
   }
 
@@ -317,6 +281,9 @@ export class SentryReplay implements Integration {
     this.session = session;
   }
 
+  /**
+   * Adds listeners to record events for the replay
+   */
   addListeners() {
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
     window.addEventListener('blur', this.handleWindowBlur);
@@ -356,6 +323,9 @@ export class SentryReplay implements Integration {
     );
   }
 
+  /**
+   * Cleans up listeners that were created in `addListeners`
+   */
   removeListeners() {
     document.removeEventListener(
       'visibilitychange',
@@ -369,6 +339,54 @@ export class SentryReplay implements Integration {
       this.performanceObserver = null;
     }
   }
+
+  /**
+   * Handler for recording events.
+   *
+   * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
+   */
+  handleRecordingEmit = (event: RRWebEvent, isCheckout?: boolean) => {
+    // If this is false, it means session is expired, create and a new session and wait for checkout
+    if (!this.checkAndHandleExpiredSession()) {
+      logger.error(new Error('Received replay event after session expired.'));
+
+      return;
+    }
+
+    this.addUpdate(() => {
+      // We need to clear existing events on a checkout, otherwise they are
+      // incremental event updates and should be appended
+      this.eventBuffer.addEvent(event, isCheckout);
+
+      // Different behavior for full snapshots (type=2), ignore other event types
+      // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
+      if (event.type !== 2) {
+        return false;
+      }
+
+      // If there is a previousSessionId after a full snapshot occurs, then
+      // the replay session was started due to session expiration. The new session
+      // is started before triggering a new checkout and contains the id
+      // of the previous session. Do not immediately flush in this case
+      // to avoid capturing only the checkout and instead the replay will
+      // be captured if they perform any follow-up actions.
+      if (this.session.previousSessionId) {
+        return true;
+      }
+
+      // If the full snapshot is due to an initial load, we will not have
+      // a previous session ID. In this case, we want to buffer events
+      // for a set amount of time before flushing. This can help avoid
+      // capturing replays of users that immediately close the window.
+      const now = new Date().getTime();
+      window.setTimeout(
+        () => this.flushUpdate(now),
+        this.options.initialFlushDelay
+      );
+
+      return true;
+    });
+  };
 
   /**
    * Handle when visibility of the page content changes. Opening a new tab will
@@ -406,6 +424,9 @@ export class SentryReplay implements Integration {
     this.doChangeToForegroundTasks(breadcrumb);
   };
 
+  /**
+   * Handle when page is closed
+   */
   handleWindowUnload = () => {
     this.createCustomBreadcrumb(
       createBreadcrumb({
@@ -414,6 +435,12 @@ export class SentryReplay implements Integration {
     );
   };
 
+  /**
+   * Handler for Sentry Core SDK events.
+   *
+   * Transforms core SDK events into replay events.
+   *
+   */
   handleCoreListener = (type: InstrumentationType) => (handlerData: any) => {
     const handlerMap: Record<
       InstrumentationType,
@@ -535,10 +562,16 @@ export class SentryReplay implements Integration {
     record.takeFullSnapshot(true);
   }
 
+  /**
+   * Updates the session's last activity timestamp
+   */
   updateLastActivity(lastActivity: number = new Date().getTime()) {
     this.session.lastActivity = lastActivity;
   }
 
+  /**
+   * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
+   */
   createCustomBreadcrumb(breadcrumb: Breadcrumb) {
     this.addUpdate(() => {
       this.eventBuffer.addEvent({
@@ -624,6 +657,12 @@ export class SentryReplay implements Integration {
     return false;
   }
 
+  /**
+   * Flushes replay event buffer to Sentry.
+   *
+   * Performance events are only added right before flushing - this is probably
+   * due to the buffered performance observer events.
+   */
   async flushUpdate(lastActivity?: number) {
     if (!this.checkAndHandleExpiredSession()) {
       logger.error(
