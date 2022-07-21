@@ -191,6 +191,7 @@ describe('SentryReplay', () => {
     replay.eventBuffer.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay(

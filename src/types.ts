@@ -64,6 +64,11 @@ export interface SentryReplayPluginOptions {
    * (default is true)
    */
   useCompression?: boolean;
+
+  /**
+   * Only capture replays when an error happens
+   */
+  captureOnlyOnError?: boolean;
 }
 
 export interface SentryReplayConfiguration extends SentryReplayPluginOptions {
