@@ -97,9 +97,9 @@ function extractData(response: Response): Promise<unknown> {
 }
 
 function captureRemixServerException(err: Error, name: string): void {
-  // Skip capturing if the thrown error is an OK Response
+  // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (isResponse(err) && err.status < 400) {
+  if (isResponse(err) && err.status < 500) {
     return;
   }
 
