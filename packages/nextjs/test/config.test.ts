@@ -332,35 +332,26 @@ describe('webpack config', () => {
         incomingWebpackBuildContext: serverBuildContext,
       });
 
-      const tempDir = mkdtempSyncSpy.mock.results[0].value;
-      const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
-
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
           // original entrypoint value is a string
           // (was 'private-next-pages/_error.js')
-          'pages/_error': [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/_error.js'],
+          'pages/_error': [serverConfigFilePath, 'private-next-pages/_error.js'],
 
           // original entrypoint value is a string array
           // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
-          'pages/_app': [
-            rewriteFramesHelper,
-            serverConfigFilePath,
-            './node_modules/smellOVision/index.js',
-            'private-next-pages/_app.js',
-          ],
+          'pages/_app': [serverConfigFilePath, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
 
           // original entrypoint value is an object containing a string `import` value
           // (was { import: 'private-next-pages/api/simulator/dogStats/[name].js' })
           'pages/api/simulator/dogStats/[name]': {
-            import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
+            import: [serverConfigFilePath, 'private-next-pages/api/simulator/dogStats/[name].js'],
           },
 
           // original entrypoint value is an object containing a string array `import` value
           // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'] })
           'pages/api/simulator/leaderboard': {
             import: [
-              rewriteFramesHelper,
               serverConfigFilePath,
               './node_modules/dogPoints/converter.js',
               'private-next-pages/api/simulator/leaderboard.js',
@@ -370,7 +361,7 @@ describe('webpack config', () => {
           // original entrypoint value is an object containg properties besides `import`
           // (was { import: 'private-next-pages/api/tricks/[trickName].js', dependOn: 'treats', })
           'pages/api/tricks/[trickName]': {
-            import: [rewriteFramesHelper, serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
+            import: [serverConfigFilePath, 'private-next-pages/api/tricks/[trickName].js'],
             dependOn: 'treats', // untouched
           },
         }),
@@ -478,53 +469,45 @@ describe('webpack config', () => {
         }),
       );
     });
+  });
 
-    it('does not inject `RewriteFrames` helper into client routes', async () => {
+  describe('webpack loaders', () => {
+    it('adds loader to server config', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        userNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.module!.rules).toEqual(
+        expect.arrayContaining([
+          {
+            test: expect.any(RegExp),
+            use: [
+              {
+                loader: expect.any(String),
+                // Having no criteria for what the object contains is better than using `expect.any(Object)`, because that
+                // could be anything
+                options: expect.objectContaining({}),
+              },
+            ],
+          },
+        ]),
+      );
+    });
+
+    it("doesn't add loader to client config", async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         userNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
 
-      expect(finalWebpackConfig.entry).toEqual(
-        expect.objectContaining({
-          // was 'next-client-pages-loader?page=%2F_app', and now has client config but not`RewriteFrames` helper injected
-          'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
-        }),
-      );
+      expect(finalWebpackConfig.module).toBeUndefined();
     });
   });
 
   describe('`distDir` value in default server-side `RewriteFrames` integration', () => {
-    it.each([
-      ['no custom `distDir`', undefined, '.next'],
-      ['custom `distDir`', 'dist', 'dist'],
-    ])(
-      'creates file injecting `distDir` value into `global` - %s',
-      async (_name, customDistDir, expectedInjectedValue) => {
-        // Note: the fact that the file tested here gets injected correctly is covered in the 'webpack `entry` property
-        // config' tests above
-
-        const userNextConfigDistDir = {
-          ...userNextConfig,
-          ...(customDistDir && { distDir: customDistDir }),
-        };
-        await materializeFinalWebpackConfig({
-          userNextConfig: userNextConfigDistDir,
-          incomingWebpackConfig: serverWebpackConfig,
-          incomingWebpackBuildContext: getBuildContext('server', userNextConfigDistDir),
-        });
-
-        const tempDir = mkdtempSyncSpy.mock.results[0].value;
-        const rewriteFramesHelper = path.join(tempDir, 'rewriteFramesHelper.js');
-
-        expect(fs.existsSync(rewriteFramesHelper)).toBe(true);
-
-        const injectedCode = fs.readFileSync(rewriteFramesHelper).toString();
-        expect(injectedCode).toEqual(`global.__rewriteFramesDistDir__ = '${expectedInjectedValue}';\n`);
-      },
-    );
-
     describe('`RewriteFrames` ends up with correct `distDir` value', () => {
       // TODO: this, along with any number of other parts of the build process, should be tested with an integration
       // test which actually runs webpack and inspects the resulting bundles (and that integration test should test
