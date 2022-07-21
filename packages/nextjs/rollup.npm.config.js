@@ -29,4 +29,19 @@ export default [
       },
     }),
   ),
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      entrypoints: ['src/config/prefixLoader.ts'],
+
+      packageSpecificConfig: {
+        output: {
+          // make it so Rollup calms down about the fact that we're doing `export { loader as default }`
+          exports: 'default',
+
+          // preserve the original file structure (i.e., so that everything is still relative to `src`)
+          entryFileNames: 'config/[name].js',
+        },
+      },
+    }),
+  ),
 ];
