@@ -42,6 +42,7 @@ export function constructWebpackConfigFunction(
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+    const { isServer, dev: isDev } = buildContext;
     let newConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
@@ -70,7 +71,7 @@ export function constructWebpackConfigFunction(
       // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
       // try to build their apps.)
       ensureCLIBinaryExists() &&
-      (buildContext.isServer
+      (isServer
         ? !userNextConfig.sentry?.disableServerWebpackPlugin
         : !userNextConfig.sentry?.disableClientWebpackPlugin);
 
@@ -80,14 +81,13 @@ export function constructWebpackConfigFunction(
 
       // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
-      if (!buildContext.dev) {
+      if (!isDev) {
         // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
         // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
         // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
         // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
         // without, the option to use `hidden-source-map` only applies to the client-side build.
-        newConfig.devtool =
-          userNextConfig.sentry?.hideSourceMaps && !buildContext.isServer ? 'hidden-source-map' : 'source-map';
+        newConfig.devtool = userNextConfig.sentry?.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
       }
 
       newConfig.plugins = newConfig.plugins || [];
