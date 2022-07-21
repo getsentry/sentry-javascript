@@ -110,7 +110,7 @@ function sdkAlreadyInitialized(): boolean {
 
 function addServerIntegrations(options: NextjsOptions): void {
   // This value is injected at build time, based on the output directory specified in the build config
-  const distDirName = (global as GlobalWithDistDir).__rewriteFramesDistDir__ || '.next';
+  const distDirName = (global as GlobalWithDistDir).__rewriteFramesDistDir__;
   // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
   // we can read in the project directory from the currently running process
   const distDirAbsPath = path.resolve(process.cwd(), distDirName);
