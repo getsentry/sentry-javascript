@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -20,11 +21,26 @@ interface Route {
   parentId?: string;
   path?: string;
 }
+export interface RouteData {
+  [routeId: string]: AppData;
+}
+
+export interface MetaFunction {
+  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
+}
+
+export interface HtmlMetaDescriptor {
+  [name: string]: null | string | undefined | Record<string, string> | Array<Record<string, string> | string>;
+  charset?: 'utf-8';
+  charSet?: 'utf-8';
+  title?: string;
+}
 
 interface ServerRouteModule {
   action?: DataFunction;
   headers?: unknown;
   loader?: DataFunction;
+  meta?: MetaFunction | HtmlMetaDescriptor;
 }
 
 interface ServerRoute extends Route {
@@ -206,6 +222,34 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
   return makeWrappedDataFunction(origAction, 'loader');
 }
 
+function makeWrappedMeta(origMeta: MetaFunction | HtmlMetaDescriptor = {}): MetaFunction {
+  return function (
+    this: unknown,
+    args: { data: AppData; parentsData: RouteData; params: Params; location: Location },
+  ): HtmlMetaDescriptor {
+    let origMetaResult;
+    if (origMeta instanceof Function) {
+      origMetaResult = origMeta.call(this, args);
+    } else {
+      origMetaResult = origMeta;
+    }
+
+    const scope = getCurrentHub().getScope();
+    if (scope) {
+      const span = scope.getSpan();
+
+      if (span) {
+        return {
+          ...origMetaResult,
+          'sentry-trace': span.toTraceparent(),
+        };
+      }
+    }
+
+    return origMetaResult;
+  };
+}
+
 function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const hub = getCurrentHub();
@@ -246,6 +290,8 @@ function makeWrappedCreateRequestHandler(
 
     for (const [id, route] of Object.entries(build.routes)) {
       const wrappedRoute = { ...route, module: { ...route.module } };
+
+      fill(wrappedRoute.module, 'meta', makeWrappedMeta);
 
       if (wrappedRoute.module.action) {
         fill(wrappedRoute.module, 'action', makeWrappedAction);
