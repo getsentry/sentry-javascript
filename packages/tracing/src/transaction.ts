@@ -89,7 +89,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public setMetadata(newMetadata: TransactionMetadata): void {
+  public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
     this.metadata = { ...this.metadata, ...newMetadata };
   }
 

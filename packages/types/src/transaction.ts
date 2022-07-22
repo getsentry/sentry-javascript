@@ -27,7 +27,7 @@ export interface TransactionContext extends SpanContext {
   /**
    * Metadata associated with the transaction, for internal SDK use.
    */
-  metadata?: TransactionMetadata;
+  metadata?: Partial<TransactionMetadata>;
 }
 
 /**
@@ -93,7 +93,7 @@ export interface Transaction extends TransactionContext, Span {
    * Set metadata for this transaction.
    * @hidden
    */
-  setMetadata(newMetadata: TransactionMetadata): void;
+  setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
   /** return the baggage for dynamic sampling and trace propagation */
   getBaggage(): Baggage;
