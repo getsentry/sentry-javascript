@@ -65,9 +65,7 @@ export function tracingHandler(): (
       // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
       // closes
       setImmediate(() => {
-        if (!transaction.metadata.source || transaction.metadata.source === 'url') {
-          addRequestDataToTransaction(transaction, req);
-        }
+        addRequestDataToTransaction(transaction, req);
         transaction.setHttpStatus(res.statusCode);
         transaction.finish();
       });

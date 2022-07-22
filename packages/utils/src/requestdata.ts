@@ -113,7 +113,9 @@ export function addRequestDataToTransaction(
   deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
-  transaction.name = extractPathForTransaction(req, { path: true, method: true });
+  if (!transaction.metadata.source || transaction.metadata.source === 'url') {
+    transaction.name = extractPathForTransaction(req, { path: true, method: true });
+  }
   transaction.setData('url', req.originalUrl || req.url);
   if (req.baseUrl) {
     transaction.setData('baseUrl', req.baseUrl);
