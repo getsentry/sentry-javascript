@@ -147,6 +147,9 @@ export interface TransactionMetadata {
 
   /** Information on how a transaction name was generated. */
   source?: TransactionSource;
+
+  /** Metadata for the transaction's spans, keyed by spanId */
+  spanMetadata: { [spanId: string]: { [key: string]: unknown } };
 }
 
 /**
