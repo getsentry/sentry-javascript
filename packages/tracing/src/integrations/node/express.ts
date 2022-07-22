@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/hub';
 import { Integration, Transaction } from '@sentry/types';
 import { CrossPlatformRequest, extractPathForTransaction, logger } from '@sentry/utils';
 
@@ -266,7 +265,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     layer: Layer,
     called: unknown,
     req: PatchedRequest,
-    res: ExpressResponse,
+    res: ExpressResponse & SentryTracingResponse,
     done: () => unknown,
   ) {
     // Base case: We're in the first part of the URL (thus we start with the root '/')
@@ -298,7 +297,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     const urlLength = req.originalUrl?.split('/').filter(s => s.length > 0).length;
     const routeLength = req._reconstructedRoute.split('/').filter(s => s.length > 0).length;
     if (urlLength === routeLength) {
-      const transaction = getCurrentHub().getScope()?.getTransaction();
+      const transaction = res.__sentry_transaction;
       if (transaction && transaction.metadata.source !== 'custom') {
         const finalRoute = req._reconstructedRoute.replace(/\/$/, '');
         transaction.setName(...extractPathForTransaction(req, { path: true, method: true }, finalRoute));
