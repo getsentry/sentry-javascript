@@ -1,7 +1,14 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
-import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  fill,
+  loadModule,
+  logger,
+  serializeBaggage,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -21,15 +28,15 @@ interface Route {
   parentId?: string;
   path?: string;
 }
-export interface RouteData {
+interface RouteData {
   [routeId: string]: AppData;
 }
 
-export interface MetaFunction {
+interface MetaFunction {
   (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
 }
 
-export interface HtmlMetaDescriptor {
+interface HtmlMetaDescriptor {
   [name: string]: null | string | undefined | Record<string, string> | Array<Record<string, string> | string>;
   charset?: 'utf-8';
   charSet?: 'utf-8';
@@ -237,11 +244,13 @@ function makeWrappedMeta(origMeta: MetaFunction | HtmlMetaDescriptor = {}): Meta
     const scope = getCurrentHub().getScope();
     if (scope) {
       const span = scope.getSpan();
+      const transaction = getActiveTransaction();
 
-      if (span) {
+      if (span && transaction) {
         return {
           ...origMetaResult,
           'sentry-trace': span.toTraceparent(),
+          baggage: serializeBaggage(transaction.getBaggage()),
         };
       }
     }
