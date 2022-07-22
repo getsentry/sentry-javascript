@@ -6,6 +6,7 @@ import {
   checkOrSetAlreadyCaught,
   getEventDescription,
   stripUrlQueryAndFragment,
+  uuid4,
 } from '../src/misc';
 
 describe('getEventDescription()', () => {
@@ -296,5 +297,37 @@ describe('checkOrSetAlreadyCaught()', () => {
 
     expect(checkOrSetAlreadyCaught(exception)).toBe(false);
     expect((exception as any).__sentry_captured__).toBe(true);
+  });
+});
+
+describe('uuid4 generation', () => {
+  // Jest messes with the global object, so there is no global crypto object in any node version
+  // For this reason we need to create our own crypto object for each test to cover all the code paths
+  it('returns valid uuid v4 ids via Math.random', () => {
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+    }
+  });
+
+  it('returns valid uuid v4 ids via crypto.getRandomValues', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cryptoMod = require('crypto');
+
+    (global as any).crypto = { getRandomValues: cryptoMod.getRandomValues };
+
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+    }
+  });
+
+  it('returns valid uuid v4 ids via crypto.randomUUID', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cryptoMod = require('crypto');
+
+    (global as any).crypto = { randomUUID: cryptoMod.randomUUID };
+
+    for (let index = 0; index < 1_000; index++) {
+      expect(uuid4()).toMatch(/^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i);
+    }
   });
 });
