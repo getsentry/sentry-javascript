@@ -1,5 +1,7 @@
+/* eslint-disable max-lines */
+import { getCurrentHub } from '@sentry/hub';
 import { Integration, Transaction } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { CrossPlatformRequest, logger } from '@sentry/utils';
 
 type Method =
   | 'all'
@@ -30,6 +32,32 @@ type Method =
 
 type Router = {
   [method in Method]: (...args: any) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
+
+/* Extend the CrossPlatformRequest type with a patched parameter to build a reconstructed route */
+type PatchedRequest = CrossPlatformRequest & { _reconstructedRoute?: string };
+
+/* Type used for pathing the express router prototype */
+type ExpressRouter = Router & {
+  _router?: ExpressRouter;
+  stack?: Layer[];
+  lazyrouter?: () => void;
+  settings?: unknown;
+  process_params: (
+    layer: Layer,
+    called: unknown,
+    req: PatchedRequest,
+    res: ExpressResponse,
+    done: () => void,
+  ) => unknown;
+};
+
+/* Type used for pathing the express router prototype */
+type Layer = {
+  match: (path: string) => boolean;
+  handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
+  route?: { path: string };
+  path?: string;
 };
 
 interface ExpressResponse {
@@ -83,6 +111,7 @@ export class Express implements Integration {
       return;
     }
     instrumentMiddlewares(this._router, this._methods);
+    instrumentRouter(this._router as ExpressRouter);
   }
 }
 
@@ -210,4 +239,74 @@ function patchMiddleware(router: Router, method: Method): Router {
  */
 function instrumentMiddlewares(router: Router, methods: Method[] = []): void {
   methods.forEach((method: Method) => patchMiddleware(router, method));
+}
+
+/**
+ * Patches the prototype of Express.Router to accumulate the resolved route
+ * if a layer instance's `match` function was called and it returned a successful match.
+ *
+ * @see https://github.com/expressjs/express/blob/master/lib/router/index.js
+ *
+ * @param appOrRouter the router instance which can either be an app (i.e. top-level) or a (nested) router.
+ */
+function instrumentRouter(appOrRouter: ExpressRouter): void {
+  // This is how we can distinguish between app and routers
+  const isApp = 'settings' in appOrRouter;
+
+  // In case the app's top-level router hasn't been initialized yet, we have to do it now
+  if (isApp && appOrRouter._router === undefined) {
+    appOrRouter.lazyrouter && appOrRouter.lazyrouter();
+  }
+
+  const router = isApp ? appOrRouter._router : appOrRouter;
+  const routerProto = Object.getPrototypeOf(router) as ExpressRouter;
+
+  const originalProcessParams = routerProto.process_params;
+  routerProto.process_params = function process_params(
+    layer: Layer,
+    called: unknown,
+    req: PatchedRequest,
+    res: ExpressResponse,
+    done: () => unknown,
+  ) {
+    // Base case: We're in the first part of the URL (thus we start with the root '/')
+    if (!req._reconstructedRoute) {
+      req._reconstructedRoute = '/';
+    }
+
+    // If the layers partial route has params, it's stored in layer.route, else it's in layer.path
+    const partialRoute = layer.route?.path || layer.path || '';
+
+    // Normalize the partial route so that it doesn't contain leading or trailing slashes
+    // and exclude empty or '*' wildcard routes.
+    // The exclusion of '*' routes is our best effort of not "polluting" the transaction name
+    // with interim handlers (e.g. that check authentication or do other middleware stuff)
+    // We want to end up with the parameterized URL of the incoming request with nothing in between
+    const finalPartialRoute = partialRoute
+      .split('/')
+      .filter(segment => segment.length > 0 && !segment.includes('*'))
+      .join('/');
+
+    // If we found a valid partial URL, we append it to the reconstructed route
+    if (finalPartialRoute.length > 0) {
+      req._reconstructedRoute += `${finalPartialRoute}/`;
+    }
+
+    // Now we check if we are in the "last" part of the route. We determine this by comparing the
+    // numbers of URL segments from the original URL against our reconstructed parameterized URL.
+    // In case we've reached our final destination, we update the transaction name.
+    const urlLength = req.originalUrl?.split('/').filter(s => s.length > 0).length;
+    const routeLength = req._reconstructedRoute.split('/').filter(s => s.length > 0).length;
+    if (urlLength === routeLength) {
+      const transaction = getCurrentHub().getScope()?.getTransaction();
+      if (transaction && transaction.metadata.source !== 'custom') {
+        const finalRoute = req._reconstructedRoute.replace(/\/$/, '');
+        const method = req.method && req.method.toUpperCase();
+        transaction.setName(`${method} ${finalRoute}`, 'route');
+        logger.debug('TX is now called', transaction.name);
+      }
+    }
+
+    return originalProcessParams.call(this, layer, called, req, res, done);
+  };
 }
