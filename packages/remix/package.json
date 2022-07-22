@@ -60,6 +60,7 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "run-s test:unit",
+    "test:integration": "cd test/integration && yarn test",
     "test:unit": "jest",
     "test:watch": "jest --watch"
   },

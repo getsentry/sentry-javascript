@@ -1,0 +1,43 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev",
+    "start": "remix-serve build",
+    "test": "yarn build && yarn test:client && yarn test:server",
+    "test:client": "echo \"TODO\"",
+    "test:server": "jest"
+  },
+  "dependencies": {
+    "@remix-run/express": "^1.6.5",
+    "@remix-run/node": "^1.6.5",
+    "@remix-run/react": "^1.6.5",
+    "@remix-run/serve": "^1.6.5",
+    "@sentry/remix": "file:../..",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "^1.6.5",
+    "@remix-run/eslint-config": "^1.6.5",
+    "@types/react": "^17.0.47",
+    "@types/react-dom": "^17.0.17",
+    "eslint": "^8.20.0",
+    "typescript": "^4.7.4"
+  },
+  "resolutions": {
+    "@sentry/browser": "file:../../../browser",
+    "@sentry/core": "file:../../../core",
+    "@sentry/hub": "file:../../../hub",
+    "@sentry/integrations": "file:../../../integrations",
+    "@sentry/node": "file:../../../node",
+    "@sentry/react": "file:../../../react",
+    "@sentry/tracing": "file:../../../tracing",
+    "@sentry/types": "file:../../../types",
+    "@sentry/utils": "file:../../../utils"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
