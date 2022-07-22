@@ -12,7 +12,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Event, ExtractedNodeRequestData, Transaction } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
 import { stripUrlQueryAndFragment } from './misc';
@@ -114,7 +114,7 @@ export function addRequestDataToTransaction(
 ): void {
   if (!transaction) return;
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
-    transaction.name = extractPathForTransaction(req, { path: true, method: true });
+    transaction.setName(...extractPathForTransaction(req, { path: true, method: true }));
   }
   transaction.setData('url', req.originalUrl || req.url);
   if (req.baseUrl) {
@@ -124,43 +124,52 @@ export function addRequestDataToTransaction(
 }
 
 /**
- * Extracts complete generalized path from the request object and uses it to construct transaction name.
+ * Extracts a complete and parameterized path from the request object and uses it to construct transaction name.
+ * If the parameterized transaction name cannot be extracted, we fall back to the raw URL.
+ *
+ * Additionally, this function determines and returns the transaction name source
  *
  * eg. GET /mountpoint/user/:id
  *
  * @param req A request object
  * @param options What to include in the transaction name (method, path, or both)
+ * @param customRoute An optional string that should be used as transaction name instead of the requests path
  *
- * @returns The fully constructed transaction name
+ * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either route or url)
  */
 export function extractPathForTransaction(
   req: CrossPlatformRequest,
   options: { path?: boolean; method?: boolean } = {},
-): string {
+  customRoute?: string,
+): [string, TransactionSource] {
   const method = req.method && req.method.toUpperCase();
 
   let path = '';
+  let source: TransactionSource = 'url';
+
   // Check to see if there's a parameterized route we can use (as there is in Express)
-  if (req.route) {
-    path = `${req.baseUrl || ''}${req.route.path}`;
+  if (customRoute || req.route) {
+    path = customRoute || `${req.baseUrl || ''}${req.route && req.route.path}`;
+    source = 'route';
   }
+
   // Otherwise, just take the original URL
   else if (req.originalUrl || req.url) {
     path = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
   }
 
-  let info = '';
+  let name = '';
   if (options.method && method) {
-    info += method;
+    name += method;
   }
   if (options.method && options.path) {
-    info += ' ';
+    name += ' ';
   }
   if (options.path && path) {
-    info += path;
+    name += path;
   }
 
-  return info;
+  return [name, source];
 }
 
 type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
@@ -169,14 +178,14 @@ type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 function extractTransaction(req: CrossPlatformRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
-      return extractPathForTransaction(req, { path: true });
+      return extractPathForTransaction(req, { path: true })[0];
     }
     case 'handler': {
       return (req.route && req.route.stack && req.route.stack[0] && req.route.stack[0].name) || '<anonymous>';
     }
     case 'methodPath':
     default: {
-      return extractPathForTransaction(req, { path: true, method: true });
+      return extractPathForTransaction(req, { path: true, method: true })[0];
     }
   }
 }

@@ -40,12 +40,13 @@ export function tracingHandler(): (
 
     const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
+    const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     const transaction = startTransaction(
       {
-        name: extractPathForTransaction(req, { path: true, method: true }),
+        name,
         op: 'http.server',
         ...traceparentData,
-        metadata: { baggage },
+        metadata: { baggage, source },
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

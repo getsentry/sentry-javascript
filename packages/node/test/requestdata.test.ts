@@ -6,11 +6,12 @@
 
 // TODO (v8 / #5257): Remove everything above
 
-import { Event, User } from '@sentry/types';
+import { Event, TransactionSource, User } from '@sentry/types';
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
   CrossPlatformRequest,
+  extractPathForTransaction,
   extractRequestData as newExtractRequestData,
 } from '@sentry/utils';
 import * as cookie from 'cookie';
@@ -485,3 +486,95 @@ describe.each([oldExtractRequestData, newExtractRequestData])(
     });
   },
 );
+
+describe('extractPathForTransaction', () => {
+  it.each([
+    [
+      'extracts a parameterized route and method if available',
+      {
+        method: 'get',
+        baseUrl: '/api/users',
+        route: { path: '/:id/details' },
+        originalUrl: '/api/users/123/details',
+      } as CrossPlatformRequest,
+      { path: true, method: true },
+      'GET /api/users/:id/details',
+      'route' as TransactionSource,
+    ],
+    [
+      'ignores the method if specified',
+      {
+        method: 'get',
+        baseUrl: '/api/users',
+        route: { path: '/:id/details' },
+        originalUrl: '/api/users/123/details',
+      } as CrossPlatformRequest,
+      { path: true, method: false },
+      '/api/users/:id/details',
+      'route' as TransactionSource,
+    ],
+    [
+      'ignores the path if specified',
+      {
+        method: 'get',
+        baseUrl: '/api/users',
+        route: { path: '/:id/details' },
+        originalUrl: '/api/users/123/details',
+      } as CrossPlatformRequest,
+      { path: false, method: true },
+      'GET',
+      'route' as TransactionSource,
+    ],
+    [
+      'returns an empty string if everything should be ignored',
+      {
+        method: 'get',
+        baseUrl: '/api/users',
+        route: { path: '/:id/details' },
+        originalUrl: '/api/users/123/details',
+      } as CrossPlatformRequest,
+      { path: false, method: false },
+      '',
+      'route' as TransactionSource,
+    ],
+    [
+      'falls back to the raw URL if no parameterized route is available',
+      {
+        method: 'get',
+        baseUrl: '/api/users',
+        originalUrl: '/api/users/123/details',
+      } as CrossPlatformRequest,
+      { path: true, method: true },
+      'GET /api/users/123/details',
+      'url' as TransactionSource,
+    ],
+  ])(
+    '%s',
+    (
+      _: string,
+      req: CrossPlatformRequest,
+      options: { path?: boolean; method?: boolean },
+      expectedRoute: string,
+      expectedSource: TransactionSource,
+    ) => {
+      const [route, source] = extractPathForTransaction(req, options);
+
+      expect(route).toEqual(expectedRoute);
+      expect(source).toEqual(expectedSource);
+    },
+  );
+
+  it('overrides the requests information with a custom route if specified', () => {
+    const req = {
+      method: 'get',
+      baseUrl: '/api/users',
+      route: { path: '/:id/details' },
+      originalUrl: '/api/users/123/details',
+    } as CrossPlatformRequest;
+
+    const [route, source] = extractPathForTransaction(req, { path: true, method: true }, '/other/path/:id/details');
+
+    expect(route).toEqual('GET /other/path/:id/details');
+    expect(source).toEqual('route');
+  });
+});

@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/hub';
 import { Integration, Transaction } from '@sentry/types';
-import { CrossPlatformRequest, logger } from '@sentry/utils';
+import { CrossPlatformRequest, extractPathForTransaction, logger } from '@sentry/utils';
 
 type Method =
   | 'all'
@@ -301,9 +301,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       const transaction = getCurrentHub().getScope()?.getTransaction();
       if (transaction && transaction.metadata.source !== 'custom') {
         const finalRoute = req._reconstructedRoute.replace(/\/$/, '');
-        const method = req.method && req.method.toUpperCase();
-        transaction.setName(`${method} ${finalRoute}`, 'route');
-        logger.debug('TX is now called', transaction.name);
+        transaction.setName(...extractPathForTransaction(req, { path: true, method: true }, finalRoute));
       }
     }
 
