@@ -4445,10 +4445,10 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
-"@sentry/webpack-plugin@1.18.9":
-  version "1.18.9"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.18.9.tgz#acb48c0f96fdb9e73f1e1db374ea31ded6d883a8"
-  integrity sha512-+TrenJrgFM0QTOwBnw0ZXWMvc0PiOebp6GN5EbGEx3JPCQqXOfXFzCaEjBtASKRgcNCL7zGly41S25YR6Hm+jw==
+"@sentry/webpack-plugin@1.19.0":
+  version "1.19.0"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.19.0.tgz#2b134318f1552ba7f3e3f9c83c71a202095f7a44"
+  integrity sha512-qSpdgdGMtdzagGveSWgo2b+t8PdPUscuOjbOyWCsJme9jlTFnNk0rX7JEA55OUozikKHM/+vVh08USLBnPboZw==
   dependencies:
     "@sentry/cli" "^1.74.4"
 
