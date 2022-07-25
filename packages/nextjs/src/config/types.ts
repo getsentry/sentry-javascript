@@ -56,6 +56,15 @@ export type WebpackConfigObject = {
   resolve?: {
     alias?: { [key: string]: string | boolean };
   };
+  module?: {
+    rules: Array<{
+      test: string | RegExp;
+      use: Array<{
+        loader: string;
+        options: Record<string, unknown>;
+      }>;
+    }>;
+  };
 } & {
   // other webpack options
   [key: string]: unknown;

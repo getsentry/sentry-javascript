@@ -1,12 +1,47 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
-export default makeNPMConfigVariants(
-  makeBaseNPMConfig({
-    // We need to include `instrumentServer.ts` separately because it's only conditionally required, and so rollup
-    // doesn't automatically include it when calculating the module dependency tree.
-    entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/utils/instrumentServer.ts'],
-    // prevent this nextjs code from ending up in our built package (this doesn't happen automatially because the name
-    // doesn't match an SDK dependency)
-    packageSpecificConfig: { external: ['next/router'] },
-  }),
-);
+export default [
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      // We need to include `instrumentServer.ts` separately because it's only conditionally required, and so rollup
+      // doesn't automatically include it when calculating the module dependency tree.
+      entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/utils/instrumentServer.ts'],
+
+      // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
+      // the name doesn't match an SDK dependency)
+      packageSpecificConfig: { external: ['next/router'] },
+    }),
+  ),
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      entrypoints: ['src/config/prefixLoaderTemplate.ts'],
+
+      packageSpecificConfig: {
+        output: {
+          // preserve the original file structure (i.e., so that everything is still relative to `src`)
+          entryFileNames: 'config/[name].js',
+
+          // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
+          // shouldn't have them, lest they muck with the module to which we're adding it)
+          sourcemap: false,
+          esModule: false,
+        },
+      },
+    }),
+  ),
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      entrypoints: ['src/config/prefixLoader.ts'],
+
+      packageSpecificConfig: {
+        output: {
+          // make it so Rollup calms down about the fact that we're doing `export { loader as default }`
+          exports: 'default',
+
+          // preserve the original file structure (i.e., so that everything is still relative to `src`)
+          entryFileNames: 'config/[name].js',
+        },
+      },
+    }),
+  ),
+];

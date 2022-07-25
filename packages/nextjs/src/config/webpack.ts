@@ -3,7 +3,6 @@ import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 
 import {
@@ -42,12 +41,36 @@ export function constructWebpackConfigFunction(
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+    const { isServer, dev: isDev } = buildContext;
     let newConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
       newConfig = userNextConfig.webpack(newConfig, buildContext);
+    }
+
+    if (isServer) {
+      newConfig.module = {
+        ...newConfig.module,
+        rules: [
+          ...(newConfig.module?.rules || []),
+          {
+            test: /sentry\.server\.config\.(jsx?|tsx?)/,
+            use: [
+              {
+                // Support non-default output directories by making the output path (easy to get here at build-time)
+                // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
+                // injecting code to attach it to `global`.
+                loader: path.resolve(__dirname, 'prefixLoader.js'),
+                options: {
+                  distDir: userNextConfig.distDir || '.next',
+                },
+              },
+            ],
+          },
+        ],
+      };
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -70,7 +93,7 @@ export function constructWebpackConfigFunction(
       // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
       // try to build their apps.)
       ensureCLIBinaryExists() &&
-      (buildContext.isServer
+      (isServer
         ? !userNextConfig.sentry?.disableServerWebpackPlugin
         : !userNextConfig.sentry?.disableClientWebpackPlugin);
 
@@ -80,14 +103,13 @@ export function constructWebpackConfigFunction(
 
       // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
-      if (!buildContext.dev) {
+      if (!isDev) {
         // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
         // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
         // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
         // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
         // without, the option to use `hidden-source-map` only applies to the client-side build.
-        newConfig.devtool =
-          userNextConfig.sentry?.hideSourceMaps && !buildContext.isServer ? 'hidden-source-map' : 'source-map';
+        newConfig.devtool = userNextConfig.sentry?.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
       }
 
       newConfig.plugins = newConfig.plugins || [];
@@ -121,7 +143,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, dev: isDev, config: userNextConfig } = buildContext;
+  const { isServer, dir: projectDir } = buildContext;
 
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
@@ -131,21 +153,6 @@ async function addSentryToEntryProperty(
 
   // we need to turn the filename into a path so webpack can find it
   const filesToInject = [`./${userConfigFile}`];
-
-  // Support non-default output directories by making the output path (easy to get here at build-time) available to the
-  // server SDK's default `RewriteFrames` instance (which needs it at runtime). Doesn't work when using the dev server
-  // because it somehow tricks the file watcher into thinking that compilation itself is a file change, triggering an
-  // infinite recompiling loop. (This should be fine because we don't upload sourcemaps in dev in any case.)
-  if (isServer && !isDev) {
-    const rewriteFramesHelper = path.resolve(
-      fs.mkdtempSync(path.resolve(os.tmpdir(), 'sentry-')),
-      'rewriteFramesHelper.js',
-    );
-    fs.writeFileSync(rewriteFramesHelper, `global.__rewriteFramesDistDir__ = '${userNextConfig.distDir}';\n`);
-    // stick our helper file ahead of the user's config file so the value is in the global namespace *before*
-    // `Sentry.init()` is called
-    filesToInject.unshift(rewriteFramesHelper);
-  }
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
