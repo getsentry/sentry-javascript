@@ -6,6 +6,7 @@ module.exports = {
   parserOptions: {
     jsx: true,
   },
+  ignorePatterns: ['test/integration/**'],
   extends: ['../../.eslintrc.js'],
   rules: {
     '@sentry-internal/sdk/no-async-await': 'off',
