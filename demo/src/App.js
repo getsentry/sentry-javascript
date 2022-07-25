@@ -38,11 +38,11 @@ function App() {
             type='email'
             name='email'
             placehodler='email'
-            className='rr-ignore'
+            className='sr-ignore'
           />
         </div>
 
-        <div className='rr-block'>
+        <div className='sr-block'>
           <p>Secret Block</p>
         </div>
       </form>

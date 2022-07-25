@@ -1,4 +1,4 @@
-import { RRWebEvent } from '@/types';
+import { RecordingEvent } from '@/types';
 
 type RecordAdditionalProperties = {
   takeFullSnapshot: jest.Mock;
@@ -9,7 +9,7 @@ type RecordAdditionalProperties = {
   mirror: unknown;
 
   // Custom property to fire events in tests, does not exist in rrweb.record
-  _emitter: (event: RRWebEvent, ...args: any[]) => void;
+  _emitter: (event: RecordingEvent, ...args: any[]) => void;
 };
 
 export type RecordMock = jest.MockedFunction<typeof rrweb.record> &

@@ -22,8 +22,8 @@ import {
 } from './session/constants';
 import { getSession } from './session/getSession';
 import type {
-  RRWebEvent,
-  RRWebOptions,
+  RecordingEvent,
+  RecordingConfig,
   ReplaySpan,
   ReplayRequest,
   InstrumentationType,
@@ -77,7 +77,7 @@ export class SentryReplay implements Integration {
   /**
    * Options to pass to `rrweb.record()`
    */
-  readonly rrwebRecordOptions: RRWebOptions;
+  readonly recordingOptions: RecordingConfig;
 
   readonly options: SentryReplayPluginOptions;
 
@@ -124,20 +124,20 @@ export class SentryReplay implements Integration {
     stickySession = false, // TBD: Making this opt-in for now
     useCompression = true,
     captureOnlyOnError = false,
-    rrwebConfig: {
+    recordingConfig: {
       maskAllInputs = true,
       blockClass = 'sr-block',
       ignoreClass = 'sr-ignore',
       maskTextClass = 'sr-mask',
-      ...rrwebRecordOptions
+      ...recordingOptions
     } = {},
   }: SentryReplayConfiguration = {}) {
-    this.rrwebRecordOptions = {
+    this.recordingOptions = {
       maskAllInputs,
       blockClass,
       ignoreClass,
       maskTextClass,
-      ...rrwebRecordOptions,
+      ...recordingOptions,
     };
 
     this.options = {
@@ -151,7 +151,7 @@ export class SentryReplay implements Integration {
     // Modify rrweb options to checkoutEveryNthSecond if this is defined, as we don't know when an error occurs, so we want to try to minimize the number of events captured.
     if (this.options.captureOnlyOnError) {
       // Checkout every minute, meaning we only get up-to one minute of events before the error happens
-      this.rrwebRecordOptions.checkoutEveryNms = 60000;
+      this.recordingOptions.checkoutEveryNms = 60000;
     }
 
     this.eventBuffer = createEventBuffer({ useCompression });
@@ -189,7 +189,7 @@ export class SentryReplay implements Integration {
     addGlobalEventProcessor(this.handleGlobalEvent);
 
     record({
-      ...this.rrwebRecordOptions,
+      ...this.recordingOptions,
       emit: this.handleRecordingEmit,
     });
   }
@@ -383,7 +383,7 @@ export class SentryReplay implements Integration {
    *
    * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
    */
-  handleRecordingEmit = (event: RRWebEvent, isCheckout?: boolean) => {
+  handleRecordingEmit = (event: RecordingEvent, isCheckout?: boolean) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!this.checkAndHandleExpiredSession()) {
       logger.error(new Error('Received replay event after session expired.'));

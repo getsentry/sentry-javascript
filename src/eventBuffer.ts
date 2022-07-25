@@ -1,4 +1,4 @@
-import { RRWebEvent, WorkerResponse } from './types';
+import { RecordingEvent, WorkerResponse } from './types';
 import { logger } from './util/logger';
 import workerString from './worker/worker.js';
 
@@ -26,12 +26,12 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams) {
 export interface IEventBuffer {
   get length(): number;
   destroy(): void;
-  addEvent(event: RRWebEvent, isCheckout?: boolean): void;
+  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
   finish(): Promise<string | Uint8Array>;
 }
 
 class EventBufferArray implements IEventBuffer {
-  events: RRWebEvent[];
+  events: RecordingEvent[];
 
   constructor() {
     this.events = [];
@@ -45,7 +45,7 @@ class EventBufferArray implements IEventBuffer {
     return this.events.length;
   }
 
-  addEvent(event: RRWebEvent, isCheckout?: boolean) {
+  addEvent(event: RecordingEvent, isCheckout?: boolean) {
     if (isCheckout) {
       this.events = [event];
       return;
@@ -89,7 +89,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     return this.eventBufferItemLength;
   }
 
-  addEvent(event: RRWebEvent, isCheckout?: boolean) {
+  addEvent(event: RecordingEvent, isCheckout?: boolean) {
     // If it is a checkout we should make sure worker buffer is cleared before proceeding
     if (!isCheckout) {
       this.sendEventToWorker(event);
@@ -116,7 +116,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     this.worker.postMessage({ method: 'init', args: [] });
   }
 
-  sendEventToWorker(event: RRWebEvent) {
+  sendEventToWorker(event: RecordingEvent) {
     this.worker.postMessage({
       method: 'addEvent',
       args: [event],

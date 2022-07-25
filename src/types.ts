@@ -2,8 +2,8 @@ import type { eventWithTime } from 'rrweb/typings/types';
 
 import { record } from 'rrweb';
 
-export type RRWebEvent = eventWithTime;
-export type RRWebOptions = Parameters<typeof record>[0];
+export type RecordingEvent = eventWithTime;
+export type RecordingConfig = Parameters<typeof record>[0];
 
 export interface ReplaySpan {
   description: string;
@@ -73,7 +73,7 @@ export interface SentryReplayPluginOptions {
 
 export interface SentryReplayConfiguration extends SentryReplayPluginOptions {
   /**
-   * Options for `rrweb.recordsetup
+   * Options for `rrweb.record()`
    */
-  rrwebConfig?: RRWebOptions;
+  recordingConfig?: RecordingConfig;
 }
