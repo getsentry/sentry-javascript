@@ -1,6 +1,14 @@
+/* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
-import { addExceptionMechanism, fill, loadModule, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  fill,
+  loadModule,
+  logger,
+  serializeBaggage,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -20,11 +28,26 @@ interface Route {
   parentId?: string;
   path?: string;
 }
+interface RouteData {
+  [routeId: string]: AppData;
+}
+
+interface MetaFunction {
+  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
+}
+
+interface HtmlMetaDescriptor {
+  [name: string]: null | string | undefined | Record<string, string> | Array<Record<string, string> | string>;
+  charset?: 'utf-8';
+  charSet?: 'utf-8';
+  title?: string;
+}
 
 interface ServerRouteModule {
   action?: DataFunction;
   headers?: unknown;
   loader?: DataFunction;
+  meta?: MetaFunction | HtmlMetaDescriptor;
 }
 
 interface ServerRoute extends Route {
@@ -209,6 +232,36 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
   return makeWrappedDataFunction(origAction, 'loader');
 }
 
+function makeWrappedMeta(origMeta: MetaFunction | HtmlMetaDescriptor = {}): MetaFunction {
+  return function (
+    this: unknown,
+    args: { data: AppData; parentsData: RouteData; params: Params; location: Location },
+  ): HtmlMetaDescriptor {
+    let origMetaResult;
+    if (origMeta instanceof Function) {
+      origMetaResult = origMeta.call(this, args);
+    } else {
+      origMetaResult = origMeta;
+    }
+
+    const scope = getCurrentHub().getScope();
+    if (scope) {
+      const span = scope.getSpan();
+      const transaction = getActiveTransaction();
+
+      if (span && transaction) {
+        return {
+          ...origMetaResult,
+          'sentry-trace': span.toTraceparent(),
+          baggage: serializeBaggage(transaction.getBaggage()),
+        };
+      }
+    }
+
+    return origMetaResult;
+  };
+}
+
 function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const hub = getCurrentHub();
@@ -249,6 +302,8 @@ function makeWrappedCreateRequestHandler(
 
     for (const [id, route] of Object.entries(build.routes)) {
       const wrappedRoute = { ...route, module: { ...route.module } };
+
+      fill(wrappedRoute.module, 'meta', makeWrappedMeta);
 
       if (wrappedRoute.module.action) {
         fill(wrappedRoute.module, 'action', makeWrappedAction);
