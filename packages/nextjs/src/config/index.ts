@@ -17,16 +17,26 @@ export function withSentryConfig(
   if (typeof userNextConfig === 'function') {
     return function (phase: string, defaults: { defaultConfig: NextConfigObject }): Partial<NextConfigObject> {
       const materializedUserNextConfig = userNextConfig(phase, defaults);
+      const webpack = constructWebpackConfigFunction(materializedUserNextConfig, userSentryWebpackPluginOptions);
+      
+      // Next 12.2.3+ warns about additional properties on the config
+      delete materializedUserNextConfig.sentry;
+      
       return {
         ...materializedUserNextConfig,
-        webpack: constructWebpackConfigFunction(materializedUserNextConfig, userSentryWebpackPluginOptions),
+        webpack,
       };
     };
   }
 
   // Otherwise, we can just merge their config with ours and return an object.
+  const webpack = constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions);
+
+  // Next 12.2.3+ warns about additional properties on the config
+  delete userNextConfig.sentry
+  
   return {
     ...userNextConfig,
-    webpack: constructWebpackConfigFunction(userNextConfig, userSentryWebpackPluginOptions),
+    webpack,
   };
 }
