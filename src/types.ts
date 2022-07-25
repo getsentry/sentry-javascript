@@ -77,3 +77,11 @@ export interface SentryReplayConfiguration extends SentryReplayPluginOptions {
    */
   recordingConfig?: RecordingConfig;
 }
+
+/**
+ * Some initial state captured before creating a root replay event
+ */
+export interface InitialState {
+  timestamp: number;
+  url: string;
+}

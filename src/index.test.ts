@@ -491,12 +491,30 @@ describe('SentryReplay', () => {
       },
     });
 
-    // Pretend 5 seconds have passed
-    const ELAPSED = 5000;
-    await advanceTimers(ELAPSED);
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
     expect(captureReplayMock).not.toHaveBeenCalled();
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    await advanceTimers(ELAPSED);
+
+    const TEST_EVENT = {
+      data: {},
+      timestamp: BASE_TIMESTAMP + ELAPSED,
+      type: 2,
+    };
+
+    replay.eventBuffer.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+    expect(captureReplayMock).toHaveBeenCalledWith(
+      expect.anything(), // don't care about this arg
+      expect.objectContaining({
+        timestamp: BASE_TIMESTAMP,
+        url: 'http://localhost/', // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+      })
+    );
   });
 });

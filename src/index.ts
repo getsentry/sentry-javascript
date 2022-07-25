@@ -22,11 +22,12 @@ import {
 } from './session/constants';
 import { getSession } from './session/getSession';
 import type {
+  InstrumentationType,
+  InitialState,
   RecordingEvent,
   RecordingConfig,
   ReplaySpan,
   ReplayRequest,
-  InstrumentationType,
   SentryReplayPluginOptions,
   SentryReplayConfiguration,
 } from './types';
@@ -37,6 +38,7 @@ import { handleDom, handleScope, handleFetch, handleXhr } from './coreHandlers';
 import createBreadcrumb from './util/createBreadcrumb';
 import { Session } from './session/Session';
 import { captureReplay } from './api/captureReplay';
+import { supportsSendBeacon } from './util/supportsSendBeacon';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -105,6 +107,8 @@ export class SentryReplay implements Integration {
    * immediately before sending recording)
    */
   private needsCaptureReplay = false;
+
+  private initialState: InitialState;
 
   session: Session | undefined;
 
@@ -192,6 +196,13 @@ export class SentryReplay implements Integration {
       ...this.recordingOptions,
       emit: this.handleRecordingEmit,
     });
+
+    // Otherwise, these will be captured after the first flush, which means the
+    // URL and timestamps could be incorrect
+    this.initialState = {
+      timestamp: new Date().getTime(),
+      url: `${window.location.origin}${window.location.pathname}`,
+    };
   }
 
   /**
@@ -734,7 +745,7 @@ export class SentryReplay implements Integration {
     // Only want to create replay event if session is new
     if (this.needsCaptureReplay) {
       // This event needs to exist before calling `sendReplay`
-      captureReplay(this.session);
+      captureReplay(this.session, this.initialState);
       this.needsCaptureReplay = false;
     }
 
@@ -743,14 +754,22 @@ export class SentryReplay implements Integration {
     this.initialEventTimestampSinceFlush = null;
 
     try {
+      // Save the timestamp before sending replay because `captureEvent` should
+      // only be called after successfully uploading a replay
+      const timestamp = lastActivity ?? new Date().getTime();
       const recordingData = await this.eventBuffer.finish();
       await this.sendReplay(this.session.id, recordingData);
+
       // The below will only happen after successfully sending replay //
 
       // TBD: Alternatively we could update this after every rrweb event
-      this.updateLastActivity(lastActivity);
+      // `timestamp` should reflect when the event happens. e.g. the timestamp
+      // of the event is passed as an argument in the case where a timeout
+      // occurs.
+      this.updateLastActivity(timestamp);
 
       captureEvent({
+        timestamp,
         message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
         tags: {
           replayId: this.session.id,
@@ -760,13 +779,6 @@ export class SentryReplay implements Integration {
     } catch (err) {
       console.error(err);
     }
-  }
-
-  /**
-   * Determine if there is browser support for `navigator.sendBeacon`
-   */
-  hasSendBeacon() {
-    return 'navigator' in window && 'sendBeacon' in window.navigator;
   }
 
   /**
@@ -783,7 +795,7 @@ export class SentryReplay implements Integration {
     formData.append('rrweb', payloadBlob, `rrweb-${new Date().getTime()}.json`);
 
     // If sendBeacon is supported and payload is smol enough...
-    if (this.hasSendBeacon() && payloadBlob.size <= 65535) {
+    if (supportsSendBeacon() && payloadBlob.size <= 65535) {
       logger.log(`uploading attachment via sendBeacon()`);
       window.navigator.sendBeacon(endpoint, formData);
       return;

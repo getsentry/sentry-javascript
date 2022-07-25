@@ -2,8 +2,10 @@ jest.unmock('@sentry/browser');
 
 // mock functions need to be imported first
 import { captureException } from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
 
+import * as CaptureReplay from '@/api/captureReplay';
 import { SentryReplay } from '@';
 import {
   SESSION_IDLE_DURATION,
@@ -24,6 +26,15 @@ describe('SentryReplay (capture only on error)', () => {
   >;
   let mockSendReplayRequest: MockSendReplayRequest;
   const { record: mockRecord } = mockRrweb();
+
+  jest.spyOn(CaptureReplay, 'captureReplay');
+  const captureReplayMock = CaptureReplay.captureReplay as jest.MockedFunction<
+    typeof CaptureReplay.captureReplay
+  >;
+  jest.spyOn(SentryCore, 'captureEvent');
+  const captureEventMock = SentryCore.captureEvent as jest.MockedFunction<
+    typeof SentryCore.captureEvent
+  >;
 
   beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
@@ -49,6 +60,7 @@ describe('SentryReplay (capture only on error)', () => {
   afterEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.clearSession();
+    replay.eventBuffer.destroy();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   });
 
@@ -206,5 +218,49 @@ describe('SentryReplay (capture only on error)', () => {
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
 
     mockSendReplayRequest.mockReset();
+  });
+
+  it('has the correct timestamps with deferred root event and last replay update', async () => {
+    // Mock `replay.sendReplayRequest` so that it takes 7 seconds to resolve
+    jest.spyOn(replay, 'sendReplayRequest');
+    (
+      replay.sendReplayRequest as jest.MockedFunction<
+        typeof replay.sendReplayRequest
+      >
+    ).mockImplementationOnce(() => {
+      return new Promise((resolve) => {
+        jest.advanceTimersByTime(7000);
+        resolve();
+      });
+    });
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveSentReplay();
+
+    jest.advanceTimersByTime(5000);
+
+    // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
+    captureException('testing');
+
+    // ugh...
+    await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
+
+    expect(captureReplayMock).toHaveBeenCalledWith(
+      expect.anything(), // TBD: We could assert session's last activity here
+      expect.objectContaining({
+        timestamp: BASE_TIMESTAMP,
+      })
+    );
+
+    expect(captureEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timestamp: BASE_TIMESTAMP + 5000, // the exception happened roughly 5 seconds after BASE_TIMESTAMP
+      })
+    );
+    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
   });
 });
