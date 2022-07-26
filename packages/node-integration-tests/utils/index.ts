@@ -161,7 +161,7 @@ export async function runServer(testDir: string, serverPath?: string, scenarioPa
     });
 
     const server = app.listen(port, () => {
-      resolve('');
+      resolve();
       setTimeout(() => {
         server.close();
       }, 4000);
