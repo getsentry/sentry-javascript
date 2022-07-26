@@ -68,7 +68,6 @@ export interface SentryEnhancerOptions<S = any> {
 
 const ACTION_BREADCRUMB_CATEGORY = 'redux.action';
 const ACTION_BREADCRUMB_TYPE = 'info';
-const STATE_CONTEXT_KEY = 'redux.state';
 
 const defaultOptions: SentryEnhancerOptions = {
   actionTransformer: action => action,
@@ -106,9 +105,9 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
           /* Set latest state to scope */
           const transformedState = options.stateTransformer(newState);
           if (typeof transformedState !== 'undefined' && transformedState !== null) {
-            scope.setContext(STATE_CONTEXT_KEY, transformedState);
+            scope.setContext('state', { type: 'redux', value: transformedState });
           } else {
-            scope.setContext(STATE_CONTEXT_KEY, null);
+            scope.setContext('state', null);
           }
 
           /* Allow user to configure scope with latest state */

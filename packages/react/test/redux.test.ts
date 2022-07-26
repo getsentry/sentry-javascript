@@ -63,8 +63,11 @@ describe('createReduxEnhancer', () => {
     const updateAction = { type: ACTION_TYPE, newValue: 'updated' };
     store.dispatch(updateAction);
 
-    expect(mockSetContext).toBeCalledWith('redux.state', {
-      value: 'updated',
+    expect(mockSetContext).toBeCalledWith('state', {
+      type: 'redux',
+      value: {
+        value: 'updated',
+      },
     });
   });
 
@@ -84,9 +87,12 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockSetContext).toBeCalledWith('redux.state', {
-        superSecret: 'REDACTED',
-        value: 123,
+      expect(mockSetContext).toBeCalledWith('state', {
+        type: 'redux',
+        value: {
+          superSecret: 'REDACTED',
+          value: 123,
+        },
       });
     });
 
@@ -103,7 +109,7 @@ describe('createReduxEnhancer', () => {
       Redux.createStore((state = initialState) => state, enhancer);
 
       // Check that state is cleared
-      expect(mockSetContext).toBeCalledWith('redux.state', null);
+      expect(mockSetContext).toBeCalledWith('state', null);
     });
 
     it('transforms actions', () => {
