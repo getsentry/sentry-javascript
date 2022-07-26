@@ -4,10 +4,10 @@ import { addExceptionMechanism, addRequestDataToEvent } from '@sentry/utils';
 import { NextPageContext } from 'next';
 
 type ContextOrProps = {
-  [key: string]: unknown;
   req?: NextPageContext['req'];
   res?: NextPageContext['res'];
   err?: NextPageContext['err'] | string;
+  pathname?: string;
   statusCode?: number;
 };
 
