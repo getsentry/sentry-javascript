@@ -57,13 +57,7 @@ export type WebpackConfigObject = {
     alias?: { [key: string]: string | boolean };
   };
   module?: {
-    rules: Array<{
-      test: string | RegExp;
-      use: Array<{
-        loader: string;
-        options: Record<string, unknown>;
-      }>;
-    }>;
+    rules: Array<WebpackModuleRule>;
   };
 } & {
   // other webpack options
@@ -98,3 +92,20 @@ export type EntryPropertyFunction = () => Promise<EntryPropertyObject>;
 // listed under the key `import`.
 export type EntryPointValue = string | Array<string> | EntryPointObject;
 export type EntryPointObject = { import: string | Array<string> };
+
+/**
+ * Webpack `module.rules` entry
+ */
+
+export type WebpackModuleRule = {
+  test?: string | RegExp;
+  include?: Array<string | RegExp> | RegExp;
+  exclude?: (filepath: string) => boolean;
+  use?: ModuleRuleUseProperty | Array<ModuleRuleUseProperty>;
+  oneOf?: Array<WebpackModuleRule>;
+};
+
+export type ModuleRuleUseProperty = {
+  loader?: string;
+  options?: Record<string, unknown>;
+};
