@@ -253,8 +253,8 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
   const isApp = 'settings' in appOrRouter;
 
   // In case the app's top-level router hasn't been initialized yet, we have to do it now
-  if (isApp && appOrRouter._router === undefined) {
-    appOrRouter.lazyrouter && appOrRouter.lazyrouter();
+  if (isApp && appOrRouter._router === undefined && appOrRouter.lazyrouter) {
+    appOrRouter.lazyrouter();
   }
 
   const router = isApp ? appOrRouter._router : appOrRouter;
@@ -270,17 +270,18 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
   ) {
     // Base case: We're in the first part of the URL (thus we start with the root '/')
     if (!req._reconstructedRoute) {
-      req._reconstructedRoute = '/';
+      req._reconstructedRoute = '';
     }
 
-    // If the layers partial route has params, it's stored in layer.route, else it's in layer.path
+    // If the layer's partial route has params, the route is stored in layer.route. Otherwise, the hardcoded path
+    // (i.e. a partial route without params) is stored in layer.path
     const partialRoute = layer.route?.path || layer.path || '';
 
     // Normalize the partial route so that it doesn't contain leading or trailing slashes
     // and exclude empty or '*' wildcard routes.
-    // The exclusion of '*' routes is our best effort of not "polluting" the transaction name
-    // with interim handlers (e.g. that check authentication or do other middleware stuff)
-    // We want to end up with the parameterized URL of the incoming request with nothing in between
+    // The exclusion of '*' routes is our best effort to not "pollute" the transaction name
+    // with interim handlers (e.g. ones that check authentication or do other middleware stuff).
+    // We want to end up with the parameterized URL of the incoming request without any extraneous path segments.
     const finalPartialRoute = partialRoute
       .split('/')
       .filter(segment => segment.length > 0 && !segment.includes('*'))
@@ -288,18 +289,21 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
     // If we found a valid partial URL, we append it to the reconstructed route
     if (finalPartialRoute.length > 0) {
-      req._reconstructedRoute += `${finalPartialRoute}/`;
+      req._reconstructedRoute += `/${finalPartialRoute}`;
     }
 
     // Now we check if we are in the "last" part of the route. We determine this by comparing the
-    // numbers of URL segments from the original URL against our reconstructed parameterized URL.
-    // In case we've reached our final destination, we update the transaction name.
+    // number of URL segments from the original URL to that of our reconstructed parameterized URL.
+    // If we've reached our final destination, we update the transaction name.
     const urlLength = req.originalUrl?.split('/').filter(s => s.length > 0).length;
     const routeLength = req._reconstructedRoute.split('/').filter(s => s.length > 0).length;
     if (urlLength === routeLength) {
       const transaction = res.__sentry_transaction;
       if (transaction && transaction.metadata.source !== 'custom') {
-        const finalRoute = req._reconstructedRoute.replace(/\/$/, '');
+        // If the request URL is '/' or empty, the reconstructed route will be empty.
+        // Therefore, we fall back to setting the final route to '/' in this case.
+        const finalRoute = req._reconstructedRoute || '/';
+
         transaction.setName(...extractPathForTransaction(req, { path: true, method: true }, finalRoute));
       }
     }
