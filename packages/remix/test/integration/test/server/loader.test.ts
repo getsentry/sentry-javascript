@@ -1,4 +1,4 @@
-import { assertSentryTransaction, getEnvelopeRequest } from '../../../../../node-integration-tests/utils';
+import { assertSentryTransaction, getEnvelopeRequest } from './utils/helpers';
 
 describe('Remix API Loaders', () => {
   it('correctly instruments a Remix API loader', async () => {
