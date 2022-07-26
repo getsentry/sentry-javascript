@@ -60,7 +60,10 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "run-s test:unit",
-    "test:integration": "cd test/integration && yarn && yarn test",
+    "test:integration": "run-s test:integration:prepare test:integration:client test:integration:server",
+    "test:integration:prepare": "(cd test/integration && yarn)",
+    "test:integration:client": "yarn playwright install-deps && yarn playwright test test/integration/test/client/",
+    "test:integration:server": "jest --config=test/integration/jest.config.js test/integration/test/server/",
     "test:unit": "jest",
     "test:watch": "jest --watch"
   },

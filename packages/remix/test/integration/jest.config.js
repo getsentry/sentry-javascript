@@ -1,8 +1,9 @@
 const baseConfig = require('../../jest.config.js');
 
 module.exports = {
-  globalSetup: '<rootDir>/test/server/utils/test-setup.ts',
-  globalTeardown: '<rootDir>/test/server/utils/test-teardown.ts',
   ...baseConfig,
-  testMatch: ['<rootDir>/test/server/**/*.test.ts'],
+  globalSetup: `${__dirname}/test/server/utils/test-setup.ts`,
+  globalTeardown: `${__dirname}/test/server/utils/test-teardown.ts`,
+  testMatch: [`${__dirname}/test/server/**/*.test.ts`],
+  testPathIgnorePatterns: [`${__dirname}/test/client`],
 };
