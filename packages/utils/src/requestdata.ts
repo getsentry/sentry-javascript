@@ -133,15 +133,14 @@ export function addRequestDataToTransaction(
  * eg. GET /mountpoint/user/:id
  *
  * @param req A request object
- * @param options What to include in the transaction name (method, path, or both)
- * @param customRoute An optional string that should be used as transaction name instead of the requests path
+ * @param options What to include in the transaction name (method, path, or a custom route name to be
+ *                used instead of the request's route)
  *
- * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either route or url)
+ * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
  */
 export function extractPathForTransaction(
   req: CrossPlatformRequest,
-  options: { path?: boolean; method?: boolean } = {},
-  customRoute?: string,
+  options: { path?: boolean; method?: boolean; customRoute?: string } = {},
 ): [string, TransactionSource] {
   const method = req.method && req.method.toUpperCase();
 
@@ -149,8 +148,8 @@ export function extractPathForTransaction(
   let source: TransactionSource = 'url';
 
   // Check to see if there's a parameterized route we can use (as there is in Express)
-  if (customRoute || req.route) {
-    path = customRoute || `${req.baseUrl || ''}${req.route && req.route.path}`;
+  if (options.customRoute || req.route) {
+    path = options.customRoute || `${req.baseUrl || ''}${req.route && req.route.path}`;
     source = 'route';
   }
 

@@ -572,7 +572,11 @@ describe('extractPathForTransaction', () => {
       originalUrl: '/api/users/123/details',
     } as CrossPlatformRequest;
 
-    const [route, source] = extractPathForTransaction(req, { path: true, method: true }, '/other/path/:id/details');
+    const [route, source] = extractPathForTransaction(req, {
+      path: true,
+      method: true,
+      customRoute: '/other/path/:id/details',
+    });
 
     expect(route).toEqual('GET /other/path/:id/details');
     expect(source).toEqual('route');
