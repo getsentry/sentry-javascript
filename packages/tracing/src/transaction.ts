@@ -42,7 +42,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this.metadata = transactionContext.metadata || {};
+    this.metadata = {
+      ...transactionContext.metadata,
+      spanMetadata: {},
+    };
+
     this._trimEnd = transactionContext.trimEnd;
 
     // this is because transactions are also spans, and spans have a transaction pointer
@@ -89,7 +93,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public setMetadata(newMetadata: TransactionMetadata): void {
+  public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
     this.metadata = { ...this.metadata, ...newMetadata };
   }
 
