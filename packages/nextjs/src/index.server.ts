@@ -7,6 +7,7 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { isBuild } from './utils/isBuild';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
 import { addIntegration } from './utils/userIntegrations';
@@ -20,23 +21,6 @@ export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/reac
 
 type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
-
-// During build, the main process is invoked by
-//   `node next build`
-// and child processes are invoked as
-//   `node <path>/node_modules/.../jest-worker/processChild.js`.
-// The former is (obviously) easy to recognize, but the latter could happen at runtime as well. Fortunately, the main
-// process hits this file before any of the child processes do, so we're able to set an env variable which the child
-// processes can then check. During runtime, the main process is invoked as
-//   `node next start`
-// or
-//   `node /var/runtime/index.js`,
-// so we never drop into the `if` in the first place.
-let isBuild = false;
-if (process.argv.includes('build') || process.env.SENTRY_BUILD_PHASE) {
-  process.env.SENTRY_BUILD_PHASE = 'true';
-  isBuild = true;
-}
 
 const isVercel = !!process.env.VERCEL;
 
@@ -140,12 +124,13 @@ function addServerIntegrations(options: NextjsOptions): void {
 export type { SentryWebpackPluginOptions } from './config/types';
 export { withSentryConfig } from './config';
 export { withSentry } from './utils/withSentry';
+export { isBuild } from './utils/isBuild';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
-if (!isVercel && !isBuild) {
+if (!isVercel && !isBuild()) {
   // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
   // In environments where the JS file doesn't exist, such as testing, import the TS file.
   try {
