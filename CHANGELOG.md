@@ -10,6 +10,7 @@
 - feat(remix): Set sentry-trace and baggage <meta> tags on server-side (#5440)
 - feat(tracing): Allow storing span metadata (#5464)
 - fix(nextjs): Add transpileClientSDK option (#5472)
+- fix(nextjs): Move userNextConfig.sentry to closure (#5473)
 - fix(nextjs): Remove index signaure in `captureUnderscoreErrorException` argument type (#5463)
 - fix(nextjs): Stop using `eval` when checking for `sentry-cli` binary (#5447)
 - fix(remix): Clone erroneous responses not to consume their body streams. (#5429)
@@ -20,7 +21,6 @@
 - ref(nextjs): Use loader to set `RewriteFrames` helper value (#5445)
 - ref(node): Improve Express URL Parameterization (#5450)
 - ref(utils): Improve uuid generation (#5426)
-
 Work in this release contributed by @mitchheddles. Thank you for your contribution!
 
 ## 7.7.0
