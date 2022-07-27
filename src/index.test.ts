@@ -402,7 +402,7 @@ describe('SentryReplay', () => {
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(captureEventMock).not.toHaveBeenCalled();
+    expect(captureEventMock).toHaveBeenCalledTimes(1); // root replay event
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
@@ -410,6 +410,7 @@ describe('SentryReplay', () => {
     // console messages in case an error happens after
     mockConsole.mockClear();
 
+    captureEventMock.mockReset();
     mockSendReplayRequest.mockReset();
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');

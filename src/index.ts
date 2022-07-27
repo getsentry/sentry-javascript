@@ -1,9 +1,5 @@
-import {
-  addGlobalEventProcessor,
-  captureEvent,
-  getCurrentHub,
-} from '@sentry/core';
-import { addInstrumentationHandler, uuid4 } from '@sentry/utils';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
+import { addInstrumentationHandler } from '@sentry/utils';
 import { DsnComponents, Event, Integration, Breadcrumb } from '@sentry/types';
 
 import { EventType, record } from 'rrweb';
@@ -39,6 +35,7 @@ import createBreadcrumb from './util/createBreadcrumb';
 import { Session } from './session/Session';
 import { captureReplay } from './api/captureReplay';
 import { supportsSendBeacon } from './util/supportsSendBeacon';
+import { captureReplayUpdate } from './api/captureReplayUpdate';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -788,14 +785,7 @@ export class SentryReplay implements Integration {
       // occurs.
       this.updateLastActivity(timestamp);
 
-      captureEvent({
-        timestamp,
-        message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
-        tags: {
-          replayId: this.session.id,
-          segmentId: this.session.segmentId++,
-        },
-      });
+      captureReplayUpdate(this.session, timestamp);
     } catch (err) {
       console.error(err);
     }
