@@ -200,6 +200,7 @@ async function materializeFinalWebpackConfig(options: {
   const webpackConfigFunction = constructWebpackConfigFunction(
     materializedUserNextConfig,
     userSentryWebpackPluginConfig,
+    materializedUserNextConfig.sentry,
   );
 
   // call it to get concrete values for comparison
@@ -870,9 +871,11 @@ describe('Sentry webpack plugin config', () => {
       [getBuildContext('server', {}, '4'), '.next'],
       [getBuildContext('server', {}, '5'), '.next'],
     ])('`distDir` is not defined', (buildContext: BuildContext, expectedDistDir) => {
-      const includePaths = getWebpackPluginOptions(buildContext, {
-        /** userPluginOptions */
-      }).include as { paths: [] }[];
+      const includePaths = getWebpackPluginOptions(
+        buildContext,
+        {}, // userPluginOptions
+        {}, // userSentryOptions
+      ).include as { paths: [] }[];
 
       for (const pathDescriptor of includePaths) {
         for (const path of pathDescriptor.paths) {
@@ -887,9 +890,11 @@ describe('Sentry webpack plugin config', () => {
       [getBuildContext('server', { distDir: 'tmpDir' }, '4'), 'tmpDir'],
       [getBuildContext('server', { distDir: 'tmpDir' }, '5'), 'tmpDir'],
     ])('`distDir` is defined', (buildContext: BuildContext, expectedDistDir) => {
-      const includePaths = getWebpackPluginOptions(buildContext, {
-        /** userPluginOptions */
-      }).include as { paths: [] }[];
+      const includePaths = getWebpackPluginOptions(
+        buildContext,
+        {}, // userPluginOptions
+        {}, // userSentryOptions
+      ).include as { paths: [] }[];
 
       for (const pathDescriptor of includePaths) {
         for (const path of pathDescriptor.paths) {
