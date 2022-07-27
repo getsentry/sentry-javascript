@@ -6,9 +6,12 @@
 
 ## 7.8.0
 
+This release adds the `transpileClientSDK` flag to the Next.JS SDK Webpack config. This option makes WebPack transpile the SDK code to the same transpilation level as the user code. By specifying this option, the Next.JS SDK works in older browsers that do not support ES6 or ES6+ (e.g. object spread) features.
+
 - feat(react): Use state context for Redux integration (#5471)
 - feat(remix): Set sentry-trace and baggage <meta> tags on server-side (#5440)
 - feat(tracing): Allow storing span metadata (#5464)
+- feat(tracing): Log start and end of span (#5446)
 - fix(nextjs): Add transpileClientSDK option (#5472)
 - fix(nextjs): Move userNextConfig.sentry to closure (#5473)
 - fix(nextjs): Remove index signaure in `captureUnderscoreErrorException` argument type (#5463)
@@ -21,6 +24,7 @@
 - ref(nextjs): Use loader to set `RewriteFrames` helper value (#5445)
 - ref(node): Improve Express URL Parameterization (#5450)
 - ref(utils): Improve uuid generation (#5426)
+
 Work in this release contributed by @mitchheddles. Thank you for your contribution!
 
 ## 7.7.0
