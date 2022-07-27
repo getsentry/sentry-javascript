@@ -1,6 +1,6 @@
 import { getModule } from '../src/module';
 
-function reaplaceFilename(fn: () => void, filename: string) {
+function withFilename(fn: () => void, filename: string) {
   const prevFilename = require.main?.filename;
   if (require.main?.filename) {
     require.main.filename = filename;
@@ -17,13 +17,13 @@ function reaplaceFilename(fn: () => void, filename: string) {
 
 describe('getModule', () => {
   test('Windows', async () => {
-    reaplaceFilename(() => {
+    withFilename(() => {
       expect(getModule('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js')).toEqual('module');
     }, 'C:\\Users\\Tim\\app.js');
   });
 
   test('POSIX', async () => {
-    reaplaceFilename(() => {
+    withFilename(() => {
       expect(getModule('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
     }, '/Users/Tim/app.js');
   });
