@@ -605,4 +605,4 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           cd packages/remix
-          yarn test:integration
+          yarn test:integration:ci
