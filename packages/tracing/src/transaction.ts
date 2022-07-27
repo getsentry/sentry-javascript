@@ -246,10 +246,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const { publicKey: public_key } = client.getDsn() || {};
 
     const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
-    const sample_rate =
-      rate !== undefined
-        ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
-        : undefined;
+    const sample_rate = rate !== undefined ? JSON.stringify(rate) : undefined;
 
     const scope = hub.getScope();
     const { segment: user_segment } = (scope && scope.getUser()) || {};
