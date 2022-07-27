@@ -23,7 +23,7 @@ export type NextConfigObject = {
     hideSourceMaps?: boolean;
 
     // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
-    // older browsers which don't support ES6 (and ES6+ features like object spread).
+    // older browsers which don't support ES6 (or ES6+ features like object spread).
     transpileClientSDK?: boolean;
     // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
     // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
