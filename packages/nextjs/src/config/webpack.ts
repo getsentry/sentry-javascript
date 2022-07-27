@@ -13,6 +13,7 @@ import {
   WebpackConfigFunction,
   WebpackConfigObject,
   WebpackEntryProperty,
+  WebpackModuleRule,
 } from './types';
 
 export { SentryWebpackPlugin };
@@ -41,7 +42,7 @@ export function constructWebpackConfigFunction(
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
-    const { isServer, dev: isDev } = buildContext;
+    const { isServer, dev: isDev, dir: projectDir } = buildContext;
     let newConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
@@ -71,6 +72,34 @@ export function constructWebpackConfigFunction(
           },
         ],
       };
+    }
+
+    // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
+    // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
+    // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
+    // fairly massively.
+    if (!isServer && userNextConfig.sentry?.transpileClientSDK) {
+      // Find all loaders which apply transpilation to user code
+      const transpilationRules = findTranspilationRules(newConfig.module?.rules, projectDir);
+
+      // For each matching rule, wrap its `exclude` function so that it won't exclude SDK files, even though they're in
+      // `node_modules` (which is otherwise excluded)
+      transpilationRules.forEach(rule => {
+        // All matching rules will necessarily have an `exclude` property, but this keeps TS happy
+        if (rule.exclude && typeof rule.exclude === 'function') {
+          const origExclude = rule.exclude;
+
+          const newExclude = (filepath: string): boolean => {
+            if (filepath.includes('@sentry')) {
+              // `false` in this case means "don't exclude it"
+              return false;
+            }
+            return origExclude(filepath);
+          };
+
+          rule.exclude = newExclude;
+        }
+      });
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
@@ -122,6 +151,72 @@ export function constructWebpackConfigFunction(
   };
 
   return newWebpackFunction;
+}
+
+/**
+ * Determine if this `module.rules` entry is one which will transpile user code
+ *
+ * @param rule The rule to check
+ * @param projectDir The path to the user's project directory
+ * @returns True if the rule transpiles user code, and false otherwise
+ */
+function isMatchingRule(rule: WebpackModuleRule, projectDir: string): boolean {
+  // We want to run our SDK code through the same transformations the user's code will go through, so we test against a
+  // sample user code path
+  const samplePagePath = path.resolve(projectDir, 'pageFile.js');
+  if (rule.test && rule.test instanceof RegExp && !rule.test.test(samplePagePath)) {
+    return false;
+  }
+  if (Array.isArray(rule.include) && !rule.include.includes(projectDir)) {
+    return false;
+  }
+
+  // `rule.use` can be an object or an array of objects. For simplicity, force it to be an array.
+  const useEntries = Array.isArray(rule.use) ? rule.use : [rule.use];
+
+  // Depending on the version of nextjs we're talking about, the loader which does the transpiling is either
+  //
+  //   'next-babel-loader' (next 10),
+  //   '/abs/path/to/node_modules/next/more/path/babel/even/more/path/loader/yet/more/path/index.js' (next 11), or
+  //   'next-swc-loader' (next 12).
+  //
+  // The next 11 option is ugly, but thankfully 'next', 'babel', and 'loader' do appear in it in the same order as in
+  // 'next-babel-loader', so we can use the same regex to test for both.
+  if (!useEntries.some(entry => entry?.loader && new RegExp('next.*(babel|swc).*loader').test(entry.loader))) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Find all rules in `module.rules` which transpile user code.
+ *
+ * @param rules The `module.rules` value
+ * @param projectDir The path to the user's project directory
+ * @returns An array of matching rules
+ */
+function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectDir: string): WebpackModuleRule[] {
+  if (!rules) {
+    return [];
+  }
+
+  const matchingRules: WebpackModuleRule[] = [];
+
+  // Each entry in `module.rules` is either a rule in and of itself or an object with a `oneOf` property, whose value is
+  // an array of rules
+  rules.forEach(rule => {
+    // if (rule.oneOf) {
+    if (isMatchingRule(rule, projectDir)) {
+      matchingRules.push(rule);
+    } else if (rule.oneOf) {
+      const matchingOneOfRules = rule.oneOf.filter(oneOfRule => isMatchingRule(oneOfRule, projectDir));
+      matchingRules.push(...matchingOneOfRules);
+      // } else if (isMatchingRule(rule, projectDir)) {
+    }
+  });
+
+  return matchingRules;
 }
 
 /**

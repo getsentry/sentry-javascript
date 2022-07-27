@@ -22,6 +22,9 @@ export type NextConfigObject = {
     disableClientWebpackPlugin?: boolean;
     hideSourceMaps?: boolean;
 
+    // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
+    // older browsers which don't support ES6 (or ES6+ features like object spread).
+    transpileClientSDK?: boolean;
     // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
     // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
     // plugin's upload breaks sourcemaps for those user-code-containing files, because it keeps them from being
@@ -57,13 +60,7 @@ export type WebpackConfigObject = {
     alias?: { [key: string]: string | boolean };
   };
   module?: {
-    rules: Array<{
-      test: string | RegExp;
-      use: Array<{
-        loader: string;
-        options: Record<string, unknown>;
-      }>;
-    }>;
+    rules: Array<WebpackModuleRule>;
   };
 } & {
   // other webpack options
@@ -98,3 +95,20 @@ export type EntryPropertyFunction = () => Promise<EntryPropertyObject>;
 // listed under the key `import`.
 export type EntryPointValue = string | Array<string> | EntryPointObject;
 export type EntryPointObject = { import: string | Array<string> };
+
+/**
+ * Webpack `module.rules` entry
+ */
+
+export type WebpackModuleRule = {
+  test?: string | RegExp;
+  include?: Array<string | RegExp> | RegExp;
+  exclude?: (filepath: string) => boolean;
+  use?: ModuleRuleUseProperty | Array<ModuleRuleUseProperty>;
+  oneOf?: Array<WebpackModuleRule>;
+};
+
+export type ModuleRuleUseProperty = {
+  loader?: string;
+  options?: Record<string, unknown>;
+};
