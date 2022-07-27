@@ -42,7 +42,7 @@ export function constructWebpackConfigFunction(
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
   const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
-    const { isServer, dev: isDev } = buildContext;
+    const { isServer, dev: isDev, dir: projectDir } = buildContext;
     let newConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
@@ -72,6 +72,34 @@ export function constructWebpackConfigFunction(
           },
         ],
       };
+    }
+
+    // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
+    // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
+    // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
+    // fairly massively.
+    if (!isServer && userNextConfig.sentry?.transpileClientSDK) {
+      // Find all loaders which apply transpilation to user code
+      const transpilationRules = findTranspilationRules(newConfig.module?.rules, projectDir);
+
+      // For each matching rule, wrap its `exclude` function so that it won't exclude SDK files, even though they're in
+      // `node_modules` (which is otherwise excluded)
+      transpilationRules.forEach(rule => {
+        // All matching rules will necessarily have an `exclude` property, but this keeps TS happy
+        if (rule.exclude && typeof rule.exclude === 'function') {
+          const origExclude = rule.exclude;
+
+          const newExclude = (filepath: string): boolean => {
+            if (filepath.includes('@sentry')) {
+              // `false` in this case means "don't exclude it"
+              return false;
+            }
+            return origExclude(filepath);
+          };
+
+          rule.exclude = newExclude;
+        }
+      });
     }
 
     // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
