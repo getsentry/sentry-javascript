@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { Event } from '@sentry/types';
 
 test('should add `pageload` transaction on load.', async ({ page }) => {
-  const envelope = await getFirstSentryEnvelopeRequest<Event>(page, 'http://localhost:3000');
+  const envelope = await getFirstSentryEnvelopeRequest<Event>(page, '/');
 
   expect(envelope.contexts?.trace.op).toBe('pageload');
   expect(envelope.tags?.['routing.instrumentation']).toBe('remix-router');
