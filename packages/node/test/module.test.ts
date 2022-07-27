@@ -16,13 +16,13 @@ function withFilename(fn: () => void, filename: string) {
 }
 
 describe('getModule', () => {
-  test('Windows', async () => {
+  test('Windows', () => {
     withFilename(() => {
       expect(getModule('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js')).toEqual('module');
     }, 'C:\\Users\\Tim\\app.js');
   });
 
-  test('POSIX', async () => {
+  test('POSIX', () => {
     withFilename(() => {
       expect(getModule('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
     }, '/Users/Tim/app.js');

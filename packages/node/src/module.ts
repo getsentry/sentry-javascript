@@ -1,7 +1,7 @@
 import { basename, dirname } from '@sentry/utils';
 
 /** normalizes Windows paths */
-function normalisePath(path: string): string {
+function normalizePath(path: string): string {
   return path
     .replace(/^[A-Z]:/, '') // remove Windows-style prefix
     .replace(/\\/g, '/'); // replace all `\` instances with `/`
@@ -13,10 +13,10 @@ export function getModule(filename: string | undefined): string | undefined {
     return;
   }
 
-  const normalizedFilename = normalisePath(filename);
+  const normalizedFilename = normalizePath(filename);
 
   // We could use optional chaining here but webpack does like that mixed with require
-  const base = normalisePath(
+  const base = normalizePath(
     `${(require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()}/`,
   );
 
