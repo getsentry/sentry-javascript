@@ -17,24 +17,27 @@ export type NextConfigObject = {
   target: 'server' | 'experimental-serverless-trace';
   // the output directory for the built app (defaults to ".next")
   distDir: string;
-  sentry?: {
-    disableServerWebpackPlugin?: boolean;
-    disableClientWebpackPlugin?: boolean;
-    hideSourceMaps?: boolean;
-
-    // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
-    // older browsers which don't support ES6 (or ES6+ features like object spread).
-    transpileClientSDK?: boolean;
-    // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
-    // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
-    // plugin's upload breaks sourcemaps for those user-code-containing files, because it keeps them from being
-    // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
-    // up uploading too many files, which is why this defaults to `false`.
-    widenClientFileUpload?: boolean;
-  };
+  sentry?: UserSentryOptions;
 } & {
   // other `next.config.js` options
   [key: string]: unknown;
+};
+
+export type UserSentryOptions = {
+  disableServerWebpackPlugin?: boolean;
+  disableClientWebpackPlugin?: boolean;
+  hideSourceMaps?: boolean;
+
+  // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
+  // older browsers which don't support ES6 (or ES6+ features like object spread).
+  transpileClientSDK?: boolean;
+
+  // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
+  // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
+  // plugin's upload breaks sourcemaps for those user-code-containing files, because it keeps them from being
+  // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
+  // up uploading too many files, which is why this defaults to `false`.
+  widenClientFileUpload?: boolean;
 };
 
 export type NextConfigFunction = (

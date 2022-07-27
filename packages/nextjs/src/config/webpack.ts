@@ -10,6 +10,7 @@ import {
   EntryPropertyObject,
   NextConfigObject,
   SentryWebpackPluginOptions,
+  UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
   WebpackEntryProperty,
@@ -37,6 +38,7 @@ export { SentryWebpackPlugin };
 export function constructWebpackConfigFunction(
   userNextConfig: Partial<NextConfigObject> = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
+  userSentryOptions: UserSentryOptions = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -122,9 +124,7 @@ export function constructWebpackConfigFunction(
       // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
       // try to build their apps.)
       ensureCLIBinaryExists() &&
-      (isServer
-        ? !userNextConfig.sentry?.disableServerWebpackPlugin
-        : !userNextConfig.sentry?.disableClientWebpackPlugin);
+      (isServer ? !userSentryOptions.disableServerWebpackPlugin : !userSentryOptions.disableClientWebpackPlugin);
 
     if (enableWebpackPlugin) {
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
@@ -138,12 +138,14 @@ export function constructWebpackConfigFunction(
         // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
         // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
         // without, the option to use `hidden-source-map` only applies to the client-side build.
-        newConfig.devtool = userNextConfig.sentry?.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
+        newConfig.devtool = userSentryOptions.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
       }
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        new SentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions)),
+        new SentryWebpackPlugin(
+          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
+        ),
       );
     }
 
@@ -381,6 +383,7 @@ function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean):
 export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
+  userSentryOptions: UserSentryOptions,
 ): SentryWebpackPluginOptions {
   const { buildId, isServer, webpack, config: userNextConfig, dev: isDev, dir: projectDir } = buildContext;
   const distDir = userNextConfig.distDir ?? '.next'; // `.next` is the default directory
@@ -396,14 +399,14 @@ export function getWebpackPluginOptions(
         isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
-  const clientInclude = userNextConfig.sentry?.widenClientFileUpload
+  const clientInclude = userSentryOptions.widenClientFileUpload
     ? [{ paths: [`${distDir}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
     : [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
     ignore:
-      isServer || !userNextConfig.sentry?.widenClientFileUpload
+      isServer || !userSentryOptions.widenClientFileUpload
         ? []
         : // Widening the upload scope is necessarily going to lead to us uploading files we don't need to (ones which
           // don't include any user code). In order to lessen that where we can, exclude the internal nextjs files we know
