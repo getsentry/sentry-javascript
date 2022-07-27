@@ -1,6 +1,6 @@
-import { RecordingEvent, WorkerResponse } from './types';
 import { logger } from './util/logger';
 import workerString from './worker/worker.js';
+import { RecordingEvent, WorkerResponse } from './types';
 
 interface CreateEventBufferParams {
   useCompression: boolean;

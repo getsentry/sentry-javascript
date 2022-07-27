@@ -3,8 +3,8 @@ jest.unmock('@sentry/browser');
 import { BrowserOptions, init } from '@sentry/browser';
 import { Transport } from '@sentry/types';
 
-import { SentryReplayConfiguration } from '@/types';
 import { SentryReplay } from '@';
+import { SentryReplayConfiguration } from '@/types';
 
 interface MockSdkParams {
   replayOptions?: SentryReplayConfiguration;

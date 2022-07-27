@@ -1,4 +1,5 @@
 import { Session } from '@/session/Session';
+
 import { isSessionExpired } from './isSessionExpired';
 
 function createSession(extra?: Record<string, any>) {

@@ -1,6 +1,6 @@
-import { defineConfig } from 'rollup';
 import replace from '@rollup/plugin-replace';
 import typescript from '@rollup/plugin-typescript';
+import { defineConfig } from 'rollup';
 
 import pkg from '../package.json';
 

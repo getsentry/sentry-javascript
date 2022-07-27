@@ -1,6 +1,7 @@
 jest.mock('./saveSession');
 
 import * as Sentry from '@sentry/browser';
+
 import { saveSession } from './saveSession';
 import { Session } from './Session';
 

@@ -1,4 +1,5 @@
-import { Scope, Breadcrumb } from '@sentry/types';
+import { Breadcrumb, Scope } from '@sentry/types';
+
 import * as HandleScope from './handleScope';
 
 jest.spyOn(HandleScope, 'handleScope');

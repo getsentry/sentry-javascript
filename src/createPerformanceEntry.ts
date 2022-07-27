@@ -1,4 +1,5 @@
 import { record } from 'rrweb';
+
 import { isIngestHost } from './util/isIngestHost';
 
 export interface ReplayPerformanceEntry {

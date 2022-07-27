@@ -1,4 +1,4 @@
-import { Deflate, constants } from 'pako';
+import { constants, Deflate } from 'pako';
 
 export class Compressor {
   /**

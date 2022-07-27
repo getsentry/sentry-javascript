@@ -1,11 +1,10 @@
 // mock functions need to be imported first
-import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
-
-import * as SentryUtils from '@sentry/utils';
 import * as SentryCore from '@sentry/core';
-import * as CaptureReplay from '@/api/captureReplay';
+import * as SentryUtils from '@sentry/utils';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
 import { SentryReplay } from '@';
+import * as CaptureReplay from '@/api/captureReplay';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,

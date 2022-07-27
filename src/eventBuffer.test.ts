@@ -1,8 +1,10 @@
 import { BASE_TIMESTAMP } from '@test';
-import { createEventBuffer, EventBufferCompressionWorker } from './eventBuffer';
-import { handleMessage } from '../worker/src/handleMessage';
-import { WorkerRequest, WorkerResponse } from './types';
 import pako from 'pako';
+
+import { handleMessage } from '../worker/src/handleMessage';
+
+import { createEventBuffer, EventBufferCompressionWorker } from './eventBuffer';
+import { WorkerRequest, WorkerResponse } from './types';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 

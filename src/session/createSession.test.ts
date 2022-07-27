@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/core';
+
 import { createSession } from './createSession';
 import { saveSession } from './saveSession';
 

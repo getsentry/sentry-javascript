@@ -1,4 +1,5 @@
 import pako from 'pako';
+
 import { Compressor } from './Compressor';
 
 it('compresses multiple events', function () {

@@ -1,7 +1,7 @@
 // mock functions need to be imported first
-import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
-
 import * as SentryUtils from '@sentry/utils';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
+
 import { SentryReplay } from '@';
 import {
   SESSION_IDLE_DURATION,

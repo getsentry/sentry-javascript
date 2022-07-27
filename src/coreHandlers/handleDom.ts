@@ -1,6 +1,6 @@
+import { htmlTreeAsString } from '@sentry/utils';
 import { record } from 'rrweb';
 
-import { htmlTreeAsString } from '@sentry/utils';
 import createBreadcrumb from '@/util/createBreadcrumb';
 
 export function handleDom(handlerData: any) {

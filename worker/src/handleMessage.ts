@@ -1,5 +1,6 @@
-import { Compressor } from './Compressor';
 import { WorkerRequest } from '../../src/types';
+
+import { Compressor } from './Compressor';
 
 const compressor = new Compressor();
 

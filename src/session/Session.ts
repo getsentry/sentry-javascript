@@ -1,5 +1,7 @@
-import { isSampled } from '@/util/isSampled';
 import { uuid4 } from '@sentry/utils';
+
+import { isSampled } from '@/util/isSampled';
+
 import { saveSession } from './saveSession';
 
 interface SessionObject {

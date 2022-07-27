@@ -1,4 +1,5 @@
 import { Session } from '@/session/Session';
+
 import { isExpired } from './isExpired';
 
 /**

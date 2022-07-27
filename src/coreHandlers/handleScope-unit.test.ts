@@ -1,6 +1,7 @@
-import * as HandleScope from './handleScope';
-import { mockSdk } from '@test';
 import { getCurrentHub } from '@sentry/core';
+import { mockSdk } from '@test';
+
+import * as HandleScope from './handleScope';
 
 let mockHandleScope: jest.MockedFunction<typeof HandleScope.handleScope>;
 

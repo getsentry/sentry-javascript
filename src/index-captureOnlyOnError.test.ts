@@ -3,10 +3,10 @@ jest.unmock('@sentry/browser');
 // mock functions need to be imported first
 import { captureException } from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
-import { BASE_TIMESTAMP, mockSdk, mockRrweb } from '@test';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import * as CaptureReplay from '@/api/captureReplay';
 import { SentryReplay } from '@';
+import * as CaptureReplay from '@/api/captureReplay';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
