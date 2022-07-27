@@ -45,7 +45,7 @@ it('creates a new session with sticky sessions', function () {
   expect(saveSession).toHaveBeenCalledWith(
     expect.objectContaining({
       id: 'test_session_id',
-      sequenceId: 0,
+      segmentId: 0,
       started: expect.any(Number),
       lastActivity: expect.any(Number),
     })

@@ -10,7 +10,7 @@ export function captureReplay(session: Session, initialState: InitialState) {
   hub.captureEvent(
     {
       message: ROOT_REPLAY_NAME,
-      tags: { sequenceId: session.sequenceId, url: initialState.url },
+      tags: { segmentId: session.segmentId, url: initialState.url },
       timestamp: initialState.timestamp,
     },
     { event_id: session.id }

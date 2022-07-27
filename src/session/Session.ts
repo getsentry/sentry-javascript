@@ -16,9 +16,9 @@ interface SessionObject {
   lastActivity: number;
 
   /**
-   * Sequence ID specific to replay updates
+   * Segment ID for replay events
    */
-  sequenceId: number;
+  segmentId: number;
 
   /**
    * Is the session sampled?
@@ -50,7 +50,7 @@ export class Session {
   /**
    * Sequence ID specific to replay updates
    */
-  private _sequenceId;
+  private _segmentId;
 
   /**
    * Previous session ID
@@ -72,7 +72,7 @@ export class Session {
     this._id = session.id || uuid4();
     this._started = session.started ?? now;
     this._lastActivity = session.lastActivity ?? now;
-    this._sequenceId = session.sequenceId ?? 0;
+    this._segmentId = session.segmentId ?? 0;
     this._sampled = session.sampled ?? isSampled(samplingRate);
 
     this.options = {
@@ -99,12 +99,12 @@ export class Session {
     }
   }
 
-  get sequenceId() {
-    return this._sequenceId;
+  get segmentId() {
+    return this._segmentId;
   }
 
-  set sequenceId(id: number) {
-    this._sequenceId = id;
+  set segmentId(id: number) {
+    this._segmentId = id;
     if (this.options.stickySession) {
       saveSession(this);
     }
@@ -131,7 +131,7 @@ export class Session {
       id: this.id,
       started: this.started,
       lastActivity: this.lastActivity,
-      sequenceId: this._sequenceId,
+      segmentId: this._segmentId,
       sampled: this._sampled,
     } as SessionObject;
   }

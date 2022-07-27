@@ -14,7 +14,7 @@ jest.mock('@sentry/utils', () => {
 function createMockSession(when: number = new Date().getTime()) {
   return new Session({
     id: 'test_session_id',
-    sequenceId: 0,
+    segmentId: 0,
     lastActivity: when,
     started: when,
   });
@@ -40,7 +40,7 @@ it('creates a non-sticky session when one does not exist', function () {
 
   expect(session.toJSON()).toEqual({
     id: 'test_session_id',
-    sequenceId: 0,
+    segmentId: 0,
     lastActivity: expect.any(Number),
     sampled: true,
     started: expect.any(Number),
@@ -69,7 +69,7 @@ it('creates a non-sticky session, when one is expired', function () {
       id: 'old_session_id',
       lastActivity: new Date().getTime() - 1001,
       started: new Date().getTime() - 1001,
-      sequenceId: 0,
+      segmentId: 0,
     }),
   });
 
@@ -90,7 +90,7 @@ it('creates a sticky session when one does not exist', function () {
 
   expect(session.toJSON()).toEqual({
     id: 'test_session_id',
-    sequenceId: 0,
+    segmentId: 0,
     lastActivity: expect.any(Number),
     sampled: true,
     started: expect.any(Number),
@@ -99,7 +99,7 @@ it('creates a sticky session when one does not exist', function () {
   // Should not have anything in storage
   expect(FetchSession.fetchSession().toJSON()).toEqual({
     id: 'test_session_id',
-    sequenceId: 0,
+    segmentId: 0,
     lastActivity: expect.any(Number),
     sampled: true,
     started: expect.any(Number),
@@ -117,7 +117,7 @@ it('fetches an existing sticky session', function () {
 
   expect(session.toJSON()).toEqual({
     id: 'test_session_id',
-    sequenceId: 0,
+    segmentId: 0,
     lastActivity: now,
     sampled: true,
     started: now,
@@ -136,7 +136,7 @@ it('fetches an expired sticky session', function () {
   expect(session.id).toBe('test_session_id');
   expect(session.lastActivity).toBeGreaterThanOrEqual(now);
   expect(session.started).toBeGreaterThanOrEqual(now);
-  expect(session.sequenceId).toBe(0);
+  expect(session.segmentId).toBe(0);
 });
 
 it('fetches a non-expired non-sticky session', function () {
@@ -147,7 +147,7 @@ it('fetches a non-expired non-sticky session', function () {
       id: 'test_session_id_2',
       lastActivity: +new Date() - 500,
       started: +new Date() - 500,
-      sequenceId: 0,
+      segmentId: 0,
     }),
   });
 
@@ -155,5 +155,5 @@ it('fetches a non-expired non-sticky session', function () {
   expect(CreateSession.createSession).not.toHaveBeenCalled();
 
   expect(session.id).toBe('test_session_id_2');
-  expect(session.sequenceId).toBe(0);
+  expect(session.segmentId).toBe(0);
 });

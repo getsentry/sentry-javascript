@@ -793,7 +793,7 @@ export class SentryReplay implements Integration {
         message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
         tags: {
           replayId: this.session.id,
-          sequenceId: this.session.sequenceId++,
+          segmentId: this.session.segmentId++,
         },
       });
     } catch (err) {

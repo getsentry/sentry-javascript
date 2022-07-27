@@ -5,7 +5,7 @@ function createSession(extra?: Record<string, any>) {
   return new Session({
     started: 0,
     lastActivity: 0,
-    sequenceId: 0,
+    segmentId: 0,
     ...extra,
   });
 }
