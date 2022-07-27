@@ -19,6 +19,7 @@ it('fetches a valid session', function () {
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     sequenceId: 0,
+    sampled: true,
     started: 1648827162630,
   });
 });

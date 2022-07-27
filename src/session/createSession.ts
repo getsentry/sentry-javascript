@@ -1,5 +1,4 @@
 import { logger } from '@/util/logger';
-import { captureReplay } from '@/api/captureReplay';
 
 import { saveSession } from './saveSession';
 import { Session } from './Session';
@@ -9,6 +8,12 @@ interface CreateSessionParams {
    * Should save to sessionStorage?
    */
   stickySession: boolean;
+
+  /**
+   * The sampling rate of the Session. See integration configuration comments
+   * for `replaysSamplingRate`.
+   */
+  samplingRate?: number;
 }
 
 /**
@@ -18,8 +23,9 @@ interface CreateSessionParams {
  */
 export function createSession({
   stickySession = false,
+  samplingRate = 1.0,
 }: CreateSessionParams): Session {
-  const session = new Session(undefined, { stickySession });
+  const session = new Session(undefined, { stickySession, samplingRate });
 
   logger.log(`Creating new session: ${session.id}`);
 

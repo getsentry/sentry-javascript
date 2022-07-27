@@ -108,6 +108,9 @@ export class SentryReplay implements Integration {
    */
   private needsCaptureReplay = false;
 
+  /**
+   * Captured state when integration is first initialized
+   */
   private initialState: InitialState;
 
   session: Session | undefined;
@@ -128,6 +131,7 @@ export class SentryReplay implements Integration {
     stickySession = false, // TBD: Making this opt-in for now
     useCompression = true,
     captureOnlyOnError = false,
+    replaysSamplingRate = 1.0,
     recordingConfig: {
       maskAllInputs = true,
       blockClass = 'sr-block',
@@ -150,6 +154,8 @@ export class SentryReplay implements Integration {
       stickySession,
       initialFlushDelay,
       captureOnlyOnError,
+      replaysSamplingRate,
+      useCompression,
     };
 
     // Modify rrweb options to checkoutEveryNthSecond if this is defined, as we don't know when an error occurs, so we want to try to minimize the number of events captured.
@@ -157,19 +163,19 @@ export class SentryReplay implements Integration {
       // Checkout every minute, meaning we only get up-to one minute of events before the error happens
       this.recordingOptions.checkoutEveryNms = 60000;
     }
-
-    this.eventBuffer = createEventBuffer({ useCompression });
   }
 
+  /**
+   * Because we create a transaction in `setupOnce`, we can potentially create a
+   * transaction before some native SDK integrations have run and applied their
+   * own global event processor. An example is:
+   * https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
+   *
+   * So we call `this.setup` in next event loop as a workaround to wait for
+   * other global event processors to finish
+   */
   setupOnce() {
-    /**
-     * Because we create a transaction in `setupOnce`, we can potentially create a
-     * transaction before some native SDK integrations have run and applied their
-     * own global event processor. An example is:
-     * https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
-     *
-     * So we do this as a workaround to wait for other global event processors to finish
-     */
+    // XXX: See method comments above
     window.setTimeout(() => this.setup());
   }
 
@@ -185,6 +191,15 @@ export class SentryReplay implements Integration {
     if (!this.session) {
       throw new Error('Invalid session');
     }
+
+    if (!this.session.sampled) {
+      // If session was not sampled, then we do not initialize the integration at all.
+      return;
+    }
+
+    this.eventBuffer = createEventBuffer({
+      useCompression: this.options.useCompression,
+    });
 
     this.addListeners();
 
@@ -289,6 +304,7 @@ export class SentryReplay implements Integration {
       expiry,
       stickySession: this.options.stickySession,
       currentSession: this.session,
+      samplingRate: this.options.replaysSamplingRate,
     });
 
     // If session was newly created (i.e. was not loaded from storage), then
@@ -355,7 +371,9 @@ export class SentryReplay implements Integration {
       this.handleVisibilityChange
     );
 
-    document.removeEventListener('beforeunload', this.handleWindowUnload);
+    window.removeEventListener('blur', this.handleWindowBlur);
+    window.removeEventListener('focus', this.handleWindowFocus);
+    window.removeEventListener('beforeunload', this.handleWindowUnload);
 
     if (this.performanceObserver) {
       this.performanceObserver.disconnect();
@@ -482,6 +500,7 @@ export class SentryReplay implements Integration {
         category: 'ui.exit',
       })
     );
+    this.destroy();
   };
 
   /**
@@ -545,7 +564,8 @@ export class SentryReplay implements Integration {
     list: PerformanceObserverEntryList
     // observer: PerformanceObserver
   ) => {
-    this.performanceEvents = [...this.performanceEvents, ...list.getEntries()];
+    const newEntries = list.getEntries();
+    this.performanceEvents = [...this.performanceEvents, ...newEntries];
   };
 
   /**

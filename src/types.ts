@@ -69,6 +69,11 @@ export interface SentryReplayPluginOptions {
    * Only capture replays when an error happens
    */
   captureOnlyOnError?: boolean;
+
+  /**
+   * The sampling rate for replays. 1.0 will record all replays, 0 will record none.
+   */
+  replaysSamplingRate?: number;
 }
 
 export interface SentryReplayConfiguration extends SentryReplayPluginOptions {

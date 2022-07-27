@@ -42,6 +42,7 @@ it('creates a non-sticky session when one does not exist', function () {
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
+    sampled: true,
     started: expect.any(Number),
   });
 
@@ -91,6 +92,7 @@ it('creates a sticky session when one does not exist', function () {
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
+    sampled: true,
     started: expect.any(Number),
   });
 
@@ -99,6 +101,7 @@ it('creates a sticky session when one does not exist', function () {
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: expect.any(Number),
+    sampled: true,
     started: expect.any(Number),
   });
 });
@@ -116,6 +119,7 @@ it('fetches an existing sticky session', function () {
     id: 'test_session_id',
     sequenceId: 0,
     lastActivity: now,
+    sampled: true,
     started: now,
   });
 });

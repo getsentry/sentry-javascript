@@ -18,6 +18,12 @@ interface GetSessionParams {
    * The current session (e.g. if stickySession is off)
    */
   currentSession?: Session;
+
+  /**
+   * The sampling rate of the Session. See integration configuration comments
+   * for `replaysSamplingRate`.
+   */
+  samplingRate?: number;
 }
 
 /**
@@ -27,6 +33,7 @@ export function getSession({
   expiry,
   currentSession,
   stickySession,
+  samplingRate,
 }: GetSessionParams) {
   const session = stickySession ? fetchSession() : currentSession;
 
@@ -44,7 +51,7 @@ export function getSession({
     // Otherwise continue to create a new session
   }
 
-  const newSession = createSession({ stickySession });
+  const newSession = createSession({ stickySession, samplingRate });
 
   return { type: 'new', session: newSession };
 }
