@@ -27,3 +27,29 @@ test('should create and send transactions for Express routes and spans for middl
     ],
   });
 });
+
+test('should set a correct transaction name for routes specified in RegEx', async () => {
+  const url = await runServer(__dirname, `${__dirname}/server.ts`);
+  const envelope = await getEnvelopeRequest(`${url}/regex`);
+
+  expect(envelope).toHaveLength(3);
+
+  assertSentryTransaction(envelope[2], {
+    transaction: 'GET /\\/test\\/regex/',
+    transaction_info: {
+      source: 'route',
+    },
+    contexts: {
+      trace: {
+        data: {
+          url: '/test/regex',
+        },
+        op: 'http.server',
+        status: 'ok',
+        tags: {
+          'http.status_code': '200',
+        },
+      },
+    },
+  });
+});

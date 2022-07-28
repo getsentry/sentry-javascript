@@ -21,6 +21,10 @@ app.get('/test/express', (_req, res) => {
   res.send({ response: 'response 1' });
 });
 
+app.get(/\/test\/regex/, (_req, res) => {
+  res.send({ response: 'response 2' });
+});
+
 app.use(Sentry.Handlers.errorHandler());
 
 export default app;
