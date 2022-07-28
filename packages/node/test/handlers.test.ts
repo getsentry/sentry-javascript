@@ -150,7 +150,7 @@ describe('tracingHandler', () => {
 
   const sentryTracingMiddleware = tracingHandler();
 
-  let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+  let hub: Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
 
   function createNoOpSpy() {
     const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
@@ -158,6 +158,8 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
+    hub = new Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     req = {
       headers,
       method,
@@ -179,6 +181,33 @@ describe('tracingHandler', () => {
     sentryTracingMiddleware(req, res, next);
 
     expect(startTransaction).toHaveBeenCalled();
+  });
+
+  it("doesn't create a transaction when handling a `HEAD` request", () => {
+    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    req.method = 'HEAD';
+
+    sentryTracingMiddleware(req, res, next);
+
+    expect(startTransaction).not.toHaveBeenCalled();
+  });
+
+  it("doesn't create a transaction when handling an `OPTIONS` request", () => {
+    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    req.method = 'OPTIONS';
+
+    sentryTracingMiddleware(req, res, next);
+
+    expect(startTransaction).not.toHaveBeenCalled();
+  });
+
+  it("doesn't create a transaction if tracing is disabled", () => {
+    delete hub.getClient()?.getOptions().tracesSampleRate;
+    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+
+    sentryTracingMiddleware(req, res, next);
+
+    expect(startTransaction).not.toHaveBeenCalled();
   });
 
   it("pulls parent's data from tracing header on the request", () => {

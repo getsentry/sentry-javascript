@@ -33,6 +33,24 @@ export function tracingHandler(): (
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
+    const hub = getCurrentHub();
+    const options = hub.getClient()?.getOptions();
+
+    if (!options || req.method?.toUpperCase() === 'OPTIONS' || req.method?.toUpperCase() === 'HEAD') {
+      return next();
+    }
+
+    // TODO: This is the `hasTracingEnabled` check, but we're doing it manually since `@sentry/tracing` isn't a
+    // dependency of `@sentry/node`. Long term, that function should probably move to `@sentry/hub.
+    if (!('tracesSampleRate' in options) && !('tracesSampler' in options)) {
+      __DEBUG_BUILD__ &&
+        logger.warn(
+          'Sentry `tracingHandler` is being used, but tracing is disabled. Please enable tracing by setting ' +
+            'either `tracesSampleRate` or `tracesSampler` in your `Sentry.init()` options.',
+        );
+      return next();
+    }
+
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     const traceparentData =
       req.headers && isString(req.headers['sentry-trace']) && extractTraceparentData(req.headers['sentry-trace']);
@@ -53,7 +71,7 @@ export function tracingHandler(): (
     );
 
     // We put the transaction on the scope so users can attach children to it
-    getCurrentHub().configureScope(scope => {
+    hub.configureScope(scope => {
       scope.setSpan(transaction);
     });
 
