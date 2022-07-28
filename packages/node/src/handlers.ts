@@ -40,7 +40,7 @@ export function tracingHandler(): (
       return next();
     }
 
-    // TODO: This is the `hasTracingEnabled` check, but we're doing it manually snice `@sentry/tracing` isn't a
+    // TODO: This is the `hasTracingEnabled` check, but we're doing it manually since `@sentry/tracing` isn't a
     // dependency of `@sentry/node`. Long term, that function should probably move to `@sentry/hub.
     if (!('tracesSampleRate' in options) && !('tracesSampler' in options)) {
       __DEBUG_BUILD__ &&
