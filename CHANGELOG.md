@@ -7,7 +7,7 @@
 ## 7.8.1
 
 - fix(nextjs): Add default `distDir` value back into `index.server.ts` (#5479)
-- fix(node): Add conditions to TracingHanlder.startTransaction (#5485)
+- fix(node): Add conditions to TracingHandler.startTransaction (#5485)
 - fix(node): Adjust Express URL parameterization for RegEx routes (#5483)
 - fix(node): Correctly handle Windows paths when resolving module name (#5476)
 - ref(tracing): Simplify sample_rate serialization for DSC (#5475)
