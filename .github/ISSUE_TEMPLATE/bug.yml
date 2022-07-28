@@ -45,15 +45,15 @@ body:
     attributes:
       label: SDK Version
       description: What version of the SDK are you using?
-      placeholder: ex. 1.5.2
+      placeholder: ex. 7.8.0
     validations:
       required: true
   - type: input
     id: framework-version
     attributes:
       label: Framework Version
-      description: If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the framework are you using?
-      placeholder: ex. 1.5.2
+      description: If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the _framework_ (not SDK) are you using?
+      placeholder: ex. React 17.0.0
   - type: input
     id: link-to-sentry
     attributes:
