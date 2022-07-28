@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Integration, Transaction } from '@sentry/types';
-import { CrossPlatformRequest, extractPathForTransaction, logger } from '@sentry/utils';
+import { CrossPlatformRequest, extractPathForTransaction, isRegExp, logger } from '@sentry/utils';
 
 type Method =
   | 'all'
@@ -55,7 +55,7 @@ type ExpressRouter = Router & {
 type Layer = {
   match: (path: string) => boolean;
   handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
-  route?: { path: string };
+  route?: { path: string | RegExp };
   path?: string;
 };
 
@@ -273,9 +273,14 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       req._reconstructedRoute = '';
     }
 
-    // If the layer's partial route has params, the route is stored in layer.route. Otherwise, the hardcoded path
-    // (i.e. a partial route without params) is stored in layer.path
-    const partialRoute = layer.route?.path || layer.path || '';
+    // If the layer's partial route has params, the route is stored in layer.route.
+    // Since a route might be defined with a RegExp, we convert it toString to make sure we end up with a string
+    const lrp = layer.route?.path;
+    const isRegex = isRegExp(lrp);
+    const layerRoutePath = isRegex ? lrp?.toString() : (lrp as string);
+
+    // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
+    const partialRoute = layerRoutePath || layer.path || '';
 
     // Normalize the partial route so that it doesn't contain leading or trailing slashes
     // and exclude empty or '*' wildcard routes.
@@ -288,15 +293,17 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       .join('/');
 
     // If we found a valid partial URL, we append it to the reconstructed route
-    if (finalPartialRoute.length > 0) {
-      req._reconstructedRoute += `/${finalPartialRoute}`;
+    if (finalPartialRoute && finalPartialRoute.length > 0) {
+      // If the partial route is from a regex route, we append a '/' to close the regex
+      req._reconstructedRoute += `/${finalPartialRoute}${isRegex ? '/' : ''}`;
     }
 
     // Now we check if we are in the "last" part of the route. We determine this by comparing the
     // number of URL segments from the original URL to that of our reconstructed parameterized URL.
     // If we've reached our final destination, we update the transaction name.
-    const urlLength = req.originalUrl?.split('/').filter(s => s.length > 0).length;
-    const routeLength = req._reconstructedRoute.split('/').filter(s => s.length > 0).length;
+    const urlLength = getNumberOfUrlSegments(req.originalUrl || '');
+    const routeLength = getNumberOfUrlSegments(req._reconstructedRoute);
+
     if (urlLength === routeLength) {
       const transaction = res.__sentry_transaction;
       if (transaction && transaction.metadata.source !== 'custom') {
@@ -310,4 +317,9 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
     return originalProcessParams.call(this, layer, called, req, res, done);
   };
+}
+
+function getNumberOfUrlSegments(url: string): number {
+  // split at '/' or at '\/' to split regex urls correctly
+  return url.split(/\\?\//).filter(s => s.length > 0).length;
 }
