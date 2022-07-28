@@ -245,11 +245,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const { environment, release } = client.getOptions() || {};
     const { publicKey: public_key } = client.getDsn() || {};
 
-    const rate = this.metadata && this.metadata.transactionSampling && this.metadata.transactionSampling.rate;
     const sample_rate =
-      rate !== undefined
-        ? rate.toLocaleString('fullwide', { useGrouping: false, maximumFractionDigits: 16 })
-        : undefined;
+      this.metadata &&
+      this.metadata.transactionSampling &&
+      this.metadata.transactionSampling.rate &&
+      this.metadata.transactionSampling.rate.toString();
 
     const scope = hub.getScope();
     const { segment: user_segment } = (scope && scope.getUser()) || {};
