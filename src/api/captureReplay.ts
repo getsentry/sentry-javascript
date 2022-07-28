@@ -9,7 +9,7 @@ export function captureReplay(session: Session, initialState: InitialState) {
     {
       message: ROOT_REPLAY_NAME,
       tags: { segmentId: session.segmentId, url: initialState.url },
-      timestamp: initialState.timestamp,
+      timestamp: initialState.timestamp / 1000,
     },
     { event_id: session.id }
   );

@@ -258,7 +258,7 @@ describe('SentryReplay (capture only on error)', () => {
 
     expect(captureEventMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        timestamp: BASE_TIMESTAMP + 5000, // the exception happened roughly 5 seconds after BASE_TIMESTAMP
+        timestamp: (BASE_TIMESTAMP + 5000) / 1000, // the exception happened roughly 5 seconds after BASE_TIMESTAMP
       })
     );
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
