@@ -1,14 +1,7 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
-import {
-  addExceptionMechanism,
-  fill,
-  loadModule,
-  logger,
-  serializeBaggage,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import { addExceptionMechanism, fill, loadModule, logger, serializeBaggage } from '@sentry/utils';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -90,6 +83,14 @@ interface DataFunctionArgs {
 
 interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
+}
+
+// Taken from Remix Implementation
+// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/routeMatching.ts#L6-L10
+export interface RouteMatch<Route> {
+  params: Params;
+  pathname: string;
+  route: Route;
 }
 
 // Taken from Remix Implementation
@@ -262,18 +263,58 @@ function makeWrappedMeta(origMeta: MetaFunction | HtmlMetaDescriptor = {}): Meta
   };
 }
 
-function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
+function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
+  return Object.entries(manifest)
+    .filter(([, route]) => route.parentId === parentId)
+    .map(([id, route]) => ({
+      ...route,
+      children: createRoutes(manifest, id),
+    }));
+}
+
+function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
+  const routes = createRoutes(build.routes);
+  const pkg = loadModule<{ matchRoutes: (routes: ServerRoute[], pathname: string) => any[] }>('react-router-dom');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // https://github.com/remix-run/remix/blob/38e127b1d97485900b9c220d93503de0deb1fc81/packages/remix-server-runtime/routeMatching.ts#L12-L24
+  function matchServerRoutes(routes: ServerRoute[], pathname: string): RouteMatch<ServerRoute>[] | null {
+    if (!pkg) {
+      return null;
+    }
+
+    const matches = pkg.matchRoutes(routes, pathname);
+    if (!matches) {
+      return null;
+    }
+
+    return matches.map(match => ({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      params: match.params,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      pathname: match.pathname,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      route: match.route as unknown as ServerRoute,
+    }));
+  }
+
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const hub = getCurrentHub();
     const currentScope = hub.getScope();
+
+    const url = new URL(request.url);
+    const matches = matchServerRoutes(routes, url.pathname);
+
+    const match = matches && getRequestMatch(url, matches);
+    const name = match === null ? url.pathname : match.route.id;
+    const source = match === null ? 'url' : 'route';
     const transaction = hub.startTransaction({
-      name: stripUrlQueryAndFragment(request.url),
+      name,
       op: 'http.server',
       tags: {
         method: request.method,
       },
       metadata: {
-        source: 'url',
+        source,
       },
     });
 
@@ -288,6 +329,33 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
 
     return res;
   };
+}
+
+// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L573-L586
+function isIndexRequestUrl(url: URL): boolean {
+  for (const param of url.searchParams.getAll('index')) {
+    // only use bare `?index` params without a value
+    // ✅ /foo?index
+    // ✅ /foo?index&index=123
+    // ✅ /foo?index=123&index
+    // ❌ /foo?index=123
+    if (param === '') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L588-L596
+function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): RouteMatch<ServerRoute> {
+  const match = matches.slice(-1)[0];
+
+  if (!isIndexRequestUrl(url) && match.route.id.endsWith('/index')) {
+    return matches.slice(-2)[0];
+  }
+
+  return match;
 }
 
 function makeWrappedCreateRequestHandler(
@@ -318,7 +386,7 @@ function makeWrappedCreateRequestHandler(
 
     const requestHandler = origCreateRequestHandler.call(this, { ...build, routes, entry: wrappedEntry }, mode);
 
-    return wrapRequestHandler(requestHandler);
+    return wrapRequestHandler(requestHandler, build);
   };
 }
 
