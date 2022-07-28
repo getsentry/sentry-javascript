@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Integration, Transaction } from '@sentry/types';
-import { CrossPlatformRequest, extractPathForTransaction, isRegExp, isString, logger } from '@sentry/utils';
+import { CrossPlatformRequest, extractPathForTransaction, isRegExp, logger } from '@sentry/utils';
 
 type Method =
   | 'all'
