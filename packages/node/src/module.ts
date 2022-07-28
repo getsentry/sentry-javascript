@@ -1,20 +1,29 @@
 import { basename, dirname } from '@sentry/utils';
 
+/** normalizes Windows paths */
+function normalizePath(path: string): string {
+  return path
+    .replace(/^[A-Z]:/, '') // remove Windows-style prefix
+    .replace(/\\/g, '/'); // replace all `\` instances with `/`
+}
+
 /** Gets the module from a filename */
 export function getModule(filename: string | undefined): string | undefined {
   if (!filename) {
     return;
   }
 
+  const normalizedFilename = normalizePath(filename);
+
   // We could use optional chaining here but webpack does like that mixed with require
-  const base = `${
-    (require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()
-  }/`;
+  const base = normalizePath(
+    `${(require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()}/`,
+  );
 
   // It's specifically a module
-  const file = basename(filename, '.js');
+  const file = basename(normalizedFilename, '.js');
 
-  const path = dirname(filename);
+  const path = dirname(normalizedFilename);
   let n = path.lastIndexOf('/node_modules/');
   if (n > -1) {
     // /node_modules/ is 14 chars
