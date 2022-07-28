@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way we (probably) intend.
-labels: "Type: Bug"
+labels: ["Type: Bug"]
 body:
   - type: checkboxes
     attributes:
@@ -88,5 +88,3 @@ body:
     attributes:
       value: |-
         ## Thanks 🙏
-    validations:
-      required: false
