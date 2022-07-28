@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.8.1
+
+- fix(nextjs): Add default `distDir` value back into `index.server.ts` (#5479)
+- fix(node): Add conditions to TracingHandler.startTransaction (#5485)
+- fix(node): Adjust Express URL parameterization for RegEx routes (#5483)
+- fix(node): Correctly handle Windows paths when resolving module name (#5476)
+- ref(tracing): Simplify sample_rate serialization for DSC (#5475)
+
 ## 7.8.0
 
 This release adds the `transpileClientSDK` flag to the Next.JS SDK Webpack config. This option makes WebPack transpile the SDK code to the same transpilation level as the user code. By specifying this option, the Next.JS SDK works in older browsers that do not support ES6 or ES6+ (e.g. object spread) features.
