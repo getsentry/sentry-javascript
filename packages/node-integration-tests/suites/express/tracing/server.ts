@@ -25,6 +25,10 @@ app.get(/\/test\/regex/, (_req, res) => {
   res.send({ response: 'response 2' });
 });
 
+app.get(['/test/array1', /\/test\/array[2-9]/], (_req, res) => {
+  res.send({ response: 'response 3' });
+});
+
 app.use(Sentry.Handlers.errorHandler());
 
 export default app;
