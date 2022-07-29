@@ -348,7 +348,7 @@ function getLayerRoutePathString(layer: Layer): LayerRoutePathInfo {
     : 0;
 
   const layerRoutePath = isArray
-    ? (lrp as RouteType[]).map((r: RouteType) => r.toString()).join(',')
+    ? (lrp as RouteType[]).map(r => r.toString()).join(',')
     : isRegex
     ? lrp.toString()
     : (lrp as string | undefined);
