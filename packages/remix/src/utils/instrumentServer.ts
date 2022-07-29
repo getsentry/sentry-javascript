@@ -274,8 +274,9 @@ function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerR
 
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<{ matchRoutes: (routes: ServerRoute[], pathname: string) => any[] }>('react-router-dom');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pkg = loadModule<{
+    matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
+  }>('react-router-dom');
   // https://github.com/remix-run/remix/blob/38e127b1d97485900b9c220d93503de0deb1fc81/packages/remix-server-runtime/routeMatching.ts#L12-L24
   function matchServerRoutes(routes: ServerRoute[], pathname: string): RouteMatch<ServerRoute>[] | null {
     if (!pkg) {
