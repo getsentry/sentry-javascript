@@ -36,7 +36,7 @@ type Router = {
 /* Extend the CrossPlatformRequest type with a patched parameter to build a reconstructed route */
 type PatchedRequest = CrossPlatformRequest & { _reconstructedRoute?: string };
 
-/* Type used for pathing the express router prototype */
+/* Types used for patching the express router prototype */
 type ExpressRouter = Router & {
   _router?: ExpressRouter;
   stack?: Layer[];
@@ -51,15 +51,14 @@ type ExpressRouter = Router & {
   ) => unknown;
 };
 
-type RouteType = string | RegExp;
-
-/* Type used for pathing the express router prototype */
 type Layer = {
   match: (path: string) => boolean;
   handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
   route?: { path: RouteType | RouteType[] };
   path?: string;
 };
+
+type RouteType = string | RegExp;
 
 interface ExpressResponse {
   once(name: string, callback: () => void): void;
