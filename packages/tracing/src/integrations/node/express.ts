@@ -339,9 +339,19 @@ function getLayerRoutePathString(layer: Layer): LayerRoutePathInfo {
   const isRegex = isRegExp(lrp);
   const isArray = Array.isArray(lrp);
 
-  const numExtraSegments = isArray ? getNumberOfArrayUrlSegments(lrp) - getNumberOfUrlSegments(layer.path || '') : 0;
+  if (!lrp) {
+    return { isRegex, numExtraSegments: 0 };
+  }
 
-  const layerRoutePath = isArray ? lrp.join(',') : isRegex ? lrp?.toString() : (lrp as string | undefined);
+  const numExtraSegments = isArray
+    ? getNumberOfArrayUrlSegments(lrp as RouteType[]) - getNumberOfUrlSegments(layer.path || '')
+    : 0;
+
+  const layerRoutePath = isArray
+    ? (lrp as RouteType[]).map((r: RouteType) => r.toString()).join(',')
+    : isRegex
+    ? lrp.toString()
+    : (lrp as string | undefined);
 
   return { layerRoutePath, isRegex, numExtraSegments };
 }
