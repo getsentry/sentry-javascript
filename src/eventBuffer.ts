@@ -1,6 +1,6 @@
 import { logger } from './util/logger';
 import workerString from './worker/worker.js';
-import { RecordingEvent, WorkerResponse } from './types';
+import { RecordingEvent, WorkerRequest, WorkerResponse } from './types';
 
 interface CreateEventBufferParams {
   useCompression: boolean;
@@ -70,13 +70,25 @@ class EventBufferArray implements IEventBuffer {
 export class EventBufferCompressionWorker implements IEventBuffer {
   private worker: Worker;
   private eventBufferItemLength = 0;
+  private _id = 0;
 
   constructor(worker: Worker) {
     this.worker = worker;
   }
 
+  /**
+   * Read-only incrementing counter
+   */
+  get id() {
+    return this._id++;
+  }
+
+  postMessage(args: WorkerRequest) {
+    this.worker.postMessage(args);
+  }
+
   init() {
-    this.worker.postMessage({ method: 'init', args: [] });
+    this.postMessage({ id: this.id, method: 'init', args: [] });
     logger.log('Message posted to worker');
   }
 
@@ -113,11 +125,12 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     };
     this.worker.addEventListener('message', initListener);
 
-    this.worker.postMessage({ method: 'init', args: [] });
+    this.postMessage({ id: this.id, method: 'init', args: [] });
   }
 
   sendEventToWorker(event: RecordingEvent) {
-    this.worker.postMessage({
+    this.postMessage({
+      id: this.id,
       method: 'addEvent',
       args: [event],
     });
@@ -125,16 +138,22 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     this.eventBufferItemLength++;
   }
 
-  finish() {
-    return new Promise<Uint8Array>((resolve) => {
+  finishRequest = (id: number) => {
+    return new Promise<Uint8Array>((resolve, reject) => {
       const finishListener = ({ data }: MessageEvent<WorkerResponse>) => {
         if (data.method !== 'finish') {
+          return;
+        }
+
+        if (data.id !== id) {
           return;
         }
 
         if (!data.success) {
           // TODO: Do some error handling, not sure what
           logger.error(data.response);
+
+          reject(new Error('Error in compression WebWorker'));
           return;
         }
 
@@ -144,9 +163,13 @@ export class EventBufferCompressionWorker implements IEventBuffer {
         this.worker.removeEventListener('message', finishListener);
       };
       this.worker.addEventListener('message', finishListener);
+      this.postMessage({ id, method: 'finish', args: [] });
 
-      this.worker.postMessage({ method: 'finish', args: [] });
       logger.log('Message posted to worker');
     });
+  };
+
+  async finish() {
+    return await this.finishRequest(this.id);
   }
 }

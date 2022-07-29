@@ -23,6 +23,7 @@ export type InstrumentationType = 'scope' | 'dom' | 'fetch' | 'xhr';
  * The request payload to worker
  */
 export interface WorkerRequest {
+  id: number;
   method: string;
   args: any[];
 }
@@ -31,6 +32,7 @@ export interface WorkerRequest {
  * The response from the worker
  */
 export interface WorkerResponse {
+  id: number;
   method: string;
   success: boolean;
   response: string | Uint8Array;

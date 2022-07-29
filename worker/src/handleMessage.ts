@@ -22,18 +22,21 @@ const handlers: Record<string, (args: any[]) => void> = {
 
 export function handleMessage(e: MessageEvent<WorkerRequest>) {
   const method = e.data.method as string;
+  const id = e.data.id as number;
   const [data] = e.data.args || [];
 
   if (method in handlers && typeof handlers[method] === 'function') {
     try {
       const response = handlers[method](data);
       postMessage({
+        id,
         method,
         success: true,
         response,
       });
     } catch (err) {
       postMessage({
+        id,
         method,
         success: false,
         response: err,
