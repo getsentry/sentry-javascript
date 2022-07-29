@@ -510,10 +510,11 @@ describe('SentryReplay', () => {
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(captureReplayMock).toHaveBeenCalledWith(
-      expect.anything(), // don't care about this arg
       expect.objectContaining({
-        timestamp: BASE_TIMESTAMP,
-        url: 'http://localhost/', // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+        initialState: {
+          timestamp: BASE_TIMESTAMP,
+          url: 'http://localhost/', // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+        },
       })
     );
   });

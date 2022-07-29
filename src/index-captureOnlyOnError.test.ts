@@ -250,9 +250,11 @@ describe('SentryReplay (capture only on error)', () => {
     await new Promise(process.nextTick);
 
     expect(captureReplayMock).toHaveBeenCalledWith(
-      expect.anything(), // TBD: We could assert session's last activity here
       expect.objectContaining({
-        timestamp: BASE_TIMESTAMP,
+        initialState: {
+          timestamp: BASE_TIMESTAMP,
+          url: 'http://localhost/',
+        },
       })
     );
 

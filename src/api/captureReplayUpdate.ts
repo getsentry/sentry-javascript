@@ -4,7 +4,17 @@ import { uuid4 } from '@sentry/utils';
 import { REPLAY_EVENT_NAME } from '@/session/constants';
 import type { Session } from '@/session/Session';
 
-export function captureReplayUpdate(session: Session, timestamp: number) {
+interface CaptureReplayUpdateParams {
+  session: Session;
+  /**
+   * Timestamp of the event in milliseconds
+   */
+  timestamp: number;
+}
+export function captureReplayUpdate({
+  session,
+  timestamp,
+}: CaptureReplayUpdateParams) {
   captureEvent({
     timestamp: timestamp / 1000,
     message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,

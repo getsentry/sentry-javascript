@@ -761,7 +761,7 @@ export class SentryReplay implements Integration {
     // Only want to create replay event if session is new
     if (this.needsCaptureReplay) {
       // This event needs to exist before calling `sendReplay`
-      captureReplay(this.session, this.initialState);
+      captureReplay({ session: this.session, initialState: this.initialState });
       this.needsCaptureReplay = false;
     }
 
@@ -784,7 +784,7 @@ export class SentryReplay implements Integration {
       // occurs.
       this.updateLastActivity(timestamp);
 
-      captureReplayUpdate(this.session, timestamp);
+      captureReplayUpdate({ session: this.session, timestamp });
     } catch (err) {
       console.error(err);
     }
