@@ -259,6 +259,24 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
   }
 
   const router = isApp ? appOrRouter._router : appOrRouter;
+
+  if (!router) {
+    /*
+    If we end up here, this means likely that this integration is used with Express 3 or Express 5.
+    For now, we don't support these versions (3 is very old and 5 is still in beta). To support Express 5,
+    we'd need to make more changes to the routing instrumentation because the router is no longer part of
+    the Express core package but maintained in its own package. The new router has different function
+    signatures and works slightly differently, demanding more changes than just taking the router from
+    `app.router` instead of `app._router`.
+    @see https://github.com/pillarjs/router
+
+    TODO: Proper Express 5 support
+    */
+    __DEBUG_BUILD__ && logger.debug('Cannot instrument router for URL Parameterization (did not find a valid router).');
+    __DEBUG_BUILD__ && logger.debug('Routing instrumentation is currently only supported in Express 4.');
+    return;
+  }
+
   const routerProto = Object.getPrototypeOf(router) as ExpressRouter;
 
   const originalProcessParams = routerProto.process_params;
