@@ -47,7 +47,7 @@ export class LinkedErrors implements Integration {
       const hub = getCurrentHub();
       const self = hub.getIntegration(LinkedErrors);
       const client = hub.getClient<NodeClient>();
-      if (client && self) {
+      if (client && self && self._handler && typeof self._handler === 'function') {
         await self._handler(client.getOptions().stackParser, event, hint);
       }
       return event;
