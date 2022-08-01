@@ -36,7 +36,7 @@ type Router = {
 /* Extend the CrossPlatformRequest type with a patched parameter to build a reconstructed route */
 type PatchedRequest = CrossPlatformRequest & { _reconstructedRoute?: string };
 
-/* Type used for pathing the express router prototype */
+/* Types used for patching the express router prototype */
 type ExpressRouter = Router & {
   _router?: ExpressRouter;
   stack?: Layer[];
@@ -51,13 +51,14 @@ type ExpressRouter = Router & {
   ) => unknown;
 };
 
-/* Type used for pathing the express router prototype */
 type Layer = {
   match: (path: string) => boolean;
   handle_request: (req: PatchedRequest, res: ExpressResponse, next: () => void) => void;
-  route?: { path: string | RegExp };
+  route?: { path: RouteType | RouteType[] };
   path?: string;
 };
+
+type RouteType = string | RegExp;
 
 interface ExpressResponse {
   once(name: string, callback: () => void): void;
@@ -273,11 +274,8 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       req._reconstructedRoute = '';
     }
 
-    // If the layer's partial route has params, the route is stored in layer.route.
-    // Since a route might be defined with a RegExp, we convert it toString to make sure we end up with a string
-    const lrp = layer.route?.path;
-    const isRegex = isRegExp(lrp);
-    const layerRoutePath = isRegex ? lrp?.toString() : (lrp as string);
+    // If the layer's partial route has params, is a regex or an array, the route is stored in layer.route.
+    const { layerRoutePath, isRegex, isArray, numExtraSegments }: LayerRoutePathInfo = getLayerRoutePathInfo(layer);
 
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
     const partialRoute = layerRoutePath || layer.path || '';
@@ -289,7 +287,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // We want to end up with the parameterized URL of the incoming request without any extraneous path segments.
     const finalPartialRoute = partialRoute
       .split('/')
-      .filter(segment => segment.length > 0 && !segment.includes('*'))
+      .filter(segment => segment.length > 0 && (isRegex || isArray || !segment.includes('*')))
       .join('/');
 
     // If we found a valid partial URL, we append it to the reconstructed route
@@ -301,7 +299,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // Now we check if we are in the "last" part of the route. We determine this by comparing the
     // number of URL segments from the original URL to that of our reconstructed parameterized URL.
     // If we've reached our final destination, we update the transaction name.
-    const urlLength = getNumberOfUrlSegments(req.originalUrl || '');
+    const urlLength = getNumberOfUrlSegments(req.originalUrl || '') + numExtraSegments;
     const routeLength = getNumberOfUrlSegments(req._reconstructedRoute);
 
     if (urlLength === routeLength) {
@@ -319,7 +317,73 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
   };
 }
 
+type LayerRoutePathInfo = {
+  layerRoutePath?: string;
+  isRegex: boolean;
+  isArray: boolean;
+  numExtraSegments: number;
+};
+
+/**
+ * Extracts and stringifies the layer's route which can either be a string with parameters (`users/:id`),
+ * a RegEx (`/test/`) or an array of strings and regexes (`['/path1', /\/path[2-5]/, /path/:id]`). Additionally
+ * returns extra information about the route, such as if the route is defined as regex or as an array.
+ *
+ * @param layer the layer to extract the stringified route from
+ *
+ * @returns an object containing the stringified route, a flag determining if the route was a regex
+ *          and the number of extra segments to the matched path that are additionally in the route,
+ *          if the route was an array (defaults to 0).
+ */
+function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
+  const lrp = layer.route?.path;
+
+  const isRegex = isRegExp(lrp);
+  const isArray = Array.isArray(lrp);
+
+  if (!lrp) {
+    return { isRegex, isArray, numExtraSegments: 0 };
+  }
+
+  const numExtraSegments = isArray
+    ? Math.max(getNumberOfArrayUrlSegments(lrp as RouteType[]) - getNumberOfUrlSegments(layer.path || ''), 0)
+    : 0;
+
+  const layerRoutePath = getLayerRoutePathString(isArray, lrp);
+
+  return { layerRoutePath, isRegex, isArray, numExtraSegments };
+}
+
+/**
+ * Returns the number of URL segments in an array of routes
+ *
+ * Example: ['/api/test', /\/api\/post[0-9]/, '/users/:id/details`] -> 7
+ */
+function getNumberOfArrayUrlSegments(routesArray: RouteType[]): number {
+  return routesArray.reduce((accNumSegments: number, currentRoute: RouteType) => {
+    // array members can be a RegEx -> convert them toString
+    return accNumSegments + getNumberOfUrlSegments(currentRoute.toString());
+  }, 0);
+}
+
+/**
+ * Returns number of URL segments of a passed URL.
+ * Also handles URLs of type RegExp
+ */
 function getNumberOfUrlSegments(url: string): number {
   // split at '/' or at '\/' to split regex urls correctly
-  return url.split(/\\?\//).filter(s => s.length > 0).length;
+  return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
+}
+
+/**
+ * Extracts and returns the stringified version of the layers route path
+ * Handles route arrays (by joining the paths together) as well as RegExp and normal
+ * string values (in the latter case the toString conversion is technically unnecessary but
+ * it doesn't hurt us either).
+ */
+function getLayerRoutePathString(isArray: boolean, lrp?: RouteType | RouteType[]): string | undefined {
+  if (isArray) {
+    return (lrp as RouteType[]).map(r => r.toString()).join(',');
+  }
+  return lrp && lrp.toString();
 }
