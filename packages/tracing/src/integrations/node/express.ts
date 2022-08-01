@@ -344,7 +344,7 @@ function getLayerRoutePathString(layer: Layer): LayerRoutePathInfo {
   }
 
   const numExtraSegments = isArray
-    ? getNumberOfArrayUrlSegments(lrp as RouteType[]) - getNumberOfUrlSegments(layer.path || '')
+    ? Math.max(getNumberOfArrayUrlSegments(lrp as RouteType[]) - getNumberOfUrlSegments(layer.path || ''), 0)
     : 0;
 
   const layerRoutePath = isArray
