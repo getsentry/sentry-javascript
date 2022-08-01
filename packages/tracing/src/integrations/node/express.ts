@@ -275,7 +275,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     }
 
     // If the layer's partial route has params, is a regex or an array, the route is stored in layer.route.
-    const { layerRoutePath, isRegex, numExtraSegments }: LayerRoutePathInfo = getLayerRoutePathInfo(layer);
+    const { layerRoutePath, isRegex, isArray, numExtraSegments }: LayerRoutePathInfo = getLayerRoutePathInfo(layer);
 
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
     const partialRoute = layerRoutePath || layer.path || '';
@@ -287,7 +287,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // We want to end up with the parameterized URL of the incoming request without any extraneous path segments.
     const finalPartialRoute = partialRoute
       .split('/')
-      .filter(segment => segment.length > 0 && !segment.includes('*'))
+      .filter(segment => segment.length > 0 && (isRegex || isArray || !segment.includes('*')))
       .join('/');
 
     // If we found a valid partial URL, we append it to the reconstructed route
@@ -320,6 +320,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 type LayerRoutePathInfo = {
   layerRoutePath?: string;
   isRegex: boolean;
+  isArray: boolean;
   numExtraSegments: number;
 };
 
@@ -341,7 +342,7 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
   const isArray = Array.isArray(lrp);
 
   if (!lrp) {
-    return { isRegex, numExtraSegments: 0 };
+    return { isRegex, isArray, numExtraSegments: 0 };
   }
 
   const numExtraSegments = isArray
@@ -350,7 +351,7 @@ function getLayerRoutePathInfo(layer: Layer): LayerRoutePathInfo {
 
   const layerRoutePath = getLayerRoutePathString(isArray, lrp);
 
-  return { layerRoutePath, isRegex, numExtraSegments };
+  return { layerRoutePath, isRegex, isArray, numExtraSegments };
 }
 
 /**
