@@ -11,6 +11,7 @@
 - fix(node): Adjust Express URL parameterization for array routes (#5495)
 - fix(node): Adjust Express URL parameterization for RegEx routes (#5483)
 - fix(node): Correctly handle Windows paths when resolving module name (#5476)
+- fix(node): Ensure that self._handler exists before calling it in LinkedErrors (#5497)
 - ref(tracing): Simplify sample_rate serialization for DSC (#5475)
 
 ## 7.8.0
