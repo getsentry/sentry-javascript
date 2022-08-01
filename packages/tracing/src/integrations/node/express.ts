@@ -263,7 +263,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
   if (!router) {
     /*
     If we end up here, this means likely that this integration is used with Express 3 or Express 5.
-    For now, we don't support these version (3 is very old and 5 is still in beta). To support Express 5,
+    For now, we don't support these versions (3 is very old and 5 is still in beta). To support Express 5,
     we'd need to make more changes to the routing instrumentation because the router is no longer part of
     the Express core package but maintained in its own package. The new router has different function
     signatures and works slightly differently, demanding more changes than just taking the router from
