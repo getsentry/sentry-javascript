@@ -86,8 +86,10 @@ test.each([['array1'], ['array5']])(
 test.each([
   ['arr/545'],
   ['arr/required'],
+  ['arr/required'],
   ['arr/requiredPath'],
   ['arr/required/lastParam'],
+  ['arr55/required/lastParam'],
   ['arr/requiredPath/optionalPath/'],
   ['arr/requiredPath/optionalPath/lastParam'],
 ])('should handle more complex regexes in route arrays correctly', async segment => {
