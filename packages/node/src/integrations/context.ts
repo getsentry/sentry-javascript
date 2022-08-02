@@ -46,7 +46,7 @@ export class Context implements Integration {
   /**
    * Caches contexts so they're only evaluated once
    */
-  private _cachedContexts: Contexts | undefined;
+  private _cachedContextsPromise: Promise<Contexts> | undefined;
 
   public constructor(private readonly _options: ContextOptions = { app: true, os: true, device: true, culture: true }) {
     //
@@ -59,35 +59,42 @@ export class Context implements Integration {
     addGlobalEventProcessor(event => this.addContext(event));
   }
 
-  /** Processes an event and adds context lines */
+  /** Processes an event and adds context */
   public async addContext(event: Event): Promise<Event> {
-    if (this._cachedContexts === undefined) {
-      this._cachedContexts = {};
+    if (this._cachedContextsPromise === undefined) {
+      this._cachedContextsPromise = this._getContexts();
+    }
 
-      if (this._options.os) {
-        this._cachedContexts.os = await getOsContext();
-      }
+    event.contexts = { ...event.contexts, ...(await this._cachedContextsPromise) };
 
-      if (this._options.app) {
-        this._cachedContexts.app = getAppContext();
-      }
+    return event;
+  }
 
-      if (this._options.device) {
-        this._cachedContexts.device = getDeviceContext(this._options.device);
-      }
+  /** Creates a promise that contains Contexts when resolved */
+  private async _getContexts(): Promise<Contexts> {
+    const contexts: Contexts = {};
 
-      if (this._options.culture) {
-        const culture = getCultureContext();
+    if (this._options.os) {
+      contexts.os = await getOsContext();
+    }
 
-        if (culture) {
-          this._cachedContexts.culture = culture;
-        }
+    if (this._options.app) {
+      contexts.app = getAppContext();
+    }
+
+    if (this._options.device) {
+      contexts.device = getDeviceContext(this._options.device);
+    }
+
+    if (this._options.culture) {
+      const culture = getCultureContext();
+
+      if (culture) {
+        contexts.culture = culture;
       }
     }
 
-    event.contexts = { ...event.contexts, ...this._cachedContexts };
-
-    return event;
+    return contexts;
   }
 }
 
