@@ -46,7 +46,7 @@ export class Context implements Integration {
   /**
    * Caches OS context so it's only evaluated once
    */
-  private _cachedOsContext: Promise<OsContext> | undefined;
+  private _cachedContext: Promise<Contexts> | undefined;
 
   public constructor(private readonly _options: ContextOptions = { app: true, os: true, device: true, culture: true }) {
     //
@@ -61,14 +61,39 @@ export class Context implements Integration {
 
   /** Processes an event and adds context */
   public async addContext(event: Event): Promise<Event> {
-    if (this._cachedOsContext === undefined) {
-      this._cachedOsContext = getOsContext();
+    if (this._cachedContext === undefined) {
+      this._cachedContext = this._getContexts();
     }
 
+    event.contexts = { ...event.contexts, ...this._updateContext(await this._cachedContext) };
+
+    return event;
+  }
+
+  /**
+   * Updates the context with dynamic values that can change
+   */
+  private _updateContext(contexts: Contexts): Contexts {
+    // Only update properties if they exist
+    if (contexts?.app?.memory_used) {
+      contexts.app.memory_used = process.memoryUsage().rss;
+    }
+
+    if (contexts?.device?.free_memory) {
+      contexts.device.free_memory = os.freemem();
+    }
+
+    return contexts;
+  }
+
+  /**
+   * Gets the contexts for the current environment
+   */
+  private async _getContexts(): Promise<Contexts> {
     const contexts: Contexts = {};
 
     if (this._options.os) {
-      contexts.os = await this._cachedOsContext;
+      contexts.os = await getOsContext();
     }
 
     if (this._options.app) {
@@ -87,9 +112,7 @@ export class Context implements Integration {
       }
     }
 
-    event.contexts = { ...event.contexts, ...contexts };
-
-    return event;
+    return contexts;
   }
 }
 
