@@ -64,7 +64,7 @@ afterEach(() => {
 });
 
 /** Mocks of the arguments passed to `withSentryConfig` */
-const userNextConfig: Partial<NextConfigObject> = {
+const userNextConfig: NextConfigObject = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
   webpack: (config: WebpackConfigObject, _options: BuildContext) => ({
     ...config,
@@ -124,7 +124,7 @@ const clientWebpackConfig = {
 // dynamically.
 function getBuildContext(
   buildTarget: 'server' | 'client',
-  userNextConfig: Partial<NextConfigObject>,
+  userNextConfig: NextConfigObject,
   webpackVersion: string = '5.4.15',
 ): BuildContext {
   return {

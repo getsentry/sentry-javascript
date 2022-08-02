@@ -1,4 +1,4 @@
-import { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
+import type { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
 /**
@@ -11,11 +11,11 @@ import { constructWebpackConfigFunction } from './webpack';
 export function withSentryConfig(
   userNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-): NextConfigFunction | Partial<NextConfigObject> {
+): NextConfigFunction | NextConfigObject {
   // If the user has passed us a function, we need to return a function, so that we have access to `phase` and
   // `defaults` in order to pass them along to the user's function
   if (typeof userNextConfig === 'function') {
-    return function (phase: string, defaults: { defaultConfig: NextConfigObject }): Partial<NextConfigObject> {
+    return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
       const materializedUserNextConfig = userNextConfig(phase, defaults);
 
       // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`, so grab and then remove the `sentry`
