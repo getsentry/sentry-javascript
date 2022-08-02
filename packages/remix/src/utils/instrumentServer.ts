@@ -381,6 +381,10 @@ function makeWrappedCreateRequestHandler(
         fill(wrappedRoute.module, 'action', makeWrappedAction);
       }
 
+      if (wrappedRoute.module.loader) {
+        fill(wrappedRoute.module, 'loader', makeWrappedLoader);
+      }
+
       // Entry module should have a loader function to provide `sentry-trace` and `baggage`
       // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
       if (!wrappedRoute.parentId) {
@@ -389,10 +393,6 @@ function makeWrappedCreateRequestHandler(
         }
 
         fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
-      }
-
-      if (wrappedRoute.module.loader) {
-        fill(wrappedRoute.module, 'loader', makeWrappedLoader);
       }
 
       routes[id] = wrappedRoute;
