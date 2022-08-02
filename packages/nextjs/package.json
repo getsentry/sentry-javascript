@@ -45,11 +45,11 @@
   "scripts": {
     "build": "run-p build:rollup build:types",
     "build:dev": "run-s build",
-    "build:rollup": "rollup -c rollup.npm.config.js",
+    "build:rollup": "ts-node scripts/buildRollup.ts",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:rollup:watch build:types:watch",
     "build:dev:watch": "run-s build:watch",
-    "build:rollup:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:rollup:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular --exclude 'config/types\\.ts' src/index.server.ts # see https://github.com/pahen/madge/issues/306",
