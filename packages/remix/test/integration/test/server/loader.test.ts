@@ -8,13 +8,17 @@ describe('Remix API Loaders', () => {
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
+      transaction: 'routes/loader-json-response/$id',
+      transaction_info: {
+        source: 'route',
+      },
       spans: [
         {
-          description: url,
+          description: 'routes/loader-json-response/$id',
           op: 'remix.server.loader',
         },
         {
-          description: url,
+          description: 'routes/loader-json-response/$id',
           op: 'remix.server.documentRequest',
         },
       ],
