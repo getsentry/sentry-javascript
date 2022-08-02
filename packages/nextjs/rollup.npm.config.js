@@ -14,12 +14,12 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/prefixLoaderTemplate.ts'],
+      entrypoints: ['src/config/templates/prefixLoaderTemplate.ts'],
 
       packageSpecificConfig: {
         output: {
           // preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/[name].js',
+          entryFileNames: 'config/templates/[name].js',
 
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
@@ -31,7 +31,7 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/prefixLoader.ts'],
+      entrypoints: ['src/config/loaders/prefixLoader.ts'],
 
       packageSpecificConfig: {
         output: {
@@ -39,7 +39,7 @@ export default [
           exports: 'default',
 
           // preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/[name].js',
+          entryFileNames: 'config/loaders/[name].js',
         },
       },
     }),

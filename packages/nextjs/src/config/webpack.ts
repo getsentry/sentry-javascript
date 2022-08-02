@@ -65,7 +65,7 @@ export function constructWebpackConfigFunction(
                 // Support non-default output directories by making the output path (easy to get here at build-time)
                 // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
                 // injecting code to attach it to `global`.
-                loader: path.resolve(__dirname, 'prefixLoader.js'),
+                loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
                 options: {
                   distDir: userNextConfig.distDir || '.next',
                 },

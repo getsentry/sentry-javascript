@@ -21,7 +21,7 @@ function prefixLoader(this: LoaderThis, userCode: string): string {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { distDir } = this.getOptions ? this.getOptions() : this.query!;
 
-  const templatePath = path.resolve(__dirname, 'prefixLoaderTemplate.js');
+  const templatePath = path.resolve(__dirname, '../templates/prefixLoaderTemplate.js');
   this.addDependency(templatePath);
 
   // Fill in the placeholder
