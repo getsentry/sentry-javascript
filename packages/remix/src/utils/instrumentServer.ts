@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
-import { getActiveTransaction } from '@sentry/tracing';
-import { addExceptionMechanism, fill, loadModule, logger, serializeBaggage } from '@sentry/utils';
+import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -72,6 +72,8 @@ interface HandleDataRequestFunction {
 
 interface ServerEntryModule {
   default: HandleDocumentRequestFunction;
+  meta: MetaFunction;
+  loader: DataFunction;
   handleDataRequest?: HandleDataRequestFunction;
 }
 
@@ -237,33 +239,30 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
   return makeWrappedDataFunction(origAction, 'loader');
 }
 
-function makeWrappedMeta(origMeta: MetaFunction | HtmlMetaDescriptor = {}): MetaFunction {
-  return function (
-    this: unknown,
-    args: { data: AppData; parentsData: RouteData; params: Params; location: Location },
-  ): HtmlMetaDescriptor {
-    let origMetaResult;
-    if (origMeta instanceof Function) {
-      origMetaResult = origMeta.call(this, args);
-    } else {
-      origMetaResult = origMeta;
-    }
+function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
+  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    let sentryTrace;
+    let sentryBaggage;
 
-    const scope = getCurrentHub().getScope();
-    if (scope) {
-      const span = scope.getSpan();
-      const transaction = getActiveTransaction();
+    const activeTransaction = getActiveTransaction();
+    const currentScope = getCurrentHub().getScope();
 
-      if (span && transaction) {
-        return {
-          ...origMetaResult,
-          'sentry-trace': span.toTraceparent(),
-          baggage: serializeBaggage(transaction.getBaggage()),
-        };
+    if (isNodeEnv() && hasTracingEnabled()) {
+      if (currentScope) {
+        const span = currentScope.getSpan();
+
+        if (span && activeTransaction) {
+          sentryTrace = span.toTraceparent();
+          sentryBaggage = serializeBaggage(activeTransaction.getBaggage());
+        }
       }
     }
 
-    return origMetaResult;
+    const res = await origLoader.call(this, args);
+
+    Object.assign(res, { sentryTrace, sentryBaggage });
+
+    return res;
   };
 }
 
@@ -378,10 +377,18 @@ function makeWrappedCreateRequestHandler(
     for (const [id, route] of Object.entries(build.routes)) {
       const wrappedRoute = { ...route, module: { ...route.module } };
 
-      fill(wrappedRoute.module, 'meta', makeWrappedMeta);
-
       if (wrappedRoute.module.action) {
         fill(wrappedRoute.module, 'action', makeWrappedAction);
+      }
+
+      // Entry module should have a loader function to provide `sentry-trace` and `baggage`
+      // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
+      if (!wrappedRoute.parentId) {
+        if (!wrappedRoute.module.loader) {
+          wrappedRoute.module.loader = () => ({});
+        }
+
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
       }
 
       if (wrappedRoute.module.loader) {
