@@ -22,6 +22,7 @@ function prefixLoader(this: LoaderThis, userCode: string): string {
   const { distDir } = this.getOptions ? this.getOptions() : this.query!;
 
   const templatePath = path.resolve(__dirname, '../templates/prefixLoaderTemplate.js');
+  // make sure the template is included when runing `webpack watch`
   this.addDependency(templatePath);
 
   // Fill in the placeholder
