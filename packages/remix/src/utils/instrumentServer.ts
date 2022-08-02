@@ -85,6 +85,10 @@ interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
 }
 
+interface ReactRouterDomPkg {
+  matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
+}
+
 // Taken from Remix Implementation
 // https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/routeMatching.ts#L6-L10
 export interface RouteMatch<Route> {
@@ -272,38 +276,40 @@ function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerR
     }));
 }
 
-function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
-  const routes = createRoutes(build.routes);
-  const pkg = loadModule<{
-    matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
-  }>('react-router-dom');
-  // https://github.com/remix-run/remix/blob/38e127b1d97485900b9c220d93503de0deb1fc81/packages/remix-server-runtime/routeMatching.ts#L12-L24
-  function matchServerRoutes(routes: ServerRoute[], pathname: string): RouteMatch<ServerRoute>[] | null {
-    if (!pkg) {
-      return null;
-    }
-
-    const matches = pkg.matchRoutes(routes, pathname);
-    if (!matches) {
-      return null;
-    }
-
-    return matches.map(match => ({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      params: match.params,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      pathname: match.pathname,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      route: match.route as unknown as ServerRoute,
-    }));
+// Remix Implementation:
+// https://github.com/remix-run/remix/blob/38e127b1d97485900b9c220d93503de0deb1fc81/packages/remix-server-runtime/routeMatching.ts#L12-L24
+//
+// Changed so that `matchRoutes` function is passed in.
+function matchServerRoutes(
+  routes: ServerRoute[],
+  pathname: string,
+  pkg?: ReactRouterDomPkg,
+): RouteMatch<ServerRoute>[] | null {
+  if (!pkg) {
+    return null;
   }
 
+  const matches = pkg.matchRoutes(routes, pathname);
+  if (!matches) {
+    return null;
+  }
+
+  return matches.map(match => ({
+    params: match.params,
+    pathname: match.pathname,
+    route: match.route,
+  }));
+}
+
+function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
+  const routes = createRoutes(build.routes);
+  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const hub = getCurrentHub();
     const currentScope = hub.getScope();
 
     const url = new URL(request.url);
-    const matches = matchServerRoutes(routes, url.pathname);
+    const matches = matchServerRoutes(routes, url.pathname, pkg);
 
     const match = matches && getRequestMatch(url, matches);
     const name = match === null ? url.pathname : match.route.id;
@@ -385,9 +391,11 @@ function makeWrappedCreateRequestHandler(
       routes[id] = wrappedRoute;
     }
 
-    const requestHandler = origCreateRequestHandler.call(this, { ...build, routes, entry: wrappedEntry }, mode);
+    const newBuild = { ...build, routes, entry: wrappedEntry };
 
-    return wrapRequestHandler(requestHandler, build);
+    const requestHandler = origCreateRequestHandler.call(this, newBuild, mode);
+
+    return wrapRequestHandler(requestHandler, newBuild);
   };
 }
 
