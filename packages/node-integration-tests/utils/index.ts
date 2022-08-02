@@ -97,6 +97,14 @@ export const getMultipleEnvelopeRequest = async (url: string, count: number): Pr
 };
 
 /**
+ * Filters and returns only a specific type of envelope payload.
+ */
+export const filterEnvelopes = (envelopes: Record<string, unknown>[][], type = 'event'): Record<string, unknown>[] => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return envelopes.filter(e => (e?.[1] as any)?.type === type).map(e => e[2] as any);
+};
+
+/**
  * Sends a get request to given URL, with optional headers
  *
  * @param {URL} url

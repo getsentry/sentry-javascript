@@ -1,11 +1,10 @@
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getMultipleEnvelopeRequest, runServer, filterEnvelopes } from '../../../../utils';
 
 test('should normalize non-serializable extra', async () => {
   const url = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(url, 2);
-  const errorEnvelope = envelopes[1];
+  const events = filterEnvelopes(await getMultipleEnvelopeRequest(url, 2));
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(events[0], {
     message: 'non_serializable',
     extra: {},
   });
