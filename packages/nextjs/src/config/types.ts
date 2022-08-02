@@ -17,6 +17,10 @@ export type NextConfigObject = {
   target: 'server' | 'experimental-serverless-trace';
   // the output directory for the built app (defaults to ".next")
   distDir: string;
+  // the root at which the nextjs app will be served (defaults to "/")
+  basePath: string;
+  // config which will be available at runtime
+  publicRuntimeConfig: { [key: string]: unknown };
   sentry?: UserSentryOptions;
 } & {
   // other `next.config.js` options
