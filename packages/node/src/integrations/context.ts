@@ -44,9 +44,9 @@ export class Context implements Integration {
   public name: string = Context.id;
 
   /**
-   * Caches contexts so they're only evaluated once
+   * Caches OS context so it's only evaluated once
    */
-  private _cachedContextsPromise: Promise<Contexts> | undefined;
+  private _cachedOsContext: Promise<OsContext> | undefined;
 
   public constructor(private readonly _options: ContextOptions = { app: true, os: true, device: true, culture: true }) {
     //
@@ -61,21 +61,14 @@ export class Context implements Integration {
 
   /** Processes an event and adds context */
   public async addContext(event: Event): Promise<Event> {
-    if (this._cachedContextsPromise === undefined) {
-      this._cachedContextsPromise = this._getContexts();
+    if (this._cachedOsContext === undefined) {
+      this._cachedOsContext = getOsContext();
     }
 
-    event.contexts = { ...event.contexts, ...(await this._cachedContextsPromise) };
-
-    return event;
-  }
-
-  /** Creates a promise that contains Contexts when resolved */
-  private async _getContexts(): Promise<Contexts> {
     const contexts: Contexts = {};
 
     if (this._options.os) {
-      contexts.os = await getOsContext();
+      contexts.os = await this._cachedOsContext;
     }
 
     if (this._options.app) {
@@ -94,7 +87,9 @@ export class Context implements Integration {
       }
     }
 
-    return contexts;
+    event.contexts = { ...event.contexts, ...contexts };
+
+    return event;
   }
 }
 
