@@ -80,7 +80,7 @@ export function constructWebpackConfigFunction(
     // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
     // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
     // fairly massively.
-    if (!isServer && userNextConfig.sentry?.transpileClientSDK) {
+    if (!isServer && userSentryOptions?.transpileClientSDK) {
       // Find all loaders which apply transpilation to user code
       const transpilationRules = findTranspilationRules(newConfig.module?.rules, projectDir);
 
