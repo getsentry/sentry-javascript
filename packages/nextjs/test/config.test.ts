@@ -281,6 +281,15 @@ describe('withSentryConfig', () => {
 
     expect(exportedNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
   });
+
+  it('removes `sentry` property', () => {
+    // It's unclear why we need this cast -
+    const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig, sentry: {} });
+    // const finalConfig = materializeFinalNextConfig({ ...exportedNextConfig, sentry: {} } as ExportedNextConfig);
+
+    // We have to check using `in` because TS knows it shouldn't be there and throws a type error if we try to access it
+    // directly
+    expect('sentry' in finalConfig).toBe(false);
   });
 });
 
