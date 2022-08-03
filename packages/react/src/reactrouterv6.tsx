@@ -2,7 +2,7 @@
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
@@ -20,9 +20,23 @@ type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
+// https://github.com/remix-run/react-router/blob/9fa54d643134cd75a0335581a75db8100ed42828/packages/react-router/lib/router.ts#L114-L134
 interface RouteMatch<ParamKey extends string = string> {
+  /**
+   * The names and values of dynamic parameters in the URL.
+   */
   params: Params<ParamKey>;
+  /**
+   * The portion of the URL pathname that was matched.
+   */
   pathname: string;
+  /**
+   * The portion of the URL pathname that was matched before child routes.
+   */
+  pathnameBase: string;
+  /**
+   * The route object that was used to match.
+   */
   route: RouteObject;
 }
 
@@ -94,13 +108,31 @@ function getNormalizedName(
 
   const branches = matchRoutes(routes, location);
 
+  let pathBuilder = '';
   if (branches) {
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let x = 0; x < branches.length; x++) {
-      if (branches[x].route && branches[x].route.path && branches[x].pathname === location.pathname) {
-        const path = branches[x].route.path;
+      const branch = branches[x];
+      const route = branch.route;
+      if (route) {
+        // Early return if index route
+        if (route.index) {
+          return [branch.pathname, 'route'];
+        }
+
+        const path = route.path;
         if (path) {
-          return [path, 'route'];
+          const newPath = path[0] === '/' ? path : `/${path}`;
+          pathBuilder += newPath;
+          if (branch.pathname === location.pathname) {
+            // If the route defined on the element is something like
+            // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
+            // We should check against the branch.pathname for the number of / seperators
+            if (getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname)) {
+              return [newPath, 'route'];
+            }
+            return [pathBuilder, 'route'];
+          }
         }
       }
     }
