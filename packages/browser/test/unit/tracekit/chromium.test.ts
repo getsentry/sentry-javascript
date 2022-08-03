@@ -430,4 +430,71 @@ describe('Tracekit - Chrome Tests', () => {
       },
     });
   });
+
+  it('should parse exceptions with frames without full paths', () => {
+    const EXCEPTION = {
+      message: 'aha',
+      name: 'Error',
+      stack: `Error
+      at Client.requestPromise (api.tsx:554:1)
+      at doDiscoverQuery (genericDiscoverQuery.tsx?33f8:328:1)
+      at _GenericDiscoverQuery.eval [as fetchData] (genericDiscoverQuery.tsx?33f8:256:1)
+      at _GenericDiscoverQuery.componentDidMount (genericDiscoverQuery.tsx?33f8:152:1)
+      at commitLifeCycles (react-dom.development.js?f8c1:20663:1)
+      at commitLayoutEffects (react-dom.development.js?f8c1:23426:1)`,
+    };
+
+    const ex = exceptionFromError(parser, EXCEPTION);
+
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'react-dom.development.js?f8c1',
+            function: 'commitLayoutEffects',
+            in_app: true,
+            lineno: 23426,
+            colno: 1,
+          },
+          {
+            filename: 'react-dom.development.js?f8c1',
+            function: 'commitLifeCycles',
+            in_app: true,
+            lineno: 20663,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: '_GenericDiscoverQuery.componentDidMount',
+            in_app: true,
+            lineno: 152,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: '_GenericDiscoverQuery.eval [as fetchData]',
+            in_app: true,
+            lineno: 256,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: 'doDiscoverQuery',
+            in_app: true,
+            lineno: 328,
+            colno: 1,
+          },
+          {
+            filename: 'api.tsx',
+            function: 'Client.requestPromise',
+            in_app: true,
+            lineno: 554,
+            colno: 1,
+          },
+        ],
+      },
+    });
+  });
 });
