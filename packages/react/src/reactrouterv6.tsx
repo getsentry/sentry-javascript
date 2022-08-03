@@ -2,7 +2,7 @@
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { getGlobalObject, getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
@@ -128,7 +128,7 @@ function getNormalizedName(
             // If the route defined on the element is something like
             // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
             // We should check against the branch.pathname for the number of / seperators
-            if (pathBuilder.split('/').length !== branch.pathname.split('/').length) {
+            if (getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname)) {
               return [newPath, 'route'];
             }
             return [pathBuilder, 'route'];
