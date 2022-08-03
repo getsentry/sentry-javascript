@@ -16,13 +16,15 @@ export function withSentryConfig(
   // `defaults` in order to pass them along to the user's function
   if (typeof exportedUserNextConfig === 'function') {
     return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-      const userNextConfigObject = exportedUserNextConfig(phase, defaults);
+      let userNextConfigObject = exportedUserNextConfig(phase, defaults);
 
       // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`, so grab and then remove the `sentry`
       // property there. Where we actually need it is in the webpack config function we're going to create, so pass it
       // to `constructWebpackConfigFunction` so that it will be in the created function's closure.
       const { sentry: userSentryOptions } = userNextConfigObject;
       delete userNextConfigObject.sentry;
+      // Remind TS that there's now no `sentry` property
+      userNextConfigObject = userNextConfigObject as NextConfigObject;
 
       return {
         ...userNextConfigObject,
@@ -41,9 +43,11 @@ export function withSentryConfig(
   // for a more thorough explanation of what we're doing here.)
   const { sentry: userSentryOptions } = exportedUserNextConfig;
   delete exportedUserNextConfig.sentry;
+  // Remind TS that there's now no `sentry` property
+  const userNextConfigObject = exportedUserNextConfig as NextConfigObject;
 
   return {
-    ...exportedUserNextConfig,
-    webpack: constructWebpackConfigFunction(exportedUserNextConfig, userSentryWebpackPluginOptions, userSentryOptions),
+    ...userNextConfigObject,
+    webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
   };
 }
