@@ -362,8 +362,6 @@ describe('Stack parsing', () => {
 
     const frames = parseStackFrames(stackParser, err);
 
-    console.log(frames);
-
     expect(frames).toEqual([
       {
         filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
