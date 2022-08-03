@@ -260,9 +260,7 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
 
     const res = await origLoader.call(this, args);
 
-    Object.assign(res, { sentryTrace, sentryBaggage });
-
-    return res;
+    return { ...res, sentryTrace, sentryBaggage };
   };
 }
 
