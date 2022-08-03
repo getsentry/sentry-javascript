@@ -1,18 +1,18 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getMultipleEnvelopeRequest, runServer, filterEnvelopeItems } from '../../../../utils';
 
 test('should unset user', async () => {
   const url = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(url, 6);
+  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(url, 6));
 
-  assertSentryEvent(envelopes[1][2], {
+  assertSentryEvent(events[0], {
     message: 'no_user',
   });
 
-  expect((envelopes[0][2] as Event).user).not.toBeDefined();
+  expect((events[0] as Event).user).not.toBeDefined();
 
-  assertSentryEvent(envelopes[3][2], {
+  assertSentryEvent(events[1], {
     message: 'user',
     user: {
       id: 'foo',
@@ -21,9 +21,9 @@ test('should unset user', async () => {
     },
   });
 
-  assertSentryEvent(envelopes[5][2], {
+  assertSentryEvent(events[2], {
     message: 'unset_user',
   });
 
-  expect((envelopes[2][2] as Event).user).not.toBeDefined();
+  expect((events[2] as Event).user).not.toBeDefined();
 });
