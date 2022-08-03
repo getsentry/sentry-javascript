@@ -239,28 +239,31 @@ function makeWrappedLoader(origAction: DataFunction): DataFunction {
   return makeWrappedDataFunction(origAction, 'loader');
 }
 
-function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
-  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    let sentryTrace;
-    let sentryBaggage;
+function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
+  const transaction = getActiveTransaction();
+  const currentScope = getCurrentHub().getScope();
 
-    const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentHub().getScope();
+  if (isNodeEnv() && hasTracingEnabled()) {
+    if (currentScope) {
+      const span = currentScope.getSpan();
 
-    if (isNodeEnv() && hasTracingEnabled()) {
-      if (currentScope) {
-        const span = currentScope.getSpan();
-
-        if (span && activeTransaction) {
-          sentryTrace = span.toTraceparent();
-          sentryBaggage = serializeBaggage(activeTransaction.getBaggage());
-        }
+      if (span && transaction) {
+        return {
+          sentryTrace: span.toTraceparent(),
+          sentryBaggage: serializeBaggage(transaction.getBaggage()),
+        };
       }
     }
+  }
 
+  return {};
+}
+
+function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
+  return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
 
-    return { ...res, sentryTrace, sentryBaggage };
+    return { ...res, ...getTraceAndBaggage() };
   };
 }
 
