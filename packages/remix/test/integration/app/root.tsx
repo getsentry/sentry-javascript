@@ -10,7 +10,7 @@ export const meta: MetaFunction = ({ data }) => ({
   baggage: data.sentryBaggage,
 });
 
-function App() {
+export function App() {
   return (
     <html lang="en">
       <head>

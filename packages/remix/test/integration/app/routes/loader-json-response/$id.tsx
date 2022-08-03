@@ -4,6 +4,10 @@ import { useLoaderData } from '@remix-run/react';
 type LoaderData = { id: string };
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
+  if (id === '-1') {
+    throw new Error('Error');
+  }
+
   return json({
     id,
   });

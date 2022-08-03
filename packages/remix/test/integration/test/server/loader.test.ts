@@ -1,7 +1,68 @@
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from './utils/helpers';
+import {
+  assertSentryTransaction,
+  getEnvelopeRequest,
+  runServer,
+  getMultipleEnvelopeRequest,
+  assertSentryEvent,
+} from './utils/helpers';
+
+jest.spyOn(console, 'error').mockImplementation();
 
 describe('Remix API Loaders', () => {
-  it('correctly instruments a Remix API loader', async () => {
+  it('does not add a loader if there is not one defined.', async () => {
+    const baseURL = await runServer();
+    const url = `${baseURL}/`;
+    const envelope = await getEnvelopeRequest(url);
+    const transaction = envelope[2];
+
+    assertSentryTransaction(transaction, {
+      spans: [
+        {
+          description: 'root',
+          op: 'remix.server.documentRequest',
+        },
+      ],
+    });
+  });
+
+  it('reports an error thrown from the loader', async () => {
+    const baseURL = await runServer();
+    const url = `${baseURL}/loader-json-response/-1`;
+
+    const [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          status: 'internal_error',
+          tags: {
+            'http.status_code': '500',
+          },
+        },
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'loader',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('correctly instruments a parameterized Remix API loader', async () => {
     const baseURL = await runServer();
     const url = `${baseURL}/loader-json-response/123123`;
     const envelope = await getEnvelopeRequest(url);
