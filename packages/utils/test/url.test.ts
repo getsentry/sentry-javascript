@@ -1,4 +1,4 @@
-import { stripUrlQueryAndFragment, getNumberOfUrlSegments } from '../src/url';
+import { getNumberOfUrlSegments, stripUrlQueryAndFragment } from '../src/url';
 
 describe('stripQueryStringAndFragment', () => {
   const urlString = 'http://dogs.are.great:1231/yay/';
