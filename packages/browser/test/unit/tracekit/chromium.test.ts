@@ -431,8 +431,8 @@ describe('Tracekit - Chrome Tests', () => {
     });
   });
 
-  it.only('should parse exceptions with bare filenames', () => {
-    const EDGE44_EVAL_EXCEPTION = {
+  it.only('should parse exceptions with frames without full paths', () => {
+    const EXCEPTION = {
       message: 'aha',
       name: 'Error',
       stack: `Error
@@ -444,7 +444,7 @@ describe('Tracekit - Chrome Tests', () => {
       at commitLayoutEffects (react-dom.development.js?f8c1:23426:1)`,
     };
 
-    const ex = exceptionFromError(parser, EDGE44_EVAL_EXCEPTION);
+    const ex = exceptionFromError(parser, EXCEPTION);
 
     expect(ex).toEqual({
       value: 'aha',
