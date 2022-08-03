@@ -431,7 +431,7 @@ describe('Tracekit - Chrome Tests', () => {
     });
   });
 
-  it.only('should parse exceptions with frames without full paths', () => {
+  it('should parse exceptions with frames without full paths', () => {
     const EXCEPTION = {
       message: 'aha',
       name: 'Error',
