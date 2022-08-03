@@ -100,7 +100,7 @@ type GetModuleFn = (filename: string | undefined) => string | undefined;
 // eslint-disable-next-line complexity
 function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
-  const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+?):(\d+)(?::(\d+))?|([^)]+))\)?/;
+  const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
 
   // eslint-disable-next-line complexity
   return (line: string) => {
