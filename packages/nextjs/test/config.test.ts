@@ -10,6 +10,7 @@ import {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
+  NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
 } from '../src/config/types';
@@ -37,6 +38,9 @@ const mockExistsSync = (path: fs.PathLike) => {
 };
 const exitsSync = jest.spyOn(fs, 'existsSync').mockImplementation(mockExistsSync);
 
+/** Mocking of temporary directory creation (so that we have a place to stick files (like `sentry.client.config.js`) in
+ * order to test that we can find them) */
+
 // Make it so that all temporary folders, either created directly by tests or by the code they're testing, will go into
 // one spot that we know about, which we can then clean up when we're done
 const realTmpdir = jest.requireActual('os').tmpdir;
@@ -63,19 +67,22 @@ afterEach(() => {
   mkdtempSyncSpy.mockClear();
 });
 
-/** Mocks of the arguments passed to `withSentryConfig` */
+/** Mock next config object */
 const userNextConfig: NextConfigObject = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
-  webpack: (config: WebpackConfigObject, _options: BuildContext) => ({
-    ...config,
+  webpack: (incomingWebpackConfig: WebpackConfigObject, _options: BuildContext) => ({
+    ...incomingWebpackConfig,
     mode: 'universal-sniffing',
     entry: async () =>
       Promise.resolve({
-        ...(await (config.entry as EntryPropertyFunction)()),
+        ...(await (incomingWebpackConfig.entry as EntryPropertyFunction)()),
         simulatorBundle: './src/simulator/index.ts',
       }),
   }),
 };
+
+/** Mocks of the arguments passed to `withSentryConfig` */
+const exportedNextConfig = userNextConfig as NextConfigObjectWithSentry;
 const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator' };
 process.env.SENTRY_AUTH_TOKEN = 'dogsarebadatkeepingsecrets';
 process.env.SENTRY_RELEASE = 'doGsaREgReaT';
@@ -119,12 +126,12 @@ const clientWebpackConfig = {
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
 };
 
-// In real life, next will copy the `userNextConfig` into the `buildContext`. Since we're providing mocks for both of
-// those, we need to mimic that behavior, and since `userNextConfig` can vary per test, we need to have the option do it
-// dynamically.
+// In real life, next will copy the `exportedNextConfig` (materializing it first, if it's a function) into the
+// `buildContext`. Since we're providing mocks for both of those, we need to mimic that behavior, and since
+// `exportedNextConfig` can vary per test, we need to have the option do it dynamically.
 function getBuildContext(
   buildTarget: 'server' | 'client',
-  userNextConfig: NextConfigObject,
+  exportedNextConfig: ExportedNextConfig,
   webpackVersion: string = '5.4.15',
 ): BuildContext {
   return {
@@ -135,31 +142,31 @@ function getBuildContext(
       // nextjs's default values
       target: 'server',
       distDir: '.next',
-      ...userNextConfig,
+      ...exportedNextConfig,
     } as NextConfigObject,
     webpack: { version: webpackVersion },
     isServer: buildTarget === 'server',
   };
 }
 
-const serverBuildContext = getBuildContext('server', userNextConfig);
-const clientBuildContext = getBuildContext('client', userNextConfig);
+const serverBuildContext = getBuildContext('server', exportedNextConfig);
+const clientBuildContext = getBuildContext('client', exportedNextConfig);
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
  *  function, running that function.
  *
- * @param userNextConfig Next config options provided by the user
+ * @param exportedNextConfig Next config options provided by the user
  * @param userSentryWebpackPluginConfig SentryWebpackPlugin options provided by the user
  *
  * @returns The config values next will receive directly from `withSentryConfig` or when it calls the function returned
  * by `withSentryConfig`
  */
 function materializeFinalNextConfig(
-  userNextConfig: ExportedNextConfig,
+  exportedNextConfig: ExportedNextConfig,
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
-  const sentrifiedConfig = withSentryConfig(userNextConfig, userSentryWebpackPluginConfig);
+  const sentrifiedConfig = withSentryConfig(exportedNextConfig, userSentryWebpackPluginConfig);
   let finalConfigValues = sentrifiedConfig;
 
   if (typeof sentrifiedConfig === 'function') {
@@ -177,7 +184,7 @@ function materializeFinalNextConfig(
  * that.
  *
  * @param options An object including the following:
- *   - `userNextConfig` Next config options provided by the user
+ *   - `exportedNextConfig` Next config options provided by the user
  *   - `userSentryWebpackPluginConfig` SentryWebpackPlugin options provided by the user
  *   - `incomingWebpackConfig` The existing webpack config, passed to the function as `config`
  *   - `incomingWebpackBuildContext` The existing webpack build context, passed to the function as `options`
@@ -185,22 +192,29 @@ function materializeFinalNextConfig(
  * @returns The webpack config values next will use when it calls the function that `createFinalWebpackConfig` returns
  */
 async function materializeFinalWebpackConfig(options: {
-  userNextConfig: ExportedNextConfig;
+  exportedNextConfig: ExportedNextConfig;
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
 }): Promise<WebpackConfigObject> {
-  const { userNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } = options;
+  const { exportedNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } =
+    options;
 
   // if the user's next config is a function, run it so we have access to the values
   const materializedUserNextConfig =
-    typeof userNextConfig === 'function' ? userNextConfig('phase-production-build', defaultsObject) : userNextConfig;
+    typeof exportedNextConfig === 'function'
+      ? exportedNextConfig('phase-production-build', defaultsObject)
+      : exportedNextConfig;
+
+  // extract the `sentry` property as we do in `withSentryConfig`
+  const { sentry: sentryConfig } = materializedUserNextConfig;
+  delete materializedUserNextConfig.sentry;
 
   // get the webpack config function we'd normally pass back to next
   const webpackConfigFunction = constructWebpackConfigFunction(
     materializedUserNextConfig,
     userSentryWebpackPluginConfig,
-    materializedUserNextConfig.sentry,
+    sentryConfig,
   );
 
   // call it to get concrete values for comparison
@@ -221,7 +235,7 @@ export function findWebpackPlugin(
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig);
+    const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -231,13 +245,13 @@ describe('withSentryConfig', () => {
   });
 
   it('preserves unrelated next config options', () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig);
+    const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
     expect(finalConfig.publicRuntimeConfig).toEqual(userNextConfig.publicRuntimeConfig);
   });
 
   it("works when user's overall config is an object", () => {
-    const finalConfig = materializeFinalNextConfig(userNextConfig);
+    const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
@@ -248,31 +262,32 @@ describe('withSentryConfig', () => {
   });
 
   it("works when user's overall config is a function", () => {
-    const userNextConfigFunction = () => userNextConfig;
+    const exportedNextConfigFunction = () => userNextConfig;
 
-    const finalConfig = materializeFinalNextConfig(userNextConfigFunction);
+    const finalConfig = materializeFinalNextConfig(exportedNextConfigFunction);
 
     expect(finalConfig).toEqual(
       expect.objectContaining({
-        ...userNextConfigFunction(),
+        ...exportedNextConfigFunction(),
         webpack: expect.any(Function), // `webpack` is tested specifically elsewhere
       }),
     );
   });
 
   it('correctly passes `phase` and `defaultConfig` through to functional `userNextConfig`', () => {
-    const userNextConfigFunction = jest.fn().mockReturnValue(userNextConfig);
+    const exportedNextConfigFunction = jest.fn().mockReturnValue(userNextConfig);
 
-    materializeFinalNextConfig(userNextConfigFunction);
+    materializeFinalNextConfig(exportedNextConfigFunction);
 
-    expect(userNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
+    expect(exportedNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
+  });
   });
 });
 
 describe('webpack config', () => {
   it('includes expected properties', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig,
+      exportedNextConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
@@ -288,7 +303,7 @@ describe('webpack config', () => {
 
   it('preserves unrelated webpack config options', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig,
+      exportedNextConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
@@ -303,17 +318,19 @@ describe('webpack config', () => {
   });
 
   it('allows for the use of `hidden-source-map` as `devtool` value for client-side builds', async () => {
-    const userNextConfigHiddenSourceMaps = { ...userNextConfig, sentry: { ...userNextConfig.sentry } };
-    userNextConfigHiddenSourceMaps.sentry.hideSourceMaps = true;
+    const exportedNextConfigHiddenSourceMaps = {
+      ...exportedNextConfig,
+      sentry: { ...exportedNextConfig.sentry, hideSourceMaps: true },
+    };
 
     const finalClientWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig: userNextConfigHiddenSourceMaps,
+      exportedNextConfig: exportedNextConfigHiddenSourceMaps,
       incomingWebpackConfig: clientWebpackConfig,
       incomingWebpackBuildContext: clientBuildContext,
     });
 
     const finalServerWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig: userNextConfigHiddenSourceMaps,
+      exportedNextConfig: exportedNextConfigHiddenSourceMaps,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
     });
@@ -328,7 +345,7 @@ describe('webpack config', () => {
 
     it('handles various entrypoint shapes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -371,12 +388,12 @@ describe('webpack config', () => {
 
     it('injects user config file into `_app` in both server and client bundles', async () => {
       const finalServerWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
       const finalClientWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -395,12 +412,12 @@ describe('webpack config', () => {
 
     it('injects user config file into `_error` in server bundle but not client bundle', async () => {
       const finalServerWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
       const finalClientWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -419,7 +436,7 @@ describe('webpack config', () => {
 
     it('injects user config file into API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -443,7 +460,7 @@ describe('webpack config', () => {
 
     it('does not inject user config file into API middleware', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -458,7 +475,7 @@ describe('webpack config', () => {
 
     it('does not inject anything into non-_app, non-_error, non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -475,7 +492,7 @@ describe('webpack config', () => {
   describe('webpack loaders', () => {
     it('adds loader to server config', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -499,7 +516,7 @@ describe('webpack config', () => {
 
     it("doesn't add loader to client config", async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -521,7 +538,7 @@ describe('Sentry webpack plugin config', () => {
   it('includes expected properties', async () => {
     // also, can pull from either env or user config (see notes on specific properties below)
     const finalWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig,
+      exportedNextConfig,
       userSentryWebpackPluginConfig,
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
@@ -546,7 +563,7 @@ describe('Sentry webpack plugin config', () => {
 
   it('preserves unrelated plugin config options', async () => {
     const finalWebpackConfig = await materializeFinalWebpackConfig({
-      userNextConfig,
+      exportedNextConfig,
       userSentryWebpackPluginConfig: { ...userSentryWebpackPluginConfig, debug: true },
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
@@ -567,7 +584,7 @@ describe('Sentry webpack plugin config', () => {
   describe('Sentry webpack plugin `include` option', () => {
     it('has the correct value when building client bundles', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -583,11 +600,11 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
-      const userNextConfigWithWidening = { ...userNextConfig, sentry: { widenClientFileUpload: true } };
+      const exportedNextConfigWithWidening = { ...exportedNextConfig, sentry: { widenClientFileUpload: true } };
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigWithWidening,
+        exportedNextConfig: exportedNextConfigWithWidening,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithWidening),
+        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithWidening),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -601,13 +618,15 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverless server bundles', async () => {
-      const userNextConfigServerless = { ...userNextConfig };
-      userNextConfigServerless.target = 'experimental-serverless-trace';
+      const exportedNextConfigServerless = {
+        ...exportedNextConfig,
+        target: 'experimental-serverless-trace' as const,
+      };
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigServerless,
+        exportedNextConfig: exportedNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
+        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigServerless),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -621,11 +640,11 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverful server bundles using webpack 4', async () => {
-      const serverBuildContextWebpack4 = getBuildContext('server', userNextConfig);
+      const serverBuildContextWebpack4 = getBuildContext('server', exportedNextConfig);
       serverBuildContextWebpack4.webpack.version = '4.15.13';
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
@@ -642,7 +661,7 @@ describe('Sentry webpack plugin config', () => {
 
     it('has the correct value when building serverful server bundles using webpack 5', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContext,
       });
@@ -662,7 +681,7 @@ describe('Sentry webpack plugin config', () => {
   describe('Sentry webpack plugin `ignore` option', () => {
     it('has the correct value when building client bundles', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig,
+        exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
@@ -676,11 +695,11 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
-      const userNextConfigWithWidening = { ...userNextConfig, sentry: { widenClientFileUpload: true } };
+      const exportedNextConfigWithWidening = { ...exportedNextConfig, sentry: { widenClientFileUpload: true } };
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigWithWidening,
+        exportedNextConfig: exportedNextConfigWithWidening,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithWidening),
+        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithWidening),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -699,16 +718,16 @@ describe('Sentry webpack plugin config', () => {
   });
 
   describe("Sentry webpack plugin `include` option with basePath filled on next's config", () => {
-    const userNextConfigWithBasePath = {
-      ...userNextConfig,
+    const exportedNextConfigWithBasePath = {
+      ...exportedNextConfig,
       basePath: '/city-park',
     };
 
     it('has the correct value when building client bundles', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigWithBasePath,
+        exportedNextConfig: exportedNextConfigWithBasePath,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('client', userNextConfigWithBasePath),
+        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithBasePath),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -722,13 +741,15 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverless server bundles', async () => {
-      const userNextConfigServerless = { ...userNextConfigWithBasePath };
-      userNextConfigServerless.target = 'experimental-serverless-trace';
+      const exportedNextConfigServerless = {
+        ...exportedNextConfigWithBasePath,
+        target: 'experimental-serverless-trace' as const,
+      };
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigServerless,
+        exportedNextConfig: exportedNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', userNextConfigServerless),
+        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigServerless),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -742,11 +763,11 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building serverful server bundles using webpack 4', async () => {
-      const serverBuildContextWebpack4 = getBuildContext('server', userNextConfigWithBasePath);
+      const serverBuildContextWebpack4 = getBuildContext('server', exportedNextConfigWithBasePath);
       serverBuildContextWebpack4.webpack.version = '4.15.13';
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigWithBasePath,
+        exportedNextConfig: exportedNextConfigWithBasePath,
         incomingWebpackConfig: serverWebpackConfig,
         incomingWebpackBuildContext: serverBuildContextWebpack4,
       });
@@ -763,9 +784,9 @@ describe('Sentry webpack plugin config', () => {
 
     it('has the correct value when building serverful server bundles using webpack 5', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
-        userNextConfig: userNextConfigWithBasePath,
+        exportedNextConfig: exportedNextConfigWithBasePath,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', userNextConfigWithBasePath),
+        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigWithBasePath),
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -782,12 +803,12 @@ describe('Sentry webpack plugin config', () => {
 
   it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
     const clientFinalNextConfig = materializeFinalNextConfig({
-      ...userNextConfig,
+      ...exportedNextConfig,
       sentry: { disableClientWebpackPlugin: true },
     });
     const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
 
-    const serverFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const serverFinalNextConfig = materializeFinalNextConfig(exportedNextConfig, userSentryWebpackPluginConfig);
     const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
 
     expect(clientFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
@@ -796,12 +817,12 @@ describe('Sentry webpack plugin config', () => {
 
   it('allows SentryWebpackPlugin to be turned off for server code (independent of client code)', () => {
     const serverFinalNextConfig = materializeFinalNextConfig({
-      ...userNextConfig,
+      ...exportedNextConfig,
       sentry: { disableServerWebpackPlugin: true },
     });
     const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
 
-    const clientFinalNextConfig = materializeFinalNextConfig(userNextConfig, userSentryWebpackPluginConfig);
+    const clientFinalNextConfig = materializeFinalNextConfig(exportedNextConfig, userSentryWebpackPluginConfig);
     const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
 
     expect(serverFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
@@ -810,7 +831,7 @@ describe('Sentry webpack plugin config', () => {
 
   it("doesn't set devtool if webpack plugin is disabled", () => {
     const finalNextConfig = materializeFinalNextConfig({
-      ...userNextConfig,
+      ...exportedNextConfig,
       webpack: () => ({ devtool: 'something-besides-source-map' } as any),
       sentry: { disableServerWebpackPlugin: true },
     });
