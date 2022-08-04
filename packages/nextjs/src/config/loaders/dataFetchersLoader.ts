@@ -93,7 +93,7 @@ function wrapFunctions(userCode: string, templateCode: string, filepath: string)
 /**
  * Wrap `getStaticPaths`, `getStaticProps`, and `getServerSideProps` (if they exist) in the given page code
  */
-function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
+export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { projectDir } = this.getOptions ? this.getOptions() : this.query!;
@@ -135,5 +135,3 @@ function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, userCode: strin
 
   return `${modifiedUserCode}\n${injectedCode}`;
 }
-
-export { wrapDataFetchersLoader as default };
