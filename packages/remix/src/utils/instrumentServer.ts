@@ -1,103 +1,31 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
-import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
+import { getActiveTransaction, hasTracingEnabled, Span } from '@sentry/tracing';
+import {
+  addExceptionMechanism,
+  CrossPlatformRequest,
+  extractRequestData,
+  fill,
+  isNodeEnv,
+  loadModule,
+  logger,
+  serializeBaggage,
+} from '@sentry/utils';
+import type { Request as ExpressRequest } from 'express';
 
-// Types vendored from @remix-run/server-runtime@1.6.0:
-// https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
-type AppLoadContext = unknown;
-type AppData = unknown;
-type RequestHandler = (request: Request, loadContext?: AppLoadContext) => Promise<Response>;
-type CreateRequestHandlerFunction = (build: ServerBuild, mode?: string) => RequestHandler;
-type ServerRouteManifest = RouteManifest<Omit<ServerRoute, 'children'>>;
-type Params<Key extends string = string> = {
-  readonly [key in Key]: string | undefined;
-};
-
-interface Route {
-  index?: boolean;
-  caseSensitive?: boolean;
-  id: string;
-  parentId?: string;
-  path?: string;
-}
-interface RouteData {
-  [routeId: string]: AppData;
-}
-
-interface MetaFunction {
-  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
-}
-
-interface HtmlMetaDescriptor {
-  [name: string]: null | string | undefined | Record<string, string> | Array<Record<string, string> | string>;
-  charset?: 'utf-8';
-  charSet?: 'utf-8';
-  title?: string;
-}
-
-interface ServerRouteModule {
-  action?: DataFunction;
-  headers?: unknown;
-  loader?: DataFunction;
-  meta?: MetaFunction | HtmlMetaDescriptor;
-}
-
-interface ServerRoute extends Route {
-  children: ServerRoute[];
-  module: ServerRouteModule;
-}
-
-interface RouteManifest<Route> {
-  [routeId: string]: Route;
-}
-
-interface ServerBuild {
-  entry: {
-    module: ServerEntryModule;
-  };
-  routes: ServerRouteManifest;
-  assets: unknown;
-}
-
-interface HandleDocumentRequestFunction {
-  (request: Request, responseStatusCode: number, responseHeaders: Headers, context: Record<symbol, unknown>):
-    | Promise<Response>
-    | Response;
-}
-
-interface HandleDataRequestFunction {
-  (response: Response, args: DataFunctionArgs): Promise<Response> | Response;
-}
-
-interface ServerEntryModule {
-  default: HandleDocumentRequestFunction;
-  meta: MetaFunction;
-  loader: DataFunction;
-  handleDataRequest?: HandleDataRequestFunction;
-}
-
-interface DataFunctionArgs {
-  request: Request;
-  context: AppLoadContext;
-  params: Params;
-}
-
-interface DataFunction {
-  (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
-}
-
-interface ReactRouterDomPkg {
-  matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
-}
-
-// Taken from Remix Implementation
-// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/routeMatching.ts#L6-L10
-export interface RouteMatch<Route> {
-  params: Params;
-  pathname: string;
-  route: Route;
-}
+import {
+  AppData,
+  CreateRequestHandlerFunction,
+  DataFunction,
+  DataFunctionArgs,
+  HandleDocumentRequestFunction,
+  ReactRouterDomPkg,
+  RequestHandler,
+  RouteMatch,
+  ServerBuild,
+  ServerRoute,
+  ServerRouteManifest,
+} from './types';
 
 // Taken from Remix Implementation
 // https://github.com/remix-run/remix/blob/32300ec6e6e8025602cea63e17a2201989589eab/packages/remix-server-runtime/responses.ts#L60-L77
@@ -318,7 +246,13 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   };
 }
 
-function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
+/**
+ * Creates routes from the server route manifest
+ *
+ * @param manifest
+ * @param parentId
+ */
+export function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
   return Object.entries(manifest)
     .filter(([, route]) => route.parentId === parentId)
     .map(([id, route]) => ({
@@ -352,33 +286,55 @@ function matchServerRoutes(
   }));
 }
 
+/**
+ * Starts a new transaction for the given request to be used by different `RequestHandler` wrappers.
+ *
+ * @param request
+ * @param routes
+ * @param pkg
+ */
+export function startRequestHandlerTransaction(
+  request: Request | ExpressRequest,
+  routes: ServerRoute[],
+  pkg?: ReactRouterDomPkg,
+): Span | undefined {
+  const hub = getCurrentHub();
+  const currentScope = hub.getScope();
+
+  const reqData = extractRequestData(request as CrossPlatformRequest);
+
+  if (!reqData.url) {
+    return;
+  }
+
+  const url = new URL(reqData.url);
+  const matches = matchServerRoutes(routes, url.pathname, pkg);
+
+  const match = matches && getRequestMatch(url, matches);
+  const name = match === null ? url.pathname : match.route.id;
+  const source = match === null ? 'url' : 'route';
+  const transaction = hub.startTransaction({
+    name,
+    op: 'http.server',
+    tags: {
+      method: reqData.method,
+    },
+    metadata: {
+      source,
+    },
+  });
+
+  if (transaction) {
+    currentScope?.setSpan(transaction);
+  }
+  return transaction;
+}
+
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
-    const hub = getCurrentHub();
-    const currentScope = hub.getScope();
-
-    const url = new URL(request.url);
-    const matches = matchServerRoutes(routes, url.pathname, pkg);
-
-    const match = matches && getRequestMatch(url, matches);
-    const name = match === null ? url.pathname : match.route.id;
-    const source = match === null ? 'url' : 'route';
-    const transaction = hub.startTransaction({
-      name,
-      op: 'http.server',
-      tags: {
-        method: request.method,
-      },
-      metadata: {
-        source,
-      },
-    });
-
-    if (transaction) {
-      currentScope?.setSpan(transaction);
-    }
+    const transaction = startRequestHandlerTransaction(request, routes, pkg);
 
     const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
@@ -416,43 +372,49 @@ function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): RouteMat
   return match;
 }
 
+/**
+ *
+ */
+export function instrumentBuild(build: ServerBuild): ServerBuild {
+  const routes: ServerRouteManifest = {};
+
+  const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
+
+  fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
+
+  for (const [id, route] of Object.entries(build.routes)) {
+    const wrappedRoute = { ...route, module: { ...route.module } };
+
+    if (wrappedRoute.module.action) {
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id));
+    }
+
+    if (wrappedRoute.module.loader) {
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
+    }
+
+    // Entry module should have a loader function to provide `sentry-trace` and `baggage`
+    // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
+    if (!wrappedRoute.parentId) {
+      if (!wrappedRoute.module.loader) {
+        wrappedRoute.module.loader = () => ({});
+      }
+
+      fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
+    }
+
+    routes[id] = wrappedRoute;
+  }
+
+  return { ...build, routes, entry: wrappedEntry };
+}
+
 function makeWrappedCreateRequestHandler(
   origCreateRequestHandler: CreateRequestHandlerFunction,
 ): CreateRequestHandlerFunction {
-  return function (this: unknown, build: ServerBuild, mode: string | undefined): RequestHandler {
-    const routes: ServerRouteManifest = {};
-
-    const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
-
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
-
-    for (const [id, route] of Object.entries(build.routes)) {
-      const wrappedRoute = { ...route, module: { ...route.module } };
-
-      if (wrappedRoute.module.action) {
-        fill(wrappedRoute.module, 'action', makeWrappedAction(id));
-      }
-
-      if (wrappedRoute.module.loader) {
-        fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
-      }
-
-      // Entry module should have a loader function to provide `sentry-trace` and `baggage`
-      // They will be available for the root `meta` function as `data.sentryTrace` and `data.sentryBaggage`
-      if (!wrappedRoute.parentId) {
-        if (!wrappedRoute.module.loader) {
-          wrappedRoute.module.loader = () => ({});
-        }
-
-        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
-      }
-
-      routes[id] = wrappedRoute;
-    }
-
-    const newBuild = { ...build, routes, entry: wrappedEntry };
-
-    const requestHandler = origCreateRequestHandler.call(this, newBuild, mode);
+  return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
+    const newBuild = instrumentBuild(build);
+    const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
     return wrapRequestHandler(requestHandler, newBuild);
   };
