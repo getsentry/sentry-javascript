@@ -16,8 +16,12 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const frames: StackFrame[] = [];
 
     for (const line of stack.split('\n').slice(skipFirst)) {
+      // https://github.com/getsentry/sentry-javascript/issues/5459
+      // Remove webpack (error: *) wrappers
+      const cleanedLine = line.replace(/\(error: (.*)\)/, '$1');
+
       for (const parser of sortedParsers) {
-        const frame = parser(line);
+        const frame = parser(cleanedLine);
 
         if (frame) {
           frames.push(frame);
