@@ -497,4 +497,54 @@ describe('Tracekit - Chrome Tests', () => {
       },
     });
   });
+
+  it('should parse webpack wrapped exceptions', () => {
+    const EXCEPTION = {
+      message: 'aha',
+      name: 'ChunkLoadError',
+      stack: `ChunkLoadError: Loading chunk app_bootstrap_initializeLocale_tsx failed.
+      (error: https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js)
+        at (error: (/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js))
+        at key(webpack/runtime/jsonp chunk loading:27:18)
+        at ? (webpack/runtime/ensure chunk:6:25)
+        at Array.reduce(<anonymous>)`,
+    };
+
+    const ex = exceptionFromError(parser, EXCEPTION);
+
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'ChunkLoadError',
+      stacktrace: {
+        frames: [
+          { filename: '<anonymous>', function: 'Array.reduce', in_app: true },
+          {
+            filename: 'webpack/runtime/ensure chunk',
+            function: '?',
+            in_app: true,
+            lineno: 6,
+            colno: 25,
+          },
+          {
+            filename: 'webpack/runtime/jsonp chunk loading',
+            function: 'key',
+            in_app: true,
+            lineno: 27,
+            colno: 18,
+          },
+          {
+            filename: '/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js',
+            function: '?',
+            in_app: true,
+          },
+          {
+            filename:
+              'https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js',
+            function: '?',
+            in_app: true,
+          },
+        ],
+      },
+    });
+  });
 });
