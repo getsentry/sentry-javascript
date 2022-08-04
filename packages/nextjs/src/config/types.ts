@@ -8,7 +8,18 @@ export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpa
  * Overall Nextjs config
  */
 
-export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
+// The first argument to `withSentryConfig` (which is the user's next config) may contain a `sentry` key, which we'll
+// remove once we've captured it, in order to prevent nextjs from throwing warnings. Since it's only in there
+// temporarily, we don't include it in the main `NextConfigObject` or `NextConfigFunction` types.
+export type ExportedNextConfig = NextConfigObjectWithSentry | NextConfigFunctionWithSentry;
+
+export type NextConfigObjectWithSentry = NextConfigObject & {
+  sentry?: UserSentryOptions;
+};
+export type NextConfigFunctionWithSentry = (
+  phase: string,
+  defaults: { defaultConfig: NextConfigObject },
+) => NextConfigObjectWithSentry;
 
 export type NextConfigObject = {
   // custom webpack options
@@ -21,7 +32,6 @@ export type NextConfigObject = {
   basePath?: string;
   // config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
-  sentry?: UserSentryOptions;
 };
 
 export type UserSentryOptions = {
