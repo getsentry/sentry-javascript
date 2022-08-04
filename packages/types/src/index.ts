@@ -37,7 +37,7 @@ export type { Hub } from './hub';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
-export type { ClientOptions, Options, TracePropagationTargets } from './options';
+export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent } from './polymorphics';
 export type { QueryParams, Request } from './request';
@@ -63,6 +63,7 @@ export type { Span, SpanContext } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';
+export type { TracePropagationTargets } from './tracing';
 export type {
   CustomSamplingContext,
   SamplingContext,
