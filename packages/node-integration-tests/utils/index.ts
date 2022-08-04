@@ -152,12 +152,16 @@ export async function runServer(testDir: string, serverPath?: string, scenarioPa
   const url = `http://localhost:${port}/test`;
   const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-  await new Promise(resolve => {
+  await new Promise<void>(resolve => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
     const app = require(serverPath || defaultServerPath).default as Express;
 
-    app.get('/test', async () => {
-      require(scenarioPath || `${testDir}/scenario`);
+    app.get('/test', (_req, res) => {
+      try {
+        require(scenarioPath || `${testDir}/scenario`);
+      } finally {
+        res.status(200).end();
+      }
     });
 
     const server = app.listen(port, () => {
@@ -169,4 +173,15 @@ export async function runServer(testDir: string, serverPath?: string, scenarioPa
   });
 
   return url;
+}
+
+export async function runScenario(serverUrl: string): Promise<void> {
+  return new Promise<void>(resolve => {
+    http
+      .get(serverUrl, res => {
+        res.on('data', () => undefined);
+        res.on('end', resolve);
+      })
+      .end();
+  });
 }

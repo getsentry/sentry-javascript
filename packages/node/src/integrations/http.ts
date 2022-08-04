@@ -1,9 +1,10 @@
-import { getCurrentHub } from '@sentry/core';
-import { Integration, Span } from '@sentry/types';
-import { fill, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/utils';
+import { getCurrentHub, Hub } from '@sentry/core';
+import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
+import { fill, isMatchingPattern, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
+import { NodeClientOptions } from '../types';
 import {
   cleanSpanDescription,
   extractUrl,
@@ -15,7 +16,10 @@ import {
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
-/** http module integration */
+/**
+ * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
+ * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ */
 export class Http implements Integration {
   /**
    * @inheritDoc
@@ -48,13 +52,22 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(
+    _addGlobalEventProcessor: (callback: EventProcessor) => void,
+    setupOnceGetCurrentHub: () => Hub,
+  ): void {
     // No need to instrument if we don't want to track anything
     if (!this._breadcrumbs && !this._tracing) {
       return;
     }
 
-    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing);
+    const clientOptions = setupOnceGetCurrentHub().getClient()?.getOptions() as NodeClientOptions | undefined;
+
+    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(
+      this._breadcrumbs,
+      this._tracing,
+      clientOptions?.tracePropagationTargets,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
@@ -90,7 +103,26 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
 function _createWrappedRequestMethodFactory(
   breadcrumbsEnabled: boolean,
   tracingEnabled: boolean,
+  tracePropagationTargets: TracePropagationTargets | undefined,
 ): WrappedRequestMethodFactory {
+  // We're caching results so we dont have to recompute regexp everytime we create a request.
+  const urlMap: Record<string, boolean> = {};
+  const shouldAttachTraceData = (url: string): boolean => {
+    if (tracePropagationTargets === undefined) {
+      return true;
+    }
+
+    if (urlMap[url]) {
+      return urlMap[url];
+    }
+
+    urlMap[url] = tracePropagationTargets.some(tracePropagationTarget =>
+      isMatchingPattern(url, tracePropagationTarget),
+    );
+
+    return urlMap[url];
+  };
+
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
     return function wrappedMethod(this: typeof http | typeof https, ...args: RequestMethodArgs): http.ClientRequest {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -109,28 +141,37 @@ function _createWrappedRequestMethodFactory(
       let parentSpan: Span | undefined;
 
       const scope = getCurrentHub().getScope();
+
       if (scope && tracingEnabled) {
         parentSpan = scope.getSpan();
+
         if (parentSpan) {
           span = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'http.client',
           });
 
-          const sentryTraceHeader = span.toTraceparent();
-          __DEBUG_BUILD__ &&
-            logger.log(
-              `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to ${requestUrl}: `,
-            );
+          if (shouldAttachTraceData(requestUrl)) {
+            const sentryTraceHeader = span.toTraceparent();
+            __DEBUG_BUILD__ &&
+              logger.log(
+                `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `,
+              );
 
-          const baggage = parentSpan.transaction && parentSpan.transaction.getBaggage();
-          const headerBaggageString = requestOptions.headers && requestOptions.headers.baggage;
+            const baggage = parentSpan.transaction && parentSpan.transaction.getBaggage();
+            const headerBaggageString = requestOptions.headers && requestOptions.headers.baggage;
 
-          requestOptions.headers = {
-            ...requestOptions.headers,
-            'sentry-trace': sentryTraceHeader,
-            baggage: mergeAndSerializeBaggage(baggage, headerBaggageString),
-          };
+            requestOptions.headers = {
+              ...requestOptions.headers,
+              'sentry-trace': sentryTraceHeader,
+              baggage: mergeAndSerializeBaggage(baggage, headerBaggageString),
+            };
+          } else {
+            __DEBUG_BUILD__ &&
+              logger.log(
+                `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
+              );
+          }
         }
       }
 
