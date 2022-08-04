@@ -44,7 +44,6 @@ export function getSession({
     const isExpired = isSessionExpired(session, expiry);
 
     if (!isExpired) {
-      logger.log(`Using existing session: ${session.id}`);
       return { type: 'saved', session };
     } else {
       logger.log(`Session has expired`);

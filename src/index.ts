@@ -288,8 +288,8 @@ export class SentryReplay implements Integration {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK does not support a teardown
    */
   destroy() {
+    logger.log('Destroying instance');
     this.removeListeners();
-    this.eventBuffer.destroy();
   }
 
   clearSession() {
