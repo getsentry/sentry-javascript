@@ -1,4 +1,4 @@
-import { ClientOptions, Options } from '@sentry/types';
+import { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 
 import { NodeTransportOptions } from './transports';
 
@@ -17,7 +17,7 @@ export interface BaseNodeOptions {
    * request URL of outgoing requests against the items in this
    * array, and only attach tracing headers if a match was found.
    */
-  tracePropagationTargets?: (string | RegExp)[];
+  tracePropagationTargets?: TracePropagationTargets;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;

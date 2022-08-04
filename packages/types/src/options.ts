@@ -7,6 +7,8 @@ import { StackLineParser, StackParser } from './stacktrace';
 import { SamplingContext } from './transaction';
 import { BaseTransportOptions, Transport } from './transport';
 
+export type TracePropagationTargets = (string | RegExp)[];
+
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
    * Enable debug functionality in the SDK itself

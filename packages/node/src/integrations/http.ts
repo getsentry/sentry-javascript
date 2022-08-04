@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/core';
-import { EventProcessor, Integration, Span } from '@sentry/types';
+import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
 import { fill, isMatchingPattern, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -103,7 +103,7 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
 function _createWrappedRequestMethodFactory(
   breadcrumbsEnabled: boolean,
   tracingEnabled: boolean,
-  tracePropagationTargets: (string | RegExp)[] | undefined,
+  tracePropagationTargets: TracePropagationTargets | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we dont have to recompute regexp everytime we create a request.
   const urlMap: Record<string, boolean> = {};
