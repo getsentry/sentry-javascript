@@ -17,7 +17,7 @@ import {
 const NODE_VERSION = parseSemver(process.versions.node);
 
 /**
- * The http module integration instruments nodes internal http module. It creates breadcrumbs, transactions for outgoing
+ * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
  * http requests and attaches trace data when tracing is enabled via its `tracing` option.
  */
 export class Http implements Integration {
