@@ -42,7 +42,7 @@ export function wrapExpressCreateRequestHandler(
 ): (options: any) => ExpressRequestHandler {
   return function (this: unknown, options: any): ExpressRequestHandler {
     const newBuild = instrumentBuild((options as ExpressCreateRequestHandlerOptions).build);
-    const requestHandler = origCreateRequestHandler.call(this, { ...options /* :, build  newBuild */ });
+    const requestHandler = origCreateRequestHandler.call(this, { ...options, build: newBuild });
 
     return wrapExpressRequestHandler(requestHandler, newBuild);
   };
