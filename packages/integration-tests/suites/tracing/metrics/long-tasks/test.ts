@@ -30,6 +30,6 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
   const end = firstUISpan['endTimestamp'] ?? 0;
   const duration = end - start;
 
-  expect(duration).toBeGreaterThanOrEqual(0.100)
-  expect(duration).toBeLessThanOrEqual(0.150)
+  expect(duration).toBeGreaterThanOrEqual(0.1);
+  expect(duration).toBeLessThanOrEqual(0.15);
 });
