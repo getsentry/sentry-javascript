@@ -44,8 +44,8 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
  * Start tracking long tasks.
  */
 export function startTrackingLongTasks(): void {
-  const transaction = getActiveTransaction() as IdleTransaction | undefined;
   const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
+    const transaction = getActiveTransaction() as IdleTransaction | undefined;
     if (!transaction) {
       return;
     }
