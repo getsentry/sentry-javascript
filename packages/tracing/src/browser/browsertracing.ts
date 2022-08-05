@@ -69,7 +69,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
+  _metricOptions?: Partial<{ _reportAllChanges: boolean, _reportLongTasks: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -148,6 +148,7 @@ export class BrowserTracing implements Integration {
 
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
+    startTrackingLongTasks(_metricOptions && _metricOptions._reportLongTasks);
   }
 
   /**
