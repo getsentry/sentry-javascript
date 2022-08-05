@@ -27,8 +27,8 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
       parent_span_id: eventData.contexts?.trace.span_id,
     }),
   );
-  const start = firstUISpan['startTimestamp'] ?? 0;
-  const end = firstUISpan['endTimestamp'] ?? 0;
+  const start = firstUISpan['start_timestamp'] ?? 0;
+  const end = firstUISpan['end_timestamp'] ?? 0;
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);
