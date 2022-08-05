@@ -11,13 +11,13 @@ import {
   logger,
   serializeBaggage,
 } from '@sentry/utils';
-import type { Request as ExpressRequest } from 'express';
 
 import {
   AppData,
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
+  ExpressRequest,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
   RequestHandler,

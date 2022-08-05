@@ -1,16 +1,16 @@
 import { loadModule } from '@sentry/utils';
-import type * as Express from 'express';
 
 import { createRoutes, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
-import { ExpressCreateRequestHandler, ExpressRequestHandler, ReactRouterDomPkg, ServerBuild } from '../types';
-
-interface ExpressCreateRequestHandlerOptions {
-  build: ServerBuild;
-  getLoadContext?: GetLoadContextFunction;
-  mode?: string;
-}
-
-type GetLoadContextFunction = (req: any, res: any) => any;
+import {
+  ExpressCreateRequestHandler,
+  ExpressCreateRequestHandlerOptions,
+  ExpressNextFunction,
+  ExpressRequest,
+  ExpressRequestHandler,
+  ExpressResponse,
+  ReactRouterDomPkg,
+  ServerBuild,
+} from '../types';
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -21,9 +21,9 @@ function wrapExpressRequestHandler(
 
   return async function (
     this: unknown,
-    req: Express.Request,
-    res: Express.Response,
-    next: Express.NextFunction,
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: ExpressNextFunction,
   ): Promise<void> {
     const transaction = startRequestHandlerTransaction(req, routes, pkg);
 

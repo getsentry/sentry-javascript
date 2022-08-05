@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
+import type * as Express from 'express';
 import type { ComponentType } from 'react';
 
 export type AppLoadContext = any;
@@ -12,6 +13,10 @@ export type ServerRouteManifest = RouteManifest<Omit<ServerRoute, 'children'>>;
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
+
+export type ExpressRequest = Express.Request;
+export type ExpressResponse = Express.Response;
+export type ExpressNextFunction = Express.NextFunction;
 
 export interface Route {
   index?: boolean;
@@ -152,3 +157,11 @@ export interface AssetsManifest {
 export type ExpressRequestHandler = (req: any, res: any, next: any) => Promise<void>;
 
 export type ExpressCreateRequestHandler = (this: unknown, options: any) => ExpressRequestHandler;
+
+export interface ExpressCreateRequestHandlerOptions {
+  build: ServerBuild;
+  getLoadContext?: GetLoadContextFunction;
+  mode?: string;
+}
+
+type GetLoadContextFunction = (req: any, res: any) => any;
