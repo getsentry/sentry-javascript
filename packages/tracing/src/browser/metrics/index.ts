@@ -41,15 +41,11 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
 }
 
 /**
- * Start tracking long tasks. Experimental.
+ * Start tracking long tasks.
  */
-export function startTrackingLongTasks(reportLongTasks: boolean = false): void {
+export function startTrackingLongTasks(): void {
   const transaction = getActiveTransaction() as IdleTransaction | undefined;
-  let po : PerformanceObserver | undefined = undefined;
   const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
-    if (transaction?.endTimestamp && po) {
-      po.disconnect();
-    }
     if (!transaction) {
       return;
     }
@@ -63,9 +59,7 @@ export function startTrackingLongTasks(reportLongTasks: boolean = false): void {
     });
   };
 
-  if (reportLongTasks) {
-    po = observe('longtask', entryHandler );
-  }
+  observe('longtask', entryHandler);
 }
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
