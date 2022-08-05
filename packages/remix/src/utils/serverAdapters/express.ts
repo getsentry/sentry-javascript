@@ -1,4 +1,4 @@
-import { loadModule } from '@sentry/utils';
+import { extractRequestData, loadModule } from '@sentry/utils';
 
 import { createRoutes, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
 import {
@@ -25,7 +25,15 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
-    const transaction = startRequestHandlerTransaction(req, routes, pkg);
+    const request = extractRequestData(req);
+
+    if (!request.url || !request.method) {
+      return origRequestHandler.call(this, req, res, next);
+    }
+
+    const url = new URL(request.url);
+
+    const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
 
     await origRequestHandler.call(this, req, res, next);
 

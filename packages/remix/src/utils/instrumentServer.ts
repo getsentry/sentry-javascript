@@ -1,23 +1,13 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled, Span } from '@sentry/tracing';
-import {
-  addExceptionMechanism,
-  CrossPlatformRequest,
-  extractRequestData,
-  fill,
-  isNodeEnv,
-  loadModule,
-  logger,
-  serializeBaggage,
-} from '@sentry/utils';
+import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
 
 import {
   AppData,
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
-  ExpressRequest,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
   RequestHandler,
@@ -294,20 +284,13 @@ function matchServerRoutes(
  * @param pkg
  */
 export function startRequestHandlerTransaction(
-  request: Request | ExpressRequest,
+  url: URL,
+  method: string,
   routes: ServerRoute[],
   pkg?: ReactRouterDomPkg,
 ): Span | undefined {
   const hub = getCurrentHub();
   const currentScope = hub.getScope();
-
-  const reqData = extractRequestData(request as CrossPlatformRequest);
-
-  if (!reqData.url) {
-    return;
-  }
-
-  const url = new URL(reqData.url);
   const matches = matchServerRoutes(routes, url.pathname, pkg);
 
   const match = matches && getRequestMatch(url, matches);
@@ -317,7 +300,7 @@ export function startRequestHandlerTransaction(
     name,
     op: 'http.server',
     tags: {
-      method: reqData.method,
+      method: method,
     },
     metadata: {
       source,
@@ -334,7 +317,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
-    const transaction = startRequestHandlerTransaction(request, routes, pkg);
+    const url = new URL(request.url);
+
+    const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
 
     const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
