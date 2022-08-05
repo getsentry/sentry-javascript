@@ -4,6 +4,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.9.0
+
+This release adds the [`tracePropagationTargets`](https://docs.sentry.io/platforms/node/configuration/options/#trace-propagation-targets) option to the Sentry Node SDK.
+
+- feat(node): Add `tracePropagationTargets` option (#5521)
+- fix(browser): Parse Chrome stack frames without full paths (#5519)
+- fix(browser): Set `:` as a part of gecko protocol regex group. (#4153)
+- fix(browser): Strip webpack wrapping from stack frames (#5522)
+- fix(nextjs): Pull `transpileClientSDK` option from correct location (#5516)
+- fix(node): Handle colons in stack trace paths (#5517)
+- fix(react): Fix React Router v6 paramaterization (#5515)
+- fix(remix): Paramaterize server side transactions (#5491)
+- fix(remix): Provide `sentry-trace` and `baggage` via root loader. (#5509)
+- ref(nextjs): Prework for wrapping data-fetching functions (#5508)
+- ref(nextjs): Simplify `NextConfigObject` type (#5514)
+
 ## 7.8.1
 
 - fix(nextjs): Add default `distDir` value back into `index.server.ts` (#5479)
