@@ -373,7 +373,7 @@ function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): RouteMat
 }
 
 /**
- *
+ * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
 export function instrumentBuild(build: ServerBuild): ServerBuild {
   const routes: ServerRouteManifest = {};

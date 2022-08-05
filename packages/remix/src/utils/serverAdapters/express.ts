@@ -35,7 +35,7 @@ function wrapExpressRequestHandler(
 }
 
 /**
- *
+ * Instruments `createRequestHandler` from `@remix-run/express`
  */
 export function wrapExpressCreateRequestHandler(
   origCreateRequestHandler: ExpressCreateRequestHandler,
