@@ -20,6 +20,5 @@
   },
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/**.yml"
-  },
-  "prettier.configPath": "/Users/ash/code/sentry-javascript/.prettierrc.json"
+  }
 }
