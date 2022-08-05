@@ -36,14 +36,6 @@ module.exports = async function () {
       },
       embroiderSafe(),
     ]);
-  }
-
-  // finally, just to be extra thorough when merging to master and releasing, we add the beta channel and ember
-  // "classic" (a legacy version which was last current in late 2019)
-  if (
-    process.env.GITHUB_EVENT_NAME === 'push' &&
-    (process.env.GITHUB_HEAD_REF === 'master' || process.env.GITHUB_HEAD_REF.startsWith('release'))
-  ) {
     scenarios = scenarios.concat([
       {
         name: 'ember-beta',
