@@ -74,17 +74,20 @@ export function constructWebpackConfigFunction(
               },
             ],
           },
-          {
-            test: pageRegex,
-            use: [
-              {
-                loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
-                options: { projectDir },
-              },
-            ],
-          },
         ],
       };
+
+      if (userSentryOptions.autoWrapDataFetchers) {
+        newConfig.module.rules.push({
+          test: pageRegex,
+          use: [
+            {
+              loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
+              options: { projectDir },
+            },
+          ],
+        });
+      }
     }
 
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
