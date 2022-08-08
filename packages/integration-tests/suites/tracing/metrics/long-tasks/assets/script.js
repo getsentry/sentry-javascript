@@ -6,9 +6,7 @@
     return time - startTime;
   }
 
-  console.log('start');
   while (getElasped() < 101) {
-    console.log('wait');
+    //
   }
-  console.log('done');
 })();
