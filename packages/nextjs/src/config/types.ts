@@ -50,9 +50,11 @@ export type UserSentryOptions = {
   // up uploading too many files, which is why this defaults to `false`.
   widenClientFileUpload?: boolean;
 
-  // Automatically wrap `getServerSideProps`, `getStaticProps`, and `getStaticPaths` in order to instrument them for
-  // tracing.
-  autoWrapDataFetchers?: boolean;
+  experiments?: {
+    // Automatically wrap `getServerSideProps`, `getStaticProps`, and `getStaticPaths` in order to instrument them for
+    // tracing.
+    autoWrapDataFetchers?: boolean;
+  };
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;

@@ -77,7 +77,7 @@ export function constructWebpackConfigFunction(
         ],
       };
 
-      if (userSentryOptions.autoWrapDataFetchers) {
+      if (userSentryOptions.experiments?.autoWrapDataFetchers) {
         newConfig.module.rules.push({
           test: pageRegex,
           use: [
