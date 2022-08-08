@@ -16,6 +16,7 @@ describe('Remix API Loaders', () => {
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
+      transaction: 'root',
       spans: [
         {
           description: 'root',

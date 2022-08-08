@@ -16,6 +16,7 @@ describe('Remix API Actions', () => {
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
+      transaction: 'routes/action-json-response/$id',
       spans: [
         {
           description: 'routes/action-json-response/$id',
