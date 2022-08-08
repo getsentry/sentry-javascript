@@ -104,6 +104,11 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
     return null;
   }
 
+  // Core SDK handles these
+  if (['fetch', 'xmlhttprequest'].includes(initiatorType)) {
+    return null;
+  }
+
   return {
     type: `${entryType}.${initiatorType}`,
     start: getAbsoluteTime(startTime),

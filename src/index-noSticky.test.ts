@@ -28,8 +28,10 @@ describe('SentryReplay (no sticky)', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest
       .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((_type, handler: (args: any) => any) => {
-        domHandler = handler;
+      .mockImplementation((type, handler: (args: any) => any) => {
+        if (type === 'dom') {
+          domHandler = handler;
+        }
       });
 
     ({ replay } = mockSdk({ replayOptions: { stickySession: false } }));
@@ -49,7 +51,9 @@ describe('SentryReplay (no sticky)', () => {
     mockRecord.takeFullSnapshot.mockClear();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });

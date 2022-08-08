@@ -38,8 +38,10 @@ describe('SentryReplay', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest
       .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((_type, handler: (args: any) => any) => {
-        domHandler = handler;
+      .mockImplementation((type, handler: (args: any) => any) => {
+        if (type === 'dom') {
+          domHandler = handler;
+        }
       });
 
     ({ replay } = mockSdk());

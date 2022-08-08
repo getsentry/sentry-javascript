@@ -334,6 +334,8 @@ export class SentryReplay implements Integration {
     const scope = getCurrentHub().getScope();
     scope.addScopeListener(this.handleCoreListener('scope'));
     addInstrumentationHandler('dom', this.handleCoreListener('dom'));
+    addInstrumentationHandler('fetch', this.handleCoreListener('fetch'));
+    addInstrumentationHandler('xhr', this.handleCoreListener('xhr'));
 
     // PerformanceObserver //
     if (!('PerformanceObserver' in window)) {
@@ -522,7 +524,7 @@ export class SentryReplay implements Integration {
       InstrumentationType,
       [
         handler: InstrumentationType extends 'fetch' | 'xhr'
-          ? (handlerData: any) => ReplaySpan
+          ? (handlerData: any) => ReplayPerformanceEntry
           : (handlerData: any) => Breadcrumb,
         eventType: string
       ]
@@ -549,19 +551,25 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    this.addUpdate(() => {
-      this.eventBuffer.addEvent({
-        type: EventType.Custom,
-        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-        // but maybe we should just keep them as milliseconds
-        timestamp:
-          (result as Breadcrumb).timestamp * 1000 ||
-          (result as ReplaySpan).startTimestamp * 1000,
-        data: {
-          tag: eventType,
-          payload: result,
-        },
+    if (['scope', 'dom'].includes(type)) {
+      this.addUpdate(() => {
+        this.eventBuffer.addEvent({
+          type: EventType.Custom,
+          // TODO: We were converting from ms to seconds for breadcrumbs, spans,
+          // but maybe we should just keep them as milliseconds
+          timestamp: result.timestamp * 1000,
+          data: {
+            tag: eventType,
+            payload: result,
+          },
+        });
       });
+      return;
+    }
+
+    // fetch/xhr
+    this.addUpdate(() => {
+      this.createPerformanceSpans([result as ReplayPerformanceEntry]);
     });
   };
 
