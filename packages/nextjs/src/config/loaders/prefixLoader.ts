@@ -10,7 +10,7 @@ type LoaderOptions = {
 /**
  * Inject templated code into the beginning of a module.
  */
-function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
+export default function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { distDir } = this.getOptions ? this.getOptions() : this.query!;
@@ -25,5 +25,3 @@ function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: string): string
 
   return `${templateCode}\n${userCode}`;
 }
-
-export { prefixLoader as default };

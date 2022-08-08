@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -53,6 +53,8 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
+    const pageRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages(/.+)\\.(jsx?|tsx?)`);
+
     if (isServer) {
       newConfig.module = {
         ...newConfig.module,
@@ -74,6 +76,18 @@ export function constructWebpackConfigFunction(
           },
         ],
       };
+
+      if (userSentryOptions.autoWrapDataFetchers) {
+        newConfig.module.rules.push({
+          test: pageRegex,
+          use: [
+            {
+              loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
+              options: { projectDir },
+            },
+          ],
+        });
+      }
     }
 
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
