@@ -91,3 +91,18 @@ export interface InitialState {
   timestamp: number;
   url: string;
 }
+
+/**
+ * Additional context that will be sent w/ `replay_event`
+ */
+export interface ReplayEventContext {
+  /**
+   * Set of Sentry error ids that have occurred during a replay segment
+   */
+  errorIds: Set<string>;
+
+  /**
+   * Set of Sentry trace ids that have occurred during a replay segment
+   */
+  traceIds: Set<string>;
+}
