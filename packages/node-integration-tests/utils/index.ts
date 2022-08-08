@@ -33,7 +33,7 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
 export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
+    timestamp: expect.anything(),
     ...expected,
   });
 };
@@ -47,8 +47,8 @@ export const assertSentryEvent = (actual: Record<string, unknown>, expected: Rec
 export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
-    start_timestamp: expect.any(Number),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
     ...expected,
