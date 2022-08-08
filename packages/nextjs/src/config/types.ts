@@ -49,6 +49,10 @@ export type UserSentryOptions = {
   // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
   // up uploading too many files, which is why this defaults to `false`.
   widenClientFileUpload?: boolean;
+
+  // Automatically wrap `getServerSideProps`, `getStaticProps`, and `getStaticPaths` in order to instrument them for
+  // tracing.
+  autoWrapDataFetchers?: boolean;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;

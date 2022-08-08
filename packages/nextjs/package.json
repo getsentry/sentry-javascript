@@ -17,6 +17,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@babel/parser": "^7.18.10",
     "@sentry/core": "7.9.0",
     "@sentry/hub": "7.9.0",
     "@sentry/integrations": "7.9.0",
@@ -26,9 +27,12 @@
     "@sentry/types": "7.9.0",
     "@sentry/utils": "7.9.0",
     "@sentry/webpack-plugin": "1.19.0",
+    "jscodeshift": "^0.13.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@babel/types": "7.18.10",
+    "@types/jscodeshift": "^0.11.5",
     "@types/webpack": "^4.41.31",
     "next": "10.1.3"
   },
