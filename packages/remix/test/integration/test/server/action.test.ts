@@ -8,29 +8,37 @@ import {
 
 jest.spyOn(console, 'error').mockImplementation();
 
-describe('Remix API Loaders', () => {
-  it('does not add a loader if there is not one defined.', async () => {
+describe('Remix API Actions', () => {
+  it('correctly instruments a parameterized Remix API action', async () => {
     const baseURL = await runServer();
-    const url = `${baseURL}/`;
-    const envelope = await getEnvelopeRequest(url);
+    const url = `${baseURL}/action-json-response/123123`;
+    const envelope = await getEnvelopeRequest(url, 'post');
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: 'root',
+      transaction: 'routes/action-json-response/$id',
       spans: [
         {
-          description: 'root',
+          description: 'routes/action-json-response/$id',
+          op: 'remix.server.action',
+        },
+        {
+          description: 'routes/action-json-response/$id',
+          op: 'remix.server.loader',
+        },
+        {
+          description: 'routes/action-json-response/$id',
           op: 'remix.server.documentRequest',
         },
       ],
     });
   });
 
-  it('reports an error thrown from the loader', async () => {
+  it('reports an error thrown from the action', async () => {
     const baseURL = await runServer();
-    const url = `${baseURL}/loader-json-response/-2`;
+    const url = `${baseURL}/action-json-response/-1`;
 
-    const [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
+    const [transaction, event] = await getMultipleEnvelopeRequest(url, 2, 'post');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -48,11 +56,11 @@ describe('Remix API Loaders', () => {
         values: [
           {
             type: 'Error',
-            value: 'Unexpected Server Error from Loader',
+            value: 'Unexpected Server Error',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
-                function: 'loader',
+                function: 'action',
               },
               handled: true,
               type: 'instrument',
@@ -63,35 +71,11 @@ describe('Remix API Loaders', () => {
     });
   });
 
-  it('correctly instruments a parameterized Remix API loader', async () => {
-    const baseURL = await runServer();
-    const url = `${baseURL}/loader-json-response/123123`;
-    const envelope = await getEnvelopeRequest(url);
-    const transaction = envelope[2];
-
-    assertSentryTransaction(transaction, {
-      transaction: 'routes/loader-json-response/$id',
-      transaction_info: {
-        source: 'route',
-      },
-      spans: [
-        {
-          description: 'routes/loader-json-response/$id',
-          op: 'remix.server.loader',
-        },
-        {
-          description: 'routes/loader-json-response/$id',
-          op: 'remix.server.documentRequest',
-        },
-      ],
-    });
-  });
-
   it('handles a thrown 500 response', async () => {
     const baseURL = await runServer();
-    const url = `${baseURL}/loader-json-response/-1`;
+    const url = `${baseURL}/action-json-response/-2`;
 
-    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3);
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3, 'post');
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {
@@ -99,13 +83,13 @@ describe('Remix API Loaders', () => {
           op: 'http.server',
           status: 'ok',
           tags: {
-            method: 'GET',
+            method: 'POST',
             'http.status_code': '302',
           },
         },
       },
       tags: {
-        transaction: 'routes/loader-json-response/$id',
+        transaction: 'routes/action-json-response/$id',
       },
     });
 
@@ -121,7 +105,7 @@ describe('Remix API Loaders', () => {
         },
       },
       tags: {
-        transaction: 'routes/loader-json-response/$id',
+        transaction: 'routes/action-json-response/$id',
       },
     });
 

@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
+import axios from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
 import { RequestOptions } from 'https';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
-
 /**
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
  *
@@ -33,7 +33,7 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
 export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
+    timestamp: expect.anything(),
     ...expected,
   });
 };
@@ -47,8 +47,8 @@ export const assertSentryEvent = (actual: Record<string, unknown>, expected: Rec
 export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
-    start_timestamp: expect.any(Number),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
     ...expected,
@@ -71,12 +71,18 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
  * @param url The url the intercepted requests will be directed to.
  * @param count The expected amount of requests to the envelope endpoint. If
  * the amount of sentrequests is lower than`count`, this function will not resolve.
+ * @param method The method of the request. Defaults to `GET`.
  * @returns The intercepted envelopes.
  */
-export const getMultipleEnvelopeRequest = async (url: string, count: number): Promise<Record<string, unknown>[][]> => {
+export const getMultipleEnvelopeRequest = async (
+  url: string,
+  count: number,
+  method: 'get' | 'post' = 'get',
+): Promise<Record<string, unknown>[][]> => {
   const envelopes: Record<string, unknown>[][] = [];
 
-  return new Promise(resolve => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async resolve => {
     nock('https://dsn.ingest.sentry.io')
       .post('/api/1337/envelope/', body => {
         const envelope = parseEnvelope(body);
@@ -92,7 +98,17 @@ export const getMultipleEnvelopeRequest = async (url: string, count: number): Pr
       .query(true) // accept any query params - used for sentry_key param
       .reply(200);
 
-    http.get(url);
+    try {
+      if (method === 'get') {
+        await axios.get(url);
+      } else {
+        await axios.post(url);
+      }
+    } catch (e) {
+      // We sometimes expect the request to fail, but not the test.
+      // So, we do nothing.
+      logger.warn(e);
+    }
   });
 };
 
@@ -133,10 +149,14 @@ export const getAPIResponse = async (url: URL, headers?: Record<string, string>)
  * Intercepts and extracts a single request containing a Sentry envelope
  *
  * @param url The url the intercepted request will be directed to.
+ * @param method The method of the request. Defaults to `GET`.
  * @returns The extracted envelope.
  */
-export const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
-  return (await getMultipleEnvelopeRequest(url, 1))[0];
+export const getEnvelopeRequest = async (
+  url: string,
+  method: 'get' | 'post' = 'get',
+): Promise<Array<Record<string, unknown>>> => {
+  return (await getMultipleEnvelopeRequest(url, 1, method))[0];
 };
 
 /**
