@@ -36,6 +36,7 @@ jest.mock('@sentry/browser', () => ({
 
 beforeEach(() => {
   mockStartChild.mockClear();
+  mockFinish.mockClear();
   activeTransaction = new MockSpan({ op: 'pageload' });
 });
 
@@ -100,7 +101,9 @@ describe('withProfiler', () => {
     });
 
     it('is not created if hasRenderSpan is false', () => {
-      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, { includeRender: false });
+      const ProfiledComponent = withProfiler(() => <h1>Testing</h1>, {
+        includeRender: false,
+      });
       expect(mockStartChild).toHaveBeenCalledTimes(0);
 
       const component = render(<ProfiledComponent />);
@@ -115,6 +118,7 @@ describe('withProfiler', () => {
       const ProfiledComponent = withProfiler((props: { num: number }) => <div>{props.num}</div>);
       const { rerender } = render(<ProfiledComponent num={0} />);
       expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockFinish).toHaveBeenCalledTimes(1);
 
       // Dispatch new props
       rerender(<ProfiledComponent num={1} />);
@@ -122,25 +126,25 @@ describe('withProfiler', () => {
       expect(mockStartChild).toHaveBeenLastCalledWith({
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
-        endTimestamp: expect.any(Number),
         op: REACT_UPDATE_OP,
         startTimestamp: expect.any(Number),
       });
-
+      expect(mockFinish).toHaveBeenCalledTimes(2);
       // New props yet again
       rerender(<ProfiledComponent num={2} />);
       expect(mockStartChild).toHaveBeenCalledTimes(3);
       expect(mockStartChild).toHaveBeenLastCalledWith({
         data: { changedProps: ['num'] },
         description: `<${UNKNOWN_COMPONENT}>`,
-        endTimestamp: expect.any(Number),
         op: REACT_UPDATE_OP,
         startTimestamp: expect.any(Number),
       });
+      expect(mockFinish).toHaveBeenCalledTimes(3);
 
       // Should not create spans if props haven't changed
       rerender(<ProfiledComponent num={2} />);
       expect(mockStartChild).toHaveBeenCalledTimes(3);
+      expect(mockFinish).toHaveBeenCalledTimes(3);
     });
 
     it('does not get created if hasUpdateSpan is false', () => {

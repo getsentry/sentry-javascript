@@ -34,6 +34,10 @@ class Profiler extends React.Component<ProfilerProps> {
    * Made protected for the React Native SDK to access
    */
   protected _mountSpan: Span | undefined = undefined;
+  /**
+   * The span that represents the duration of time between shouldComponentUpdate and componentDidUpdate
+   */
+  protected _updateSpan: Span | undefined = undefined;
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public static defaultProps: Partial<ProfilerProps> = {
@@ -66,8 +70,8 @@ class Profiler extends React.Component<ProfilerProps> {
     }
   }
 
-  public componentDidUpdate({ updateProps, includeUpdates = true }: ProfilerProps): void {
-    // Only generate an update span if hasUpdateSpan is true, if there is a valid mountSpan,
+  public shouldComponentUpdate({ updateProps, includeUpdates = true }: ProfilerProps): boolean {
+    // Only generate an update span if includeUpdates is true, if there is a valid mountSpan,
     // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
     // We are just trying to give baseline clues for further investigation.
     if (includeUpdates && this._mountSpan && updateProps !== this.props.updateProps) {
@@ -75,19 +79,25 @@ class Profiler extends React.Component<ProfilerProps> {
       // set as data on the span. We just store the prop keys as the values could be potenially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
-        // The update span is a point in time span with 0 duration, just signifying that the component
-        // has been updated.
         const now = timestampWithMs();
-        this._mountSpan.startChild({
+        this._updateSpan = this._mountSpan.startChild({
           data: {
             changedProps,
           },
           description: `<${this.props.name}>`,
-          endTimestamp: now,
           op: REACT_UPDATE_OP,
           startTimestamp: now,
         });
       }
+    }
+
+    return true;
+  }
+
+  public componentDidUpdate(): void {
+    if (this._updateSpan) {
+      this._updateSpan.finish();
+      this._updateSpan = undefined;
     }
   }
 
