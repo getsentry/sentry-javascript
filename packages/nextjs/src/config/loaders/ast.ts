@@ -25,20 +25,26 @@ const jscs = jscodeshiftDefault || jscodeshiftNamespace;
 
 // These are types not in the TS sense, but in the instance-of-a-Type-class sense
 const {
-  ExportSpecifier,
-  Identifier,
-  ImportSpecifier,
-  MemberExpression,
   Node,
+  Identifier,
+  JSXIdentifier,
+  MemberExpression,
+  ClassDeclaration,
+  FunctionDeclaration,
   ObjectExpression,
   ObjectPattern,
+  ArrayPattern,
+  RestElement,
   Property,
   VariableDeclarator,
   VariableDeclaration,
+  ImportSpecifier,
+  ExportSpecifier,
   ExportNamedDeclaration,
   ExportAllDeclaration,
   ExportDefaultDeclaration,
   ExportDefaultSpecifier,
+  TSTypeParameter,
 } = jscs;
 
 type ASTNode = jscsTypes.ASTNode;
@@ -295,8 +301,6 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
   // it means we potentially need to rename something *not* already named `getServerSideProps`, `getStaticProps`, or
   // `getStaticPaths`, meaning we need to rename nodes outside of the collection upon which we're currently acting.
   if (ExportSpecifier.check(parent)) {
-    // console.log(node);
-    // debugger;
     if (parent.exported.name !== parent.local?.name && node === parent.exported) {
       const currentLocalName = parent.local?.name || '';
       renameIdentifiers(ast, currentLocalName, alias);
@@ -339,10 +343,7 @@ export function hasDefaultExport(ast: AST): boolean {
     return true;
   }
 
-  const hasNamedDefaultExport = ast
-    .find(ExportSpecifier)
-    .nodes()
-    .some(specifier => specifier.exported.name === 'default');
+  const hasNamedDefaultExport = ast.find(ExportSpecifier).some(specifier => specifier.node.exported.name === 'default');
   if (hasNamedDefaultExport) {
     return true;
   }
@@ -356,13 +357,13 @@ export function hasDefaultExport(ast: AST): boolean {
 function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
   const identifiers: string[] = [];
 
-  if (restElement.argument.type === 'Identifier') {
+  if (Identifier.check(restElement.argument)) {
     identifiers.push(restElement.argument.name);
-  } else if (restElement.argument.type === 'ArrayPattern') {
+  } else if (ArrayPattern.check(restElement.argument)) {
     identifiers.push(...getExportIdentifiersFromArrayPattern(restElement.argument));
-  } else if (restElement.argument.type === 'ObjectPattern') {
+  } else if (ObjectPattern.check(restElement.argument)) {
     identifiers.push(...getExportIdentifiersFromObjectPattern(restElement.argument));
-  } else if (restElement.argument.type === 'RestElement') {
+  } else if (RestElement.check(restElement.argument)) {
     identifiers.push(...getExportIdentifiersFromRestElement(restElement.argument));
   }
 
@@ -376,13 +377,13 @@ function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPatte
   const identifiers: string[] = [];
 
   arrayPattern.elements.forEach(element => {
-    if (element?.type === 'Identifier') {
+    if (Identifier.check(element)) {
       identifiers.push(element.name);
-    } else if (element?.type === 'ObjectPattern') {
+    } else if (ObjectPattern.check(element)) {
       identifiers.push(...getExportIdentifiersFromObjectPattern(element));
-    } else if (element?.type === 'ArrayPattern') {
+    } else if (ArrayPattern.check(element)) {
       identifiers.push(...getExportIdentifiersFromArrayPattern(element));
-    } else if (element?.type === 'RestElement') {
+    } else if (RestElement.check(element)) {
       identifiers.push(...getExportIdentifiersFromRestElement(element));
     }
   });
@@ -397,19 +398,17 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
   const identifiers: string[] = [];
 
   objectPatternNode.properties.forEach(property => {
-    if (property.type === 'Property') {
-      if (property.value.type === 'Identifier') {
+    if (Property.check(property)) {
+      if (Identifier.check(property.value)) {
         identifiers.push(property.value.name);
-      } else if (property.value.type === 'ObjectPattern') {
+      } else if (ObjectPattern.check(property.value)) {
         identifiers.push(...getExportIdentifiersFromObjectPattern(property.value));
-      } else if (property.value.type === 'ArrayPattern') {
+      } else if (ArrayPattern.check(property.value)) {
         identifiers.push(...getExportIdentifiersFromArrayPattern(property.value));
-      } else if (property.value.type === 'RestElement') {
+      } else if (RestElement.check(property.value)) {
         identifiers.push(...getExportIdentifiersFromRestElement(property.value));
       }
-      // @ts-ignore seems to be a bug in the jscs typing
-    } else if (property.type === 'RestElement') {
-      // @ts-ignore seems to be a bug in the jscs typing
+    } else if (RestElement.check(property)) {
       identifiers.push(...getExportIdentifiersFromRestElement(property));
     }
   });
@@ -429,24 +428,23 @@ export function getExportIdentifiers(ast: AST): string[] {
     .map(namedExportDeclarationNode => namedExportDeclarationNode.declaration);
 
   namedExportDeclarationNodes
-    .filter(
-      (declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
-        declarationNode !== null && declarationNode.type === 'VariableDeclaration',
+    .filter((declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
+      VariableDeclaration.check(declarationNode),
     )
     .map(variableDeclarationNode => variableDeclarationNode.declarations)
     .reduce((prev, curr) => [...prev, ...curr], []) // flatten
     .forEach(declarationNode => {
-      if (declarationNode.type === 'Identifier' || declarationNode.type === 'JSXIdentifier') {
+      if (Identifier.check(declarationNode) || JSXIdentifier.check(declarationNode)) {
         identifiers.push(declarationNode.name);
-      } else if (declarationNode.type === 'TSTypeParameter') {
+      } else if (TSTypeParameter.check(declarationNode)) {
         // noop
-      } else if (declarationNode.id.type === 'Identifier') {
+      } else if (Identifier.check(declarationNode.id)) {
         identifiers.push(declarationNode.id.name);
-      } else if (declarationNode.id.type === 'ObjectPattern') {
+      } else if (ObjectPattern.check(declarationNode.id)) {
         identifiers.push(...getExportIdentifiersFromObjectPattern(declarationNode.id));
-      } else if (declarationNode.id.type === 'ArrayPattern') {
+      } else if (ArrayPattern.check(declarationNode.id)) {
         identifiers.push(...getExportIdentifiersFromArrayPattern(declarationNode.id));
-      } else if (declarationNode.id.type === 'RestElement') {
+      } else if (RestElement.check(declarationNode.id)) {
         identifiers.push(...getExportIdentifiersFromRestElement(declarationNode.id));
       }
     });
@@ -454,11 +452,10 @@ export function getExportIdentifiers(ast: AST): string[] {
   namedExportDeclarationNodes
     .filter(
       (declarationNode): declarationNode is jscsTypes.ClassDeclaration | jscsTypes.FunctionDeclaration =>
-        declarationNode !== null &&
-        (declarationNode.type === 'ClassDeclaration' || declarationNode.type === 'FunctionDeclaration'),
+        ClassDeclaration.check(declarationNode) || FunctionDeclaration.check(declarationNode),
     )
     .map(node => node.id)
-    .filter((id): id is jscsTypes.Identifier => id !== null && id.type === 'Identifier')
+    .filter((id): id is jscsTypes.Identifier => Identifier.check(id))
     .forEach(id => identifiers.push(id.name));
 
   ast
