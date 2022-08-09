@@ -43,7 +43,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:watch": "jest --watch"
   },
   "volta": {
