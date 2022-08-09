@@ -262,8 +262,18 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
 function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
+    const traceAndBaggage = getTraceAndBaggage();
 
-    return { ...res, ...getTraceAndBaggage() };
+    if (isResponse(res)) {
+      const resClone = res.clone();
+      const data = await extractData(resClone);
+
+      if (typeof data === 'object') {
+        return { ...data, ...traceAndBaggage };
+      }
+    }
+
+    return { ...res, ...traceAndBaggage };
   };
 }
 
