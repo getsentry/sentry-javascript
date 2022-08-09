@@ -330,7 +330,7 @@ export function removeComments(ast: AST): void {
 }
 
 /**
- * TODO
+ * Determines from a given AST of a file, whether the file has a default export or not.
  */
 export function hasDefaultExport(ast: AST): boolean {
   const hasDefaultDeclaration = ast.find(ExportDefaultDeclaration).size() > 0;
@@ -352,26 +352,32 @@ export function hasDefaultExport(ast: AST): boolean {
 }
 
 /**
- * TODO
+ * Extracts all identifiers from a "RestElement" within a named export declaration statement ("export const val = ...").
+ * "RestElements" are things like "...value" inside a destructuring assignment.
+ *
+ * Example:
+ * "export const { ...restElement1, bar: { ...restElement2 } } = { foo: 1, bar: { baz: 2 } }" --> ["restElement1", "restElement2"]
  */
 function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
   const identifiers: string[] = [];
 
   if (Identifier.check(restElement.argument)) {
     identifiers.push(restElement.argument.name);
-  } else if (ArrayPattern.check(restElement.argument)) {
-    identifiers.push(...getExportIdentifiersFromArrayPattern(restElement.argument));
-  } else if (ObjectPattern.check(restElement.argument)) {
-    identifiers.push(...getExportIdentifiersFromObjectPattern(restElement.argument));
-  } else if (RestElement.check(restElement.argument)) {
-    identifiers.push(...getExportIdentifiersFromRestElement(restElement.argument));
   }
 
   return identifiers;
 }
 
 /**
- * TODO
+ * Extracts all identifiers from an ArrayPattern within a destructured named export declaration
+ * statement ("export const [val] = [1]").
+ *
+ * This function recursively calls itself and `getExportIdentifiersFromObjectPattern` since destructuring assignments
+ * can be deeply nested with objects and arrays.
+ *
+ * Example:
+ * export const [{ foo: name1 }, [{ bar: [name2]}, name3]] = [{ foo: 1 }, [{ bar: [2] }, 3]];
+ *   --> ["name1", "name2", "name3"]
  */
 function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPattern): string[] {
   const identifiers: string[] = [];
@@ -392,7 +398,15 @@ function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPatte
 }
 
 /**
- * TODO
+ * Grabs all identifiers from an ObjectPattern within a destructured named export declaration
+ * statement ("export const { val: name } = { val: 1 }").
+ *
+ * This function recursively calls itself and `getExportIdentifiersFromArrayPattern` since destructuring assignments
+ * can be deeply nested with objects and arrays.
+ *
+ * Example:
+ * export const { foo: [name1], bar: { baz: [{ quux: name2 }], ...name3 }} = { foo: [1], bar: { baz: [{ quux: 3 }]} };
+ *   --> ["name1", "name2", "name3"]
  */
 function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.ObjectPattern): string[] {
   const identifiers: string[] = [];
@@ -417,7 +431,9 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
 }
 
 /**
- * TODO
+ * Given the AST of a file, this function extracts all named exports from the file.
+ *
+ * @returns a list of deduplicated identifiers.
  */
 export function getExportIdentifiers(ast: AST): string[] {
   const identifiers: string[] = [];
@@ -476,5 +492,5 @@ export function getExportIdentifiers(ast: AST): string[] {
       }
     });
 
-  return [...new Set(identifiers)];
+  return [...new Set(identifiers)]; // dedupe
 }
