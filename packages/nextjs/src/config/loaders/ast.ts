@@ -33,8 +33,12 @@ const {
   ObjectExpression,
   ObjectPattern,
   Property,
-  VariableDeclaration,
   VariableDeclarator,
+  VariableDeclaration,
+  ExportNamedDeclaration,
+  ExportAllDeclaration,
+  ExportDefaultDeclaration,
+  ExportDefaultSpecifier,
 } = jscs;
 
 type ASTNode = jscsTypes.ASTNode;
@@ -319,4 +323,161 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
 export function removeComments(ast: AST): void {
   const nodesWithComments = ast.find(Node).filter(nodePath => !!nodePath.node.comments);
   nodesWithComments.forEach(nodePath => (nodePath.node.comments = null));
+}
+
+/**
+ * TODO
+ */
+export function hasDefaultExport(ast: AST): boolean {
+  const hasDefaultDeclaration = ast.find(ExportDefaultDeclaration).size() > 0;
+  if (hasDefaultDeclaration) {
+    return true;
+  }
+
+  const hasDefaultSpecifier = ast.find(ExportDefaultSpecifier).size() > 0;
+  if (hasDefaultSpecifier) {
+    return true;
+  }
+
+  const hasNamedDefaultExport = ast
+    .find(ExportSpecifier)
+    .nodes()
+    .some(specifier => specifier.exported.name === 'default');
+  if (hasNamedDefaultExport) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * TODO
+ */
+function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
+  const identifiers: string[] = [];
+
+  if (restElement.argument.type === 'Identifier') {
+    identifiers.push(restElement.argument.name);
+  } else if (restElement.argument.type === 'ArrayPattern') {
+    identifiers.push(...getExportIdentifiersFromArrayPattern(restElement.argument));
+  } else if (restElement.argument.type === 'ObjectPattern') {
+    identifiers.push(...getExportIdentifiersFromObjectPattern(restElement.argument));
+  } else if (restElement.argument.type === 'RestElement') {
+    identifiers.push(...getExportIdentifiersFromRestElement(restElement.argument));
+  }
+
+  return identifiers;
+}
+
+/**
+ * TODO
+ */
+function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPattern): string[] {
+  const identifiers: string[] = [];
+
+  arrayPattern.elements.forEach(element => {
+    if (element?.type === 'Identifier') {
+      identifiers.push(element.name);
+    } else if (element?.type === 'ObjectPattern') {
+      identifiers.push(...getExportIdentifiersFromObjectPattern(element));
+    } else if (element?.type === 'ArrayPattern') {
+      identifiers.push(...getExportIdentifiersFromArrayPattern(element));
+    } else if (element?.type === 'RestElement') {
+      identifiers.push(...getExportIdentifiersFromRestElement(element));
+    }
+  });
+
+  return identifiers;
+}
+
+/**
+ * TODO
+ */
+function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.ObjectPattern): string[] {
+  const identifiers: string[] = [];
+
+  objectPatternNode.properties.forEach(property => {
+    if (property.type === 'Property') {
+      if (property.value.type === 'Identifier') {
+        identifiers.push(property.value.name);
+      } else if (property.value.type === 'ObjectPattern') {
+        identifiers.push(...getExportIdentifiersFromObjectPattern(property.value));
+      } else if (property.value.type === 'ArrayPattern') {
+        identifiers.push(...getExportIdentifiersFromArrayPattern(property.value));
+      } else if (property.value.type === 'RestElement') {
+        identifiers.push(...getExportIdentifiersFromRestElement(property.value));
+      }
+      // @ts-ignore seems to be a bug in the jscs typing
+    } else if (property.type === 'RestElement') {
+      // @ts-ignore seems to be a bug in the jscs typing
+      identifiers.push(...getExportIdentifiersFromRestElement(property));
+    }
+  });
+
+  return identifiers;
+}
+
+/**
+ * TODO
+ */
+export function getExportIdentifiers(ast: AST): string[] {
+  const identifiers: string[] = [];
+
+  const namedExportDeclarationNodes = ast
+    .find(ExportNamedDeclaration)
+    .nodes()
+    .map(namedExportDeclarationNode => namedExportDeclarationNode.declaration);
+
+  namedExportDeclarationNodes
+    .filter(
+      (declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
+        declarationNode !== null && declarationNode.type === 'VariableDeclaration',
+    )
+    .map(variableDeclarationNode => variableDeclarationNode.declarations)
+    .reduce((prev, curr) => [...prev, ...curr], []) // flatten
+    .forEach(declarationNode => {
+      if (declarationNode.type === 'Identifier' || declarationNode.type === 'JSXIdentifier') {
+        identifiers.push(declarationNode.name);
+      } else if (declarationNode.type === 'TSTypeParameter') {
+        // noop
+      } else if (declarationNode.id.type === 'Identifier') {
+        identifiers.push(declarationNode.id.name);
+      } else if (declarationNode.id.type === 'ObjectPattern') {
+        identifiers.push(...getExportIdentifiersFromObjectPattern(declarationNode.id));
+      } else if (declarationNode.id.type === 'ArrayPattern') {
+        identifiers.push(...getExportIdentifiersFromArrayPattern(declarationNode.id));
+      } else if (declarationNode.id.type === 'RestElement') {
+        identifiers.push(...getExportIdentifiersFromRestElement(declarationNode.id));
+      }
+    });
+
+  namedExportDeclarationNodes
+    .filter(
+      (declarationNode): declarationNode is jscsTypes.ClassDeclaration | jscsTypes.FunctionDeclaration =>
+        declarationNode !== null &&
+        (declarationNode.type === 'ClassDeclaration' || declarationNode.type === 'FunctionDeclaration'),
+    )
+    .map(node => node.id)
+    .filter((id): id is jscsTypes.Identifier => id !== null && id.type === 'Identifier')
+    .forEach(id => identifiers.push(id.name));
+
+  ast
+    .find(ExportSpecifier)
+    .nodes()
+    .forEach(specifier => {
+      if (specifier.exported.name !== 'default') {
+        identifiers.push(specifier.exported.name);
+      }
+    });
+
+  ast
+    .find(ExportAllDeclaration)
+    .nodes()
+    .forEach(declaration => {
+      if (declaration.exported) {
+        identifiers.push(declaration.exported.name);
+      }
+    });
+
+  return [...new Set(identifiers)];
 }

@@ -23,12 +23,14 @@ declare const __ORIG_GSPATHS__: GetStaticPathsFunction;
 import * as ServerSideSentryNextjsSDK from '@sentry/nextjs';
 
 export const getServerSideProps =
-  typeof __ORIG_GSSP__ === 'function' ? ServerSideSentryNextjsSDK.withSentryGSSP(__ORIG_GSSP__) : __ORIG_GSSP__;
+  typeof __ORIG_GSSP__ === 'function'
+    ? ServerSideSentryNextjsSDK.withSentryGetServerSideProps(__ORIG_GSSP__)
+    : __ORIG_GSSP__;
 export const getStaticProps =
   typeof __ORIG_GSPROPS__ === 'function'
-    ? ServerSideSentryNextjsSDK.withSentryGSProps(__ORIG_GSPROPS__)
+    ? ServerSideSentryNextjsSDK.withSentryGetStaticProps(__ORIG_GSPROPS__)
     : __ORIG_GSPROPS__;
 export const getStaticPaths =
   typeof __ORIG_GSPATHS__ === 'function'
-    ? ServerSideSentryNextjsSDK.withSentryGSPaths(__ORIG_GSPATHS__)
+    ? ServerSideSentryNextjsSDK.withSentryGetStaticPaths(__ORIG_GSPATHS__)
     : __ORIG_GSPATHS__;

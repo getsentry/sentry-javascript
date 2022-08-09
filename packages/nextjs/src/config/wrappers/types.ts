@@ -8,6 +8,8 @@ import type {
   GetStaticProps,
   GetStaticPropsContext,
   GetStaticPropsResult,
+  NextPage,
+  NextPageContext,
 } from 'next';
 
 type Paths = { [key: string]: string | string[] };
@@ -34,4 +36,11 @@ export type GSSP = {
   result: GetServerSidePropsResult<Props>;
 };
 
-export type DataFetchingFunction = GSPaths | GSProps | GSSP;
+export type GIProps = {
+  fn: Required<NextPage>['getInitialProps'];
+  wrappedFn: NextPage['getInitialProps'];
+  context: NextPageContext;
+  result: unknown;
+};
+
+export type DataFetchingFunction = GSPaths | GSProps | GSSP | GIProps;

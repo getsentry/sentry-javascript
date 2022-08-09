@@ -1,3 +1,4 @@
-export { withSentryGSPaths } from './withSentryGSPaths';
-export { withSentryGSProps } from './withSentryGSProps';
-export { withSentryGSSP } from './withSentryGSSP';
+export { withSentryGetStaticPaths } from './withSentryGetStaticPaths';
+export { withSentryGetStaticProps } from './withSentryGetStaticProps';
+export { withSentryGetInitialProps } from './withSentryGetInitialProps';
+export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
