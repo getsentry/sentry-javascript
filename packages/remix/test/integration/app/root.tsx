@@ -28,12 +28,13 @@ export const loader: LoaderFunction = async ({ request }) => {
       return null;
     case 'undefined':
       return undefined;
-    case 'throw-redirect':
-      throw redirect('/plain');
-    case 'return-redirect':
-      return redirect('/plain');
-    case 'return-redirect-json':
-      return redirect('/json');
+    case 'throwRedirect':
+      throw redirect('/?type=plain');
+    case 'returnRedirect':
+      return redirect('/?type=plain');
+    default: {
+      return {};
+    }
   }
 };
 

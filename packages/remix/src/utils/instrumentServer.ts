@@ -100,7 +100,7 @@ export interface RouteMatch<Route> {
 }
 
 // Taken from Remix Implementation
-// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L54-L62
+// https://github.com/remix-run/remix/blob/32300ec6e6e8025602cea63e17a2201989589eab/packages/remix-server-runtime/responses.ts#L60-L77
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isResponse(value: any): value is Response {
   return (
@@ -112,6 +112,15 @@ function isResponse(value: any): value is Response {
     typeof value.body !== 'undefined'
     /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   );
+}
+
+const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
+function isRedirectResponse(response: Response): boolean {
+  return redirectStatusCodes.has(response.status);
+}
+
+function isCatchResponse(response: Response): boolean {
+  return response.headers.get('X-Remix-Catch') != null;
 }
 
 // Based on Remix Implementation
@@ -265,9 +274,9 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
     const res = await origLoader.call(this, args);
     const traceAndBaggage = getTraceAndBaggage();
 
-    if (isResponse(res)) {
-      const resClone = res.clone();
-      const data = await extractData(resClone);
+    // Note: `redirect` and `catch` responses do not have bodies to extract
+    if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
+      const data = await extractData(res);
 
       if (typeof data === 'object') {
         return { ...data, ...traceAndBaggage };

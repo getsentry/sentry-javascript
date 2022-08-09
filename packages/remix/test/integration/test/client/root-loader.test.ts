@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 
-function getRouteData(page: Page): Promise<any> {
+async function getRouteData(page: Page): Promise<any> {
   return page.evaluate('window.__remixContext.routeData').catch(err => {
     console.warn(err);
 
@@ -107,7 +107,7 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `und
 test('should inject `sentry-trace` and `baggage` into root loader throwing a redirection to a plain object.', async ({
   page,
 }) => {
-  await page.goto('/?type="throw-redirect"');
+  await page.goto('/?type=throwRedirect');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
@@ -125,25 +125,7 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 test('should inject `sentry-trace` and `baggage` into root loader returning a redirection to a plain object', async ({
   page,
 }) => {
-  await page.goto('/?type="return-redirect"');
-
-  const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
-
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
-
-  const rootData = (await getRouteData(page))['root'];
-
-  expect(rootData).toMatchObject({
-    sentryTrace: sentryTrace,
-    sentryBaggage: sentryBaggage,
-  });
-});
-
-test('should inject `sentry-trace` and `baggage` into root loader returning a redirection to a `JSON response`', async ({
-  page,
-}) => {
-  await page.goto('/?type="return-redirect"');
+  await page.goto('/?type=returnRedirect');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
