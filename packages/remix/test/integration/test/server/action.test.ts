@@ -24,6 +24,10 @@ describe('Remix API Actions', () => {
         },
         {
           description: 'routes/action-json-response/$id',
+          op: 'remix.server.loader',
+        },
+        {
+          description: 'routes/action-json-response/$id',
           op: 'remix.server.documentRequest',
         },
       ],
@@ -52,11 +56,69 @@ describe('Remix API Actions', () => {
         values: [
           {
             type: 'Error',
-            value: 'Error',
+            value: 'Unexpected Server Error',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
                 function: 'action',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles a thrown 500 response', async () => {
+    const baseURL = await runServer();
+    const url = `${baseURL}/action-json-response/-2`;
+
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3, 'post');
+
+    assertSentryTransaction(transaction_1[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'ok',
+          tags: {
+            method: 'POST',
+            'http.status_code': '302',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryTransaction(transaction_2[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'GET',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Unexpected Server Error from Loader',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'loader',
               },
               handled: true,
               type: 'instrument',

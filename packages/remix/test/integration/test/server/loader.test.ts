@@ -28,7 +28,7 @@ describe('Remix API Loaders', () => {
 
   it('reports an error thrown from the loader', async () => {
     const baseURL = await runServer();
-    const url = `${baseURL}/loader-json-response/-1`;
+    const url = `${baseURL}/loader-json-response/-2`;
 
     const [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
 
@@ -48,7 +48,7 @@ describe('Remix API Loaders', () => {
         values: [
           {
             type: 'Error',
-            value: 'Error',
+            value: 'Unexpected Server Error from Loader',
             stacktrace: expect.any(Object),
             mechanism: {
               data: {
@@ -84,6 +84,64 @@ describe('Remix API Loaders', () => {
           op: 'remix.server.documentRequest',
         },
       ],
+    });
+  });
+
+  it('handles a thrown 500 response', async () => {
+    const baseURL = await runServer();
+    const url = `${baseURL}/loader-json-response/-1`;
+
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3);
+
+    assertSentryTransaction(transaction_1[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'ok',
+          tags: {
+            method: 'GET',
+            'http.status_code': '302',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/loader-json-response/$id',
+      },
+    });
+
+    assertSentryTransaction(transaction_2[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'GET',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/loader-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Unexpected Server Error from Loader',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'loader',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
     });
   });
 });
