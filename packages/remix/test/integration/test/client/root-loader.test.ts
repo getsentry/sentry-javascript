@@ -107,7 +107,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `und
 
   const rootData = (await getRouteData(page))['root'];
 
-  debugger;
   expect(rootData).toMatchObject({
     sentryTrace: sentryTraceContent,
     sentryBaggage: sentryBaggageContent,
@@ -131,7 +130,6 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 
   const rootData = (await getRouteData(page))['root'];
 
-  debugger;
   expect(rootData).toMatchObject({
     sentryTrace: sentryTraceContent,
     sentryBaggage: sentryBaggageContent,
@@ -155,7 +153,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 
   const rootData = (await getRouteData(page))['root'];
 
-  debugger;
   expect(rootData).toMatchObject({
     sentryTrace: sentryTraceContent,
     sentryBaggage: sentryBaggageContent,
@@ -179,7 +176,6 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 
   const rootData = (await getRouteData(page))['root'];
 
-  debugger;
   expect(rootData).toMatchObject({
     sentryTrace: sentryTraceContent,
     sentryBaggage: sentryBaggageContent,
