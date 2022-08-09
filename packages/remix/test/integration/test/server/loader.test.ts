@@ -9,23 +9,6 @@ import {
 jest.spyOn(console, 'error').mockImplementation();
 
 describe('Remix API Loaders', () => {
-  it('does not add a loader if there is not one defined.', async () => {
-    const baseURL = await runServer();
-    const url = `${baseURL}/`;
-    const envelope = await getEnvelopeRequest(url);
-    const transaction = envelope[2];
-
-    assertSentryTransaction(transaction, {
-      transaction: 'root',
-      spans: [
-        {
-          description: 'root',
-          op: 'remix.server.documentRequest',
-        },
-      ],
-    });
-  });
-
   it('reports an error thrown from the loader', async () => {
     const baseURL = await runServer();
     const url = `${baseURL}/loader-json-response/-2`;
@@ -75,6 +58,13 @@ describe('Remix API Loaders', () => {
         source: 'route',
       },
       spans: [
+        // TODO: These two spans look exactly the same, but they are not.
+        // One is from the parent route, and the other is from the route we are reaching.
+        // We need to pass the names of the routes as their descriptions while wrapping loaders and actions.
+        {
+          description: 'routes/loader-json-response/$id',
+          op: 'remix.server.loader',
+        },
         {
           description: 'routes/loader-json-response/$id',
           op: 'remix.server.loader',

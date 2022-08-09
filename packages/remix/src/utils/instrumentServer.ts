@@ -207,6 +207,7 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
     try {
       const span = activeTransaction.startChild({
         op: `remix.server.${name}`,
+        // TODO: Consider using the `id` of the route this function belongs to
         description: activeTransaction.name,
         tags: {
           name,
@@ -235,8 +236,8 @@ function makeWrappedAction(origAction: DataFunction): DataFunction {
   return makeWrappedDataFunction(origAction, 'action');
 }
 
-function makeWrappedLoader(origAction: DataFunction): DataFunction {
-  return makeWrappedDataFunction(origAction, 'loader');
+function makeWrappedLoader(origLoader: DataFunction): DataFunction {
+  return makeWrappedDataFunction(origLoader, 'loader');
 }
 
 function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
