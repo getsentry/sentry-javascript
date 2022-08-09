@@ -118,6 +118,7 @@ describe('withProfiler', () => {
       const ProfiledComponent = withProfiler((props: { num: number }) => <div>{props.num}</div>);
       const { rerender } = render(<ProfiledComponent num={0} />);
       expect(mockStartChild).toHaveBeenCalledTimes(1);
+      expect(mockFinish).toHaveBeenCalledTimes(1);
 
       // Dispatch new props
       rerender(<ProfiledComponent num={1} />);
@@ -138,6 +139,7 @@ describe('withProfiler', () => {
         op: REACT_UPDATE_OP,
         startTimestamp: expect.any(Number),
       });
+      expect(mockFinish).toHaveBeenCalledTimes(3);
 
       // Should not create spans if props haven't changed
       rerender(<ProfiledComponent num={2} />);

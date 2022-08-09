@@ -34,6 +34,9 @@ class Profiler extends React.Component<ProfilerProps> {
    * Made protected for the React Native SDK to access
    */
   protected _mountSpan: Span | undefined = undefined;
+  /**
+   * The span that represents the duration of time between shouldComponentUpdate and componentDidUpdate
+   */
   protected _updateSpan: Span | undefined = undefined;
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
@@ -76,8 +79,6 @@ class Profiler extends React.Component<ProfilerProps> {
       // set as data on the span. We just store the prop keys as the values could be potenially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
-        // The update span is a point in time span with 0 duration, just signifying that the component
-        // has been updated.
         const now = timestampWithMs();
         this._updateSpan = this._mountSpan.startChild({
           data: {
