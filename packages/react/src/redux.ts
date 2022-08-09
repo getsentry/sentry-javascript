@@ -105,7 +105,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
           /* Set latest state to scope */
           const transformedState = options.stateTransformer(newState);
           if (typeof transformedState !== 'undefined' && transformedState !== null) {
-            scope.setContext('state', { type: 'redux', value: transformedState });
+            scope.setContext('state', { state: { type: 'redux', value: transformedState } });
           } else {
             scope.setContext('state', null);
           }
