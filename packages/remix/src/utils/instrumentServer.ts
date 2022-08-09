@@ -280,6 +280,9 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
 
       if (typeof data === 'object') {
         return { ...data, ...traceAndBaggage };
+      } else {
+        __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+        return data;
       }
     }
 
