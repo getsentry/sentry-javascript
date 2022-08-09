@@ -20,7 +20,7 @@ async function extractTraceAndBaggageFromMeta(
   return { sentryTrace: sentryTraceContent, sentryBaggage: sentryBaggageContent };
 }
 
-test('should inject `sentry-trace` and `baggage` into root loader returning `{}`.', async ({ page }) => {
+test('should inject `sentry-trace` and `baggage` into root loader returning an empty object.', async ({ page }) => {
   await page.goto('/?type=empty');
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
