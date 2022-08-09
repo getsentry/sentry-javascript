@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "jsx": "react"
+    "jsx": "react",
+    "module": "es2020"
   }
 }
