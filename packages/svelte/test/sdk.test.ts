@@ -1,5 +1,6 @@
-import { init as svelteInit } from '../src/sdk';
 import { init as browserInitRaw, SDK_VERSION } from '@sentry/browser';
+
+import { init as svelteInit } from '../src/sdk';
 
 const browserInit = browserInitRaw as jest.Mock;
 jest.mock('@sentry/browser');
