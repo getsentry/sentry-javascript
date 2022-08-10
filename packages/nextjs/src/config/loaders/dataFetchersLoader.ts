@@ -113,7 +113,16 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   // We know one or the other will be defined, depending on the version of webpack being used
   const { projectDir } = 'getOptions' in this ? this.getOptions() : this.query;
 
-  // Proxy the processed file
+  // In the following branch we will proxy the user's file. This means we return code (basically an entirely new file)
+  // that re - exports all the user file's originial export, but with a "sentry-proxy-loader" query in the module
+  // string.
+  // This looks like the following: `export { a, b, c } from "[imagine userfile path here]?sentry-proxy-loader";`
+  // Additionally, in this proxy file we import the userfile's default export, wrap `getInitialProps` on that default
+  // export, and re -export the now modified default export as default.
+  // Webpack will resolve the module with the "sentry-proxy-loader" query to the original file, but will give us access
+  // to the query via`this.resourceQuery`. If we see that `this.resourceQuery` includes includes "sentry-proxy-loader"
+  // we know we're in a proxied file and do not need to proxy again.
+
   if (!this.resourceQuery.includes('sentry-proxy-loader')) {
     const ast = makeAST(userCode, true); // is there a reason to ever parse without typescript?
 
