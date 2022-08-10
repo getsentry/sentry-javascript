@@ -144,7 +144,9 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
         import { default as _sentry_default } from "${this.resourcePath}?sentry-proxy-loader";
         import { withSentryGetInitialProps } from "@sentry/nextjs";
 
-        _sentry_default.getInitialProps = withSentryGetInitialProps(_sentry_default.getInitialProps);
+        if (typeof _sentry_default.getInitialProps === 'function') {
+          _sentry_default.getInitialProps = withSentryGetInitialProps(_sentry_default.getInitialProps);
+        }
 
         export default _sentry_default;`;
     }

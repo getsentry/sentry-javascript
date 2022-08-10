@@ -11,12 +11,8 @@ import { GIProps } from './types';
  * @param origGIPropsHost: The user's object on which `getInitialProps` lives (used for `this`)
  * @returns A wrapped version of the function
  */
-export function withSentryGetInitialProps(origGIProps: GIProps['fn'] | undefined): GIProps['wrappedFn'] {
-  if (typeof origGIProps === 'function') {
-    return async function (this: unknown, ...args: Parameters<GIProps['fn']>) {
-      return await origGIProps.call(this, ...args);
-    };
-  } else {
-    return origGIProps;
-  }
+export function withSentryGetInitialProps(origGIProps: GIProps['fn']): GIProps['wrappedFn'] {
+  return async function (this: unknown, ...args: Parameters<GIProps['fn']>) {
+    return await origGIProps.call(this, ...args);
+  };
 }
