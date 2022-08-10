@@ -297,7 +297,8 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
           { headers: res.headers, statusText: res.statusText, status: res.status },
         );
       } else {
-        return json({ ...traceAndBaggage }, { headers: res.headers, statusText: res.statusText, status: res.status });
+        __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+        return res;
       }
     }
 
