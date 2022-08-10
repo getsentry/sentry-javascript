@@ -19,10 +19,6 @@ module.exports = async ({ page, url, requests }) => {
         description: 'GET http://example.com',
         op: 'http.client',
       },
-      {
-        description: 'Long Task',
-        op: 'ui.long-task',
-      },
     ],
   });
 
