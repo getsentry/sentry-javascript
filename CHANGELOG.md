@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.10.0
+
+This release introduces the first alpha version of `@sentry/svelte`, our newest JavaScript SDK! For details on how to use it, please see the [README](./packages/svelte/README.md) and [the tracking GitHub issue](https://github.com/getsentry/sentry-javascript/issues/5492).
+
+- feat(react): Track duration of React component updates (#5531)
+- feat(svelte): Add Error and Performance Instrumentation from Browser SDK (#5543)
+- feat(svelte): Add Svelte SDK Package Boilerplate (#5535)
+- fix(integration): Don't mangle localforage internals (#5534)
+- fix(react): Set redux state context properly (#5550)
+- fix(remix): Support merging `json` responses from root loader functions. (#5548)
+- ref(nextjs): Move `autoWrapDataFetchers` option into `experiments` object (#5540)
+- ref(nextjs): Wrap server-side data-fetching methods during build (#5503)
+
 ## 7.9.0
 
 This release adds the [`tracePropagationTargets`](https://docs.sentry.io/platforms/node/configuration/options/#trace-propagation-targets) option to the Sentry Node SDK.
