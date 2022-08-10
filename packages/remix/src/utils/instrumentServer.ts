@@ -269,6 +269,29 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   return {};
 }
 
+// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L1-L4
+export type JsonFunction = <Data>(data: Data, init?: number | ResponseInit) => Response;
+
+/**
+ * This is a shortcut for creating `application/json` responses. Converts `data`
+ * to JSON and sets the `Content-Type` header.
+ *
+ * @see https://remix.run/api/remix#json
+ *
+ * https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L12-L24
+ */
+const json: JsonFunction = (data, init = {}) => {
+  const responseInit = typeof init === 'number' ? { status: init } : init;
+  const headers = new Headers(responseInit.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json; charset=utf-8');
+  }
+  return new Response(JSON.stringify(data), {
+    ...responseInit,
+    headers,
+  });
+};
+
 function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
@@ -277,12 +300,14 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
     // Note: `redirect` and `catch` responses do not have bodies to extract
     if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
       const data = await extractData(res);
-
       if (typeof data === 'object') {
-        return { ...data, ...traceAndBaggage };
+        return json(
+          { ...data, ...traceAndBaggage },
+          { headers: res.headers, statusText: res.statusText, status: res.status },
+        );
       } else {
         __DEBUG_BUILD__ && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
-        return data;
+        return res;
       }
     }
 
