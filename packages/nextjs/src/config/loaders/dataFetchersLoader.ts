@@ -134,7 +134,10 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
         Object.defineProperty(
           _sentry_default,
           'getInitialProps',
-          { value: withSentryGetInitialProps(_sentry_default.getInitialProps) }
+          {
+            ...Object.getOwnPropertyDescriptor(_sentry_default, 'getInitialProps'),
+            value: withSentryGetInitialProps(_sentry_default.getInitialProps)
+          }
         );
         export default _sentry_default;`;
     }
