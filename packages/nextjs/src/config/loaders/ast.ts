@@ -368,15 +368,21 @@ function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement)
 }
 
 /**
- * Extracts all identifiers from an ArrayPattern within a destructured named export declaration
- * statement ("export const [val] = [1]").
+ * Extracts all identifier names (`'constName'`) from an destructuringassignment'sArrayPattern (the `[constName]` in`const [constName] = [1]`).
  *
  * This function recursively calls itself and `getExportIdentifiersFromObjectPattern` since destructuring assignments
  * can be deeply nested with objects and arrays.
  *
- * Example:
+ * Example - take the following program:
+ *
+ * ```js
  * export const [{ foo: name1 }, [{ bar: [name2]}, name3]] = [{ foo: 1 }, [{ bar: [2] }, 3]];
- *   --> ["name1", "name2", "name3"]
+ * ```
+ *
+ * The `ArrayPattern` node in question for this program is the left hand side of the assignment:
+ * `[{ foo: name1 }, [{ bar: [name2]}, name3]]`
+ *
+ * Applying this function to this `ArrayPattern` will return the following: `["name1", "name2", "name3"]`
  */
 function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPattern): string[] {
   const identifiers: string[] = [];
