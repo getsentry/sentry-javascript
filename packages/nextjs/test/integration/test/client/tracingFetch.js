@@ -5,6 +5,7 @@ module.exports = async ({ page, url, requests }) => {
   await page.click('button');
   await page.waitForRequest(isTransactionRequest);
 
+  await expectRequestCount(requests, { transactions: 1 });
   expectTransaction(requests.transactions[0], {
     transaction: '/fetch',
     type: 'transaction',
@@ -21,6 +22,4 @@ module.exports = async ({ page, url, requests }) => {
       },
     ],
   });
-
-  await expectRequestCount(requests, { transactions: 1 });
 };
