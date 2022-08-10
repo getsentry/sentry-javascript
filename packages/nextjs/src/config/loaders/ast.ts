@@ -360,12 +360,18 @@ export function hasDefaultExport(ast: AST): boolean {
  *
  * - `"...restElemet1"` --> `"restElement1"`
  * - `"...restElemet2"` --> `"restElement2"`
+ *
+ * DISCLAIMER: This function only correcly extracts the name of `RestElements` in the context of export statements.
+ * Using this for `RestElements` outside of exports would require us to handle more edgecases. Hence the "Export" in
+ * this function's name.
  */
 function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
   // This function returns an array instead of `string | undefined` for convenience since we exclusively use the return
   // value with `array.push()` in other functions in this file.
   return Identifier.check(restElement.argument) ? [restElement.argument.name] : [];
 }
+
+const asdf = { ...({ a: 1 } || { b: 2 }) };
 
 /**
  * Extracts all identifier names (`'constName'`) from an destructuringassignment'sArrayPattern (the `[constName]` in`const [constName] = [1]`).
@@ -383,6 +389,10 @@ function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement)
  * `[{ foo: name1 }, [{ bar: [name2]}, name3]]`
  *
  * Applying this function to this `ArrayPattern` will return the following: `["name1", "name2", "name3"]`
+ *
+ * DISCLAIMER: This function only correcly extracts identifiers of `ArrayPatterns` in the context of export statements.
+ * Using this for `ArrayPattern` outside of exports would require us to handle more edgecases. Hence the "Export" in
+ * this function's name.
  */
 function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPattern): string[] {
   const identifiers: string[] = [];
@@ -412,6 +422,10 @@ function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPatte
  * Example:
  * export const { foo: [name1], bar: { baz: [{ quux: name2 }], ...name3 }} = { foo: [1], bar: { baz: [{ quux: 3 }]} };
  *   --> ["name1", "name2", "name3"]
+ *
+ * DISCLAIMER: This function only correcly extracts identifiers of `ObjectPatterns` in the context of export statements.
+ * Using this for `ObjectPatterns` outside of exports would require us to handle more edgecases. Hence the "Export" in
+ * this function's name.
  */
 function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.ObjectPattern): string[] {
   const identifiers: string[] = [];
