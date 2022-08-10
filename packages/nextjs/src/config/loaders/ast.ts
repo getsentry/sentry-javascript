@@ -346,11 +346,19 @@ export function hasDefaultExport(ast: AST): boolean {
 }
 
 /**
- * Extracts all identifiers from a `RestElement` within a named export declaration statement (`export const constName = constValue`).
+ * Extracts all identifiers from a `RestElement` within a named export declaration statement (`export const constName = constValue;`).
  * `RestElements` are things like `...others` inside a destructuring assignment.
  *
- * Example:
- * "export const { ...restElement1, bar: { ...restElement2 } } = { foo: 1, bar: { baz: 2 } }" --> ["restElement1", "restElement2"]
+ * Example - take the following program:
+ *
+ * ```js
+ *  export const { bar: { ...restElement1 }, ...restElement2 } = { foo: { baz: 1 }, bar: 2  };
+ * ```
+ *
+ * The `RestElement` nodes in this program are "...restElement1" and "...restElement2". This function takes such nodes
+ * and gets their identifier names.
+ * - `"...restElemet1"` --> `"restElement1"`
+ * - `"...restElemet2"` --> `"restElement2"`
  */
 function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
   const identifiers: string[] = [];
