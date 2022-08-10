@@ -352,22 +352,19 @@ export function hasDefaultExport(ast: AST): boolean {
  * Example - take the following program:
  *
  * ```js
- *  export const { bar: { ...restElement1 }, ...restElement2 } = { foo: { baz: 1 }, bar: 2  };
+ * export const { bar: { ...restElement1 }, ...restElement2 } = { foo: { baz: 1 }, bar: 2  };
  * ```
  *
  * The `RestElement` nodes in this program are "...restElement1" and "...restElement2". This function takes such nodes
  * and gets their identifier names.
+ *
  * - `"...restElemet1"` --> `"restElement1"`
  * - `"...restElemet2"` --> `"restElement2"`
  */
 function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
-  const identifiers: string[] = [];
-
-  if (Identifier.check(restElement.argument)) {
-    identifiers.push(restElement.argument.name);
-  }
-
-  return identifiers;
+  // This function returns an array instead of `string | undefined` for convenience since we exclusively use the return
+  // value with `array.push()` in other functions in this file.
+  return Identifier.check(restElement.argument) ? [restElement.argument.name] : [];
 }
 
 /**
