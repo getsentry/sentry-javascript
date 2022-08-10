@@ -101,7 +101,7 @@ const assertObjectMatches = (actual, expected) => {
   if (Object.prototype.toString.call(actual) !== Object.prototype.toString.call(expected)) {
     throw new TypeError(
       `Types mismatch: ${actual} !== ${expected}. Actual (full): ${JSON.stringify(
-        actual ?? '',
+        actual || '',
       )} Expected (full): ${JSON.stringify(expected)}`,
     );
   }
