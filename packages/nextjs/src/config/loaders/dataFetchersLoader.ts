@@ -111,7 +111,6 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   }
 
   // We know one or the other will be defined, depending on the version of webpack being used
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { projectDir } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // Proxy the processed file
