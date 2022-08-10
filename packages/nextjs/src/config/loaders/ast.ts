@@ -445,6 +445,12 @@ export function getExportIdentifierNames(ast: AST): string[] {
   // We'll use a set to dedupe at the end, but for now we use an array as our accumulator because you can add multiple elements to it at once.
   const identifiers: string[] = [];
 
+  // The following variable collects all export statements that double as named declaration, e.g.:
+  // - export function myFunc() {}
+  // - export var myVar = 1337
+  // - export const myConst = 1337
+  // - export const { a, ..rest } = { a: 1, b: 2, c: 3 }
+  // We will narrow those situations down in subsequent code blocks.
   const namedExportDeclarationNodeDeclarations = ast
     .find(ExportNamedDeclaration)
     .nodes()
@@ -452,50 +458,72 @@ export function getExportIdentifierNames(ast: AST): string[] {
 
   namedExportDeclarationNodeDeclarations
     .filter((declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
+      // Narrow down to varible declarations, e.g.:
+      // export const a = ...;
+      // export var b = ...;
+      // export let c = ...;
+      // export let c, d = 1;
       VariableDeclaration.check(declarationNode),
     )
-    .map(variableDeclarationNode => variableDeclarationNode.declarations)
-    .reduce((prev, curr) => [...prev, ...curr], []) // flatten
+    .map(
+      variableDeclarationNode =>
+        // Grab all declarations in a single export statement.
+        // There can be multiple in the case of for example in `export let a, b;`.
+        variableDeclarationNode.declarations,
+    )
+    .reduce((prev, curr) => [...prev, ...curr], []) // flatten - now we have all declaration nodes in one flat array
     .forEach(declarationNode => {
-      if (Identifier.check(declarationNode) || JSXIdentifier.check(declarationNode)) {
-        identifiers.push(declarationNode.name);
-      } else if (TSTypeParameter.check(declarationNode)) {
-        // noop
+      if (
+        Identifier.check(declarationNode) || // should never happen
+        JSXIdentifier.check(declarationNode) || // JSX like `<name></name>` - we don't care about these
+        TSTypeParameter.check(declarationNode) // type definitions - we don't care about those
+      ) {
+        // We should never have to enter this branch, it is just for type narrowing.
       } else if (Identifier.check(declarationNode.id)) {
+        // If it's a simple declaration with an identifier we collect it. (e.g. `const myIdentifier = 1;` -> "myIdentifier")
         identifiers.push(declarationNode.id.name);
       } else if (ObjectPattern.check(declarationNode.id)) {
+        // If we encounter a destructuring export like `export const { foo: name1, bar: name2 } = { foo: 1, bar: 2 };`,
+        // we try collecting the identifiers from the pattern `{ foo: name1, bar: name2 }`.
         identifiers.push(...getExportIdentifiersFromObjectPattern(declarationNode.id));
       } else if (ArrayPattern.check(declarationNode.id)) {
+        // If we encounter a destructuring export like `export const [name1, name2] = [1, 2];`,
+        // we try collecting the identifiers from the pattern `[name1, name2]`.
         identifiers.push(...getExportIdentifiersFromArrayPattern(declarationNode.id));
-      } else if (RestElement.check(declarationNode.id)) {
-        identifiers.push(...getExportIdentifiersFromRestElement(declarationNode.id));
       }
     });
 
   namedExportDeclarationNodeDeclarations
     .filter(
+      // Narrow down to class and function declarations, e.g.:
+      // export class Foo {};
+      // export function bar() {};
       (declarationNode): declarationNode is jscsTypes.ClassDeclaration | jscsTypes.FunctionDeclaration =>
         ClassDeclaration.check(declarationNode) || FunctionDeclaration.check(declarationNode),
     )
-    .map(node => node.id)
-    .filter((id): id is jscsTypes.Identifier => Identifier.check(id))
-    .forEach(id => identifiers.push(id.name));
+    .map(node => node.id) // Grab the identifier of the function/class - Note: it might be `null` when it's anonymous
+    .filter((id): id is jscsTypes.Identifier => Identifier.check(id)) // Elaborate way of null-checking
+    .forEach(id => identifiers.push(id.name)); // Collect the name of the identifier
 
   ast
-    .find(ExportSpecifier)
+    .find(ExportSpecifier) // Find stuff like `export {<id [as name]>} [from ...];`
     .nodes()
     .forEach(specifier => {
+      // Taking the example above `specifier.exported.name` always contains `id` unless `name` is specified, then it's `name`;
       if (specifier.exported.name !== 'default') {
+        // You can do default exports "export { something as default };" but we do not want to collect "default" in this
+        // function since it only wants to collect named exports.
         identifiers.push(specifier.exported.name);
       }
     });
 
   ast
-    .find(ExportAllDeclaration)
+    .find(ExportAllDeclaration) // Find stuff like `export * from ..." and "export * as someVariable from ...`
     .nodes()
     .forEach(declaration => {
+      // Narrow it down to only find `export * as someVariable from ...` (emphasis on "as someVariable")
       if (declaration.exported) {
-        identifiers.push(declaration.exported.name);
+        identifiers.push(declaration.exported.name); // `declaration.exported.name` contains "someVariable"
       }
     });
 
