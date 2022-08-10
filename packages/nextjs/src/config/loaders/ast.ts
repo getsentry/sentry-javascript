@@ -333,22 +333,16 @@ export function removeComments(ast: AST): void {
  * Determines from a given AST of a file whether the file has a default export or not.
  */
 export function hasDefaultExport(ast: AST): boolean {
-  const hasDefaultDeclaration = ast.find(ExportDefaultDeclaration).size() > 0;
-  if (hasDefaultDeclaration) {
-    return true;
-  }
+  const defaultExports = ast.find(Node, value => {
+    return (
+      ExportDefaultDeclaration.check(value) ||
+      ExportDefaultSpecifier.check(value) ||
+      (ExportSpecifier.check(value) && value.exported.name === 'default')
+    );
+  });
 
-  const hasDefaultSpecifier = ast.find(ExportDefaultSpecifier).size() > 0;
-  if (hasDefaultSpecifier) {
-    return true;
-  }
-
-  const hasNamedDefaultExport = ast.find(ExportSpecifier).some(specifier => specifier.node.exported.name === 'default');
-  if (hasNamedDefaultExport) {
-    return true;
-  }
-
-  return false;
+  // In theory there should only ever be 0 or 1, but who knows what people do
+  return defaultExports.length > 0;
 }
 
 /**
