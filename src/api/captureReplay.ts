@@ -9,6 +9,7 @@ export interface CaptureReplayParams {
   initialState: InitialState;
   errorIds: string[];
   traceIds: string[];
+  urls: string[];
 }
 
 export function captureReplay({
@@ -16,6 +17,7 @@ export function captureReplay({
   initialState,
   errorIds,
   traceIds,
+  urls,
 }: CaptureReplayParams) {
   captureEvent(
     {
@@ -25,6 +27,7 @@ export function captureReplay({
       // @ts-expect-error replay event type accepts this
       error_ids: errorIds,
       trace_ids: traceIds,
+      urls,
     },
     { event_id: session.id }
   );
