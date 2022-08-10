@@ -44,22 +44,26 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
  * Start tracking long tasks.
  */
 export function startTrackingLongTasks(): void {
-  const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
-    const transaction = getActiveTransaction() as IdleTransaction | undefined;
-    if (!transaction) {
-      return;
-    }
-    const startTime = msToSec(entry.startTime);
-    const duration = msToSec(entry.duration);
-    transaction.startChild({
-      description: 'Long Task',
-      op: 'ui.long-task',
-      startTimestamp: startTime,
-      endTimestamp: startTime + duration,
-    });
-  };
+  try {
+    const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
+      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      if (!transaction) {
+        return;
+      }
+      const startTime = msToSec(entry.startTime);
+      const duration = msToSec(entry.duration);
+      transaction.startChild({
+        description: 'Long Task',
+        op: 'ui.long-task',
+        startTimestamp: startTime,
+        endTimestamp: startTime + duration,
+      });
+    };
 
-  observe('longtask', entryHandler);
+    observe('longtask', entryHandler);
+  } catch (_) {
+    // Do nothing
+  }
 }
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */

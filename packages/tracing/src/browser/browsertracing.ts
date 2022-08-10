@@ -6,7 +6,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { addPerformanceEntries, startTrackingWebVitals } from './metrics';
+import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -148,7 +148,7 @@ export class BrowserTracing implements Integration {
 
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
-    // startTrackingLongTasks();
+    startTrackingLongTasks();
   }
 
   /**
