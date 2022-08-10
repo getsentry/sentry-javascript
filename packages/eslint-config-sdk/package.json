@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/eslint-config-sdk",
-  "version": "7.9.0",
+  "version": "7.10.0",
   "description": "Official Sentry SDK eslint config",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/eslint-config-sdk",
@@ -19,8 +19,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/eslint-plugin-sdk": "7.9.0",
-    "@sentry-internal/typescript": "7.9.0",
+    "@sentry-internal/eslint-plugin-sdk": "7.10.0",
+    "@sentry-internal/typescript": "7.10.0",
     "@typescript-eslint/eslint-plugin": "^3.9.0",
     "@typescript-eslint/parser": "^3.9.0",
     "eslint-config-prettier": "^6.11.0",

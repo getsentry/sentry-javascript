@@ -1,6 +1,6 @@
 {
   "name": "@sentry/wasm",
-  "version": "7.9.0",
+  "version": "7.10.0",
   "description": "Support for WASM.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.9.0",
-    "@sentry/types": "7.9.0",
-    "@sentry/utils": "7.9.0",
+    "@sentry/browser": "7.10.0",
+    "@sentry/types": "7.10.0",
+    "@sentry/utils": "7.10.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
