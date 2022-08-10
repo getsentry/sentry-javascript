@@ -14,8 +14,11 @@ This release introduces the first alpha version of `@sentry/svelte`, our newest 
 - fix(integration): Don't mangle localforage internals (#5534)
 - fix(react): Set redux state context properly (#5550)
 - fix(remix): Support merging `json` responses from root loader functions. (#5548)
+- fix(remix): Return response if detected in root loader (#5558)
 - ref(nextjs): Move `autoWrapDataFetchers` option into `experiments` object (#5540)
 - ref(nextjs): Wrap server-side data-fetching methods during build (#5503)
+
+Work in this release contributed by @augustuswm. Thank you for your contribution!
 
 ## 7.9.0
 
