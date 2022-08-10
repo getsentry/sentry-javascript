@@ -36,7 +36,7 @@ test.each([
   ['export { default, name1 } from "module-name";', true],
 ])('hasDefaultExport(%s) should return %p', (program, expectedResult) => {
   const ast = makeAST(program, true);
-  expect(hasDefaultExport(ast)).toStrictEqual(expectedResult);
+  expect(hasDefaultExport(ast)).toBe(expectedResult);
 });
 
 test.each([
