@@ -269,8 +269,17 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   return {};
 }
 
+// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L1-L4
 export type JsonFunction = <Data>(data: Data, init?: number | ResponseInit) => Response;
 
+/**
+ * This is a shortcut for creating `application/json` responses. Converts `data`
+ * to JSON and sets the `Content-Type` header.
+ *
+ * @see https://remix.run/api/remix#json
+ *
+ * https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L12-L24
+ */
 const json: JsonFunction = (data, init = {}) => {
   const responseInit = typeof init === 'number' ? { status: init } : init;
   const headers = new Headers(responseInit.headers);
