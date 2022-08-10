@@ -1,5 +1,9 @@
 import { GIProps } from './types';
 
+// Disclaimer: Keep this file side-effect free. If you have to intruduce a side-effect, make sure it can run on the
+// browser and on the server. Reason: This `getInitialProps` wrapper imports this file and `getInitialProps` might run on
+// the browser and / or on the server.
+
 /**
  * Create a wrapped version of the user's exported `getInitialProps` function
  *

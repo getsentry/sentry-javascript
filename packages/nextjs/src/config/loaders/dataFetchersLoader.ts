@@ -128,6 +128,9 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
     }
 
     if (hasDefaultExport(ast)) {
+      // We don't import the `withSentryGetInitialProps` wrapper from `@sentry/nextjs` since `getInitialProps` can run
+      // on both the server and the client and we don't want to have side effects from the server SDK on the client and
+      // vice versa. By importing the loader directly we avoid the side effects.
       outputFileContent += `
         import { default as _sentry_default } from "${this.resourcePath}?sentry-proxy-loader";
         import { withSentryGetInitialProps } from "@sentry/nextjs/build/esm/config/wrappers";
