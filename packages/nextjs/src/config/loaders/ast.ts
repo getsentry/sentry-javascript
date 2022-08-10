@@ -330,7 +330,7 @@ export function removeComments(ast: AST): void {
 }
 
 /**
- * Determines from a given AST of a file, whether the file has a default export or not.
+ * Determines from a given AST of a file whether the file has a default export or not.
  */
 export function hasDefaultExport(ast: AST): boolean {
   const hasDefaultDeclaration = ast.find(ExportDefaultDeclaration).size() > 0;
@@ -352,8 +352,8 @@ export function hasDefaultExport(ast: AST): boolean {
 }
 
 /**
- * Extracts all identifiers from a "RestElement" within a named export declaration statement ("export const val = ...").
- * "RestElements" are things like "...value" inside a destructuring assignment.
+ * Extracts all identifiers from a `RestElement` within a named export declaration statement (`export const constName = constValue`).
+ * `RestElements` are things like `...others` inside a destructuring assignment.
  *
  * Example:
  * "export const { ...restElement1, bar: { ...restElement2 } } = { foo: 1, bar: { baz: 2 } }" --> ["restElement1", "restElement2"]
@@ -412,6 +412,7 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
   const identifiers: string[] = [];
 
   objectPatternNode.properties.forEach(property => {
+    // An `ObjectPattern`'s properties can be either `Property`s or `RestElement`s.
     if (Property.check(property)) {
       if (Identifier.check(property.value)) {
         identifiers.push(property.value.name);
@@ -436,6 +437,7 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
  * @returns a list of deduplicated identifiers.
  */
 export function getExportIdentifiers(ast: AST): string[] {
+  // We'll use a set to dedupe at the end, but for now we use an array as our accumulator because you can add multiple elements to it at once.
   const identifiers: string[] = [];
 
   const namedExportDeclarationNodes = ast
