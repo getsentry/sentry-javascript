@@ -371,8 +371,6 @@ function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement)
   return Identifier.check(restElement.argument) ? [restElement.argument.name] : [];
 }
 
-const asdf = { ...({ a: 1 } || { b: 2 }) };
-
 /**
  * Extracts all identifier names (`'constName'`) from an destructuringassignment'sArrayPattern (the `[constName]` in`const [constName] = [1]`).
  *
@@ -414,14 +412,21 @@ function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPatte
 
 /**
  * Grabs all identifiers from an ObjectPattern within a destructured named export declaration
- * statement ("export const { val: name } = { val: 1 }").
+ * statement (`name` in "export const { val: name } = { val: 1 }").
  *
  * This function recursively calls itself and `getExportIdentifiersFromArrayPattern` since destructuring assignments
  * can be deeply nested with objects and arrays.
  *
- * Example:
- * export const { foo: [name1], bar: { baz: [{ quux: name2 }], ...name3 }} = { foo: [1], bar: { baz: [{ quux: 3 }]} };
- *   --> ["name1", "name2", "name3"]
+ * Example - take the following program:
+ *
+ * ```js
+ * export const { foo: [{ bar: name1 }], name2, ...name3 } = { foo: [{}] };
+ * ```
+ *
+ * The `ObjectPattern` node in question for this program is the left hand side of the assignment:
+ * `{ foo: [{ bar: name1 }], name2, ...name3 } = { foo: [{}] }`
+ *
+ * Applying this function to this `ObjectPattern` will return the following: `["name1", "name2", "name3"]`
  *
  * DISCLAIMER: This function only correcly extracts identifiers of `ObjectPatterns` in the context of export statements.
  * Using this for `ObjectPatterns` outside of exports would require us to handle more edgecases. Hence the "Export" in
