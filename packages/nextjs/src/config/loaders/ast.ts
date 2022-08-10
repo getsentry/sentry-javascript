@@ -445,12 +445,12 @@ export function getExportIdentifierNames(ast: AST): string[] {
   // We'll use a set to dedupe at the end, but for now we use an array as our accumulator because you can add multiple elements to it at once.
   const identifiers: string[] = [];
 
-  const namedExportDeclarationNodes = ast
+  const namedExportDeclarationNodeDeclarations = ast
     .find(ExportNamedDeclaration)
     .nodes()
     .map(namedExportDeclarationNode => namedExportDeclarationNode.declaration);
 
-  namedExportDeclarationNodes
+  namedExportDeclarationNodeDeclarations
     .filter((declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
       VariableDeclaration.check(declarationNode),
     )
@@ -472,7 +472,7 @@ export function getExportIdentifierNames(ast: AST): string[] {
       }
     });
 
-  namedExportDeclarationNodes
+  namedExportDeclarationNodeDeclarations
     .filter(
       (declarationNode): declarationNode is jscsTypes.ClassDeclaration | jscsTypes.FunctionDeclaration =>
         ClassDeclaration.check(declarationNode) || FunctionDeclaration.check(declarationNode),
