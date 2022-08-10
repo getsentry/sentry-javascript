@@ -20,7 +20,7 @@ import type { AST } from './ast';
 import {
   findDeclarations,
   findExports,
-  getExportIdentifiers,
+  getExportIdentifierNames,
   hasDefaultExport,
   makeAST,
   removeComments,
@@ -118,7 +118,7 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   if (!this.resourceQuery.includes('sentry-proxy-loader')) {
     const ast = makeAST(userCode, true); // is there a reason to ever parse without typescript?
 
-    const exportedIdentifiers = getExportIdentifiers(ast);
+    const exportedIdentifiers = getExportIdentifierNames(ast);
 
     let outputFileContent = '';
 

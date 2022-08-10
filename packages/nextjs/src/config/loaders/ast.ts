@@ -441,7 +441,7 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
  *
  * @returns a list of deduplicated identifiers.
  */
-export function getExportIdentifiers(ast: AST): string[] {
+export function getExportIdentifierNames(ast: AST): string[] {
   // We'll use a set to dedupe at the end, but for now we use an array as our accumulator because you can add multiple elements to it at once.
   const identifiers: string[] = [];
 

@@ -1,4 +1,4 @@
-import { getExportIdentifiers, hasDefaultExport, makeAST } from '../../src/config/loaders/ast';
+import { getExportIdentifierNames, hasDefaultExport, makeAST } from '../../src/config/loaders/ast';
 
 test.each([
   // examples taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export
@@ -96,5 +96,5 @@ test.each([
   ['export { default, name1 } from "module-name";', ['name1']],
 ])('getExportIdentifiers(%s) should return %p', (program, expectedIdentifiers) => {
   const ast = makeAST(program, true);
-  expect(getExportIdentifiers(ast)).toStrictEqual(expectedIdentifiers);
+  expect(getExportIdentifierNames(ast)).toStrictEqual(expectedIdentifiers);
 });
