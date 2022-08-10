@@ -148,7 +148,7 @@ export class BrowserTracing implements Integration {
 
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
-    startTrackingLongTasks();
+    // startTrackingLongTasks();
   }
 
   /**
