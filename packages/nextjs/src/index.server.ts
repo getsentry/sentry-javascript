@@ -125,12 +125,7 @@ function addServerIntegrations(options: NextjsOptions): void {
 export type { SentryWebpackPluginOptions } from './config/types';
 export { withSentryConfig } from './config';
 export { isBuild } from './utils/isBuild';
-export {
-  withSentryGetServerSideProps,
-  withSentryGetStaticProps,
-  withSentryGetStaticPaths,
-  withSentryGetInitialProps,
-} from './config/wrappers';
+export { withSentryGetServerSideProps, withSentryGetStaticProps, withSentryGetInitialProps } from './config/wrappers';
 export { withSentry } from './utils/withSentry';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
