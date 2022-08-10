@@ -52,11 +52,10 @@ type LoaderOptions = {
  */
 function wrapFunctions(userCode: string, templateCode: string, filepath: string): string[] {
   let userAST: AST, templateAST: AST;
-  const isTS = new RegExp('\\.tsx?$').test(filepath);
 
   try {
-    userAST = makeAST(userCode, isTS);
-    templateAST = makeAST(templateCode, false);
+    userAST = makeAST(userCode);
+    templateAST = makeAST(templateCode);
   } catch (err) {
     logger.warn(`Couldn't add Sentry to ${filepath} because there was a parsing error: ${err}`);
     // Replace the template code with an empty string, so in the end the user code is untouched
@@ -124,8 +123,7 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   // we know we're in a proxied file and do not need to proxy again.
 
   if (!this.resourceQuery.includes('sentry-proxy-loader')) {
-    const ast = makeAST(userCode, true); // is there a reason to ever parse without typescript?
-
+    const ast = makeAST(userCode);
     const exportedIdentifiers = getExportIdentifierNames(ast);
 
     let outputFileContent = '';
