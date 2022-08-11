@@ -25,14 +25,24 @@ const jscs = jscodeshiftDefault || jscodeshiftNamespace;
 
 // These are types not in the TS sense, but in the instance-of-a-Type-class sense
 const {
+  ArrayPattern,
+  ClassDeclaration,
+  ExportAllDeclaration,
+  ExportDefaultDeclaration,
+  ExportDefaultSpecifier,
+  ExportNamedDeclaration,
   ExportSpecifier,
+  FunctionDeclaration,
   Identifier,
   ImportSpecifier,
+  JSXIdentifier,
   MemberExpression,
   Node,
   ObjectExpression,
   ObjectPattern,
   Property,
+  RestElement,
+  TSTypeParameter,
   VariableDeclaration,
   VariableDeclarator,
 } = jscs;
@@ -291,8 +301,6 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
   // it means we potentially need to rename something *not* already named `getServerSideProps`, `getStaticProps`, or
   // `getStaticPaths`, meaning we need to rename nodes outside of the collection upon which we're currently acting.
   if (ExportSpecifier.check(parent)) {
-    // console.log(node);
-    // debugger;
     if (parent.exported.name !== parent.local?.name && node === parent.exported) {
       const currentLocalName = parent.local?.name || '';
       renameIdentifiers(ast, currentLocalName, alias);
@@ -319,4 +327,203 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
 export function removeComments(ast: AST): void {
   const nodesWithComments = ast.find(Node).filter(nodePath => !!nodePath.node.comments);
   nodesWithComments.forEach(nodePath => (nodePath.node.comments = null));
+}
+
+/**
+ * Determines from a given AST of a file whether the file has a default export or not.
+ */
+export function hasDefaultExport(ast: AST): boolean {
+  const defaultExports = ast.find(Node, value => {
+    return (
+      ExportDefaultDeclaration.check(value) ||
+      ExportDefaultSpecifier.check(value) ||
+      (ExportSpecifier.check(value) && value.exported.name === 'default')
+    );
+  });
+
+  // In theory there should only ever be 0 or 1, but who knows what people do
+  return defaultExports.length > 0;
+}
+
+/**
+ * Extracts all identifier names (`'constName'`) from an destructuringassignment'sArrayPattern (the `[constName]` in`const [constName] = [1]`).
+ *
+ * This function recursively calls itself and `getExportIdentifiersFromObjectPattern` since destructuring assignments
+ * can be deeply nested with objects and arrays.
+ *
+ * Example - take the following program:
+ *
+ * ```js
+ * export const [{ foo: name1 }, [{ bar: [name2]}, name3]] = [{ foo: 1 }, [{ bar: [2] }, 3]];
+ * ```
+ *
+ * The `ArrayPattern` node in question for this program is the left hand side of the assignment:
+ * `[{ foo: name1 }, [{ bar: [name2]}, name3]]`
+ *
+ * Applying this function to this `ArrayPattern` will return the following: `["name1", "name2", "name3"]`
+ *
+ * DISCLAIMER: This function only correcly extracts identifiers of `ArrayPatterns` in the context of export statements.
+ * Using this for `ArrayPattern` outside of exports would require us to handle more edgecases. Hence the "Export" in
+ * this function's name.
+ */
+function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPattern): string[] {
+  const identifiers: string[] = [];
+
+  arrayPattern.elements.forEach(element => {
+    if (Identifier.check(element)) {
+      identifiers.push(element.name);
+    } else if (ObjectPattern.check(element)) {
+      identifiers.push(...getExportIdentifiersFromObjectPattern(element));
+    } else if (ArrayPattern.check(element)) {
+      identifiers.push(...getExportIdentifiersFromArrayPattern(element));
+    } else if (RestElement.check(element) && Identifier.check(element.argument)) {
+      // `RestElements` are spread operators
+      identifiers.push(element.argument.name);
+    }
+  });
+
+  return identifiers;
+}
+
+/**
+ * Grabs all identifiers from an ObjectPattern within a destructured named export declaration
+ * statement (`name` in "export const { val: name } = { val: 1 }").
+ *
+ * This function recursively calls itself and `getExportIdentifiersFromArrayPattern` since destructuring assignments
+ * can be deeply nested with objects and arrays.
+ *
+ * Example - take the following program:
+ *
+ * ```js
+ * export const { foo: [{ bar: name1 }], name2, ...name3 } = { foo: [{}] };
+ * ```
+ *
+ * The `ObjectPattern` node in question for this program is the left hand side of the assignment:
+ * `{ foo: [{ bar: name1 }], name2, ...name3 } = { foo: [{}] }`
+ *
+ * Applying this function to this `ObjectPattern` will return the following: `["name1", "name2", "name3"]`
+ *
+ * DISCLAIMER: This function only correcly extracts identifiers of `ObjectPatterns` in the context of export statements.
+ * Using this for `ObjectPatterns` outside of exports would require us to handle more edgecases. Hence the "Export" in
+ * this function's name.
+ */
+function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.ObjectPattern): string[] {
+  const identifiers: string[] = [];
+
+  objectPatternNode.properties.forEach(property => {
+    // An `ObjectPattern`'s properties can be either `Property`s or `RestElement`s.
+    if (Property.check(property)) {
+      if (Identifier.check(property.value)) {
+        identifiers.push(property.value.name);
+      } else if (ObjectPattern.check(property.value)) {
+        identifiers.push(...getExportIdentifiersFromObjectPattern(property.value));
+      } else if (ArrayPattern.check(property.value)) {
+        identifiers.push(...getExportIdentifiersFromArrayPattern(property.value));
+      } else if (RestElement.check(property.value) && Identifier.check(property.value.argument)) {
+        // `RestElements` are spread operators
+        identifiers.push(property.value.argument.name);
+      }
+      // @ts-ignore AST types are wrong here
+    } else if (RestElement.check(property) && Identifier.check(property.argument)) {
+      // `RestElements` are spread operators
+      // @ts-ignore AST types are wrong here
+      identifiers.push(property.argument.name as string);
+    }
+  });
+
+  return identifiers;
+}
+
+/**
+ * Given the AST of a file, this function extracts all named exports from the file.
+ *
+ * @returns a list of deduplicated identifiers.
+ */
+export function getExportIdentifierNames(ast: AST): string[] {
+  // We'll use a set to dedupe at the end, but for now we use an array as our accumulator because you can add multiple elements to it at once.
+  const identifiers: string[] = [];
+
+  // The following variable collects all export statements that double as named declaration, e.g.:
+  // - export function myFunc() {}
+  // - export var myVar = 1337
+  // - export const myConst = 1337
+  // - export const { a, ..rest } = { a: 1, b: 2, c: 3 }
+  // We will narrow those situations down in subsequent code blocks.
+  const namedExportDeclarationNodeDeclarations = ast
+    .find(ExportNamedDeclaration)
+    .nodes()
+    .map(namedExportDeclarationNode => namedExportDeclarationNode.declaration);
+
+  namedExportDeclarationNodeDeclarations
+    .filter((declarationNode): declarationNode is jscsTypes.VariableDeclaration =>
+      // Narrow down to varible declarations, e.g.:
+      // export const a = ...;
+      // export var b = ...;
+      // export let c = ...;
+      // export let c, d = 1;
+      VariableDeclaration.check(declarationNode),
+    )
+    .map(
+      variableDeclarationNode =>
+        // Grab all declarations in a single export statement.
+        // There can be multiple in the case of for example in `export let a, b;`.
+        variableDeclarationNode.declarations,
+    )
+    .reduce((prev, curr) => [...prev, ...curr], []) // flatten - now we have all declaration nodes in one flat array
+    .forEach(declarationNode => {
+      if (
+        Identifier.check(declarationNode) || // should never happen
+        JSXIdentifier.check(declarationNode) || // JSX like `<name></name>` - we don't care about these
+        TSTypeParameter.check(declarationNode) // type definitions - we don't care about those
+      ) {
+        // We should never have to enter this branch, it is just for type narrowing.
+      } else if (Identifier.check(declarationNode.id)) {
+        // If it's a simple declaration with an identifier we collect it. (e.g. `const myIdentifier = 1;` -> "myIdentifier")
+        identifiers.push(declarationNode.id.name);
+      } else if (ObjectPattern.check(declarationNode.id)) {
+        // If we encounter a destructuring export like `export const { foo: name1, bar: name2 } = { foo: 1, bar: 2 };`,
+        // we try collecting the identifiers from the pattern `{ foo: name1, bar: name2 }`.
+        identifiers.push(...getExportIdentifiersFromObjectPattern(declarationNode.id));
+      } else if (ArrayPattern.check(declarationNode.id)) {
+        // If we encounter a destructuring export like `export const [name1, name2] = [1, 2];`,
+        // we try collecting the identifiers from the pattern `[name1, name2]`.
+        identifiers.push(...getExportIdentifiersFromArrayPattern(declarationNode.id));
+      }
+    });
+
+  namedExportDeclarationNodeDeclarations
+    .filter(
+      // Narrow down to class and function declarations, e.g.:
+      // export class Foo {};
+      // export function bar() {};
+      (declarationNode): declarationNode is jscsTypes.ClassDeclaration | jscsTypes.FunctionDeclaration =>
+        ClassDeclaration.check(declarationNode) || FunctionDeclaration.check(declarationNode),
+    )
+    .map(node => node.id) // Grab the identifier of the function/class - Note: it might be `null` when it's anonymous
+    .filter((id): id is jscsTypes.Identifier => Identifier.check(id)) // Elaborate way of null-checking
+    .forEach(id => identifiers.push(id.name)); // Collect the name of the identifier
+
+  ast
+    .find(ExportSpecifier) // Find stuff like `export {<id [as name]>} [from ...];`
+    .nodes()
+    .forEach(specifier => {
+      // Taking the example above `specifier.exported.name` always contains `id` unless `name` is specified, then it's `name`;
+      if (specifier.exported.name !== 'default') {
+        // You can do default exports "export { something as default };" but we do not want to collect "default" in this
+        // function since it only wants to collect named exports.
+        identifiers.push(specifier.exported.name);
+      }
+    });
+
+  ast
+    .find(ExportAllDeclaration) // Find stuff like `export * from ..." and "export * as someVariable from ...`
+    .nodes()
+    .forEach(declaration => {
+      // Narrow it down to only find `export * as someVariable from ...` (emphasis on "as someVariable")
+      if (declaration.exported) {
+        identifiers.push(declaration.exported.name); // `declaration.exported.name` contains "someVariable"
+      }
+    });
+
+  return [...new Set(identifiers)]; // dedupe
 }

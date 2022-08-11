@@ -43,7 +43,10 @@ export function constructWebpackConfigFunction(
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
-  const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+  return function newWebpackFunction(
+    incomingConfig: WebpackConfigObject,
+    buildContext: BuildContext,
+  ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     let newConfig = { ...incomingConfig };
 
@@ -165,8 +168,6 @@ export function constructWebpackConfigFunction(
 
     return newConfig;
   };
-
-  return newWebpackFunction;
 }
 
 /**

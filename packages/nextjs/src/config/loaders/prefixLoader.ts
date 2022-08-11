@@ -12,8 +12,7 @@ type LoaderOptions = {
  */
 export default function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const { distDir } = this.getOptions ? this.getOptions() : this.query!;
+  const { distDir } = 'getOptions' in this ? this.getOptions() : this.query;
 
   const templatePath = path.resolve(__dirname, '../templates/prefixLoaderTemplate.js');
   // make sure the template is included when runing `webpack watch`

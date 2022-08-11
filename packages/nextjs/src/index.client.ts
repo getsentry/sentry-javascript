@@ -11,6 +11,8 @@ export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
 export { captureUnderscoreErrorException } from './utils/_error';
 
+export { withSentryGetInitialProps } from './config/wrappers';
+
 export { Integrations };
 
 // Previously we expected users to import `BrowserTracing` like this:
