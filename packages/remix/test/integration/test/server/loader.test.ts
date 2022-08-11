@@ -131,4 +131,22 @@ describe('Remix API Loaders', () => {
       },
     });
   });
+
+  it('makes sure scope does not bleed between requests', async () => {
+    const baseURL = await runServer();
+
+    await Promise.all(
+      Array.from(Array(10).keys()).map(async (id: number) => {
+        const url = `${baseURL}/scope-bleed/${id}`;
+        const envelope = await getEnvelopeRequest(url);
+        const transaction = envelope[2];
+
+        assertSentryTransaction(transaction, {
+          tags: {
+            [`tag${id}`]: String(id),
+          },
+        });
+      }),
+    );
+  });
 });
