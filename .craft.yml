@@ -46,3 +46,5 @@ targets:
         onlyIfPresent: /^sentry-nextjs-.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-.*\.tgz$/
+      'npm:@sentry/svelte':
+        onlyIfPresent: /^sentry-svelte-.*\.tgz$/
