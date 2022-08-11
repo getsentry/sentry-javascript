@@ -203,7 +203,7 @@ function makeWrappedDocumentRequestFunction(
   };
 }
 
-function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'): DataFunction {
+function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action' | 'loader'): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     let res: Response | AppData;
     const activeTransaction = getActiveTransaction();
@@ -216,8 +216,7 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
     try {
       const span = activeTransaction.startChild({
         op: `remix.server.${name}`,
-        // TODO: Consider using the `id` of the route this function belongs to
-        description: activeTransaction.name,
+        description: id,
         tags: {
           name,
         },
@@ -241,13 +240,17 @@ function makeWrappedDataFunction(origFn: DataFunction, name: 'action' | 'loader'
   };
 }
 
-function makeWrappedAction(origAction: DataFunction): DataFunction {
-  return makeWrappedDataFunction(origAction, 'action');
-}
+const makeWrappedAction =
+  (id: string) =>
+  (origAction: DataFunction): DataFunction => {
+    return makeWrappedDataFunction(origAction, id, 'action');
+  };
 
-function makeWrappedLoader(origLoader: DataFunction): DataFunction {
-  return makeWrappedDataFunction(origLoader, 'loader');
-}
+const makeWrappedLoader =
+  (id: string) =>
+  (origLoader: DataFunction): DataFunction => {
+    return makeWrappedDataFunction(origLoader, id, 'loader');
+  };
 
 function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
   const transaction = getActiveTransaction();
@@ -424,14 +427,15 @@ function makeWrappedCreateRequestHandler(
     fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
 
     for (const [id, route] of Object.entries(build.routes)) {
+      console.log(id, route);
       const wrappedRoute = { ...route, module: { ...route.module } };
 
       if (wrappedRoute.module.action) {
-        fill(wrappedRoute.module, 'action', makeWrappedAction);
+        fill(wrappedRoute.module, 'action', makeWrappedAction(id));
       }
 
       if (wrappedRoute.module.loader) {
-        fill(wrappedRoute.module, 'loader', makeWrappedLoader);
+        fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
       }
 
       // Entry module should have a loader function to provide `sentry-trace` and `baggage`
