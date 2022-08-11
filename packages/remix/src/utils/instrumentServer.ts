@@ -427,7 +427,6 @@ function makeWrappedCreateRequestHandler(
     fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
 
     for (const [id, route] of Object.entries(build.routes)) {
-      console.log(id, route);
       const wrappedRoute = { ...route, module: { ...route.module } };
 
       if (wrappedRoute.module.action) {
