@@ -356,10 +356,10 @@ function matchServerRoutes(
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
+
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
-    local.enter();
-    try {
+    return local.bind(async () => {
       const hub = getCurrentHub();
       const currentScope = hub.getScope();
 
@@ -390,9 +390,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       transaction?.finish();
 
       return res;
-    } finally {
-      local.exit();
-    }
+    })();
   };
 }
 
