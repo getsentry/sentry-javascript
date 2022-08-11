@@ -2,6 +2,7 @@
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
+import * as domain from 'domain';
 
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
@@ -356,36 +357,42 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
-    const hub = getCurrentHub();
-    const currentScope = hub.getScope();
+    const local = domain.create();
+    local.enter();
+    try {
+      const hub = getCurrentHub();
+      const currentScope = hub.getScope();
 
-    const url = new URL(request.url);
-    const matches = matchServerRoutes(routes, url.pathname, pkg);
+      const url = new URL(request.url);
+      const matches = matchServerRoutes(routes, url.pathname, pkg);
 
-    const match = matches && getRequestMatch(url, matches);
-    const name = match === null ? url.pathname : match.route.id;
-    const source = match === null ? 'url' : 'route';
-    const transaction = hub.startTransaction({
-      name,
-      op: 'http.server',
-      tags: {
-        method: request.method,
-      },
-      metadata: {
-        source,
-      },
-    });
+      const match = matches && getRequestMatch(url, matches);
+      const name = match === null ? url.pathname : match.route.id;
+      const source = match === null ? 'url' : 'route';
+      const transaction = hub.startTransaction({
+        name,
+        op: 'http.server',
+        tags: {
+          method: request.method,
+        },
+        metadata: {
+          source,
+        },
+      });
 
-    if (transaction) {
-      currentScope?.setSpan(transaction);
+      if (transaction) {
+        currentScope?.setSpan(transaction);
+      }
+
+      const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+
+      transaction?.setHttpStatus(res.status);
+      transaction?.finish();
+
+      return res;
+    } finally {
+      local.exit();
     }
-
-    const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
-
-    transaction?.setHttpStatus(res.status);
-    transaction?.finish();
-
-    return res;
   };
 }
 
