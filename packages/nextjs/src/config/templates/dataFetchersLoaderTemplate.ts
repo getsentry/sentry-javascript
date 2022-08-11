@@ -17,6 +17,8 @@ declare const __ORIG_GSPROPS__: GetStaticPropsFunction;
 // eslint-disable-next-line import/no-extraneous-dependencies, import/no-unresolved
 import * as ServerSideSentryNextjsSDK from '@sentry/nextjs';
 
+const PARAMETERIZED_ROUTE = '__FILEPATH__';
+
 export const getServerSideProps =
   typeof __ORIG_GSSP__ === 'function'
     ? ServerSideSentryNextjsSDK.withSentryGetServerSideProps(__ORIG_GSSP__)

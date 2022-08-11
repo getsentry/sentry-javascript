@@ -56,8 +56,6 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
-    const pageRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages(/.+)\\.(jsx?|tsx?)`);
-
     if (isServer) {
       newConfig.module = {
         ...newConfig.module,
@@ -81,12 +79,15 @@ export function constructWebpackConfigFunction(
       };
 
       if (userSentryOptions.experiments?.autoWrapDataFetchers) {
+        const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
+
         newConfig.module.rules.push({
-          test: pageRegex,
+          // Nextjs allows the `pages` folder to optionally live inside a `src` folder
+          test: new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/.*\\.(jsx?|tsx?)`),
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
-              options: { projectDir },
+              options: { projectDir, pagesDir },
             },
           ],
         });

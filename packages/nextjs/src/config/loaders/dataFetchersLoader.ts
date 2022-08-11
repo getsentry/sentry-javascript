@@ -37,6 +37,7 @@ const DATA_FETCHING_FUNCTIONS = {
 
 type LoaderOptions = {
   projectDir: string;
+  pagesDir: string;
 };
 
 /**
@@ -108,7 +109,7 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   }
 
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { projectDir } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { projectDir, pagesDir } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // In the following branch we will proxy the user's file. This means we return code (basically an entirely new file)
   // that re - exports all the user file's originial export, but with a "sentry-proxy-loader" query in the module
@@ -172,6 +173,20 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
 
     // Fill in template placeholders
     let injectedCode = modifiedTemplateCode;
+    const route = path
+      // Get the path of the file insde of the pages directory
+      .relative(pagesDir, this.resourcePath)
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file extension
+      .replace(/\.(jsx?|tsx?)/, '')
+      // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
+      // just `/xyz`
+      .replace(/\/index$/, '')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+    injectedCode = injectedCode.replace('__FILEPATH__', route);
     for (const { placeholder, alias } of Object.values(DATA_FETCHING_FUNCTIONS)) {
       injectedCode = injectedCode.replace(new RegExp(placeholder, 'g'), alias);
     }
