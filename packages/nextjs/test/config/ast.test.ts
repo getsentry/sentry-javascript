@@ -35,7 +35,7 @@ test.each([
   ['export { default } from "module-name";', true],
   ['export { default, name1 } from "module-name";', true],
 ])('hasDefaultExport(%s) should return %p', (program, expectedResult) => {
-  const ast = makeAST(program, true);
+  const ast = makeAST(program);
   expect(hasDefaultExport(ast)).toBe(expectedResult);
 });
 
@@ -95,6 +95,6 @@ test.each([
   ['export { default } from "module-name";', []],
   ['export { default, name1 } from "module-name";', ['name1']],
 ])('getExportIdentifiers(%s) should return %p', (program, expectedIdentifiers) => {
-  const ast = makeAST(program, true);
+  const ast = makeAST(program);
   expect(getExportIdentifierNames(ast)).toStrictEqual(expectedIdentifiers);
 });

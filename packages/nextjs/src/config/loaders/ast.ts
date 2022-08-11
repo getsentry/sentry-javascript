@@ -2,7 +2,7 @@
 import * as jscsTypes from 'jscodeshift';
 import { default as jscodeshiftDefault } from 'jscodeshift';
 
-import { makeParser } from './parsers';
+import { parser } from './parser';
 
 // In `jscodeshift`, the exports look like this:
 //
@@ -64,12 +64,10 @@ type VariableDeclarationNode = jscsTypes.VariableDeclaration;
  * Create an AST based on the given code.
  *
  * @param code The code to convert to an AST.
- * @param isTS Flag indicating what parser to use.
- * @throws Parsing error if the code is unparsable
+ * @throws Throws parsing error if the code is unparsable
  * @returns The AST
  */
-export function makeAST(code: string, isTS: boolean): AST {
-  const parser = isTS ? makeParser('tsx') : makeParser('jsx');
+export function makeAST(code: string): AST {
   // If this errors, it will be caught in the calling function, where we know more information and can construct a
   // better warning message
   return jscs(code, { parser });

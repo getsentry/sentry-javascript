@@ -13,7 +13,7 @@ type Parser = {
   parse: (code: string) => babel.ParseResult<File>;
 };
 
-const jsxOptions: babel.ParserOptions = {
+const options: babel.ParserOptions = {
   // Nextjs supports dynamic import, so this seems like a good idea
   allowImportExportEverywhere: true,
   // We're only supporting wrapping in ESM pages
@@ -40,25 +40,10 @@ const jsxOptions: babel.ParserOptions = {
     ['pipelineOperator', { proposal: 'hack', topicToken: '^' }],
     'regexpUnicodeSets',
     'throwExpressions',
+    'typescript',
   ] as babel.ParserPlugin[],
 };
 
-const tsxOptions = {
-  ...jsxOptions,
-  // Because `jsxOptions` is typed as a `ParserOptions` object, TS doesn't discount the possibility of its `plugins`
-  // property being undefined, even though it is, in fact, very clearly defined - hence the empty array.
-  plugins: [...(jsxOptions.plugins || []), 'typescript'] as babel.ParserPlugin[],
+export const parser: Parser = {
+  parse: code => babel.parse(code, options),
 };
-
-/**
- * Create either a jsx or tsx parser to be used by `jscodeshift`.
- *
- * @param type Either 'jsx' or 'tsx'
- * @returns An object with the appropriate `parse` method.
- */
-export function makeParser(type: 'jsx' | 'tsx'): Parser {
-  const options = type === 'jsx' ? jsxOptions : tsxOptions;
-  return {
-    parse: code => babel.parse(code, options),
-  };
-}
