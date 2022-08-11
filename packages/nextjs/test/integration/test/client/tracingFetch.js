@@ -1,11 +1,15 @@
-const { expectRequestCount, isTransactionRequest, expectTransaction } = require('../utils/client');
+const {
+  expectRequestCount,
+  isTransactionRequest,
+  expectTransaction,
+  extractEnvelopeFromRequest,
+} = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
   await page.goto(`${url}/fetch`);
   await page.click('button');
   await page.waitForRequest(isTransactionRequest);
 
-  await expectRequestCount(requests, { transactions: 1 });
   expectTransaction(requests.transactions[0], {
     transaction: '/fetch',
     type: 'transaction',
@@ -22,4 +26,5 @@ module.exports = async ({ page, url, requests }) => {
       },
     ],
   });
+  await expectRequestCount(requests, { transactions: 1 });
 };

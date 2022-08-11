@@ -49,7 +49,7 @@ export function startTrackingLongTasks(): void {
     if (!transaction) {
       return;
     }
-    const startTime = msToSec(entry.startTime);
+    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(entry.duration);
     transaction.startChild({
       description: 'Long Task',
