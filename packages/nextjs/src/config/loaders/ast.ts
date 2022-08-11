@@ -346,32 +346,6 @@ export function hasDefaultExport(ast: AST): boolean {
 }
 
 /**
- * Extracts all identifiers from a `RestElement` within a named export declaration statement (`export const constName = constValue;`).
- * `RestElements` are things like `...others` inside a destructuring assignment.
- *
- * Example - take the following program:
- *
- * ```js
- * export const { bar: { ...restElement1 }, ...restElement2 } = { foo: { baz: 1 }, bar: 2  };
- * ```
- *
- * The `RestElement` nodes in this program are "...restElement1" and "...restElement2". This function takes such nodes
- * and gets their identifier names.
- *
- * - `"...restElemet1"` --> `"restElement1"`
- * - `"...restElemet2"` --> `"restElement2"`
- *
- * DISCLAIMER: This function only correcly extracts the name of `RestElements` in the context of export statements.
- * Using this for `RestElements` outside of exports would require us to handle more edgecases. Hence the "Export" in
- * this function's name.
- */
-function getExportIdentifiersFromRestElement(restElement: jscsTypes.RestElement): string[] {
-  // This function returns an array instead of `string | undefined` for convenience since we exclusively use the return
-  // value with `array.push()` in other functions in this file.
-  return Identifier.check(restElement.argument) ? [restElement.argument.name] : [];
-}
-
-/**
  * Extracts all identifier names (`'constName'`) from an destructuringassignment'sArrayPattern (the `[constName]` in`const [constName] = [1]`).
  *
  * This function recursively calls itself and `getExportIdentifiersFromObjectPattern` since destructuring assignments
@@ -402,8 +376,9 @@ function getExportIdentifiersFromArrayPattern(arrayPattern: jscsTypes.ArrayPatte
       identifiers.push(...getExportIdentifiersFromObjectPattern(element));
     } else if (ArrayPattern.check(element)) {
       identifiers.push(...getExportIdentifiersFromArrayPattern(element));
-    } else if (RestElement.check(element)) {
-      identifiers.push(...getExportIdentifiersFromRestElement(element));
+    } else if (RestElement.check(element) && Identifier.check(element.argument)) {
+      // `RestElements` are spread operators
+      identifiers.push(element.argument.name);
     }
   });
 
@@ -444,11 +419,15 @@ function getExportIdentifiersFromObjectPattern(objectPatternNode: jscsTypes.Obje
         identifiers.push(...getExportIdentifiersFromObjectPattern(property.value));
       } else if (ArrayPattern.check(property.value)) {
         identifiers.push(...getExportIdentifiersFromArrayPattern(property.value));
-      } else if (RestElement.check(property.value)) {
-        identifiers.push(...getExportIdentifiersFromRestElement(property.value));
+      } else if (RestElement.check(property.value) && Identifier.check(property.value.argument)) {
+        // `RestElements` are spread operators
+        identifiers.push(property.value.argument.name);
       }
-    } else if (RestElement.check(property)) {
-      identifiers.push(...getExportIdentifiersFromRestElement(property));
+      // @ts-ignore AST types are wrong here
+    } else if (RestElement.check(property) && Identifier.check(property.argument)) {
+      // `RestElements` are spread operators
+      // @ts-ignore AST types are wrong here
+      identifiers.push(property.argument.name as string);
     }
   });
 
