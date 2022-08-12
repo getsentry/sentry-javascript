@@ -60,16 +60,12 @@ describe('client', () => {
         { url: pageProperties.url },
       );
 
-      Object.defineProperty(global, 'document', { value: dom.window.document, writable: true, configurable: true });
+      Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
     }
 
     afterEach(() => {
       // Clean up JSDom
-      Object.defineProperty(global, 'document', {
-        value: originalGlobalDocument,
-        writable: true,
-        configurable: true,
-      });
+      Object.defineProperty(global, 'document', { value: originalGlobalDocument });
     });
 
     it('waits for Router.ready()', () => {

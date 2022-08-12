@@ -4,6 +4,7 @@ import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
@@ -15,6 +16,18 @@ const global = getGlobalObject();
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const logWarn = jest.spyOn(logger, 'warn');
+
+// Set up JSDom - needed for page load instrumentation
+const dom = new JSDOM(undefined, { url: 'https://example.com/' });
+Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
+
+const originalGlobalDocument = getGlobalObject<Window>().document;
+afterAll(() => {
+  // Clean up JSDom
+  Object.defineProperty(global, 'document', {
+    value: originalGlobalDocument,
+  });
+});
 
 describe('Client init()', () => {
   afterEach(() => {
