@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { getCurrentHub } from '@sentry/hub';
 import { Primitive, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
 import {
   extractTraceparentData,
@@ -93,6 +94,8 @@ let activeTransaction: Transaction | undefined = undefined;
 let prevTransactionName: string | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
 
+const client = getCurrentHub().getClient();
+
 /**
  * Creates routing instrumention for Next Router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -118,7 +121,7 @@ export function nextRouterInstrumentation(
       name: prevTransactionName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
-      ...(params && { data: params }),
+      ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
       ...traceParentData,
       metadata: {
         source,

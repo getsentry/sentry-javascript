@@ -153,16 +153,11 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tunnel?: string;
 
   /**
-   * Important: This option is currently unused and will only work in the next major version of the SDK
-   *
    * Controls if potentially sensitive data should be sent to Sentry by default.
    * Note that this only applies to data that the SDK is sending by default
    * but not data that was explicitly set (e.g. by calling `Sentry.setUser()`).
-   * Details about the implementation are TBD.
    *
    * Defaults to `false`.
-   *
-   * @ignore
    */
   sendDefaultPii?: boolean;
 

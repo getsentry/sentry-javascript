@@ -97,11 +97,6 @@ describe('client', () => {
           tags: {
             'routing.instrumentation': 'next-router',
           },
-          data: {
-            user: 'lforst',
-            id: '1337',
-            q: '42',
-          },
           metadata: {
             source: 'route',
             baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
@@ -129,7 +124,6 @@ describe('client', () => {
           tags: {
             'routing.instrumentation': 'next-router',
           },
-          data: {},
           metadata: {
             source: 'route',
             baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
@@ -151,7 +145,6 @@ describe('client', () => {
           tags: {
             'routing.instrumentation': 'next-router',
           },
-          data: {},
           metadata: {
             source: 'route',
           },
