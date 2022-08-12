@@ -1,5 +1,4 @@
 import { json, LoaderFunction } from '@remix-run/node';
-import { useActionData } from '@remix-run/react';
 
 import * as Sentry from '@sentry/remix';
 
