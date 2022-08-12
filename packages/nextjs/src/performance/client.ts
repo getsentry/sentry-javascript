@@ -25,17 +25,27 @@ interface SentryEnhancedNextData extends NextData {
   };
 }
 
-// Author's note: It's really not that complicated.
-// eslint-disable-next-line complexity
+/**
+ * Every Next.js page (static and dynamic ones) comes with a script tag with the id "__NEXT_DATA__". This script tag
+ * contains a JSON object with data that was either generated at build time for static pages (`getStaticProps`), or at
+ * runtime with data fetchers like `getServerSideProps.`.
+ *
+ * We can use this information to:
+ * - Always get the parameterized route we're in when loading a page.
+ * - Send trace information (trace-id, baggage) from the server to the client.
+ *
+ * This function extracts this information.
+ */
 function extractNextDataTagInformation(): {
-  route: string;
-  source: 'route' | 'url';
+  route: string | undefined;
   traceId: string | undefined;
   baggage: string | undefined;
   params: ParsedUrlQuery | undefined;
 } {
   let nextData: SentryEnhancedNextData | undefined;
 
+  // Let's be on the safe side and actually check first if there is really a __NEXT_DATA__ script tag on the page.
+  // Theoretically this should always be the case though.
   const nextDataTag = global.document.getElementById('__NEXT_DATA__');
   if (nextDataTag && nextDataTag.innerHTML) {
     try {
@@ -46,8 +56,7 @@ function extractNextDataTagInformation(): {
   }
 
   // `nextData.page` always contains the parameterized route
-  const route = (nextData || {}).page || global.document.location.pathname;
-  const source = nextData ? 'route' : 'url';
+  const route = (nextData || {}).page;
 
   const getServerSidePropsTraceId = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsTraceId;
   const getInitialPropsTraceId = ((nextData || {}).props || {})._sentryGetInitialPropsTraceId;
@@ -58,7 +67,6 @@ function extractNextDataTagInformation(): {
 
   return {
     route,
-    source,
     params,
     // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
     traceId: getInitialPropsTraceId || getServerSidePropsTraceId,
@@ -90,9 +98,10 @@ export function nextRouterInstrumentation(
   startTransaction = startTransactionCb;
 
   if (startTransactionOnPageLoad) {
-    const { route, source, traceId, baggage, params } = extractNextDataTagInformation();
+    const { route, traceId, baggage, params } = extractNextDataTagInformation();
 
-    prevTransactionName = route;
+    prevTransactionName = route || global.document.location.pathname;
+    const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({
       name: prevTransactionName,
