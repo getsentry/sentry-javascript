@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
