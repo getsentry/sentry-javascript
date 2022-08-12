@@ -8,7 +8,7 @@ export const loader: LoaderFunction = async ({ params: { id } }) => {
   return json({ test: 'test' });
 };
 
-export default function ActionJSONResponse() {
+export default function ScopeBleed() {
   return (
     <div>
       <h1>Hello</h1>
