@@ -2,9 +2,6 @@ import type {
   GetServerSideProps,
   GetServerSidePropsContext,
   GetServerSidePropsResult,
-  GetStaticPaths,
-  GetStaticPathsContext,
-  GetStaticPathsResult,
   GetStaticProps,
   GetStaticPropsContext,
   GetStaticPropsResult,
@@ -12,15 +9,7 @@ import type {
   NextPageContext,
 } from 'next';
 
-type Paths = { [key: string]: string | string[] };
 type Props = { [key: string]: unknown };
-
-export type GSPaths = {
-  fn: GetStaticPaths;
-  wrappedFn: GetStaticPaths;
-  context: GetStaticPathsContext;
-  result: GetStaticPathsResult<Paths>;
-};
 
 export type GSProps = {
   fn: GetStaticProps;
@@ -43,4 +32,4 @@ export type GIProps = {
   result: unknown;
 };
 
-export type DataFetchingFunction = GSPaths | GSProps | GSSP | GIProps;
+export type DataFetchingFunction = GSProps | GSSP | GIProps;
