@@ -3,8 +3,9 @@
   "compilerOptions": {
     "allowJs": true,
     "declaration": true,
-    "declarationDir": "../types",
+    "declarationDir": "./types",
     "baseUrl": "..",
+    "rootDir": "..",
     "outDir": "dist",
     "paths": {
       "@": ["./src"],
