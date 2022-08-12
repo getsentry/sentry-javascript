@@ -1,5 +1,6 @@
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
+import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
 import { nextRouterInstrumentation } from '../../src/performance/client';
@@ -40,23 +41,23 @@ describe('client', () => {
       props: any;
       hasNextData: boolean;
     }) {
+      const nextDataContent: NextData = {
+        props: pageProperties.props,
+        page: pageProperties.route,
+        query: pageProperties.query,
+        buildId: 'y76hvndNJBAithejdVGLW',
+        isFallback: false,
+        gssp: true,
+        appGip: true,
+        scriptLoader: [],
+      };
+
       const dom = new JSDOM(
         // Just some example what a __NEXT_DATA__ tag might look like
         pageProperties.hasNextData
-          ? `<body>
-          <script id="__NEXT_DATA__" type="application/json">
-          {
-            "props": ${JSON.stringify(pageProperties.props)},
-            "page": "${pageProperties.route}",
-            "query": ${JSON.stringify(pageProperties.query)},
-            "buildId": "y76hvndNJBAithejdVGLW",
-            "isFallback": false,
-            "gssp": true,
-            "appGip": true,
-            "scriptLoader": []
-          }
-          </script>
-        </body>`
+          ? `<body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(
+              nextDataContent,
+            )}</script></body>`
           : '<body><h1>No next data :(</h1></body>',
         { url: pageProperties.url },
       );
