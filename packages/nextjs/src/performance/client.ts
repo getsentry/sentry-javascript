@@ -33,6 +33,13 @@ interface SentryEnhancedNextData extends NextData {
   };
 }
 
+interface NextDataTagInfo {
+  route?: string;
+  traceParentData?: TraceparentData;
+  baggage?: string;
+  params?: ParsedUrlQuery;
+}
+
 /**
  * Every Next.js page (static and dynamic ones) comes with a script tag with the id "__NEXT_DATA__". This script tag
  * contains a JSON object with data that was either generated at build time for static pages (`getStaticProps`), or at
@@ -44,14 +51,8 @@ interface SentryEnhancedNextData extends NextData {
  *
  * This function extracts this information.
  */
-function extractNextDataTagInformation(): {
-  route: string | undefined;
-  traceParentData: TraceparentData | undefined;
-  baggage: string | undefined;
-  params: ParsedUrlQuery | undefined;
-} {
+function extractNextDataTagInformation(): NextDataTagInfo {
   let nextData: SentryEnhancedNextData | undefined;
-
   // Let's be on the safe side and actually check first if there is really a __NEXT_DATA__ script tag on the page.
   // Theoretically this should always be the case though.
   const nextDataTag = global.document.getElementById('__NEXT_DATA__');
@@ -63,27 +64,39 @@ function extractNextDataTagInformation(): {
     }
   }
 
+  if (!nextData) {
+    return {};
+  }
+
+  const nextDataTagInfo: NextDataTagInfo = {};
+
+  const { page, query, props } = nextData;
+
   // `nextData.page` always contains the parameterized route
-  const route = (nextData || {}).page;
-  const params = (nextData || {}).query;
+  nextDataTagInfo.route = page;
+  nextDataTagInfo.params = query;
 
-  const getInitialPropsBaggage = ((nextData || {}).props || {})._sentryGetInitialPropsBaggage;
-  const getServerSidePropsBaggage = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsBaggage;
+  if (props) {
+    const { pageProps } = props;
 
-  const getInitialPropsTraceData = ((nextData || {}).props || {})._sentryGetInitialPropsTraceData;
-  const getServerSidePropsTraceData = (((nextData || {}).props || {}).pageProps || {})
-    ._sentryGetServerSidePropsTraceData;
+    const getInitialPropsBaggage = props._sentryGetInitialPropsBaggage;
+    const getServerSidePropsBaggage = pageProps && pageProps._sentryGetServerSidePropsBaggage;
+    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
+    const baggage = getInitialPropsBaggage || getServerSidePropsBaggage;
+    if (baggage) {
+      nextDataTagInfo.baggage = baggage;
+    }
 
-  // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
-  const baggage = getInitialPropsBaggage || getServerSidePropsBaggage;
-  const traceData = getInitialPropsTraceData || getServerSidePropsTraceData;
+    const getInitialPropsTraceData = props._sentryGetInitialPropsTraceData;
+    const getServerSidePropsTraceData = pageProps && pageProps._sentryGetServerSidePropsTraceData;
+    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
+    const traceData = getInitialPropsTraceData || getServerSidePropsTraceData;
+    if (traceData) {
+      nextDataTagInfo.traceParentData = extractTraceparentData(traceData);
+    }
+  }
 
-  return {
-    route,
-    params,
-    traceParentData: traceData ? extractTraceparentData(traceData) : undefined,
-    baggage,
-  };
+  return nextDataTagInfo;
 }
 
 const DEFAULT_TAGS = {
