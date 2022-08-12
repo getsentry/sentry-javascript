@@ -15,9 +15,7 @@ sentryTest('should not capture long task when flag is disabled.', async ({ brows
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  console.log(eventData);
-  // const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
+  const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
 
-  // expect(uiSpanse?.length).toBe(0);
-  expect([].length).toBe(0);
+  expect(uiSpans?.length).toBe(0);
 });

@@ -6,7 +6,7 @@
     return time - startTime;
   }
 
-  while (getElasped() < 101) {
+  while (getElasped() < 105) {
     //
   }
 })();
