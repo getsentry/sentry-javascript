@@ -58,11 +58,8 @@ describe('Remix API Loaders', () => {
         source: 'route',
       },
       spans: [
-        // TODO: These two spans look exactly the same, but they are not.
-        // One is from the parent route, and the other is from the route we are reaching.
-        // We need to pass the names of the routes as their descriptions while wrapping loaders and actions.
         {
-          description: 'routes/loader-json-response/$id',
+          description: 'root',
           op: 'remix.server.loader',
         },
         {
