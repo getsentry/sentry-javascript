@@ -1,11 +1,10 @@
 /**
- * This loader auto-wraps a user's page-level data-fetching functions (`getStaticPaths`, `getStaticProps`, and
- * `getServerSideProps`) in order to instrument them for tracing. At a high level, this is done by finding the relevant
- * functions, renaming them so as not to create a name collision, and then creating a new version of each function which
- * is a wrapped version of the original. We do this by parsing the user's code and some template code into ASTs,
- * manipulating them, and then turning them back into strings and appending our template code to the user's (modified)
- * page code. Greater detail and explanations can be found in situ in the functions below and in the helper functions in
- * `ast.ts`.
+ * This loader auto-wraps a user's page-level data-fetching functions (`getStaticProps` and `getServerSideProps`) in
+ * order to instrument them for tracing. At a high level, this is done by finding the relevant functions, renaming them
+ * so as not to create a name collision, and then creating a new version of each function which is a wrapped version of
+ * the original. We do this by parsing the user's code and some template code into ASTs, manipulating them, and then
+ * turning them back into strings and appending our template code to the user's (modified) page code. Greater detail and
+ * explanations can be found in situ in the functions below and in the helper functions in `ast.ts`.
  *
  * For `getInitialProps` we create a virtual proxy-module that re-exports all the exports and default exports of the
  * original file and wraps `getInitialProps`. We do this since it allows us to very generically wrap `getInitialProps`
@@ -34,7 +33,6 @@ import type { LoaderThis } from './types';
 const DATA_FETCHING_FUNCTIONS = {
   getServerSideProps: { placeholder: '__ORIG_GSSP__', alias: '' },
   getStaticProps: { placeholder: '__ORIG_GSPROPS__', alias: '' },
-  getStaticPaths: { placeholder: '__ORIG_GSPATHS__', alias: '' },
 };
 
 type LoaderOptions = {
@@ -101,7 +99,7 @@ function wrapFunctions(userCode: string, templateCode: string, filepath: string)
 }
 
 /**
- * Wrap `getStaticPaths`, `getStaticProps`, and `getServerSideProps` (if they exist) in the given page code
+ * Wrap `getInitialProps`, `getStaticProps`, and `getServerSideProps` (if they exist) in the given page code
  */
 export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
   // For now this loader only works for ESM code

@@ -215,7 +215,7 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
 
   // In general we want to rename all nodes, unless we're in one of a few specific situations. (Anything which doesn't
   // get handled by one of these checks will be renamed at the end of this function.) In all of the scenarios below,
-  // we'll use `gSSP` as our stand-in for any of `getServerSideProps`, `getStaticProps`, and `getStaticPaths`.
+  // we'll use `gSSP` as our stand-in for either of `getServerSideProps` and `getStaticProps`.
 
   // Imports:
   //
@@ -296,8 +296,8 @@ function maybeRenameNode(ast: AST, identifierPath: ASTPath<IdentifierNode>, alia
   //
   // Second, because need to wrap the object using its local name, we need to rename `local`. This tracks with how we
   // thought about `import` statements above, but is different from everything else we're doing in this function in that
-  // it means we potentially need to rename something *not* already named `getServerSideProps`, `getStaticProps`, or
-  // `getStaticPaths`, meaning we need to rename nodes outside of the collection upon which we're currently acting.
+  // it means we potentially need to rename something *not* already named `getServerSideProps` or `getStaticProps`,
+  // meaning we need to rename nodes outside of the collection upon which we're currently acting.
   if (ExportSpecifier.check(parent)) {
     if (parent.exported.name !== parent.local?.name && node === parent.exported) {
       const currentLocalName = parent.local?.name || '';

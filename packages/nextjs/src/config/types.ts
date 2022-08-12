@@ -51,8 +51,7 @@ export type UserSentryOptions = {
   widenClientFileUpload?: boolean;
 
   experiments?: {
-    // Automatically wrap `getServerSideProps`, `getStaticProps`, and `getStaticPaths` in order to instrument them for
-    // tracing.
+    // Automatically wrap `getInitialProps`, `getServerSideProps`, and `getStaticProps` in order to instrument them for tracing.
     autoWrapDataFetchers?: boolean;
   };
 };

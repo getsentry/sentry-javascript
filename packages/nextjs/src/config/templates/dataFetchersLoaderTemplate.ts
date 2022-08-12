@@ -1,12 +1,7 @@
-import type {
-  GetServerSideProps as GetServerSidePropsFunction,
-  GetStaticPaths as GetStaticPathsFunction,
-  GetStaticProps as GetStaticPropsFunction,
-} from 'next';
+import type { GetServerSideProps as GetServerSidePropsFunction, GetStaticProps as GetStaticPropsFunction } from 'next';
 
 declare const __ORIG_GSSP__: GetServerSidePropsFunction;
 declare const __ORIG_GSPROPS__: GetStaticPropsFunction;
-declare const __ORIG_GSPATHS__: GetStaticPathsFunction;
 
 // We import the SDK under a purposefully clunky name, to lessen to near zero the chances of a name collision in case
 // the user has also imported Sentry for some reason. (In the future, we could check for such a collision using the AST,
@@ -30,7 +25,3 @@ export const getStaticProps =
   typeof __ORIG_GSPROPS__ === 'function'
     ? ServerSideSentryNextjsSDK.withSentryGetStaticProps(__ORIG_GSPROPS__)
     : __ORIG_GSPROPS__;
-export const getStaticPaths =
-  typeof __ORIG_GSPATHS__ === 'function'
-    ? ServerSideSentryNextjsSDK.withSentryGetStaticPaths(__ORIG_GSPATHS__)
-    : __ORIG_GSPATHS__;
