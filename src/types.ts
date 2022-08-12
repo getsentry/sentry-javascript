@@ -4,9 +4,11 @@ import type { eventWithTime } from 'rrweb/typings/types';
 export type RecordingEvent = eventWithTime;
 export type RecordingConfig = Parameters<typeof record>[0];
 
+export type RecordedEvents = Uint8Array | string;
+
 export interface ReplayRequest {
   endpoint: string;
-  events: Uint8Array | string;
+  events: RecordedEvents;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';

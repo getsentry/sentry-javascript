@@ -404,7 +404,7 @@ describe('SentryReplay', () => {
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(captureEventMock).toHaveBeenCalledTimes(1); // root replay event
+    expect(captureEventMock).toHaveBeenCalledTimes(1); // root event was created
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 

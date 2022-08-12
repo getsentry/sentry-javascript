@@ -7,7 +7,7 @@
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn",
     "build": "yarn rollup --configPlugin @rollup/plugin-typescript",
-    "build:all": "yarn run build:worker && yarn run build:core",
+    "build:all": "yarn clean && yarn build:worker && yarn build:core",
     "build:dev": "NODE_ENV=development yarn build:all",
     "build:prod": "NODE_ENV=production yarn build:all",
     "build:core": "yarn build --config config/rollup.config.core.ts",

@@ -1,5 +1,4 @@
 import { captureEvent } from '@sentry/core';
-import { uuid4 } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME } from '@/session/constants';
 import type { Session } from '@/session/Session';
@@ -22,15 +21,13 @@ export function captureReplayUpdate({
   urls,
 }: CaptureReplayUpdateParams) {
   captureEvent({
-    timestamp: timestamp / 1000,
-    message: `${REPLAY_EVENT_NAME}-${uuid4().substring(16)}`,
-    // @ts-expect-error replay event type accepts this
+    // @ts-expect-error replay_event is a new event type
+    type: REPLAY_EVENT_NAME,
+    replay_start_timestamp: timestamp / 1000,
     error_ids: errorIds,
     trace_ids: traceIds,
     urls,
-    tags: {
-      replayId: session.id,
-      segmentId: session.segmentId++,
-    },
+    replay_id: session.id,
+    segment_id: ++session.segmentId,
   });
 }

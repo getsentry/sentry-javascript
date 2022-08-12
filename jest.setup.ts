@@ -1,8 +1,8 @@
 import { SentryReplay } from '@';
 import { Session } from '@/session/Session';
 
-const ATTACHMENTS_URL_REGEX = new RegExp(
-  'https://ingest.f00.f00/api/1/events/[^/]+/attachments/\\?sentry_key=dsn&sentry_version=7&sentry_client=replay'
+const ENVELOPE_URL_REGEX = new RegExp(
+  'https://ingest.f00.f00/api/1/envelope/\\?sentry_key=dsn&sentry_version=7'
 );
 
 expect.extend({
@@ -41,10 +41,8 @@ expect.extend({
     const { calls } = received.sendReplayRequest.mock;
     const lastCall = calls[calls.length - 1];
 
-    const pass =
-      !!lastCall &&
-      ATTACHMENTS_URL_REGEX.test(lastCall[0].endpoint) &&
-      this.equals(expected, lastCall[0].events);
+    const urlPass = !!lastCall && ENVELOPE_URL_REGEX.test(lastCall[0].endpoint);
+    const payloadPass = !!lastCall && this.equals(expected, lastCall[0].events);
 
     const options = {
       isNot: this.isNot,
@@ -52,10 +50,10 @@ expect.extend({
     };
 
     return {
-      pass,
+      pass: urlPass && payloadPass,
       message: () =>
         !lastCall
-          ? pass
+          ? urlPass && payloadPass
             ? 'Expected Replay to not have been sent, but a request was attempted'
             : 'Expected Replay to have been sent, but a request was not attempted'
           : this.utils.matcherHint(
@@ -65,10 +63,14 @@ expect.extend({
               options
             ) +
             '\n\n' +
-            `Expected: ${pass ? 'not ' : ''}${this.utils.printExpected(
-              expected
+            `Expected: ${
+              urlPass && payloadPass ? 'not ' : ''
+            }${this.utils.printExpected(
+              payloadPass ? ENVELOPE_URL_REGEX : expected
             )}\n` +
-            `Received: ${this.utils.printReceived(lastCall[0].events)}`,
+            `Received: ${this.utils.printReceived(
+              payloadPass ? lastCall[0].endpoint : lastCall[0].events
+            )}`,
     };
   },
 });
