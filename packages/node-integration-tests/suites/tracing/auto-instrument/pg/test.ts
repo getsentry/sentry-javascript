@@ -29,8 +29,8 @@ beforeAll(() => {
 });
 
 test('should auto-instrument `pg` package.', async () => {
-  const url = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(url);
+  const config = await runServer(__dirname);
+  const envelope = await getEnvelopeRequest(config);
 
   expect(envelope).toHaveLength(3);
 

@@ -3,13 +3,17 @@ import path from 'path';
 import { getMultipleEnvelopeRequest, runServer } from '../../../utils';
 
 test('should aggregate successful and crashed sessions', async () => {
-  const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelopes = await Promise.race([
-    getMultipleEnvelopeRequest(`${url}/success`, 2),
-    getMultipleEnvelopeRequest(`${url}/error_unhandled`, 2),
-    getMultipleEnvelopeRequest(`${url}/success_next`, 2),
+    getMultipleEnvelopeRequest({ url: `${url}/success`, server, scope }, 2, 'get', false),
+    getMultipleEnvelopeRequest({ url: `${url}/error_unhandled`, server, scope }, 2, 'get', false),
+    getMultipleEnvelopeRequest({ url: `${url}/success_next`, server, scope }, 2, 'get', false),
   ]);
+
+  scope.persist(false);
+  server.close();
+
   const envelope = envelopes[1];
 
   expect(envelope[0]).toMatchObject({

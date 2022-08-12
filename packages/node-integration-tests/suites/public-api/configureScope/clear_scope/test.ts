@@ -3,8 +3,8 @@ import { Event } from '@sentry/node';
 import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should clear previously set properties of a scope', async () => {
-  const url = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(url);
+  const config = await runServer(__dirname);
+  const envelope = await getEnvelopeRequest(config);
 
   assertSentryEvent(envelope[2], {
     message: 'cleared_scope',

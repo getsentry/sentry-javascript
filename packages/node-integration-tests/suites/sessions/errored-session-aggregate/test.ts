@@ -3,13 +3,16 @@ import path from 'path';
 import { getMultipleEnvelopeRequest, runServer } from '../../../utils';
 
 test('should aggregate successful, crashed and erroneous sessions', async () => {
-  const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelopes = await Promise.race([
-    getMultipleEnvelopeRequest(`${url}/success`, 3),
-    getMultipleEnvelopeRequest(`${url}/error_handled`, 3),
-    getMultipleEnvelopeRequest(`${url}/error_unhandled`, 3),
+    getMultipleEnvelopeRequest({ url: `${url}/success`, server, scope }, 3, 'get', false),
+    getMultipleEnvelopeRequest({ url: `${url}/error_handled`, server, scope }, 3, 'get', false),
+    getMultipleEnvelopeRequest({ url: `${url}/error_unhandled`, server, scope }, 3, 'get', false),
   ]);
+
+  scope.persist(false);
+  await new Promise(resolve => server.close(resolve));
 
   expect(envelopes).toHaveLength(3);
   const aggregateSessionEnvelope = envelopes[2];

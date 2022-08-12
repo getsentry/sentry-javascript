@@ -1,8 +1,8 @@
 import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../utils/index';
 
 test('should create and send transactions for Express routes and spans for middlewares.', async () => {
-  const url = await runServer(__dirname, `${__dirname}/server.ts`);
-  const envelope = await getEnvelopeRequest(`${url}/express`);
+  const { url, server, scope } = await runServer(__dirname, `${__dirname}/server.ts`);
+  const envelope = await getEnvelopeRequest({ url: `${url}/express`, server, scope });
 
   expect(envelope).toHaveLength(3);
 
@@ -29,8 +29,8 @@ test('should create and send transactions for Express routes and spans for middl
 });
 
 test('should set a correct transaction name for routes specified in RegEx', async () => {
-  const url = await runServer(__dirname, `${__dirname}/server.ts`);
-  const envelope = await getEnvelopeRequest(`${url}/regex`);
+  const { url, server, scope } = await runServer(__dirname, `${__dirname}/server.ts`);
+  const envelope = await getEnvelopeRequest({ url: `${url}/regex`, server, scope });
 
   expect(envelope).toHaveLength(3);
 
@@ -57,8 +57,8 @@ test('should set a correct transaction name for routes specified in RegEx', asyn
 test.each([['array1'], ['array5']])(
   'should set a correct transaction name for routes consisting of arrays of routes',
   async segment => {
-    const url = await runServer(__dirname, `${__dirname}/server.ts`);
-    const envelope = await getEnvelopeRequest(`${url}/${segment}`);
+    const { url, server, scope } = await runServer(__dirname, `${__dirname}/server.ts`);
+    const envelope = await getEnvelopeRequest({ url: `${url}/${segment}`, server, scope });
 
     expect(envelope).toHaveLength(3);
 
@@ -93,8 +93,8 @@ test.each([
   ['arr/requiredPath/optionalPath/'],
   ['arr/requiredPath/optionalPath/lastParam'],
 ])('should handle more complex regexes in route arrays correctly', async segment => {
-  const url = await runServer(__dirname, `${__dirname}/server.ts`);
-  const envelope = await getEnvelopeRequest(`${url}/${segment}`);
+  const { url, server, scope } = await runServer(__dirname, `${__dirname}/server.ts`);
+  const envelope = await getEnvelopeRequest({ url: `${url}/${segment}`, server, scope });
 
   expect(envelope).toHaveLength(3);
 
