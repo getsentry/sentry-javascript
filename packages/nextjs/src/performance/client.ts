@@ -1,12 +1,70 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Primitive, Transaction, TransactionContext } from '@sentry/types';
-import { fill, getGlobalObject, stripUrlQueryAndFragment } from '@sentry/utils';
+import { fill, getGlobalObject, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
+import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
+import type { ParsedUrlQuery } from 'querystring';
 
 const global = getGlobalObject<Window>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
+
+/**
+ * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
+ */
+interface SentryEnhancedNextData extends NextData {
+  // contains props returned by `getInitialProps` - except for `pageProps`, these are the props that got returned by `getServerSideProps` or `getStaticProps`
+  props: {
+    _sentryGetInitialPropsTraceId?: string; // trace id, if injected by server-side `getInitialProps`
+    _sentryGetInitialPropsBaggage?: string; // baggage, if injected by server-side `getInitialProps`
+    pageProps?: {
+      _sentryGetServerSidePropsTraceId?: string; // trace id, if injected by server-side `getServerSideProps`
+      _sentryGetServerSidePropsBaggage?: string; // baggage, if injected by server-side `getServerSideProps`
+    };
+  };
+}
+
+// Author's note: It's really not that complicated.
+// eslint-disable-next-line complexity
+function extractNextDataTagInformation(): {
+  route: string;
+  source: 'route' | 'url';
+  traceId: string | undefined;
+  baggage: string | undefined;
+  params: ParsedUrlQuery | undefined;
+} {
+  let nextData: SentryEnhancedNextData | undefined;
+
+  const nextDataTag = global.document.getElementById('__NEXT_DATA__');
+  if (nextDataTag && nextDataTag.innerHTML) {
+    try {
+      nextData = JSON.parse(nextDataTag.innerHTML);
+    } catch (e) {
+      __DEBUG_BUILD__ && logger.warn('Could not extract __NEXT_DATA__');
+    }
+  }
+
+  // `nextData.page` always contains the parameterized route
+  const route = (nextData || {}).page || global.document.location.pathname;
+  const source = nextData ? 'route' : 'url';
+
+  const getServerSidePropsTraceId = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsTraceId;
+  const getInitialPropsTraceId = ((nextData || {}).props || {})._sentryGetInitialPropsTraceId;
+  const getServerSidePropsBaggage = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsBaggage;
+  const getInitialPropsBaggage = ((nextData || {}).props || {})._sentryGetInitialPropsBaggage;
+
+  const params = (nextData || {}).query;
+
+  return {
+    route,
+    source,
+    params,
+    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
+    traceId: getInitialPropsTraceId || getServerSidePropsTraceId,
+    baggage: getInitialPropsBaggage || getServerSidePropsBaggage,
+  };
+}
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
@@ -30,24 +88,26 @@ export function nextRouterInstrumentation(
   startTransactionOnLocationChange: boolean = true,
 ): void {
   startTransaction = startTransactionCb;
+
+  if (startTransactionOnPageLoad) {
+    const { route, source, traceId, baggage, params } = extractNextDataTagInformation();
+
+    prevTransactionName = route;
+
+    activeTransaction = startTransactionCb({
+      name: prevTransactionName,
+      traceId,
+      op: 'pageload',
+      tags: DEFAULT_TAGS,
+      ...(params && { data: params }),
+      metadata: {
+        source,
+        ...(baggage && { baggage: parseBaggageHeader(baggage) }),
+      },
+    });
+  }
+
   Router.ready(() => {
-    // We can only start the pageload transaction when we have access to the parameterized
-    // route name. Setting the transaction name after the transaction is started could lead
-    // to possible race conditions with the router, so this approach was taken.
-    if (startTransactionOnPageLoad) {
-      const pathIsRoute = Router.route !== null;
-
-      prevTransactionName = pathIsRoute ? stripUrlQueryAndFragment(Router.route) : global.location.pathname;
-      activeTransaction = startTransactionCb({
-        name: prevTransactionName,
-        op: 'pageload',
-        tags: DEFAULT_TAGS,
-        metadata: {
-          source: pathIsRoute ? 'route' : 'url',
-        },
-      });
-    }
-
     // Spans that aren't attached to any transaction are lost; so if transactions aren't
     // created (besides potentially the onpageload transaction), no need to wrap the router.
     if (!startTransactionOnLocationChange) return;
@@ -78,7 +138,7 @@ type WrappedRouterChangeState = RouterChangeState;
  * Start a navigation transaction every time the router changes state.
  */
 function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
-  const wrapper = function (
+  return function wrapper(
     this: any,
     method: string,
     // The parameterized url, ex. posts/[id]/[comment]
@@ -115,5 +175,4 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
     }
     return originalChangeStateWrapper.call(this, method, url, as, options, ...args);
   };
-  return wrapper;
 }
