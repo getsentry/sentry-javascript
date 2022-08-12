@@ -23,10 +23,10 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
 interface SentryEnhancedNextData extends NextData {
   // contains props returned by `getInitialProps` - except for `pageProps`, these are the props that got returned by `getServerSideProps` or `getStaticProps`
   props: {
-    _sentryGetInitialPropsTraceData?: string; // trace id, if injected by server-side `getInitialProps`
+    _sentryGetInitialPropsTraceData?: string; // trace parent info, if injected by server-side `getInitialProps`
     _sentryGetInitialPropsBaggage?: string; // baggage, if injected by server-side `getInitialProps`
     pageProps?: {
-      _sentryGetServerSidePropsTraceData?: string; // trace id, if injected by server-side `getServerSideProps`
+      _sentryGetServerSidePropsTraceData?: string; // trace parent info, if injected by server-side `getServerSideProps`
       _sentryGetServerSidePropsBaggage?: string; // baggage, if injected by server-side `getServerSideProps`
     };
   };
