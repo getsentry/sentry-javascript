@@ -4,6 +4,7 @@
   "description": "User replays for Sentry",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
+  "types": "dist/types/src/index.d.ts",
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn",
     "build": "yarn rollup --configPlugin @rollup/plugin-typescript",
