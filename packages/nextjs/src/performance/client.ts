@@ -111,7 +111,7 @@ export function nextRouterInstrumentation(
   if (startTransactionOnPageLoad) {
     const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
 
-    prevTransactionName = route || global.document.location.pathname;
+    prevTransactionName = route || global.location.pathname;
     const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({

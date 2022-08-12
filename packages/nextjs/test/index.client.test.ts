@@ -20,13 +20,14 @@ const logWarn = jest.spyOn(logger, 'warn');
 // Set up JSDom - needed for page load instrumentation
 const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
+Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
 const originalGlobalDocument = getGlobalObject<Window>().document;
+const originalGlobalLocation = getGlobalObject<Window>().location;
 afterAll(() => {
   // Clean up JSDom
-  Object.defineProperty(global, 'document', {
-    value: originalGlobalDocument,
-  });
+  Object.defineProperty(global, 'document', { value: originalGlobalDocument });
+  Object.defineProperty(global, 'location', { value: originalGlobalLocation });
 });
 
 describe('Client init()', () => {

@@ -31,6 +31,7 @@ describe('client', () => {
 
   describe('nextRouterInstrumentation', () => {
     const originalGlobalDocument = getGlobalObject<Window>().document;
+    const originalGlobalLocation = getGlobalObject<Window>().location;
 
     function setUpNextPage(pageProperties: {
       url: string;
@@ -61,11 +62,13 @@ describe('client', () => {
       );
 
       Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
+      Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
     }
 
     afterEach(() => {
       // Clean up JSDom
       Object.defineProperty(global, 'document', { value: originalGlobalDocument });
+      Object.defineProperty(global, 'location', { value: originalGlobalLocation });
     });
 
     it('waits for Router.ready()', () => {
