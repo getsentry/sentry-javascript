@@ -405,6 +405,9 @@ export class SentryReplay implements Integration {
       event.message === ROOT_REPLAY_NAME ||
       event.message?.startsWith(REPLAY_EVENT_NAME)
     ) {
+      // Replays have separate set of breadcrumbs, do not include breadcrumbs
+      // from core SDK
+      delete event.breadcrumbs;
       return event;
     }
 
