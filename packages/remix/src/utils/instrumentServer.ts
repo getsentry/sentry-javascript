@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled, Span } from '@sentry/tracing';
+import { WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
 
 import {
@@ -16,6 +17,9 @@ import {
   ServerRoute,
   ServerRouteManifest,
 } from './types';
+
+// Flag to track if the core request handler is instrumented.
+export let isRequestHandlerWrapped = false;
 
 // Taken from Remix Implementation
 // https://github.com/remix-run/remix/blob/32300ec6e6e8025602cea63e17a2201989589eab/packages/remix-server-runtime/responses.ts#L60-L77
@@ -365,16 +369,22 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
-  fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
+  // Not keeping boolean flags like it's done for `requestHandler` functions,
+  // Because the build can change between build and runtime.
+  // So if there is a new `loader` or`action` or `documentRequest` after build.
+  // We should be able to wrap them, as they may not be wrapped before.
+  if (!(wrappedEntry.module.default as WrappedFunction).__sentry_original__) {
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction);
+  }
 
   for (const [id, route] of Object.entries(build.routes)) {
     const wrappedRoute = { ...route, module: { ...route.module } };
 
-    if (wrappedRoute.module.action) {
+    if (wrappedRoute.module.action && !(wrappedRoute.module.action as WrappedFunction).__sentry_original__) {
       fill(wrappedRoute.module, 'action', makeWrappedAction(id));
     }
 
-    if (wrappedRoute.module.loader) {
+    if (wrappedRoute.module.loader && !(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
       fill(wrappedRoute.module, 'loader', makeWrappedLoader(id));
     }
 
@@ -385,6 +395,7 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
         wrappedRoute.module.loader = () => ({});
       }
 
+      // We want to wrap the root loader regardless of whether it's already wrapped before.
       fill(wrappedRoute.module, 'loader', makeWrappedRootLoader);
     }
 
@@ -397,6 +408,10 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 function makeWrappedCreateRequestHandler(
   origCreateRequestHandler: CreateRequestHandlerFunction,
 ): CreateRequestHandlerFunction {
+  // To track if this wrapper has been applied, before other wrappers.
+  // Can't track `__sentry_original__` because it's not the same function as the potentially manually wrapped one.
+  isRequestHandlerWrapped = true;
+
   return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
     const newBuild = instrumentBuild(build);
     const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);

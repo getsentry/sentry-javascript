@@ -1,6 +1,11 @@
 import { extractRequestData, loadModule } from '@sentry/utils';
 
-import { createRoutes, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
+import {
+  createRoutes,
+  instrumentBuild,
+  isRequestHandlerWrapped,
+  startRequestHandlerTransaction,
+} from '../instrumentServer';
 import {
   ExpressCreateRequestHandler,
   ExpressCreateRequestHandlerOptions,
@@ -18,6 +23,11 @@ function wrapExpressRequestHandler(
 ): ExpressRequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
+
+  // If the core request handler is already wrapped, don't wrap Express handler which uses it.
+  if (isRequestHandlerWrapped) {
+    return origRequestHandler;
+  }
 
   return async function (
     this: unknown,

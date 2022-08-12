@@ -13,7 +13,7 @@ export const action: ActionFunction = async ({ params: { id } }) => {
   }
 
   if (id === '-2') {
-    // Note: This GET request triggers to the `Loader` of the URL, not the `Action`.
+    // Note: This GET request triggers the `Loader` of the URL, not the `Action`.
     throw redirect('/action-json-response/-1');
   }
 
