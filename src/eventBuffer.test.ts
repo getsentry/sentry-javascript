@@ -65,11 +65,11 @@ it('adds checkout events to event buffer with compression worker', async functio
     useCompression: true,
   }) as EventBufferCompressionWorker;
 
-  buffer.addEvent(TEST_EVENT);
-  buffer.addEvent(TEST_EVENT);
+  await buffer.addEvent(TEST_EVENT);
+  await buffer.addEvent(TEST_EVENT);
 
   // This should clear previous buffer
-  buffer.addEvent({ ...TEST_EVENT, type: 2 }, true);
+  await buffer.addEvent({ ...TEST_EVENT, type: 2 }, true);
 
   const result = await buffer.finish();
   const restored = pako.inflate(result, { to: 'string' });
