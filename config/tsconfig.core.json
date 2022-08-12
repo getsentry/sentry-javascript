@@ -3,13 +3,14 @@
   "compilerOptions": {
     "allowJs": true,
     "declaration": true,
+    "declarationDir": "../types",
     "baseUrl": "..",
-    "outDir": "./dist",
+    "outDir": "dist",
     "paths": {
       "@": ["./src"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["../src/**/*.ts"],
-  "exclude": ["../src/**/*.test.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
