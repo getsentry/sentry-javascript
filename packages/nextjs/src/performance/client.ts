@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Primitive, Transaction, TransactionContext } from '@sentry/types';
-import { fill, getGlobalObject, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
+import { Primitive, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
+import {
+  extractTraceparentData,
+  fill,
+  getGlobalObject,
+  logger,
+  parseBaggageHeader,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
@@ -16,10 +23,10 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
 interface SentryEnhancedNextData extends NextData {
   // contains props returned by `getInitialProps` - except for `pageProps`, these are the props that got returned by `getServerSideProps` or `getStaticProps`
   props: {
-    _sentryGetInitialPropsTraceId?: string; // trace id, if injected by server-side `getInitialProps`
+    _sentryGetInitialPropsTraceData?: string; // trace id, if injected by server-side `getInitialProps`
     _sentryGetInitialPropsBaggage?: string; // baggage, if injected by server-side `getInitialProps`
     pageProps?: {
-      _sentryGetServerSidePropsTraceId?: string; // trace id, if injected by server-side `getServerSideProps`
+      _sentryGetServerSidePropsTraceData?: string; // trace id, if injected by server-side `getServerSideProps`
       _sentryGetServerSidePropsBaggage?: string; // baggage, if injected by server-side `getServerSideProps`
     };
   };
@@ -38,7 +45,7 @@ interface SentryEnhancedNextData extends NextData {
  */
 function extractNextDataTagInformation(): {
   route: string | undefined;
-  traceId: string | undefined;
+  traceParentData: TraceparentData | undefined;
   baggage: string | undefined;
   params: ParsedUrlQuery | undefined;
 } {
@@ -57,20 +64,24 @@ function extractNextDataTagInformation(): {
 
   // `nextData.page` always contains the parameterized route
   const route = (nextData || {}).page;
-
-  const getServerSidePropsTraceId = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsTraceId;
-  const getInitialPropsTraceId = ((nextData || {}).props || {})._sentryGetInitialPropsTraceId;
-  const getServerSidePropsBaggage = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsBaggage;
-  const getInitialPropsBaggage = ((nextData || {}).props || {})._sentryGetInitialPropsBaggage;
-
   const params = (nextData || {}).query;
+
+  const getInitialPropsBaggage = ((nextData || {}).props || {})._sentryGetInitialPropsBaggage;
+  const getServerSidePropsBaggage = (((nextData || {}).props || {}).pageProps || {})._sentryGetServerSidePropsBaggage;
+
+  const getInitialPropsTraceData = ((nextData || {}).props || {})._sentryGetInitialPropsTraceData;
+  const getServerSidePropsTraceData = (((nextData || {}).props || {}).pageProps || {})
+    ._sentryGetServerSidePropsTraceData;
+
+  // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
+  const baggage = getInitialPropsBaggage || getServerSidePropsBaggage;
+  const traceData = getInitialPropsTraceData || getServerSidePropsTraceData;
 
   return {
     route,
     params,
-    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` so we give it priority.
-    traceId: getInitialPropsTraceId || getServerSidePropsTraceId,
-    baggage: getInitialPropsBaggage || getServerSidePropsBaggage,
+    traceParentData: traceData ? extractTraceparentData(traceData) : undefined,
+    baggage,
   };
 }
 
@@ -98,17 +109,17 @@ export function nextRouterInstrumentation(
   startTransaction = startTransactionCb;
 
   if (startTransactionOnPageLoad) {
-    const { route, traceId, baggage, params } = extractNextDataTagInformation();
+    const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
 
     prevTransactionName = route || global.document.location.pathname;
     const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({
       name: prevTransactionName,
-      traceId,
       op: 'pageload',
       tags: DEFAULT_TAGS,
       ...(params && { data: params }),
+      ...traceParentData,
       metadata: {
         source,
         ...(baggage && { baggage: parseBaggageHeader(baggage) }),
