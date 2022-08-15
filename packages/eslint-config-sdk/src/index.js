@@ -212,7 +212,7 @@ module.exports = {
     'prefer-template': 'error',
 
     // Limit maximum file size to reduce complexity. Turned off in tests.
-    'max-lines': 'error',
+    'max-lines': ['error', { max: 300, skipComments: true, skipBlankLines: true }],
 
     // We should require a whitespace beginning a comment
     'spaced-comment': [

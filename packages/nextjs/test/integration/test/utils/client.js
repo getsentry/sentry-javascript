@@ -1,4 +1,5 @@
 const { strictEqual } = require('assert');
+const expect = require('expect');
 const { logIf, parseEnvelope } = require('./common');
 
 const VALID_REQUEST_PAYLOAD = {
@@ -105,8 +106,10 @@ const assertObjectMatches = (actual, expected) => {
   for (const key in expected) {
     const expectedValue = expected[key];
 
-    if (Object.prototype.toString.call(expectedValue) === '[object Object]' || Array.isArray(expectedValue)) {
+    if (Object.prototype.toString.call(expectedValue) === '[object Object]') {
       assertObjectMatches(actual[key], expectedValue);
+    } else if (Array.isArray(expectedValue)) {
+      expect(actual[key]).toEqual(expect.arrayContaining(expectedValue.map(expect.objectContaining)));
     } else {
       strictEqual(actual[key], expectedValue);
     }

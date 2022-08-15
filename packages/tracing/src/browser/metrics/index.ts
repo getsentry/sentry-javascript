@@ -2,12 +2,14 @@
 import { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
 
+import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
-import { msToSec } from '../../utils';
+import { getActiveTransaction, msToSec } from '../../utils';
 import { getCLS, LayoutShift } from '../web-vitals/getCLS';
 import { getFID } from '../web-vitals/getFID';
 import { getLCP, LargestContentfulPaint } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
+import { observe, PerformanceEntryHandler } from '../web-vitals/lib/observe';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
@@ -36,6 +38,28 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
     _trackLCP(reportAllChanges);
     _trackFID();
   }
+}
+
+/**
+ * Start tracking long tasks.
+ */
+export function startTrackingLongTasks(): void {
+  const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
+    const transaction = getActiveTransaction() as IdleTransaction | undefined;
+    if (!transaction) {
+      return;
+    }
+    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+    const duration = msToSec(entry.duration);
+    transaction.startChild({
+      description: 'Long Task',
+      op: 'ui.long-task',
+      startTimestamp: startTime,
+      endTimestamp: startTime + duration,
+    });
+  };
+
+  observe('longtask', entryHandler);
 }
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
