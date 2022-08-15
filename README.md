@@ -21,7 +21,7 @@ convenient interface and improved consistency between various JavaScript environ
 
 **Sentry is Hiring!!!**
 
-Would you like to work on Open Source software and help maintain this repository? Apply today https://grnh.se/ca81c1701us.
+Would you like to work on Open Source software and help maintain this repository? Apply today: https://boards.greenhouse.io/sentry.
 
 ---
 
