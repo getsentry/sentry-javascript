@@ -141,9 +141,12 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const baseURL = await runServer(adapter);
 
     await Promise.all(
-      Array.from(Array(5).keys()).map(async (id: number) => {
+      Array.from(Array(3).keys()).map(async (id: number) => {
         const url = `${baseURL}/scope-bleed/${id}`;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Send requests with 1 sec delays, but they should all resolve at the same time
+        // See packages/remix/test/integration/app/routes/scope-bleed/$id.tsx
+        // for server-side set up. Add 13 for a bit of randomness.
+        await new Promise(resolve => setTimeout(resolve, id * 1000 - 1000 + 13));
         const envelope = await getEnvelopeRequest(url);
         const transaction = envelope[2];
 
