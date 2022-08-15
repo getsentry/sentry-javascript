@@ -321,33 +321,12 @@ export function startRequestHandlerTransaction(
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
-
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
     return local.bind(async () => {
-      const hub = getCurrentHub();
-      const currentScope = hub.getScope();
-
       const url = new URL(request.url);
-      const matches = matchServerRoutes(routes, url.pathname, pkg);
+      const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
 
-      const match = matches && getRequestMatch(url, matches);
-      const name = match === null ? url.pathname : match.route.id;
-      const source = match === null ? 'url' : 'route';
-      const transaction = hub.startTransaction({
-        name,
-        op: 'http.server',
-        tags: {
-          method: request.method,
-        },
-        metadata: {
-          source,
-        },
-      });
-
-      if (transaction) {
-        currentScope?.setSpan(transaction);
-      }
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
       transaction?.setHttpStatus(res.status);

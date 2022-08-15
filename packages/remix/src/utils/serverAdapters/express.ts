@@ -1,4 +1,5 @@
 import { extractRequestData, loadModule } from '@sentry/utils';
+import * as domain from 'domain';
 
 import {
   createRoutes,
@@ -35,20 +36,25 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
-    const request = extractRequestData(req);
+    const local = domain.create();
+    local.add(req);
+    local.add(res);
 
-    if (!request.url || !request.method) {
-      return origRequestHandler.call(this, req, res, next);
-    }
+    local.run(async () => {
+      const request = extractRequestData(req);
 
-    const url = new URL(request.url);
+      if (!request.url || !request.method) {
+        return origRequestHandler.call(this, req, res, next);
+      }
 
-    const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
+      const url = new URL(request.url);
+      const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
 
-    await origRequestHandler.call(this, req, res, next);
+      await origRequestHandler.call(this, req, res, next);
 
-    transaction?.setHttpStatus(res.statusCode);
-    transaction?.finish();
+      transaction?.setHttpStatus(res.statusCode);
+      transaction?.finish();
+    });
   };
 }
 
