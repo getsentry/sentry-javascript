@@ -141,8 +141,9 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const baseURL = await runServer();
 
     await Promise.all(
-      Array.from(Array(10).keys()).map(async (id: number) => {
+      Array.from(Array(5).keys()).map(async (id: number) => {
         const url = `${baseURL}/scope-bleed/${id}`;
+        await new Promise(resolve => setTimeout(resolve, 5000 - id * 1000));
         const envelope = await getEnvelopeRequest(url);
         const transaction = envelope[2];
 
