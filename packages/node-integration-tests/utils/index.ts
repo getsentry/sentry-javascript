@@ -8,7 +8,7 @@ import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
 
-type TestServerConfig = {
+export type TestServerConfig = {
   url: string;
   server: http.Server;
   scope: nock.Scope;
