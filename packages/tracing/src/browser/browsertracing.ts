@@ -133,7 +133,7 @@ export class BrowserTracing implements Integration {
     let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
     // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
     if (_options) {
-      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
+      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins)) {
         tracingOrigins = _options.tracingOrigins;
       } else {
         __DEBUG_BUILD__ && (this._emitOptionsWarning = true);
