@@ -138,12 +138,11 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('makes sure scope does not bleed between requests', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
 
     await Promise.all(
       Array.from(Array(5).keys()).map(async (id: number) => {
         const url = `${baseURL}/scope-bleed/${id}`;
-        await new Promise(resolve => setTimeout(resolve, 5000 - id * 1000 - 1000));
         const envelope = await getEnvelopeRequest(url);
         const transaction = envelope[2];
 
