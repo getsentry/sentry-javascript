@@ -44,7 +44,7 @@ export class Context implements Integration {
   public name: string = Context.id;
 
   /**
-   * Caches OS context so it's only evaluated once
+   * Caches context so it's only evaluated once
    */
   private _cachedContext: Promise<Contexts> | undefined;
 
