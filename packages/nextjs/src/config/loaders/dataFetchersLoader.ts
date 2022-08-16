@@ -112,8 +112,7 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   }
 
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { projectDir, pagesDir, underscoreAppRegex, underscoreDocumentRegex, underscoreErrorRegex } =
-    'getOptions' in this ? this.getOptions() : this.query;
+  const { projectDir, pagesDir } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRouteName = path
@@ -157,13 +156,13 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
         import { default as _sentry_default } from "${this.resourcePath}?sentry-proxy-loader";
         import { withSentryGetInitialProps } from "@sentry/nextjs";`;
 
-      if (this.resourcePath.match(underscoreAppRegex)) {
+      if (parameterizedRouteName === '/_app') {
         // getInitialProps signature is a bit different in _app.js so we need a different wrapper
         // Currently a no-op
-      } else if (this.resourcePath.match(underscoreErrorRegex)) {
+      } else if (parameterizedRouteName === '/_error') {
         // getInitialProps behaviour is a bit different in _error.js so we probably want different wrapper
         // Currently a no-op
-      } else if (this.resourcePath.match(underscoreDocumentRegex)) {
+      } else if (parameterizedRouteName === '/_document') {
         // getInitialProps signature is a bit different in _document.js so we need a different wrapper
         // Currently a no-op
       } else {

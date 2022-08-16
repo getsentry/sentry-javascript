@@ -78,12 +78,6 @@ export function constructWebpackConfigFunction(
         ],
       };
 
-      const underscoreAppRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/_app\\.(jsx?|tsx?)`);
-      const underscoreErrorRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/_error\\.(jsx?|tsx?)`);
-      const underscoreDocumentRegex = new RegExp(
-        `${escapeStringForRegex(projectDir)}(/src)?/pages/_document\\.(jsx?|tsx?)`,
-      );
-
       if (userSentryOptions.experiments?.autoWrapDataFetchers) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
 
@@ -93,13 +87,7 @@ export function constructWebpackConfigFunction(
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
-              options: {
-                projectDir,
-                pagesDir,
-                underscoreAppRegex,
-                underscoreErrorRegex,
-                underscoreDocumentRegex,
-              },
+              options: { projectDir, pagesDir },
             },
           ],
         });
