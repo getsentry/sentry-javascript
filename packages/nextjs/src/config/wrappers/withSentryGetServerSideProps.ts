@@ -1,5 +1,5 @@
 import { GSSP } from './types';
-import { callOriginal } from './wrapperUtils';
+import { wrapperCore } from './wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function
@@ -10,6 +10,6 @@ import { callOriginal } from './wrapperUtils';
  */
 export function withSentryGetServerSideProps(origGetServerSideProps: GSSP['fn'], route: string): GSSP['wrappedFn'] {
   return async function (context: GSSP['context']): Promise<GSSP['result']> {
-    return callOriginal<GSSP>(origGetServerSideProps, context);
+    return wrapperCore<GSSP>(origGetServerSideProps, context, route);
   };
 }

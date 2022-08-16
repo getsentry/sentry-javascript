@@ -1,5 +1,5 @@
 import { GSProps } from './types';
-import { callOriginal } from './wrapperUtils';
+import { wrapperCore } from './wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getStaticProps` function
@@ -10,6 +10,6 @@ import { callOriginal } from './wrapperUtils';
  */
 export function withSentryGetStaticProps(origGetStaticProps: GSProps['fn'], route: string): GSProps['wrappedFn'] {
   return async function (context: GSProps['context']): Promise<GSProps['result']> {
-    return callOriginal<GSProps>(origGetStaticProps, context);
+    return wrapperCore<GSProps>(origGetStaticProps, context, route);
   };
 }
