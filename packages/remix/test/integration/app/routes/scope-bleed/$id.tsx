@@ -4,7 +4,8 @@ import * as Sentry from '@sentry/remix';
 
 export const loader: LoaderFunction = async ({ params: { id } }) => {
   // Set delay to simulate requests at the same time
-  await new Promise(resolve => setTimeout(resolve, 5000 - (parseInt(id || '', 10) * 1000 - 1000 - 14)));
+  const randomNum = Math.floor(Math.random() * 15) + 1;
+  await new Promise(resolve => setTimeout(resolve, 4000 - (parseInt(id || '', 10) * 1000 - randomNum)));
   Sentry.setTag(`tag${id}`, id);
   return json({ test: 'test' });
 };

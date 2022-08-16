@@ -1,3 +1,5 @@
+import { getCurrentHub } from '@sentry/hub';
+import { hasTracingEnabled } from '@sentry/tracing';
 import { extractRequestData, loadModule } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -17,8 +19,6 @@ import {
   ReactRouterDomPkg,
   ServerBuild,
 } from '../types';
-import { getCurrentHub } from '@sentry/hub';
-import { hasTracingEnabled } from '@sentry/tracing';
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -67,7 +67,9 @@ function wrapExpressRequestHandler(
  */
 export function wrapExpressCreateRequestHandler(
   origCreateRequestHandler: ExpressCreateRequestHandler,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): (options: any) => ExpressRequestHandler {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: unknown, options: any): ExpressRequestHandler {
     const newBuild = instrumentBuild((options as ExpressCreateRequestHandlerOptions).build);
     const requestHandler = origCreateRequestHandler.call(this, { ...options, build: newBuild });
