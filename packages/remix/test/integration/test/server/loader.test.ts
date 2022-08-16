@@ -14,13 +14,12 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/-2`;
 
-    let [transaction, event] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2 });
+    const envelopes = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2 });
 
-    // The event envelope is returned before the transaction envelope when using express adapter.
-    // We can update this when we merge the envelope filtering utility.
-    adapter === 'express' && ([event, transaction] = [transaction, event]);
+    const event = envelopes[0][2].type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
+    const transaction = envelopes[0][2].type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
 
-    assertSentryTransaction(transaction[2], {
+    assertSentryTransaction(transaction, {
       contexts: {
         trace: {
           status: 'internal_error',
@@ -31,7 +30,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       },
     });
 
-    assertSentryEvent(event[2], {
+    assertSentryEvent(event, {
       exception: {
         values: [
           {
@@ -144,6 +143,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       getEnvelopeRequest({ url: `${url}/scope-bleed/1`, server, scope }, { endServer: false }),
       getEnvelopeRequest({ url: `${url}/scope-bleed/2`, server, scope }, { endServer: false }),
       getEnvelopeRequest({ url: `${url}/scope-bleed/3`, server, scope }, { endServer: false }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/4`, server, scope }, { endServer: false }),
     ]);
 
     scope.persist(false);
@@ -151,17 +151,22 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
 
     assertSentryTransaction(envelopes[0][2], {
       tags: {
-        tag1: '1',
+        tag4: '4',
       },
     });
     assertSentryTransaction(envelopes[1][2], {
       tags: {
-        tag2: '2',
+        tag3: '3',
       },
     });
     assertSentryTransaction(envelopes[2][2], {
       tags: {
-        tag3: '3',
+        tag2: '2',
+      },
+    });
+    assertSentryTransaction(envelopes[3][2], {
+      tags: {
+        tag1: '1',
       },
     });
   });

@@ -1,7 +1,8 @@
 import { getCurrentHub } from '@sentry/hub';
+import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractRequestData, loadModule } from '@sentry/utils';
+import { extractRequestData, loadModule, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
@@ -125,5 +126,15 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
         resolve();
       });
     });
+  }
+
+  // Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda
+  // ends. If there was an error, rethrow it so that the normal exception-handling mechanisms can apply.
+  try {
+    __DEBUG_BUILD__ && logger.log('Flushing events...');
+    await flush(2000);
+    __DEBUG_BUILD__ && logger.log('Done flushing events');
+  } catch (e) {
+    __DEBUG_BUILD__ && logger.log('Error while flushing events:\n', e);
   }
 }
