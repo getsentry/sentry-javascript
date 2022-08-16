@@ -1,8 +1,8 @@
 import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should send a manually started transaction when @sentry/tracing is imported using unnamed import.', async () => {
-  const url = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(url);
+  const config = await runServer(__dirname);
+  const envelope = await getEnvelopeRequest(config);
 
   expect(envelope).toHaveLength(3);
 

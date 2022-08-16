@@ -11,10 +11,10 @@ jest.spyOn(console, 'error').mockImplementation();
 // Repeat tests for each adapter
 describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', adapter => {
   it('reports an error thrown from the loader', async () => {
-    const baseURL = await runServer(adapter);
-    const url = `${baseURL}/loader-json-response/-2`;
+    const config = await runServer(adapter);
+    const url = `${config.url}/loader-json-response/-2`;
 
-    let [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
+    let [transaction, event] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2 });
 
     // The event envelope is returned before the transaction envelope when using express adapter.
     // We can update this when we merge the envelope filtering utility.
@@ -52,9 +52,9 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('correctly instruments a parameterized Remix API loader', async () => {
-    const baseURL = await runServer(adapter);
-    const url = `${baseURL}/loader-json-response/123123`;
-    const envelope = await getEnvelopeRequest(url);
+    const config = await runServer(adapter);
+    const url = `${config.url}/loader-json-response/123123`;
+    const envelope = await getEnvelopeRequest({ ...config, url });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
@@ -80,10 +80,10 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('handles a thrown 500 response', async () => {
-    const baseURL = await runServer(adapter);
-    const url = `${baseURL}/loader-json-response/-1`;
+    const config = await runServer(adapter);
+    const url = `${config.url}/loader-json-response/-1`;
 
-    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3);
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 3 });
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {

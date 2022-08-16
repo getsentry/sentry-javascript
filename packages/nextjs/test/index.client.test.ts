@@ -3,7 +3,8 @@ import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
+import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { NextjsOptions } from '../src/utils/nextjsOptions';
@@ -14,7 +15,22 @@ const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
-const logWarn = jest.spyOn(logger, 'warn');
+const loggerLogSpy = jest.spyOn(logger, 'log');
+
+// We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
+// 1. Access to window.document API for `window.document.getElementById`
+// 2. Access to window.location API for `window.location.pathname`
+const dom = new JSDOM(undefined, { url: 'https://example.com/' });
+Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
+Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+
+const originalGlobalDocument = getGlobalObject<Window>().document;
+const originalGlobalLocation = getGlobalObject<Window>().location;
+afterAll(() => {
+  // Clean up JSDom
+  Object.defineProperty(global, 'document', { value: originalGlobalDocument });
+  Object.defineProperty(global, 'location', { value: originalGlobalLocation });
+});
 
 describe('Client init()', () => {
   afterEach(() => {
@@ -75,7 +91,7 @@ describe('Client init()', () => {
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
-    expect(logWarn).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned null, will not send event.');
   });
 
   describe('integrations', () => {
