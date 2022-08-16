@@ -583,7 +583,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return finalEvent.event_id;
       },
       reason => {
-        __DEBUG_BUILD__ && logger.warn(reason);
+        if (__DEBUG_BUILD__) {
+          // If something's gone wrong, log the error as a warning. If it's just us having used a `SentryError` for
+          // control flow, log just the message (no stack) as a log-level log.
+          const sentryError = reason as SentryError;
+          if (sentryError.logLevel === 'log') {
+            logger.log(sentryError.message);
+          } else {
+            logger.warn(sentryError);
+          }
+        }
         return undefined;
       },
     );
@@ -606,7 +615,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const { beforeSend, sampleRate } = this.getOptions();
 
     if (!this._isEnabled()) {
-      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.'));
+      return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
     }
 
     const isTransaction = event.type === 'transaction';
@@ -618,6 +627,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return rejectedSyncPromise(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
+          'log',
         ),
       );
     }
@@ -626,7 +636,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', event.type || 'error');
-          throw new SentryError('An event processor returned null, will not send event.');
+          throw new SentryError('An event processor returned null, will not send event.', 'log');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -640,7 +650,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error');
-          throw new SentryError('`beforeSend` returned `null`, will not send event.');
+          throw new SentryError('`beforeSend` returned `null`, will not send event.', 'log');
         }
 
         const session = scope && scope.getSession();
