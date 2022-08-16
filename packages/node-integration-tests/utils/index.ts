@@ -1,11 +1,30 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
+import axios from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
 import { RequestOptions } from 'https';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
+
+export type TestServerConfig = {
+  url: string;
+  server: http.Server;
+  scope: nock.Scope;
+};
+
+export type DataCollectorOptions = {
+  // The expected amount of requests to the envelope endpoint.
+  // If the amount of sentrequests is lower than`count`, this function will not resolve.
+  count?: number;
+
+  // The method of the request.
+  method?: 'get' | 'post';
+
+  // Whether to stop the server after the requests have been intercepted
+  endServer?: boolean;
+};
 
 /**
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
@@ -33,7 +52,7 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
 export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
+    timestamp: expect.anything(),
     ...expected,
   });
 };
@@ -47,8 +66,8 @@ export const assertSentryEvent = (actual: Record<string, unknown>, expected: Rec
 export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
   expect(actual).toMatchObject({
     event_id: expect.any(String),
-    timestamp: expect.any(Number),
-    start_timestamp: expect.any(Number),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
     ...expected,
@@ -68,32 +87,67 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 /**
  * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
- * @param url The url the intercepted requests will be directed to.
- * @param count The expected amount of requests to the envelope endpoint. If
- * the amount of sentrequests is lower than`count`, this function will not resolve.
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {DataCollectorOptions} options
  * @returns The intercepted envelopes.
  */
-export const getMultipleEnvelopeRequest = async (url: string, count: number): Promise<Record<string, unknown>[][]> => {
-  const envelopes: Record<string, unknown>[][] = [];
+export const getMultipleEnvelopeRequest = async (
+  config: TestServerConfig,
+  options: DataCollectorOptions,
+): Promise<Record<string, unknown>[][]> => {
+  // eslint-disable-next-line no-async-promise-executor
+  return (
+    await Promise.all([
+      setupNock(config.scope, config.server, options.count || 1, options.endServer || true),
+      makeRequest(options.method || 'get', config.url),
+    ])
+  )[0];
+};
 
+const setupNock = async (
+  scope: nock.Scope,
+  server: http.Server,
+  count: number,
+  endServer: boolean,
+): Promise<Record<string, unknown>[][]> => {
   return new Promise(resolve => {
-    nock('https://dsn.ingest.sentry.io')
+    const envelopes: Record<string, unknown>[][] = [];
+
+    scope
       .post('/api/1337/envelope/', body => {
         const envelope = parseEnvelope(body);
+
         envelopes.push(envelope);
 
         if (count === envelopes.length) {
+          if (endServer) {
+            scope.persist(false);
+            server.close(() => {
+              resolve(envelopes);
+            });
+          }
           resolve(envelopes);
         }
 
         return true;
       })
-      .times(count)
       .query(true) // accept any query params - used for sentry_key param
       .reply(200);
-
-    http.get(url);
   });
+};
+
+const makeRequest = async (method: 'get' | 'post', url: string): Promise<void> => {
+  try {
+    if (method === 'get') {
+      await axios.get(url);
+    } else {
+      await axios.post(url);
+    }
+  } catch (e) {
+    // We sometimes expect the request to fail, but not the test.
+    // So, we do nothing.
+    logger.warn(e);
+  }
 };
 
 /**
@@ -110,12 +164,14 @@ export const filterEnvelopeItems = (
 /**
  * Sends a get request to given URL, with optional headers
  *
- * @param {URL} url
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
  * @param {Record<string, string>} [headers]
  * @return {*}  {Promise<any>}
  */
-export const getAPIResponse = async (url: URL, headers?: Record<string, string>): Promise<unknown> => {
+export const getAPIResponse = async (config: TestServerConfig, headers?: Record<string, string>): Promise<unknown> => {
   return new Promise(resolve => {
+    const url = new URL(config.url);
+
     http.get(
       headers
         ? ({
@@ -133,7 +189,10 @@ export const getAPIResponse = async (url: URL, headers?: Record<string, string>)
           body += chunk;
         });
         response.on('end', function () {
-          resolve(JSON.parse(body));
+          config.scope.persist(false);
+          config.server.close(() => {
+            resolve(JSON.parse(body));
+          });
         });
       },
     );
@@ -143,11 +202,15 @@ export const getAPIResponse = async (url: URL, headers?: Record<string, string>)
 /**
  * Intercepts and extracts a single request containing a Sentry envelope
  *
- * @param url The url the intercepted request will be directed to.
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {DataCollectorOptions} options
  * @returns The extracted envelope.
  */
-export const getEnvelopeRequest = async (url: string): Promise<Array<Record<string, unknown>>> => {
-  return (await getMultipleEnvelopeRequest(url, 1))[0];
+export const getEnvelopeRequest = async (
+  config: TestServerConfig,
+  options?: DataCollectorOptions,
+): Promise<Array<Record<string, unknown>>> => {
+  return (await getMultipleEnvelopeRequest(config, { ...options, count: 1 }))[0];
 };
 
 /**
@@ -158,26 +221,44 @@ export const getEnvelopeRequest = async (url: string): Promise<Array<Record<stri
  * @param {string} [scenarioPath]
  * @return {*}  {Promise<string>}
  */
-export async function runServer(testDir: string, serverPath?: string, scenarioPath?: string): Promise<string> {
+export async function runServer(
+  testDir: string,
+  serverPath?: string,
+  scenarioPath?: string,
+): Promise<TestServerConfig> {
   const port = await getPortPromise();
   const url = `http://localhost:${port}/test`;
   const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-  await new Promise(resolve => {
+  const { server, scope } = await new Promise<{ server: http.Server; scope: nock.Scope }>(resolve => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
     const app = require(serverPath || defaultServerPath).default as Express;
 
-    app.get('/test', async () => {
-      require(scenarioPath || `${testDir}/scenario`);
+    app.get('/test', (_req, res) => {
+      try {
+        require(scenarioPath || `${testDir}/scenario`);
+      } finally {
+        res.status(200).end();
+      }
     });
 
     const server = app.listen(port, () => {
-      resolve();
-      setTimeout(() => {
-        server.close();
-      }, 4000);
+      const scope = nock('https://dsn.ingest.sentry.io').persist();
+
+      resolve({ server, scope });
     });
   });
 
-  return url;
+  return { url, server, scope };
+}
+
+export async function runScenario(serverUrl: string): Promise<void> {
+  return new Promise<void>(resolve => {
+    http
+      .get(serverUrl, res => {
+        res.on('data', () => undefined);
+        res.on('end', resolve);
+      })
+      .end();
+  });
 }

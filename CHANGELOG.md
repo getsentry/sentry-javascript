@@ -4,6 +4,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.10.0
+
+This release introduces the first alpha version of `@sentry/svelte`, our newest JavaScript SDK! For details on how to use it, please see the [README](./packages/svelte/README.md) and [the tracking GitHub issue](https://github.com/getsentry/sentry-javascript/issues/5492).
+
+- feat(react): Track duration of React component updates (#5531)
+- feat(svelte): Add Error and Performance Instrumentation from Browser SDK (#5543)
+- feat(svelte): Add Svelte SDK Package Boilerplate (#5535)
+- fix(integration): Don't mangle localforage internals (#5534)
+- fix(react): Set redux state context properly (#5550)
+- fix(remix): Support merging `json` responses from root loader functions. (#5548)
+- fix(remix): Return response if detected in root loader (#5558)
+- ref(nextjs): Move `autoWrapDataFetchers` option into `experiments` object (#5540)
+- ref(nextjs): Wrap server-side data-fetching methods during build (#5503)
+
+Work in this release contributed by @augustuswm. Thank you for your contribution!
+
+## 7.9.0
+
+This release adds the [`tracePropagationTargets`](https://docs.sentry.io/platforms/node/configuration/options/#trace-propagation-targets) option to the Sentry Node SDK.
+
+- feat(node): Add `tracePropagationTargets` option (#5521)
+- fix(browser): Parse Chrome stack frames without full paths (#5519)
+- fix(browser): Set `:` as a part of gecko protocol regex group. (#4153)
+- fix(browser): Strip webpack wrapping from stack frames (#5522)
+- fix(nextjs): Pull `transpileClientSDK` option from correct location (#5516)
+- fix(node): Handle colons in stack trace paths (#5517)
+- fix(react): Fix React Router v6 paramaterization (#5515)
+- fix(remix): Paramaterize server side transactions (#5491)
+- fix(remix): Provide `sentry-trace` and `baggage` via root loader. (#5509)
+- ref(nextjs): Prework for wrapping data-fetching functions (#5508)
+- ref(nextjs): Simplify `NextConfigObject` type (#5514)
+
 ## 7.8.1
 
 - fix(nextjs): Add default `distDir` value back into `index.server.ts` (#5479)

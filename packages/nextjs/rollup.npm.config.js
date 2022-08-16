@@ -14,32 +14,34 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/prefixLoaderTemplate.ts'],
+      entrypoints: [
+        'src/config/templates/prefixLoaderTemplate.ts',
+        'src/config/templates/dataFetchersLoaderTemplate.ts',
+      ],
 
       packageSpecificConfig: {
         output: {
-          // preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/[name].js',
+          // Preserve the original file structure (i.e., so that everything is still relative to `src`). (Not entirely
+          // clear why this is necessary here and not for other entrypoints in this file.)
+          entryFileNames: 'config/templates/[name].js',
 
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
           esModule: false,
         },
+        external: ['@sentry/nextjs'],
       },
     }),
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/prefixLoader.ts'],
+      entrypoints: ['src/config/loaders/index.ts'],
 
       packageSpecificConfig: {
         output: {
           // make it so Rollup calms down about the fact that we're doing `export { loader as default }`
-          exports: 'default',
-
-          // preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/[name].js',
+          exports: 'named',
         },
       },
     }),

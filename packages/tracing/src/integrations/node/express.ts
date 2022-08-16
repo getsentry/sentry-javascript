@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */
 import { Integration, Transaction } from '@sentry/types';
-import { CrossPlatformRequest, extractPathForTransaction, isRegExp, logger } from '@sentry/utils';
+import {
+  CrossPlatformRequest,
+  extractPathForTransaction,
+  getNumberOfUrlSegments,
+  isRegExp,
+  logger,
+} from '@sentry/utils';
 
 type Method =
   | 'all'
@@ -382,15 +388,6 @@ function getNumberOfArrayUrlSegments(routesArray: RouteType[]): number {
     // array members can be a RegEx -> convert them toString
     return accNumSegments + getNumberOfUrlSegments(currentRoute.toString());
   }, 0);
-}
-
-/**
- * Returns number of URL segments of a passed URL.
- * Also handles URLs of type RegExp
- */
-function getNumberOfUrlSegments(url: string): number {
-  // split at '/' or at '\/' to split regex urls correctly
-  return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
 }
 
 /**

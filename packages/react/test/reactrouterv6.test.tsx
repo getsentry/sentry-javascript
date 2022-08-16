@@ -196,4 +196,38 @@ describe('React Router v6', () => {
       metadata: { source: 'route' },
     });
   });
+
+  it('works with nested paths with parameters', () => {
+    const [mockStartTransaction] = createInstrumentation();
+    const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SentryRoutes>
+          <Route index element={<Navigate to="/projects/123/views/234" />} />
+          <Route path="account" element={<div>Account Page</div>} />
+          <Route path="projects">
+            <Route index element={<div>Project Index</div>} />
+            <Route path=":projectId" element={<div>Project Page</div>}>
+              <Route index element={<div>Project Page Root</div>} />
+              <Route element={<div>Editor</div>}>
+                <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+              </Route>
+            </Route>
+          </Route>
+
+          <Route path="*" element={<div>No Match Page</div>} />
+        </SentryRoutes>
+      </MemoryRouter>,
+    );
+
+    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/projects/:projectId/views/:viewId',
+      op: 'navigation',
+      tags: { 'routing.instrumentation': 'react-router-v6' },
+      metadata: { source: 'route' },
+    });
+  });
 });

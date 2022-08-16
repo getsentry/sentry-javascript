@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,14 +36,17 @@ export { SentryWebpackPlugin };
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
-  userNextConfig: Partial<NextConfigObject> = {},
+  userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
   userSentryOptions: UserSentryOptions = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
-  const newWebpackFunction = (incomingConfig: WebpackConfigObject, buildContext: BuildContext): WebpackConfigObject => {
+  return function newWebpackFunction(
+    incomingConfig: WebpackConfigObject,
+    buildContext: BuildContext,
+  ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     let newConfig = { ...incomingConfig };
 
@@ -52,6 +55,8 @@ export function constructWebpackConfigFunction(
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
+
+    const pageRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages(/.+)\\.(jsx?|tsx?)`);
 
     if (isServer) {
       newConfig.module = {
@@ -65,7 +70,7 @@ export function constructWebpackConfigFunction(
                 // Support non-default output directories by making the output path (easy to get here at build-time)
                 // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
                 // injecting code to attach it to `global`.
-                loader: path.resolve(__dirname, 'prefixLoader.js'),
+                loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
                 options: {
                   distDir: userNextConfig.distDir || '.next',
                 },
@@ -74,13 +79,25 @@ export function constructWebpackConfigFunction(
           },
         ],
       };
+
+      if (userSentryOptions.experiments?.autoWrapDataFetchers) {
+        newConfig.module.rules.push({
+          test: pageRegex,
+          use: [
+            {
+              loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
+              options: { projectDir },
+            },
+          ],
+        });
+      }
     }
 
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
     // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
     // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
     // fairly massively.
-    if (!isServer && userNextConfig.sentry?.transpileClientSDK) {
+    if (!isServer && userSentryOptions?.transpileClientSDK) {
       // Find all loaders which apply transpilation to user code
       const transpilationRules = findTranspilationRules(newConfig.module?.rules, projectDir);
 
@@ -151,8 +168,6 @@ export function constructWebpackConfigFunction(
 
     return newConfig;
   };
-
-  return newWebpackFunction;
 }
 
 /**

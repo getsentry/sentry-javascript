@@ -1,8 +1,8 @@
 import { assertSentryEvent, getMultipleEnvelopeRequest, runServer, filterEnvelopeItems } from '../../../../utils';
 
 test('should set primitive tags', async () => {
-  const url = await runServer(__dirname);
-  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(url, 2));
+  const config = await runServer(__dirname);
+  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, {count:2}));
 
   assertSentryEvent(events[0], {
     message: 'primitive_tags',

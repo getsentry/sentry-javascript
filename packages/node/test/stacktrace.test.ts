@@ -120,33 +120,6 @@ describe('Stack parsing', () => {
     ]);
   });
 
-  test('parses with missing column numbers', () => {
-    const err = new Error();
-    err.stack =
-      'AssertionError: true == false\n' +
-      '    at Test.fn (/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js:6)\n' +
-      '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/test.js:45)';
-
-    const frames = parseStackFrames(stackParser, err);
-
-    expect(frames).toEqual([
-      {
-        filename: '/Users/felix/code/node-fast-or-slow/lib/test.js',
-        module: 'test',
-        function: 'Test.run',
-        lineno: 45,
-        in_app: true,
-      },
-      {
-        filename: '/Users/felix/code/node-fast-or-slow/test/fast/example/test-example.js',
-        module: 'test-example',
-        function: 'Test.fn',
-        lineno: 6,
-        in_app: true,
-      },
-    ]);
-  });
-
   test('parses with native methods', () => {
     const err = new Error();
     err.stack =
@@ -376,6 +349,35 @@ describe('Stack parsing', () => {
         lineno: 17,
         colno: 73,
         in_app: false,
+      },
+    ]);
+  });
+
+  test('parses with colons in paths', () => {
+    const err = new Error();
+    err.stack =
+      'AssertionError: true == false\n' +
+      '    at Test.run (/Users/felix/code/node-fast-or-slow/lib/20:20:20/test.js:45:10)\n' +
+      '    at TestCase.run (/Users/felix/code/node-fast-or-slow/lib/test_case.js:61:8)\n';
+
+    const frames = parseStackFrames(stackParser, err);
+
+    expect(frames).toEqual([
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
+        module: 'test_case',
+        function: 'TestCase.run',
+        lineno: 61,
+        colno: 8,
+        in_app: true,
+      },
+      {
+        filename: '/Users/felix/code/node-fast-or-slow/lib/20:20:20/test.js',
+        module: 'test',
+        function: 'Test.run',
+        lineno: 45,
+        colno: 10,
+        in_app: true,
       },
     ]);
   });

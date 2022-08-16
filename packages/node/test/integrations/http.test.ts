@@ -17,6 +17,9 @@ import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
+const originalHttpGet = http.get;
+const originalHttpRequest = http.request;
+
 describe('tracing', () => {
   function createTransactionOnScope(
     customOptions: Partial<NodeClientOptions> = {},
@@ -167,6 +170,110 @@ describe('tracing', () => {
     const baggage = request.getHeader('baggage');
 
     expect(baggage).not.toBeDefined();
+  });
+
+  describe('tracePropagationTargets option', () => {
+    beforeEach(() => {
+      // hacky way of restoring monkey patched functions
+      // @ts-ignore TS doesn't let us assign to this but we want to
+      http.get = originalHttpGet;
+      // @ts-ignore TS doesn't let us assign to this but we want to
+      http.request = originalHttpRequest;
+    });
+
+    function createHub(customOptions: Partial<NodeClientOptions> = {}) {
+      const options = getDefaultNodeClientOptions({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tracesSampleRate: 1.0,
+        release: '1.0.0',
+        environment: 'production',
+        ...customOptions,
+      });
+
+      const hub = new Hub();
+
+      // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
+      // `@sentry/hub`, and mocking breaks the link between the two
+      jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => hub);
+      jest.spyOn(hubModule, 'getCurrentHub').mockImplementation(() => hub);
+
+      const client = new NodeClient(options);
+      jest.spyOn(hub, 'getClient').mockImplementation(() => client);
+      hub.bindClient(client);
+
+      return hub;
+    }
+
+    function createTransactionAndPutOnScope(hub: Hub) {
+      addExtensionMethods();
+      const transaction = hub.startTransaction({ name: 'dogpark' });
+      hub.getScope()?.setSpan(transaction);
+    }
+
+    it.each([
+      ['http://dogs.are.great/api/v1/index/', [/.*/]],
+      ['http://dogs.are.great/api/v1/index/', [/\/api/]],
+      ['http://dogs.are.great/api/v1/index/', [/\/(v1|v2)/]],
+      ['http://dogs.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+      ['http://dogs.are.great/api/v1/index/', [/http:/]],
+      ['http://dogs.are.great/api/v1/index/', ['dogs.are.great']],
+      ['http://dogs.are.great/api/v1/index/', ['/api/v1']],
+      ['http://dogs.are.great/api/v1/index/', ['http://']],
+      ['http://dogs.are.great/api/v1/index/', ['']],
+    ])(
+      'attaches trace inforation to header of outgoing requests when url matches tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+      (url, tracePropagationTargets) => {
+        nock(url).get(/.*/).reply(200);
+
+        const httpIntegration = new HttpIntegration({ tracing: true });
+
+        const hub = createHub({ tracePropagationTargets });
+
+        httpIntegration.setupOnce(
+          () => undefined,
+          () => hub,
+        );
+
+        createTransactionAndPutOnScope(hub);
+
+        const request = http.get(url);
+
+        expect(request.getHeader('sentry-trace')).toBeDefined();
+        expect(request.getHeader('baggage')).toBeDefined();
+      },
+    );
+
+    it.each([
+      ['http://dogs.are.great/api/v1/index/', []],
+      ['http://cats.are.great/api/v1/index/', [/\/v2/]],
+      ['http://cats.are.great/api/v1/index/', [/\/(v2|v3)/]],
+      ['http://cats.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+      ['http://cats.are.great/api/v1/index/', [/https:/]],
+      ['http://cats.are.great/api/v1/index/', ['dogs.are.great']],
+      ['http://cats.are.great/api/v1/index/', ['/api/v2']],
+      ['http://cats.are.great/api/v1/index/', ['https://']],
+    ])(
+      'doesn\'t attach trace inforation to header of outgoing requests when url doesn\'t match tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+      (url, tracePropagationTargets) => {
+        nock(url).get(/.*/).reply(200);
+
+        const httpIntegration = new HttpIntegration({ tracing: true });
+
+        const hub = createHub({ tracePropagationTargets });
+
+        httpIntegration.setupOnce(
+          () => undefined,
+          () => hub,
+        );
+
+        createTransactionAndPutOnScope(hub);
+
+        const request = http.get(url);
+
+        expect(request.getHeader('sentry-trace')).not.toBeDefined();
+        expect(request.getHeader('baggage')).not.toBeDefined();
+      },
+    );
   });
 });
 

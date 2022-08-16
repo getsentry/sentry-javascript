@@ -1,3 +1,4 @@
+// @ts-check
 const { get } = require('http');
 const nock = require('nock');
 const nodeSDK = require('@sentry/node');
@@ -132,13 +133,15 @@ function ensureWrappedGet(importedGet, url) {
   // As of Next 12.1, creating a `NextServer` instance (which we do immediately upon starting this test runner) loads
   // `_app`, which has the effect of initializing the SDK. So, unless something's gone wrong, we should always be able
   // to find the integration
-  let httpIntegration;
-  try {
-    httpIntegration = nodeSDK.getCurrentHub().getClient().getIntegration(nodeSDK.Integrations.Http);
-  } catch (err) {
+  const hub = nodeSDK.getCurrentHub();
+  const client = hub.getClient();
+
+  if (!client) {
     console.warn(`Warning: Sentry SDK not set up at \`NextServer\` initialization. Request URL: ${url}`);
     return importedGet;
   }
+
+  const httpIntegration = client.getIntegration(nodeSDK.Integrations.Http);
 
   // This rewraps `http.get` and `http.request`, which, at this point, look like `nockWrapper(sentryWrapper(get))` and
   // `nockWrapper(sentryWrapper(request))`. By the time we're done with this function, they'll look like
@@ -160,7 +163,12 @@ function ensureWrappedGet(importedGet, url) {
   //
   // TODO: add in a "don't do this twice" check (in `fill`, maybe moved from `wrap`), so that we don't wrap the outer
   // wrapper with a third wrapper
-  httpIntegration.setupOnce();
+  if (httpIntegration) {
+    httpIntegration.setupOnce(
+      () => undefined,
+      () => hub,
+    );
+  }
 
   // now that we've rewrapped it, grab the correct version of `get` for use in our tests
   const httpModule = require('http');

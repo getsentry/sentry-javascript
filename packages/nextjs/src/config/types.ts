@@ -8,19 +8,30 @@ export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpa
  * Overall Nextjs config
  */
 
-export type ExportedNextConfig = Partial<NextConfigObject> | NextConfigFunction;
+// The first argument to `withSentryConfig` (which is the user's next config) may contain a `sentry` key, which we'll
+// remove once we've captured it, in order to prevent nextjs from throwing warnings. Since it's only in there
+// temporarily, we don't include it in the main `NextConfigObject` or `NextConfigFunction` types.
+export type ExportedNextConfig = NextConfigObjectWithSentry | NextConfigFunctionWithSentry;
+
+export type NextConfigObjectWithSentry = NextConfigObject & {
+  sentry?: UserSentryOptions;
+};
+export type NextConfigFunctionWithSentry = (
+  phase: string,
+  defaults: { defaultConfig: NextConfigObject },
+) => NextConfigObjectWithSentry;
 
 export type NextConfigObject = {
   // custom webpack options
-  webpack: WebpackConfigFunction;
+  webpack?: WebpackConfigFunction;
   // whether to build serverless functions for all pages, not just API routes
-  target: 'server' | 'experimental-serverless-trace';
+  target?: 'server' | 'experimental-serverless-trace';
   // the output directory for the built app (defaults to ".next")
-  distDir: string;
-  sentry?: UserSentryOptions;
-} & {
-  // other `next.config.js` options
-  [key: string]: unknown;
+  distDir?: string;
+  // the root at which the nextjs app will be served (defaults to "/")
+  basePath?: string;
+  // config which will be available at runtime
+  publicRuntimeConfig?: { [key: string]: unknown };
 };
 
 export type UserSentryOptions = {
@@ -38,12 +49,14 @@ export type UserSentryOptions = {
   // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
   // up uploading too many files, which is why this defaults to `false`.
   widenClientFileUpload?: boolean;
+
+  experiments?: {
+    // Automatically wrap `getInitialProps`, `getServerSideProps`, and `getStaticProps` in order to instrument them for tracing.
+    autoWrapDataFetchers?: boolean;
+  };
 };
 
-export type NextConfigFunction = (
-  phase: string,
-  defaults: { defaultConfig: NextConfigObject },
-) => Partial<NextConfigObject>;
+export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
 
 /**
  * Webpack config

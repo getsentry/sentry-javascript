@@ -430,4 +430,121 @@ describe('Tracekit - Chrome Tests', () => {
       },
     });
   });
+
+  it('should parse exceptions with frames without full paths', () => {
+    const EXCEPTION = {
+      message: 'aha',
+      name: 'Error',
+      stack: `Error
+      at Client.requestPromise (api.tsx:554:1)
+      at doDiscoverQuery (genericDiscoverQuery.tsx?33f8:328:1)
+      at _GenericDiscoverQuery.eval [as fetchData] (genericDiscoverQuery.tsx?33f8:256:1)
+      at _GenericDiscoverQuery.componentDidMount (genericDiscoverQuery.tsx?33f8:152:1)
+      at commitLifeCycles (react-dom.development.js?f8c1:20663:1)
+      at commitLayoutEffects (react-dom.development.js?f8c1:23426:1)`,
+    };
+
+    const ex = exceptionFromError(parser, EXCEPTION);
+
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'react-dom.development.js?f8c1',
+            function: 'commitLayoutEffects',
+            in_app: true,
+            lineno: 23426,
+            colno: 1,
+          },
+          {
+            filename: 'react-dom.development.js?f8c1',
+            function: 'commitLifeCycles',
+            in_app: true,
+            lineno: 20663,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: '_GenericDiscoverQuery.componentDidMount',
+            in_app: true,
+            lineno: 152,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: '_GenericDiscoverQuery.eval [as fetchData]',
+            in_app: true,
+            lineno: 256,
+            colno: 1,
+          },
+          {
+            filename: 'genericDiscoverQuery.tsx?33f8',
+            function: 'doDiscoverQuery',
+            in_app: true,
+            lineno: 328,
+            colno: 1,
+          },
+          {
+            filename: 'api.tsx',
+            function: 'Client.requestPromise',
+            in_app: true,
+            lineno: 554,
+            colno: 1,
+          },
+        ],
+      },
+    });
+  });
+
+  it('should parse webpack wrapped exceptions', () => {
+    const EXCEPTION = {
+      message: 'aha',
+      name: 'ChunkLoadError',
+      stack: `ChunkLoadError: Loading chunk app_bootstrap_initializeLocale_tsx failed.
+      (error: https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js)
+        at (error: (/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js))
+        at key(webpack/runtime/jsonp chunk loading:27:18)
+        at ? (webpack/runtime/ensure chunk:6:25)
+        at Array.reduce(<anonymous>)`,
+    };
+
+    const ex = exceptionFromError(parser, EXCEPTION);
+
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'ChunkLoadError',
+      stacktrace: {
+        frames: [
+          { filename: '<anonymous>', function: 'Array.reduce', in_app: true },
+          {
+            filename: 'webpack/runtime/ensure chunk',
+            function: '?',
+            in_app: true,
+            lineno: 6,
+            colno: 25,
+          },
+          {
+            filename: 'webpack/runtime/jsonp chunk loading',
+            function: 'key',
+            in_app: true,
+            lineno: 27,
+            colno: 18,
+          },
+          {
+            filename: '/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js',
+            function: '?',
+            in_app: true,
+          },
+          {
+            filename:
+              'https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js',
+            function: '?',
+            in_app: true,
+          },
+        ],
+      },
+    });
+  });
 });

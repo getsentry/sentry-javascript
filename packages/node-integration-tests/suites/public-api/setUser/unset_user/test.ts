@@ -3,8 +3,8 @@ import { Event } from '@sentry/node';
 import { assertSentryEvent, getMultipleEnvelopeRequest, runServer, filterEnvelopeItems } from '../../../../utils';
 
 test('should unset user', async () => {
-  const url = await runServer(__dirname);
-  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(url, 6));
+  const config = await runServer(__dirname);
+  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, {count:6}));
 
   assertSentryEvent(events[0], {
     message: 'no_user',

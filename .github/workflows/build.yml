@@ -380,6 +380,9 @@ jobs:
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scenario: [ember-release, ember-beta, ember-classic, ember-lts-3.24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v2
@@ -409,7 +412,9 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run Ember tests
-        run: yarn test --scope=@sentry/ember
+        run: |
+          cd packages/ember
+          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
       - name: Compute test coverage
         uses: codecov/codecov-action@v1
 

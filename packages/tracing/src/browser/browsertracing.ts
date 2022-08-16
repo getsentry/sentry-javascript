@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
@@ -6,7 +7,7 @@ import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { addPerformanceEntries, startTrackingWebVitals } from './metrics';
+import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
 import {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -72,6 +73,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
 
   /**
+   * _experiments allows the user to send options to define how this integration works.
+   *
+   * Default: undefined
+   */
+  _experiments?: Partial<{ enableLongTask: boolean }>;
+
+  /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
    * context data, or drop the transaction entirely (by setting `sampled = false` in the context).
    *
@@ -101,6 +109,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS = {
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
+  _experiments: { enableLongTask: true },
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -148,6 +157,9 @@ export class BrowserTracing implements Integration {
 
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
+    if (this.options._experiments?.enableLongTask) {
+      startTrackingLongTasks();
+    }
   }
 
   /**

@@ -310,4 +310,50 @@ describe('Tracekit - Firefox Tests', () => {
       },
     });
   });
+
+  it('should parse Firefox errors with `file` inside an identifier', () => {
+    const FIREFOX_FILE_IN_IDENTIFIER = {
+      stack:
+        'us@https://www.random_website.com/vendor.d1cae9cfc9917df88de7.js:1:296021\n' +
+        'detectChanges@https://www.random_website.com/vendor.d1cae9cfc9917df88de7.js:1:333807\n' +
+        'handleProfileResult@https://www.random_website.com/main.4a4119c3cdfd10266d84.js:146:1018410\n',
+      fileName: 'https://www.random_website.com/main.4a4119c3cdfd10266d84.js',
+      lineNumber: 5529,
+      columnNumber: 16,
+      message: 'this.props.raw[this.state.dataSource].rows is undefined',
+      name: 'TypeError',
+    };
+
+    const stacktrace = exceptionFromError(parser, FIREFOX_FILE_IN_IDENTIFIER);
+
+    expect(stacktrace).toEqual({
+      stacktrace: {
+        frames: [
+          {
+            colno: 1018410,
+            filename: 'https://www.random_website.com/main.4a4119c3cdfd10266d84.js',
+            function: 'handleProfileResult',
+            in_app: true,
+            lineno: 146,
+          },
+          {
+            colno: 333807,
+            filename: 'https://www.random_website.com/vendor.d1cae9cfc9917df88de7.js',
+            function: 'detectChanges',
+            in_app: true,
+            lineno: 1,
+          },
+          {
+            colno: 296021,
+            filename: 'https://www.random_website.com/vendor.d1cae9cfc9917df88de7.js',
+            function: 'us',
+            in_app: true,
+            lineno: 1,
+          },
+        ],
+      },
+      type: 'TypeError',
+      value: 'this.props.raw[this.state.dataSource].rows is undefined',
+    });
+  });
 });

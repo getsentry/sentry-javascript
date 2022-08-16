@@ -124,8 +124,9 @@ function addServerIntegrations(options: NextjsOptions): void {
 
 export type { SentryWebpackPluginOptions } from './config/types';
 export { withSentryConfig } from './config';
-export { withSentry } from './utils/withSentry';
 export { isBuild } from './utils/isBuild';
+export { withSentryGetServerSideProps, withSentryGetStaticProps, withSentryGetInitialProps } from './config/wrappers';
+export { withSentry } from './utils/withSentry';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and

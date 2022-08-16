@@ -2,8 +2,8 @@ import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer
 
 conditionalTest({ min: 12 })('Prisma ORM Integration', () => {
   test('should instrument Prisma client for tracing.', async () => {
-    const url = await runServer(__dirname);
-    const envelope = await getEnvelopeRequest(url);
+    const config = await runServer(__dirname);
+    const envelope = await getEnvelopeRequest(config);
 
     assertSentryTransaction(envelope[2], {
       transaction: 'Test Transaction',

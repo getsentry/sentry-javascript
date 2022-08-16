@@ -1,3 +1,4 @@
+/* eslint-disable no-empty-pattern */
 import { test as base } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
@@ -20,17 +21,20 @@ const getAsset = (assetDir: string, asset: string): string => {
   return `utils/defaults/${asset}`;
 };
 
-export type TestOptions = {
-  testDir: string;
-};
-
 export type TestFixtures = {
   testDir: string;
-  getLocalTestPath: (options: TestOptions) => Promise<string>;
+  getLocalTestPath: (options: { testDir: string }) => Promise<string>;
+  runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
+  runInFirefox: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
+  runInWebkit: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
+  runInSingleBrowser: (
+    browser: 'chromium' | 'firefox' | 'webkit',
+    fn: (...args: unknown[]) => unknown,
+    args?: unknown[],
+  ) => unknown;
 };
 
 const sentryTest = base.extend<TestFixtures>({
-  // eslint-disable-next-line no-empty-pattern
   getLocalTestPath: ({}, use, testInfo) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
@@ -45,6 +49,24 @@ const sentryTest = base.extend<TestFixtures>({
         await generatePage(init, subject, template, testDir);
       }
       return pagePath;
+    });
+  },
+  runInChromium: ({ runInSingleBrowser }, use) => {
+    return use((fn, args) => runInSingleBrowser('chromium', fn, args));
+  },
+  runInFirefox: ({ runInSingleBrowser }, use) => {
+    return use((fn, args) => runInSingleBrowser('firefox', fn, args));
+  },
+  runInWebkit: ({ runInSingleBrowser }, use) => {
+    return use((fn, args) => runInSingleBrowser('webkit', fn, args));
+  },
+  runInSingleBrowser: ({ browserName }, use) => {
+    return use((browser, fn, args = []) => {
+      if (browserName !== browser) {
+        return;
+      }
+
+      return fn(...args);
     });
   },
 });

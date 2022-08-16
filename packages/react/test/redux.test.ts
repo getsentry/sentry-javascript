@@ -64,9 +64,11 @@ describe('createReduxEnhancer', () => {
     store.dispatch(updateAction);
 
     expect(mockSetContext).toBeCalledWith('state', {
-      type: 'redux',
-      value: {
-        value: 'updated',
+      state: {
+        type: 'redux',
+        value: {
+          value: 'updated',
+        },
       },
     });
   });
@@ -88,10 +90,12 @@ describe('createReduxEnhancer', () => {
       Redux.createStore((state = initialState) => state, enhancer);
 
       expect(mockSetContext).toBeCalledWith('state', {
-        type: 'redux',
-        value: {
-          superSecret: 'REDACTED',
-          value: 123,
+        state: {
+          type: 'redux',
+          value: {
+            superSecret: 'REDACTED',
+            value: 123,
+          },
         },
       });
     });

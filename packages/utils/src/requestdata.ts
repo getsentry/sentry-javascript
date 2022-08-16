@@ -15,8 +15,8 @@
 import { Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
-import { stripUrlQueryAndFragment } from './misc';
 import { normalize } from './normalize';
+import { stripUrlQueryAndFragment } from './url';
 
 const DEFAULT_INCLUDES = {
   ip: false,
