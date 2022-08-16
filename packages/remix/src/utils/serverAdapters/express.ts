@@ -17,6 +17,8 @@ import {
   ReactRouterDomPkg,
   ServerBuild,
 } from '../types';
+import { getCurrentHub } from '@sentry/hub';
+import { hasTracingEnabled } from '@sentry/tracing';
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -42,13 +44,15 @@ function wrapExpressRequestHandler(
 
     local.run(async () => {
       const request = extractRequestData(req);
+      const hub = getCurrentHub();
+      const options = hub.getClient()?.getOptions();
 
-      if (!request.url || !request.method) {
+      if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
         return origRequestHandler.call(this, req, res, next);
       }
 
       const url = new URL(request.url);
-      const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
+      const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
 
       await origRequestHandler.call(this, req, res, next);
 

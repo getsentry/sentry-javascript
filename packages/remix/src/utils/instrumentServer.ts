@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
-import { captureException, getCurrentHub } from '@sentry/node';
-import { getActiveTransaction, hasTracingEnabled, Span } from '@sentry/tracing';
-import { WrappedFunction } from '@sentry/types';
+import { captureException, getCurrentHub, Hub } from '@sentry/node';
+import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
+import { Transaction, WrappedFunction } from '@sentry/types';
 import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -292,9 +292,9 @@ export function startRequestHandlerTransaction(
   url: URL,
   method: string,
   routes: ServerRoute[],
+  hub: Hub,
   pkg?: ReactRouterDomPkg,
-): Span | undefined {
-  const hub = getCurrentHub();
+): Transaction {
   const currentScope = hub.getScope();
   const matches = matchServerRoutes(routes, url.pathname, pkg);
 
@@ -312,9 +312,7 @@ export function startRequestHandlerTransaction(
     },
   });
 
-  if (transaction) {
-    currentScope?.setSpan(transaction);
-  }
+  currentScope?.setSpan(transaction);
   return transaction;
 }
 
@@ -324,13 +322,20 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
     return local.bind(async () => {
+      const hub = getCurrentHub();
+      const options = hub.getClient()?.getOptions();
+
+      if (!options || !hasTracingEnabled(options)) {
+        return origRequestHandler.call(this, request, loadContext);
+      }
+
       const url = new URL(request.url);
-      const transaction = startRequestHandlerTransaction(url, request.method, routes, pkg);
+      const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
 
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-      transaction?.setHttpStatus(res.status);
-      transaction?.finish();
+      transaction.setHttpStatus(res.status);
+      transaction.finish();
 
       return res;
     })();
