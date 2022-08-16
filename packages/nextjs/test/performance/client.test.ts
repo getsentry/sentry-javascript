@@ -107,13 +107,40 @@ describe('client', () => {
         },
       ],
       [
-        'https://example.com/static',
-        '/static',
+        'https://example.com/dynamic',
+        '/dynamic',
         {},
         {
           pageProps: {
             _sentryGetServerSidePropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
             _sentryGetServerSidePropsBaggage:
+              'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+          },
+        },
+        true,
+        {
+          name: '/dynamic',
+          op: 'pageload',
+          tags: {
+            'routing.instrumentation': 'next-router',
+          },
+          metadata: {
+            source: 'route',
+            baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
+          },
+          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
+          parentSpanId: 'a755953cd3394d5f',
+          parentSampled: true,
+        },
+      ],
+      [
+        'https://example.com/static',
+        '/static',
+        {},
+        {
+          pageProps: {
+            _sentryGetStaticPropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
+            _sentryGetStaticPropsBaggage:
               'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
           },
         },
