@@ -32,7 +32,6 @@ export function callDataFetcherTraced<F extends (...args: any[]) => Promise<any>
   // right here so making that check will probabably not even be necessary.
   // Logic will be: If there is no active transaction, start one with correct name and source. If there is an active
   // transaction, create a child span with correct name and source.
-  // We will probably need to put
   transaction.name = route;
   transaction.metadata.source = 'route';
 
