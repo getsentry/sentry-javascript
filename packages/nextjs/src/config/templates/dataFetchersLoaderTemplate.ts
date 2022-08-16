@@ -21,9 +21,10 @@ const PARAMETERIZED_ROUTE = '__FILEPATH__';
 
 export const getServerSideProps =
   typeof __ORIG_GSSP__ === 'function'
-    ? ServerSideSentryNextjsSDK.withSentryGetServerSideProps(__ORIG_GSSP__)
+    ? ServerSideSentryNextjsSDK.withSentryGetServerSideProps(__ORIG_GSSP__, PARAMETERIZED_ROUTE)
     : __ORIG_GSSP__;
+
 export const getStaticProps =
   typeof __ORIG_GSPROPS__ === 'function'
-    ? ServerSideSentryNextjsSDK.withSentryGetStaticProps(__ORIG_GSPROPS__)
+    ? ServerSideSentryNextjsSDK.withSentryGetStaticProps(__ORIG_GSPROPS__, PARAMETERIZED_ROUTE)
     : __ORIG_GSPROPS__;
