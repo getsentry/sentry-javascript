@@ -5,6 +5,7 @@ import {
   getMultipleEnvelopeRequest,
   assertSentryEvent,
 } from './utils/helpers';
+import { Event } from '@sentry/types';
 
 jest.spyOn(console, 'error').mockImplementation();
 
@@ -149,25 +150,14 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     scope.persist(false);
     await new Promise(resolve => server.close(resolve));
 
-    assertSentryTransaction(envelopes[0][2], {
-      tags: {
-        tag4: '4',
-      },
-    });
-    assertSentryTransaction(envelopes[1][2], {
-      tags: {
-        tag3: '3',
-      },
-    });
-    assertSentryTransaction(envelopes[2][2], {
-      tags: {
-        tag2: '2',
-      },
-    });
-    assertSentryTransaction(envelopes[3][2], {
-      tags: {
-        tag1: '1',
-      },
+    envelopes.forEach(envelope => {
+      const tags = envelope[2].tags as NonNullable<Event['tags']>;
+      const customTagArr = Object.keys(tags).filter(t => t.startsWith('tag'));
+      expect(customTagArr).toHaveLength(1);
+
+      const key = customTagArr[0];
+      const val = key[key.length - 1];
+      expect(tags[key]).toEqual(val);
     });
   });
 });
