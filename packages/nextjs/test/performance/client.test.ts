@@ -53,7 +53,7 @@ describe('client', () => {
       };
 
       const dom = new JSDOM(
-        // Just some example what a __NEXT_DATA__ tag might look like
+        // Just an example of what a __NEXT_DATA__ tag might look like
         pageProperties.hasNextData
           ? `<body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify(
               nextDataContent,
@@ -62,6 +62,9 @@ describe('client', () => {
         { url: pageProperties.url },
       );
 
+      // The Next.js routing instrumentations requires a few things to be present on pageload:
+      // 1. Access to window.document API for `window.document.getElementById`
+      // 2. Access to window.location API for `window.location.pathname`
       Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
       Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
     }
@@ -196,12 +199,12 @@ describe('client', () => {
       ],
     ])(
       'creates a pageload transaction (#%#)',
-      (url, route, query, props, hasNextData, expectedStartTransactionCall) => {
+      (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
         const mockStartTransaction = jest.fn();
         setUpNextPage({ url, route, query, props, hasNextData });
         nextRouterInstrumentation(mockStartTransaction);
         expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith(expectedStartTransactionCall);
+        expect(mockStartTransaction).toHaveBeenLastCalledWith(expectedStartTransactionArgument);
       },
     );
 

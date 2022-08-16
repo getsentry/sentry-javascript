@@ -17,7 +17,9 @@ const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const logWarn = jest.spyOn(logger, 'warn');
 
-// Set up JSDom - needed for page load instrumentation
+// We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
+// 1. Access to window.document API for `window.document.getElementById`
+// 2. Access to window.location API for `window.location.pathname`
 const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
