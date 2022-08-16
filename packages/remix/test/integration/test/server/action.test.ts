@@ -8,9 +8,10 @@ import {
 
 jest.spyOn(console, 'error').mockImplementation();
 
-describe('Remix API Actions', () => {
+// Repeat tests for each adapter
+describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', adapter => {
   it('correctly instruments a parameterized Remix API action', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/action-json-response/123123`;
     const envelope = await getEnvelopeRequest(url, 'post');
     const transaction = envelope[2];
@@ -22,11 +23,8 @@ describe('Remix API Actions', () => {
           description: 'routes/action-json-response/$id',
           op: 'remix.server.action',
         },
-        // TODO: These two spans look exactly the same, but they are not.
-        // One is from the parent route, and the other is from the route we are reaching.
-        // We need to pass the names of the routes as their descriptions while wrapping loaders and actions.
         {
-          description: 'routes/action-json-response/$id',
+          description: 'root',
           op: 'remix.server.loader',
         },
         {
@@ -42,7 +40,7 @@ describe('Remix API Actions', () => {
   });
 
   it('reports an error thrown from the action', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/action-json-response/-1`;
 
     const [transaction, event] = await getMultipleEnvelopeRequest(url, 2, 'post');
@@ -79,7 +77,7 @@ describe('Remix API Actions', () => {
   });
 
   it('handles a thrown 500 response', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/action-json-response/-2`;
 
     const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3, 'post');

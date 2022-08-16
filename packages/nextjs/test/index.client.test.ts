@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
@@ -15,7 +15,7 @@ const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
-const logWarn = jest.spyOn(logger, 'warn');
+const loggerLogSpy = jest.spyOn(logger, 'log');
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -91,7 +91,7 @@ describe('Client init()', () => {
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
-    expect(logWarn).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned null, will not send event.');
   });
 
   describe('integrations', () => {

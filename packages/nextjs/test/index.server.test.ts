@@ -2,7 +2,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger, SentryError } from '@sentry/utils';
+import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { init } from '../src/index.server';
@@ -16,7 +16,7 @@ const global = getGlobalObject();
 (global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
-const logWarn = jest.spyOn(logger, 'warn');
+const loggerLogSpy = jest.spyOn(logger, 'log');
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -104,7 +104,7 @@ describe('Server init()', () => {
     await SentryNode.flush();
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(logWarn).toHaveBeenCalledWith(new SentryError('An event processor returned null, will not send event.'));
+    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned null, will not send event.');
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {

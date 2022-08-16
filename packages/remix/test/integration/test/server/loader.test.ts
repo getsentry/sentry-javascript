@@ -8,12 +8,17 @@ import {
 
 jest.spyOn(console, 'error').mockImplementation();
 
-describe('Remix API Loaders', () => {
+// Repeat tests for each adapter
+describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', adapter => {
   it('reports an error thrown from the loader', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/loader-json-response/-2`;
 
-    const [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
+    let [transaction, event] = await getMultipleEnvelopeRequest(url, 2);
+
+    // The event envelope is returned before the transaction envelope when using express adapter.
+    // We can update this when we merge the envelope filtering utility.
+    adapter === 'express' && ([event, transaction] = [transaction, event]);
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -47,7 +52,7 @@ describe('Remix API Loaders', () => {
   });
 
   it('correctly instruments a parameterized Remix API loader', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/loader-json-response/123123`;
     const envelope = await getEnvelopeRequest(url);
     const transaction = envelope[2];
@@ -58,11 +63,8 @@ describe('Remix API Loaders', () => {
         source: 'route',
       },
       spans: [
-        // TODO: These two spans look exactly the same, but they are not.
-        // One is from the parent route, and the other is from the route we are reaching.
-        // We need to pass the names of the routes as their descriptions while wrapping loaders and actions.
         {
-          description: 'routes/loader-json-response/$id',
+          description: 'root',
           op: 'remix.server.loader',
         },
         {
@@ -78,7 +80,7 @@ describe('Remix API Loaders', () => {
   });
 
   it('handles a thrown 500 response', async () => {
-    const baseURL = await runServer();
+    const baseURL = await runServer(adapter);
     const url = `${baseURL}/loader-json-response/-1`;
 
     const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(url, 3);
