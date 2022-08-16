@@ -138,17 +138,17 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('makes sure scope does not bleed between requests', async () => {
-    const baseURL = await runServer(adapter);
+    const config = await runServer(adapter);
 
     await Promise.all(
       Array.from(Array(3).keys()).map(async (id: number) => {
-        const url = `${baseURL}/scope-bleed/${id}`;
+        const url = `${config.url}/scope-bleed/${id}`;
         // Send requests with 1 sec delays, but they should all resolve at the same time
         // See packages/remix/test/integration/app/routes/scope-bleed/$id.tsx
         // for server-side set up.
         const randomNum = Math.floor(Math.random() * 15) + 1;
-        await new Promise(resolve => setTimeout(resolve, id * 100 - 100 + randomNum));
-        const envelope = await getEnvelopeRequest(url);
+        await new Promise(resolve => setTimeout(resolve, id * 100 + randomNum));
+        const envelope = await getEnvelopeRequest({ ...config, url });
         const transaction = envelope[2];
 
         assertSentryTransaction(transaction, {
