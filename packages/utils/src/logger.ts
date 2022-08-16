@@ -9,6 +9,7 @@ const global = getGlobalObject<Window | NodeJS.Global>();
 const PREFIX = 'Sentry Logger ';
 
 export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'] as const;
+export type ConsoleLevel = typeof CONSOLE_LEVELS[number];
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<typeof CONSOLE_LEVELS[number], LoggerMethod>;
