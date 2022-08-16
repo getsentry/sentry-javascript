@@ -5,6 +5,7 @@ import {
   getMultipleEnvelopeRequest,
   assertSentryEvent,
 } from './utils/helpers';
+import { Event } from '@sentry/types';
 
 jest.spyOn(console, 'error').mockImplementation();
 
@@ -136,39 +137,27 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
   });
 
-  // TODO: This test flakes. Let's fix it.
-  // it('makes sure scope does not bleed between requests', async () => {
-  //   const { url, server, scope } = await runServer(adapter);
+  it('makes sure scope does not bleed between requests', async () => {
+    const { url, server, scope } = await runServer(adapter);
 
-  //   const envelopes = await Promise.all([
-  //     getEnvelopeRequest({ url: `${url}/scope-bleed/1`, server, scope }, { endServer: false }),
-  //     getEnvelopeRequest({ url: `${url}/scope-bleed/2`, server, scope }, { endServer: false }),
-  //     getEnvelopeRequest({ url: `${url}/scope-bleed/3`, server, scope }, { endServer: false }),
-  //     getEnvelopeRequest({ url: `${url}/scope-bleed/4`, server, scope }, { endServer: false }),
-  //   ]);
+    const envelopes = await Promise.all([
+      getEnvelopeRequest({ url: `${url}/scope-bleed/1`, server, scope }, { endServer: false }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/2`, server, scope }, { endServer: false }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/3`, server, scope }, { endServer: false }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/4`, server, scope }, { endServer: false }),
+    ]);
 
-  //   scope.persist(false);
-  //   await new Promise(resolve => server.close(resolve));
+    scope.persist(false);
+    await new Promise(resolve => server.close(resolve));
 
-  //   assertSentryTransaction(envelopes[0][2], {
-  //     tags: {
-  //       tag4: '4',
-  //     },
-  //   });
-  //   assertSentryTransaction(envelopes[1][2], {
-  //     tags: {
-  //       tag3: '3',
-  //     },
-  //   });
-  //   assertSentryTransaction(envelopes[2][2], {
-  //     tags: {
-  //       tag2: '2',
-  //     },
-  //   });
-  //   assertSentryTransaction(envelopes[3][2], {
-  //     tags: {
-  //       tag1: '1',
-  //     },
-  //   });
-  // });
+    envelopes.forEach(envelope => {
+      const tags = envelope[2].tags as NonNullable<Event['tags']>;
+      const customTagArr = Object.keys(tags).filter(t => t.startsWith('tag'));
+      expect(customTagArr).toHaveLength(1);
+
+      const key = customTagArr[0];
+      const val = key[key.length - 1];
+      expect(tags[key]).toEqual(val);
+    });
+  });
 });

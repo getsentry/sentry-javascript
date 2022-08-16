@@ -3,7 +3,6 @@ import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { extractRequestData, loadModule, logger } from '@sentry/utils';
-import * as domain from 'domain';
 
 import {
   createRoutes,
@@ -43,23 +42,17 @@ function wrapExpressRequestHandler(
     // eslint-disable-next-line @typescript-eslint/unbound-method
     res.end = wrapEndMethod(res.end);
 
-    const local = domain.create();
-    local.add(req);
-    local.add(res);
+    const request = extractRequestData(req);
+    const hub = getCurrentHub();
+    const options = hub.getClient()?.getOptions();
 
-    local.run(async () => {
-      const request = extractRequestData(req);
-      const hub = getCurrentHub();
-      const options = hub.getClient()?.getOptions();
+    if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
+      return origRequestHandler.call(this, req, res, next);
+    }
 
-      if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
-        return origRequestHandler.call(this, req, res, next);
-      }
-
-      const url = new URL(request.url);
-      startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
-      await origRequestHandler.call(this, req, res, next);
-    });
+    const url = new URL(request.url);
+    startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
+    return origRequestHandler.call(this, req, res, next);
   };
 }
 
