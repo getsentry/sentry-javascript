@@ -2,7 +2,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should add an empty breadcrumb, when an empty object is given', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 2);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
   const errorEnvelope = envelopes[1];
 
   expect(errorEnvelope).toHaveLength(3);

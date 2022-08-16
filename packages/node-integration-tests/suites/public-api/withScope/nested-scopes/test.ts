@@ -4,7 +4,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should allow nested scoping', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 10);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 10 });
 
   assertSentryEvent(envelopes[1][2], {
     message: 'root_before',

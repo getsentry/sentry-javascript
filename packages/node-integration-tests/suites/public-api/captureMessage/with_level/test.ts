@@ -2,7 +2,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should capture with different severity levels', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 12);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 12 });
 
   assertSentryEvent(envelopes[1][2], {
     message: 'debug_message',

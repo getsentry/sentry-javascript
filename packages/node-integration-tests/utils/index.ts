@@ -14,6 +14,18 @@ export type TestServerConfig = {
   scope: nock.Scope;
 };
 
+export type DataCollectorOptions = {
+  // The expected amount of requests to the envelope endpoint.
+  // If the amount of sentrequests is lower than`count`, this function will not resolve.
+  count?: number;
+
+  // The method of the request.
+  method?: 'get' | 'post';
+
+  // Whether to stop the server after the requests have been intercepted
+  endServer?: boolean;
+};
+
 /**
  * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
  *
@@ -75,22 +87,20 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 /**
  * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
- * @param config The url, server instance and the nock scope.
- * @param count The expected amount of requests to the envelope endpoint. If
- * the amount of sentrequests is lower than`count`, this function will not resolve.
- * @param method The method of the request. Defaults to `GET`.
- * @param endServer: Whether to stop the server after the requests have been intercepted.
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {DataCollectorOptions} options
  * @returns The intercepted envelopes.
  */
 export const getMultipleEnvelopeRequest = async (
   config: TestServerConfig,
-  count: number,
-  method: 'get' | 'post' = 'get',
-  endServer: boolean = true,
+  options: DataCollectorOptions,
 ): Promise<Record<string, unknown>[][]> => {
   // eslint-disable-next-line no-async-promise-executor
   return (
-    await Promise.all([setupNock(config.scope, config.server, count, endServer), makeRequest(method, config.url)])
+    await Promise.all([
+      setupNock(config.scope, config.server, options.count || 1, options.endServer || true),
+      makeRequest(options.method || 'get', config.url),
+    ])
   )[0];
 };
 
@@ -143,7 +153,7 @@ const makeRequest = async (method: 'get' | 'post', url: string): Promise<void> =
 /**
  * Sends a get request to given URL, with optional headers
  *
- * @param {URL} url
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
  * @param {Record<string, string>} [headers]
  * @return {*}  {Promise<any>}
  */
@@ -181,16 +191,15 @@ export const getAPIResponse = async (config: TestServerConfig, headers?: Record<
 /**
  * Intercepts and extracts a single request containing a Sentry envelope
  *
- * @param url The url the intercepted request will be directed to.
- * @param method The method of the request. Defaults to `GET`.
+ * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {DataCollectorOptions} options
  * @returns The extracted envelope.
  */
 export const getEnvelopeRequest = async (
   config: TestServerConfig,
-  method: 'get' | 'post' = 'get',
-  endServer: boolean = true,
+  options?: DataCollectorOptions,
 ): Promise<Array<Record<string, unknown>>> => {
-  return (await getMultipleEnvelopeRequest(config, 1, method, endServer))[0];
+  return (await getMultipleEnvelopeRequest(config, { ...options, count: 1 }))[0];
 };
 
 /**

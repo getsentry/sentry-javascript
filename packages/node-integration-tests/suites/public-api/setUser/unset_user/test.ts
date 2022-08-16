@@ -4,7 +4,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should unset user', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 6);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 6 });
 
   assertSentryEvent(envelopes[1][2], {
     message: 'no_user',

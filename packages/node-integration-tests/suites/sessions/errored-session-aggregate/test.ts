@@ -6,9 +6,9 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
   const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelopes = await Promise.race([
-    getMultipleEnvelopeRequest({ url: `${url}/success`, server, scope }, 3, 'get', false),
-    getMultipleEnvelopeRequest({ url: `${url}/error_handled`, server, scope }, 3, 'get', false),
-    getMultipleEnvelopeRequest({ url: `${url}/error_unhandled`, server, scope }, 3, 'get', false),
+    getMultipleEnvelopeRequest({ url: `${url}/success`, server, scope }, { count: 3, endServer: false }),
+    getMultipleEnvelopeRequest({ url: `${url}/error_handled`, server, scope }, { count: 3, endServer: false }),
+    getMultipleEnvelopeRequest({ url: `${url}/error_unhandled`, server, scope }, { count: 3, endServer: false }),
   ]);
 
   scope.persist(false);

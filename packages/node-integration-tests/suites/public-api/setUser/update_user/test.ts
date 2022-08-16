@@ -2,7 +2,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should update user', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 4);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 4 });
 
   assertSentryEvent(envelopes[1][2], {
     message: 'first_user',

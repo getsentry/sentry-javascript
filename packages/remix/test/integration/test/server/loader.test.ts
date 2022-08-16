@@ -14,7 +14,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/-2`;
 
-    let [transaction, event] = await getMultipleEnvelopeRequest({ ...config, url }, 2);
+    let [transaction, event] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2 });
 
     // The event envelope is returned before the transaction envelope when using express adapter.
     // We can update this when we merge the envelope filtering utility.
@@ -83,7 +83,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/-1`;
 
-    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest({ ...config, url }, 3);
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 3 });
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {

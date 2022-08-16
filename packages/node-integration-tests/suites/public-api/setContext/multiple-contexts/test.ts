@@ -4,7 +4,7 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should record multiple contexts', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, 2);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
   const errorEnvelope = envelopes[1];
 
   assertSentryEvent(errorEnvelope[2], {
