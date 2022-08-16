@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/hub';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractRequestData, loadModule, logger } from '@sentry/utils';
+import { extractRequestData, loadModule } from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
