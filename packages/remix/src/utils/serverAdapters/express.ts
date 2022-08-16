@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/hub';
 import { hasTracingEnabled } from '@sentry/tracing';
-import { extractRequestData, loadModule } from '@sentry/utils';
+import { Transaction } from '@sentry/types';
+import { extractRequestData, loadModule, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
@@ -38,6 +39,9 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    res.end = wrapEndMethod(res.end);
+
     const local = domain.create();
     local.add(req);
     local.add(res);
@@ -52,12 +56,8 @@ function wrapExpressRequestHandler(
       }
 
       const url = new URL(request.url);
-      const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
-
+      startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
       await origRequestHandler.call(this, req, res, next);
-
-      transaction?.setHttpStatus(res.statusCode);
-      transaction?.finish();
     });
   };
 }
@@ -76,4 +76,54 @@ export function wrapExpressCreateRequestHandler(
 
     return wrapExpressRequestHandler(requestHandler, newBuild);
   };
+}
+
+export type AugmentedExpressResponse = ExpressResponse & {
+  __sentryTransaction?: Transaction;
+};
+
+type ResponseEndMethod = AugmentedExpressResponse['end'];
+type WrappedResponseEndMethod = AugmentedExpressResponse['end'];
+
+/**
+ * Wrap `res.end()` so that it closes the transaction and flushes events before letting the request finish.
+ *
+ * Note: This wraps a sync method with an async method. While in general that's not a great idea in terms of keeping
+ * things in the right order, in this case it's safe, because the native `.end()` actually *is* async, and its run
+ * actually *is* awaited, just manually so (which reflects the fact that the core of the request/response code in Node
+ * by far predates the introduction of `async`/`await`). When `.end()` is done, it emits the `prefinish` event, and
+ * only once that fires does request processing continue. See
+ * https://github.com/nodejs/node/commit/7c9b607048f13741173d397795bac37707405ba7.
+ *
+ * @param origEnd The original `res.end()` method
+ * @returns The wrapped version
+ */
+function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
+  return async function newEnd(this: AugmentedExpressResponse, ...args: unknown[]) {
+    await finishSentryProcessing(this);
+
+    return origEnd.call(this, ...args);
+  };
+}
+
+/**
+ * Close the open transaction (if any) and flush events to Sentry.
+ *
+ * @param res The outgoing response for this request, on which the transaction is stored
+ */
+async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<void> {
+  const { __sentryTransaction: transaction } = res;
+
+  if (transaction) {
+    transaction.setHttpStatus(res.statusCode);
+
+    // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
+    // transaction closes, and make sure to wait until that's done before flushing events
+    await new Promise(resolve => {
+      setImmediate(() => {
+        transaction.finish();
+        resolve();
+      });
+    });
+  }
 }
