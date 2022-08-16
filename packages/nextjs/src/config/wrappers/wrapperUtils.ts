@@ -1,25 +1,65 @@
+import { captureException } from '@sentry/core';
+import { getActiveTransaction } from '@sentry/tracing';
+import { Span } from '@sentry/types';
+
 import { DataFetchingFunction } from './types';
 
 /**
- * Pass-through wrapper for the original function, used as a first step in eventually wrapping the data-fetching
- * functions with code for tracing.
+ * Create a span to track the wrapped function and update transaction name with parameterized route.
  *
  * @template T Types for `getInitialProps`, `getStaticProps`, and `getServerSideProps`
  * @param origFunction The user's exported `getInitialProps`, `getStaticProps`, or `getServerSideProps` function
  * @param context The context object passed by nextjs to the function
+ * @param route The route currently being served
  * @returns The result of calling the user's function
  */
-export async function callOriginal<T extends DataFetchingFunction>(
+export async function wrapperCore<T extends DataFetchingFunction>(
   origFunction: T['fn'],
   context: T['context'],
+  route: string,
 ): Promise<T['result']> {
-  let props;
+  const transaction = getActiveTransaction();
 
-  // TODO: Can't figure out how to tell TS that the types are correlated - that a `GSPropsFunction` will only get passed
-  // `GSPropsContext` and never, say, `GSSPContext`. That's what wrapping everything in objects and using the generic
-  // and pulling the types from the generic rather than specifying them directly was supposed to do, but... no luck.
-  // eslint-disable-next-line prefer-const, @typescript-eslint/no-explicit-any
-  props = await (origFunction as any)(context);
+  if (transaction) {
+    // Pull off any leading underscores we've added in the process of wrapping the function
+    const wrappedFunctionName = origFunction.name.replace(/^_*/, '');
 
-  return props;
+    // TODO: Make sure that the given route matches the name of the active transaction (to prevent background data
+    // fetching from switching the name to a completely other route)
+    transaction.name = route;
+    transaction.metadata.source = 'route';
+
+    // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
+    // route's transaction
+    const span = transaction.startChild({ op: 'nextjs.data', description: `${wrappedFunctionName} (${route})` });
+
+    const props = await callOriginal(origFunction, context, span);
+
+    span.finish();
+
+    return props;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return callOriginal(origFunction, context);
+}
+
+/** Call the original function, capturing any errors and finishing the span (if any) in case of error */
+async function callOriginal<T extends DataFetchingFunction>(
+  origFunction: T['fn'],
+  context: T['context'],
+  span?: Span,
+): Promise<T['result']> {
+  try {
+    // eslint-disable-next-line prefer-const, @typescript-eslint/no-explicit-any
+    return (origFunction as any)(context);
+  } catch (err) {
+    if (span) {
+      span.finish();
+    }
+
+    // TODO Copy more robust error handling over from `withSentry`
+    captureException(err);
+    throw err;
+  }
 }
