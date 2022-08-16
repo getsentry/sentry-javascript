@@ -12,7 +12,9 @@ type GetInitialProps = Required<NextPage<unknown>>['getInitialProps'];
  * @returns A wrapped version of the function
  */
 export function withSentryGetInitialProps(origGetInitialProps: GetInitialProps, route: string): GetInitialProps {
-  return function (...getInitialPropsArguments: Parameters<GetInitialProps>): ReturnType<GetInitialProps> {
-    return callDataFetcherTraced(origGetInitialProps, getInitialPropsArguments, { route, op: 'getInitialProps' });
+  return async function (
+    ...getInitialPropsArguments: Parameters<GetInitialProps>
+  ): Promise<ReturnType<GetInitialProps>> {
+    return await callDataFetcherTraced(origGetInitialProps, getInitialPropsArguments, { route, op: 'getInitialProps' });
   };
 }

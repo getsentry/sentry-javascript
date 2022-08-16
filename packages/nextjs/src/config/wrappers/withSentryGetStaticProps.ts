@@ -15,7 +15,9 @@ export function withSentryGetStaticProps(
   origGetStaticProps: GetStaticProps<Props>,
   route: string,
 ): GetStaticProps<Props> {
-  return function (...getStaticPropsArguments: Parameters<GetStaticProps<Props>>): ReturnType<GetStaticProps<Props>> {
-    return callDataFetcherTraced(origGetStaticProps, getStaticPropsArguments, { route, op: 'getStaticProps' });
+  return async function (
+    ...getStaticPropsArguments: Parameters<GetStaticProps<Props>>
+  ): ReturnType<GetStaticProps<Props>> {
+    return await callDataFetcherTraced(origGetStaticProps, getStaticPropsArguments, { route, op: 'getStaticProps' });
   };
 }

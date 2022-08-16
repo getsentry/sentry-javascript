@@ -8,14 +8,14 @@ import { Span } from '@sentry/types';
  * We only do the following until we move transaction creation into this function: When called, the wrapped function
  * will also update the name of the active transaction with a parameterized route provided via the `options` argument.
  */
-export function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
+export async function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
   origFunction: F,
   origFunctionArgs: Parameters<F>,
   options: {
     route: string;
     op: string;
   },
-): ReturnType<F> {
+): Promise<ReturnType<F>> {
   const { route, op } = options;
 
   const transaction = getActiveTransaction();
@@ -39,24 +39,9 @@ export function callDataFetcherTraced<F extends (...args: any[]) => Promise<any>
   // route's transaction
   const span = transaction.startChild({ op: 'nextjs.data', description: `${wrappedFunctionName} (${route})` });
 
-  const result = origFunction(...origFunctionArgs);
-
-  // We do the following instead of `await`-ing the return value of `origFunction`, because that would require us to
-  // make this function async which might in turn create a mismatch of function signatures between the original
-  // function and the wrapped one.
-  // This wraps `result`, which is potentially a Promise, into a Promise.
-  // If `result` is a non-Promise, the callback of `then` is immediately called and the span is finished.
-  // If `result` is a Promise, the callback of `then` is only called when `result` resolves
-  void Promise.resolve(result).then(
-    () => {
-      span.finish();
-    },
-    err => {
-      // TODO: Can we somehow associate the error with the span?
-      span.finish();
-      throw err;
-    },
-  );
-
-  return result;
+  try {
+    return await origFunction(...origFunctionArgs);
+  } finally {
+    span.finish();
+  }
 }

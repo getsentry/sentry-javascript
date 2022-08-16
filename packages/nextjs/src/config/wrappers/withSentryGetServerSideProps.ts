@@ -13,8 +13,10 @@ export function withSentryGetServerSideProps(
   origGetServerSideProps: GetServerSideProps,
   route: string,
 ): GetServerSideProps {
-  return function (...getServerSidePropsArguments: Parameters<GetServerSideProps>): ReturnType<GetServerSideProps> {
-    return callDataFetcherTraced(origGetServerSideProps, getServerSidePropsArguments, {
+  return async function (
+    ...getServerSidePropsArguments: Parameters<GetServerSideProps>
+  ): ReturnType<GetServerSideProps> {
+    return await callDataFetcherTraced(origGetServerSideProps, getServerSidePropsArguments, {
       route,
       op: 'getServerSideProps',
     });

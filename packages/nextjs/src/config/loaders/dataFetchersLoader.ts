@@ -38,9 +38,6 @@ const DATA_FETCHING_FUNCTIONS = {
 type LoaderOptions = {
   projectDir: string;
   pagesDir: string;
-  underscoreAppRegex: RegExp;
-  underscoreErrorRegex: RegExp;
-  underscoreDocumentRegex: RegExp;
 };
 
 /**
