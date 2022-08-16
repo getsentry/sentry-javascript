@@ -3,13 +3,16 @@ import path from 'path';
 import { getEnvelopeRequest, runServer } from '../../../utils';
 
 test('should aggregate successful sessions', async () => {
-  const url = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelope = await Promise.race([
-    getEnvelopeRequest(`${url}/success`),
-    getEnvelopeRequest(`${url}/success_next`),
-    getEnvelopeRequest(`${url}/success_slow`),
+    getEnvelopeRequest({ url: `${url}/success`, server, scope }, { endServer: false }),
+    getEnvelopeRequest({ url: `${url}/success_next`, server, scope }, { endServer: false }),
+    getEnvelopeRequest({ url: `${url}/success_slow`, server, scope }, { endServer: false }),
   ]);
+
+  scope.persist(false);
+  server.close();
 
   expect(envelope).toHaveLength(3);
   expect(envelope[0]).toMatchObject({

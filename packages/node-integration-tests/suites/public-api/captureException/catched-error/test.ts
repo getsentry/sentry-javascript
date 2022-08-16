@@ -1,8 +1,8 @@
 import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should work inside catch block', async () => {
-  const url = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(url, 2);
+  const config = await runServer(__dirname);
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
   const errorEnvelope = envelopes[1];
 
   assertSentryEvent(errorEnvelope[2], {

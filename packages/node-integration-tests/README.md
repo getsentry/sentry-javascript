@@ -33,6 +33,9 @@ A custom server configuration can be used, supplying a script that exports a val
 
 `utils/` contains helpers and Sentry-specific assertions that can be used in (`test.ts`).
 
+`runServer` utility function returns an object containing `url`, [`http.Server`](https://nodejs.org/dist/latest-v16.x/docs/api/http.html#class-httpserver) and [`nock.Scope`](https://github.com/nock/nock#usage) instances for the created server. The `url` property is the base URL for the server. The `http.Server` instance is used to finish the server eventually, and the `nock.Scope` instance is used to bind / unbind interceptors for the test case.
+
+The responsibility of ending the server and interceptor is delegated to the test case. Data collection helpers such as `getEnvelopeRequest` and `getAPIResponse` expect those instances to be available and finish them before their resolution. Test that do not use those helpers will need to end the server and interceptors manually.
 ## Running Tests Locally
 
 Tests can be run locally with:
