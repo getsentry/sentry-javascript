@@ -14,6 +14,7 @@ This release introduces updates the [`tracingOrigins` option](https://docs.sentr
 - feat(nextjs): Add spans and route parameterization in data fetching wrappers (#5564)
 - feat(nextjs): Create spans and route parameterization in server-side `getInitialProps` (#5587)
 - fix(remix): Use domains to prevent scope bleed (#5570)
+- fix(remix): Wrap domains properly on instrumentServer (#5590)
 - feat(remix): Add route ID to remix routes (#5568)
 - feat(remix): Export a manual wrapper for custom Express servers (#5524)
 - feat(tracing): Add long task collection (#5529)
