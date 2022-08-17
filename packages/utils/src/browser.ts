@@ -122,3 +122,21 @@ export function getLocationHref(): string {
     return '';
   }
 }
+
+/**
+ * Gets a DOM element via document.querySelector.
+ *
+ * This wrapper will first check for the existance of the function before
+ * actually calling it so that we don't have to take care of this check,
+ * every time we want to access the DOM.
+ * Reason: DOM/querySelector is not available in all environments
+ *
+ * @param selector the selector string passed on to document.querySelector
+ */
+export function getDomElement(selector: string): Element | null {
+  const global = getGlobalObject<Window>();
+  if (global.document && global.document.querySelector) {
+    return global.document.querySelector(selector);
+  }
+  return null;
+}

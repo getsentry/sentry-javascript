@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-import { htmlTreeAsString } from '../src/browser';
+import { getDomElement, htmlTreeAsString } from '../src/browser';
 
 beforeAll(() => {
   const dom = new JSDOM();
@@ -43,5 +43,15 @@ describe('htmlTreeAsString', () => {
     expect(htmlTreeAsString(document.getElementById('cat-2'), ['test-id'])).toBe(
       'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
     );
+  });
+});
+
+describe('getDomElement', () => {
+  it('returns the element for a given query selector', () => {
+    document.head.innerHTML = '<div id="mydiv">Hello</div>';
+    const el = getDomElement('div#mydiv');
+    expect(el).toBeDefined();
+    expect(el?.tagName).toEqual('DIV');
+    expect(el?.id).toEqual('mydiv');
   });
 });

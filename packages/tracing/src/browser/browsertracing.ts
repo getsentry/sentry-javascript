@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { getDomElement, getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
@@ -294,13 +294,6 @@ export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | un
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
-  const globalObject = getGlobalObject<Window>();
-
-  // DOM/querySelector is not available in all environments
-  if (globalObject.document && globalObject.document.querySelector) {
-    const el = globalObject.document.querySelector(`meta[name=${metaName}]`);
-    return el ? el.getAttribute('content') : null;
-  } else {
-    return null;
-  }
+  const metaTag = getDomElement(`meta[name=${metaName}]`);
+  return metaTag ? metaTag.getAttribute('content') : null;
 }
