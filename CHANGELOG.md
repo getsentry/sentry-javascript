@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.11.1
+
+- fix(remix): Store transaction on express req (#5595)
+
 ## 7.11.0
 
 This release introduces updates the [`tracingOrigins` option](https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#tracingorigins) to not attach any headers/create an spans when supplied with an empty array (`[]`). Previously, we would supply the default `tracingOrigins` if an empty array was set as the `tracingOrigins` option.
