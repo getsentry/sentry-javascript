@@ -74,7 +74,7 @@ export function supportsFetch(): boolean {
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function isNativeFetch(func: Function): boolean {
-  return func && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+  return func && typeof func === 'function' && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
 }
 
 /**
