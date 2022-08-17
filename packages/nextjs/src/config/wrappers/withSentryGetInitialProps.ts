@@ -7,8 +7,8 @@ type GetInitialProps = Required<NextPage<unknown>>['getInitialProps'];
 /**
  * Create a wrapped version of the user's exported `getInitialProps` function
  *
- * @param origGetInitialProps - The user's `getInitialProps` function
- * @param parameterizedRoute - The page's parameterized route
+ * @param origGetInitialProps The user's `getInitialProps` function
+ * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
 export function withSentryGetInitialProps(
