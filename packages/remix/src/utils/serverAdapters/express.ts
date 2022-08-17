@@ -2,7 +2,7 @@ import { getCurrentHub } from '@sentry/hub';
 import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractRequestData, loadModule, logger } from '@sentry/utils';
+import { extractRequestData, isString, loadModule, logger } from '@sentry/utils';
 
 import {
   createRoutes,
@@ -51,7 +51,13 @@ function wrapExpressRequestHandler(
     }
 
     const url = new URL(request.url);
-    const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
+    const transaction = startRequestHandlerTransaction(hub, url, routes, pkg, {
+      headers: {
+        'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
+        baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
+      },
+      method: request.method,
+    });
     // save a link to the transaction on the response, so that even if there's an error (landing us outside of
     // the domain), we can still finish it (albeit possibly missing some scope data)
     (res as AugmentedExpressResponse).__sentryTransaction = transaction;

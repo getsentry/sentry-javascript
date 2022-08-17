@@ -2,7 +2,16 @@
 import { captureException, getCurrentHub, Hub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction, WrappedFunction } from '@sentry/types';
-import { addExceptionMechanism, fill, isNodeEnv, loadModule, logger, serializeBaggage } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  extractTraceparentData,
+  fill,
+  isNodeEnv,
+  loadModule,
+  logger,
+  parseBaggageSetMutability,
+  serializeBaggage,
+} from '@sentry/utils';
 import * as domain from 'domain';
 
 import {
@@ -289,14 +298,24 @@ function matchServerRoutes(
  * @param pkg
  */
 export function startRequestHandlerTransaction(
-  url: URL,
-  method: string,
-  routes: ServerRoute[],
   hub: Hub,
-  pkg?: ReactRouterDomPkg,
+  url: URL,
+  routes: ServerRoute[],
+  pkg: ReactRouterDomPkg | undefined,
+  request: {
+    headers: {
+      'sentry-trace': string;
+      baggage: string;
+    };
+    method: string;
+  },
 ): Transaction {
   const currentScope = hub.getScope();
   const matches = matchServerRoutes(routes, url.pathname, pkg);
+
+  // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
+  const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
+  const baggage = parseBaggageSetMutability(request.headers.baggage, traceparentData);
 
   const match = matches && getRequestMatch(url, matches);
   const name = match === null ? url.pathname : match.route.id;
@@ -305,10 +324,12 @@ export function startRequestHandlerTransaction(
     name,
     op: 'http.server',
     tags: {
-      method: method,
+      method: request.method,
     },
+    ...traceparentData,
     metadata: {
       source,
+      baggage,
     },
   });
 
@@ -330,7 +351,13 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       }
 
       const url = new URL(request.url);
-      const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
+      const transaction = startRequestHandlerTransaction(hub, url, routes, pkg, {
+        headers: {
+          'sentry-trace': request.headers.get('sentry-trace') || '',
+          baggage: request.headers.get('baggage') || '',
+        },
+        method: request.method,
+      });
 
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
