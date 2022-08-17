@@ -260,7 +260,7 @@ describe('SentryReplay (capture only on error)', () => {
         },
         errorIds: [expect.any(String)],
         traceIds: [],
-        urls: [],
+        urls: ['http://localhost/'],
       })
     );
 
@@ -273,7 +273,7 @@ describe('SentryReplay (capture only on error)', () => {
         type: 'replay_event',
         error_ids: [expect.any(String)],
         trace_ids: [],
-        urls: [],
+        urls: ['http://localhost/'],
         replay_id: expect.any(String),
         segment_id: 0,
       }),

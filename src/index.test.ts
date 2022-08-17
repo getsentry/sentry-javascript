@@ -19,6 +19,8 @@ async function advanceTimers(time: number) {
 
 describe('SentryReplay', () => {
   let replay: SentryReplay;
+  const prevLocation = window.location;
+
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;
@@ -69,6 +71,11 @@ describe('SentryReplay', () => {
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
+    delete window.location;
+    Object.defineProperty(window, 'location', {
+      value: prevLocation,
+      writable: true,
+    });
   });
 
   afterAll(() => {
@@ -293,6 +300,16 @@ describe('SentryReplay', () => {
     const initialSession = replay.session;
 
     expect(initialSession.id).toBeDefined();
+    // @ts-expect-error private member
+    expect(replay.initialState).toEqual({
+      url: 'http://localhost/',
+      timestamp: BASE_TIMESTAMP,
+    });
+
+    const url = 'http://dummy/';
+    Object.defineProperty(window, 'location', {
+      value: new URL(url),
+    });
 
     // Idle for 15 minutes
     const FIFTEEN_MINUTES = 15 * 60000;
@@ -352,6 +369,13 @@ describe('SentryReplay', () => {
         },
       ])
     );
+
+    // `initialState` should be reset when a new session is created
+    // @ts-expect-error private member
+    expect(replay.initialState).toEqual({
+      url: 'http://dummy/',
+      timestamp: newTimestamp,
+    });
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {

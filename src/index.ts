@@ -211,18 +211,6 @@ export class SentryReplay implements Integration {
       ...this.recordingOptions,
       emit: this.handleRecordingEmit,
     });
-
-    const urlPath = `${window.location.pathname}${window.location.hash}${window.location.search}`;
-    const url = `${window.location.origin}${urlPath}`;
-
-    // Otherwise, these will be captured after the first flush, which means the
-    // URL and timestamps could be incorrect
-    this.initialState = {
-      timestamp: new Date().getTime(),
-      url,
-    };
-
-    this.context.urls.push(url);
   }
 
   /**
@@ -315,6 +303,7 @@ export class SentryReplay implements Integration {
     // enable flag to create the root replay
     if (type === 'new') {
       this.needsCaptureReplay = true;
+      this.setInitialState();
     }
 
     if (session.id !== this.session?.id) {
@@ -322,6 +311,25 @@ export class SentryReplay implements Integration {
     }
 
     this.session = session;
+  }
+
+  /**
+   * Capture some initial state that can change throughout the lifespan of the
+   * replay. This is required because otherwise they would be captured at the
+   * first flush.
+   */
+  setInitialState() {
+    const urlPath = `${window.location.pathname}${window.location.hash}${window.location.search}`;
+    const url = `${window.location.origin}${urlPath}`;
+
+    // Reset context as well
+    this.popEventContext();
+    this.initialState = {
+      timestamp: new Date().getTime(),
+      url,
+    };
+
+    this.context.urls.push(url);
   }
 
   /**
@@ -777,8 +785,8 @@ export class SentryReplay implements Integration {
   popEventContext({
     timestamp,
   }: {
-    timestamp: number;
-  }): CaptureReplayParams & CaptureReplayUpdateParams {
+    timestamp?: number;
+  } = {}): CaptureReplayParams & CaptureReplayUpdateParams {
     const context = {
       session: this.session,
       initialState: this.initialState,
