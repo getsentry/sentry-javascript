@@ -1,16 +1,15 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should normalize non-serializable context', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
-  const errorEnvelope = envelopes[1];
+  const event = await getEnvelopeRequest(config);
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(event[2], {
     message: 'non_serializable',
     contexts: {},
   });
 
-  expect((errorEnvelope[2] as Event).contexts?.context_3).not.toBeDefined();
+  expect((event as Event).contexts?.context_3).not.toBeDefined();
 });

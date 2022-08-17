@@ -2,7 +2,7 @@ import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../..
 
 test('should auto-instrument `mysql` package.', async () => {
   const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config);
+  const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
 
   expect(envelope).toHaveLength(3);
 

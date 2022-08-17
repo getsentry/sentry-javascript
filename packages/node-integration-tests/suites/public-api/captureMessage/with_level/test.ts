@@ -2,34 +2,34 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should capture with different severity levels', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 12 });
+  const events = await getMultipleEnvelopeRequest(config, { count: 6 });
 
-  assertSentryEvent(envelopes[1][2], {
+  assertSentryEvent(events[0][2], {
     message: 'debug_message',
     level: 'debug',
   });
 
-  assertSentryEvent(envelopes[3][2], {
+  assertSentryEvent(events[1][2], {
     message: 'info_message',
     level: 'info',
   });
 
-  assertSentryEvent(envelopes[5][2], {
+  assertSentryEvent(events[2][2], {
     message: 'warning_message',
     level: 'warning',
   });
 
-  assertSentryEvent(envelopes[7][2], {
+  assertSentryEvent(events[3][2], {
     message: 'error_message',
     level: 'error',
   });
 
-  assertSentryEvent(envelopes[9][2], {
+  assertSentryEvent(events[4][2], {
     message: 'fatal_message',
     level: 'fatal',
   });
 
-  assertSentryEvent(envelopes[11][2], {
+  assertSentryEvent(events[5][2], {
     message: 'log_message',
     level: 'log',
   });

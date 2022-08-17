@@ -1,13 +1,12 @@
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should add an empty breadcrumb, when an empty object is given', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
-  const errorEnvelope = envelopes[1];
+  const envelope = await getEnvelopeRequest(config);
 
-  expect(errorEnvelope).toHaveLength(3);
+  expect(envelope).toHaveLength(3);
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(envelope[2], {
     message: 'test-empty-obj',
   });
 });

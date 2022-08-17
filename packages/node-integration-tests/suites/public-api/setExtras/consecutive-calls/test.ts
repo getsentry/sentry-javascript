@@ -2,10 +2,9 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should set extras from multiple consecutive calls', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
-  const errorEnvelope = envelopes[1];
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 1 });
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(envelopes[0][2], {
     message: 'consecutive_calls',
     extra: { extra: [], Infinity: 2, null: 0, obj: { foo: ['bar', 'baz', 1] } },
   });

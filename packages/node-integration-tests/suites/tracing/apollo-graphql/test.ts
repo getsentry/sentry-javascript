@@ -5,7 +5,7 @@ import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer
 conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
   test('should instrument GraphQL and Apollo Server.', async () => {
     const config = await runServer(__dirname);
-    const envelope = await getEnvelopeRequest(config);
+    const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
 
     expect(envelope).toHaveLength(3);
 
