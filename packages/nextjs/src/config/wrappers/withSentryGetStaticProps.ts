@@ -8,16 +8,19 @@ type Props = { [key: string]: unknown };
  * Create a wrapped version of the user's exported `getStaticProps` function
  *
  * @param origGetStaticProps: The user's `getStaticProps` function
- * @param route: The page's parameterized route
+ * @param parameterizedRoute - The page's parameterized route
  * @returns A wrapped version of the function
  */
 export function withSentryGetStaticProps(
   origGetStaticProps: GetStaticProps<Props>,
-  route: string,
+  parameterizedRoute: string,
 ): GetStaticProps<Props> {
   return async function (
     ...getStaticPropsArguments: Parameters<GetStaticProps<Props>>
   ): ReturnType<GetStaticProps<Props>> {
-    return await callDataFetcherTraced(origGetStaticProps, getStaticPropsArguments, { route, op: 'getStaticProps' });
+    return callDataFetcherTraced(origGetStaticProps, getStaticPropsArguments, {
+      parameterizedRoute,
+      dataFetchingMethodName: 'getStaticProps',
+    });
   };
 }
