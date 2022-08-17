@@ -51,7 +51,10 @@ function wrapExpressRequestHandler(
     }
 
     const url = new URL(request.url);
-    startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
+    const transaction = startRequestHandlerTransaction(url, request.method, routes, hub, pkg);
+    // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+    // the domain), we can still finish it (albeit possibly missing some scope data)
+    (res as AugmentedExpressResponse).__sentryTransaction = transaction;
     return origRequestHandler.call(this, req, res, next);
   };
 }
