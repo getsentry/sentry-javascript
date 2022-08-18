@@ -13,7 +13,7 @@ addGlobalEventProcessorFunction.mockImplementation(proc => {
 jest.mock('@sentry/browser');
 
 describe('Initialize Svelte SDk', () => {
-  afterEach(() => {
+  afterAll(() => {
     jest.clearAllMocks();
   });
 

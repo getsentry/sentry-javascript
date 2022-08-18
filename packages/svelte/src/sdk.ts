@@ -24,7 +24,7 @@ export function init(options: BrowserOptions): void {
 
 /**
  * Adds a global event processor to detect if the SDK is initialized in a SvelteKit frontend,
- * in which case add SvelteKit an event.modules entry to outgoing events.
+ * in which case we add SvelteKit an event.modules entry to outgoing events.
  * SvelteKit detection is performed only once, when the event processor is called for the
  * first time. We cannot perform this check upfront (directly when init is called) because
  * at this time, the HTML element might not yet be accessible.
@@ -52,7 +52,8 @@ export function detectAndReportSvelteKit(): void {
 /**
  * To actually detect a SvelteKit frontend, we search the DOM for a special
  * div that's inserted by SvelteKit when the page is rendered. It's identifyed
- * by 'svelte-announcer' and used to improve page accessibility.
+ * by its id, 'svelte-announcer', and it's used to improve page accessibility.
+ * This div is not present when only using Svelte without SvelteKit.
  *
  * @see https://github.com/sveltejs/kit/issues/307 for more information
  */

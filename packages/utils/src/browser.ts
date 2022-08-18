@@ -124,7 +124,7 @@ export function getLocationHref(): string {
 }
 
 /**
- * Gets a DOM element via document.querySelector.
+ * Gets a DOM element by using document.querySelector.
  *
  * This wrapper will first check for the existance of the function before
  * actually calling it so that we don't have to take care of this check,
