@@ -59,7 +59,7 @@ describe('detectAndReportSvelteKit()', () => {
     const processedEvent = passedEventProcessor && passedEventProcessor({} as unknown as any, {});
 
     expect(processedEvent).toBeDefined();
-    expect(processedEvent).toEqual({ modules: { svelteKit: '1.0' } });
+    expect(processedEvent).toEqual({ modules: { svelteKit: 'latest' } });
   });
 
   it("doesn't add anything to the event, if SvelteKit was not detected", () => {
