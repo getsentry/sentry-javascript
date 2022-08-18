@@ -38,7 +38,7 @@ export function detectAndReportSvelteKit(): void {
     }
     if (detectedSvelteKit) {
       event.modules = {
-        svelteKit: '1.0',
+        svelteKit: 'latest',
         ...event.modules,
       };
     }
