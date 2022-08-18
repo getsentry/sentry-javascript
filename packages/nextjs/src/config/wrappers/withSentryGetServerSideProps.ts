@@ -1,6 +1,6 @@
 import { GetServerSideProps } from 'next';
 
-import { callDataFetcherTraced } from './wrapperUtils';
+import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function
@@ -16,9 +16,18 @@ export function withSentryGetServerSideProps(
   return async function (
     ...getServerSidePropsArguments: Parameters<GetServerSideProps>
   ): ReturnType<GetServerSideProps> {
-    return callDataFetcherTraced(origGetServerSideProps, getServerSidePropsArguments, {
-      parameterizedRoute,
-      dataFetchingMethodName: 'getServerSideProps',
-    });
+    const [context] = getServerSidePropsArguments;
+    const { req, res } = context;
+
+    const errorWrappedGetServerSideProps = withErrorInstrumentation(origGetServerSideProps);
+
+    if (hasTracingEnabled()) {
+      return callTracedServerSideDataFetcher(errorWrappedGetServerSideProps, getServerSidePropsArguments, req, res, {
+        parameterizedRoute,
+        functionName: 'getServerSideProps',
+      });
+    } else {
+      return errorWrappedGetServerSideProps(...getServerSidePropsArguments);
+    }
   };
 }
