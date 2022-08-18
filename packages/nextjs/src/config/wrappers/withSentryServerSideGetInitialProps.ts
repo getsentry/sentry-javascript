@@ -24,8 +24,11 @@ export function withSentryServerSideGetInitialProps(
 
     const errorWrappedGetInitialProps = withErrorInstrumentation(origGetInitialProps);
 
-    if (req && res && hasTracingEnabled()) {
-      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, getInitialPropsArguments, req, res, {
+    if (hasTracingEnabled()) {
+      // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
+      // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, getInitialPropsArguments, req!, res!, {
         parameterizedRoute,
         functionName: 'getInitialProps',
       });
