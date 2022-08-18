@@ -73,8 +73,9 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   req: IncomingMessage,
   res: ServerResponse,
   options: {
-    parameterizedRoute: string;
-    functionName: string;
+    requestedRouteName: string;
+    dataFetcherRouteName: string;
+    dataFetchingMethodName: string;
   },
 ): Promise<ReturnType<F>> {
   return domain.create().bind(async () => {
@@ -85,7 +86,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const newTransaction = startTransaction({
         op: 'nextjs.data',
-        name: options.parameterizedRoute,
+        name: options.requestedRouteName,
         metadata: {
           source: 'route',
         },
@@ -98,7 +99,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
     const dataFetcherSpan = requestTransaction.startChild({
       op: 'nextjs.data',
-      description: `${options.functionName} (${options.parameterizedRoute})`,
+      description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
     });
 
     const currentScope = getCurrentHub().getScope();
