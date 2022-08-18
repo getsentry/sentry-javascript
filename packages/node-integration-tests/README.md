@@ -33,9 +33,12 @@ A custom server configuration can be used, supplying a script that exports a val
 
 `utils/` contains helpers and Sentry-specific assertions that can be used in (`test.ts`).
 
-`runServer` utility function returns an object containing `url`, [`http.Server`](https://nodejs.org/dist/latest-v16.x/docs/api/http.html#class-httpserver) and [`nock.Scope`](https://github.com/nock/nock#usage) instances for the created server. The `url` property is the base URL for the server. The `http.Server` instance is used to finish the server eventually, and the `nock.Scope` instance is used to bind / unbind interceptors for the test case.
+`runServer` utility function returns an object containing `url` and [`http.Server`](https://nodejs.org/dist/latest-v16.x/docs/api/http.html#class-httpserver)  instance for the created server. The `url` property is the base URL for the server. The `http.Server` instance is used to finish the server eventually.
 
-The responsibility of ending the server and interceptor is delegated to the test case. Data collection helpers such as `getEnvelopeRequest` and `getAPIResponse` expect those instances to be available and finish them before their resolution. Test that do not use those helpers will need to end the server and interceptors manually.
+The responsibility of ending the server is delegated to the test case. Data collection helpers such as `getEnvelopeRequest` and `getAPIResponse` expect the server instance to be available and finish it before their resolution. Test that do not use those helpers will need to end the server manually.
+
+Nock interceptors are internally used to capture envelope requests by `getEnvelopeRequest` and `getMultipleEnvelopeRequest` helpers. After capturing required requests, the interceptors are removed. Nock can manually be used inside the test cases to intercept requests, but should be removed before the test ends, not to cause flakiness.
+
 ## Running Tests Locally
 
 Tests can be run locally with:
