@@ -12,7 +12,7 @@ import {
   serverWebpackConfig,
   userNextConfig,
 } from '../fixtures';
-import { materializeFinalWebpackConfig } from '../testUtils';
+import { materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
 
 describe('constructWebpackConfigFunction()', () => {
   it('includes expected properties', async () => {
@@ -45,6 +45,17 @@ describe('constructWebpackConfigFunction()', () => {
     delete materializedUserWebpackConfig.entry;
 
     expect(finalWebpackConfig).toEqual(expect.objectContaining(materializedUserWebpackConfig));
+  });
+
+  it("doesn't set devtool if webpack plugin is disabled", () => {
+    const finalNextConfig = materializeFinalNextConfig({
+      ...exportedNextConfig,
+      webpack: () => ({ devtool: 'something-besides-source-map' } as any),
+      sentry: { disableServerWebpackPlugin: true },
+    });
+    const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
+
+    expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
   });
 
   it('allows for the use of `hidden-source-map` as `devtool` value for client-side builds', async () => {

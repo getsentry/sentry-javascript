@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { BuildContext } from '../../../src/config/types';
+import { BuildContext, ExportedNextConfig } from '../../../src/config/types';
 import { getUserConfigFile, getWebpackPluginOptions, SentryWebpackPlugin } from '../../../src/config/webpack';
 import {
   clientBuildContext,
@@ -14,7 +14,7 @@ import {
   userSentryWebpackPluginConfig,
 } from '../fixtures';
 import { exitsSync, mkdtempSyncSpy, mockExistsSync, realExistsSync } from '../mocks';
-import { findWebpackPlugin, materializeFinalNextConfig, materializeFinalWebpackConfig } from '../testUtils';
+import { findWebpackPlugin, materializeFinalWebpackConfig } from '../testUtils';
 
 describe('Sentry webpack plugin config', () => {
   it('includes expected properties', async () => {
@@ -283,44 +283,111 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
-  describe('disabling SentryWebpackPlugin', () => {
-    it('allows SentryWebpackPlugin to be turned off for client code (independent of server code)', () => {
-      const clientFinalNextConfig = materializeFinalNextConfig({
-        ...exportedNextConfig,
-        sentry: { disableClientWebpackPlugin: true },
-      });
-      const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
+  describe('SentryWebpackPlugin enablement', () => {
+    let processEnvBackup: typeof process.env;
 
-      const serverFinalNextConfig = materializeFinalNextConfig(exportedNextConfig, userSentryWebpackPluginConfig);
-      const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
-
-      expect(clientFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
-      expect(serverFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
-    });
-    it('allows SentryWebpackPlugin to be turned off for server code (independent of client code)', () => {
-      const serverFinalNextConfig = materializeFinalNextConfig({
-        ...exportedNextConfig,
-        sentry: { disableServerWebpackPlugin: true },
-      });
-      const serverFinalWebpackConfig = serverFinalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
-
-      const clientFinalNextConfig = materializeFinalNextConfig(exportedNextConfig, userSentryWebpackPluginConfig);
-      const clientFinalWebpackConfig = clientFinalNextConfig.webpack?.(clientWebpackConfig, clientBuildContext);
-
-      expect(serverFinalWebpackConfig?.plugins).not.toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
-      expect(clientFinalWebpackConfig?.plugins).toEqual(expect.arrayContaining([expect.any(SentryWebpackPlugin)]));
+    beforeEach(() => {
+      processEnvBackup = { ...process.env };
     });
 
-    it("doesn't set devtool if webpack plugin is disabled", () => {
-      const finalNextConfig = materializeFinalNextConfig({
-        ...exportedNextConfig,
-        webpack: () => ({ devtool: 'something-besides-source-map' } as any),
-        sentry: { disableServerWebpackPlugin: true },
-      });
-      const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
-
-      expect(finalWebpackConfig?.devtool).not.toEqual('source-map');
+    afterEach(() => {
+      process.env = processEnvBackup;
     });
+
+    it.each([
+      // [testName, exportedNextConfig, extraEnvValues, shouldFindServerPlugin, shouldFindClientPlugin]
+      [
+        'obeys `disableClientWebpackPlugin = true`',
+        {
+          ...exportedNextConfig,
+          sentry: { disableClientWebpackPlugin: true },
+        },
+        {},
+        true,
+        false,
+      ],
+
+      [
+        'obeys `disableServerWebpackPlugin = true`',
+        {
+          ...exportedNextConfig,
+          sentry: { disableServerWebpackPlugin: true },
+        },
+        {},
+        false,
+        true,
+      ],
+      [
+        'disables the plugin in Vercel `preview` environment',
+        exportedNextConfig,
+        { VERCEL_ENV: 'preview' },
+        false,
+        false,
+      ],
+      [
+        'disables the plugin in Vercel `development` environment',
+        exportedNextConfig,
+        { VERCEL_ENV: 'development' },
+        false,
+        false,
+      ],
+      [
+        'allows `disableClientWebpackPlugin = false` to override env vars`',
+        {
+          ...exportedNextConfig,
+          sentry: { disableClientWebpackPlugin: false },
+        },
+        { VERCEL_ENV: 'preview' },
+        false,
+        true,
+      ],
+      [
+        'allows `disableServerWebpackPlugin = false` to override env vars`',
+        {
+          ...exportedNextConfig,
+          sentry: { disableServerWebpackPlugin: false },
+        },
+        { VERCEL_ENV: 'preview' },
+        true,
+        false,
+      ],
+    ])(
+      '%s',
+      async (
+        _testName: string,
+        exportedNextConfig: ExportedNextConfig,
+        extraEnvValues: Record<string, string>,
+        shouldFindServerPlugin: boolean,
+        shouldFindClientPlugin: boolean,
+      ) => {
+        process.env = { ...process.env, ...extraEnvValues };
+
+        // We create a copy of the next config for each `materializeFinalWebpackConfig` call because the `sentry`
+        // property gets deleted along the way, and its value matters for some of our test cases
+        const serverFinalWebpackConfig = await materializeFinalWebpackConfig({
+          exportedNextConfig: { ...exportedNextConfig },
+          userSentryWebpackPluginConfig,
+          incomingWebpackConfig: serverWebpackConfig,
+          incomingWebpackBuildContext: serverBuildContext,
+        });
+
+        const clientFinalWebpackConfig = await materializeFinalWebpackConfig({
+          exportedNextConfig: { ...exportedNextConfig },
+          userSentryWebpackPluginConfig,
+          incomingWebpackConfig: clientWebpackConfig,
+          incomingWebpackBuildContext: clientBuildContext,
+        });
+
+        const genericSentryWebpackPluginInstance = expect.any(SentryWebpackPlugin);
+
+        expect(findWebpackPlugin(serverFinalWebpackConfig, 'SentryCliPlugin')).toEqual(
+          shouldFindServerPlugin ? genericSentryWebpackPluginInstance : undefined,
+        );
+        expect(findWebpackPlugin(clientFinalWebpackConfig, 'SentryCliPlugin')).toEqual(
+          shouldFindClientPlugin ? genericSentryWebpackPluginInstance : undefined,
+        );
+      },
+    );
   });
 
   describe('getUserConfigFile', () => {
