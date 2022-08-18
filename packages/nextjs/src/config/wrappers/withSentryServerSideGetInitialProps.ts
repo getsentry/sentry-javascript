@@ -1,6 +1,7 @@
 import { hasTracingEnabled } from '@sentry/tracing';
 import { NextPage } from 'next';
 
+import { isBuild } from '../../utils/isBuild';
 import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
 
 type GetInitialProps = Required<NextPage>['getInitialProps'];
@@ -19,6 +20,10 @@ export function withSentryServerSideGetInitialProps(
   return async function (
     ...getInitialPropsArguments: Parameters<GetInitialProps>
   ): Promise<ReturnType<GetInitialProps>> {
+    if (isBuild()) {
+      return origGetInitialProps(...getInitialPropsArguments);
+    }
+
     const [context] = getInitialPropsArguments;
     const { req, res } = context;
 

@@ -1,5 +1,6 @@
 import { GetServerSideProps } from 'next';
 
+import { isBuild } from '../../utils/isBuild';
 import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
 
 /**
@@ -16,6 +17,10 @@ export function withSentryGetServerSideProps(
   return async function (
     ...getServerSidePropsArguments: Parameters<GetServerSideProps>
   ): ReturnType<GetServerSideProps> {
+    if (isBuild()) {
+      return origGetServerSideProps(...getServerSidePropsArguments);
+    }
+
     const [context] = getServerSidePropsArguments;
     const { req, res } = context;
 
