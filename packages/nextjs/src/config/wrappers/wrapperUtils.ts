@@ -85,7 +85,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       // TODO: Extract trace data from `req` object (trace and baggage headers) and attach it to transaction
 
       const newTransaction = startTransaction({
-        op: 'nextjs.data',
+        op: 'nextjs.data.server',
         name: options.requestedRouteName,
         metadata: {
           source: 'route',
@@ -98,7 +98,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     }
 
     const dataFetcherSpan = requestTransaction.startChild({
-      op: 'nextjs.data',
+      op: 'nextjs.data.server',
       description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
     });
 
@@ -159,7 +159,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
   const span = transaction.startChild({
-    op: 'nextjs.data',
+    op: 'nextjs.data.server',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
   });
 
