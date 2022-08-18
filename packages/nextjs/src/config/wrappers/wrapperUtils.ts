@@ -29,7 +29,7 @@ function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerRe
 }
 
 /**
- * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and retrhrown.
+ * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
  */
 export function withErrorInstrumentation<F extends (...args: any[]) => any>(
   origFunction: F,
