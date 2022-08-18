@@ -16,7 +16,7 @@ export type TestServerConfig = {
 
 export type DataCollectorOptions = {
   // The expected amount of requests to the envelope endpoint.
-  // If the amount of sentrequests is lower than`count`, this function will not resolve.
+  // If the amount of sent requests is lower than `count`, this function will not resolve.
   count?: number;
 
   // The method of the request.
@@ -90,7 +90,7 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 /**
  * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {DataCollectorOptions} options
  * @returns The intercepted envelopes.
  */
@@ -174,9 +174,10 @@ const makeRequest = async (method: 'get' | 'post', url: string): Promise<void> =
 };
 
 /**
- * Sends a get request to given URL, with optional headers
+ * Sends a get request to given URL, with optional headers. Returns the response.
+ * Ends the server instance and flushes the Sentry event queue.
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {Record<string, string>} [headers]
  * @return {*}  {Promise<any>}
  */
@@ -192,7 +193,7 @@ export const getAPIResponse = async (config: TestServerConfig, headers?: Record<
 /**
  * Intercepts and extracts a single request containing a Sentry envelope
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {DataCollectorOptions} options
  * @returns The extracted envelope.
  */
@@ -240,6 +241,13 @@ export async function runServer(
   return { url, server };
 }
 
+/**
+ * Sends a get request to given URL.
+ * Flushes the Sentry event queue.
+ *
+ * @param {string} url
+ * @return {*}  {Promise<void>}
+ */
 export async function runScenario(url: string): Promise<void> {
   await axios.get(url);
   await Sentry.flush();
