@@ -15,7 +15,10 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/-2`;
 
-    const envelopes = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2 });
+    const envelopes = await getMultipleEnvelopeRequest(
+      { ...config, url },
+      { count: 2, envelopeType: ['transaction', 'event'] },
+    );
 
     const event = envelopes[0][2].type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
     const transaction = envelopes[0][2].type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
@@ -54,7 +57,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   it('correctly instruments a parameterized Remix API loader', async () => {
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/123123`;
-    const envelope = await getEnvelopeRequest({ ...config, url });
+    const envelope = await getEnvelopeRequest({ ...config, url }, { envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
@@ -83,7 +86,10 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/loader-json-response/-1`;
 
-    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 3 });
+    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(
+      { ...config, url },
+      { count: 3, envelopeType: ['transaction', 'event'] },
+    );
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {
@@ -138,16 +144,15 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('makes sure scope does not bleed between requests', async () => {
-    const { url, server, scope } = await runServer(adapter);
+    const { url, server } = await runServer(adapter);
 
     const envelopes = await Promise.all([
-      getEnvelopeRequest({ url: `${url}/scope-bleed/1`, server, scope }, { endServer: false }),
-      getEnvelopeRequest({ url: `${url}/scope-bleed/2`, server, scope }, { endServer: false }),
-      getEnvelopeRequest({ url: `${url}/scope-bleed/3`, server, scope }, { endServer: false }),
-      getEnvelopeRequest({ url: `${url}/scope-bleed/4`, server, scope }, { endServer: false }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/1`, server }, { endServer: false, envelopeType: 'transaction' }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/2`, server }, { endServer: false, envelopeType: 'transaction' }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/3`, server }, { endServer: false, envelopeType: 'transaction' }),
+      getEnvelopeRequest({ url: `${url}/scope-bleed/4`, server }, { endServer: false, envelopeType: 'transaction' }),
     ]);
 
-    scope.persist(false);
     await new Promise(resolve => server.close(resolve));
 
     envelopes.forEach(envelope => {
