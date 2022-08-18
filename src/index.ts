@@ -452,7 +452,7 @@ export class SentryReplay implements Integration {
     this.addUpdate(() => {
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      this.eventBuffer.addEvent(event, isCheckout);
+      this.addEvent(event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -576,7 +576,7 @@ export class SentryReplay implements Integration {
       }
 
       this.addUpdate(() => {
-        this.eventBuffer.addEvent({
+        this.addEvent({
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
@@ -664,6 +664,12 @@ export class SentryReplay implements Integration {
   }
 
   /**
+   * Add an event to the event buffer
+   */
+  addEvent(event: RecordingEvent, isCheckout?: boolean) {
+    this.eventBuffer.addEvent(event, isCheckout);
+  }
+  /**
    * Updates the session's last activity timestamp
    */
   updateLastActivity(lastActivity: number = new Date().getTime()) {
@@ -675,7 +681,7 @@ export class SentryReplay implements Integration {
    */
   createCustomBreadcrumb(breadcrumb: Breadcrumb) {
     this.addUpdate(() => {
-      this.eventBuffer.addEvent({
+      this.addEvent({
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp,
         data: {
@@ -692,7 +698,7 @@ export class SentryReplay implements Integration {
   createPerformanceSpans(entries: ReplayPerformanceEntry[]) {
     return Promise.all(
       entries.map(({ type, start, end, name, data }) =>
-        this.eventBuffer.addEvent({
+        this.addEvent({
           type: EventType.Custom,
           timestamp: start,
           data: {
