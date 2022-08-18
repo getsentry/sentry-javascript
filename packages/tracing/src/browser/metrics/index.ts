@@ -52,7 +52,7 @@ export function startTrackingLongTasks(): void {
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(entry.duration);
     transaction.startChild({
-      description: 'Long Task',
+      description: 'Main UI thread blocked',
       op: 'ui.long-task',
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
