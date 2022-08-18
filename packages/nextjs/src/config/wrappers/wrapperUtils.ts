@@ -73,8 +73,11 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   req: IncomingMessage,
   res: ServerResponse,
   options: {
+    /** Parameterized route of the request - will be used for naming the transaction. */
     requestedRouteName: string;
+    /** Name of the route the data fetcher was defined in - will be used for describing the data fetcher's span. */
     dataFetcherRouteName: string;
+    /** Name of the data fetching method - will be used for describing the data fetcher's span. */
     dataFetchingMethodName: string;
   },
 ): Promise<ReturnType<F>> {
