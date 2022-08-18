@@ -86,8 +86,8 @@ export function constructWebpackConfigFunction(
           test: new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/.*\\.(jsx?|tsx?)`),
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
-              options: { projectDir, pagesDir },
+              loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
+              options: { pagesDir },
             },
           ],
         });
