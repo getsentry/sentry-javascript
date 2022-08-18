@@ -37,7 +37,7 @@ A custom server configuration can be used, supplying a script that exports a val
 
 The responsibility of ending the server is delegated to the test case. Data collection helpers such as `getEnvelopeRequest` and `getAPIResponse` expect the server instance to be available and finish it before their resolution. Tests that do not use those helpers will need to end the server manually.
 
-Nock interceptors are internally used to capture envelope requests by `getEnvelopeRequest` and `getMultipleEnvelopeRequest` helpers. After capturing required requests, the interceptors are removed. Nock can manually be used inside the test cases to intercept requests, but should be removed before the test ends, not to cause flakiness.
+Nock interceptors are internally used to capture envelope requests by `getEnvelopeRequest` and `getMultipleEnvelopeRequest` helpers. After capturing required requests, the interceptors are removed. Nock can manually be used inside the test cases to intercept requests but should be removed before the test ends, as not to cause flakiness.
 
 ## Running Tests Locally
 
