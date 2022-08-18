@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
+import { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
 import axios from 'axios';
 import { Express } from 'express';
@@ -24,8 +25,8 @@ export type DataCollectorOptions = {
   // Whether to stop the server after the requests have been intercepted
   endServer?: boolean;
 
-  // Type of the envelopes to capture
-  envelopeType?: string;
+  // Type(s) of the envelopes to capture
+  envelopeType?: EnvelopeItemType | EnvelopeItemType[];
 };
 
 /**
@@ -97,11 +98,16 @@ export const getMultipleEnvelopeRequest = async (
   config: TestServerConfig,
   options: DataCollectorOptions,
 ): Promise<Record<string, unknown>[][]> => {
+  const envelopeTypeArray =
+    typeof options.envelopeType === 'string'
+      ? [options.envelopeType]
+      : options.envelopeType || (['event'] as EnvelopeItemType[]);
+
   const resProm = setupNock(
     config.server,
     options.count || 1,
     typeof options.endServer === 'undefined' ? true : options.endServer,
-    options.envelopeType || 'event',
+    envelopeTypeArray,
   );
 
   void makeRequest(options.method || 'get', config.url);
@@ -112,7 +118,7 @@ const setupNock = async (
   server: http.Server,
   count: number,
   endServer: boolean,
-  envelopeType: string,
+  envelopeType: EnvelopeItemType[],
 ): Promise<Record<string, unknown>[][]> => {
   return new Promise(resolve => {
     const envelopes: Record<string, unknown>[][] = [];
@@ -121,7 +127,7 @@ const setupNock = async (
       .post('/api/1337/envelope/', body => {
         const envelope = parseEnvelope(body);
 
-        if (envelope[1].type === envelopeType) {
+        if (envelopeType.includes(envelope[1].type as EnvelopeItemType)) {
           envelopes.push(envelope);
         } else {
           return false;
@@ -129,9 +135,13 @@ const setupNock = async (
 
         if (count === envelopes.length) {
           nock.removeInterceptor(mock);
-          nock.cleanAll();
 
           if (endServer) {
+            // Cleaning nock only before the server is closed,
+            // not to break tests that use simultaneous requests to the server.
+            // Ex: Remix scope bleed tests.
+            nock.cleanAll();
+
             server.close(() => {
               resolve(envelopes);
             });
