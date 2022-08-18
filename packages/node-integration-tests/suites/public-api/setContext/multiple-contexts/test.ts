@@ -1,13 +1,12 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
 
 test('should record multiple contexts', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
-  const errorEnvelope = envelopes[1];
+  const envelope = await getEnvelopeRequest(config, { count: 1 });
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(envelope[2], {
     message: 'multiple_contexts',
     contexts: {
       context_1: {
@@ -18,5 +17,5 @@ test('should record multiple contexts', async () => {
     },
   });
 
-  expect((errorEnvelope[2] as Event).contexts?.context_3).not.toBeDefined();
+  expect((envelope[2] as Event).contexts?.context_3).not.toBeDefined();
 });

@@ -4,15 +4,15 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should unset user', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 6 });
+  const events = await getMultipleEnvelopeRequest(config, { count: 3 });
 
-  assertSentryEvent(envelopes[1][2], {
+  assertSentryEvent(events[0][2], {
     message: 'no_user',
   });
 
-  expect((envelopes[0][2] as Event).user).not.toBeDefined();
+  expect((events[0][2] as Event).user).not.toBeDefined();
 
-  assertSentryEvent(envelopes[3][2], {
+  assertSentryEvent(events[1][2], {
     message: 'user',
     user: {
       id: 'foo',
@@ -21,9 +21,9 @@ test('should unset user', async () => {
     },
   });
 
-  assertSentryEvent(envelopes[5][2], {
+  assertSentryEvent(events[2][2], {
     message: 'unset_user',
   });
 
-  expect((envelopes[2][2] as Event).user).not.toBeDefined();
+  expect((events[2][2] as Event).user).not.toBeDefined();
 });

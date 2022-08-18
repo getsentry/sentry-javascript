@@ -30,7 +30,7 @@ beforeAll(() => {
 
 test('should auto-instrument `pg` package.', async () => {
   const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config);
+  const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
 
   expect(envelope).toHaveLength(3);
 

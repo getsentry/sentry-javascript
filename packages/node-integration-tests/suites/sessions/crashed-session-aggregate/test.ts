@@ -1,20 +1,27 @@
+import nock from 'nock';
 import path from 'path';
 
 import { getMultipleEnvelopeRequest, runServer } from '../../../utils';
 
 test('should aggregate successful and crashed sessions', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const envelopes = await Promise.race([
-    getMultipleEnvelopeRequest({ url: `${url}/success`, server, scope }, { count: 2, endServer: false }),
-    getMultipleEnvelopeRequest({ url: `${url}/error_unhandled`, server, scope }, { count: 2, endServer: false }),
-    getMultipleEnvelopeRequest({ url: `${url}/success_next`, server, scope }, { count: 2, endServer: false }),
-  ]);
+  const envelope = (
+    await Promise.race([
+      getMultipleEnvelopeRequest({ url: `${url}/success`, server }, { endServer: false, envelopeType: 'sessions' }),
+      getMultipleEnvelopeRequest(
+        { url: `${url}/error_unhandled`, server },
+        { endServer: false, envelopeType: 'sessions' },
+      ),
+      getMultipleEnvelopeRequest(
+        { url: `${url}/success_next`, server },
+        { endServer: false, envelopeType: 'sessions' },
+      ),
+    ])
+  )[0];
 
-  scope.persist(false);
+  nock.cleanAll();
   server.close();
-
-  const envelope = envelopes[1];
 
   expect(envelope[0]).toMatchObject({
     sent_at: expect.any(String),

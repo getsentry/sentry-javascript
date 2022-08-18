@@ -4,10 +4,10 @@ import { getAPIResponse, runServer } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
 test('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       'sentry-trace': '',
       baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',

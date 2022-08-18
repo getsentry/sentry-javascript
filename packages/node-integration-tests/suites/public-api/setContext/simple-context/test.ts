@@ -4,10 +4,9 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should set a simple context', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
-  const errorEnvelope = envelopes[1];
+  const envelopes = await getMultipleEnvelopeRequest(config, { count: 1 });
 
-  assertSentryEvent(errorEnvelope[2], {
+  assertSentryEvent(envelopes[0][2], {
     message: 'simple_context_object',
     contexts: {
       foo: {
@@ -16,5 +15,5 @@ test('should set a simple context', async () => {
     },
   });
 
-  expect((errorEnvelope[2] as Event).contexts?.context_3).not.toBeDefined();
+  expect((envelopes[0][2] as Event).contexts?.context_3).not.toBeDefined();
 });

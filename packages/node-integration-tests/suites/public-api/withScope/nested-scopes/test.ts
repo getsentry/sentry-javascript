@@ -4,16 +4,16 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should allow nested scoping', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 10 });
+  const events = await getMultipleEnvelopeRequest(config, { count: 5 });
 
-  assertSentryEvent(envelopes[1][2], {
+  assertSentryEvent(events[0][2], {
     message: 'root_before',
     user: {
       id: 'qux',
     },
   });
 
-  assertSentryEvent(envelopes[3][2], {
+  assertSentryEvent(events[1][2], {
     message: 'outer_before',
     user: {
       id: 'qux',
@@ -23,7 +23,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  assertSentryEvent(envelopes[5][2], {
+  assertSentryEvent(events[2][2], {
     message: 'inner',
     tags: {
       foo: false,
@@ -31,9 +31,9 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  expect((envelopes[4][2] as Event).user).toBeUndefined();
+  expect((events[2][2] as Event).user).toBeUndefined();
 
-  assertSentryEvent(envelopes[7][2], {
+  assertSentryEvent(events[3][2], {
     message: 'outer_after',
     user: {
       id: 'baz',
@@ -43,7 +43,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  assertSentryEvent(envelopes[9][2], {
+  assertSentryEvent(events[4][2], {
     message: 'root_after',
     user: {
       id: 'qux',

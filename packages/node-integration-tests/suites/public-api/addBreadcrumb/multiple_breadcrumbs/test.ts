@@ -2,9 +2,9 @@ import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../
 
 test('should add multiple breadcrumbs', async () => {
   const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
+  const events = await getMultipleEnvelopeRequest(config, { count: 1 });
 
-  assertSentryEvent(envelopes[1][2], {
+  assertSentryEvent(events[0][2], {
     message: 'test_multi_breadcrumbs',
     breadcrumbs: [
       {
