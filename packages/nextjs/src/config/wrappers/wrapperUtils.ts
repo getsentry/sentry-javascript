@@ -35,13 +35,20 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
   origFunction: F,
 ): (...params: Parameters<F>) => ReturnType<F> {
   return function (this: unknown, ...origFunctionArguments: Parameters<F>): ReturnType<F> {
-    const potentialPromiseResult = origFunction.call(this, ...origFunctionArguments);
-    // We do this instead of await so we do not change the method signature of the passed function from `() => unknown` to `() => Promise<unknown>`
-    Promise.resolve(potentialPromiseResult).catch(err => {
+    try {
+      const potentialPromiseResult = origFunction.call(this, ...origFunctionArguments);
+      // First of all, we need to capture promise rejections so we have the following check, as well as the try-catch block.
+      // Additionally, we do the following instead of `await`-ing so we do not change the method signature of the passed function from `() => unknown` to `() => Promise<unknown>.
+      Promise.resolve(potentialPromiseResult).catch(err => {
+        // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
+        captureException(err);
+      });
+      return potentialPromiseResult;
+    } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
-      captureException(err);
-    });
-    return potentialPromiseResult;
+      captureException(e);
+      throw e;
+    }
   };
 }
 
