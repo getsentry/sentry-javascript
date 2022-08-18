@@ -142,7 +142,7 @@ describe('SentryReplay (capture only on error)', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);

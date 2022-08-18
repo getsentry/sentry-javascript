@@ -198,7 +198,7 @@ describe('SentryReplay', () => {
       },
     };
 
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -225,7 +225,7 @@ describe('SentryReplay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
 
@@ -488,7 +488,7 @@ describe('SentryReplay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
@@ -502,7 +502,7 @@ describe('SentryReplay', () => {
     ).mockClear();
     captureReplayMock.mockClear();
 
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
@@ -533,7 +533,7 @@ describe('SentryReplay', () => {
       type: 2,
     };
 
-    replay.eventBuffer.addEvent(TEST_EVENT);
+    replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(captureReplayMock).toHaveBeenCalledWith(
