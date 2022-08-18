@@ -470,8 +470,10 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   /** User override */
 
-  if ((isServer && disableServerWebpackPlugin) || (!isServer && disableClientWebpackPlugin)) {
-    return false;
+  if (isServer && disableServerWebpackPlugin !== undefined) {
+    return !disableServerWebpackPlugin;
+  } else if (!isServer && disableClientWebpackPlugin !== undefined) {
+    return !disableClientWebpackPlugin;
   }
 
   /** Situations where the default is to disable the plugin */
