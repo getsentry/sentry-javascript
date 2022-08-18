@@ -128,6 +128,23 @@ export function makeRemoveBlankLinesPlugin() {
 }
 
 /**
+ * Create a plugin to strip multi-line comments from the output.
+ *
+ * @returns A `rollup-plugin-re` instance.
+ */
+export function makeRemoveMultiLineCommentsPlugin() {
+  return regexReplace({
+    patterns: [
+      {
+        // The `s` flag makes the dot match newlines
+        test: /^\/\*.*\*\//gs,
+        replace: '',
+      },
+    ],
+  });
+}
+
+/**
  * Creates a plugin to replace all instances of "__DEBUG_BUILD__" with a safe statement that
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
