@@ -3,6 +3,7 @@ import {
   captureException,
   getCurrentHub,
   getEnvelopeEndpointWithUrlEncodedAuth,
+  setContext,
 } from '@sentry/core';
 import { Breadcrumb, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler } from '@sentry/utils';
@@ -54,6 +55,7 @@ type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 5;
+const UNABLE_TO_SEND_REPLAY = 'Unable to send replay';
 
 export class SentryReplay implements Integration {
   /**
@@ -426,7 +428,11 @@ export class SentryReplay implements Integration {
     this.context.errorIds.add(event.event_id);
 
     // Need to be very careful that this does not cause an infinite loop
-    if (this.options.captureOnlyOnError && event.exception) {
+    if (
+      this.options.captureOnlyOnError &&
+      event.exception &&
+      event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because other we could loop indefinitely with trying to capture replay and failing
+    ) {
       // TODO: Do we continue to record after?
       // TODO: What happens if another error happens? Do we record in the same session?
       setTimeout(() => this.flushUpdate());
@@ -904,10 +910,17 @@ export class SentryReplay implements Integration {
 
     // Otherwise use `fetch`, which *WILL* get cancelled on page reloads/unloads
     logger.log(`uploading attachment via fetch()`);
-    await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: serializeEnvelope(envelope),
     });
+    if (response.status !== 200) {
+      setContext('Send Replay Response', {
+        status: response.status,
+        body: await response.text(),
+      });
+      throw new Error(UNABLE_TO_SEND_REPLAY);
+    }
   }
 
   resetRetries() {
@@ -935,8 +948,13 @@ export class SentryReplay implements Integration {
       this.resetRetries();
       return true;
     } catch (ex) {
-      // we have to catch this otherwise it throws an infinite loop in Sentry
       console.error(ex);
+      // Capture error for every failed replay
+      // TODO: Remove this before GA as this will create an error on customer's project
+      setContext('Replays', {
+        retryCount: this.retryCount,
+      });
+      captureException(new Error(UNABLE_TO_SEND_REPLAY));
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
