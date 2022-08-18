@@ -487,6 +487,10 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
     // return false
   }
 
+  if (process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'development') {
+    return false;
+  }
+
   // We've passed all of the tests!
   return true;
 }
