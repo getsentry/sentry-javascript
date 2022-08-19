@@ -27,7 +27,7 @@ const origGetStaticProps = userPageModule.getStaticProps;
 const origGetServerSideProps = userPageModule.getServerSideProps;
 
 if (typeof origGetInitialProps === 'function') {
-  pageComponent.getInitialProps = Sentry.withSentryGetInitialProps(
+  pageComponent.getInitialProps = Sentry.withSentryServerSideGetInitialProps(
     origGetInitialProps,
     '__ROUTE__',
   ) as NextPageComponent['getInitialProps'];
