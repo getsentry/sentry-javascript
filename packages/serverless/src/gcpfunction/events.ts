@@ -21,15 +21,17 @@ export function wrapEventFunction(
 }
 
 /** */
-function _wrapEventFunction(
-  fn: EventFunction | EventFunctionWithCallback,
+function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>(
+  fn: F,
   wrapOptions: Partial<EventFunctionWrapperOptions> = {},
-): EventFunctionWithCallback {
+): (...args: Parameters<F>) => ReturnType<F> | Promise<void> {
   const options: EventFunctionWrapperOptions = {
     flushTimeout: 2000,
     ...wrapOptions,
   };
-  return (data, context, callback) => {
+  return (...eventFunctionArguments: Parameters<F>): ReturnType<F> | Promise<void> => {
+    const [data, context, callback] = eventFunctionArguments;
+
     const hub = getCurrentHub();
 
     const transaction = hub.startTransaction({
@@ -62,7 +64,9 @@ function _wrapEventFunction(
           __DEBUG_BUILD__ && logger.error(e);
         })
         .then(() => {
-          callback(...args);
+          if (typeof callback === 'function') {
+            callback(...args);
+          }
         });
     });
 
