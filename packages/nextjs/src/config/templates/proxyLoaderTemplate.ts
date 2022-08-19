@@ -26,11 +26,16 @@ const origGetInitialProps = pageComponent.getInitialProps;
 const origGetStaticProps = userPageModule.getStaticProps;
 const origGetServerSideProps = userPageModule.getServerSideProps;
 
+const getInitialPropsWrappers: Record<string, any> = {
+  '/_app': Sentry.withSentryServerSideAppGetInitialProps,
+  '/_document': Sentry.withSentryServerSideDocumentGetInitialProps,
+  '/_error': Sentry.withSentryServerSideErrorGetInitialProps,
+};
+
+const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.withSentryServerSideGetInitialProps;
+
 if (typeof origGetInitialProps === 'function') {
-  pageComponent.getInitialProps = Sentry.withSentryServerSideGetInitialProps(
-    origGetInitialProps,
-    '__ROUTE__',
-  ) as NextPageComponent['getInitialProps'];
+  pageComponent.getInitialProps = getInitialPropsWrapper(origGetInitialProps) as NextPageComponent['getInitialProps'];
 }
 
 export const getStaticProps =
