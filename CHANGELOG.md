@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+This release adds an environment check in `@sentry/nextjs` for Vercel deployments (using the `VERCEL_ENV` env variable), and only enables `SentryWebpackPlugin` if the environment is `production`. To override this, [setting `disableClientWebpackPlugin` or `disableServerWebpackPlugin` to `false`](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#disable-sentrywebpackplugin) now takes precedence over other checks, rather than being a no-op. Note: Overriding this is not recommended! It can increase build time and clog Release Health data in Sentry with inaccurate noise.
+
+- fix(nextjs): Don't run webpack plugin on non-prod Vercel deployments (#5603)
+
 ## 7.11.1
 
 - fix(remix): Store transaction on express req (#5595)
