@@ -87,11 +87,8 @@ function _trackLCP(reportAllChanges: boolean): void {
       return;
     }
 
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
-    const startTime = msToSec(entry.startTime);
     __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-    _measurements['mark.lcp'] = { value: timeOrigin + startTime, unit: 'second' };
     _lcpEntry = entry as LargestContentfulPaint;
   }, reportAllChanges);
 }
@@ -147,7 +144,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       case 'mark':
       case 'paint':
       case 'measure': {
-        const startTimestamp = _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
+        _addMeasureSpans(transaction, entry, startTime, duration, timeOrigin);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
@@ -157,12 +154,10 @@ export function addPerformanceEntries(transaction: Transaction): void {
         if (entry.name === 'first-paint' && shouldRecord) {
           __DEBUG_BUILD__ && logger.log('[Measurements] Adding FP');
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
-          _measurements['mark.fp'] = { value: startTimestamp, unit: 'second' };
         }
         if (entry.name === 'first-contentful-paint' && shouldRecord) {
           __DEBUG_BUILD__ && logger.log('[Measurements] Adding FCP');
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
-          _measurements['mark.fcp'] = { value: startTimestamp, unit: 'second' };
         }
         break;
       }
@@ -220,14 +215,18 @@ export function addPerformanceEntries(transaction: Transaction): void {
       _measurements[name].value = normalizedValue;
     });
 
-    if (_measurements['mark.fid'] && _measurements['fid']) {
+    const fidMark = _measurements['mark.fid'];
+    if (fidMark && _measurements['fid']) {
       // create span for FID
       _startChild(transaction, {
         description: 'first input delay',
-        endTimestamp: _measurements['mark.fid'].value + msToSec(_measurements['fid'].value),
+        endTimestamp: fidMark.value + msToSec(_measurements['fid'].value),
         op: 'web.vitals',
-        startTimestamp: _measurements['mark.fid'].value,
+        startTimestamp: fidMark.value,
       });
+
+      // Delete mark.fid as we don't want it to be part of final payload
+      delete _measurements['mark.fid'];
     }
 
     // If FCP is not recorded we should not record the cls value

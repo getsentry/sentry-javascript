@@ -22,7 +22,6 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.lcp?.value).toBeDefined();
-  expect(eventData.measurements?.['mark.lcp']?.value).toBeDefined();
 
   expect(eventData.tags?.['lcp.element']).toBe('body > img');
   expect(eventData.tags?.['lcp.size']).toBe(107400);
