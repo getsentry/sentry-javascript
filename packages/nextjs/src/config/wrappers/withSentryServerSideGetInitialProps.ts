@@ -13,10 +13,7 @@ type GetInitialProps = Required<NextPage>['getInitialProps'];
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideGetInitialProps(
-  origGetInitialProps: GetInitialProps,
-  parameterizedRoute: string,
-): GetInitialProps {
+export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInitialProps): GetInitialProps {
   return async function (
     ...getInitialPropsArguments: Parameters<GetInitialProps>
   ): Promise<ReturnType<GetInitialProps>> {
@@ -34,8 +31,9 @@ export function withSentryServerSideGetInitialProps(
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, getInitialPropsArguments, req!, res!, {
-        parameterizedRoute,
-        functionName: 'getInitialProps',
+        dataFetcherRouteName: context.pathname,
+        requestedRouteName: context.pathname,
+        dataFetchingMethodName: 'getInitialProps',
       });
     } else {
       return errorWrappedGetInitialProps(...getInitialPropsArguments);

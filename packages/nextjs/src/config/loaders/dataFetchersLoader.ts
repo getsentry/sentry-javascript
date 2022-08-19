@@ -151,22 +151,33 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
     if (hasDefaultExport(ast)) {
       outputFileContent += `
         import { default as _sentry_default } from "${this.resourcePath}?sentry-proxy-loader";
-        import { withSentryGetInitialProps } from "@sentry/nextjs";`;
+        import {
+          withSentryServerSideGetInitialProps,
+          withSentryServerSideAppGetInitialProps,
+          withSentryServerSideDocumentGetInitialProps,
+          withSentryServerSideErrorGetInitialProps,
+        } from "@sentry/nextjs";`;
 
       if (parameterizedRouteName === '/_app') {
-        // getInitialProps signature is a bit different in _app.js so we need a different wrapper
-        // Currently a no-op
-      } else if (parameterizedRouteName === '/_error') {
-        // getInitialProps behaviour is a bit different in _error.js so we probably want different wrapper
-        // Currently a no-op
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideAppGetInitialProps(_sentry_default.getInitialProps);
+          }`;
       } else if (parameterizedRouteName === '/_document') {
-        // getInitialProps signature is a bit different in _document.js so we need a different wrapper
-        // Currently a no-op
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideDocumentGetInitialProps(_sentry_default.getInitialProps);
+          }`;
+      } else if (parameterizedRouteName === '/_error') {
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideErrorGetInitialProps(_sentry_default.getInitialProps);
+          }`;
       } else {
         // We enter this branch for any "normal" Next.js page
         outputFileContent += `
           if (typeof _sentry_default.getInitialProps === 'function') {
-            _sentry_default.getInitialProps = withSentryGetInitialProps(_sentry_default.getInitialProps, '${parameterizedRouteName}');
+            _sentry_default.getInitialProps = withSentryServerSideGetInitialProps(_sentry_default.getInitialProps);
           }`;
       }
 

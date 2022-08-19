@@ -29,8 +29,9 @@ export function withSentryGetServerSideProps(
 
     if (hasTracingEnabled()) {
       return callTracedServerSideDataFetcher(errorWrappedGetServerSideProps, getServerSidePropsArguments, req, res, {
-        parameterizedRoute,
-        functionName: 'getServerSideProps',
+        dataFetcherRouteName: parameterizedRoute,
+        requestedRouteName: parameterizedRoute,
+        dataFetchingMethodName: 'getServerSideProps',
       });
     } else {
       return errorWrappedGetServerSideProps(...getServerSidePropsArguments);

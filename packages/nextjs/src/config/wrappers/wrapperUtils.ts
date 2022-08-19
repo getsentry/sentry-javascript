@@ -73,8 +73,12 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   req: IncomingMessage,
   res: ServerResponse,
   options: {
-    parameterizedRoute: string;
-    functionName: string;
+    /** Parameterized route of the request - will be used for naming the transaction. */
+    requestedRouteName: string;
+    /** Name of the route the data fetcher was defined in - will be used for describing the data fetcher's span. */
+    dataFetcherRouteName: string;
+    /** Name of the data fetching method - will be used for describing the data fetcher's span. */
+    dataFetchingMethodName: string;
   },
 ): Promise<ReturnType<F>> {
   return domain.create().bind(async () => {
@@ -84,8 +88,8 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       // TODO: Extract trace data from `req` object (trace and baggage headers) and attach it to transaction
 
       const newTransaction = startTransaction({
-        op: 'nextjs.data',
-        name: options.parameterizedRoute,
+        op: 'nextjs.data.server',
+        name: options.requestedRouteName,
         metadata: {
           source: 'route',
         },
@@ -97,8 +101,8 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     }
 
     const dataFetcherSpan = requestTransaction.startChild({
-      op: 'nextjs.data',
-      description: `${options.functionName} (${options.parameterizedRoute})`,
+      op: 'nextjs.data.server',
+      description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
     });
 
     const currentScope = getCurrentHub().getScope();
@@ -158,7 +162,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
   const span = transaction.startChild({
-    op: 'nextjs.data',
+    op: 'nextjs.data.server',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
   });
 
