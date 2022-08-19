@@ -121,6 +121,7 @@ export class SentryReplay implements Integration {
     errorIds: new Set(),
     traceIds: new Set(),
     urls: [],
+    earliestEvent: null,
   };
 
   session: Session | undefined;
@@ -672,6 +673,14 @@ export class SentryReplay implements Integration {
    * Add an event to the event buffer
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean) {
+    const timestampInMs = event.timestamp * 1000;
+    if (
+      !this.context.earliestEvent ||
+      timestampInMs < this.context.earliestEvent
+    ) {
+      this.context.earliestEvent = timestampInMs;
+    }
+
     this.eventBuffer.addEvent(event, isCheckout);
   }
   /**
@@ -798,9 +807,18 @@ export class SentryReplay implements Integration {
   }: {
     timestamp?: number;
   } = {}): CaptureReplayParams & CaptureReplayUpdateParams {
+    const initialState = this.initialState;
+    if (
+      this.initialState &&
+      this.context.earliestEvent &&
+      this.context.earliestEvent < this.initialState.timestamp
+    ) {
+      initialState.timestamp = this.context.earliestEvent;
+    }
+
     const context = {
       session: this.session,
-      initialState: this.initialState,
+      initialState,
       timestamp,
       errorIds: Array.from(this.context.errorIds).filter(Boolean),
       traceIds: Array.from(this.context.traceIds).filter(Boolean),
@@ -810,6 +828,7 @@ export class SentryReplay implements Integration {
     this.context.errorIds.clear();
     this.context.traceIds.clear();
     this.context.urls = [];
+    this.context.earliestEvent = null;
 
     return context;
   }

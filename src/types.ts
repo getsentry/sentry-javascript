@@ -111,4 +111,9 @@ export interface ReplayEventContext {
    * Ordered list of URLs that have been visited during a replay segment
    */
   urls: string[];
+
+  /**
+   * The timestamp of the earliest event that has been added to event buffer. This can happen due to the Performance Observer which buffers events.
+   */
+  earliestEvent: number | null;
 }

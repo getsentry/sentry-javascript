@@ -76,6 +76,7 @@ describe('SentryReplay', () => {
       value: prevLocation,
       writable: true,
     });
+    captureReplayMock.mockClear();
   });
 
   afterAll(() => {
@@ -540,6 +541,50 @@ describe('SentryReplay', () => {
       expect.objectContaining({
         initialState: {
           timestamp: BASE_TIMESTAMP,
+          url: 'http://localhost/', // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+        },
+      })
+    );
+  });
+
+  it('has correct timestamps when there events earlier than initial timestamp', async function () {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: function () {
+        return 'hidden';
+      },
+    });
+
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(process.nextTick);
+    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+    expect(captureReplayMock).not.toHaveBeenCalled();
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    await advanceTimers(ELAPSED);
+
+    const TEST_EVENT = {
+      data: {},
+      timestamp: BASE_TIMESTAMP + ELAPSED,
+      type: 2,
+    };
+
+    replay.addEvent(TEST_EVENT);
+
+    // Add a fake event that started BEFORE
+    replay.addEvent({
+      data: {},
+      timestamp: (BASE_TIMESTAMP - 10000) / 1000,
+      type: 5,
+    });
+
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+    expect(captureReplayMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialState: {
+          timestamp: BASE_TIMESTAMP - 10000,
           url: 'http://localhost/', // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
         },
       })

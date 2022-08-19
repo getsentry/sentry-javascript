@@ -286,10 +286,7 @@ describe('SentryReplay (capture only on error)', () => {
         // the exception happened roughly 5 seconds after BASE_TIMESTAMP (i.e. 5
         // seconds after root replay event). extra time is likely due to async
         // of `addMemoryEntry()`
-        replay_start_timestamp: expect.closeTo(
-          (BASE_TIMESTAMP + 5000) / 1000,
-          1
-        ),
+        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000) / 1000, 1),
         error_ids: [],
         trace_ids: [],
         urls: [],

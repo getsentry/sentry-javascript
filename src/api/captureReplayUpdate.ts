@@ -23,7 +23,7 @@ export function captureReplayUpdate({
   captureEvent({
     // @ts-expect-error replay_event is a new event type
     type: REPLAY_EVENT_NAME,
-    replay_start_timestamp: timestamp / 1000,
+    timestamp: timestamp / 1000,
     error_ids: errorIds,
     trace_ids: traceIds,
     urls,
