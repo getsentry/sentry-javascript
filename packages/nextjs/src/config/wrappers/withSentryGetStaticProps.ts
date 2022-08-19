@@ -1,6 +1,7 @@
 import { GetStaticProps } from 'next';
 
-import { callDataFetcherTraced } from './wrapperUtils';
+import { isBuild } from '../../utils/isBuild';
+import { callDataFetcherTraced, withErrorInstrumentation } from './wrapperUtils';
 
 type Props = { [key: string]: unknown };
 
@@ -18,7 +19,13 @@ export function withSentryGetStaticProps(
   return async function (
     ...getStaticPropsArguments: Parameters<GetStaticProps<Props>>
   ): ReturnType<GetStaticProps<Props>> {
-    return callDataFetcherTraced(origGetStaticProps, getStaticPropsArguments, {
+    if (isBuild()) {
+      return origGetStaticProps(...getStaticPropsArguments);
+    }
+
+    const errorWrappedGetStaticProps = withErrorInstrumentation(origGetStaticProps);
+
+    return callDataFetcherTraced(errorWrappedGetStaticProps, getStaticPropsArguments, {
       parameterizedRoute,
       dataFetchingMethodName: 'getStaticProps',
     });
