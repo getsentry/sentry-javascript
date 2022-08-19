@@ -24,6 +24,9 @@
   "peerDependencies": {
     "svelte": "3.x"
   },
+  "devDependencies": {
+    "svelte": "3.49.0"
+  },
   "scripts": {
     "build": "run-p build:rollup build:types",
     "build:dev": "run-s build",
