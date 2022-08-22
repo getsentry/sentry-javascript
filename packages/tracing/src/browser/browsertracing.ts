@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { getDomElement, getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
@@ -142,7 +142,7 @@ export class BrowserTracing implements Integration {
     let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
     // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
     if (_options) {
-      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins) && _options.tracingOrigins.length !== 0) {
+      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins)) {
         tracingOrigins = _options.tracingOrigins;
       } else {
         __DEBUG_BUILD__ && (this._emitOptionsWarning = true);
@@ -294,13 +294,6 @@ export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | un
 
 /** Returns the value of a meta tag */
 export function getMetaContent(metaName: string): string | null {
-  const globalObject = getGlobalObject<Window>();
-
-  // DOM/querySelector is not available in all environments
-  if (globalObject.document && globalObject.document.querySelector) {
-    const el = globalObject.document.querySelector(`meta[name=${metaName}]`);
-    return el ? el.getAttribute('content') : null;
-  } else {
-    return null;
-  }
+  const metaTag = getDomElement(`meta[name=${metaName}]`);
+  return metaTag ? metaTag.getAttribute('content') : null;
 }

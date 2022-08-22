@@ -2,7 +2,7 @@ import { assertSentryEvent, filterEnvelopeItems, getMultipleEnvelopeRequest, run
 
 test('should capture with different severity levels', async () => {
   const config = await runServer(__dirname);
-  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, { count: 12 }));
+  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, { count: 6 }));
 
   assertSentryEvent(events[0], {
     message: 'debug_message',

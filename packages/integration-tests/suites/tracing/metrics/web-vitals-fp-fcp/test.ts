@@ -16,8 +16,6 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fp?.value).toBeDefined();
 
-  expect(eventData.measurements?.['mark.fp']?.value).toBeDefined();
-
   const fpSpan = eventData.spans?.filter(({ description }) => description === 'first-paint')[0];
 
   expect(fpSpan).toBeDefined();
@@ -31,8 +29,6 @@ sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fcp?.value).toBeDefined();
-
-  expect(eventData.measurements?.['mark.fcp']?.value).toBeDefined();
 
   const fcpSpan = eventData.spans?.filter(({ description }) => description === 'first-contentful-paint')[0];
 

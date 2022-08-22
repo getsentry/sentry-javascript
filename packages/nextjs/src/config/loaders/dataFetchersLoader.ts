@@ -37,6 +37,7 @@ const DATA_FETCHING_FUNCTIONS = {
 
 type LoaderOptions = {
   projectDir: string;
+  pagesDir: string;
 };
 
 /**
@@ -108,7 +109,22 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
   }
 
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { projectDir } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { projectDir, pagesDir } = 'getOptions' in this ? this.getOptions() : this.query;
+
+  // Get the parameterized route name from this page's filepath
+  const parameterizedRouteName = path
+    // Get the path of the file insde of the pages directory
+    .relative(pagesDir, this.resourcePath)
+    // Add a slash at the beginning
+    .replace(/(.*)/, '/$1')
+    // Pull off the file extension
+    .replace(/\.(jsx?|tsx?)/, '')
+    // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
+    // just `/xyz`
+    .replace(/\/index$/, '')
+    // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+    // homepage), sub back in the root route
+    .replace(/^$/, '/');
 
   // In the following branch we will proxy the user's file. This means we return code (basically an entirely new file)
   // that re - exports all the user file's originial export, but with a "sentry-proxy-loader" query in the module
@@ -135,13 +151,37 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
     if (hasDefaultExport(ast)) {
       outputFileContent += `
         import { default as _sentry_default } from "${this.resourcePath}?sentry-proxy-loader";
-        import { withSentryGetInitialProps } from "@sentry/nextjs";
+        import {
+          withSentryServerSideGetInitialProps,
+          withSentryServerSideAppGetInitialProps,
+          withSentryServerSideDocumentGetInitialProps,
+          withSentryServerSideErrorGetInitialProps,
+        } from "@sentry/nextjs";`;
 
-        if (typeof _sentry_default.getInitialProps === 'function') {
-          _sentry_default.getInitialProps = withSentryGetInitialProps(_sentry_default.getInitialProps);
-        }
+      if (parameterizedRouteName === '/_app') {
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideAppGetInitialProps(_sentry_default.getInitialProps);
+          }`;
+      } else if (parameterizedRouteName === '/_document') {
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideDocumentGetInitialProps(_sentry_default.getInitialProps);
+          }`;
+      } else if (parameterizedRouteName === '/_error') {
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideErrorGetInitialProps(_sentry_default.getInitialProps);
+          }`;
+      } else {
+        // We enter this branch for any "normal" Next.js page
+        outputFileContent += `
+          if (typeof _sentry_default.getInitialProps === 'function') {
+            _sentry_default.getInitialProps = withSentryServerSideGetInitialProps(_sentry_default.getInitialProps);
+          }`;
+      }
 
-        export default _sentry_default;`;
+      outputFileContent += 'export default _sentry_default;';
     }
 
     return outputFileContent;
@@ -172,6 +212,8 @@ export default function wrapDataFetchersLoader(this: LoaderThis<LoaderOptions>, 
 
     // Fill in template placeholders
     let injectedCode = modifiedTemplateCode;
+
+    injectedCode = injectedCode.replace('__FILEPATH__', parameterizedRouteName);
     for (const { placeholder, alias } of Object.values(DATA_FETCHING_FUNCTIONS)) {
       injectedCode = injectedCode.replace(new RegExp(placeholder, 'g'), alias);
     }

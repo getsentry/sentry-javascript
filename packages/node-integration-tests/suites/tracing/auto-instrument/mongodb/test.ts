@@ -21,7 +21,7 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
 
   test('should auto-instrument `mongodb` package.', async () => {
     const config = await runServer(__dirname);
-    const envelope = await getEnvelopeRequest(config);
+    const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
 
     expect(envelope).toHaveLength(3);
 

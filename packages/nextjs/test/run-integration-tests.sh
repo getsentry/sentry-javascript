@@ -61,7 +61,9 @@ for NEXTJS_VERSION in 10 11 12; do
   else
     sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
   fi
-  yarn --no-lockfile --silent >/dev/null 2>&1
+  # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
+  # 10
+  yarn --no-lockfile --ignore-engines --silent >/dev/null 2>&1
   # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
   # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO are set)
   linkcli && linkplugin
@@ -89,7 +91,6 @@ for NEXTJS_VERSION in 10 11 12; do
       echo "[nextjs$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
       exit 0
     fi
-
 
     # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
     if [ "$NEXTJS_VERSION" -eq "10" ]; then

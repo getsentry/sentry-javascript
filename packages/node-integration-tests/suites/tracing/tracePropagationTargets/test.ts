@@ -27,10 +27,12 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
     .matchHeader('sentry-trace', val => val === undefined)
     .reply(200);
 
-  const { url, scope, server } = await runServer(__dirname);
+  const { url, server } = await runServer(__dirname);
   await runScenario(url);
 
-  scope.persist(false);
+  server.close();
+  nock.cleanAll();
+
   await new Promise(resolve => server.close(resolve));
 
   expect(match1.isDone()).toBe(true);

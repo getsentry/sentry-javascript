@@ -2,7 +2,7 @@ import { assertSentryEvent, filterEnvelopeItems, getMultipleEnvelopeRequest, run
 
 test('should record an extras object', async () => {
   const config = await runServer(__dirname);
-  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, { count: 2 }));
+  const events = filterEnvelopeItems(await getMultipleEnvelopeRequest(config, { count: 1 }));
 
   assertSentryEvent(events[0], {
     message: 'multiple_extras',

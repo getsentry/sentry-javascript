@@ -1,3 +1,6 @@
 export { withSentryGetStaticProps } from './withSentryGetStaticProps';
-export { withSentryGetInitialProps } from './withSentryGetInitialProps';
+export { withSentryServerSideGetInitialProps } from './withSentryServerSideGetInitialProps';
+export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAppGetInitialProps';
+export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerSideDocumentGetInitialProps';
+export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
 export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';

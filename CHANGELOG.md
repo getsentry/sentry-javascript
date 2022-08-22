@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+This release adds an environment check in `@sentry/nextjs` for Vercel deployments (using the `VERCEL_ENV` env variable), and only enables `SentryWebpackPlugin` if the environment is `production`. To override this, [setting `disableClientWebpackPlugin` or `disableServerWebpackPlugin` to `false`](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#disable-sentrywebpackplugin) now takes precedence over other checks, rather than being a no-op. Note: Overriding this is not recommended! It can increase build time and clog Release Health data in Sentry with inaccurate noise.
+
+- fix(nextjs): Don't run webpack plugin on non-prod Vercel deployments (#5603)
+
+## 7.11.1
+
+- fix(remix): Store transaction on express req (#5595)
+
+## 7.11.0
+
+This release introduces updates the [`tracingOrigins` option](https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#tracingorigins) to not attach any headers/create an spans when supplied with an empty array (`[]`). Previously, we would supply the default `tracingOrigins` if an empty array was set as the `tracingOrigins` option.
+
+- fix(core): Suppress stack when `SentryError` isn't an error (#5562)
+- feat(nextjs): Wrap server-side getInitialProps (#5546)
+- feat(nextjs): Improve pageload transaction creation (#5574)
+- feat(nextjs): Add spans and route parameterization in data fetching wrappers (#5564)
+- feat(nextjs): Create spans and route parameterization in server-side `getInitialProps` (#5587)
+- fix(remix): Use domains to prevent scope bleed (#5570)
+- fix(remix): Wrap domains properly on instrumentServer (#5590)
+- feat(remix): Add route ID to remix routes (#5568)
+- feat(remix): Export a manual wrapper for custom Express servers (#5524)
+- feat(tracing): Add long task collection (#5529)
+- feat(tracing): Allow for setting of an empty array (#5583)
+
 ## 7.10.0
 
 This release introduces the first alpha version of `@sentry/svelte`, our newest JavaScript SDK! For details on how to use it, please see the [README](./packages/svelte/README.md) and [the tracking GitHub issue](https://github.com/getsentry/sentry-javascript/issues/5492).

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import * as Sentry from '@sentry/node';
+import { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
 import axios from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
-import { RequestOptions } from 'https';
 import nock from 'nock';
 import * as path from 'path';
 import { getPortPromise } from 'portfinder';
@@ -11,12 +12,11 @@ import { getPortPromise } from 'portfinder';
 export type TestServerConfig = {
   url: string;
   server: http.Server;
-  scope: nock.Scope;
 };
 
 export type DataCollectorOptions = {
   // The expected amount of requests to the envelope endpoint.
-  // If the amount of sentrequests is lower than`count`, this function will not resolve.
+  // If the amount of sent requests is lower than `count`, this function will not resolve.
   count?: number;
 
   // The method of the request.
@@ -24,6 +24,9 @@ export type DataCollectorOptions = {
 
   // Whether to stop the server after the requests have been intercepted
   endServer?: boolean;
+
+  // Type(s) of the envelopes to capture
+  envelopeType?: EnvelopeItemType | EnvelopeItemType[];
 };
 
 /**
@@ -87,7 +90,7 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
 /**
  * Intercepts and extracts up to a number of requests containing Sentry envelopes.
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {DataCollectorOptions} options
  * @returns The intercepted envelopes.
  */
@@ -95,42 +98,62 @@ export const getMultipleEnvelopeRequest = async (
   config: TestServerConfig,
   options: DataCollectorOptions,
 ): Promise<Record<string, unknown>[][]> => {
-  // eslint-disable-next-line no-async-promise-executor
-  return (
-    await Promise.all([
-      setupNock(config.scope, config.server, options.count || 1, options.endServer || true),
-      makeRequest(options.method || 'get', config.url),
-    ])
-  )[0];
+  const envelopeTypeArray =
+    typeof options.envelopeType === 'string'
+      ? [options.envelopeType]
+      : options.envelopeType || (['event'] as EnvelopeItemType[]);
+
+  const resProm = setupNock(
+    config.server,
+    options.count || 1,
+    typeof options.endServer === 'undefined' ? true : options.endServer,
+    envelopeTypeArray,
+  );
+
+  void makeRequest(options.method || 'get', config.url);
+  return resProm;
 };
 
 const setupNock = async (
-  scope: nock.Scope,
   server: http.Server,
   count: number,
   endServer: boolean,
+  envelopeType: EnvelopeItemType[],
 ): Promise<Record<string, unknown>[][]> => {
   return new Promise(resolve => {
     const envelopes: Record<string, unknown>[][] = [];
-
-    scope
+    const mock = nock('https://dsn.ingest.sentry.io')
+      .persist()
       .post('/api/1337/envelope/', body => {
         const envelope = parseEnvelope(body);
 
-        envelopes.push(envelope);
+        if (envelopeType.includes(envelope[1].type as EnvelopeItemType)) {
+          envelopes.push(envelope);
+        } else {
+          return false;
+        }
 
         if (count === envelopes.length) {
+          nock.removeInterceptor(mock);
+
           if (endServer) {
-            scope.persist(false);
+            // Cleaning nock only before the server is closed,
+            // not to break tests that use simultaneous requests to the server.
+            // Ex: Remix scope bleed tests.
+            nock.cleanAll();
+
             server.close(() => {
               resolve(envelopes);
             });
           }
+
           resolve(envelopes);
         }
 
         return true;
-      })
+      });
+
+    mock
       .query(true) // accept any query params - used for sentry_key param
       .reply(200);
   });
@@ -162,47 +185,26 @@ export const filterEnvelopeItems = (
 };
 
 /**
- * Sends a get request to given URL, with optional headers
+ * Sends a get request to given URL, with optional headers. Returns the response.
+ * Ends the server instance and flushes the Sentry event queue.
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {Record<string, string>} [headers]
  * @return {*}  {Promise<any>}
  */
 export const getAPIResponse = async (config: TestServerConfig, headers?: Record<string, string>): Promise<unknown> => {
-  return new Promise(resolve => {
-    const url = new URL(config.url);
+  const { data } = await axios.get(config.url, { headers: headers || {} });
 
-    http.get(
-      headers
-        ? ({
-            protocol: url.protocol,
-            host: url.hostname,
-            path: url.pathname,
-            port: url.port,
-            headers,
-          } as RequestOptions)
-        : url,
-      response => {
-        let body = '';
+  await Sentry.flush();
+  config.server.close();
 
-        response.on('data', function (chunk: string) {
-          body += chunk;
-        });
-        response.on('end', function () {
-          config.scope.persist(false);
-          config.server.close(() => {
-            resolve(JSON.parse(body));
-          });
-        });
-      },
-    );
-  });
+  return data;
 };
 
 /**
  * Intercepts and extracts a single request containing a Sentry envelope
  *
- * @param {TestServerConfig} config The url, server instance and the nock scope.
+ * @param {TestServerConfig} config The url and the server instance.
  * @param {DataCollectorOptions} options
  * @returns The extracted envelope.
  */
@@ -230,7 +232,7 @@ export async function runServer(
   const url = `http://localhost:${port}/test`;
   const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-  const { server, scope } = await new Promise<{ server: http.Server; scope: nock.Scope }>(resolve => {
+  const server = await new Promise<http.Server>(resolve => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
     const app = require(serverPath || defaultServerPath).default as Express;
 
@@ -243,22 +245,21 @@ export async function runServer(
     });
 
     const server = app.listen(port, () => {
-      const scope = nock('https://dsn.ingest.sentry.io').persist();
-
-      resolve({ server, scope });
+      resolve(server);
     });
   });
 
-  return { url, server, scope };
+  return { url, server };
 }
 
-export async function runScenario(serverUrl: string): Promise<void> {
-  return new Promise<void>(resolve => {
-    http
-      .get(serverUrl, res => {
-        res.on('data', () => undefined);
-        res.on('end', resolve);
-      })
-      .end();
-  });
+/**
+ * Sends a get request to given URL.
+ * Flushes the Sentry event queue.
+ *
+ * @param {string} url
+ * @return {*}  {Promise<void>}
+ */
+export async function runScenario(url: string): Promise<void> {
+  await axios.get(url);
+  await Sentry.flush();
 }

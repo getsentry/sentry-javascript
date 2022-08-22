@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
+import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '../../rollup/index.js';
 
 export default [
   ...makeNPMConfigVariants(
@@ -16,10 +16,12 @@ export default [
     makeBaseNPMConfig({
       entrypoints: [
         'src/config/templates/prefixLoaderTemplate.ts',
+        'src/config/templates/proxyLoaderTemplate.ts',
         'src/config/templates/dataFetchersLoaderTemplate.ts',
       ],
 
       packageSpecificConfig: {
+        plugins: [plugins.makeRemoveMultiLineCommentsPlugin()],
         output: {
           // Preserve the original file structure (i.e., so that everything is still relative to `src`). (Not entirely
           // clear why this is necessary here and not for other entrypoints in this file.)
@@ -29,20 +31,26 @@ export default [
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
           esModule: false,
+
+          // make it so Rollup calms down about the fact that we're combining default and named exports
+          exports: 'named',
         },
-        external: ['@sentry/nextjs'],
+        external: ['@sentry/nextjs', '__RESOURCE_PATH__'],
       },
     }),
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/config/loaders/index.ts'],
+      // Needed in order to successfully import sucrase
+      esModuleInterop: true,
 
       packageSpecificConfig: {
         output: {
-          // make it so Rollup calms down about the fact that we're doing `export { loader as default }`
+          // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
+        external: ['@rollup/plugin-sucrase', 'rollup'],
       },
     }),
   ),

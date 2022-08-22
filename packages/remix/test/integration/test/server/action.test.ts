@@ -13,7 +13,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   it('correctly instruments a parameterized Remix API action', async () => {
     const config = await runServer(adapter);
     const url = `${config.url}/action-json-response/123123`;
-    const envelope = await getEnvelopeRequest({ ...config, url }, { method: 'post' });
+    const envelope = await getEnvelopeRequest({ ...config, url }, { method: 'post', envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
@@ -43,7 +43,10 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const config = await runServer(adapter);
     const url = `${config.url}/action-json-response/-1`;
 
-    const [transaction, event] = await getMultipleEnvelopeRequest({ ...config, url }, { count: 2, method: 'post' });
+    const [transaction, event] = await getMultipleEnvelopeRequest(
+      { ...config, url },
+      { count: 2, method: 'post', envelopeType: ['transaction', 'event'] },
+    );
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -82,7 +85,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
 
     const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(
       { ...config, url },
-      { count: 3, method: 'post' },
+      { count: 3, method: 'post', envelopeType: ['transaction', 'event'] },
     );
 
     assertSentryTransaction(transaction_1[2], {

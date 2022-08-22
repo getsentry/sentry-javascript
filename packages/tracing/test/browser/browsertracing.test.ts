@@ -148,16 +148,6 @@ describe('BrowserTracing', () => {
         expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
       });
 
-      it('warns and uses default tracing origins if empty array given', () => {
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: [],
-        });
-
-        expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
-      });
-
       it('warns and uses default tracing origins if tracing origins are not defined', () => {
         const inst = createBrowserTracing(true, {
           routingInstrumentation: customInstrumentRouting,
@@ -169,13 +159,25 @@ describe('BrowserTracing', () => {
       });
 
       it('sets tracing origins if provided and does not warn', () => {
+        const sampleTracingOrigins = ['something'];
         const inst = createBrowserTracing(true, {
           routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: ['something'],
+          tracingOrigins: sampleTracingOrigins,
         });
 
         expect(warnSpy).toHaveBeenCalledTimes(0);
-        expect(inst.options.tracingOrigins).toEqual(['something']);
+        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
+      });
+
+      it('sets tracing origins to an empty array and does not warn', () => {
+        const sampleTracingOrigins: string[] = [];
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracingOrigins: sampleTracingOrigins,
+        });
+
+        expect(warnSpy).toHaveBeenCalledTimes(0);
+        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
     });
 

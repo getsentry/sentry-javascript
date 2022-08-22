@@ -35,6 +35,8 @@ export type NextConfigObject = {
 };
 
 export type UserSentryOptions = {
+  // Override the SDK's default decision about whether or not to enable to the webpack plugin. Note that `false` forces
+  // the plugin to be enabled, even in situations where it's not recommended.
   disableServerWebpackPlugin?: boolean;
   disableClientWebpackPlugin?: boolean;
   hideSourceMaps?: boolean;

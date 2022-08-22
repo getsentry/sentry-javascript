@@ -4,10 +4,10 @@ import { getAPIResponse, runServer } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
 test('Should not overwrite baggage if the incoming request already has Sentry baggage data.', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
     },
@@ -23,10 +23,10 @@ test('Should not overwrite baggage if the incoming request already has Sentry ba
 });
 
 test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       'sentry-trace': '',
       baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
@@ -43,10 +43,10 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
 });
 
 test('Should propagate empty baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       'sentry-trace': '',
     },
@@ -62,10 +62,10 @@ test('Should propagate empty baggage if sentry-trace header is present in incomi
 });
 
 test('Should propagate empty sentry and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       'sentry-trace': '',
       baggage: 'foo=bar',
@@ -82,9 +82,9 @@ test('Should propagate empty sentry and ignore original 3rd party baggage entrie
 });
 
 test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const response = (await getAPIResponse({ url: `${url}/express`, server, scope }, {})) as TestAPIResponse;
+  const response = (await getAPIResponse({ url: `${url}/express`, server }, {})) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -99,10 +99,10 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
 });
 
 test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async () => {
-  const { url, server, scope } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await getAPIResponse(
-    { url: `${url}/express`, server, scope },
+    { url: `${url}/express`, server },
     {
       baggage: 'foo=bar,bar=baz',
     },

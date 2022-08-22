@@ -56,8 +56,6 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
-    const pageRegex = new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages(/.+)\\.(jsx?|tsx?)`);
-
     if (isServer) {
       newConfig.module = {
         ...newConfig.module,
@@ -81,12 +79,15 @@ export function constructWebpackConfigFunction(
       };
 
       if (userSentryOptions.experiments?.autoWrapDataFetchers) {
+        const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
+
         newConfig.module.rules.push({
-          test: pageRegex,
+          // Nextjs allows the `pages` folder to optionally live inside a `src` folder
+          test: new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/.*\\.(jsx?|tsx?)`),
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders/dataFetchersLoader.js'),
-              options: { projectDir },
+              loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
+              options: { pagesDir },
             },
           ],
         });
@@ -133,17 +134,7 @@ export function constructWebpackConfigFunction(
     newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
-    const enableWebpackPlugin =
-      // TODO: this is a hack to fix https://github.com/getsentry/sentry-cli/issues/1085, which is caused by
-      // https://github.com/getsentry/sentry-cli/issues/915. Once the latter is addressed, this existence check can come
-      // out. (The check is necessary because currently, `@sentry/cli` uses a post-install script to download an
-      // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
-      // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
-      // try to build their apps.)
-      ensureCLIBinaryExists() &&
-      (isServer ? !userSentryOptions.disableServerWebpackPlugin : !userSentryOptions.disableClientWebpackPlugin);
-
-    if (enableWebpackPlugin) {
+    if (shouldEnableWebpackPlugin(buildContext, userSentryOptions)) {
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
       // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
 
@@ -458,4 +449,48 @@ function ensureCLIBinaryExists(): boolean {
     }
   }
   return false;
+}
+
+/** Check various conditions to decide if we should run the plugin */
+function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
+  const { isServer, dev: isDev } = buildContext;
+  const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
+
+  /** Non-negotiable */
+
+  // TODO: this is a hack to fix https://github.com/getsentry/sentry-cli/issues/1085, which is caused by
+  // https://github.com/getsentry/sentry-cli/issues/915. Once the latter is addressed, this existence check can come
+  // out. (The check is necessary because currently, `@sentry/cli` uses a post-install script to download an
+  // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
+  // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
+  // try to build their apps.)
+  if (!ensureCLIBinaryExists()) {
+    return false;
+  }
+
+  /** User override */
+
+  if (isServer && disableServerWebpackPlugin !== undefined) {
+    return !disableServerWebpackPlugin;
+  } else if (!isServer && disableClientWebpackPlugin !== undefined) {
+    return !disableClientWebpackPlugin;
+  }
+
+  /** Situations where the default is to disable the plugin */
+
+  // TODO: Are there analogs to Vercel's preveiw and dev modes on other deployment platforms?
+
+  if (isDev || process.env.NODE_ENV === 'development') {
+    // TODO (v8): Right now in dev we set the plugin to dryrun mode, and our boilerplate includes setting the plugin to
+    // `silent`, so for the vast majority of users, it's as if the plugin doesn't run at all in dev. Making that
+    // official is technically a breaking change, though, so we probably should wait until v8.
+    // return false
+  }
+
+  if (process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'development') {
+    return false;
+  }
+
+  // We've passed all of the tests!
+  return true;
 }
