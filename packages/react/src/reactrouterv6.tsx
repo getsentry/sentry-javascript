@@ -20,6 +20,8 @@ type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
+type UseRoutes = (routes: RouteObject[], locationArg?: Partial<Location> | string) => React.ReactElement | null;
+
 // https://github.com/remix-run/react-router/blob/9fa54d643134cd75a0335581a75db8100ed42828/packages/react-router/lib/router.ts#L114-L134
 interface RouteMatch<ParamKey extends string = string> {
   /**
@@ -216,4 +218,72 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
   // @ts-ignore Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
+}
+
+export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+    logger.warn('react-router-v6 is not initialized');
+    return origUseRoutes;
+  }
+  let isBaseLocation: boolean = false;
+
+  return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
+    const SentryRoutes: React.FC = props => {
+      const Routes = origUseRoutes(routes, location);
+
+      // TODO: Simplify
+      const locationObject =
+        (typeof location === 'string'
+          ? { pathname: location }
+          : location?.pathname
+          ? (location as Location)
+          : _useLocation()) || _useLocation();
+
+      const navigationType = _useNavigationType();
+
+      _useEffect(() => {
+        isBaseLocation = true;
+
+        if (activeTransaction) {
+          const [name, source] = getNormalizedName(routes, locationObject, _matchRoutes);
+          activeTransaction.setName(name);
+          activeTransaction.setMetadata({ source });
+        }
+        // eslint-disable-next-line react/prop-types
+      }, [props.children]);
+
+      _useEffect(() => {
+        if (isBaseLocation) {
+          if (activeTransaction) {
+            activeTransaction.finish();
+          }
+
+          return;
+        }
+
+        if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP')) {
+          if (activeTransaction) {
+            activeTransaction.finish();
+          }
+
+          const [name, source] = getNormalizedName(routes, locationObject, _matchRoutes);
+          activeTransaction = _customStartTransaction({
+            name,
+            op: 'navigation',
+            tags: SENTRY_TAGS,
+            metadata: {
+              source,
+            },
+          });
+        }
+        // eslint-disable-next-line react/prop-types
+      }, [props.children, locationObject, navigationType, isBaseLocation]);
+
+      isBaseLocation = false;
+
+      return Routes;
+    };
+
+    return <SentryRoutes />;
+  };
 }
