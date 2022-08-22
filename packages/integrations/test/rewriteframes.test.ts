@@ -74,14 +74,12 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
-
     it('ignore exception without StackTrace', () => {
       //@ts-ignore Validates that the Stacktrace does not exist before validating the test.
       expect(exceptionWithoutStackTrace.exception?.values[0].stacktrace).toEqual(undefined);
       const event = rewriteFrames.process(exceptionWithoutStackTrace);
       expect(event.exception!.values![0].stacktrace).toEqual(undefined);
     });
-
   });
 
   describe('default iteratee prepends custom prefix to basename if frame starts with `/`', () => {
