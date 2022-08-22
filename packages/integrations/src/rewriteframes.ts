@@ -77,8 +77,8 @@ export class RewriteFrames implements Integration {
     if (isWindowsFrame || startsWithSlash) {
       const filename = isWindowsFrame
         ? frame.filename
-            .replace(/^[A-Z]:/, '') // remove Windows-style prefix
-            .replace(/\\/g, '/') // replace all `\\` instances with `/`
+          .replace(/^[A-Z]:/, '') // remove Windows-style prefix
+          .replace(/\\/g, '/') // replace all `\\` instances with `/`
         : frame.filename;
       const base = this._root ? relative(this._root, filename) : basename(filename);
       frame.filename = `${this._prefix}${base}`;
@@ -108,9 +108,9 @@ export class RewriteFrames implements Integration {
 
   /** JSDoc */
   private _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
-      return {
-        ...stacktrace,
-        frames: stacktrace && stacktrace.frames && stacktrace.frames.map(f => this._iteratee(f)),
-      };
+    return {
+      ...stacktrace,
+      frames: stacktrace && stacktrace.frames && stacktrace.frames.map(f => this._iteratee(f)),
+    };
   }
 }
