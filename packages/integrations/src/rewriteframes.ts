@@ -97,7 +97,7 @@ export class RewriteFrames implements Integration {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           values: event.exception!.values!.map(value => ({
             ...value,
-            stacktrace: this._processStacktrace(value.stacktrace),
+            stacktrace: value.stacktrace ? this._processStacktrace(value.stacktrace) : undefined, // Avoid creating an empty stacktrace if undefined.
           })),
         },
       };
@@ -108,9 +108,9 @@ export class RewriteFrames implements Integration {
 
   /** JSDoc */
   private _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
-    return {
-      ...stacktrace,
-      frames: stacktrace && stacktrace.frames && stacktrace.frames.map(f => this._iteratee(f)),
-    };
+      return {
+        ...stacktrace,
+        frames: stacktrace && stacktrace.frames && stacktrace.frames.map(f => this._iteratee(f)),
+      };
   }
 }

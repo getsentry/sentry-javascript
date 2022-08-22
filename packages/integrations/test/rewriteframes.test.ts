@@ -4,6 +4,7 @@ import { RewriteFrames } from '../src/rewriteframes';
 
 let rewriteFrames: RewriteFrames;
 let exceptionEvent: Event;
+let exceptionWithoutStackTrace: Event;
 let windowsExceptionEvent: Event;
 let multipleStacktracesEvent: Event;
 
@@ -30,6 +31,14 @@ describe('RewriteFrames', () => {
           },
         ],
       },
+    };
+    exceptionWithoutStackTrace = {
+      exception: {
+        values: [
+          {
+          },
+        ],
+      }
     };
     multipleStacktracesEvent = {
       exception: {
@@ -64,6 +73,15 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
+
+
+    it('ignore exception without StackTrace', () => {
+      //@ts-ignore Validates that the Stacktrace doesnt exist before validating the test.
+      expect(exceptionWithoutStackTrace.exception?.values[0].stacktrace).toEqual(undefined);
+      const event = rewriteFrames.process(exceptionWithoutStackTrace);
+      expect(event.exception!.values![0].stacktrace).toEqual(undefined);
+    });
+
   });
 
   describe('default iteratee prepends custom prefix to basename if frame starts with `/`', () => {
