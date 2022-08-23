@@ -282,251 +282,251 @@ describe('React Router v6', () => {
 
       expect(mockStartTransaction).toHaveBeenCalledTimes(0);
     });
-  });
 
-  it('skips navigation transaction, with `startTransactionOnLocationChange: false`', () => {
-    const [mockStartTransaction] = createInstrumentation({ startTransactionOnLocationChange: false });
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('skips navigation transaction, with `startTransactionOnLocationChange: false`', () => {
+      const [mockStartTransaction] = createInstrumentation({ startTransactionOnLocationChange: false });
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          path: '/',
-          element: <Navigate to="/about" />,
-        },
-        {
-          path: '/about',
-          element: <div>About</div>,
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/',
-      op: 'pageload',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'url' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/',
+        op: 'pageload',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'url' },
+      });
     });
-  });
 
-  it('starts a navigation transaction', () => {
-    const [mockStartTransaction] = createInstrumentation();
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('starts a navigation transaction', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          path: '/',
-          element: <Navigate to="/about" />,
-        },
-        {
-          path: '/about',
-          element: <div>About</div>,
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/about',
-      op: 'navigation',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'route' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
     });
-  });
 
-  it('works with nested routes', () => {
-    const [mockStartTransaction] = createInstrumentation();
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('works with nested routes', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          path: '/',
-          element: <Navigate to="/about/us" />,
-        },
-        {
-          path: '/about',
-          element: <div>About</div>,
-          children: [
-            {
-              path: '/about/us',
-              element: <div>us</div>,
-            },
-          ],
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about/us" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: '/about/us',
+                element: <div>us</div>,
+              },
+            ],
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/about/us',
-      op: 'navigation',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'route' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about/us',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
     });
-  });
 
-  it('works with paramaterized paths', () => {
-    const [mockStartTransaction] = createInstrumentation();
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('works with paramaterized paths', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          path: '/',
-          element: <Navigate to="/about/us" />,
-        },
-        {
-          path: '/about',
-          element: <div>About</div>,
-          children: [
-            {
-              path: '/about/:page',
-              element: <div>page</div>,
-            },
-          ],
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about/us" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: '/about/:page',
+                element: <div>page</div>,
+              },
+            ],
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/about/:page',
-      op: 'navigation',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'route' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about/:page',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
     });
-  });
 
-  it('works with paths with multiple parameters', () => {
-    const [mockStartTransaction] = createInstrumentation();
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('works with paths with multiple parameters', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          path: '/',
-          element: <Navigate to="/stores/foo/products/234" />,
-        },
-        {
-          path: '/stores',
-          element: <div>Stores</div>,
-          children: [
-            {
-              path: '/stores/:storeId',
-              element: <div>Store</div>,
-              children: [
-                {
-                  path: '/stores/:storeId/products/:productId',
-                  element: <div>Product</div>,
-                },
-              ],
-            },
-          ],
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/stores/foo/products/234" />,
+          },
+          {
+            path: '/stores',
+            element: <div>Stores</div>,
+            children: [
+              {
+                path: '/stores/:storeId',
+                element: <div>Store</div>,
+                children: [
+                  {
+                    path: '/stores/:storeId/products/:productId',
+                    element: <div>Product</div>,
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/stores/:storeId/products/:productId',
-      op: 'navigation',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'route' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/stores/:storeId/products/:productId',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
     });
-  });
 
-  it('works with nested paths with parameters', () => {
-    const [mockStartTransaction] = createInstrumentation();
-    const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+    it('works with nested paths with parameters', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
-    const Routes = () =>
-      wrappedUseRoutes([
-        {
-          index: true,
-          element: <Navigate to="/projects/123/views/234" />,
-        },
-        {
-          path: 'account',
-          element: <div>Account Page</div>,
-        },
-        {
-          path: 'projects',
-          children: [
-            {
-              index: true,
-              element: <div>Project Index</div>,
-            },
-            {
-              path: ':projectId',
-              element: <div>Project Page</div>,
-              children: [
-                {
-                  index: true,
-                  element: <div>Project Page Root</div>,
-                },
-                {
-                  element: <div>Editor</div>,
-                  children: [
-                    {
-                      path: 'views/:viewId',
-                      element: <div>View Canvas</div>,
-                    },
-                    {
-                      path: 'spaces/:spaceId',
-                      element: <div>Space Canvas</div>,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          path: '*',
-          element: <div>No Match Page</div>,
-        },
-      ]);
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <Navigate to="/projects/123/views/234" />,
+          },
+          {
+            path: 'account',
+            element: <div>Account Page</div>,
+          },
+          {
+            path: 'projects',
+            children: [
+              {
+                index: true,
+                element: <div>Project Index</div>,
+              },
+              {
+                path: ':projectId',
+                element: <div>Project Page</div>,
+                children: [
+                  {
+                    index: true,
+                    element: <div>Project Page Root</div>,
+                  },
+                  {
+                    element: <div>Editor</div>,
+                    children: [
+                      {
+                        path: 'views/:viewId',
+                        element: <div>View Canvas</div>,
+                      },
+                      {
+                        path: 'spaces/:spaceId',
+                        element: <div>Space Canvas</div>,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            path: '*',
+            element: <div>No Match Page</div>,
+          },
+        ]);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <Routes />
-      </MemoryRouter>,
-    );
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
 
-    expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/projects/:projectId/views/:viewId',
-      op: 'navigation',
-      tags: { 'routing.instrumentation': 'react-router-v6' },
-      metadata: { source: 'route' },
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/projects/:projectId/views/:viewId',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
     });
   });
 });
