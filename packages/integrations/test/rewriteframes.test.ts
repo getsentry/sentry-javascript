@@ -34,11 +34,8 @@ describe('RewriteFrames', () => {
     };
     exceptionWithoutStackTrace = {
       exception: {
-        values: [
-          {
-          },
-        ],
-      }
+        values: [{}],
+      },
     };
     multipleStacktracesEvent = {
       exception: {
@@ -75,7 +72,7 @@ describe('RewriteFrames', () => {
     });
 
     it('ignore exception without StackTrace', () => {
-      //@ts-ignore Validates that the Stacktrace does not exist before validating the test.
+      // @ts-ignore Validates that the Stacktrace does not exist before validating the test.
       expect(exceptionWithoutStackTrace.exception?.values[0].stacktrace).toEqual(undefined);
       const event = rewriteFrames.process(exceptionWithoutStackTrace);
       expect(event.exception!.values![0].stacktrace).toEqual(undefined);
