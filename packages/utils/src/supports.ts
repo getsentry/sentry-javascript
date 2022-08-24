@@ -62,7 +62,7 @@ export function supportsFetch(): boolean {
 
   try {
     new Headers();
-    new Request('');
+    new Request('http://www.example.com');
     new Response();
     return true;
   } catch (e) {
