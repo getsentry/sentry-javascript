@@ -1,17 +1,17 @@
 import path from 'path';
 
-import { getEnvelopeRequest, runServer } from '../../../utils';
+import { TestEnv } from '../../../utils';
 
 test('should aggregate successful, crashed and erroneous sessions', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const aggregateSessionEnvelope = await Promise.race([
-    getEnvelopeRequest({ url: `${url}/success`, server }, { endServer: false, envelopeType: 'sessions' }),
-    getEnvelopeRequest({ url: `${url}/error_handled`, server }, { endServer: false, envelopeType: 'sessions' }),
-    getEnvelopeRequest({ url: `${url}/error_unhandled`, server }, { endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/success`, endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/error_handled`, endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/error_unhandled`, endServer: false, envelopeType: 'sessions' }),
   ]);
 
-  await new Promise(resolve => server.close(resolve));
+  await new Promise(resolve => env.server.close(resolve));
 
   expect(aggregateSessionEnvelope[0]).toMatchObject({
     sent_at: expect.any(String),

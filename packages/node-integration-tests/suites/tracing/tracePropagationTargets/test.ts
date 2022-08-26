@@ -1,6 +1,6 @@
 import nock from 'nock';
 
-import { runScenario, runServer } from '../../../utils';
+import { TestEnv, runScenario } from '../../../utils';
 
 test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
   const match1 = nock('http://match-this-url.com')
@@ -27,13 +27,13 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
     .matchHeader('sentry-trace', val => val === undefined)
     .reply(200);
 
-  const { url, server } = await runServer(__dirname);
-  await runScenario(url);
+  const env = await TestEnv.init(__dirname);
+  await runScenario(env.url);
 
-  server.close();
+  env.server.close();
   nock.cleanAll();
 
-  await new Promise(resolve => server.close(resolve));
+  await new Promise(resolve => env.server.close(resolve));
 
   expect(match1.isDone()).toBe(true);
   expect(match2.isDone()).toBe(true);

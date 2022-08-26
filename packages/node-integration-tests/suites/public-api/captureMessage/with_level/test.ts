@@ -1,8 +1,8 @@
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should capture with different severity levels', async () => {
-  const config = await runServer(__dirname);
-  const events = await getMultipleEnvelopeRequest(config, { count: 6 });
+  const env = await TestEnv.init(__dirname);
+  const events = await env.getMultipleEnvelopeRequest({ count: 6 });
 
   assertSentryEvent(events[0][2], {
     message: 'debug_message',

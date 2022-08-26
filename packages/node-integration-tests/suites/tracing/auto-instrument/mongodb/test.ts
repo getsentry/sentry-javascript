@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
-import { assertSentryTransaction, conditionalTest, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryTransaction, conditionalTest, TestEnv } from '../../../../utils';
 
 // This test can take longer.
 jest.setTimeout(15000);
@@ -20,8 +20,8 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
   });
 
   test('should auto-instrument `mongodb` package.', async () => {
-    const config = await runServer(__dirname);
-    const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
+    const env = await TestEnv.init(__dirname);
+    const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
     expect(envelope).toHaveLength(3);
 

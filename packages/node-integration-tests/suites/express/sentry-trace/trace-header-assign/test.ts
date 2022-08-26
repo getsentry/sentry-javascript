@@ -1,18 +1,15 @@
 import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as path from 'path';
 
-import { getAPIResponse, runServer } from '../../../../utils/index';
+import { TestEnv } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
 test('Should assign `sentry-trace` header which sets parent trace id of an outgoing request.', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const response = (await getAPIResponse(
-    { url: `${url}/express`, server },
-    {
-      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-    },
-  )) as TestAPIResponse;
+  const response = (await env.getAPIResponse(`${env.url}/express`, {
+    'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+  })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

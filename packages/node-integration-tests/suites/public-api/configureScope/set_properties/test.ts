@@ -1,8 +1,8 @@
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should set different properties of a scope', async () => {
-  const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config);
+  const env = await TestEnv.init(__dirname);
+  const envelope = await env.getEnvelopeRequest();
 
   assertSentryEvent(envelope[2], {
     message: 'configured_scope',

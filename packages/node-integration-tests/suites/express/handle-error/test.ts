@@ -1,8 +1,8 @@
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../utils/index';
+import { assertSentryEvent, TestEnv } from '../../../utils/index';
 
 test('should capture and send Express controller error.', async () => {
-  const { url, server } = await runServer(__dirname, `${__dirname}/server.ts`);
-  const event = await getEnvelopeRequest({ url: `${url}/express`, server });
+  const env = await TestEnv.init(__dirname, `${__dirname}/server.ts`);
+  const event = await env.getEnvelopeRequest({ url: `${env.url}/express` });
 
   expect((event[2] as any).exception.values[0].stacktrace.frames.length).toBeGreaterThan(0);
 
