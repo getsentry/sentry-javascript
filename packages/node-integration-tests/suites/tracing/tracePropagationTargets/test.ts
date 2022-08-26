@@ -1,6 +1,6 @@
 import nock from 'nock';
 
-import { TestEnv, runScenario } from '../../../utils';
+import { runScenario, TestEnv } from '../../../utils';
 
 test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
   const match1 = nock('http://match-this-url.com')
