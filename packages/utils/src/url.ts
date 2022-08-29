@@ -50,7 +50,6 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
  * @returns URL or path without fragment
  */
 export function stripUrlFragment(urlPath: string): string {
-  // eslint-disable-next-line no-useless-escape
   return urlPath.split('#')[0];
 }
 
