@@ -13,7 +13,7 @@ export interface AppContext extends Record<string, unknown> {
   app_version?: string;
   app_identifier?: string;
   build_type?: string;
-  memory_used?: number;
+  app_memory?: number;
 }
 
 export interface DeviceContext extends Record<string, unknown> {

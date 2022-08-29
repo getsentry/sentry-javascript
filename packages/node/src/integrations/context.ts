@@ -75,8 +75,8 @@ export class Context implements Integration {
    */
   private _updateContext(contexts: Contexts): Contexts {
     // Only update properties if they exist
-    if (contexts?.app?.memory_used) {
-      contexts.app.memory_used = process.memoryUsage().rss;
+    if (contexts?.app?.app_memory) {
+      contexts.app.app_memory = process.memoryUsage().rss;
     }
 
     if (contexts?.device?.free_memory) {
@@ -175,10 +175,10 @@ function getCultureContext(): CultureContext | undefined {
 }
 
 function getAppContext(): AppContext {
-  const memory_used = process.memoryUsage().rss;
+  const app_memory = process.memoryUsage().rss;
   const app_start_time = new Date(Date.now() - process.uptime() * 1000).toISOString();
 
-  return { app_start_time, memory_used };
+  return { app_start_time, app_memory };
 }
 
 function getDeviceContext(deviceOpt: DeviceContextOptions | true): DeviceContext {
