@@ -174,17 +174,6 @@ const makeRequest = async (method: 'get' | 'post', url: string): Promise<void> =
 };
 
 /**
- * Filters and returns only a specific type of envelope payload.
- */
-export const filterEnvelopeItems = (
-  envelopes: Record<string, unknown>[][],
-  type = 'event',
-): Record<string, unknown>[] => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return envelopes.filter(e => (e?.[1] as any)?.type === type).map(e => e[2] as any);
-};
-
-/**
  * Sends a get request to given URL, with optional headers. Returns the response.
  * Ends the server instance and flushes the Sentry event queue.
  *
