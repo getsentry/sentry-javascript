@@ -10,7 +10,7 @@ test('should unset user', async () => {
     message: 'no_user',
   });
 
-  expect((events[0][2] as Event).user).not.toBeDefined();
+  expect((events[0] as Event).user).not.toBeDefined();
 
   assertSentryEvent(events[1][2], {
     message: 'user',
@@ -25,5 +25,5 @@ test('should unset user', async () => {
     message: 'unset_user',
   });
 
-  expect((events[2][2] as Event).user).not.toBeDefined();
+  expect((events[2] as Event).user).not.toBeDefined();
 });

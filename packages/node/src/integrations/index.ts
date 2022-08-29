@@ -5,3 +5,4 @@ export { OnUnhandledRejection } from './onunhandledrejection';
 export { LinkedErrors } from './linkederrors';
 export { Modules } from './modules';
 export { ContextLines } from './contextlines';
+export { Context } from './context';

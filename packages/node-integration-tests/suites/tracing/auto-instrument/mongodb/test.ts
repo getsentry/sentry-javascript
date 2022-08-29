@@ -14,7 +14,9 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
   }, 10000);
 
   afterAll(async () => {
-    await mongoServer.stop();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   test('should auto-instrument `mongodb` package.', async () => {

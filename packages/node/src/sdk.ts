@@ -18,7 +18,15 @@ import * as domain from 'domain';
 import * as url from 'url';
 
 import { NodeClient } from './client';
-import { Console, ContextLines, Http, LinkedErrors, OnUncaughtException, OnUnhandledRejection } from './integrations';
+import {
+  Console,
+  Context,
+  ContextLines,
+  Http,
+  LinkedErrors,
+  OnUncaughtException,
+  OnUnhandledRejection,
+} from './integrations';
 import { getModule } from './module';
 import { makeNodeTransport } from './transports';
 import { NodeClientOptions, NodeOptions } from './types';
@@ -36,6 +44,7 @@ export const defaultIntegrations = [
   new OnUnhandledRejection(),
   // Misc
   new LinkedErrors(),
+  new Context(),
 ];
 
 /**

@@ -2,9 +2,9 @@ import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../ut
 
 test('should set a simple extra', async () => {
   const config = await runServer(__dirname);
-  const event = await getEnvelopeRequest(config);
+  const events = await getEnvelopeRequest(config);
 
-  assertSentryEvent(event[2], {
+  assertSentryEvent(events[2], {
     message: 'simple_extra',
     extra: {
       foo: {

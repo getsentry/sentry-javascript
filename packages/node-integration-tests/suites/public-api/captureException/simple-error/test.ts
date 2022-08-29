@@ -2,9 +2,9 @@ import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../ut
 
 test('should capture a simple error with message', async () => {
   const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config);
+  const events = await getEnvelopeRequest(config);
 
-  assertSentryEvent(envelope[2], {
+  assertSentryEvent(events[2], {
     exception: {
       values: [
         {

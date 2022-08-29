@@ -4,12 +4,12 @@ import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../ut
 
 test('should normalize non-serializable context', async () => {
   const config = await runServer(__dirname);
-  const event = await getEnvelopeRequest(config);
+  const events = await getEnvelopeRequest(config);
 
-  assertSentryEvent(event[2], {
+  assertSentryEvent(events[2], {
     message: 'non_serializable',
     contexts: {},
   });
 
-  expect((event as Event).contexts?.context_3).not.toBeDefined();
+  expect((events[0] as Event).contexts?.context_3).not.toBeDefined();
 });

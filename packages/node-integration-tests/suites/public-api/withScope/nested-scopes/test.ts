@@ -31,7 +31,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  expect((events[2][2] as Event).user).toBeUndefined();
+  expect((events[2] as Event).user).toBeUndefined();
 
   assertSentryEvent(events[3][2], {
     message: 'outer_after',
