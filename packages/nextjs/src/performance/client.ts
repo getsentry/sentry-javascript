@@ -113,8 +113,19 @@ const DEFAULT_TAGS = {
 } as const;
 
 let activeTransaction: Transaction | undefined = undefined;
-let prevTransactionName: string | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
+
+// We keep track of the previous page location so we can avoid creating transactions when navigating to the same page.
+// This variable should always contain a pathname. (without query string or fragment)
+// We are making a tradeoff by not starting transactions when just the query string changes. One could argue that we
+// should in fact start transactions when the query changes, however, in some cases (for example when typing in a search
+// box) the query might change multiple times a second, resulting in way too many transactions.
+// Because we currently don't have a real way of preventing transactions to be created in this case (except for the
+// shotgun approach `startTransactionOnLocationChange: false`), we won't start transactions when *just* the query changes.
+let previousLocation: string | undefined = undefined;
+
+// We keep track of the previous transaction name so we can set the `from` field on navigation transactions.
+let prevTransactionName: string | undefined = undefined;
 
 const client = getCurrentHub().getClient();
 
@@ -137,6 +148,8 @@ export function nextRouterInstrumentation(
     const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
 
     prevTransactionName = route || global.location.pathname;
+    previousLocation = global.location.pathname;
+
     const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({
@@ -197,19 +210,25 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
     ...args: any[]
   ): Promise<boolean> {
     const newTransactionName = stripUrlQueryAndFragment(url);
+
     // do not start a transaction if it's from the same page
-    if (startTransaction !== undefined && prevTransactionName !== newTransactionName) {
+    if (startTransaction !== undefined && previousLocation !== as) {
+      previousLocation = as;
+
       if (activeTransaction) {
         activeTransaction.finish();
       }
+
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
         method,
         ...options,
       };
+
       if (prevTransactionName) {
         tags.from = prevTransactionName;
       }
+
       prevTransactionName = newTransactionName;
       activeTransaction = startTransaction({
         name: prevTransactionName,
