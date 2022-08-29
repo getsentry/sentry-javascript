@@ -44,6 +44,17 @@ export function stripUrlQueryAndFragment(urlPath: string): string {
 }
 
 /**
+ * Strip the URL fragment off of a given URL or path (if present)
+ *
+ * @param urlPath Full URL or path, including possible fragment
+ * @returns URL or path without fragment
+ */
+export function stripUrlFragment(urlPath: string): string {
+  // eslint-disable-next-line no-useless-escape
+  return urlPath.split('#')[0];
+}
+
+/**
  * Returns number of URL segments of a passed string URL.
  */
 export function getNumberOfUrlSegments(url: string): number {
