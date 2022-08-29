@@ -1,3 +1,5 @@
+import MagicString from 'magic-string';
+
 import { ComponentTrackingInitOptions, PreprocessorGroup, TrackingOptions } from './types';
 
 const defaultComponentTrackingOptions: ComponentTrackingInitOptions = {
@@ -29,12 +31,16 @@ export function componentTrackingPreprocessor(
         componentName: getComponentName(filename || ''),
       };
 
-      const importStmt = 'import { trackComponent } from "@sentry/svelte"\n';
+      const importStmt = 'import { trackComponent } from "@sentry/svelte";\n';
       const functionCall = `trackComponent(${JSON.stringify(trackOptions)});\n`;
-      console.log(functionCall);
 
-      const updatedCode = `${importStmt}${functionCall}${content}`;
-      return { code: updatedCode };
+      const s = new MagicString(content);
+      s.prepend(functionCall).prepend(importStmt).append('console.log()');
+
+      const updatedCode = s.toString();
+      const updatedSourceMap = s.generateMap().toString();
+
+      return { code: updatedCode, map: updatedSourceMap };
     },
   };
 }
