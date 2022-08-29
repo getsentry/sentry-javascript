@@ -233,7 +233,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
 }
 
 export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes || !_customStartTransaction) {
     __DEBUG_BUILD__ &&
       logger.warn(
         'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
