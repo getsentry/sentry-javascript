@@ -116,8 +116,13 @@ const DEFAULT_TAGS = {
 let activeTransaction: Transaction | undefined = undefined;
 let startTransaction: StartTransactionCb | undefined = undefined;
 
-// We keep track of the previous page location so we can avoid creating transactions when navigating to the same page
-// This variable should always contain pathname + queryparams (without fragment - since we don't want to trace anchor jumps)
+// We keep track of the previous page location so we can avoid creating transactions when navigating to the same page.
+// This variable should always contain a pathname. (without query string or fragment)
+// We are making a tradeoff by not starting transactions when just the query string changes. One could argue that we
+// should in fact start transactions when the query changes, however, in some cases (for example when typing in a search
+// box) the query might change multiple times a second, resulting in way too many transactions.
+// Because we currently don't have a real way of preventing transactions to be created in this case (except for the
+// shotgun approach `startTransactionOnLocationChange: false`), we won't start transactions when *just* the query changes.
 let previousLocation: string | undefined = undefined;
 
 // We keep track of the previous transaction name so we can set the `from` field on navigation transactions.
@@ -144,7 +149,7 @@ export function nextRouterInstrumentation(
     const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
 
     prevTransactionName = route || global.location.pathname;
-    previousLocation = global.location.pathname + global.location.search;
+    previousLocation = global.location.pathname;
 
     const source = route ? 'route' : 'url';
 
@@ -165,6 +170,7 @@ export function nextRouterInstrumentation(
     // Spans that aren't attached to any transaction are lost; so if transactions aren't
     // created (besides potentially the onpageload transaction), no need to wrap the router.
     if (!startTransactionOnLocationChange) return;
+
     // `withRouter` uses `useRouter` underneath:
     // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
     // Router events also use the router:
@@ -205,11 +211,10 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
     ...args: any[]
   ): Promise<boolean> {
     const newTransactionName = stripUrlQueryAndFragment(url);
-    const newLocation = stripUrlFragment(as);
 
     // do not start a transaction if it's from the same page
-    if (startTransaction !== undefined && previousLocation !== newLocation) {
-      previousLocation = newLocation;
+    if (startTransaction !== undefined && previousLocation !== as) {
+      previousLocation = as;
 
       if (activeTransaction) {
         activeTransaction.finish();
