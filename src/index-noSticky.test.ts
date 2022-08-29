@@ -136,8 +136,8 @@ describe('SentryReplay (no sticky)', () => {
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // Session's last activity should be updated
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
@@ -155,8 +155,8 @@ describe('SentryReplay (no sticky)', () => {
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+    expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
@@ -184,8 +184,8 @@ describe('SentryReplay (no sticky)', () => {
     await advanceTimers(5000);
     expect(replay).not.toHaveSentReplay();
 
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + 16000);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + 16000);
+    expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
 
@@ -202,7 +202,7 @@ describe('SentryReplay (no sticky)', () => {
   it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
     const initialSession = replay.session;
 
-    expect(initialSession.id).toBeDefined();
+    expect(initialSession?.id).toBeDefined();
 
     // Idle for 15 minutes
     const FIFTEEN_MINUTES = 15 * 60000;

@@ -3,12 +3,12 @@
  * time should be considered as expired.
  */
 export function isExpired(
-  initialTime: number,
-  expiry: number,
+  initialTime: null | number,
+  expiry: undefined | number,
   targetTime: number = +new Date()
 ) {
   // Always expired if < 0
-  if (expiry < 0) {
+  if (initialTime === null || expiry === undefined || expiry < 0) {
     return true;
   }
 

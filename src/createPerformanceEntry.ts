@@ -38,7 +38,7 @@ interface MemoryInfo {
 // Map entryType -> function to normalize data for event
 const ENTRY_TYPES: Record<
   string,
-  (entry: PerformanceEntry) => ReplayPerformanceEntry
+  (entry: PerformanceEntry) => null | ReplayPerformanceEntry
 > = {
   resource: createResourceEntry,
   paint: createPaintEntry,
@@ -47,7 +47,9 @@ const ENTRY_TYPES: Record<
 };
 
 export function createPerformanceEntries(entries: PerformanceEntry[]) {
-  return entries.map(createPerformanceEntry).filter(Boolean);
+  return entries
+    .map(createPerformanceEntry)
+    .filter(Boolean) as ReplayPerformanceEntry[];
 }
 
 function createPerformanceEntry(entry: PerformanceEntry) {

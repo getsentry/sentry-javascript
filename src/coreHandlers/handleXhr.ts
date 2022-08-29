@@ -12,7 +12,7 @@ type XHRSendInput =
   | string;
 
 interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
-  [key: string]: any;
+  [key: string]: unknown;
   __sentry_xhr__?: {
     method?: string;
     url?: string;
@@ -32,7 +32,9 @@ interface XhrHandlerData {
   endTimestamp?: number;
 }
 
-export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry {
+export function handleXhr(
+  handlerData: XhrHandlerData
+): ReplayPerformanceEntry | null {
   if (handlerData.xhr.__sentry_own_request__) {
     // Taken from sentry-javascript
     // Only capture non-sentry requests
@@ -41,6 +43,7 @@ export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry {
 
   if (handlerData.startTimestamp) {
     // TODO: See if this is still needed
+    handlerData.xhr.__sentry_xhr__ = handlerData.xhr.__sentry_xhr__ || {};
     handlerData.xhr.__sentry_xhr__.startTimestamp = handlerData.startTimestamp;
   }
 
@@ -55,7 +58,7 @@ export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry {
   } = handlerData.xhr.__sentry_xhr__ || {};
 
   // Do not capture fetches to Sentry ingestion endpoint
-  if (isIngestHost(url)) {
+  if (url === undefined || isIngestHost(url)) {
     return null;
   }
 
@@ -63,7 +66,7 @@ export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry {
     type: 'resource.xhr',
     name: url,
     start:
-      handlerData.xhr.__sentry_xhr__.startTimestamp / 1000 ||
+      (handlerData.xhr.__sentry_xhr__?.startTimestamp || 0) / 1000 ||
       handlerData.endTimestamp / 1000.0,
     end: handlerData.endTimestamp / 1000.0,
     data: {

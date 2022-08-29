@@ -97,7 +97,7 @@ it('creates a sticky session when one does not exist', function () {
   });
 
   // Should not have anything in storage
-  expect(FetchSession.fetchSession().toJSON()).toEqual({
+  expect(FetchSession.fetchSession()?.toJSON()).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),

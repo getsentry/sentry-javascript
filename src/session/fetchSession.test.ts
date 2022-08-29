@@ -15,7 +15,7 @@ it('fetches a valid session', function () {
     '{"id":"fd09adfc4117477abc8de643e5a5798a","started":1648827162630,"lastActivity":1648827162658}'
   );
 
-  expect(fetchSession().toJSON()).toEqual({
+  expect(fetchSession()?.toJSON()).toEqual({
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     segmentId: 0,

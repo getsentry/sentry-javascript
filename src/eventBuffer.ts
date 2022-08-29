@@ -76,7 +76,7 @@ class EventBufferArray implements IEventBuffer {
 
 // exporting for testing
 export class EventBufferCompressionWorker implements IEventBuffer {
-  private worker: Worker;
+  private worker: null | Worker;
   private eventBufferItemLength = 0;
   private _id = 0;
 
@@ -112,7 +112,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
         }
 
         // At this point, we'll always want to remove listener regardless of result status
-        this.worker.removeEventListener('message', listener);
+        this.worker?.removeEventListener('message', listener);
 
         if (!data.success) {
           // TODO: Do some error handling, not sure what
@@ -127,8 +127,8 @@ export class EventBufferCompressionWorker implements IEventBuffer {
 
       // Note: we can't use `once` option because it's possible it needs to
       // listen to multiple messages
-      this.worker.addEventListener('message', listener);
-      this.worker.postMessage({ id, method, args });
+      this.worker?.addEventListener('message', listener);
+      this.worker?.postMessage({ id, method, args });
     });
   }
 
@@ -139,7 +139,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
 
   destroy() {
     logger.log('Destroying compression worker');
-    this.worker.terminate();
+    this.worker?.terminate();
     this.worker = null;
   }
 

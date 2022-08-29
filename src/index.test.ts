@@ -71,6 +71,7 @@ describe('SentryReplay', () => {
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
+    // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
     delete window.location;
     Object.defineProperty(window, 'location', {
       value: prevLocation,
@@ -100,8 +101,8 @@ describe('SentryReplay', () => {
       lastActivity: BASE_TIMESTAMP,
       started: BASE_TIMESTAMP,
     });
-    expect(replay.session.id).toBeDefined();
-    expect(replay.session.segmentId).toBeDefined();
+    expect(replay.session?.id).toBeDefined();
+    expect(replay.session?.segmentId).toBeDefined();
     expect(captureReplayMock).not.toHaveBeenCalled();
   });
 
@@ -208,7 +209,7 @@ describe('SentryReplay', () => {
       JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
     );
     // Session's last activity should be updated
-    expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
   });
@@ -235,7 +236,7 @@ describe('SentryReplay', () => {
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // Session's last activity should be updated
-    expect(replay.session.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
   });
@@ -252,8 +253,8 @@ describe('SentryReplay', () => {
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+    expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
@@ -282,8 +283,8 @@ describe('SentryReplay', () => {
 
     expect(replay).not.toHaveSentReplay();
 
-    expect(replay.session.lastActivity).toBe(BASE_TIMESTAMP + 16000);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + 16000);
+    expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
     expect(replay.eventBuffer.length).toBe(0);
 
@@ -300,7 +301,7 @@ describe('SentryReplay', () => {
   it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
     const initialSession = replay.session;
 
-    expect(initialSession.id).toBeDefined();
+    expect(initialSession?.id).toBeDefined();
     // @ts-expect-error private member
     expect(replay.initialState).toEqual({
       url: 'http://localhost/',
@@ -406,7 +407,7 @@ describe('SentryReplay', () => {
       ])
     );
 
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.segmentId).toBe(1);
 
     // breadcrumbs array should be empty
     expect(replay.breadcrumbs).toHaveLength(0);
@@ -462,8 +463,8 @@ describe('SentryReplay', () => {
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
     // No activity has occurred, session's last activity should remain the same
-    expect(replay.session.lastActivity).toBeGreaterThanOrEqual(BASE_TIMESTAMP);
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.lastActivity).toBeGreaterThanOrEqual(BASE_TIMESTAMP);
+    expect(replay.session?.segmentId).toBe(1);
 
     // next tick should do nothing
 
@@ -494,7 +495,7 @@ describe('SentryReplay', () => {
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(captureReplayMock).toHaveBeenCalled();
-    expect(replay.session.segmentId).toBe(1);
+    expect(replay.session?.segmentId).toBe(1);
 
     (
       replay.sendReplayRequest as jest.MockedFunction<
@@ -508,7 +509,7 @@ describe('SentryReplay', () => {
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(captureReplayMock).not.toHaveBeenCalled();
-    expect(replay.session.segmentId).toBe(2);
+    expect(replay.session?.segmentId).toBe(2);
   });
 
   it('does not create root event when there are no events to send', async () => {

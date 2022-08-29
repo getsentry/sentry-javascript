@@ -6,7 +6,8 @@
       "@/*": ["./src/*"],
       "@test": ["./test"],
       "@test/*": ["./test/*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": [
     "src/**/*.ts",

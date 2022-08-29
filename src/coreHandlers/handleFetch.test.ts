@@ -46,7 +46,9 @@ it('ignores fetches that have not completed yet', function () {
     ...DEFAULT_DATA,
   };
 
+  // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
   delete data.endTimestamp;
+  // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
   delete data.response;
 
   expect(handleFetch(data)).toEqual(null);

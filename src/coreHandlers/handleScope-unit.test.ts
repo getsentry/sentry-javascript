@@ -18,7 +18,7 @@ beforeAll(function () {
 });
 
 it('returns a breadcrumb only if last breadcrumb has changed (integration)', function () {
-  getCurrentHub().getScope().addBreadcrumb({ message: 'testing' });
+  getCurrentHub().getScope()?.addBreadcrumb({ message: 'testing' });
 
   expect(mockHandleScope).toHaveBeenCalledTimes(1);
   expect(mockHandleScope).toHaveReturnedWith(
@@ -29,7 +29,7 @@ it('returns a breadcrumb only if last breadcrumb has changed (integration)', fun
 
   // This will trigger breadcrumb/scope listener, but handleScope should return
   // null because breadcrumbs has not changed
-  getCurrentHub().getScope().setUser({ email: 'foo@foo.com' });
+  getCurrentHub().getScope()?.setUser({ email: 'foo@foo.com' });
   expect(mockHandleScope).toHaveBeenCalledTimes(1);
   expect(mockHandleScope).toHaveReturnedWith(null);
 });

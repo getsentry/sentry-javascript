@@ -10,5 +10,5 @@ export function isSessionExpired(
   expiry: number,
   targetTime = +new Date()
 ) {
-  return isExpired(session.lastActivity, expiry, targetTime);
+  return isExpired(session?.lastActivity, expiry, targetTime);
 }

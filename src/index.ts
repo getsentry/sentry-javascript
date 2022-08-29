@@ -200,7 +200,7 @@ export class SentryReplay implements Integration {
     }
 
     this.eventBuffer = createEventBuffer({
-      useCompression: this.options.useCompression,
+      useCompression: Boolean(this.options.useCompression),
     });
 
     this.addListeners();
@@ -286,7 +286,7 @@ export class SentryReplay implements Integration {
   }
 
   clearSession() {
-    this.session = null;
+    this.session = undefined;
   }
 
   /**
@@ -296,7 +296,7 @@ export class SentryReplay implements Integration {
   loadSession({ expiry }: { expiry: number }): void {
     const { type, session } = getSession({
       expiry,
-      stickySession: this.options.stickySession,
+      stickySession: Boolean(this.options.stickySession),
       currentSession: this.session,
       samplingRate: this.options.replaysSamplingRate,
     });
@@ -345,7 +345,7 @@ export class SentryReplay implements Integration {
 
     // Listeners from core SDK //
     const scope = getCurrentHub().getScope();
-    scope.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
+    scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
     addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
     addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
     addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
@@ -375,7 +375,7 @@ export class SentryReplay implements Integration {
       'paint',
       'resource',
     ].forEach((type) =>
-      this.performanceObserver.observe({
+      this.performanceObserver?.observe({
         type,
         buffered: true,
       })
@@ -418,7 +418,7 @@ export class SentryReplay implements Integration {
       return event;
     }
 
-    event.tags = { ...event.tags, replayId: this.session.id };
+    event.tags = { ...event.tags, replayId: this.session?.id };
 
     if (event.type === 'transaction') {
       this.context.traceIds.add(String(event.contexts?.trace.trace_id || ''));
@@ -426,6 +426,7 @@ export class SentryReplay implements Integration {
     }
 
     // XXX: Is it safe to assume that all other events are error events?
+    // @ts-expect-error: Type 'undefined' is not assignable to type 'string'.ts(2345)
     this.context.errorIds.add(event.event_id);
 
     // Need to be very careful that this does not cause an infinite loop
@@ -472,7 +473,7 @@ export class SentryReplay implements Integration {
       // of the previous session. Do not immediately flush in this case
       // to avoid capturing only the checkout and instead the replay will
       // be captured if they perform any follow-up actions.
-      if (this.session.previousSessionId) {
+      if (this.session?.previousSessionId) {
         return true;
       }
 
@@ -586,7 +587,7 @@ export class SentryReplay implements Integration {
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
-          timestamp: result.timestamp * 1000,
+          timestamp: (result.timestamp || 0) * 1000,
           data: {
             tag: 'breadcrumb',
             payload: result,
@@ -610,6 +611,10 @@ export class SentryReplay implements Integration {
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
   doChangeToBackgroundTasks(breadcrumb?: Breadcrumb) {
+    if (!this.session) {
+      return;
+    }
+
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
     if (breadcrumb) {
@@ -632,6 +637,10 @@ export class SentryReplay implements Integration {
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
   doChangeToForegroundTasks(breadcrumb?: Breadcrumb) {
+    if (!this.session) {
+      return;
+    }
+
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
     if (breadcrumb) {
@@ -687,7 +696,9 @@ export class SentryReplay implements Integration {
    * Updates the session's last activity timestamp
    */
   updateLastActivity(lastActivity: number = new Date().getTime()) {
-    this.session.lastActivity = lastActivity;
+    if (this.session) {
+      this.session.lastActivity = lastActivity;
+    }
   }
 
   /**
@@ -697,7 +708,7 @@ export class SentryReplay implements Integration {
     this.addUpdate(() => {
       this.addEvent({
         type: EventType.Custom,
-        timestamp: breadcrumb.timestamp,
+        timestamp: breadcrumb.timestamp || 0,
         data: {
           tag: 'breadcrumb',
           payload: breadcrumb,
@@ -765,13 +776,13 @@ export class SentryReplay implements Integration {
    * Returns true if session is not expired, false otherwise.
    */
   checkAndHandleExpiredSession(expiry: number = SESSION_IDLE_DURATION) {
-    const oldSessionId = this.session.id;
+    const oldSessionId = this.session?.id;
 
     // This will create a new session if expired, based on expiry length
     this.loadSession({ expiry });
 
     // Session was expired if session ids do not match
-    const isExpired = oldSessionId !== this.session.id;
+    const isExpired = oldSessionId !== this.session?.id;
 
     if (!isExpired) {
       return true;
@@ -830,6 +841,7 @@ export class SentryReplay implements Integration {
     this.context.urls = [];
     this.context.earliestEvent = null;
 
+    // @ts-expect-error: Type 'undefined' is not assignable to type 'Session'.ts(2322)
     return context;
   }
 
@@ -847,7 +859,7 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    if (!this.session.id) {
+    if (!this.session?.id) {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
     }
@@ -905,13 +917,13 @@ export class SentryReplay implements Integration {
     const payloadWithSequence = createPayload({
       events,
       headers: {
-        segment_id: this.session.segmentId,
+        segment_id: this.session?.segmentId,
       },
     });
 
     const envelope = createEnvelope(
       {
-        event_id: this.session.id,
+        event_id: this.session?.id,
         sent_at: new Date().toISOString(),
         sdk: { name: 'sentry.javascript.integration.replay', version: '1.0.0' },
       },
@@ -922,6 +934,7 @@ export class SentryReplay implements Integration {
             type: 'replay_recording',
             length: payloadWithSequence.length,
           },
+          // @ts-expect-error: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
           payloadWithSequence,
         ],
       ]
@@ -957,6 +970,7 @@ export class SentryReplay implements Integration {
     }
 
     const client = getCurrentHub().getClient();
+    // @ts-expect-error: Type 'undefined' is not assignable to type 'DsnComponents'.ts(2345)
     const endpoint = getEnvelopeEndpointWithUrlEncodedAuth(client.getDsn());
 
     try {

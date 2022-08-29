@@ -18,7 +18,7 @@ describe('SentryReplay (sampling)', () => {
     expect(replay.initialState).toEqual(undefined);
     jest.runAllTimers();
 
-    expect(replay.session.sampled).toBe(false);
+    expect(replay.session?.sampled).toBe(false);
     // @ts-expect-error private
     expect(replay.initialState).toEqual({
       timestamp: expect.any(Number),

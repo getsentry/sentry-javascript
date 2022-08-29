@@ -6,8 +6,11 @@ const ENVELOPE_URL_REGEX = new RegExp(
 );
 
 expect.extend({
-  toHaveSameSession(received: jest.Mocked<SentryReplay>, expected: Session) {
-    const pass = this.equals(received.session.id, expected.id);
+  toHaveSameSession(
+    received: jest.Mocked<SentryReplay>,
+    expected: undefined | Session
+  ) {
+    const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
     const options = {
       isNot: this.isNot,
@@ -81,7 +84,7 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     interface Matchers<R> {
       toHaveSentReplay(expected?: string | Uint8Array): CustomMatcherResult;
-      toHaveSameSession(expected: Session): CustomMatcherResult;
+      toHaveSameSession(expected: undefined | Session): CustomMatcherResult;
     }
   }
 }

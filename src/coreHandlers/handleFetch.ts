@@ -20,7 +20,7 @@ interface FetchHandlerData {
 
 export function handleFetch(
   handlerData: FetchHandlerData
-): ReplayPerformanceEntry {
+): null | ReplayPerformanceEntry {
   if (!handlerData.endTimestamp) {
     return null;
   }

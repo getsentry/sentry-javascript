@@ -116,7 +116,7 @@ export class Session {
     return this._previousSessionId;
   }
 
-  set previousSessionId(id: string) {
+  set previousSessionId(id: string | undefined) {
     this._previousSessionId = id;
   }
 
