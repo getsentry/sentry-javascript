@@ -8,7 +8,6 @@ import {
   getGlobalObject,
   logger,
   parseBaggageHeader,
-  stripUrlFragment,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
