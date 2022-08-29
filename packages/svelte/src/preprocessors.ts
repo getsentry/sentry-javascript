@@ -1,41 +1,41 @@
 import MagicString from 'magic-string';
 
-import { ComponentTrackingInitOptions, PreprocessorGroup, TrackingOptions } from './types';
+import { ComponentTrackingInitOptions, PreprocessorGroup, TrackComponentOptions } from './types';
 
-const defaultComponentTrackingOptions: ComponentTrackingInitOptions = {
+const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
   trackMount: true,
   trackUpdates: true,
 };
 
 /**
- * Svelte Preprocessor to inject performance monitoring related code
+ * Svelte Preprocessor to inject Sentry performance monitoring related code
  * into Svelte components.
  */
-export function componentTrackingPreprocessor(
-  options: ComponentTrackingInitOptions = defaultComponentTrackingOptions,
-): PreprocessorGroup {
+export function componentTrackingPreprocessor(options?: ComponentTrackingInitOptions): PreprocessorGroup {
+  const mergedOptions = { ...defaultComponentTrackingOptions, ...options };
+
   return {
     // This script hook is called whenever a Svelte component's <script>
     // content is preprocessed.
     // `content` contains the script code as a string
     script: ({ content, filename }) => {
-      if (!shouldInjectFunction(options.trackComponents, filename)) {
+      if (!shouldInjectFunction(mergedOptions.trackComponents, filename)) {
         return { code: content };
       }
 
-      const { trackMount, trackUpdates } = options;
-      const trackOptions: TrackingOptions = {
-        trackMount: trackMount === undefined ? true : trackMount,
-        trackUpdates: trackUpdates === undefined ? true : trackUpdates,
+      const { trackMount, trackUpdates } = mergedOptions;
+      const trackComponentOptions: TrackComponentOptions = {
+        trackMount,
+        trackUpdates,
         componentName: getComponentName(filename || ''),
       };
 
       const importStmt = 'import { trackComponent } from "@sentry/svelte";\n';
-      const functionCall = `trackComponent(${JSON.stringify(trackOptions)});\n`;
+      const functionCall = `trackComponent(${JSON.stringify(trackComponentOptions)});\n`;
 
       const s = new MagicString(content);
-      s.prepend(functionCall).prepend(importStmt).append('console.log()');
+      s.prepend(functionCall).prepend(importStmt);
 
       const updatedCode = s.toString();
       const updatedSourceMap = s.generateMap().toString();
@@ -46,7 +46,7 @@ export function componentTrackingPreprocessor(
 }
 
 function shouldInjectFunction(
-  trackComponents: ComponentTrackingInitOptions['trackComponents'],
+  trackComponents: Required<ComponentTrackingInitOptions['trackComponents']>,
   filename: string | undefined,
 ): boolean {
   if (!trackComponents || !filename) {

@@ -38,18 +38,18 @@ export interface PreprocessorGroup {
 
 export type SpanOptions = {
   /**
-   * If true, spans are be recorded between component intialization and Svellte's
-   * onMount lifecycle hook
+   * If true, spans are be recorded between component intialization and its
+   * onMount lifecycle hook.
    *
-   * defaults to true if component tracking is enabled
+   * Defaults to true if component tracking is enabled
    */
   trackMount?: boolean;
 
   /**
    * If true, spans are recorded between each component's beforeUpdate and afterUpdate
-   * lifecycle hooks
+   * lifecycle hooks.
    *
-   * defaults to true if component tracking is enabled
+   * Defaults to true if component tracking is enabled
    */
   trackUpdates?: boolean;
 };
@@ -66,11 +66,11 @@ export type ComponentTrackingInitOptions = {
    * If you only want to track a selection of components, specify the component names
    * as an array.
    *
-   * defaults to: true
+   * Defaults to true if the preprocessor is used
    */
-  trackComponents: boolean | string[];
+  trackComponents?: boolean | string[];
 } & SpanOptions;
 
-export type TrackingOptions = {
+export type TrackComponentOptions = {
   componentName?: string;
 } & SpanOptions;

@@ -4,9 +4,10 @@ import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_MOUNT, UI_SVELTE_UPDATE } from './constants';
-import { TrackingOptions } from './types';
+import { TrackComponentOptions } from './types';
 
-const defaultOptions: TrackingOptions = {
+const defaultOptions: Required<Pick<TrackComponentOptions, 'trackMount' | 'trackUpdates'>> &
+  Pick<TrackComponentOptions, 'componentName'> = {
   trackMount: true,
   trackUpdates: true,
 };
@@ -18,24 +19,26 @@ const defaultOptions: TrackingOptions = {
  * if you are using the Sentry componentTrackingPreprocessor.
  * Alternatively, you can call it yourself if you don't want to use the preprocessor.
  */
-export function trackComponent(options: TrackingOptions = defaultOptions): void {
+export function trackComponent(options?: TrackComponentOptions): void {
+  const mergedOptions = { ...defaultOptions, ...options };
+
   const transaction = getActiveTransaction();
   if (!transaction) {
     return;
   }
 
-  const customComponentName = options && options.componentName;
+  const customComponentName = mergedOptions.componentName;
 
   // current_component.ctor.name is likely to give us the component's name automatically
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
 
   let mountSpan: Span | undefined = undefined;
-  if (options.trackMount) {
+  if (mergedOptions.trackMount) {
     mountSpan = recordMountSpan(transaction, componentName);
   }
 
-  if (options.trackUpdates) {
+  if (mergedOptions.trackUpdates) {
     recordUpdateSpans(componentName, mountSpan);
   }
 }
@@ -57,14 +60,14 @@ function recordUpdateSpans(componentName: string, mountSpan?: Span): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
     // We need to get the active transaction again because the initial one could
-    // already be finished or there is no transaction going on, currently.
+    // already be finished or there is currently no transaction going on.
     const transaction = getActiveTransaction();
     if (!transaction) {
       return;
     }
 
-    // If we are mounting the component when the update span is started, we start it as child of the
-    // mount span. Else, we start it as a child of the transaction.
+    // If we are mounting the component when the update span is started, we start it as child
+    // of the mount span. Else, we start it as a child of the transaction.
     const parentSpan =
       mountSpan && !mountSpan.endTimestamp && mountSpan.transaction === transaction ? mountSpan : transaction;
 
