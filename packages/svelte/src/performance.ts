@@ -30,16 +30,17 @@ export function trackComponent(options: TrackingOptions = defaultOptions): void 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
 
+  let mountSpan: Span | undefined = undefined;
   if (options.trackMount) {
-    recordMountSpan(transaction, componentName);
+    mountSpan = recordMountSpan(transaction, componentName);
   }
 
   if (options.trackUpdates) {
-    recordUpdateSpans(componentName);
+    recordUpdateSpans(componentName, mountSpan);
   }
 }
 
-function recordMountSpan(transaction: Transaction, componentName: string): void {
+function recordMountSpan(transaction: Transaction, componentName: string): Span {
   const mountSpan = transaction.startChild({
     op: UI_SVELTE_MOUNT,
     description: componentName,
@@ -48,9 +49,11 @@ function recordMountSpan(transaction: Transaction, componentName: string): void 
   onMount(() => {
     mountSpan.finish();
   });
+
+  return mountSpan;
 }
 
-function recordUpdateSpans(componentName: string): void {
+function recordUpdateSpans(componentName: string, mountSpan?: Span): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
     // We need to get the active transaction again because the initial one could
@@ -60,7 +63,12 @@ function recordUpdateSpans(componentName: string): void {
       return;
     }
 
-    updateSpan = transaction.startChild({
+    // If we are mounting the component when the update span is started, we start it as child of the
+    // mount span. Else, we start it as a child of the transaction.
+    const parentSpan =
+      mountSpan && !mountSpan.endTimestamp && mountSpan.transaction === transaction ? mountSpan : transaction;
+
+    updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,
       description: componentName,
     });
