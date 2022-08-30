@@ -157,4 +157,32 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       expect(tags[key]).toEqual(val);
     });
   });
+
+  it('continues transaction from sentry-trace header and baggage', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/loader-json-response/3`;
+
+    const envelope = await env.getEnvelopeRequest(
+      { url, envelopeType: 'transaction' },
+      {
+        headers: {
+          'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+          baggage: 'sentry-version=1.0,sentry-environment=production,sentry-trace_id=12312012123120121231201212312012',
+        },
+      },
+    );
+
+    expect(envelope[0].trace).toMatchObject({
+      trace_id: '12312012123120121231201212312012',
+    });
+
+    assertSentryTransaction(envelope[2], {
+      contexts: {
+        trace: {
+          trace_id: '12312012123120121231201212312012',
+          parent_span_id: '1121201211212012',
+        },
+      },
+    });
+  });
 });

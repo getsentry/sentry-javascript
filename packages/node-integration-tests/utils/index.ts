@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/node';
 import { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
@@ -102,12 +102,16 @@ export async function runScenario(url: string): Promise<void> {
   await Sentry.flush();
 }
 
-async function makeRequest(method: 'get' | 'post' = 'get', url: string): Promise<void> {
+async function makeRequest(
+  method: 'get' | 'post' = 'get',
+  url: string,
+  axiosConfig?: AxiosRequestConfig,
+): Promise<void> {
   try {
     if (method === 'get') {
-      await axios.get(url);
+      await axios.get(url, axiosConfig);
     } else {
-      await axios.post(url);
+      await axios.post(url, axiosConfig);
     }
   } catch (e) {
     // We sometimes expect the request to fail, but not the test.
@@ -161,7 +165,10 @@ export class TestEnv {
    * @param {DataCollectorOptions} options
    * @returns The intercepted envelopes.
    */
-  public async getMultipleEnvelopeRequest(options: DataCollectorOptions): Promise<Record<string, unknown>[][]> {
+  public async getMultipleEnvelopeRequest(
+    options: DataCollectorOptions,
+    axiosConfig?: AxiosRequestConfig,
+  ): Promise<Record<string, unknown>[][]> {
     const envelopeTypeArray =
       typeof options.envelopeType === 'string'
         ? [options.envelopeType]
@@ -173,7 +180,7 @@ export class TestEnv {
       envelopeTypeArray,
     );
 
-    void makeRequest(options.method, options.url || this.url);
+    void makeRequest(options.method, options.url || this.url, axiosConfig);
     return resProm;
   }
 
@@ -183,8 +190,11 @@ export class TestEnv {
    * @param {DataCollectorOptions} options
    * @returns The extracted envelope.
    */
-  public async getEnvelopeRequest(options?: DataCollectorOptions): Promise<Array<Record<string, unknown>>> {
-    return (await this.getMultipleEnvelopeRequest({ ...options, count: 1 }))[0];
+  public async getEnvelopeRequest(
+    options?: DataCollectorOptions,
+    axiosConfig?: AxiosRequestConfig,
+  ): Promise<Array<Record<string, unknown>>> {
+    return (await this.getMultipleEnvelopeRequest({ ...options, count: 1 }, axiosConfig))[0];
   }
 
   /**
