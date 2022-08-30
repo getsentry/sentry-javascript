@@ -28,7 +28,7 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
       const trackComponentOptions: TrackComponentOptions = {
         trackMount,
         trackUpdates,
-        componentName: getComponentName(filename || ''),
+        componentName: getBaseName(filename || ''),
       };
 
       const importStmt = 'import { trackComponent } from "@sentry/svelte";\n';
@@ -54,12 +54,13 @@ function shouldInjectFunction(
   }
   if (Array.isArray(trackComponents)) {
     // TODO: this probably needs to be a little more robust
-    const componentName = getComponentName(filename);
+    const componentName = getBaseName(filename);
     return trackComponents.some(allowed => allowed === componentName);
   }
   return true;
 }
-function getComponentName(filename: string): string {
+
+function getBaseName(filename: string): string {
   const segments = filename.split('/');
   const componentName = segments[segments.length - 1].replace('.svelte', '');
   return componentName;
