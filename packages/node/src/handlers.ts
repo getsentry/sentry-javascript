@@ -153,7 +153,6 @@ export function requestHandler(
     const local = domain.create();
     local.add(req);
     local.add(res);
-    local.on('error', next);
 
     local.run(() => {
       const currentHub = getCurrentHub();
