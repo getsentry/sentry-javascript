@@ -89,9 +89,11 @@ describe('client', () => {
         '/[user]/posts/[id]',
         { user: 'lforst', id: '1337', q: '42' },
         {
-          _sentryGetInitialPropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
-          _sentryGetInitialPropsBaggage:
-            'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+          pageProps: {
+            _sentryGetInitialPropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
+            _sentryGetInitialPropsBaggage:
+              'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+          },
         },
         true,
         {
