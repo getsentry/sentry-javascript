@@ -2,6 +2,7 @@
 import { getSentryRelease } from '@sentry/node';
 import { dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
+import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -138,9 +139,14 @@ export function constructWebpackConfigFunction(
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
       // https://webpack.js.org/plugins/source-map-dev-tool-plugin/)
 
+      // TODO (v9 or v10, maybe): Remove this
+      handleSourcemapHidingOptionWarning(userSentryOptions, isServer);
+
       // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
       // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
       if (!isDev) {
+        // TODO (v8): Default `hideSourceMaps` to `true`
+
         // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
         // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
         // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
@@ -493,4 +499,52 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   // We've passed all of the tests!
   return true;
+}
+
+/** Handle warning messages about `hideSourceMaps` option. Can be removed in v9 or v10 (or whenever we consider that
+ * enough people will have upgraded the SDK that the warning about the default in v8 - currently commented out - is
+ * overkill). */
+function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions, isServer: boolean): void {
+  // This is nextjs's own logging formatting, vendored since it's not exported. See
+  // https://github.com/vercel/next.js/blob/c3ceeb03abb1b262032bd96457e224497d3bbcef/packages/next/build/output/log.ts#L3-L11
+  // and
+  // https://github.com/vercel/next.js/blob/de7aa2d6e486c40b8be95a1327639cbed75a8782/packages/next/lib/eslint/runLintCheck.ts#L321-L323.
+  const codeFormat = (str: string): string => chalk.bold.cyan(str);
+
+  const _warningPrefix_ = `${chalk.yellow('warn')}  -`;
+  const _sentryNextjs_ = codeFormat('@sentry/nextjs');
+  const _hideSourceMaps_ = codeFormat('hideSourceMaps');
+  const _true_ = codeFormat('true');
+  const _false_ = codeFormat('false');
+  const _sentry_ = codeFormat('sentry');
+  const _nextConfigJS_ = codeFormat('next.config.js');
+
+  if (isServer && userSentryOptions.hideSourceMaps === undefined) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `\n${_warningPrefix_} In order to be able to deminify errors, ${_sentryNextjs_} creates sourcemaps and uploads ` +
+        'them to the Sentry server. Depending on your deployment setup, this means your original code may be visible ' +
+        `in browser devtools in production. To prevent this, set ${_hideSourceMaps_} to ${_true_} in the ${_sentry_} ` +
+        `options in your ${_nextConfigJS_}. To disable this warning without changing sourcemap behavior, set ` +
+        `${_hideSourceMaps_} to ${_false_}. (In ${_sentryNextjs_} version 8.0.0 and beyond, this option will default ` +
+        `to ${_true_}.) See https://webpack.js.org/configuration/devtool/ and ` +
+        'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
+        'information.\n',
+    );
+  }
+
+  // TODO (v8): Remove the check above in favor of the one below
+
+  //   const infoPrefix = `${chalk.cyan('info')}  -`;
+  //
+  //   if (isServer && userSentryOptions.hideSourceMaps === true) {
+  //     // eslint-disable-next-line no-console
+  //     console.log(
+  //       `\n${infoPrefix} Starting in ${_sentryNextjs_} version 8.0.0, ${_hideSourceMaps_} defaults to ${_true_}, and ` +
+  //         `thus can be removed from the ${_sentry_} options in ${_nextConfigJS_}. See ` +
+  //         'https://webpack.js.org/configuration/devtool/ and ' +
+  //         'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
+  //         'information.\n',
+  //     );
+  //   }
 }
