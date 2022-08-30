@@ -1,9 +1,10 @@
 import { hasTracingEnabled } from '@sentry/tracing';
+import { serializeBaggage } from '@sentry/utils';
 import { NextPageContext } from 'next';
 import { ErrorProps } from 'next/error';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
+import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
 
 type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 
@@ -33,12 +34,28 @@ export function withSentryServerSideErrorGetInitialProps(
     if (hasTracingEnabled()) {
       // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, errorGetInitialPropsArguments, req!, res!, {
-        dataFetcherRouteName: '/_error',
-        requestedRouteName: context.pathname,
-        dataFetchingMethodName: 'getInitialProps',
-      });
+      const errorGetInitialProps: ErrorProps & {
+        _sentryGetInitialPropsTraceData?: string;
+        _sentryGetInitialPropsBaggage?: string;
+      } = await callTracedServerSideDataFetcher(
+        errorWrappedGetInitialProps,
+        errorGetInitialPropsArguments,
+        req!,
+        res!,
+        {
+          dataFetcherRouteName: '/_error',
+          requestedRouteName: context.pathname,
+          dataFetchingMethodName: 'getInitialProps',
+        },
+      );
+
+      const requestTransaction = getTransactionFromRequest(req!);
+      if (requestTransaction) {
+        errorGetInitialProps._sentryGetInitialPropsTraceData = requestTransaction.toTraceparent();
+        errorGetInitialProps._sentryGetInitialPropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+      }
+
+      return errorGetInitialProps;
     } else {
       return errorWrappedGetInitialProps(...errorGetInitialPropsArguments);
     }

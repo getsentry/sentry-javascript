@@ -1,8 +1,9 @@
 import { hasTracingEnabled } from '@sentry/tracing';
+import { serializeBaggage } from '@sentry/utils';
 import { NextPage } from 'next';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
+import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
 
 type GetInitialProps = Required<NextPage>['getInitialProps'];
 
@@ -29,12 +30,22 @@ export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInit
     if (hasTracingEnabled()) {
       // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, getInitialPropsArguments, req!, res!, {
+      const initialProps: {
+        _sentryGetInitialPropsTraceData?: string;
+        _sentryGetInitialPropsBaggage?: string;
+      } = await callTracedServerSideDataFetcher(errorWrappedGetInitialProps, getInitialPropsArguments, req!, res!, {
         dataFetcherRouteName: context.pathname,
         requestedRouteName: context.pathname,
         dataFetchingMethodName: 'getInitialProps',
       });
+
+      const requestTransaction = getTransactionFromRequest(req!);
+      if (requestTransaction) {
+        initialProps._sentryGetInitialPropsTraceData = requestTransaction.toTraceparent();
+        initialProps._sentryGetInitialPropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+      }
+
+      return initialProps;
     } else {
       return errorWrappedGetInitialProps(...getInitialPropsArguments);
     }

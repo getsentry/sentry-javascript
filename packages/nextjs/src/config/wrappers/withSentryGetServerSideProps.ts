@@ -1,8 +1,9 @@
 import { hasTracingEnabled } from '@sentry/tracing';
+import { serializeBaggage } from '@sentry/utils';
 import { GetServerSideProps } from 'next';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
+import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function
@@ -28,13 +29,29 @@ export function withSentryGetServerSideProps(
     const errorWrappedGetServerSideProps = withErrorInstrumentation(origGetServerSideProps);
 
     if (hasTracingEnabled()) {
-      return callTracedServerSideDataFetcher(errorWrappedGetServerSideProps, getServerSidePropsArguments, req, res, {
-        dataFetcherRouteName: parameterizedRoute,
-        requestedRouteName: parameterizedRoute,
-        dataFetchingMethodName: 'getServerSideProps',
-      });
+      const serverSideProps = await callTracedServerSideDataFetcher(
+        errorWrappedGetServerSideProps,
+        getServerSidePropsArguments,
+        req,
+        res,
+        {
+          dataFetcherRouteName: parameterizedRoute,
+          requestedRouteName: parameterizedRoute,
+          dataFetchingMethodName: 'getServerSideProps',
+        },
+      );
+
+      if ('props' in serverSideProps) {
+        const requestTransaction = getTransactionFromRequest(req);
+        if (requestTransaction) {
+          serverSideProps.props._sentryGetServerSidePropsTraceData = requestTransaction.toTraceparent();
+          serverSideProps.props._sentryGetServerSidePropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+        }
+      }
+
+      return serverSideProps;
     } else {
-      return errorWrappedGetServerSideProps(...getServerSidePropsArguments);
+      return origGetServerSideProps(...getServerSidePropsArguments);
     }
   };
 }

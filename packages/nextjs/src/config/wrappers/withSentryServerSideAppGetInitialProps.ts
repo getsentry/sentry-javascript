@@ -1,8 +1,9 @@
 import { hasTracingEnabled } from '@sentry/tracing';
+import { serializeBaggage } from '@sentry/utils';
 import App from 'next/app';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
+import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
 
 type AppGetInitialProps = typeof App['getInitialProps'];
 
@@ -30,12 +31,30 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
     if (hasTracingEnabled()) {
       // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return callTracedServerSideDataFetcher(errorWrappedAppGetInitialProps, appGetInitialPropsArguments, req!, res!, {
-        dataFetcherRouteName: '/_app',
-        requestedRouteName: context.ctx.pathname,
-        dataFetchingMethodName: 'getInitialProps',
-      });
+      const appGetInitialProps: {
+        pageProps: {
+          _sentryGetInitialPropsTraceData?: string;
+          _sentryGetInitialPropsBaggage?: string;
+        };
+      } = await callTracedServerSideDataFetcher(
+        errorWrappedAppGetInitialProps,
+        appGetInitialPropsArguments,
+        req!,
+        res!,
+        {
+          dataFetcherRouteName: '/_app',
+          requestedRouteName: context.ctx.pathname,
+          dataFetchingMethodName: 'getInitialProps',
+        },
+      );
+
+      const requestTransaction = getTransactionFromRequest(req!);
+      if (requestTransaction) {
+        appGetInitialProps.pageProps._sentryGetInitialPropsTraceData = requestTransaction.toTraceparent();
+        appGetInitialProps.pageProps._sentryGetInitialPropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+      }
+
+      return appGetInitialProps;
     } else {
       return errorWrappedAppGetInitialProps(...appGetInitialPropsArguments);
     }
