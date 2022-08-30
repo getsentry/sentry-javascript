@@ -330,7 +330,7 @@ export function startRequestHandlerTransaction(
     metadata: {
       source,
       // Only attach baggage if it's defined
-      ...(isSentryBaggageEmpty(baggage) && { baggage }),
+      ...(!isSentryBaggageEmpty(baggage) && { baggage }),
     },
   });
 
