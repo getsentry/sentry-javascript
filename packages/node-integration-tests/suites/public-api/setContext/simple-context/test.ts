@@ -1,12 +1,12 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should set a simple context', async () => {
-  const config = await runServer(__dirname);
-  const envelopes = await getEnvelopeRequest(config);
+  const env = await TestEnv.init(__dirname);
+  const envelope = await env.getEnvelopeRequest();
 
-  assertSentryEvent(envelopes[2], {
+  assertSentryEvent(envelope[2], {
     message: 'simple_context_object',
     contexts: {
       foo: {
@@ -15,5 +15,5 @@ test('should set a simple context', async () => {
     },
   });
 
-  expect((envelopes[2] as Event).contexts?.context_3).not.toBeDefined();
+  expect((envelope[2] as Event).contexts?.context_3).not.toBeDefined();
 });

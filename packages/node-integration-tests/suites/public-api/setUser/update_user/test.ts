@@ -1,8 +1,8 @@
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should update user', async () => {
-  const config = await runServer(__dirname);
-  const envelopes = await getMultipleEnvelopeRequest(config, { count: 2 });
+  const env = await TestEnv.init(__dirname);
+  const envelopes = await env.getMultipleEnvelopeRequest({ count: 2 });
 
   assertSentryEvent(envelopes[0][2], {
     message: 'first_user',

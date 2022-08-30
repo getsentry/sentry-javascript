@@ -1,10 +1,10 @@
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should record multiple extras of different types', async () => {
-  const config = await runServer(__dirname);
-  const events = await getEnvelopeRequest(config);
+  const env = await TestEnv.init(__dirname);
+  const event = await env.getEnvelopeRequest();
 
-  assertSentryEvent(events[2], {
+  assertSentryEvent(event[2], {
     message: 'multiple_extras',
     extra: {
       extra_1: { foo: 'bar', baz: { qux: 'quux' } },

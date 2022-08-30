@@ -1,8 +1,8 @@
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryTransaction, TestEnv } from '../../../../utils';
 
 test('should report finished spans as children of the root transaction.', async () => {
-  const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
+  const env = await TestEnv.init(__dirname);
+  const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
   expect(envelope).toHaveLength(3);
 
