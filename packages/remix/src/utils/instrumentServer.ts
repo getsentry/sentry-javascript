@@ -1,12 +1,13 @@
 /* eslint-disable max-lines */
 import { captureException, getCurrentHub, Hub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { Transaction, WrappedFunction } from '@sentry/types';
+import { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   extractTraceparentData,
   fill,
   isNodeEnv,
+  isSentryBaggageEmpty,
   loadModule,
   logger,
   parseBaggageSetMutability,
@@ -310,16 +311,15 @@ export function startRequestHandlerTransaction(
     method: string;
   },
 ): Transaction {
-  const currentScope = hub.getScope();
-  const matches = matchServerRoutes(routes, url.pathname, pkg);
-
   // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
   const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
   const baggage = parseBaggageSetMutability(request.headers.baggage, traceparentData);
 
+  const matches = matchServerRoutes(routes, url.pathname, pkg);
   const match = matches && getRequestMatch(url, matches);
-  const name = match === null ? url.pathname : match.route.id;
-  const source = match === null ? 'url' : 'route';
+  const [name, source]: [string, TransactionSource] =
+    match === null ? [url.pathname, 'url'] : [match.route.id, 'route'];
+
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
@@ -329,11 +329,12 @@ export function startRequestHandlerTransaction(
     ...traceparentData,
     metadata: {
       source,
-      baggage,
+      // Only attach baggage if it's defined
+      ...(isSentryBaggageEmpty(baggage) && { baggage }),
     },
   });
 
-  currentScope?.setSpan(transaction);
+  hub.getScope()?.setSpan(transaction);
   return transaction;
 }
 
