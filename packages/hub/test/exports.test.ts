@@ -106,6 +106,7 @@ describe('Top Level API', () => {
     });
 
     // NOTE: We left custom level as 2nd argument to not break the API. Should be removed and unified in v6.
+    // TODO: Before we release v8, check if this is still a thing
     test('Message with custom level', () => {
       const client: any = { captureMessage: jest.fn(async () => Promise.resolve()) };
       getCurrentHub().withScope(() => {
