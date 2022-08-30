@@ -2,7 +2,7 @@ import MagicString from 'magic-string';
 
 import { ComponentTrackingInitOptions, PreprocessorGroup, TrackComponentOptions } from './types';
 
-const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
+export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
   trackMount: true,
   trackUpdates: true,
