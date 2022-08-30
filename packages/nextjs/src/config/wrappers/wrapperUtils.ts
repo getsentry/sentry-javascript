@@ -2,7 +2,7 @@ import { captureException, getCurrentHub, startTransaction } from '@sentry/core'
 import { addRequestDataToEvent } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractTraceparentData, fill, parseBaggageSetMutability, isString } from '@sentry/utils';
+import { extractTraceparentData, fill, isString, parseBaggageSetMutability } from '@sentry/utils';
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
