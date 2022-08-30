@@ -134,7 +134,7 @@ describe('SyncPromise', () => {
     });
   });
 
-  test('calling the callback immediatly', () => {
+  test('calling the callback immediately', () => {
     expect.assertions(1);
 
     let foo: number = 1;

@@ -54,7 +54,7 @@ for NEXTJS_VERSION in 10 11 12; do
 
   echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
   # set the desired version of next long enough to run yarn, and then restore the old version (doing the restoration now
-  # rather than during overall cleanup lets us look for "latest" in both loops)
+  # rather than during overall cleanup lets us look for "latest" in every loop)
   cp package.json package.json.bak
   if [[ $(uname) == "Darwin" ]]; then
     sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json

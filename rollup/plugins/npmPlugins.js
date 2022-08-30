@@ -1,4 +1,7 @@
 /**
+ * Rollup plugin hooks docs: https://rollupjs.org/guide/en/#build-hooks and
+ * https://rollupjs.org/guide/en/#output-generation-hooks
+ *
  * Regex Replace plugin docs: https://github.com/jetiny/rollup-plugin-re
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
@@ -50,7 +53,8 @@ export function makeConstToVarPlugin() {
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
  *
- * Hooks can be found here: https://rollupjs.org/guide/en/#build-hooks.
+ * Hooks can be found at https://rollupjs.org/guide/en/#build-hooks and
+ * https://rollupjs.org/guide/en/#output-generation-hooks.
  *
  * @param hookName The name of the hook at which to pause.
  * @returns A plugin which inserts a debugger statement in the phase represented by the given hook

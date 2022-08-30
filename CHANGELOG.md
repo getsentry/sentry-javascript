@@ -514,7 +514,7 @@ Work in this release contributed by @7inspire, @jaeseokk, and @rchl. Thank you f
 This patch contains a breaking change for anyone setting the undocumented `rethrowAfterCapture` option for `@sentry/serverless`'s AWS wrapper to `false`, as its functionality has been removed. For backwards compatibility with anyone setting it to `true` (which is also the default), the option remains in the `WrapperOptions` type for now. It will be removed in the next major release, though, so we recommend removing it from your code.
 
 - ref(serverless): Remove `rethrowAfterCapture` use in AWS lambda wrapper (#4448)
-- fix(utils): Remove dom is casting (#4451)
+- fix(utils): Remove dom `is` casting (#4451)
 
 ## 6.17.1
 

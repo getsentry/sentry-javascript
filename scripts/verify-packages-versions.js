@@ -13,7 +13,7 @@ the package slightly less open for modifications, and prevent users from experim
 and from implementing some of their scenarios.
 
 If you REALLY know what you are doing, and you REALLY want to use a different version of TypeScript,
-modify \`TYPESCRIPT_VERSION\` constant at the top of this file.
+modify \`TYPESCRIPT_VERSION\` constant at the top of this file (\`scripts/verify-packages-versions.js\`).
 
 change: https://github.com/getsentry/sentry-javascript/pull/2848
 ref: https://github.com/getsentry/sentry-javascript/issues/2845

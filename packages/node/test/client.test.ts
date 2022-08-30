@@ -27,6 +27,7 @@ describe('NodeClient', () => {
       const requestSession = scope.getRequestSession();
       expect(requestSession!.status).toEqual('ok');
     });
+
     test('when autoSessionTracking is disabled -> requestStatus should not be set', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: false, release: '1.4' });
       client = new NodeClient(options);
@@ -42,6 +43,7 @@ describe('NodeClient', () => {
       const requestSession = scope.getRequestSession();
       expect(requestSession!.status).toEqual('ok');
     });
+
     test('when autoSessionTracking is enabled + requestSession status is Crashed -> requestStatus should not be overridden', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       client = new NodeClient(options);
@@ -57,6 +59,7 @@ describe('NodeClient', () => {
       const requestSession = scope.getRequestSession();
       expect(requestSession!.status).toEqual('crashed');
     });
+
     test('when autoSessionTracking is enabled + error occurs within request bounds -> requestStatus should be set to Errored', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       client = new NodeClient(options);
@@ -72,6 +75,7 @@ describe('NodeClient', () => {
       const requestSession = scope.getRequestSession();
       expect(requestSession!.status).toEqual('errored');
     });
+
     test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       client = new NodeClient(options);
