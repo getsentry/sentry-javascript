@@ -97,7 +97,7 @@ export class RewriteFrames implements Integration {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           values: event.exception!.values!.map(value => ({
             ...value,
-            stacktrace: this._processStacktrace(value.stacktrace),
+            ...(value.stacktrace && { stacktrace: this._processStacktrace(value.stacktrace) }),
           })),
         },
       };
