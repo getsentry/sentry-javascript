@@ -6,8 +6,11 @@ import { current_component } from 'svelte/internal';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import { TrackComponentOptions } from './types';
 
-const defaultOptions: Required<Pick<TrackComponentOptions, 'trackInit' | 'trackUpdates'>> &
-  Pick<TrackComponentOptions, 'componentName'> = {
+const defaultTrackComponentOptions: {
+  trackInit: boolean;
+  trackUpdates: boolean;
+  componentName?: string;
+} = {
   trackInit: true,
   trackUpdates: true,
 };
@@ -20,7 +23,7 @@ const defaultOptions: Required<Pick<TrackComponentOptions, 'trackInit' | 'trackU
  * Alternatively, you can call it yourself if you don't want to use the preprocessor.
  */
 export function trackComponent(options?: TrackComponentOptions): void {
-  const mergedOptions = { ...defaultOptions, ...options };
+  const mergedOptions = { ...defaultTrackComponentOptions, ...options };
 
   const transaction = getActiveTransaction();
   if (!transaction) {

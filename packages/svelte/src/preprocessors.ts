@@ -85,6 +85,5 @@ function shouldInjectFunction(
 
 function getBaseName(filename: string): string {
   const segments = filename.split('/');
-  const componentName = segments[segments.length - 1].replace('.svelte', '');
-  return componentName;
+  return segments[segments.length - 1].replace('.svelte', '');
 }
