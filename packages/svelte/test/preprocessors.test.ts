@@ -112,4 +112,63 @@ describe('componentTrackingPreprocessor', () => {
 
     expectComponentCodeToBeModified([cmp1, cmp3], { trackInit: true, trackUpdates: true });
   });
+
+  it('doesnt inject the function call to the same component more than once', () => {
+    const preProc = componentTrackingPreprocessor();
+    const components = [
+      {
+        originalCode: 'console.log(cmp1)',
+        filename: 'components/Cmp1.svelte',
+        name: 'Cmp1',
+      },
+      {
+        originalCode:
+          'import { trackComponent } from "@sentry/svelte";\ntrackComponent({"trackInit":true,"trackUpdates":true,"componentName":"Cmp1"});\nconsole.log(cmp1)',
+        filename: 'components/Cmp1.svelte',
+        name: 'Cmp1',
+      },
+      {
+        originalCode: 'console.log(cmp2)',
+        filename: 'lib/Cmp2.svelte',
+        name: 'Cmp2',
+      },
+    ];
+
+    const [cmp11, cmp12, cmp2] = components.map(cmp => {
+      const res: any =
+        preProc.script &&
+        preProc.script({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
+      return { ...cmp, newCode: res.code, map: res.map };
+    });
+
+    expectComponentCodeToBeModified([cmp11, cmp2], { trackInit: true, trackUpdates: true });
+    expect(cmp12.newCode).toEqual(cmp12.originalCode);
+  });
+
+  it('doesnt inject the function call to a module context script block', () => {
+    const preProc = componentTrackingPreprocessor();
+    const component = {
+      originalCode: 'console.log(cmp2)',
+      filename: 'lib/Cmp2.svelte',
+      name: 'Cmp2',
+    };
+
+    const res: any =
+      preProc.script &&
+      preProc.script({
+        content: component.originalCode,
+        filename: component.filename,
+        attributes: { context: 'module' },
+        markup: '',
+      });
+
+    const processedComponent = { ...component, newCode: res.code, map: res.map };
+
+    expect(processedComponent.newCode).toEqual(processedComponent.originalCode);
+  });
 });
