@@ -44,14 +44,14 @@ export function withSentryGetServerSideProps(
       if ('props' in serverSideProps) {
         const requestTransaction = getTransactionFromRequest(req);
         if (requestTransaction) {
-          serverSideProps.props._sentryGetServerSidePropsTraceData = requestTransaction.toTraceparent();
-          serverSideProps.props._sentryGetServerSidePropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+          serverSideProps.props._sentryTraceData = requestTransaction.toTraceparent();
+          serverSideProps.props._sentryBaggage = serializeBaggage(requestTransaction.getBaggage());
         }
       }
 
       return serverSideProps;
     } else {
-      return origGetServerSideProps(...getServerSidePropsArguments);
+      return errorWrappedGetServerSideProps(...getServerSidePropsArguments);
     }
   };
 }

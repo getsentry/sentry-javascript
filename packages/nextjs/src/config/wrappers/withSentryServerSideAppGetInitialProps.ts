@@ -33,8 +33,8 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
       const appGetInitialProps: {
         pageProps: {
-          _sentryGetInitialPropsTraceData?: string;
-          _sentryGetInitialPropsBaggage?: string;
+          _sentryTraceData?: string;
+          _sentryBaggage?: string;
         };
       } = await callTracedServerSideDataFetcher(
         errorWrappedAppGetInitialProps,
@@ -50,8 +50,8 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
 
       const requestTransaction = getTransactionFromRequest(req!);
       if (requestTransaction) {
-        appGetInitialProps.pageProps._sentryGetInitialPropsTraceData = requestTransaction.toTraceparent();
-        appGetInitialProps.pageProps._sentryGetInitialPropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+        appGetInitialProps.pageProps._sentryTraceData = requestTransaction.toTraceparent();
+        appGetInitialProps.pageProps._sentryBaggage = serializeBaggage(requestTransaction.getBaggage());
       }
 
       return appGetInitialProps;

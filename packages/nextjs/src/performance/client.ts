@@ -24,17 +24,12 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
 interface SentryEnhancedNextData extends NextData {
   props: {
     pageProps?: {
-      _sentryGetInitialPropsTraceData?: string; // trace parent info, if injected by server-side `getInitialProps`
-      _sentryGetInitialPropsBaggage?: string; // baggage, if injected by server-side `getInitialProps`
-      _sentryGetServerSidePropsTraceData?: string; // trace parent info, if injected by server-side `getServerSideProps`
-      _sentryGetServerSidePropsBaggage?: string; // baggage, if injected by server-side `getServerSideProps`
-
-      // The following two values are only injected in a very special case with the following conditions:
+      _sentryTraceData?: string; // trace parent info, if injected by a data-fetcher
+      _sentryBaggage?: string; // baggage, if injected by a data-fetcher
+      // These two values are only injected by `getStaticProps` in a very special case with the following conditions:
       // 1. The page's `getStaticPaths` method must have returned `fallback: 'blocking'`.
       // 2. The requested page must be a "miss" in terms of "Incremental Static Regeneration", meaning the requested page has not been generated before.
       // In this case, a page is requested and only served when `getStaticProps` is done. There is not even a fallback page or similar.
-      _sentryGetStaticPropsTraceData?: string; // trace parent info, if injected by server-side `getStaticProps`
-      _sentryGetStaticPropsBaggage?: string; // baggage, if injected by server-side `getStaticProps`
     };
   };
 }
@@ -85,24 +80,12 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.params = query;
 
   if (props && props.pageProps) {
-    const pageProps = props.pageProps;
-    const getInitialPropsBaggage = pageProps._sentryGetInitialPropsBaggage;
-    const getServerSidePropsBaggage = pageProps._sentryGetServerSidePropsBaggage;
-    const getStaticPropsBaggage = pageProps._sentryGetStaticPropsBaggage;
-
-    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` or `getStaticProps` so we give it priority.
-    const baggage = getInitialPropsBaggage || getServerSidePropsBaggage || getStaticPropsBaggage;
-    if (baggage) {
-      nextDataTagInfo.baggage = baggage;
+    if (props.pageProps._sentryBaggage) {
+      nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
     }
 
-    const getInitialPropsTraceData = pageProps._sentryGetInitialPropsTraceData;
-    const getServerSidePropsTraceData = pageProps._sentryGetServerSidePropsTraceData;
-    const getStaticPropsTraceData = pageProps._sentryGetStaticPropsTraceData;
-    // Ordering of the following shouldn't matter but `getInitialProps` generally runs before `getServerSideProps` or `getStaticProps` so we give it priority.
-    const traceData = getInitialPropsTraceData || getServerSidePropsTraceData || getStaticPropsTraceData;
-    if (traceData) {
-      nextDataTagInfo.traceParentData = extractTraceparentData(traceData);
+    if (props.pageProps._sentryTraceData) {
+      nextDataTagInfo.traceParentData = extractTraceparentData(props.pageProps._sentryTraceData);
     }
   }
 

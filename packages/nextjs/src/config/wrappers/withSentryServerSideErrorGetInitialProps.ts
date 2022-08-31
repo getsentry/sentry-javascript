@@ -35,8 +35,8 @@ export function withSentryServerSideErrorGetInitialProps(
       // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
       // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
       const errorGetInitialProps: ErrorProps & {
-        _sentryGetInitialPropsTraceData?: string;
-        _sentryGetInitialPropsBaggage?: string;
+        _sentryTraceData?: string;
+        _sentryBaggage?: string;
       } = await callTracedServerSideDataFetcher(
         errorWrappedGetInitialProps,
         errorGetInitialPropsArguments,
@@ -51,8 +51,8 @@ export function withSentryServerSideErrorGetInitialProps(
 
       const requestTransaction = getTransactionFromRequest(req!);
       if (requestTransaction) {
-        errorGetInitialProps._sentryGetInitialPropsTraceData = requestTransaction.toTraceparent();
-        errorGetInitialProps._sentryGetInitialPropsBaggage = serializeBaggage(requestTransaction.getBaggage());
+        errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
+        errorGetInitialProps._sentryBaggage = serializeBaggage(requestTransaction.getBaggage());
       }
 
       return errorGetInitialProps;
