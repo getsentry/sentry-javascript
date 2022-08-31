@@ -121,6 +121,8 @@ async function makeRequest(
 }
 
 export class TestEnv {
+  private _axiosConfig: AxiosRequestConfig = undefined;
+
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
@@ -165,10 +167,7 @@ export class TestEnv {
    * @param {DataCollectorOptions} options
    * @returns The intercepted envelopes.
    */
-  public async getMultipleEnvelopeRequest(
-    options: DataCollectorOptions,
-    axiosConfig?: AxiosRequestConfig,
-  ): Promise<Record<string, unknown>[][]> {
+  public async getMultipleEnvelopeRequest(options: DataCollectorOptions): Promise<Record<string, unknown>[][]> {
     const envelopeTypeArray =
       typeof options.envelopeType === 'string'
         ? [options.envelopeType]
@@ -180,7 +179,7 @@ export class TestEnv {
       envelopeTypeArray,
     );
 
-    void makeRequest(options.method, options.url || this.url, axiosConfig);
+    void makeRequest(options.method, options.url || this.url, this._axiosConfig);
     return resProm;
   }
 
@@ -190,11 +189,8 @@ export class TestEnv {
    * @param {DataCollectorOptions} options
    * @returns The extracted envelope.
    */
-  public async getEnvelopeRequest(
-    options?: DataCollectorOptions,
-    axiosConfig?: AxiosRequestConfig,
-  ): Promise<Array<Record<string, unknown>>> {
-    return (await this.getMultipleEnvelopeRequest({ ...options, count: 1 }, axiosConfig))[0];
+  public async getEnvelopeRequest(options?: DataCollectorOptions): Promise<Array<Record<string, unknown>>> {
+    return (await this.getMultipleEnvelopeRequest({ ...options, count: 1 }))[0];
   }
 
   /**
@@ -255,5 +251,9 @@ export class TestEnv {
         .query(true) // accept any query params - used for sentry_key param
         .reply(200);
     });
+  }
+
+  public setAxiosConfig(axiosConfig: AxiosRequestConfig): void {
+    this._axiosConfig = axiosConfig;
   }
 }
