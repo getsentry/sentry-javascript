@@ -607,14 +607,8 @@ export class SentryReplay implements Integration {
 
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
-    if (breadcrumb) {
-      this.createCustomBreadcrumb({
-        ...breadcrumb,
-        // if somehow the page went hidden while session is expired, attach to previous session
-        timestamp: isExpired
-          ? this.session.lastActivity / 1000
-          : breadcrumb.timestamp,
-      });
+    if (breadcrumb && !isExpired) {
+      this.createCustomBreadcrumb(breadcrumb);
     }
 
     // Send replay when the page/tab becomes hidden. There is no reason to send
@@ -633,15 +627,6 @@ export class SentryReplay implements Integration {
 
     const isExpired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
-    if (breadcrumb) {
-      this.createCustomBreadcrumb({
-        ...breadcrumb,
-        timestamp: isExpired
-          ? new Date().getTime() / 1000
-          : breadcrumb.timestamp,
-      });
-    }
-
     if (isExpired) {
       // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
       // ms, we will re-use the existing session, otherwise create a new
@@ -650,6 +635,10 @@ export class SentryReplay implements Integration {
       this.loadSession({ expiry: VISIBILITY_CHANGE_TIMEOUT });
       this.triggerFullSnapshot();
       return;
+    }
+
+    if (breadcrumb) {
+      this.createCustomBreadcrumb(breadcrumb);
     }
 
     // Otherwise if session is not expired...
