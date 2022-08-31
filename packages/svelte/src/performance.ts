@@ -3,12 +3,12 @@ import { Span, Transaction } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
-import { DEFAULT_COMPONENT_NAME, UI_SVELTE_MOUNT, UI_SVELTE_UPDATE } from './constants';
+import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import { TrackComponentOptions } from './types';
 
-const defaultOptions: Required<Pick<TrackComponentOptions, 'trackMount' | 'trackUpdates'>> &
+const defaultOptions: Required<Pick<TrackComponentOptions, 'trackInit' | 'trackUpdates'>> &
   Pick<TrackComponentOptions, 'componentName'> = {
-  trackMount: true,
+  trackInit: true,
   trackUpdates: true,
 };
 
@@ -33,30 +33,30 @@ export function trackComponent(options?: TrackComponentOptions): void {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
 
-  let mountSpan: Span | undefined = undefined;
-  if (mergedOptions.trackMount) {
-    mountSpan = recordMountSpan(transaction, componentName);
+  let initSpan: Span | undefined = undefined;
+  if (mergedOptions.trackInit) {
+    initSpan = recordInitSpan(transaction, componentName);
   }
 
   if (mergedOptions.trackUpdates) {
-    recordUpdateSpans(componentName, mountSpan);
+    recordUpdateSpans(componentName, initSpan);
   }
 }
 
-function recordMountSpan(transaction: Transaction, componentName: string): Span {
-  const mountSpan = transaction.startChild({
-    op: UI_SVELTE_MOUNT,
+function recordInitSpan(transaction: Transaction, componentName: string): Span {
+  const initSpan = transaction.startChild({
+    op: UI_SVELTE_INIT,
     description: componentName,
   });
 
   onMount(() => {
-    mountSpan.finish();
+    initSpan.finish();
   });
 
-  return mountSpan;
+  return initSpan;
 }
 
-function recordUpdateSpans(componentName: string, mountSpan?: Span): void {
+function recordUpdateSpans(componentName: string, initSpan?: Span): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
     // We need to get the active transaction again because the initial one could
@@ -66,10 +66,10 @@ function recordUpdateSpans(componentName: string, mountSpan?: Span): void {
       return;
     }
 
-    // If we are mounting the component when the update span is started, we start it as child
-    // of the mount span. Else, we start it as a child of the transaction.
+    // If we are initializing the component when the update span is started, we start it as child
+    // of the init span. Else, we start it as a child of the transaction.
     const parentSpan =
-      mountSpan && !mountSpan.endTimestamp && mountSpan.transaction === transaction ? mountSpan : transaction;
+      initSpan && !initSpan.endTimestamp && initSpan.transaction === transaction ? initSpan : transaction;
 
     updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,

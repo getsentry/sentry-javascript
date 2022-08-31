@@ -14,7 +14,7 @@ function expectComponentCodeToBeModified(
 
   preprocessedComponents.forEach(cmp => {
     const expectedFunctionCallOptions = {
-      trackMount: options?.trackMount ?? true,
+      trackInit: options?.trackInit ?? true,
       trackUpdates: options?.trackUpdates ?? true,
       componentName: cmp.name,
     };
@@ -36,10 +36,10 @@ describe('componentTrackingPreprocessor', () => {
   it.each([
     ['no options', undefined],
     ['default options', defaultComponentTrackingOptions],
-    ['custom options (mount 0, updates 0)', { trackMount: false, trackUpdates: false }],
-    ['custom options (mount 0, updates 1)', { trackMount: false, trackUpdates: true }],
-    ['custom options (mount 1, updates 0)', { trackMount: true, trackUpdates: false }],
-    ['custom options (mount 1, updates 1)', { trackMount: true, trackUpdates: true }],
+    ['custom options (init 0, updates 0)', { trackInit: false, trackUpdates: false }],
+    ['custom options (init 0, updates 1)', { trackInit: false, trackUpdates: true }],
+    ['custom options (init 1, updates 0)', { trackInit: true, trackUpdates: false }],
+    ['custom options (init 1, updates 1)', { trackInit: true, trackUpdates: true }],
   ])('adds the function call to all components if %s are set', (_, options) => {
     const preProc = componentTrackingPreprocessor(options);
     const components = [
@@ -104,6 +104,6 @@ describe('componentTrackingPreprocessor', () => {
 
     expect(cmp2.newCode).toEqual(cmp2.originalCode);
 
-    expectComponentCodeToBeModified([cmp1, cmp3], { trackMount: true, trackUpdates: true });
+    expectComponentCodeToBeModified([cmp1, cmp3], { trackInit: true, trackUpdates: true });
   });
 });

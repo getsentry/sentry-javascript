@@ -38,15 +38,16 @@ export interface PreprocessorGroup {
 
 export type SpanOptions = {
   /**
-   * If true, spans are be recorded between component intialization and its
-   * onMount lifecycle hook.
+   * If true, a span is recorded between a component's intialization and its
+   * onMount lifecycle hook. This span tells how long it takes a component
+   * to be created and inserted into the DOM.
    *
    * Defaults to true if component tracking is enabled
    */
-  trackMount?: boolean;
+  trackInit?: boolean;
 
   /**
-   * If true, spans are recorded between each component's beforeUpdate and afterUpdate
+   * If true, a span is recorded between a component's beforeUpdate and afterUpdate
    * lifecycle hooks.
    *
    * Defaults to true if component tracking is enabled

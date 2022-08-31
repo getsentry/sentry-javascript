@@ -4,7 +4,7 @@ import { ComponentTrackingInitOptions, PreprocessorGroup, TrackComponentOptions 
 
 export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
-  trackMount: true,
+  trackInit: true,
   trackUpdates: true,
 };
 
@@ -29,9 +29,9 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
         return { code: content };
       }
 
-      const { trackMount, trackUpdates } = mergedOptions;
+      const { trackInit, trackUpdates } = mergedOptions;
       const trackComponentOptions: TrackComponentOptions = {
-        trackMount,
+        trackInit,
         trackUpdates,
         componentName: getBaseName(finalFilename),
       };
