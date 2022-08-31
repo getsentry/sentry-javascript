@@ -287,7 +287,7 @@ describe('wrapped built-ins', function () {
   });
 
   it(
-    optional('should fallback to <anonymous> fn name in mechanism data if one is unavailable', IS_LOADER),
+    optional('should fallback to "?" fn name in mechanism data if one is unavailable', IS_LOADER),
     function () {
       return runInSandbox(sandbox, function () {
         var div = document.createElement('div');
@@ -316,7 +316,7 @@ describe('wrapped built-ins', function () {
             handled: true,
             data: {
               function: 'addEventListener',
-              handler: '<anonymous>',
+              handler: '?',
             },
           });
         }
