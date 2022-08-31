@@ -250,7 +250,7 @@ export function wrapHandler<TEvent, TResult>(
   };
   let timeoutWarningTimer: NodeJS.Timeout;
 
-  // AWSLambda is like Express. It makes a distinction about handlers based on it's last argument
+  // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
   // async (event) => async handler
   // async (event, context) => async handler
   // (event, context, callback) => sync handler

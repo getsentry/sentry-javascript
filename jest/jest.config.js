@@ -1,4 +1,5 @@
 module.exports = {
+  // this is the package root, even when tests are being run at the repo level
   rootDir: process.cwd(),
   collectCoverage: true,
   transform: {

@@ -81,8 +81,8 @@ describe('onClientEntry', () => {
       // eslint-disable-next-line no-console
       expect((console.warn as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
         Array [
-          "Sentry Logger [Warn]: The SDK was initialized in the Sentry config file, but options were found in the Gatsby config. These have been ignored, merge them to the Sentry config if you want to use them.
-        Learn more about the Gatsby SDK on https://docs.sentry.io/platforms/javascript/guides/gatsby/",
+          "Sentry Logger [Warn]: The SDK was initialized in the Sentry config file, but options were found in the Gatsby config. These have been ignored. Merge them to the Sentry config if you want to use them.
+        Learn more about the Gatsby SDK in https://docs.sentry.io/platforms/javascript/guides/gatsby/.",
         ]
       `);
       // eslint-disable-next-line no-console
@@ -98,7 +98,7 @@ describe('onClientEntry', () => {
       expect((console.error as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`
         Array [
           "Sentry Logger [Error]: No config for the Gatsby SDK was found.
-        Learn how to configure it on https://docs.sentry.io/platforms/javascript/guides/gatsby/",
+        Learn how to configure it in https://docs.sentry.io/platforms/javascript/guides/gatsby/.",
         ]
       `);
     });

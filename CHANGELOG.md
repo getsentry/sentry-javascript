@@ -4,10 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.12.0
+
 This release adds an environment check in `@sentry/nextjs` for Vercel deployments (using the `VERCEL_ENV` env variable), and only enables `SentryWebpackPlugin` if the environment is `production`. To override this, [setting `disableClientWebpackPlugin` or `disableServerWebpackPlugin` to `false`](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#disable-sentrywebpackplugin) now takes precedence over other checks, rather than being a no-op. Note: Overriding this is not recommended! It can increase build time and clog Release Health data in Sentry with inaccurate noise.
 
+- feat(nextjs): Create transactions in `getInitialProps` and `getServerSideProps` (#5593)
+- feat(nextjs): Instrument server-side `getInitialProps` of `_app`, `_document` and `_error` (#5604)
+- feat(node): Populate `event.contexts` for Node.js (#5512)
+- feat(svelte): Add Component Tracking (#5612)
+- fix(browser): use valid urls in Request checks (#5630)
 - fix(integrations): Don't add empty stack trace in `RewriteFrames` (#5625)
+- fix(nextjs): Start navigation transactions on same-route navigations (#5642)
 - fix(nextjs): Don't run webpack plugin on non-prod Vercel deployments (#5603)
+- fix(node): Avoid catching domain errors in request handler (#5627)
+- fix(serverless): Check for existence of callback in GCP event handler before calling (#5608)
+- ref(nextjs): Add warning about non-hidden sourcemaps (#5649)
+- ref(nextjs): Use proxy loader for wrapping all data-fetching functions (#5602)
+- ref(tracing): Remove mark measurements (#5605)
+- ref(tracing): Update long task description (#5601)
+- chore(svelte): Detect and report SvelteKit usage (#5594)
+
+Work in this release contributed by @lucas-zimerman, @GJZwiers, and @mohd-akram. Thank you for your contributions!
 
 ## 7.11.1
 
@@ -514,7 +531,7 @@ Work in this release contributed by @7inspire, @jaeseokk, and @rchl. Thank you f
 This patch contains a breaking change for anyone setting the undocumented `rethrowAfterCapture` option for `@sentry/serverless`'s AWS wrapper to `false`, as its functionality has been removed. For backwards compatibility with anyone setting it to `true` (which is also the default), the option remains in the `WrapperOptions` type for now. It will be removed in the next major release, though, so we recommend removing it from your code.
 
 - ref(serverless): Remove `rethrowAfterCapture` use in AWS lambda wrapper (#4448)
-- fix(utils): Remove dom is casting (#4451)
+- fix(utils): Remove dom `is` casting (#4451)
 
 ## 6.17.1
 

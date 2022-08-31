@@ -211,6 +211,8 @@ jobs:
 
   job_lint:
     name: Lint
+    # Even though the linter only checks source code, not built code, it needs the built code in order check that all
+    # inter-package dependencies resolve cleanly.
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-latest

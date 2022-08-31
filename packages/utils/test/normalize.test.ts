@@ -184,7 +184,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('dont mutate and skip non-enumerables', () => {
+  describe("doesn't mutate the given object and skips non-enumerables", () => {
     test('simple object', () => {
       const circular = {
         foo: 1,
@@ -311,7 +311,7 @@ describe('normalize()', () => {
     });
   });
 
-  describe('changes unserializeable/global values/classes to its string representation', () => {
+  describe('changes unserializeable/global values/classes to their respective string representations', () => {
     test('primitive values', () => {
       expect(normalize(undefined)).toEqual('[undefined]');
       expect(normalize(NaN)).toEqual('[NaN]');
@@ -376,7 +376,7 @@ describe('normalize()', () => {
       });
     });
 
-    test('known Classes like Reacts SyntheticEvents', () => {
+    test("known classes like React's `SyntheticEvent`", () => {
       const obj = {
         foo: {
           nativeEvent: 'wat',
@@ -510,7 +510,7 @@ describe('normalize()', () => {
     });
   });
 
-  test('normalizes value on every iteration of decycle and takes care of things like Reacts SyntheticEvents', () => {
+  test("normalizes value on every iteration of decycle and takes care of things like React's `SyntheticEvent`", () => {
     const obj = {
       foo: {
         nativeEvent: 'wat',
