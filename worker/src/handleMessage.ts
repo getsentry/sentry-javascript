@@ -23,7 +23,7 @@ const handlers: Record<string, (args: any[]) => void> = {
 export function handleMessage(e: MessageEvent<WorkerRequest>) {
   const method = e.data.method as string;
   const id = e.data.id as number;
-  const [data] = e.data.args || [];
+  const [data] = e.data.args ? JSON.parse(e.data.args) : [];
 
   if (method in handlers && typeof handlers[method] === 'function') {
     try {

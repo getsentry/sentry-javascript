@@ -125,10 +125,18 @@ export class EventBufferCompressionWorker implements IEventBuffer {
         resolve(data.response);
       };
 
+      let stringifiedArgs;
+      try {
+        stringifiedArgs = JSON.stringify(args);
+      } catch (err) {
+        console.error(err);
+        stringifiedArgs = '[]';
+      }
+
       // Note: we can't use `once` option because it's possible it needs to
       // listen to multiple messages
       this.worker?.addEventListener('message', listener);
-      this.worker?.postMessage({ id, method, args });
+      this.worker?.postMessage({ id, method, args: stringifiedArgs });
     });
   }
 
