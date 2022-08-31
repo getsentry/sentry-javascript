@@ -49,12 +49,14 @@ describe('componentTrackingPreprocessor', () => {
     ];
 
     const preprocessedComponents = components.map(cmp => {
-      const res: any = preProc.script!!({
-        content: cmp.originalCode,
-        filename: cmp.filename,
-        attributes: {},
-        markup: '',
-      });
+      const res: any =
+        preProc.script &&
+        preProc.script({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
       return { ...cmp, newCode: res.code, map: res.map };
     });
 
@@ -70,12 +72,14 @@ describe('componentTrackingPreprocessor', () => {
     ];
 
     const preprocessedComponents = components.map(cmp => {
-      const res: any = preProc.script!!({
-        content: cmp.originalCode,
-        filename: cmp.filename,
-        attributes: {},
-        markup: '',
-      });
+      const res: any =
+        preProc.script &&
+        preProc.script({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
       return { ...cmp, newCode: res.code, map: res.map };
     });
 
@@ -93,12 +97,14 @@ describe('componentTrackingPreprocessor', () => {
     ];
 
     const [cmp1, cmp2, cmp3] = components.map(cmp => {
-      const res: any = preProc.script!!({
-        content: cmp.originalCode,
-        filename: cmp.filename,
-        attributes: {},
-        markup: '',
-      });
+      const res: any =
+        preProc.script &&
+        preProc.script({
+          content: cmp.originalCode,
+          filename: cmp.filename,
+          attributes: {},
+          markup: '',
+        });
       return { ...cmp, newCode: res.code, map: res.map };
     });
 
