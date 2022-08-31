@@ -15,12 +15,17 @@ export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOpti
 export function componentTrackingPreprocessor(options?: ComponentTrackingInitOptions): PreprocessorGroup {
   const mergedOptions = { ...defaultComponentTrackingOptions, ...options };
 
+  const visitedFiles = new Set<string>();
+
   return {
     // This script hook is called whenever a Svelte component's <script>
     // content is preprocessed.
     // `content` contains the script code as a string
-    script: ({ content, filename }) => {
-      if (!shouldInjectFunction(mergedOptions.trackComponents, filename)) {
+    script: ({ content, filename, attributes }) => {
+      // TODO: Not sure when a filename could be undefined. Using this 'unknown' fallback for the time being
+      const finalFilename = filename || 'unknown';
+
+      if (!shouldInjectFunction(mergedOptions.trackComponents, finalFilename, attributes, visitedFiles)) {
         return { code: content };
       }
 
@@ -28,7 +33,7 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
       const trackComponentOptions: TrackComponentOptions = {
         trackMount,
         trackUpdates,
-        componentName: getBaseName(filename || ''),
+        componentName: getBaseName(finalFilename),
       };
 
       const importStmt = 'import { trackComponent } from "@sentry/svelte";\n';
@@ -47,16 +52,34 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
 
 function shouldInjectFunction(
   trackComponents: Required<ComponentTrackingInitOptions['trackComponents']>,
-  filename: string | undefined,
+  filename: string,
+  attributes: Record<string, string | boolean>,
+  visitedFiles: Set<string>,
 ): boolean {
-  if (!trackComponents || !filename) {
+  // We do cannot inject our function multiple times into the same component
+  // This can happen when a component has multiple <script> blocks
+  if (visitedFiles.has(filename)) {
     return false;
   }
+  visitedFiles.add(filename);
+
+  // We can't inject our function call into <script context="module"> blocks
+  // because the code inside is not executed when the component is instantiated but
+  // when the module is first imported.
+  // see: https://svelte.dev/docs#component-format-script-context-module
+  if (attributes.context === 'module') {
+    return false;
+  }
+
+  if (!trackComponents) {
+    return false;
+  }
+
   if (Array.isArray(trackComponents)) {
-    // TODO: this probably needs to be a little more robust
     const componentName = getBaseName(filename);
     return trackComponents.some(allowed => allowed === componentName);
   }
+
   return true;
 }
 
