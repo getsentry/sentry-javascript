@@ -1,8 +1,5 @@
 import { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
-
-// global reference to slice
-const UNKNOWN_FUNCTION = '?';
+import { createStackParser, UNKNOWN_FUNCTION } from '@sentry/utils';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;

@@ -192,7 +192,7 @@ describe('Stack parsing', () => {
       {
         filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
         module: 'test_case',
-        function: '<anonymous>',
+        function: '?',
         lineno: 80,
         colno: 10,
         in_app: true,
@@ -212,7 +212,7 @@ describe('Stack parsing', () => {
       {
         filename: '/Users/felix/code/node-fast-or-slow/lib/test_case.js',
         module: 'test_case',
-        function: '<anonymous>',
+        function: '?',
         lineno: 80,
         colno: 10,
         in_app: true,
@@ -289,7 +289,7 @@ describe('Stack parsing', () => {
       {
         filename: '/code/node_modules/kafkajs/src/consumer/runner.js',
         module: 'kafkajs.src.consumer:runner',
-        function: '<anonymous>',
+        function: '?',
         lineno: 376,
         colno: 15,
         in_app: false,

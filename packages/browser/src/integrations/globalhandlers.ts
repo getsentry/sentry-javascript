@@ -9,6 +9,7 @@ import {
   isPrimitive,
   isString,
   logger,
+  UNKNOWN_FUNCTION,
 } from '@sentry/utils';
 
 import { BrowserClient } from '../client';
@@ -227,7 +228,7 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
     ev0sf.push({
       colno,
       filename,
-      function: '?',
+      function: UNKNOWN_FUNCTION,
       in_app: true,
       lineno,
     });

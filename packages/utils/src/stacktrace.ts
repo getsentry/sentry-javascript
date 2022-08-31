@@ -1,6 +1,7 @@
 import { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
+export const UNKNOWN_FUNCTION = '?';
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -76,12 +77,10 @@ export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
     .map(frame => ({
       ...frame,
       filename: frame.filename || localStack[0].filename,
-      function: frame.function || '?',
+      function: frame.function || UNKNOWN_FUNCTION,
     }))
     .reverse();
 }
-
-const defaultFunctionName = '<anonymous>';
 
 /**
  * Safely extract function name from itself
@@ -89,13 +88,13 @@ const defaultFunctionName = '<anonymous>';
 export function getFunctionName(fn: unknown): string {
   try {
     if (!fn || typeof fn !== 'function') {
-      return defaultFunctionName;
+      return UNKNOWN_FUNCTION;
     }
-    return fn.name || defaultFunctionName;
+    return fn.name || UNKNOWN_FUNCTION;
   } catch (e) {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
-    return defaultFunctionName;
+    return UNKNOWN_FUNCTION;
   }
 }
 
@@ -151,13 +150,13 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
       methodName = method;
     }
 
-    if (method === '<anonymous>') {
+    if (method === UNKNOWN_FUNCTION) {
       methodName = undefined;
       functionName = undefined;
     }
 
     if (functionName === undefined) {
-      methodName = methodName || '<anonymous>';
+      methodName = methodName || UNKNOWN_FUNCTION;
       functionName = typeName ? `${typeName}.${methodName}` : methodName;
     }
 

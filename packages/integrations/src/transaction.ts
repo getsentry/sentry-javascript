@@ -1,4 +1,5 @@
 import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { UNKNOWN_FUNCTION } from '@sentry/utils';
 
 /** Add node transaction to the event */
 export class Transaction implements Integration {
@@ -52,6 +53,8 @@ export class Transaction implements Integration {
 
   /** JSDoc */
   private _getTransaction(frame: StackFrame): string {
-    return frame.module || frame.function ? `${frame.module || '?'}/${frame.function || '?'}` : '<unknown>';
+    return frame.module || frame.function
+      ? `${frame.module || UNKNOWN_FUNCTION}/${frame.function || UNKNOWN_FUNCTION}`
+      : '<unknown>';
   }
 }
