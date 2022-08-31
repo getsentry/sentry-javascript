@@ -29,6 +29,9 @@ module.exports = async ({ page, url, requests }) => {
     'Returned data must contain original data returned from getServerSideProps.',
   );
 
+  assert.ok(nextDataTagValue.props.pageProps._sentryTraceData, '_sentryTraceData must exist in __NEXT_DATA__ tag');
+  assert.ok(nextDataTagValue.props.pageProps._sentryBaggage, '_sentryBaggage must exist in __NEXT_DATA__ tag');
+
   assert.strictEqual(
     nextDataTagValue.props.pageProps._sentryTraceData.split('-')[0],
     transactionEnvelope.envelopeHeader.trace.trace_id,
