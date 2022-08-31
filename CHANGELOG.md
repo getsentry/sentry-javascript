@@ -9,6 +9,26 @@ This release adds an environment check in `@sentry/nextjs` for Vercel deployment
 - fix(integrations): Don't add empty stack trace in `RewriteFrames` (#5625)
 - fix(nextjs): Don't run webpack plugin on non-prod Vercel deployments (#5603)
 
+# 7.12.0
+
+- feat(nextjs): Create transactions in `getInitialProps` and `getServerSideProps` (#5593)
+- feat(nextjs): Instrument server-side `getInitialProps` of `_app`, `_document` and `_error` (#5604)
+- feat(node): Populate `event.contexts` for Node.js (#5512)
+- feat(svelte): Add Component Tracking (#5612)
+- fix(browser): use valid urls in Request checks (#5630)
+- fix(integrations): Don't add empty stack trace in `RewriteFrames` (#5625)
+- fix(nextjs): Start navigation transactions on same-route navigations (#5642)
+- fix(nextjs): Don't run webpack plugin on non-prod Vercel deployments (#5603)
+- fix(node): Avoid catching domain errors in request handler (#5627)
+- fix(serverless): Check for existence of callback in GCP event handler before calling (#5608)
+- ref(nextjs): Add warning about non-hidden sourcemaps (#5649)
+- ref(nextjs): Use proxy loader for wrapping all data-fetching functions (#5602)
+- ref(tracing): Remove mark measurements (#5605)
+- ref(tracing): Update long task description (#5601)
+- chore(svelte): Detect and report SvelteKit usage (#5594)
+
+Work in this release contributed by @lucas-zimerman, @GJZwiers, and @mohd-akram. Thank you for your contributions!
+
 ## 7.11.1
 
 - fix(remix): Store transaction on express req (#5595)
