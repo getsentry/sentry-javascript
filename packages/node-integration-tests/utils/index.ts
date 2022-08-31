@@ -121,7 +121,7 @@ async function makeRequest(
 }
 
 export class TestEnv {
-  private _axiosConfig: AxiosRequestConfig = undefined;
+  private _axiosConfig: AxiosRequestConfig | undefined = undefined;
 
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
