@@ -5,6 +5,9 @@ const moduleExports = {
   future: {
     webpack5: %RUN_WEBPACK_5%,
   },
+  sentry: {
+    experiments: { autoWrapDataFetchers: true },
+  },
 };
 
 const SentryWebpackPluginOptions = {

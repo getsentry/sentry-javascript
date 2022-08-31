@@ -4,6 +4,9 @@ const moduleExports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  sentry: {
+    experiments: { autoWrapDataFetchers: true },
+  },
 };
 const SentryWebpackPluginOptions = {
   dryRun: true,
