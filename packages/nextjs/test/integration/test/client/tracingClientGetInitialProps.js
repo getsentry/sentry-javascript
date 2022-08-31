@@ -7,7 +7,7 @@ const {
 const assert = require('assert').strict;
 
 module.exports = async ({ page, url, requests }) => {
-  await page.goto(`${url}/withServerSideProps`);
+  await page.goto(`${url}/withInitialProps`);
   await page.waitForRequest(isTransactionRequest);
 
   const transactionEnvelope = extractEnvelopeFromRequest(requests.transactions[0]);
@@ -25,20 +25,20 @@ module.exports = async ({ page, url, requests }) => {
 
   assert.strictEqual(
     nextDataTagValue.props.pageProps.data,
-    '[some getServerSideProps data]',
-    'Returned data must contain original data returned from getServerSideProps.',
+    '[some getInitialProps data]',
+    'Returned data must contain original data returned from getInitialProps.',
   );
 
   assert.strictEqual(
     nextDataTagValue.props.pageProps._sentryTraceData.split('-')[0],
     transactionEnvelope.envelopeHeader.trace.trace_id,
-    'Trace id in envelope header must be the same as in trace parent data returned from getServerSideProps',
+    'Trace id in envelope header must be the same as in trace parent data returned from getInitialProps',
   );
 
   assert.strictEqual(
     nextDataTagValue.props.pageProps._sentryBaggage.match(/sentry-trace_id=([a-f0-9]*),/)[1],
     transactionEnvelope.envelopeHeader.trace.trace_id,
-    'Trace id in envelope header must be the same as in baggage returned from getServerSideProps',
+    'Trace id in envelope header must be the same as in baggage returned from getInitialProps',
   );
 
   await expectRequestCount(requests, { transactions: 1 });
