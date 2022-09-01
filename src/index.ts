@@ -589,12 +589,14 @@ export class SentryReplay implements Integration {
   /**
    * Keep a list of performance entries that will be sent with a replay
    */
-  handlePerformanceObserver = (
-    list: PerformanceObserverEntryList
-    // observer: PerformanceObserver
-  ) => {
-    const newEntries = list.getEntries();
-    this.performanceEvents = [...this.performanceEvents, ...newEntries];
+  handlePerformanceObserver = (list: PerformanceObserverEntryList) => {
+    // For whatever reason the observer was returning duplicate navigation
+    // entries (the other entry types were not duplicated).
+    const newEntries = new Set(list.getEntries());
+    this.performanceEvents = [
+      ...this.performanceEvents,
+      ...Array.from(newEntries),
+    ];
   };
 
   /**
