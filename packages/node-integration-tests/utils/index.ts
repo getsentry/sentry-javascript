@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/node';
 import { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
@@ -102,12 +102,16 @@ export async function runScenario(url: string): Promise<void> {
   await Sentry.flush();
 }
 
-async function makeRequest(method: 'get' | 'post' = 'get', url: string): Promise<void> {
+async function makeRequest(
+  method: 'get' | 'post' = 'get',
+  url: string,
+  axiosConfig?: AxiosRequestConfig,
+): Promise<void> {
   try {
     if (method === 'get') {
-      await axios.get(url);
+      await axios.get(url, axiosConfig);
     } else {
-      await axios.post(url);
+      await axios.post(url, axiosConfig);
     }
   } catch (e) {
     // We sometimes expect the request to fail, but not the test.
@@ -117,6 +121,8 @@ async function makeRequest(method: 'get' | 'post' = 'get', url: string): Promise
 }
 
 export class TestEnv {
+  private _axiosConfig: AxiosRequestConfig | undefined = undefined;
+
   public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
@@ -173,7 +179,7 @@ export class TestEnv {
       envelopeTypeArray,
     );
 
-    void makeRequest(options.method, options.url || this.url);
+    void makeRequest(options.method, options.url || this.url, this._axiosConfig);
     return resProm;
   }
 
@@ -245,5 +251,9 @@ export class TestEnv {
         .query(true) // accept any query params - used for sentry_key param
         .reply(200);
     });
+  }
+
+  public setAxiosConfig(axiosConfig: AxiosRequestConfig): void {
+    this._axiosConfig = axiosConfig;
   }
 }
