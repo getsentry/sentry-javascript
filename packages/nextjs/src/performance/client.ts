@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { getCurrentHub } from '@sentry/hub';
-import { Primitive, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
+import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
   extractTraceparentData,
-  fill,
   getGlobalObject,
   logger,
   parseBaggageHeader,
@@ -17,6 +16,9 @@ import type { ParsedUrlQuery } from 'querystring';
 const global = getGlobalObject<Window>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
+
+declare const __INJECTED_ROUTE_TABLE__: { [parameterizedRoute: string]: string } | undefined;
+const routeTable = typeof __INJECTED_ROUTE_TABLE__ === 'undefined' ? undefined : __INJECTED_ROUTE_TABLE__;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -97,16 +99,6 @@ const DEFAULT_TAGS = {
 } as const;
 
 let activeTransaction: Transaction | undefined = undefined;
-let startTransaction: StartTransactionCb | undefined = undefined;
-
-// We keep track of the previous page location so we can avoid creating transactions when navigating to the same page.
-// This variable should always contain a pathname. (without query string or fragment)
-// We are making a tradeoff by not starting transactions when just the query string changes. One could argue that we
-// should in fact start transactions when the query changes, however, in some cases (for example when typing in a search
-// box) the query might change multiple times a second, resulting in way too many transactions.
-// Because we currently don't have a real way of preventing transactions to be created in this case (except for the
-// shotgun approach `startTransactionOnLocationChange: false`), we won't start transactions when *just* the query changes.
-let previousLocation: string | undefined = undefined;
 
 // We keep track of the previous transaction name so we can set the `from` field on navigation transactions.
 let prevTransactionName: string | undefined = undefined;
@@ -126,13 +118,10 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  startTransaction = startTransactionCb;
-
   if (startTransactionOnPageLoad) {
     const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
 
     prevTransactionName = route || global.location.pathname;
-    previousLocation = global.location.pathname;
 
     const source = route ? 'route' : 'url';
 
@@ -149,55 +138,25 @@ export function nextRouterInstrumentation(
     });
   }
 
-  Router.ready(() => {
-    // Spans that aren't attached to any transaction are lost; so if transactions aren't
-    // created (besides potentially the onpageload transaction), no need to wrap the router.
-    if (!startTransactionOnLocationChange) return;
+  if (startTransactionOnLocationChange) {
+    Router.events.on('routeChangeStart', (pathname: string) => {
+      function getNavigationTargetName(): [string, TransactionSource] {
+        if (routeTable) {
+          const match = Object.entries(routeTable).find(([, routeRegExpr]) => {
+            return pathname.match(new RegExp(routeRegExpr));
+          });
 
-    // `withRouter` uses `useRouter` underneath:
-    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
-    // Router events also use the router:
-    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
-    // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
-    // (instead of wrapping all of the Router's functions).
-    const routerPrototype = Object.getPrototypeOf(Router.router);
-    fill(routerPrototype, 'changeState', changeStateWrapper);
-  });
-}
+          if (match) {
+            return [match[0], 'route'];
+          } else {
+            return [stripUrlQueryAndFragment(pathname), 'route'];
+          }
+        } else {
+          return [stripUrlQueryAndFragment(pathname), 'url'];
+        }
+      }
 
-type RouterChangeState = (
-  method: string,
-  url: string,
-  as: string,
-  options: Record<string, any>,
-  ...args: any[]
-) => void;
-type WrappedRouterChangeState = RouterChangeState;
-
-/**
- * Wraps Router.changeState()
- * https://github.com/vercel/next.js/blob/da97a18dafc7799e63aa7985adc95f213c2bf5f3/packages/next/next-server/lib/router/router.ts#L1204
- * Start a navigation transaction every time the router changes state.
- */
-function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
-  return function wrapper(
-    this: any,
-    method: string,
-    // The parameterized url, ex. posts/[id]/[comment]
-    url: string,
-    // The actual url, ex. posts/85/my-comment
-    as: string,
-    options: Record<string, any>,
-    // At the moment there are no additional arguments (meaning the rest parameter is empty).
-    // This is meant to protect from future additions to Next.js API, especially since this is an
-    // internal API.
-    ...args: any[]
-  ): Promise<boolean> {
-    const newTransactionName = stripUrlQueryAndFragment(url);
-
-    // do not start a transaction if it's from the same page
-    if (startTransaction !== undefined && previousLocation !== as) {
-      previousLocation = as;
+      const [newTransactionName, source] = getNavigationTargetName();
 
       if (activeTransaction) {
         activeTransaction.finish();
@@ -205,22 +164,17 @@ function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): Wrap
 
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
-        method,
-        ...options,
+        from: prevTransactionName,
       };
 
-      if (prevTransactionName) {
-        tags.from = prevTransactionName;
-      }
-
       prevTransactionName = newTransactionName;
-      activeTransaction = startTransaction({
-        name: prevTransactionName,
+
+      startTransactionCb({
+        name: newTransactionName,
         op: 'navigation',
         tags,
-        metadata: { source: 'route' },
+        metadata: { source },
       });
-    }
-    return originalChangeStateWrapper.call(this, method, url, as, options, ...args);
-  };
+    });
+  }
 }
