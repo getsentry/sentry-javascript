@@ -4,7 +4,7 @@ const { sleep } = require('../utils/common');
 const { getAsync, interceptEventRequest } = require('../utils/server');
 
 module.exports = async ({ url: urlBase, argv }) => {
-  const url = `${urlBase}/withServerSideProps`;
+  const url = `${urlBase}/withErrorServerSideProps`;
 
   const capturedRequest = interceptEventRequest(
     {

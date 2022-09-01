@@ -2,7 +2,7 @@ import { captureException, getCurrentHub, startTransaction } from '@sentry/core'
 import { addRequestDataToEvent } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { fill } from '@sentry/utils';
+import { extractTraceparentData, fill, isString, parseBaggageSetMutability } from '@sentry/utils';
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
@@ -12,7 +12,14 @@ declare module 'http' {
   }
 }
 
-function getTransactionFromRequest(req: IncomingMessage): Transaction | undefined {
+/**
+ * Grabs a transaction off a Next.js datafetcher request object, if it was previously put there via
+ * `setTransactionOnRequest`.
+ *
+ * @param req The Next.js datafetcher request object
+ * @returns the Transaction on the request object if there is one, or `undefined` if the request object didn't have one.
+ */
+export function getTransactionFromRequest(req: IncomingMessage): Transaction | undefined {
   return req._sentryTransaction;
 }
 
@@ -31,20 +38,15 @@ function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerRe
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
+ *
+ * Note: This function turns the wrapped function into an asynchronous one.
  */
 export function withErrorInstrumentation<F extends (...args: any[]) => any>(
   origFunction: F,
-): (...params: Parameters<F>) => ReturnType<F> {
-  return function (this: unknown, ...origFunctionArguments: Parameters<F>): ReturnType<F> {
+): (...params: Parameters<F>) => Promise<ReturnType<F>> {
+  return async function (this: unknown, ...origFunctionArguments: Parameters<F>): Promise<ReturnType<F>> {
     try {
-      const potentialPromiseResult = origFunction.call(this, ...origFunctionArguments);
-      // First of all, we need to capture promise rejections so we have the following check, as well as the try-catch block.
-      // Additionally, we do the following instead of `await`-ing so we do not change the method signature of the passed function from `() => unknown` to `() => Promise<unknown>.
-      Promise.resolve(potentialPromiseResult).catch(err => {
-        // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
-        captureException(err);
-      });
-      return potentialPromiseResult;
+      return await origFunction.call(this, ...origFunctionArguments);
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e);
@@ -85,13 +87,20 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
 
     if (requestTransaction === undefined) {
-      // TODO: Extract trace data from `req` object (trace and baggage headers) and attach it to transaction
+      const sentryTraceHeader = req.headers['sentry-trace'];
+      const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
+      const traceparentData =
+        typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
+
+      const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
 
       const newTransaction = startTransaction({
         op: 'nextjs.data.server',
         name: options.requestedRouteName,
+        ...traceparentData,
         metadata: {
           source: 'route',
+          baggage,
         },
       });
 
@@ -121,7 +130,6 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     }
 
     try {
-      // TODO: Inject trace data into returned props
       return await origFunction(...origFunctionArguments);
     } finally {
       dataFetcherSpan.finish();
