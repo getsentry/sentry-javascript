@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
+import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
@@ -186,7 +186,7 @@ function isMatchingRule(rule: WebpackModuleRule, projectDir: string): boolean {
   }
 
   // `rule.use` can be an object or an array of objects. For simplicity, force it to be an array.
-  const useEntries = Array.isArray(rule.use) ? rule.use : [rule.use];
+  const useEntries = arrayify(rule.use);
 
   // Depending on the version of nextjs we're talking about, the loader which does the transpiling is either
   //

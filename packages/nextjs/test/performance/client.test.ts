@@ -89,9 +89,10 @@ describe('client', () => {
         '/[user]/posts/[id]',
         { user: 'lforst', id: '1337', q: '42' },
         {
-          _sentryGetInitialPropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
-          _sentryGetInitialPropsBaggage:
-            'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+          pageProps: {
+            _sentryTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
+            _sentryBaggage: 'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+          },
         },
         true,
         {
@@ -110,46 +111,18 @@ describe('client', () => {
         },
       ],
       [
-        'https://example.com/dynamic',
-        '/dynamic',
+        'https://example.com/some-page',
+        '/some-page',
         {},
         {
           pageProps: {
-            _sentryGetServerSidePropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
-            _sentryGetServerSidePropsBaggage:
-              'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
+            _sentryTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
+            _sentryBaggage: 'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
           },
         },
         true,
         {
-          name: '/dynamic',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-router',
-          },
-          metadata: {
-            source: 'route',
-            baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
-          },
-          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
-          parentSpanId: 'a755953cd3394d5f',
-          parentSampled: true,
-        },
-      ],
-      [
-        'https://example.com/static',
-        '/static',
-        {},
-        {
-          pageProps: {
-            _sentryGetStaticPropsTraceData: 'c82b8554881b4d28ad977de04a4fb40a-a755953cd3394d5f-1',
-            _sentryGetStaticPropsBaggage:
-              'other=vendor,foo=bar,third=party,last=item,sentry-release=2.1.0,sentry-environment=myEnv',
-          },
-        },
-        true,
-        {
-          name: '/static',
+          name: '/some-page',
           op: 'pageload',
           tags: {
             'routing.instrumentation': 'next-router',

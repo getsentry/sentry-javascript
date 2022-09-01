@@ -10,8 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry-internal/typescript.svg)](https://www.npmjs.com/package/@sentry-internal/typescript)
 [![npm dt](https://img.shields.io/npm/dt/@sentry-internal/typescript.svg)](https://www.npmjs.com/package/@sentry-internal/typescript)
 
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
-
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)

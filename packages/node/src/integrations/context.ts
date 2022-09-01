@@ -65,7 +65,15 @@ export class Context implements Integration {
       this._cachedContext = this._getContexts();
     }
 
-    event.contexts = { ...event.contexts, ...this._updateContext(await this._cachedContext) };
+    const updatedContext = this._updateContext(await this._cachedContext);
+
+    event.contexts = {
+      ...event.contexts,
+      app: { ...updatedContext.app, ...event.contexts?.app },
+      os: { ...updatedContext.os, ...event.contexts?.os },
+      device: { ...updatedContext.device, ...event.contexts?.device },
+      culture: { ...updatedContext.culture, ...event.contexts?.culture },
+    };
 
     return event;
   }
@@ -148,7 +156,7 @@ async function getOsContext(): Promise<OsContext> {
 function getCultureContext(): CultureContext | undefined {
   try {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    if ((process.versions as unknown as any).icu !== 'string') {
+    if (typeof (process.versions as unknown as any).icu !== 'string') {
       // Node was built without ICU support
       return;
     }
