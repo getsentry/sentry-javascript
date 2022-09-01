@@ -6,6 +6,7 @@
     "declarationDir": "./types",
     "baseUrl": "..",
     "rootDir": "..",
+    "strictNullChecks": true,
     "outDir": "dist",
     "paths": {
       "@": ["./src"],
