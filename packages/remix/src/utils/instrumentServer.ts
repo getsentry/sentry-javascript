@@ -300,9 +300,8 @@ function matchServerRoutes(
  */
 export function startRequestHandlerTransaction(
   hub: Hub,
-  url: URL,
-  routes: ServerRoute[],
-  pkg: ReactRouterDomPkg | undefined,
+  name: string,
+  source: TransactionSource,
   request: {
     headers: {
       'sentry-trace': string;
@@ -314,11 +313,6 @@ export function startRequestHandlerTransaction(
   // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
   const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
   const baggage = parseBaggageSetMutability(request.headers.baggage, traceparentData);
-
-  const matches = matchServerRoutes(routes, url.pathname, pkg);
-  const match = matches && getRequestMatch(url, matches);
-  const [name, source]: [string, TransactionSource] =
-    match === null ? [url.pathname, 'url'] : [match.route.id, 'route'];
 
   const transaction = hub.startTransaction({
     name,
@@ -338,6 +332,19 @@ export function startRequestHandlerTransaction(
   return transaction;
 }
 
+/**
+ * Get transaction name from routes and url
+ */
+export function getTransactionName(
+  routes: ServerRoute[],
+  url: URL,
+  pkg?: ReactRouterDomPkg,
+): [string, TransactionSource] {
+  const matches = matchServerRoutes(routes, url.pathname, pkg);
+  const match = matches && getRequestMatch(url, matches);
+  return match === null ? [url.pathname, 'url'] : [match.route.id, 'route'];
+}
+
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
@@ -352,7 +359,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       }
 
       const url = new URL(request.url);
-      const transaction = startRequestHandlerTransaction(hub, url, routes, pkg, {
+      const [name, source] = getTransactionName(routes, url, pkg);
+
+      const transaction = startRequestHandlerTransaction(hub, name, source, {
         headers: {
           'sentry-trace': request.headers.get('sentry-trace') || '',
           baggage: request.headers.get('baggage') || '',

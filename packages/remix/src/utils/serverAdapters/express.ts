@@ -6,6 +6,7 @@ import { extractRequestData, isString, loadModule, logger } from '@sentry/utils'
 
 import {
   createRoutes,
+  getTransactionName,
   instrumentBuild,
   isRequestHandlerWrapped,
   startRequestHandlerTransaction,
@@ -51,7 +52,8 @@ function wrapExpressRequestHandler(
     }
 
     const url = new URL(request.url);
-    const transaction = startRequestHandlerTransaction(hub, url, routes, pkg, {
+    const [name, source] = getTransactionName(routes, url, pkg);
+    const transaction = startRequestHandlerTransaction(hub, name, source, {
       headers: {
         'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
         baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
