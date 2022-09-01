@@ -11,7 +11,7 @@
 [![npm dt](https://img.shields.io/npm/dt/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
 [![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
-This SDK is considered **experimental and in an alpha state**. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This SDK currently only supports [Svelte](https://svelte.dev/) and is not yet officially compatible with with [SvelteKit](https://kit.svelte.dev/).
+This SDK is currently still in **beta state**. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This SDK currently only supports [Svelte](https://svelte.dev/) and is not yet fully compatible with with [SvelteKit](https://kit.svelte.dev/).
 
 ## General
 
@@ -52,7 +52,9 @@ The Sentry Svelte SDK supports all features from the `@sentry/browser` SDK. Unti
 
 ## Sourcemaps and Releases
 
-To [create releases and upload source maps](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/) to Sentry, we recommend using [`sentry-cli`](https://github.com/getsentry/sentry-cli). You can create a bash script to take care of creating a release, uploading source maps and finalizing the release:
+To generate source maps of your Svelte app bundle, check our guide [how to configure your bundler](https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/generating/) to emit source maps.
+
+To [create releases and upload source maps](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/) to Sentry, we recommend using [`sentry-cli`](https://github.com/getsentry/sentry-cli). You can for instance create a bash script to take care of creating a release, uploading source maps and finalizing the release:
 
 ```bash
 #!/bin/bash
@@ -69,3 +71,5 @@ sentry-cli releases finalize $VERSION  --org $ORG --project $PROJECT
 ```
 
 Please note that the paths provided in this example work for a typical Svelte project that adheres to the project structure set by [create-vite](https://www.npmjs.com/package/create-vite) with the `svelte(-ts)` template. If your project setup differs from this template, your configuration may need adjustments. Please refer to our documentation of [Advanced `sentry-cli` Sourcemaps Options](https://docs.sentry.io/product/cli/releases/#sentry-cli-sourcemaps) and to our [Sourcemaps Troubleshooting Guide](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/).
+
+Check out our [Svelte source maps uploading](https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/uploading/) guide for more information.
