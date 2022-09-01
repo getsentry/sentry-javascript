@@ -84,7 +84,6 @@ describe('Angular Tracing', () => {
           transaction = {
             ...ctx,
             setName: jest.fn(name => (transaction.name = name)),
-            setMetadata: jest.fn(metadata => (transaction.metadata = metadata)),
           };
           return transaction;
         });
@@ -154,8 +153,7 @@ describe('Angular Tracing', () => {
         // this event starts the parameterization
         routerEvents$.next(new ResolveEnd(1, url, url, routerState as any));
 
-        expect(transaction.setName).toHaveBeenCalledWith(result);
-        expect(transaction.setMetadata).toHaveBeenCalledWith({ source: 'route' });
+        expect(transaction.setName).toHaveBeenCalledWith(result, 'route');
       });
 
       it('does not change the transaction name if the source is something other than `url`', () => {
@@ -182,7 +180,6 @@ describe('Angular Tracing', () => {
         );
 
         expect(transaction.setName).toHaveBeenCalledTimes(0);
-        expect(transaction.setMetadata).toHaveBeenCalledTimes(0);
         expect(transaction.name).toEqual(url);
       });
     });
