@@ -22,6 +22,7 @@ import {
   User,
 } from '@sentry/types';
 import {
+  arrayify,
   dateTimestampInSeconds,
   getGlobalSingleton,
   isPlainObject,
@@ -441,11 +442,10 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Applies the current context and fingerprint to the event.
-   * Note that breadcrumbs will be added by the client.
-   * Also if the event has already breadcrumbs on it, we do not merge them.
+   * Applies data from the scope to the event and runs all event processors on it.
+   *
    * @param event Event
-   * @param hint May contain additional information about the original exception.
+   * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
    */
   public applyToEvent(event: Event, hint: EventHint = {}): PromiseLike<Event | null> {
@@ -554,11 +554,7 @@ export class Scope implements ScopeInterface {
    */
   private _applyFingerprint(event: Event): void {
     // Make sure it's an array first and we actually have something in place
-    event.fingerprint = event.fingerprint
-      ? Array.isArray(event.fingerprint)
-        ? event.fingerprint
-        : [event.fingerprint]
-      : [];
+    event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
 
     // If we have something on the scope, then merge it with event
     if (this._fingerprint) {

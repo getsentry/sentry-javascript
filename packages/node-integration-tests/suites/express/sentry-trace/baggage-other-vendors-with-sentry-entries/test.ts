@@ -1,18 +1,15 @@
 import * as path from 'path';
 
-import { getAPIResponse, runServer } from '../../../../utils/index';
+import { TestEnv } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
 test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with incoming DSC', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
 
-  const response = (await getAPIResponse(
-    { url: `${url}/express`, server },
-    {
-      'sentry-trace': '',
-      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
-    },
-  )) as TestAPIResponse;
+  const response = (await env.getAPIResponse(`${env.url}/express`, {
+    'sentry-trace': '',
+    baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
+  })) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({
@@ -24,9 +21,9 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
 });
 
 test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with new DSC', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);
 
-  const response = (await getAPIResponse({ url: `${url}/express`, server }, {})) as TestAPIResponse;
+  const response = (await env.getAPIResponse(`${env.url}/express`, {})) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

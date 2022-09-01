@@ -1,10 +1,10 @@
 import { Event } from '@sentry/node';
 
-import { assertSentryEvent, getMultipleEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should allow nested scoping', async () => {
-  const config = await runServer(__dirname);
-  const events = await getMultipleEnvelopeRequest(config, { count: 5 });
+  const env = await TestEnv.init(__dirname);
+  const events = await env.getMultipleEnvelopeRequest({ count: 5 });
 
   assertSentryEvent(events[0][2], {
     message: 'root_before',
@@ -31,7 +31,7 @@ test('should allow nested scoping', async () => {
     },
   });
 
-  expect((events[2][2] as Event).user).toBeUndefined();
+  expect((events[2] as Event).user).toBeUndefined();
 
   assertSentryEvent(events[3][2], {
     message: 'outer_after',

@@ -1,8 +1,8 @@
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should work inside catch block', async () => {
-  const config = await runServer(__dirname);
-  const event = await getEnvelopeRequest(config);
+  const env = await TestEnv.init(__dirname);
+  const event = await env.getEnvelopeRequest();
 
   assertSentryEvent(event[2], {
     exception: {

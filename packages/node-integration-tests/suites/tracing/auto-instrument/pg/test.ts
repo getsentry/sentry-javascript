@@ -1,4 +1,4 @@
-import { assertSentryTransaction, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryTransaction, TestEnv } from '../../../../utils';
 
 class PgClient {
   // https://node-postgres.com/api/client#clientquery
@@ -29,8 +29,8 @@ beforeAll(() => {
 });
 
 test('should auto-instrument `pg` package.', async () => {
-  const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config, { envelopeType: 'transaction' });
+  const env = await TestEnv.init(__dirname);
+  const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
   expect(envelope).toHaveLength(3);
 

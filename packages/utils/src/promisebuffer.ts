@@ -42,7 +42,7 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    */
   function add(taskProducer: () => PromiseLike<T>): PromiseLike<T> {
     if (!isReady()) {
-      return rejectedSyncPromise(new SentryError('Not adding Promise due to buffer limit reached.'));
+      return rejectedSyncPromise(new SentryError('Not adding Promise because buffer limit was reached.'));
     }
 
     // start the task and add its promise to the queue

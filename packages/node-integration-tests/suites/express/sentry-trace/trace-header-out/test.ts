@@ -1,13 +1,13 @@
 import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as path from 'path';
 
-import { getAPIResponse, runServer } from '../../../../utils/index';
+import { TestEnv } from '../../../../utils/index';
 import { TestAPIResponse } from '../server';
 
 test('should attach a `sentry-trace` header to an outgoing request.', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
-  const response = (await getAPIResponse({ url: `${url}/express`, server })) as TestAPIResponse;
+  const response = (await env.getAPIResponse(`${env.url}/express`)) as TestAPIResponse;
 
   expect(response).toBeDefined();
   expect(response).toMatchObject({

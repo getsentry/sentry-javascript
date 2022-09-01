@@ -1,19 +1,19 @@
 import nock from 'nock';
 import path from 'path';
 
-import { getEnvelopeRequest, runServer } from '../../../utils';
+import { TestEnv } from '../../../utils';
 
 test('should aggregate successful sessions', async () => {
-  const { url, server } = await runServer(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
+  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelope = await Promise.race([
-    getEnvelopeRequest({ url: `${url}/success`, server }, { endServer: false, envelopeType: 'sessions' }),
-    getEnvelopeRequest({ url: `${url}/success_next`, server }, { endServer: false, envelopeType: 'sessions' }),
-    getEnvelopeRequest({ url: `${url}/success_slow`, server }, { endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/success`, endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/success_next`, endServer: false, envelopeType: 'sessions' }),
+    env.getEnvelopeRequest({ url: `${env.url}/success_slow`, endServer: false, envelopeType: 'sessions' }),
   ]);
 
   nock.cleanAll();
-  server.close();
+  env.server.close();
 
   expect(envelope).toHaveLength(3);
   expect(envelope[0]).toMatchObject({

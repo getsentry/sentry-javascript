@@ -1,8 +1,8 @@
-import { assertSentryEvent, getEnvelopeRequest, runServer } from '../../../../utils';
+import { assertSentryEvent, TestEnv } from '../../../../utils';
 
 test('should add an empty breadcrumb, when an empty object is given', async () => {
-  const config = await runServer(__dirname);
-  const envelope = await getEnvelopeRequest(config);
+  const env = await TestEnv.init(__dirname);
+  const envelope = await env.getEnvelopeRequest();
 
   expect(envelope).toHaveLength(3);
 

@@ -1,2 +1,72 @@
 export type Context = Record<string, unknown>;
-export type Contexts = Record<string, Context>;
+
+export interface Contexts extends Record<string, Context | undefined> {
+  app?: AppContext;
+  device?: DeviceContext;
+  os?: OsContext;
+  culture?: CultureContext;
+}
+
+export interface AppContext extends Record<string, unknown> {
+  app_name?: string;
+  app_start_time?: string;
+  app_version?: string;
+  app_identifier?: string;
+  build_type?: string;
+  app_memory?: number;
+}
+
+export interface DeviceContext extends Record<string, unknown> {
+  name?: string;
+  family?: string;
+  model?: string;
+  model_id?: string;
+  arch?: string;
+  battery_level?: number;
+  orientation?: 'portrait' | 'landscape';
+  manufacturer?: string;
+  brand?: string;
+  screen_resolution?: string;
+  screen_height_pixels?: number;
+  screen_width_pixels?: number;
+  screen_density?: number;
+  screen_dpi?: number;
+  online?: boolean;
+  charging?: boolean;
+  low_memory?: boolean;
+  simulator?: boolean;
+  memory_size?: number;
+  free_memory?: number;
+  usable_memory?: number;
+  storage_size?: number;
+  free_storage?: number;
+  external_storage_size?: number;
+  external_free_storage?: number;
+  boot_time?: string;
+  processor_count?: number;
+  cpu_description?: string;
+  processor_frequency?: number;
+  device_type?: string;
+  battery_status?: string;
+  device_unique_identifier?: string;
+  supports_vibration?: boolean;
+  supports_accelerometer?: boolean;
+  supports_gyroscope?: boolean;
+  supports_audio?: boolean;
+  supports_location_service?: boolean;
+}
+
+export interface OsContext extends Record<string, unknown> {
+  name?: string;
+  version?: string;
+  build?: string;
+  kernel_version?: string;
+}
+
+export interface CultureContext extends Record<string, unknown> {
+  calendar?: string;
+  display_name?: string;
+  locale?: string;
+  is_24_hour_format?: boolean;
+  timezone?: string;
+}

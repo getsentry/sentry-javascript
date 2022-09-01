@@ -163,16 +163,15 @@ export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, thirdPartyBa
 }
 
 /**
- * Helper function that takes a raw baggage string (if available) and the processed sentry-trace header
- * data (if available), parses the baggage string and creates a Baggage object
- * If there is no baggage string, it will create an empty Baggage object.
+ * Helper function that takes a raw baggage value (if available) and the processed sentry-trace header
+ * data (if available), parses the baggage value and creates a Baggage object. If there is no baggage
+ * value, it will create an empty Baggage object.
+ *
  * In a second step, this functions determines if the created Baggage object should be set immutable
- * to prevent mutation of the Sentry data.
+ * to prevent mutation of the Sentry data. It does this by looking at the processed sentry-trace header.
  *
- * Extracted this logic to a function because it's duplicated in a lot of places.
- *
- * @param rawBaggageValue
- * @param sentryTraceHeader
+ * @param rawBaggageValue baggage value from header
+ * @param sentryTraceHeader processed Sentry trace header returned from `extractTraceparentData`
  */
 export function parseBaggageSetMutability(
   rawBaggageValue: HttpHeaderValue | false | undefined,
@@ -187,7 +186,7 @@ export function parseBaggageSetMutability(
   // this SDK is the head of the trace and thus we still permit mutation at this time.
   // There is one exception though, which is that we get a baggage-header with `sentry-`
   // items but NO sentry-trace header. In this case we also set the baggage immutable for now
-  // but if smoething like this would ever happen, we should revisit this and determine
+  // but if something like this would ever happen, we should revisit this and determine
   // what this would actually mean for the trace (i.e. is this SDK the head?, what happened
   // before that we don't have a sentry-trace header?, etc)
   (sentryTraceHeader || !isSentryBaggageEmpty(baggage)) && setBaggageImmutable(baggage);

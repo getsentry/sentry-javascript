@@ -3,7 +3,7 @@ export type { AllowedBaggageKeys, Baggage, BaggageObj } from './baggage';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
-export type { Context, Contexts } from './context';
+export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';

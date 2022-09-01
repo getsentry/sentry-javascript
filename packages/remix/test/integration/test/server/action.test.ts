@@ -1,19 +1,13 @@
-import {
-  assertSentryTransaction,
-  getEnvelopeRequest,
-  runServer,
-  getMultipleEnvelopeRequest,
-  assertSentryEvent,
-} from './utils/helpers';
+import { assertSentryTransaction, assertSentryEvent, RemixTestEnv } from './utils/helpers';
 
 jest.spyOn(console, 'error').mockImplementation();
 
 // Repeat tests for each adapter
 describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', adapter => {
   it('correctly instruments a parameterized Remix API action', async () => {
-    const config = await runServer(adapter);
-    const url = `${config.url}/action-json-response/123123`;
-    const envelope = await getEnvelopeRequest({ ...config, url }, { method: 'post', envelopeType: 'transaction' });
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/123123`;
+    const envelope = await env.getEnvelopeRequest({ url, method: 'post', envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
@@ -40,13 +34,15 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('reports an error thrown from the action', async () => {
-    const config = await runServer(adapter);
-    const url = `${config.url}/action-json-response/-1`;
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-1`;
 
-    const [transaction, event] = await getMultipleEnvelopeRequest(
-      { ...config, url },
-      { count: 2, method: 'post', envelopeType: ['transaction', 'event'] },
-    );
+    const [transaction, event] = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -80,13 +76,15 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown 500 response', async () => {
-    const config = await runServer(adapter);
-    const url = `${config.url}/action-json-response/-2`;
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-2`;
 
-    const [transaction_1, event, transaction_2] = await getMultipleEnvelopeRequest(
-      { ...config, url },
-      { count: 3, method: 'post', envelopeType: ['transaction', 'event'] },
-    );
+    const [transaction_1, event, transaction_2] = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 3,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {

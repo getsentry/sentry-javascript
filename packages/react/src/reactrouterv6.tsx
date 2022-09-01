@@ -20,6 +20,8 @@ type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
+type UseRoutes = (routes: RouteObject[], locationArg?: Partial<Location> | string) => React.ReactElement | null;
+
 // https://github.com/remix-run/react-router/blob/9fa54d643134cd75a0335581a75db8100ed42828/packages/react-router/lib/router.ts#L114-L134
 interface RouteMatch<ParamKey extends string = string> {
   /**
@@ -141,6 +143,45 @@ function getNormalizedName(
   return [location.pathname, 'url'];
 }
 
+function updatePageloadTransaction(location: Location, routes: RouteObject[]): void {
+  if (activeTransaction) {
+    const [name, source] = getNormalizedName(routes, location, _matchRoutes);
+    activeTransaction.setName(name);
+    activeTransaction.setMetadata({ source });
+  }
+}
+
+function handleNavigation(
+  location: Location,
+  routes: RouteObject[],
+  navigationType: Action,
+  isBaseLocation: boolean,
+): void {
+  if (isBaseLocation) {
+    if (activeTransaction) {
+      activeTransaction.finish();
+    }
+
+    return;
+  }
+
+  if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP')) {
+    if (activeTransaction) {
+      activeTransaction.finish();
+    }
+
+    const [name, source] = getNormalizedName(routes, location, _matchRoutes);
+    activeTransaction = _customStartTransaction({
+      name,
+      op: 'navigation',
+      tags: SENTRY_TAGS,
+      metadata: {
+        source,
+      },
+    });
+  }
+}
+
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
   if (
     !_useEffect ||
@@ -169,39 +210,12 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       routes = _createRoutesFromChildren(props.children);
       isBaseLocation = true;
 
-      if (activeTransaction) {
-        const [name, source] = getNormalizedName(routes, location, _matchRoutes);
-        activeTransaction.setName(name);
-        activeTransaction.setMetadata({ source });
-      }
-
+      updatePageloadTransaction(location, routes);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.children]);
 
     _useEffect(() => {
-      if (isBaseLocation) {
-        if (activeTransaction) {
-          activeTransaction.finish();
-        }
-
-        return;
-      }
-
-      if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP')) {
-        if (activeTransaction) {
-          activeTransaction.finish();
-        }
-
-        const [name, source] = getNormalizedName(routes, location, _matchRoutes);
-        activeTransaction = _customStartTransaction({
-          name,
-          op: 'navigation',
-          tags: SENTRY_TAGS,
-          metadata: {
-            source,
-          },
-        });
-      }
+      handleNavigation(location, routes, navigationType, isBaseLocation);
     }, [props.children, location, navigationType, isBaseLocation]);
 
     isBaseLocation = false;
@@ -216,4 +230,43 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
   // @ts-ignore Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
+}
+
+export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes || !_customStartTransaction) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
+      );
+
+    return origUseRoutes;
+  }
+
+  let isBaseLocation: boolean = false;
+
+  return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
+    const SentryRoutes: React.FC<unknown> = (props: unknown) => {
+      const Routes = origUseRoutes(routes, location);
+
+      const locationArgObject = typeof location === 'string' ? { pathname: location } : location;
+      const locationObject = (locationArgObject as Location) || _useLocation();
+      const navigationType = _useNavigationType();
+
+      _useEffect(() => {
+        isBaseLocation = true;
+
+        updatePageloadTransaction(locationObject, routes);
+      }, [props]);
+
+      _useEffect(() => {
+        handleNavigation(locationObject, routes, navigationType, isBaseLocation);
+      }, [props, locationObject, navigationType, isBaseLocation]);
+
+      isBaseLocation = false;
+
+      return Routes;
+    };
+
+    return <SentryRoutes />;
+  };
 }
