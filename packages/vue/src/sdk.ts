@@ -1,5 +1,5 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { arrayify, getGlobalObject, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
@@ -51,7 +51,7 @@ export function init(
   }
 
   if (options.app) {
-    const apps = Array.isArray(options.app) ? options.app : [options.app];
+    const apps = arrayify(options.app);
     apps.forEach(app => vueInit(app, options));
   } else if (options.Vue) {
     vueInit(options.Vue, options);
