@@ -9,7 +9,6 @@
 [![npm version](https://img.shields.io/npm/v/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
 [![npm dm](https://img.shields.io/npm/dm/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
 [![npm dt](https://img.shields.io/npm/dt/@sentry-internal/eslint-config-sdk.svg)](https://www.npmjs.com/package/@sentry-internal/eslint-config-sdk)
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
 ## Links
 

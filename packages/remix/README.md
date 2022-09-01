@@ -9,7 +9,6 @@
 [![npm version](https://img.shields.io/npm/v/@sentry/remix.svg)](https://www.npmjs.com/package/@sentry/remix)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/remix.svg)](https://www.npmjs.com/package/@sentry/remix)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/remix.svg)](https://www.npmjs.com/package/@sentry/remix)
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
 This SDK is considered experimental and in an alpha state. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
 
