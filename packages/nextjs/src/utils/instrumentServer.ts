@@ -332,8 +332,8 @@ function makeWrappedMethodForGettingParameterizedPath(
     // replace specific URL with parameterized version
     if (transaction && transaction.metadata.requestPath) {
       const origPath = transaction.metadata.requestPath;
-      transaction.name = transaction.name.replace(origPath, parameterizedPath);
-      transaction.setMetadata({ source: 'route' });
+      const newName = transaction.name.replace(origPath, parameterizedPath);
+      transaction.setName(newName, 'route');
     }
 
     return origMethod.call(this, parameterizedPath, ...args);
