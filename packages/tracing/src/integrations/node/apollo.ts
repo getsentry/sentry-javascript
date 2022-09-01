@@ -1,6 +1,6 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 type ApolloResolverGroup = {
   [key: string]: () => unknown;
@@ -44,7 +44,7 @@ export class Apollo implements Integration {
      */
     fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => unknown) {
       return function (this: { config: { resolvers: ApolloModelResolvers[] } }) {
-        const resolvers = Array.isArray(this.config.resolvers) ? this.config.resolvers : [this.config.resolvers];
+        const resolvers = arrayify(this.config.resolvers);
 
         this.config.resolvers = resolvers.map(model => {
           Object.keys(model).forEach(resolverGroupName => {

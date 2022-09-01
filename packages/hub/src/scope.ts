@@ -22,6 +22,7 @@ import {
   User,
 } from '@sentry/types';
 import {
+  arrayify,
   dateTimestampInSeconds,
   getGlobalSingleton,
   isPlainObject,
@@ -553,11 +554,7 @@ export class Scope implements ScopeInterface {
    */
   private _applyFingerprint(event: Event): void {
     // Make sure it's an array first and we actually have something in place
-    event.fingerprint = event.fingerprint
-      ? Array.isArray(event.fingerprint)
-        ? event.fingerprint
-        : [event.fingerprint]
-      : [];
+    event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
 
     // If we have something on the scope, then merge it with event
     if (this._fingerprint) {
