@@ -9,7 +9,6 @@
 [![npm version](https://img.shields.io/npm/v/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
 This SDK is considered **experimental and in an alpha state**. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This SDK currently only supports [Svelte](https://svelte.dev/) and is not yet officially compatible with with [SvelteKit](https://kit.svelte.dev/).
 

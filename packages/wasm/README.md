@@ -9,7 +9,6 @@
 [![npm version](https://img.shields.io/npm/v/@sentry/wasm.svg)](https://www.npmjs.com/package/@sentry/wasm)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/wasm.svg)](https://www.npmjs.com/package/@sentry/wasm)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/wasm.svg)](https://www.npmjs.com/package/@sentry/wasm)
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 
 ## Links
 
