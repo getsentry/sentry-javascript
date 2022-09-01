@@ -117,8 +117,7 @@ export class TraceService implements OnDestroy {
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
       if (transaction && transaction.metadata.source === 'url') {
-        transaction.setName(route);
-        transaction.setMetadata({ source: 'route' });
+        transaction.setName(route, 'route');
       }
     }),
   );
