@@ -4,6 +4,13 @@ import { Compressor } from './Compressor';
 
 const compressor = new Compressor();
 
+type SerializedWorkerRequest = Pick<WorkerRequest, 'id' | 'method'> & {
+  /**
+   * This is serialized before being sent to web worker
+   */
+  args: string;
+};
+
 const handlers: Record<string, (args: any[]) => void> = {
   init: () => {
     compressor.init();
@@ -20,7 +27,7 @@ const handlers: Record<string, (args: any[]) => void> = {
   },
 };
 
-export function handleMessage(e: MessageEvent<WorkerRequest>) {
+export function handleMessage(e: MessageEvent<SerializedWorkerRequest>) {
   const method = e.data.method as string;
   const id = e.data.id as number;
   const [data] = e.data.args ? JSON.parse(e.data.args) : [];
