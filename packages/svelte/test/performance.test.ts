@@ -5,13 +5,13 @@ import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;
 
-let testTransaction: { spans: any[]; startChild: jest.Mock; finish: jest.Mock } = {
+const testTransaction: { spans: any[]; startChild: jest.Mock; finish: jest.Mock } = {
   spans: [],
   startChild: jest.fn(),
   finish: jest.fn(),
 };
-let testUpdateSpan = { finish: jest.fn() };
-let testInitSpan: any = {
+const testUpdateSpan = { finish: jest.fn() };
+const testInitSpan: any = {
   transaction: testTransaction,
   finish: jest.fn(),
   startChild: jest.fn(),
