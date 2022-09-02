@@ -39,7 +39,6 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
           include: 'public',
           // Ignore files that aren't users' source code related
           ignore: [
-            'app-*', // related to Gatsby itself
             'polyfill-*', // related to polyfills
             'framework-*', // related to the frameworks (e.g. React)
             'webpack-runtime-*', // related to Webpack
