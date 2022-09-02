@@ -46,7 +46,12 @@ export function exceptionFromError(stackParser: StackParser, error: Error): Exce
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromUnknownInput(stackParser: StackParser, exception: unknown, hint?: EventHint): Event {
+export function eventFromUnknownInput(
+  stackParser: StackParser,
+  exception: unknown,
+  hint?: EventHint,
+  normalizeDepth?: number,
+): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
@@ -63,7 +68,7 @@ export function eventFromUnknownInput(stackParser: StackParser, exception: unkno
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
       getCurrentHub().configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception));
+        scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
       });
 
       ex = (hint && hint.syntheticException) || new Error(message);
