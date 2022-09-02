@@ -145,9 +145,7 @@ function getNormalizedName(
 
 function updatePageloadTransaction(location: Location, routes: RouteObject[]): void {
   if (activeTransaction) {
-    const [name, source] = getNormalizedName(routes, location, _matchRoutes);
-    activeTransaction.setName(name);
-    activeTransaction.setMetadata({ source });
+    activeTransaction.setName(...getNormalizedName(routes, location, _matchRoutes));
   }
 }
 

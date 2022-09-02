@@ -167,8 +167,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
   const WrappedRoute: React.FC<P> = (props: P) => {
     if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
-      activeTransaction.setName(props.computedMatch.path);
-      activeTransaction.setMetadata({ source: 'route' });
+      activeTransaction.setName(props.computedMatch.path, 'route');
     }
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above

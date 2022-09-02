@@ -20,7 +20,7 @@ describe('React Router v6', () => {
   function createInstrumentation(_opts?: {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
+  }): [jest.Mock, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
     const options = {
       matchPath: _opts ? matchPath : undefined,
       startTransactionOnLocationChange: true,
@@ -29,10 +29,7 @@ describe('React Router v6', () => {
     };
     const mockFinish = jest.fn();
     const mockSetName = jest.fn();
-    const mockSetMetadata = jest.fn();
-    const mockStartTransaction = jest
-      .fn()
-      .mockReturnValue({ setName: mockSetName, finish: mockFinish, setMetadata: mockSetMetadata });
+    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
 
     reactRouterV6Instrumentation(
       React.useEffect,
@@ -41,7 +38,7 @@ describe('React Router v6', () => {
       createRoutesFromChildren,
       matchRoutes,
     )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockSetName, mockFinish, mockSetMetadata }];
+    return [mockStartTransaction, { mockSetName, mockFinish }];
   }
 
   describe('withSentryReactRouterV6Routing', () => {

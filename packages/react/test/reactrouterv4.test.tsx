@@ -11,7 +11,7 @@ describe('React Router v4', () => {
     startTransactionOnPageLoad?: boolean;
     startTransactionOnLocationChange?: boolean;
     routes?: RouteConfig[];
-  }): [jest.Mock, any, { mockSetName: jest.Mock; mockFinish: jest.Mock; mockSetMetadata: jest.Mock }] {
+  }): [jest.Mock, any, { mockSetName: jest.Mock; mockFinish: jest.Mock }] {
     const options = {
       matchPath: _opts && _opts.routes !== undefined ? matchPath : undefined,
       routes: undefined,
@@ -22,16 +22,13 @@ describe('React Router v4', () => {
     const history = createMemoryHistory();
     const mockFinish = jest.fn();
     const mockSetName = jest.fn();
-    const mockSetMetadata = jest.fn();
-    const mockStartTransaction = jest
-      .fn()
-      .mockReturnValue({ setName: mockSetName, finish: mockFinish, setMetadata: mockSetMetadata });
+    const mockStartTransaction = jest.fn().mockReturnValue({ setName: mockSetName, finish: mockFinish });
     reactRouterV4Instrumentation(history, options.routes, options.matchPath)(
       mockStartTransaction,
       options.startTransactionOnPageLoad,
       options.startTransactionOnLocationChange,
     );
-    return [mockStartTransaction, history, { mockSetName, mockFinish, mockSetMetadata }];
+    return [mockStartTransaction, history, { mockSetName, mockFinish }];
   }
 
   it('starts a pageload transaction when instrumentation is started', () => {
@@ -164,7 +161,7 @@ describe('React Router v4', () => {
   });
 
   it('normalizes transaction name with custom Route', () => {
-    const [mockStartTransaction, history, { mockSetName, mockSetMetadata }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
     const { getByText } = render(
       <Router history={history}>
@@ -189,12 +186,11 @@ describe('React Router v4', () => {
       metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(2);
-    expect(mockSetName).toHaveBeenLastCalledWith('/users/:userid');
-    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockSetName).toHaveBeenLastCalledWith('/users/:userid', 'route');
   });
 
   it('normalizes nested transaction names with custom Route', () => {
-    const [mockStartTransaction, history, { mockSetName, mockSetMetadata }] = createInstrumentation();
+    const [mockStartTransaction, history, { mockSetName }] = createInstrumentation();
     const SentryRoute = withSentryRouting(Route);
     const { getByText } = render(
       <Router history={history}>
@@ -219,8 +215,7 @@ describe('React Router v4', () => {
       metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(2);
-    expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid');
-    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid/v1/:teamid', 'route');
 
     act(() => {
       history.push('/organizations/543');
@@ -235,8 +230,7 @@ describe('React Router v4', () => {
       metadata: { source: 'url' },
     });
     expect(mockSetName).toHaveBeenCalledTimes(3);
-    expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid');
-    expect(mockSetMetadata).toHaveBeenLastCalledWith({ source: 'route' });
+    expect(mockSetName).toHaveBeenLastCalledWith('/organizations/:orgid', 'route');
   });
 
   it('matches with route object', () => {
