@@ -55,7 +55,10 @@ function sample<T extends Transaction>(
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
     transaction.setMetadata({
-      transactionSampling: { method: 'explicitly_set' },
+      transactionSampling: {
+        method: 'explicitly_set',
+        rate: Number(transaction.sampled),
+      },
     });
     return transaction;
   }
