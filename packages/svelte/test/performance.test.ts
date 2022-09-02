@@ -1,6 +1,7 @@
 import { Scope } from '@sentry/hub';
 import { act, render } from '@testing-library/svelte';
 
+// eslint-disable-next-line import/no-unresolved Eslint doesn't know about Svelte components
 import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;
