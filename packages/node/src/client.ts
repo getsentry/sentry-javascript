@@ -118,9 +118,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(
-      eventFromUnknownInput(this._options.stackParser, exception, hint, this._options.normalizeDepth),
-    );
+    return resolvedSyncPromise(eventFromUnknownInput(this._options.stackParser, exception, hint));
   }
 
   /**

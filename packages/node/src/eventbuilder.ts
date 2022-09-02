@@ -46,12 +46,7 @@ export function exceptionFromError(stackParser: StackParser, error: Error): Exce
  * Builds and Event from a Exception
  * @hidden
  */
-export function eventFromUnknownInput(
-  stackParser: StackParser,
-  exception: unknown,
-  hint?: EventHint,
-  normalizeDepth?: number,
-): Event {
+export function eventFromUnknownInput(stackParser: StackParser, exception: unknown, hint?: EventHint): Event {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
@@ -67,7 +62,10 @@ export function eventFromUnknownInput(
       // which is much better than creating new group when any key/value change
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
-      getCurrentHub().configureScope(scope => {
+      const hub = getCurrentHub();
+      const client = hub.getClient();
+      const normalizeDepth = client && client.getOptions().normalizeDepth;
+      hub.configureScope(scope => {
         scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
       });
 
