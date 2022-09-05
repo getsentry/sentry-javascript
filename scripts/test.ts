@@ -17,6 +17,7 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/nextjs',
   '@sentry/angular',
   '@sentry/remix',
+  '@sentry/svelte', // svelte testing library requires Node >= 10
 ];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.

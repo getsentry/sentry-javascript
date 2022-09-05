@@ -26,7 +26,9 @@
     "svelte": "3.x"
   },
   "devDependencies": {
-    "svelte": "3.49.0"
+    "@testing-library/svelte": "^3.2.1",
+    "svelte": "3.49.0",
+    "svelte-jester": "^2.3.2"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",
