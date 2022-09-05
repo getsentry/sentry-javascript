@@ -79,7 +79,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   // `nextData.page` always contains the parameterized route - except for when an error occurs in a data fetching
   // function, then it is "/_error", but that isn't a problem since users know which route threw by looking at the
   // parent transaction
-  // TODO: Actually this is a (even though it is not that big), because the DSC and the transaction payload will contain
+  // TODO: Actually this is a problem (even though it is not that big), because the DSC and the transaction payload will contain
   // a different transaction name.Maybe we can fix this.Idea: Also send transaction name via pageProps when available.
   nextDataTagInfo.route = page;
   nextDataTagInfo.params = query;
