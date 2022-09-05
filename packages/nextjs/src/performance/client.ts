@@ -101,10 +101,12 @@ const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
 } as const;
 
+// We keep track of the active transaction so we can finish it when we start a navigation transaction.
 let activeTransaction: Transaction | undefined = undefined;
 
-// We keep track of the previous transaction name so we can set the `from` field on navigation transactions.
-let prevTransactionName: string | undefined = undefined;
+// We keep track of the previous location name so we can set the `from` field on navigation transactions.
+// This is either a route or a pathname.
+let prevLocationName: string | undefined = undefined;
 
 const client = getCurrentHub().getClient();
 
@@ -121,15 +123,14 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
+  const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
+  prevLocationName = route || global.location.pathname;
+
   if (startTransactionOnPageLoad) {
-    const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
-
-    prevTransactionName = route || global.location.pathname;
-
     const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({
-      name: prevTransactionName,
+      name: prevLocationName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
@@ -158,10 +159,10 @@ export function nextRouterInstrumentation(
 
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
-        from: prevTransactionName,
+        from: prevLocationName,
       };
 
-      prevTransactionName = transactionName;
+      prevLocationName = transactionName;
 
       if (activeTransaction) {
         activeTransaction.finish();
@@ -190,10 +191,27 @@ function getNextRouteFromPathname(pathname: string): string | void {
 }
 
 function convertNextRouteToRegExp(route: string): RegExp {
+  // We can assume a route is at least "/".
+  const routeParts = route.split('/');
+
+  let optionalCatchallWildcardRegex = '';
+  if (routeParts[routeParts.length - 1].match(/^\[\[\.\.\..+\]\]$/)) {
+    // If last route part has pattern "[[...xyz]]"
+    // We pop the latest route part to get rid of the required trailing slash
+    routeParts.pop();
+    optionalCatchallWildcardRegex = '(?:/(.+?))?';
+  }
+
+  const rejoinedRouteParts = routeParts
+    .map(
+      routePart =>
+        routePart
+          .replace(/^\[\.\.\..+\]$/, '(.+?)') // Replace catch all wildcard with regex wildcard
+          .replace(/^\[.*\]$/, '([^/]+?)'), // Replace route wildcards with lazy regex wildcards
+    )
+    .join('/');
+
   return new RegExp(
-    `^${route
-      .split('/')
-      .map(routePart => routePart.replace(/^\[.*\]$/, '.*'))
-      .join('/')}$`,
+    `^${rejoinedRouteParts}${optionalCatchallWildcardRegex}(?:/)?$`, // optional slash at the end
   );
 }
