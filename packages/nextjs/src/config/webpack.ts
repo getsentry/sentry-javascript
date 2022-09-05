@@ -57,27 +57,6 @@ export function constructWebpackConfigFunction(
       newConfig = userNextConfig.webpack(newConfig, buildContext);
     }
 
-    // TODO: Build folder is not always .next/
-    const routeManifestFileContents = fs.readFileSync(path.join(process.cwd(), './.next/routes-manifest.json'), {
-      encoding: 'utf8',
-    });
-
-    const routeManifest = JSON.parse(routeManifestFileContents);
-    const routeTable = {};
-
-    // @ts-ignore
-    routeManifest.dynamicRoutes.forEach(({ regex, page }) => {
-      // @ts-ignore
-      routeTable[page] = regex;
-    });
-
-    newConfig.plugins?.push(
-      // @ts-ignore asdf
-      new buildContext.webpack.DefinePlugin({
-        __INJECTED_ROUTE_TABLE__: JSON.stringify(routeTable),
-      }),
-    );
-
     if (isServer) {
       newConfig.module = {
         ...newConfig.module,

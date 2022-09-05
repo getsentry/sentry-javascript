@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getCurrentHub } from '@sentry/hub';
 import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
@@ -13,12 +11,15 @@ import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 
-const global = getGlobalObject<Window>();
+const global = getGlobalObject<
+  Window & {
+    __BUILD_MANIFEST?: {
+      sortedPages?: string[];
+    };
+  }
+>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
-
-declare const __INJECTED_ROUTE_TABLE__: { [parameterizedRoute: string]: string } | undefined;
-const routeTable = typeof __INJECTED_ROUTE_TABLE__ === 'undefined' ? undefined : __INJECTED_ROUTE_TABLE__;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -139,27 +140,18 @@ export function nextRouterInstrumentation(
   }
 
   if (startTransactionOnLocationChange) {
-    Router.events.on('routeChangeStart', (pathname: string) => {
-      function getNavigationTargetName(): [string, TransactionSource] {
-        if (routeTable) {
-          const match = Object.entries(routeTable).find(([, routeRegExpr]) => {
-            return pathname.match(new RegExp(routeRegExpr));
-          });
+    Router.events.on('routeChangeStart', (navigationTarget: string) => {
+      const matchedRoute = getNextRouteFromPathname(stripUrlQueryAndFragment(navigationTarget));
 
-          if (match) {
-            return [match[0], 'route'];
-          } else {
-            return [stripUrlQueryAndFragment(pathname), 'route'];
-          }
-        } else {
-          return [stripUrlQueryAndFragment(pathname), 'url'];
-        }
-      }
+      let transactionName: string;
+      let transactionSource: TransactionSource;
 
-      const [newTransactionName, source] = getNavigationTargetName();
-
-      if (activeTransaction) {
-        activeTransaction.finish();
+      if (matchedRoute) {
+        transactionName = matchedRoute;
+        transactionSource = 'route';
+      } else {
+        transactionName = navigationTarget;
+        transactionSource = 'url';
       }
 
       const tags: Record<string, Primitive> = {
@@ -167,14 +159,39 @@ export function nextRouterInstrumentation(
         from: prevTransactionName,
       };
 
-      prevTransactionName = newTransactionName;
+      prevTransactionName = transactionName;
+
+      if (activeTransaction) {
+        activeTransaction.finish();
+      }
 
       startTransactionCb({
-        name: newTransactionName,
+        name: transactionName,
         op: 'navigation',
         tags,
-        metadata: { source },
+        metadata: { source: transactionSource },
       });
     });
   }
+}
+
+function getNextRouteFromPathname(pathname: string): string | void {
+  const pageRoutes = (global.__BUILD_MANIFEST || {}).sortedPages;
+
+  // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
+  if (pageRoutes) {
+    return pageRoutes.find(route => {
+      const routeRegExp = convertNextRouteToRegExp(route);
+      return pathname.match(routeRegExp);
+    });
+  }
+}
+
+function convertNextRouteToRegExp(route: string): RegExp {
+  return new RegExp(
+    `^${route
+      .split('/')
+      .map(routePart => routePart.replace(/^\[.*\]$/, '.*'))
+      .join('/')}$`,
+  );
 }
