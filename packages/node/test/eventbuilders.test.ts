@@ -1,4 +1,5 @@
 import { Client } from '@sentry/types';
+
 import { defaultStackParser, Scope } from '../src';
 import { eventFromUnknownInput } from '../src/eventbuilder';
 
@@ -24,7 +25,7 @@ jest.mock('@sentry/hub', () => {
         getScope(): Scope {
           return new Scope();
         },
-        configureScope(scopeFunction): void {
+        configureScope(scopeFunction: (scope: Scope) => void): void {
           scopeFunction(testScope);
         },
       };
