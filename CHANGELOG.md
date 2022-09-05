@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.12.1
+
+- feat(nextjs): Connect trace between data-fetching methods and pageload (#5655)
+- feat(react): Support useRoutes hook of React Router 6 (#5624)
+- feat(remix): Continue transaction from request headers (#5600)
+- feat(utils): Add function for ensuring input is an array (#5668)
+- fix(utils): Remove Element dom type (#5675)
+- fix(node): `contexts` cannot be overridden and `culture` never included (#5677)
+- chore: Remove typedoc from READMEs (#5678)
+
 ## 7.12.0
 
 This release adds an environment check in `@sentry/nextjs` for Vercel deployments (using the `VERCEL_ENV` env variable), and only enables `SentryWebpackPlugin` if the environment is `production`. To override this, [setting `disableClientWebpackPlugin` or `disableServerWebpackPlugin` to `false`](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#disable-sentrywebpackplugin) now takes precedence over other checks, rather than being a no-op. Note: Overriding this is not recommended! It can increase build time and clog Release Health data in Sentry with inaccurate noise.

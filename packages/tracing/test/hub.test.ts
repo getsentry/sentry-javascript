@@ -243,7 +243,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: 'explicitly_set' },
+          transactionSampling: { method: 'explicitly_set', rate: 1.0 },
         });
       });
 

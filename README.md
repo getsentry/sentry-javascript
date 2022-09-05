@@ -9,7 +9,6 @@ _Bad software is everywhere, and we're tired of it. Sentry is on a mission to he
 ![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
-[![typedoc](https://img.shields.io/badge/docs-typedoc-blue.svg)](http://getsentry.github.io/sentry-javascript/)
 [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 
 # Official Sentry SDKs for JavaScript
@@ -27,7 +26,6 @@ Would you like to work on Open Source software and help maintain this repository
 
 ## Links
 
-- [![TypeDoc](https://img.shields.io/badge/documentation-TypeDoc-green.svg)](http://getsentry.github.io/sentry-javascript/)
 - [![Documentation](https://img.shields.io/badge/documentation-sentry.io-green.svg)](https://docs.sentry.io/quickstart/)
 - [![Forum](https://img.shields.io/badge/forum-sentry-green.svg)](https://forum.sentry.io/c/sdks)
 - [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
