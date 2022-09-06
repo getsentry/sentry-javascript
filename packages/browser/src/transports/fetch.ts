@@ -24,7 +24,7 @@ export function makeFetchTransport(
       // Gotchas:
       // - `keepalive` isn't supported by Firefox
       // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch), a request with `keepalive: true`
-      //   and a content length of > 64 kibibytes returns a network error. We will therefore only activate the flag wnen
+      //   and a content length of > 64 kibibytes returns a network error. We will therefore only activate the flag when
       //   we're below that limit.
       keepalive: request.body.length <= 65536,
       ...options.fetchOptions,
