@@ -259,8 +259,9 @@ describe('SentryReplay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // No activity has occurred, session's last activity should remain the same
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+    // Right before sending a replay, we add memory usage and perf entries,
+    // which we are considering as an "activity" here.
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
