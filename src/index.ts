@@ -131,7 +131,7 @@ export class SentryReplay implements Integration {
     flushMinDelay = 5000,
     flushMaxDelay = 15000,
     initialFlushDelay = 5000,
-    stickySession = false, // TBD: Making this opt-in for now
+    stickySession = true,
     useCompression = true,
     captureOnlyOnError = false,
     replaysSamplingRate = 1.0,
