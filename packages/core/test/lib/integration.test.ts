@@ -232,20 +232,6 @@ describe('getIntegrationsToSetup', () => {
     expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
   });
 
-  it('filter duplicated items and always let first win', () => {
-    const first = new MockIntegration('foo');
-    (first as any).order = 'first';
-    const second = new MockIntegration('foo');
-    (second as any).order = 'second';
-
-    const integrations = getIntegrationsToSetup({
-      integrations: [first, second, new MockIntegration('bar')],
-    });
-
-    expect(integrations.map(i => i.name)).toEqual(['foo', 'bar']);
-    expect((integrations[0] as any).order).toEqual('first');
-  });
-
   it('work with empty defaults', () => {
     const integrations = getIntegrationsToSetup({
       defaultIntegrations: [],
