@@ -1,3 +1,4 @@
+import { Transaction } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
@@ -16,18 +17,24 @@ const globalObject = getGlobalObject<
 const originalBuildManifest = globalObject.__BUILD_MANIFEST;
 const originalBuildManifestRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
 
+let eventHandlers: { [eventName: string]: Set<(...args: any[]) => void> } = {};
+
 jest.mock('next/router', () => {
-  const eventHandlers: { [eventName: string]: ((...args: any[]) => void)[] } = {};
   return {
     default: {
       events: {
         on(type: string, handler: (...args: any[]) => void) {
-          if (eventHandlers[type]) {
-            eventHandlers[type].push(handler);
-          } else {
-            eventHandlers[type] = [handler];
+          if (!eventHandlers[type]) {
+            eventHandlers[type] = new Set();
           }
+
+          eventHandlers[type].add(handler);
         },
+        off: jest.fn((type: string, handler: (...args: any[]) => void) => {
+          if (eventHandlers[type]) {
+            eventHandlers[type].delete(handler);
+          }
+        }),
         emit(type: string, ...eventArgs: any[]) {
           if (eventHandlers[type]) {
             eventHandlers[type].forEach(eventHandler => {
@@ -39,6 +46,18 @@ jest.mock('next/router', () => {
     },
   };
 });
+
+function createMockStartTransaction() {
+  return jest.fn(
+    () =>
+      ({
+        startChild: () => ({
+          finish: () => undefined,
+        }),
+        finish: () => undefined,
+      } as Transaction),
+  );
+}
 
 describe('nextRouterInstrumentation', () => {
   const originalGlobalDocument = getGlobalObject<Window>().document;
@@ -94,6 +113,12 @@ describe('nextRouterInstrumentation', () => {
     if ((global as any).__BUILD_MANIFEST) {
       (global as any).__BUILD_MANIFEST.sortedPages = originalBuildManifestRoutes;
     }
+
+    // Clear all event handlers
+    eventHandlers = {};
+
+    // Necessary to clear all Router.events.off() mock call numbers
+    jest.clearAllMocks();
   });
 
   describe('pageload transactions', () => {
@@ -187,7 +212,7 @@ describe('nextRouterInstrumentation', () => {
     ])(
       'creates a pageload transaction (#%#)',
       (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
-        const mockStartTransaction = jest.fn();
+        const mockStartTransaction = createMockStartTransaction();
         setUpNextPage({ url, route, query, props, hasNextData });
         nextRouterInstrumentation(mockStartTransaction);
         expect(mockStartTransaction).toHaveBeenCalledTimes(1);
@@ -196,7 +221,7 @@ describe('nextRouterInstrumentation', () => {
     );
 
     it('does not create a pageload transaction if option not given', () => {
-      const mockStartTransaction = jest.fn();
+      const mockStartTransaction = createMockStartTransaction();
       setUpNextPage({ url: 'https://example.com/', route: '/', hasNextData: false });
       nextRouterInstrumentation(mockStartTransaction, false);
       expect(mockStartTransaction).toHaveBeenCalledTimes(0);
@@ -225,7 +250,7 @@ describe('nextRouterInstrumentation', () => {
     ])(
       'should create a parameterized transaction on route change (%s)',
       (targetLocation, expectedTransactionName, expectedTransactionSource) => {
-        const mockStartTransaction = jest.fn();
+        const mockStartTransaction = createMockStartTransaction();
 
         setUpNextPage({
           url: 'https://example.com/home',
@@ -261,11 +286,17 @@ describe('nextRouterInstrumentation', () => {
             }),
           }),
         );
+
+        Router.events.emit('routeChangeComplete', targetLocation);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(Router.events.off).toHaveBeenCalledWith('routeChangeComplete', expect.anything());
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(Router.events.off).toHaveBeenCalledTimes(1);
       },
     );
 
     it('should not create transaction when navigation transactions are disabled', () => {
-      const mockStartTransaction = jest.fn();
+      const mockStartTransaction = createMockStartTransaction();
 
       setUpNextPage({
         url: 'https://example.com/home',
