@@ -197,16 +197,18 @@ export function nextRouterInstrumentation(
   }
 }
 
-function getNextRouteFromPathname(pathname: string): string | void {
+function getNextRouteFromPathname(pathname: string): string | undefined {
   const pageRoutes = (global.__BUILD_MANIFEST || {}).sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
-  if (pageRoutes) {
-    return pageRoutes.find(route => {
-      const routeRegExp = convertNextRouteToRegExp(route);
-      return pathname.match(routeRegExp);
-    });
+  if (!pageRoutes) {
+    return;
   }
+
+  return pageRoutes.find(route => {
+    const routeRegExp = convertNextRouteToRegExp(route);
+    return pathname.match(routeRegExp);
+  });
 }
 
 /**
