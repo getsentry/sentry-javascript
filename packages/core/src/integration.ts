@@ -2,6 +2,12 @@ import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+declare module '@sentry/types' {
+  interface Integration {
+    isDefaultInstance?: boolean;
+  }
+}
+
 export const installedIntegrations: string[] = [];
 
 /** Map of integrations assigned to a client */
@@ -10,15 +16,29 @@ export type IntegrationIndex = {
 };
 
 /**
+ * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
+ * preseve the order of integrations in the array.
+ *
  * @private
  */
 function filterDuplicates(integrations: Integration[]): Integration[] {
-  return integrations.reduce((acc, integrations) => {
-    if (acc.every(accIntegration => integrations.name !== accIntegration.name)) {
-      acc.push(integrations);
+  const integrationsByName: { [key: string]: Integration } = {};
+
+  integrations.forEach(currentInstance => {
+    const { name } = currentInstance;
+
+    const existingInstance = integrationsByName[name];
+
+    // We want integrations later in the array to overwrite earlier ones of the same type, except that we never want a
+    // default instance to overwrite an existing user instance
+    if (existingInstance && !existingInstance.isDefaultInstance && currentInstance.isDefaultInstance) {
+      return;
     }
-    return acc;
-  }, [] as Integration[]);
+
+    integrationsByName[name] = currentInstance;
+  });
+
+  return Object.values(integrationsByName);
 }
 
 /** Gets integration to install */
