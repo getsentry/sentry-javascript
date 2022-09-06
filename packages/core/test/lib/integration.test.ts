@@ -6,8 +6,12 @@ import { getIntegrationsToSetup } from '../../src/integration';
 class MockIntegration implements Integration {
   public name: string;
 
-  public constructor(name: string) {
+  // Only for testing - tag to keep separate instances straight when testing deduplication
+  public tag?: string;
+
+  public constructor(name: string, tag?: string) {
     this.name = name;
+    this.tag = tag;
   }
 
   public setupOnce(): void {
