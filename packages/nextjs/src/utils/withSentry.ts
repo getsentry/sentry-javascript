@@ -90,6 +90,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               metadata: {
                 dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
                 source: 'route',
+                request: req,
               },
             },
             // extra context passed to the `tracesSampler`

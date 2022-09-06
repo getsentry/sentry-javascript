@@ -106,7 +106,11 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       requestTransaction = newTransaction;
       autoEndTransactionOnResponseEnd(newTransaction, res);
+
+      // Link the transaction and the request together, so that when we would normally only have access to one, it's
+      // still possible to grab the other.
       setTransactionOnRequest(newTransaction, req);
+      newTransaction.setMetadata({ request: req });
     }
 
     const dataFetcherSpan = requestTransaction.startChild({

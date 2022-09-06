@@ -276,6 +276,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
                 // like `source: isDynamicRoute? 'url' : 'route'`
                 // TODO: What happens when `withSentry` is used also? Which values of `name` and `source` win?
                 source: 'url',
+                request: req,
               },
               ...traceparentData,
             },
