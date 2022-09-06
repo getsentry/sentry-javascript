@@ -190,14 +190,28 @@ function getNextRouteFromPathname(pathname: string): string | void {
   }
 }
 
+/**
+ * Converts a Next.js style route to a regular expression that matches on pathnames (no query params or URL fragments).
+ *
+ * In general this involves replacing any instances of square brackets in a route with a wildcard:
+ * e.g. "/users/[id]/info" becomes /\/users\/([^/]+?)\/info/
+ *
+ * Some additional edgecases need to be considered:
+ * - All routes have an optional slash at the end, meaning users can navigate to "/users/[id]/info" or
+ *   "/users/[id]/info/" - both will be resolved to "/users/[id]/info".
+ * - Non-optional "catchall"s at the end of a route must be considered when matching (e.g. "/users/[...params]").
+ * - Optional "catchall"s at the end of a route must be considered when matching (e.g. "/users/[[...params]]").
+ *
+ * @param route A Next.js style route as it is found in `global.__BUILD_MANIFEST.sortedPages`
+ */
 function convertNextRouteToRegExp(route: string): RegExp {
   // We can assume a route is at least "/".
   const routeParts = route.split('/');
 
   let optionalCatchallWildcardRegex = '';
   if (routeParts[routeParts.length - 1].match(/^\[\[\.\.\..+\]\]$/)) {
-    // If last route part has pattern "[[...xyz]]"
-    // We pop the latest route part to get rid of the required trailing slash
+    // If last route part has pattern "[[...xyz]]" we pop the latest route part to get rid of the required trailing
+    // slash that would come before it if we didn't pop it.
     routeParts.pop();
     optionalCatchallWildcardRegex = '(?:/(.+?))?';
   }
