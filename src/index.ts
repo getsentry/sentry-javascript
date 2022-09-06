@@ -22,6 +22,7 @@ import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
+import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { Session } from './session/Session';
 import createBreadcrumb from './util/createBreadcrumb';
@@ -286,6 +287,7 @@ export class SentryReplay implements Integration {
   }
 
   clearSession() {
+    deleteSession();
     this.session = undefined;
   }
 

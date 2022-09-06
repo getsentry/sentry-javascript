@@ -6,6 +6,7 @@ import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 import { SentryReplay } from '@';
 import * as CaptureReplay from '@/api/captureReplay';
 import {
+  REPLAY_SESSION_KEY,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from '@/session/constants';
@@ -104,6 +105,12 @@ describe('SentryReplay', () => {
     expect(replay.session?.id).toBeDefined();
     expect(replay.session?.segmentId).toBeDefined();
     expect(captureReplayMock).not.toHaveBeenCalled();
+  });
+
+  it('clears session', () => {
+    replay.clearSession();
+    expect(window.sessionStorage.getItem(REPLAY_SESSION_KEY)).toBe(null);
+    expect(replay.session).toBe(undefined);
   });
 
   it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
