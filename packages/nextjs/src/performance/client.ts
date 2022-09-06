@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getCurrentHub } from '@sentry/hub';
-import { Primitive, TraceparentData, Transaction, TransactionContext } from '@sentry/types';
+import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
   extractTraceparentData,
-  fill,
   getGlobalObject,
   logger,
   parseBaggageHeader,
@@ -14,7 +11,13 @@ import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 
-const global = getGlobalObject<Window>();
+const global = getGlobalObject<
+  Window & {
+    __BUILD_MANIFEST?: {
+      sortedPages?: string[];
+    };
+  }
+>();
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 
@@ -76,6 +79,8 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   // `nextData.page` always contains the parameterized route - except for when an error occurs in a data fetching
   // function, then it is "/_error", but that isn't a problem since users know which route threw by looking at the
   // parent transaction
+  // TODO: Actually this is a problem (even though it is not that big), because the DSC and the transaction payload will contain
+  // a different transaction name. Maybe we can fix this. Idea: Also send transaction name via pageProps when available.
   nextDataTagInfo.route = page;
   nextDataTagInfo.params = query;
 
@@ -96,20 +101,12 @@ const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-router',
 } as const;
 
+// We keep track of the active transaction so we can finish it when we start a navigation transaction.
 let activeTransaction: Transaction | undefined = undefined;
-let startTransaction: StartTransactionCb | undefined = undefined;
 
-// We keep track of the previous page location so we can avoid creating transactions when navigating to the same page.
-// This variable should always contain a pathname. (without query string or fragment)
-// We are making a tradeoff by not starting transactions when just the query string changes. One could argue that we
-// should in fact start transactions when the query changes, however, in some cases (for example when typing in a search
-// box) the query might change multiple times a second, resulting in way too many transactions.
-// Because we currently don't have a real way of preventing transactions to be created in this case (except for the
-// shotgun approach `startTransactionOnLocationChange: false`), we won't start transactions when *just* the query changes.
-let previousLocation: string | undefined = undefined;
-
-// We keep track of the previous transaction name so we can set the `from` field on navigation transactions.
-let prevTransactionName: string | undefined = undefined;
+// We keep track of the previous location name so we can set the `from` field on navigation transactions.
+// This is either a route or a pathname.
+let prevLocationName: string | undefined = undefined;
 
 const client = getCurrentHub().getClient();
 
@@ -126,18 +123,14 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  startTransaction = startTransactionCb;
+  const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
+  prevLocationName = route || global.location.pathname;
 
   if (startTransactionOnPageLoad) {
-    const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
-
-    prevTransactionName = route || global.location.pathname;
-    previousLocation = global.location.pathname;
-
     const source = route ? 'route' : 'url';
 
     activeTransaction = startTransactionCb({
-      name: prevTransactionName,
+      name: prevLocationName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
@@ -149,78 +142,111 @@ export function nextRouterInstrumentation(
     });
   }
 
-  Router.ready(() => {
-    // Spans that aren't attached to any transaction are lost; so if transactions aren't
-    // created (besides potentially the onpageload transaction), no need to wrap the router.
-    if (!startTransactionOnLocationChange) return;
+  if (startTransactionOnLocationChange) {
+    Router.events.on('routeChangeStart', (navigationTarget: string) => {
+      const matchedRoute = getNextRouteFromPathname(stripUrlQueryAndFragment(navigationTarget));
 
-    // `withRouter` uses `useRouter` underneath:
-    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/with-router.tsx#L21
-    // Router events also use the router:
-    // https://github.com/vercel/next.js/blob/de42719619ae69fbd88e445100f15701f6e1e100/packages/next/client/router.ts#L92
-    // `Router.changeState` handles the router state changes, so it may be enough to only wrap it
-    // (instead of wrapping all of the Router's functions).
-    const routerPrototype = Object.getPrototypeOf(Router.router);
-    fill(routerPrototype, 'changeState', changeStateWrapper);
-  });
-}
+      let transactionName: string;
+      let transactionSource: TransactionSource;
 
-type RouterChangeState = (
-  method: string,
-  url: string,
-  as: string,
-  options: Record<string, any>,
-  ...args: any[]
-) => void;
-type WrappedRouterChangeState = RouterChangeState;
+      if (matchedRoute) {
+        transactionName = matchedRoute;
+        transactionSource = 'route';
+      } else {
+        transactionName = navigationTarget;
+        transactionSource = 'url';
+      }
 
-/**
- * Wraps Router.changeState()
- * https://github.com/vercel/next.js/blob/da97a18dafc7799e63aa7985adc95f213c2bf5f3/packages/next/next-server/lib/router/router.ts#L1204
- * Start a navigation transaction every time the router changes state.
- */
-function changeStateWrapper(originalChangeStateWrapper: RouterChangeState): WrappedRouterChangeState {
-  return function wrapper(
-    this: any,
-    method: string,
-    // The parameterized url, ex. posts/[id]/[comment]
-    url: string,
-    // The actual url, ex. posts/85/my-comment
-    as: string,
-    options: Record<string, any>,
-    // At the moment there are no additional arguments (meaning the rest parameter is empty).
-    // This is meant to protect from future additions to Next.js API, especially since this is an
-    // internal API.
-    ...args: any[]
-  ): Promise<boolean> {
-    const newTransactionName = stripUrlQueryAndFragment(url);
+      const tags: Record<string, Primitive> = {
+        ...DEFAULT_TAGS,
+        from: prevLocationName,
+      };
 
-    // do not start a transaction if it's from the same page
-    if (startTransaction !== undefined && previousLocation !== as) {
-      previousLocation = as;
+      prevLocationName = transactionName;
 
       if (activeTransaction) {
         activeTransaction.finish();
       }
 
-      const tags: Record<string, Primitive> = {
-        ...DEFAULT_TAGS,
-        method,
-        ...options,
-      };
-
-      if (prevTransactionName) {
-        tags.from = prevTransactionName;
-      }
-
-      prevTransactionName = newTransactionName;
-      activeTransaction = startTransaction({
-        name: prevTransactionName,
+      const navigationTransaction = startTransactionCb({
+        name: transactionName,
         op: 'navigation',
         tags,
-        metadata: { source: 'route' },
+        metadata: { source: transactionSource },
       });
-    }
-    return originalChangeStateWrapper.call(this, method, url, as, options, ...args);
-  };
+
+      if (navigationTransaction) {
+        // In addition to the navigation transaction we're also starting a span to mark Next.js's `routeChangeStart`
+        // and `routeChangeComplete` events.
+        // We don't want to finish the navigation transaction on `routeChangeComplete`, since users might want to attach
+        // spans to that transaction even after `routeChangeComplete` is fired (eg. HTTP requests in some useEffect
+        // hooks). Instead, we'll simply let the navigation transaction finish itself (it's an `IdleTransaction`).
+        const nextRouteChangeSpan = navigationTransaction.startChild({
+          op: 'ui.nextjs.route-change',
+          description: 'Next.js Route Change',
+        });
+
+        const finishRouteChangeSpan = (): void => {
+          nextRouteChangeSpan.finish();
+          Router.events.off('routeChangeComplete', finishRouteChangeSpan);
+        };
+
+        Router.events.on('routeChangeComplete', finishRouteChangeSpan);
+      }
+    });
+  }
+}
+
+function getNextRouteFromPathname(pathname: string): string | undefined {
+  const pageRoutes = (global.__BUILD_MANIFEST || {}).sortedPages;
+
+  // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
+  if (!pageRoutes) {
+    return;
+  }
+
+  return pageRoutes.find(route => {
+    const routeRegExp = convertNextRouteToRegExp(route);
+    return pathname.match(routeRegExp);
+  });
+}
+
+/**
+ * Converts a Next.js style route to a regular expression that matches on pathnames (no query params or URL fragments).
+ *
+ * In general this involves replacing any instances of square brackets in a route with a wildcard:
+ * e.g. "/users/[id]/info" becomes /\/users\/([^/]+?)\/info/
+ *
+ * Some additional edgecases need to be considered:
+ * - All routes have an optional slash at the end, meaning users can navigate to "/users/[id]/info" or
+ *   "/users/[id]/info/" - both will be resolved to "/users/[id]/info".
+ * - Non-optional "catchall"s at the end of a route must be considered when matching (e.g. "/users/[...params]").
+ * - Optional "catchall"s at the end of a route must be considered when matching (e.g. "/users/[[...params]]").
+ *
+ * @param route A Next.js style route as it is found in `global.__BUILD_MANIFEST.sortedPages`
+ */
+function convertNextRouteToRegExp(route: string): RegExp {
+  // We can assume a route is at least "/".
+  const routeParts = route.split('/');
+
+  let optionalCatchallWildcardRegex = '';
+  if (routeParts[routeParts.length - 1].match(/^\[\[\.\.\..+\]\]$/)) {
+    // If last route part has pattern "[[...xyz]]" we pop the latest route part to get rid of the required trailing
+    // slash that would come before it if we didn't pop it.
+    routeParts.pop();
+    optionalCatchallWildcardRegex = '(?:/(.+?))?';
+  }
+
+  const rejoinedRouteParts = routeParts
+    .map(
+      routePart =>
+        routePart
+          .replace(/^\[\.\.\..+\]$/, '(.+?)') // Replace catch all wildcard with regex wildcard
+          .replace(/^\[.*\]$/, '([^/]+?)'), // Replace route wildcards with lazy regex wildcards
+    )
+    .join('/');
+
+  return new RegExp(
+    `^${rejoinedRouteParts}${optionalCatchallWildcardRegex}(?:/)?$`, // optional slash at the end
+  );
 }
