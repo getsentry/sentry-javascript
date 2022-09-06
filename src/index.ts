@@ -375,12 +375,17 @@ export class SentryReplay implements Integration {
       'navigation',
       'paint',
       'resource',
-    ].forEach((type) =>
-      this.performanceObserver?.observe({
-        type,
-        buffered: true,
-      })
-    );
+    ].forEach((type) => {
+      try {
+        this.performanceObserver?.observe({
+          type,
+          buffered: true,
+        });
+      } catch {
+        // This can throw if an entry type is not supported in the browser.
+        // Ignore these errors.
+      }
+    });
   }
 
   /**
