@@ -168,12 +168,31 @@ export function nextRouterInstrumentation(
         activeTransaction.finish();
       }
 
-      startTransactionCb({
+      const navigationTransaction = startTransactionCb({
         name: transactionName,
         op: 'navigation',
         tags,
         metadata: { source: transactionSource },
       });
+
+      if (navigationTransaction) {
+        // In addition to the navigation transaction we're also starting a span to mark Next.js's `routeChangeStart`
+        // and `routeChangeComplete` events.
+        // We don't want to finish the navigation transaction on `routeChangeComplete`, since users might want to attach
+        // spans to that transaction even after `routeChangeComplete` is fired (eg. HTTP requests in some useEffect
+        // hooks). Instead, we'll simply let the navigation transaction finish itself (it's an `IdleTransaction`).
+        const nextRouteChangeSpan = navigationTransaction.startChild({
+          op: 'ui.nextjs.route-change',
+          description: 'Next.js Route Change',
+        });
+
+        const finishRouteChangeSpan = (): void => {
+          nextRouteChangeSpan.finish();
+          Router.events.off('routeChangeComplete', finishRouteChangeSpan);
+        };
+
+        Router.events.on('routeChangeComplete', finishRouteChangeSpan);
+      }
     });
   }
 }
