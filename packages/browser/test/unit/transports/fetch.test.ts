@@ -44,6 +44,7 @@ describe('NewFetchTransport', () => {
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_FETCH_TRANSPORT_OPTIONS.url, {
       body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
       method: 'POST',
+      keepalive: true,
       referrerPolicy: 'origin',
     });
   });
@@ -81,7 +82,7 @@ describe('NewFetchTransport', () => {
 
     const REQUEST_OPTIONS: RequestInit = {
       referrerPolicy: 'strict-origin',
-      keepalive: true,
+      keepalive: false,
       referrer: 'http://example.org',
     };
 
