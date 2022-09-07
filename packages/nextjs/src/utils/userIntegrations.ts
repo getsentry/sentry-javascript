@@ -4,12 +4,7 @@ export type UserIntegrationsFunction = (integrations: Integration[]) => Integrat
 export type UserIntegrations = Integration[] | UserIntegrationsFunction;
 
 type ForcedIntegrationOptions = {
-  [integrationName: string]:
-    | {
-        keyPath: string;
-        value: unknown;
-      }
-    | undefined;
+  [keyPath: string]: unknown;
 };
 
 /**
@@ -30,7 +25,8 @@ function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown)
     obj[keyPath] = value;
   } else {
     // `match[1]` is the initial segment of the path, and `match[2]` is the remainder of the path
-    setNestedKey(obj[match[1]], match[2], value);
+    const innerObj = obj[match[1]];
+    setNestedKey(innerObj, match[2], value);
   }
 }
 
@@ -52,11 +48,9 @@ export function addOrUpdateIntegration(
   userIntegrations: UserIntegrations,
   forcedOptions: ForcedIntegrationOptions = {},
 ): UserIntegrations {
-  if (Array.isArray(userIntegrations)) {
-    return addOrUpdateIntegrationInArray(defaultIntegrationInstance, userIntegrations, forcedOptions);
-  } else {
-    return addOrUpdateIntegrationInFunction(defaultIntegrationInstance, userIntegrations, forcedOptions);
-  }
+  return Array.isArray(userIntegrations)
+    ? addOrUpdateIntegrationInArray(defaultIntegrationInstance, userIntegrations, forcedOptions)
+    : addOrUpdateIntegrationInFunction(defaultIntegrationInstance, userIntegrations, forcedOptions);
 }
 
 function addOrUpdateIntegrationInArray(
@@ -64,22 +58,16 @@ function addOrUpdateIntegrationInArray(
   userIntegrations: Integration[],
   forcedOptions: ForcedIntegrationOptions,
 ): Integration[] {
-  let includesName = false;
-  // eslint-disable-next-line @typescript-eslint/prefer-for-of
-  for (let x = 0; x < userIntegrations.length; x++) {
-    if (userIntegrations[x].name === defaultIntegrationInstance.name) {
-      includesName = true;
+  const userInstance = userIntegrations.find(integration => integration.name === defaultIntegrationInstance.name);
+
+  if (userInstance) {
+    for (const [keyPath, value] of Object.entries(forcedOptions)) {
+      setNestedKey(userInstance, keyPath, value);
     }
 
-    const optionToSet = forcedOptions[userIntegrations[x].name];
-    if (optionToSet) {
-      setNestedKey(userIntegrations[x], optionToSet.keyPath, optionToSet.value);
-    }
-  }
-
-  if (includesName) {
     return userIntegrations;
   }
+
   return [...userIntegrations, defaultIntegrationInstance];
 }
 

@@ -57,17 +57,13 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-function createClientIntegrations(userIntegrations?: UserIntegrations): UserIntegrations {
+function createClientIntegrations(userIntegrations: UserIntegrations = []): UserIntegrations {
   const defaultBrowserTracingIntegration = new BrowserTracing({
     tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
     routingInstrumentation: nextRouterInstrumentation,
   });
 
-  if (userIntegrations) {
-    return addOrUpdateIntegration(defaultBrowserTracingIntegration, userIntegrations, {
-      BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },
-    });
-  } else {
-    return [defaultBrowserTracingIntegration];
-  }
+  return addOrUpdateIntegration(defaultBrowserTracingIntegration, userIntegrations, {
+    'options.routingInstrumentation': nextRouterInstrumentation,
+  });
 }
