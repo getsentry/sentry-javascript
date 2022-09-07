@@ -1,9 +1,9 @@
 import { Integration } from '@sentry/types';
 
-export type UserFunctionIntegrations = (integrations: Integration[]) => Integration[];
-export type UserIntegrations = Integration[] | UserFunctionIntegrations;
+export type UserIntegrationsFunction = (integrations: Integration[]) => Integration[];
+export type UserIntegrations = Integration[] | UserIntegrationsFunction;
 
-type Options = {
+type ForcedIntegrationOptions = {
   [integrationName: string]:
     | {
         keyPath: string;
@@ -25,69 +25,72 @@ type Options = {
 function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown): void {
   // Ex. foo.bar.zoop will extract foo and bar.zoop
   const match = keyPath.match(/([a-z]+)\.(.*)/i);
+  // The match will be null when there's no more recursing to do, i.e., when we've reached the right level of the object
   if (match === null) {
     obj[keyPath] = value;
   } else {
+    // `match[1]` is the initial segment of the path, and `match[2]` is the remainder of the path
     setNestedKey(obj[match[1]], match[2], value);
   }
 }
 
 /**
- * Retrieves the patched integrations with the provided integration.
+ * Enforces inclusion of a given integration with specified options in an integration array originally determined by the
+ * user, by either including the given default instance or by patching an existing user instance with the given options.
  *
- * The integration must be present in the final user integrations, and they are compared
- * by integration name. If the user has defined one, there's nothing to patch; if not,
- * the provided integration is added.
+ * Ideally this would happen when integrations are set up, but there isn't currently a mechanism there for merging
+ * options from a default integration instance with those from a user-provided instance of the same integration, only
+ * for allowing the user to override a default instance entirely. (TODO: Fix that.)
  *
- * @param integration The integration to patch, if necessary.
+ * @param defaultIntegrationInstance An instance of the integration with the correct options already set
  * @param userIntegrations Integrations defined by the user.
- * @param options options to update for a particular integration
- * @returns Final integrations, patched if necessary.
+ * @param forcedOptions Options with which to patch an existing user-derived instance on the integration.
+ * @returns A final integrations array.
  */
-export function addIntegration(
-  integration: Integration,
+export function addOrUpdateIntegration(
+  defaultIntegrationInstance: Integration,
   userIntegrations: UserIntegrations,
-  options: Options = {},
+  forcedOptions: ForcedIntegrationOptions = {},
 ): UserIntegrations {
   if (Array.isArray(userIntegrations)) {
-    return addIntegrationToArray(integration, userIntegrations, options);
+    return addOrUpdateIntegrationInArray(defaultIntegrationInstance, userIntegrations, forcedOptions);
   } else {
-    return addIntegrationToFunction(integration, userIntegrations, options);
+    return addOrUpdateIntegrationInFunction(defaultIntegrationInstance, userIntegrations, forcedOptions);
   }
 }
 
-function addIntegrationToArray(
-  integration: Integration,
+function addOrUpdateIntegrationInArray(
+  defaultIntegrationInstance: Integration,
   userIntegrations: Integration[],
-  options: Options,
+  forcedOptions: ForcedIntegrationOptions,
 ): Integration[] {
   let includesName = false;
   // eslint-disable-next-line @typescript-eslint/prefer-for-of
   for (let x = 0; x < userIntegrations.length; x++) {
-    if (userIntegrations[x].name === integration.name) {
+    if (userIntegrations[x].name === defaultIntegrationInstance.name) {
       includesName = true;
     }
 
-    const op = options[userIntegrations[x].name];
-    if (op) {
-      setNestedKey(userIntegrations[x], op.keyPath, op.value);
+    const optionToSet = forcedOptions[userIntegrations[x].name];
+    if (optionToSet) {
+      setNestedKey(userIntegrations[x], optionToSet.keyPath, optionToSet.value);
     }
   }
 
   if (includesName) {
     return userIntegrations;
   }
-  return [...userIntegrations, integration];
+  return [...userIntegrations, defaultIntegrationInstance];
 }
 
-function addIntegrationToFunction(
-  integration: Integration,
-  userIntegrationsFunc: UserFunctionIntegrations,
-  options: Options,
-): UserFunctionIntegrations {
-  const wrapper: UserFunctionIntegrations = defaultIntegrations => {
+function addOrUpdateIntegrationInFunction(
+  defaultIntegrationInstance: Integration,
+  userIntegrationsFunc: UserIntegrationsFunction,
+  forcedOptions: ForcedIntegrationOptions,
+): UserIntegrationsFunction {
+  const wrapper: UserIntegrationsFunction = defaultIntegrations => {
     const userFinalIntegrations = userIntegrationsFunc(defaultIntegrations);
-    return addIntegrationToArray(integration, userFinalIntegrations, options);
+    return addOrUpdateIntegrationInArray(defaultIntegrationInstance, userFinalIntegrations, forcedOptions);
   };
   return wrapper;
 }

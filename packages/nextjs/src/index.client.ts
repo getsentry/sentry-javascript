@@ -5,7 +5,7 @@ import { EventProcessor } from '@sentry/types';
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addIntegration, UserIntegrations } from './utils/userIntegrations';
+import { addOrUpdateIntegration, UserIntegrations } from './utils/userIntegrations';
 
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
@@ -57,14 +57,14 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-function createClientIntegrations(integrations?: UserIntegrations): UserIntegrations {
+function createClientIntegrations(userIntegrations?: UserIntegrations): UserIntegrations {
   const defaultBrowserTracingIntegration = new BrowserTracing({
     tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
     routingInstrumentation: nextRouterInstrumentation,
   });
 
-  if (integrations) {
-    return addIntegration(defaultBrowserTracingIntegration, integrations, {
+  if (userIntegrations) {
+    return addOrUpdateIntegration(defaultBrowserTracingIntegration, userIntegrations, {
       BrowserTracing: { keyPath: 'options.routingInstrumentation', value: nextRouterInstrumentation },
     });
   } else {

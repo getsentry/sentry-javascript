@@ -10,7 +10,7 @@ import * as path from 'path';
 import { isBuild } from './utils/isBuild';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addIntegration } from './utils/userIntegrations';
+import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
@@ -109,14 +109,14 @@ function addServerIntegrations(options: NextjsOptions): void {
   });
 
   if (options.integrations) {
-    options.integrations = addIntegration(defaultRewriteFramesIntegration, options.integrations);
+    options.integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, options.integrations);
   } else {
     options.integrations = [defaultRewriteFramesIntegration];
   }
 
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-    options.integrations = addIntegration(defaultHttpTracingIntegration, options.integrations, {
+    options.integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, options.integrations, {
       Http: { keyPath: '_tracing', value: true },
     });
   }
