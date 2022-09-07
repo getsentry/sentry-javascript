@@ -62,8 +62,11 @@ export function eventFromUnknownInput(stackParser: StackParser, exception: unkno
       // which is much better than creating new group when any key/value change
       const message = `Non-Error exception captured with keys: ${extractExceptionKeysForMessage(exception)}`;
 
-      getCurrentHub().configureScope(scope => {
-        scope.setExtra('__serialized__', normalizeToSize(exception));
+      const hub = getCurrentHub();
+      const client = hub.getClient();
+      const normalizeDepth = client && client.getOptions().normalizeDepth;
+      hub.configureScope(scope => {
+        scope.setExtra('__serialized__', normalizeToSize(exception, normalizeDepth));
       });
 
       ex = (hint && hint.syntheticException) || new Error(message);
