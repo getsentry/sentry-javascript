@@ -3,8 +3,8 @@ import { Client } from '@sentry/types';
 import { defaultStackParser } from '../../src';
 import { eventFromPlainObject } from '../../src/eventbuilder';
 
-jest.mock('@sentry/hub', () => {
-  const original = jest.requireActual('@sentry/hub');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub(): {
