@@ -24,6 +24,7 @@ import {
   ContextLines,
   Http,
   LinkedErrors,
+  Modules,
   OnUncaughtException,
   OnUnhandledRejection,
 } from './integrations';
@@ -35,16 +36,18 @@ export const defaultIntegrations = [
   // Common
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
-  new ContextLines(),
   // Native Wrappers
   new Console(),
   new Http(),
   // Global Handlers
   new OnUncaughtException(),
   new OnUnhandledRejection(),
+  // Event Info
+  new ContextLines(),
+  new Context(),
+  new Modules(),
   // Misc
   new LinkedErrors(),
-  new Context(),
 ];
 
 /**
