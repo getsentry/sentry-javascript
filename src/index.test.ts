@@ -61,7 +61,7 @@ describe('SentryReplay', () => {
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockSendReplayRequest.mockClear();
-    replay.eventBuffer.destroy();
+    replay.eventBuffer?.destroy();
   });
 
   afterEach(async () => {
@@ -218,7 +218,7 @@ describe('SentryReplay', () => {
     // Session's last activity should be updated
     expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer.length).toBe(0);
+    expect(replay.eventBuffer?.length).toBe(0);
   });
 
   it('uploads a replay event when document becomes hidden', async () => {
@@ -245,7 +245,7 @@ describe('SentryReplay', () => {
     // Session's last activity should be updated
     expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer.length).toBe(0);
+    expect(replay.eventBuffer?.length).toBe(0);
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
@@ -265,7 +265,7 @@ describe('SentryReplay', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer.length).toBe(0);
+    expect(replay.eventBuffer?.length).toBe(0);
   });
 
   it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
@@ -294,7 +294,7 @@ describe('SentryReplay', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + 16000);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
-    expect(replay.eventBuffer.length).toBe(0);
+    expect(replay.eventBuffer?.length).toBe(0);
 
     // Let's make sure it continues to work
     mockSendReplayRequest.mockClear();

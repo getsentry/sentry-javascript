@@ -69,7 +69,7 @@ export class SentryReplay implements Integration {
    */
   public name: string = SentryReplay.id;
 
-  public eventBuffer: IEventBuffer;
+  public eventBuffer: IEventBuffer | null;
 
   /**
    * Buffer of breadcrumbs to be uploaded
@@ -112,6 +112,22 @@ export class SentryReplay implements Integration {
    * immediately before sending recording)
    */
   private needsCaptureReplay = false;
+
+  /**
+   * Is the integration currently active?
+   */
+  private isEnabled = false;
+
+  /**
+   * Have we attached listeners to the core SDK?
+   * Note we have to track this as there is no way to remove instrumentation handlers.
+   */
+  private hasInitializedCoreListeners = false;
+
+  /**
+   * Function to stop recording
+   */
+  private stopRecording: ReturnType<typeof record> | null = null;
 
   /**
    * Captured state when integration is first initialized
@@ -210,10 +226,12 @@ export class SentryReplay implements Integration {
     // replay ID so that we can reference them later in the UI
     addGlobalEventProcessor(this.handleGlobalEvent);
 
-    record({
+    this.stopRecording = record({
       ...this.recordingOptions,
       emit: this.handleRecordingEmit,
     });
+
+    this.isEnabled = true;
   }
 
   /**
@@ -283,7 +301,11 @@ export class SentryReplay implements Integration {
    */
   destroy() {
     logger.log('Destroying instance');
+    this.isEnabled = false;
     this.removeListeners();
+    this.stopRecording?.();
+    this.eventBuffer?.destroy();
+    this.eventBuffer = null;
   }
 
   clearSession() {
@@ -344,16 +366,24 @@ export class SentryReplay implements Integration {
     window.addEventListener('blur', this.handleWindowBlur);
     window.addEventListener('focus', this.handleWindowFocus);
 
-    // Listeners from core SDK //
-    const scope = getCurrentHub().getScope();
-    scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
-    addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
-    addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
-    addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
-    addInstrumentationHandler(
-      'history',
-      this.handleCoreSpanListener('history')
-    );
+    // There is no way to remove these listeners, so ensure they are only added once
+    if (!this.hasInitializedCoreListeners) {
+      // Listeners from core SDK //
+      const scope = getCurrentHub().getScope();
+      scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
+      addInstrumentationHandler(
+        'dom',
+        this.handleCoreBreadcrumbListener('dom')
+      );
+      addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
+      addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
+      addInstrumentationHandler(
+        'history',
+        this.handleCoreSpanListener('history')
+      );
+
+      this.hasInitializedCoreListeners = true;
+    }
 
     // PerformanceObserver //
     if (!('PerformanceObserver' in window)) {
@@ -536,6 +566,10 @@ export class SentryReplay implements Integration {
    */
   handleCoreSpanListener =
     (type: InstrumentationTypeSpan) => (handlerData: any) => {
+      if (!this.isEnabled) {
+        return;
+      }
+
       const handler = getSpanHandler(type);
       const result = handler(handlerData);
 
@@ -564,6 +598,10 @@ export class SentryReplay implements Integration {
    */
   handleCoreBreadcrumbListener =
     (type: InstrumentationTypeBreadcrumb) => (handlerData: any) => {
+      if (!this.isEnabled) {
+        return;
+      }
+
       const handler = getBreadcrumbHandler(type);
       const result = handler(handlerData);
 
@@ -666,6 +704,11 @@ export class SentryReplay implements Integration {
    * Add an event to the event buffer
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean) {
+    if (!this.eventBuffer) {
+      // This implies that `isEnabled` is false
+      return;
+    }
+
     const timestampInMs = event.timestamp * 1000;
     if (
       !this.context.earliestEvent ||
@@ -836,6 +879,12 @@ export class SentryReplay implements Integration {
    * due to the buffered performance observer events.
    */
   async flushUpdate() {
+    if (!this.isEnabled) {
+      // This is just a precaution, there should be no listeners that would
+      // cause a flush.
+      return;
+    }
+
     if (!this.checkAndHandleExpiredSession()) {
       logger.error(
         new Error('Attempting to finish replay event after session expired.')
@@ -853,7 +902,7 @@ export class SentryReplay implements Integration {
 
     await this.addPerformanceEntries();
 
-    if (!this.eventBuffer.length) {
+    if (!this.eventBuffer?.length) {
       return;
     }
 

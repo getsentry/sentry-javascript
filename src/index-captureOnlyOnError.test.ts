@@ -63,7 +63,7 @@ describe('SentryReplay (capture only on error)', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.clearSession();
-    replay.eventBuffer.destroy();
+    replay.eventBuffer?.destroy();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   });
 
