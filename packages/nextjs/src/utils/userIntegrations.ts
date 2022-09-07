@@ -19,7 +19,7 @@ type ForcedIntegrationOptions = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown): void {
   // Ex. foo.bar.zoop will extract foo and bar.zoop
-  const match = keyPath.match(/([a-z]+)\.(.*)/i);
+  const match = keyPath.match(/([a-z_]+)\.(.*)/i);
   // The match will be null when there's no more recursing to do, i.e., when we've reached the right level of the object
   if (match === null) {
     obj[keyPath] = value;
