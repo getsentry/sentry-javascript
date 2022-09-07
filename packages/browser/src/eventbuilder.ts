@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/core';
 import { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -45,6 +46,10 @@ export function eventFromPlainObject(
   syntheticException?: Error,
   isUnhandledRejection?: boolean,
 ): Event {
+  const hub = getCurrentHub();
+  const client = hub.getClient();
+  const normalizeDepth = client && client.getOptions().normalizeDepth;
+
   const event: Event = {
     exception: {
       values: [
@@ -57,7 +62,7 @@ export function eventFromPlainObject(
       ],
     },
     extra: {
-      __serialized__: normalizeToSize(exception),
+      __serialized__: normalizeToSize(exception, normalizeDepth),
     },
   };
 
