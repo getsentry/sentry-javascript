@@ -1,6 +1,12 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { arrayify, logger } from '@sentry/utils';
+
+declare module '@sentry/types' {
+  interface Integration {
+    isDefaultInstance?: boolean;
+  }
+}
 
 export const installedIntegrations: string[] = [];
 
@@ -10,46 +16,64 @@ export type IntegrationIndex = {
 };
 
 /**
+ * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
+ * preseve the order of integrations in the array.
+ *
  * @private
  */
 function filterDuplicates(integrations: Integration[]): Integration[] {
-  return integrations.reduce((acc, integrations) => {
-    if (acc.every(accIntegration => integrations.name !== accIntegration.name)) {
-      acc.push(integrations);
+  const integrationsByName: { [key: string]: Integration } = {};
+
+  integrations.forEach(currentInstance => {
+    const { name } = currentInstance;
+
+    const existingInstance = integrationsByName[name];
+
+    // We want integrations later in the array to overwrite earlier ones of the same type, except that we never want a
+    // default instance to overwrite an existing user instance
+    if (existingInstance && !existingInstance.isDefaultInstance && currentInstance.isDefaultInstance) {
+      return;
     }
-    return acc;
-  }, [] as Integration[]);
+
+    integrationsByName[name] = currentInstance;
+  });
+
+  return Object.values(integrationsByName);
 }
 
-/** Gets integration to install */
+/** Gets integrations to install */
 export function getIntegrationsToSetup(options: Options): Integration[] {
-  const defaultIntegrations = (options.defaultIntegrations && [...options.defaultIntegrations]) || [];
+  const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 
-  let integrations: Integration[] = [...filterDuplicates(defaultIntegrations)];
+  // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
+  defaultIntegrations.forEach(integration => {
+    integration.isDefaultInstance = true;
+  });
+
+  let integrations: Integration[];
 
   if (Array.isArray(userIntegrations)) {
-    // Filter out integrations that are also included in user options
-    integrations = [
-      ...integrations.filter(integrations =>
-        userIntegrations.every(userIntegration => userIntegration.name !== integrations.name),
-      ),
-      // And filter out duplicated user options integrations
-      ...filterDuplicates(userIntegrations),
-    ];
+    integrations = [...defaultIntegrations, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    integrations = userIntegrations(integrations);
-    integrations = Array.isArray(integrations) ? integrations : [integrations];
+    integrations = arrayify(userIntegrations(defaultIntegrations));
+  } else {
+    integrations = defaultIntegrations;
   }
 
-  // Make sure that if present, `Debug` integration will always run last
-  const integrationsNames = integrations.map(i => i.name);
-  const alwaysLastToRun = 'Debug';
-  if (integrationsNames.indexOf(alwaysLastToRun) !== -1) {
-    integrations.push(...integrations.splice(integrationsNames.indexOf(alwaysLastToRun), 1));
+  const finalIntegrations = filterDuplicates(integrations);
+
+  // The `Debug` integration prints copies of the `event` and `hint` which will be passed to `beforeSend`. It therefore
+  // has to run after all other integrations, so that the changes of all event processors will be reflected in the
+  // printed values. For lack of a more elegant way to guarantee that, we therefore locate it and, assuming it exists,
+  // pop it out of its current spot and shove it onto the end of the array.
+  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
+  if (debugIndex !== -1) {
+    const [debugInstance] = finalIntegrations.splice(debugIndex, 1);
+    finalIntegrations.push(debugInstance);
   }
 
-  return integrations;
+  return finalIntegrations;
 }
 
 /**
