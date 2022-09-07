@@ -46,6 +46,18 @@ Sentry.init({
 });
 ```
 
+### Stopping Replays
+
+To stop replays you can call the `destroy()` method on the integration instance. It's possible to resume recording by calling `setup()`.
+
+```javascript
+
+const replay = new SentryReplay(); // This will begin recording replays
+
+replay.destroy(); // Stop recording
+
+replay.setup(); // Start recording again
+```
 
 ## Configuration
 
