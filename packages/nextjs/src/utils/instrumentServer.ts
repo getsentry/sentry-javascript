@@ -10,10 +10,10 @@ import {
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import {
   addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
   fill,
   isString,
   logger,
-  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -255,8 +255,8 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const rawBaggageString = nextReq.headers && isString(nextReq.headers.baggage) && nextReq.headers.baggage;
-          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+          const baggageHeader = nextReq.headers && nextReq.headers.baggage;
+          const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
           // pull off query string, if any
           const reqPath = stripUrlQueryAndFragment(nextReq.url);
@@ -270,7 +270,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
               metadata: {
-                baggage,
+                dynamicSamplingContext,
                 requestPath: reqPath,
                 // TODO: Investigate if there's a way to tell if this is a dynamic route, so that we can make this more
                 // like `source: isDynamicRoute? 'url' : 'route'`

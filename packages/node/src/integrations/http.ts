@@ -1,6 +1,12 @@
 import { getCurrentHub, Hub } from '@sentry/core';
 import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
-import { fill, isMatchingPattern, logger, mergeAndSerializeBaggage, parseSemver } from '@sentry/utils';
+import {
+  dynamicSamplingContextToSentryBaggageHeader,
+  fill,
+  isMatchingPattern,
+  logger,
+  parseSemver,
+} from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 
@@ -137,7 +143,7 @@ function _createWrappedRequestMethodFactory(
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
-      let span: Span | undefined;
+      let requestSpan: Span | undefined;
       let parentSpan: Span | undefined;
 
       const scope = getCurrentHub().getScope();
@@ -146,26 +152,36 @@ function _createWrappedRequestMethodFactory(
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
-          span = parentSpan.startChild({
+          requestSpan = parentSpan.startChild({
             description: `${requestOptions.method || 'GET'} ${requestUrl}`,
             op: 'http.client',
           });
 
           if (shouldAttachTraceData(requestUrl)) {
-            const sentryTraceHeader = span.toTraceparent();
+            const sentryTraceHeader = requestSpan.toTraceparent();
             __DEBUG_BUILD__ &&
               logger.log(
                 `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `,
               );
 
-            const baggage = parentSpan.transaction && parentSpan.transaction.getBaggage();
-            const headerBaggageString = requestOptions.headers && requestOptions.headers.baggage;
-
             requestOptions.headers = {
               ...requestOptions.headers,
               'sentry-trace': sentryTraceHeader,
-              baggage: mergeAndSerializeBaggage(baggage, headerBaggageString),
             };
+
+            if (parentSpan.transaction) {
+              const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
+              const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+              const newBaggageHeaderField =
+                sentryBaggageHeader && requestOptions.headers && Array.isArray(requestOptions.headers.baggage)
+                  ? requestOptions.headers.baggage.concat(sentryBaggageHeader)
+                  : sentryBaggageHeader;
+
+              requestOptions.headers = {
+                ...requestOptions.headers,
+                baggage: newBaggageHeaderField,
+              };
+            }
           } else {
             __DEBUG_BUILD__ &&
               logger.log(
@@ -184,12 +200,12 @@ function _createWrappedRequestMethodFactory(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('response', requestUrl, req, res);
           }
-          if (tracingEnabled && span) {
+          if (tracingEnabled && requestSpan) {
             if (res.statusCode) {
-              span.setHttpStatus(res.statusCode);
+              requestSpan.setHttpStatus(res.statusCode);
             }
-            span.description = cleanSpanDescription(span.description, requestOptions, req);
-            span.finish();
+            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.finish();
           }
         })
         .once('error', function (this: http.ClientRequest): void {
@@ -199,10 +215,10 @@ function _createWrappedRequestMethodFactory(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('error', requestUrl, req);
           }
-          if (tracingEnabled && span) {
-            span.setHttpStatus(500);
-            span.description = cleanSpanDescription(span.description, requestOptions, req);
-            span.finish();
+          if (tracingEnabled && requestSpan) {
+            requestSpan.setHttpStatus(500);
+            requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
+            requestSpan.finish();
           }
         });
     };

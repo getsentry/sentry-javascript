@@ -4,11 +4,11 @@ import { Event, Span } from '@sentry/types';
 import {
   AddRequestDataToEventOptions,
   addRequestDataToTransaction,
+  baggageHeaderToDynamicSamplingContext,
   extractPathForTransaction,
   extractTraceparentData,
   isString,
   logger,
-  parseBaggageSetMutability,
 } from '@sentry/utils';
 import * as domain from 'domain';
 import * as http from 'http';
@@ -54,9 +54,8 @@ export function tracingHandler(): (
     // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
     const traceparentData =
       req.headers && isString(req.headers['sentry-trace']) && extractTraceparentData(req.headers['sentry-trace']);
-    const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
-
-    const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+    const incomingBaggageHeaders = req.headers?.baggage;
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(incomingBaggageHeaders);
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     const transaction = startTransaction(
@@ -64,7 +63,7 @@ export function tracingHandler(): (
         name,
         op: 'http.server',
         ...traceparentData,
-        metadata: { baggage, source },
+        metadata: { dynamicSamplingContext, source },
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

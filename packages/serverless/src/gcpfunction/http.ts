@@ -6,7 +6,7 @@ import {
   getCurrentHub,
 } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { isString, logger, parseBaggageSetMutability, stripUrlQueryAndFragment } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import { HttpFunction, WrapperOptions } from './general';
@@ -77,10 +77,9 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       traceparentData = extractTraceparentData(reqWithHeaders.headers['sentry-trace']);
     }
 
-    const rawBaggageString =
-      reqWithHeaders.headers && isString(reqWithHeaders.headers.baggage) && reqWithHeaders.headers.baggage;
+    const baggageHeader = reqWithHeaders.headers?.baggage;
 
-    const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
     const hub = getCurrentHub();
 
@@ -88,7 +87,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
-      metadata: { baggage, source: 'route' },
+      metadata: { dynamicSamplingContext, source: 'route' },
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

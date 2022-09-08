@@ -3,10 +3,10 @@ import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
   isString,
   logger,
   objectify,
-  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -51,8 +51,8 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
-          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+          const baggageHeader = req.headers && req.headers.baggage;
+          const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
           const url = `${req.url}`;
           // pull off query string, if any
@@ -72,7 +72,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              metadata: { baggage, source: 'route' },
+              metadata: { dynamicSamplingContext, source: 'route' },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

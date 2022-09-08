@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node';
 import { captureException, captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { dsnFromString, dsnToString, isString, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { dsnFromString, dsnToString, isString, logger, baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import { Context, Handler } from 'aws-lambda';
@@ -308,9 +308,8 @@ export function wrapHandler<TEvent, TResult>(
       traceparentData = extractTraceparentData(eventWithHeaders.headers['sentry-trace']);
     }
 
-    const rawBaggageString =
-      eventWithHeaders.headers && isString(eventWithHeaders.headers.baggage) && eventWithHeaders.headers.baggage;
-    const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+    const baggageHeader = eventWithHeaders.headers && eventWithHeaders.headers.baggage;
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
     const hub = getCurrentHub();
 
@@ -318,7 +317,7 @@ export function wrapHandler<TEvent, TResult>(
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
-      metadata: { baggage, source: 'component' },
+      metadata: { dynamicSamplingContext, source: 'component' },
     });
 
     const scope = hub.pushScope();

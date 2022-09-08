@@ -1,7 +1,6 @@
 import { getCurrentHub, Hub } from '@sentry/hub';
 import {
-  Baggage,
-  BaggageObj,
+  DynamicSamplingContext,
   Event,
   Measurements,
   MeasurementUnit,
@@ -9,7 +8,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { createBaggage, dropUndefinedKeys, getSentryBaggageItems, isBaggageMutable, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -27,6 +26,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
   private _measurements: Measurements = {};
 
   private _trimEnd?: boolean;
+
+  // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+  // This value is null
+  // private _frozenDynamicSamplingContext: Partial<DynamicSamplingContext> | undefined = undefined;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -51,6 +54,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // this is because transactions are also spans, and spans have a transaction pointer
     this.transaction = this;
+
+    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+    // if ((transactionContext.metadata || {}).dynamicSamplingContext) {
+    //   this.freezeDynamicSamplingContext();
+    // }
   }
 
   /** Getter for `name` property */
@@ -137,6 +145,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
+    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+    // if ((transactionContext.metadata || {}).dynamicSamplingContext) {
+    //   this.freezeDynamicSamplingContext();
+    // }
+
     const metadata = this.metadata;
 
     const transaction: Event = {
@@ -151,7 +164,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       type: 'transaction',
       sdkProcessingMetadata: {
         ...metadata,
-        baggage: this.getBaggage(),
+        dynamicSamplingContext: this.getDynamicSamplingContext(),
       },
       ...(metadata.source && {
         transaction_info: {
@@ -203,73 +216,46 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
-   * @inheritdoc
    *
-   * @experimental
    */
-  public getBaggage(): Baggage {
-    const existingBaggage = this.metadata.baggage;
+  public getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined {
+    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+    // if (this._frozenDynamicSamplingContext) {
+    //   return this._frozenDynamicSamplingContext;
+    // }
 
-    // Only add Sentry baggage items to baggage, if baggage does not exist yet or it is still
-    // empty and mutable
-    const finalBaggage =
-      !existingBaggage || isBaggageMutable(existingBaggage)
-        ? this._populateBaggageWithSentryValues(existingBaggage)
-        : existingBaggage;
-
-    // Update the baggage stored on the transaction.
-    this.metadata.baggage = finalBaggage;
-
-    return finalBaggage;
-  }
-
-  /**
-   * Collects and adds data to the passed baggage object.
-   *
-   * Note: This function does not explicitly check if the passed baggage object is allowed
-   * to be modified. Implicitly, `setBaggageValue` will not make modification to the object
-   * if it was already set immutable.
-   *
-   * After adding the data, the baggage object is set immutable to prevent further modifications.
-   *
-   * @param baggage
-   *
-   * @returns modified and immutable baggage object
-   */
-  private _populateBaggageWithSentryValues(baggage: Baggage = createBaggage({})): Baggage {
     const hub: Hub = this._hub || getCurrentHub();
     const client = hub && hub.getClient();
 
-    if (!client) return baggage;
+    if (!client) return undefined;
 
     const { environment, release } = client.getOptions() || {};
     const { publicKey: public_key } = client.getDsn() || {};
 
-    const sample_rate =
-      this.metadata &&
-      this.metadata.transactionSampling &&
-      this.metadata.transactionSampling.rate &&
-      this.metadata.transactionSampling.rate.toString();
+    const maybeSampleRate = (this.metadata.transactionSampling || {}).rate;
+    const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
 
     const scope = hub.getScope();
     const { segment: user_segment } = (scope && scope.getUser()) || {};
 
     const source = this.metadata.source;
+
+    // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
     const transaction = source && source !== 'url' ? this.name : undefined;
 
-    return createBaggage(
-      dropUndefinedKeys({
-        environment,
-        release,
-        transaction,
-        user_segment,
-        public_key,
-        trace_id: this.traceId,
-        sample_rate,
-        ...getSentryBaggageItems(baggage), // keep user-added values
-      } as BaggageObj),
-      '',
-      false, // set baggage immutable
-    );
+    const dsc = dropUndefinedKeys({
+      environment,
+      release,
+      transaction,
+      user_segment,
+      public_key,
+      trace_id: this.traceId,
+      sample_rate,
+    });
+
+    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+    // this._frozenDynamicSamplingContext = dsc;
+
+    return dsc;
   }
 }

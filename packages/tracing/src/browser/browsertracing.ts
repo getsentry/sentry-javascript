@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { getDomElement, getGlobalObject, logger, parseBaggageSetMutability } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, getDomElement, getGlobalObject, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
@@ -215,19 +215,24 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
 
-    const parentContextFromHeader = context.op === 'pageload' ? extractTraceDataFromMetaTags() : undefined;
+    const sentryTraceMetaTagValue = context.op === 'pageload' ? getMetaContent('sentry-trace') : null;
+    const baggageMetaTagValue = context.op === 'pageload' ? getMetaContent('baggage') : null;
 
-    const expandedContext = {
+    const traceParentData = sentryTraceMetaTagValue ? extractTraceparentData(sentryTraceMetaTagValue) : undefined;
+    const dynamicSamplingContext = baggageMetaTagValue
+      ? baggageHeaderToDynamicSamplingContext(baggageMetaTagValue)
+      : undefined;
+
+    const expandedContext: TransactionContext = {
       ...context,
-      ...parentContextFromHeader,
-      ...(parentContextFromHeader && {
-        metadata: {
-          ...context.metadata,
-          ...parentContextFromHeader.metadata,
-        },
-      }),
+      ...traceParentData,
+      metadata: {
+        ...context.metadata,
+        dynamicSamplingContext,
+      },
       trimEnd: true,
     };
+
     const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
     // For backwards compatibility reasons, beforeNavigate can return undefined to "drop" the transaction (prevent it
@@ -268,28 +273,6 @@ export class BrowserTracing implements Integration {
 
     return idleTransaction as Transaction;
   }
-}
-
-/**
- * Gets transaction context data from `sentry-trace` and `baggage` <meta> tags.
- * @returns Transaction context data or undefined neither tag exists or has valid data
- */
-export function extractTraceDataFromMetaTags(): Partial<TransactionContext> | undefined {
-  const sentrytraceValue = getMetaContent('sentry-trace');
-  const baggageValue = getMetaContent('baggage');
-
-  const sentrytraceData = sentrytraceValue ? extractTraceparentData(sentrytraceValue) : undefined;
-  const baggage = parseBaggageSetMutability(baggageValue, sentrytraceValue);
-
-  // TODO more extensive checks for baggage validity/emptyness?
-  if (sentrytraceData || baggage) {
-    return {
-      ...(sentrytraceData && sentrytraceData),
-      ...(baggage && { metadata: { baggage } }),
-    };
-  }
-
-  return undefined;
 }
 
 /** Returns the value of a meta tag */
