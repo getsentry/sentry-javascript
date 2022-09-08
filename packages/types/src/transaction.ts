@@ -180,8 +180,6 @@ export type TransactionSource =
  * Object representing metadata about when a transaction name was changed.
  */
 export interface TransactionNameChange {
-  // new name
-  name: string;
   // unix timestamp when the name was changed
   timestamp: number;
   // new source
