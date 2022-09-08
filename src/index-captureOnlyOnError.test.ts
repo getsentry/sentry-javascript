@@ -6,7 +6,7 @@ import * as SentryCore from '@sentry/core';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
 import { SentryReplay } from '@';
-import * as CaptureReplay from '@/api/captureReplay';
+import * as CaptureReplayEvent from '@/api/captureReplayEvent';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
@@ -27,10 +27,11 @@ describe('SentryReplay (capture only on error)', () => {
   let mockSendReplayRequest: MockSendReplayRequest;
   const { record: mockRecord } = mockRrweb();
 
-  jest.spyOn(CaptureReplay, 'captureReplay');
-  const captureReplayMock = CaptureReplay.captureReplay as jest.MockedFunction<
-    typeof CaptureReplay.captureReplay
-  >;
+  jest.spyOn(CaptureReplayEvent, 'captureReplayEvent');
+  const captureReplayEventMock =
+    CaptureReplayEvent.captureReplayEvent as jest.MockedFunction<
+      typeof CaptureReplayEvent.captureReplayEvent
+    >;
   jest.spyOn(SentryCore, 'captureEvent');
   const captureEventMock = SentryCore.captureEvent as jest.MockedFunction<
     typeof SentryCore.captureEvent
@@ -252,7 +253,7 @@ describe('SentryReplay (capture only on error)', () => {
     await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
-    expect(captureReplayMock).toHaveBeenLastCalledWith(
+    expect(captureReplayEventMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         initialState: {
           timestamp: BASE_TIMESTAMP,
@@ -264,12 +265,16 @@ describe('SentryReplay (capture only on error)', () => {
       })
     );
 
-    expect(captureEventMock).toHaveBeenCalledTimes(2);
+    expect(captureEventMock).toHaveBeenCalledTimes(1);
 
     // Replay root
     expect(captureEventMock).toHaveBeenCalledWith(
       expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
+        // the exception happened roughly 5 seconds after BASE_TIMESTAMP (i.e. 5
+        // seconds after root replay event). extra time is likely due to async
+        // of `addMemoryEntry()`
+        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000) / 1000, 1),
         type: 'replay_event',
         error_ids: [expect.any(String)],
         trace_ids: [],
@@ -280,18 +285,6 @@ describe('SentryReplay (capture only on error)', () => {
       { event_id: expect.any(String) }
     );
 
-    // Replay Update
-    expect(captureEventMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        // the exception happened roughly 5 seconds after BASE_TIMESTAMP (i.e. 5
-        // seconds after root replay event). extra time is likely due to async
-        // of `addMemoryEntry()`
-        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000) / 1000, 1),
-        error_ids: [],
-        trace_ids: [],
-        urls: [],
-      })
-    );
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
   });
 });

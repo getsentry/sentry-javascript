@@ -10,11 +10,10 @@ import { addInstrumentationHandler } from '@sentry/utils';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
-import { captureReplay, CaptureReplayParams } from './api/captureReplay';
 import {
-  captureReplayUpdate,
-  CaptureReplayUpdateParams,
-} from './api/captureReplayUpdate';
+  captureReplayEvent,
+  CaptureReplayEventParams,
+} from './api/captureReplayEvent';
 import { getBreadcrumbHandler } from './coreHandlers/getBreadcrumbHandler';
 import { getSpanHandler } from './coreHandlers/getSpanHandler';
 import {
@@ -55,7 +54,7 @@ import type {
 type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
-const MAX_RETRY_COUNT = 5;
+const MAX_RETRY_COUNT = 3;
 const UNABLE_TO_SEND_REPLAY = 'Unable to send replay';
 
 export class SentryReplay implements Integration {
@@ -101,12 +100,10 @@ export class SentryReplay implements Integration {
   private retryInterval = BASE_RETRY_INTERVAL;
 
   /**
-   * Flag to make sure we only create a replay event when
-   * necessary (i.e. we only want to have a single replay
-   * event per session and it should only be created
-   * immediately before sending recording)
+   * Flag when a new session has been created. Captured replay events behave
+   * slightly differently in this case: `replay_start_timestamp` is included.
    */
-  private needsCaptureReplay = false;
+  private newSessionCreated = false;
 
   /**
    * Is the integration currently active?
@@ -323,7 +320,7 @@ export class SentryReplay implements Integration {
     // If session was newly created (i.e. was not loaded from storage), then
     // enable flag to create the root replay
     if (type === 'new') {
-      this.needsCaptureReplay = true;
+      this.newSessionCreated = true;
       this.setInitialState();
     }
 
@@ -631,6 +628,7 @@ export class SentryReplay implements Integration {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
     const newEntries = new Set(list.getEntries());
+    console.log(list.getEntries());
     this.performanceEvents = [
       ...this.performanceEvents,
       ...Array.from(newEntries),
@@ -845,7 +843,7 @@ export class SentryReplay implements Integration {
     timestamp,
   }: {
     timestamp?: number;
-  } = {}): CaptureReplayParams & CaptureReplayUpdateParams {
+  } = {}): CaptureReplayEventParams {
     const initialState = this.initialState;
     if (
       this.initialState &&
@@ -856,7 +854,6 @@ export class SentryReplay implements Integration {
     }
 
     const context = {
-      session: this.session,
       initialState,
       timestamp,
       errorIds: Array.from(this.context.errorIds).filter(Boolean),
@@ -913,21 +910,21 @@ export class SentryReplay implements Integration {
     // Save the timestamp before sending replay because `captureEvent` should
     // only be called after successfully uploading a replay
     const timestamp = new Date().getTime();
-
-    // Only want to create replay event if session is new
-    if (this.needsCaptureReplay) {
-      // This event needs to exist before calling `sendReplay`
-      captureReplay(this.popEventContext({ timestamp }));
-      this.needsCaptureReplay = false;
-    }
+    // NOTE: Copy values from instance members, as it's possible they could
+    // change before the flush finishes.
+    const replayId = this.session.id;
+    const newSessionCreated = this.newSessionCreated;
+    // Always increment segmentId regardless of outcome of sending replay
+    const segmentId = this.session.segmentId++;
 
     // Reset this to null regardless of `sendReplay` result so that future
     // events will get flushed properly
     this.initialEventTimestampSinceFlush = null;
 
     try {
+      // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
-      await this.sendReplay(this.session.id, recordingData);
+      await this.sendReplay(replayId, recordingData, segmentId);
 
       // The below will only happen after successfully sending replay //
 
@@ -937,7 +934,13 @@ export class SentryReplay implements Integration {
       // occurs.
       this.updateLastActivity(timestamp);
 
-      captureReplayUpdate(this.popEventContext({ timestamp }));
+      captureReplayEvent({
+        ...this.popEventContext({ timestamp }),
+        replayId,
+        segmentId,
+        includeReplayStartTimestamp: newSessionCreated,
+      });
+      this.newSessionCreated = false;
     } catch (err) {
       captureException(err);
       console.error(err);
@@ -947,17 +950,22 @@ export class SentryReplay implements Integration {
   /**
    * Send replay attachment using `fetch()`
    */
-  async sendReplayRequest({ endpoint, events }: ReplayRequest) {
+  async sendReplayRequest({
+    endpoint,
+    events,
+    replayId: event_id,
+    segmentId: segment_id,
+  }: ReplayRequest) {
     const payloadWithSequence = createPayload({
       events,
       headers: {
-        segment_id: this.session?.segmentId,
+        segment_id,
       },
     });
 
     const envelope = createEnvelope(
       {
-        event_id: this.session?.id,
+        event_id,
         sent_at: new Date().toISOString(),
         sdk: { name: 'sentry.javascript.integration.replay', version: '1.0.0' },
       },
@@ -997,7 +1005,11 @@ export class SentryReplay implements Integration {
   /**
    * Finalize and send the current replay event to Sentry
    */
-  async sendReplay(eventId: string, events: RecordedEvents) {
+  async sendReplay(
+    replayId: string,
+    events: RecordedEvents,
+    segmentId: number
+  ) {
     // short circuit if there's no events to upload
     if (!events.length) {
       return;
@@ -1011,6 +1023,8 @@ export class SentryReplay implements Integration {
       await this.sendReplayRequest({
         endpoint,
         events,
+        replayId,
+        segmentId,
       });
       this.resetRetries();
       return true;
@@ -1021,34 +1035,35 @@ export class SentryReplay implements Integration {
       setContext('Replays', {
         retryCount: this.retryCount,
       });
+
       captureException(new Error(UNABLE_TO_SEND_REPLAY));
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
       if (this.retryCount >= MAX_RETRY_COUNT) {
         this.resetRetries();
-        return false;
+        throw new Error(UNABLE_TO_SEND_REPLAY);
       }
 
       this.retryCount = this.retryCount + 1;
-      // will retry in intervals of 5, 10, 15, 20, 25 seconds
+      // will retry in intervals of 5, 10, 30
       this.retryInterval = this.retryCount * this.retryInterval;
+
       try {
         await new Promise((resolve, reject) => {
           setTimeout(async () => {
-            const result = await this.sendReplay(eventId, events);
-
-            if (result) {
+            try {
+              await this.sendReplay(replayId, events, segmentId);
               resolve(true);
-            } else {
-              reject(new Error('Could not send replay'));
+            } catch {
+              reject(new Error(UNABLE_TO_SEND_REPLAY));
             }
           }, this.retryInterval);
         });
 
         return true;
       } catch {
-        return false;
+        throw new Error(UNABLE_TO_SEND_REPLAY);
       }
     }
   }

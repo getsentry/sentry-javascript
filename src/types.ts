@@ -9,6 +9,8 @@ export type RecordedEvents = Uint8Array | string;
 export interface ReplayRequest {
   endpoint: string;
   events: RecordedEvents;
+  replayId: string;
+  segmentId: number;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
