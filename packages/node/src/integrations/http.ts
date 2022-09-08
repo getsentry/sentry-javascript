@@ -185,6 +185,11 @@ function _createWrappedRequestMethodFactory(
             addRequestBreadcrumb('response', requestUrl, req, res);
           }
           if (tracingEnabled && span) {
+            const transaction = span.transaction;
+            if (transaction) {
+              transaction.metadata.numPropagations += 1;
+            }
+
             if (res.statusCode) {
               span.setHttpStatus(res.statusCode);
             }
