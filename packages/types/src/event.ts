@@ -51,7 +51,7 @@ export interface Event {
     source: TransactionSource;
     name_changes: TransactionNameChange[];
     // The total number of propagations that happened
-    num_propagations: number;
+    propagations: number;
   };
 }
 

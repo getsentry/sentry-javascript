@@ -55,7 +55,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...transactionContext.metadata,
       spanMetadata: {},
       nameChanges: [],
-      numPropagations: 0,
+      propagations: 0,
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -74,7 +74,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._name = newName;
     const source = 'custom';
     this.metadata.source = source;
-    this.metadata.nameChanges.push(generateTransactionNameChange(source, this.metadata.numPropagations));
+    this.metadata.nameChanges.push(generateTransactionNameChange(source, this.metadata.propagations));
   }
 
   /**
@@ -83,7 +83,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this.name = name;
     this.metadata.source = source;
-    this.metadata.nameChanges.push(generateTransactionNameChange(source, this.metadata.numPropagations));
+    this.metadata.nameChanges.push(generateTransactionNameChange(source, this.metadata.propagations));
   }
 
   /**
@@ -171,7 +171,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
         transaction_info: {
           source: metadata.source,
           name_changes: metadata.nameChanges,
-          num_propagations: metadata.numPropagations,
+          propagations: metadata.propagations,
         },
       }),
     };

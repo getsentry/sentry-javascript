@@ -187,7 +187,7 @@ function _createWrappedRequestMethodFactory(
           if (tracingEnabled && span) {
             const transaction = span.transaction;
             if (transaction) {
-              transaction.metadata.numPropagations += 1;
+              transaction.metadata.propagations += 1;
             }
 
             if (res.statusCode) {

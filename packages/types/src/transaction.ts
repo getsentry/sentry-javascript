@@ -155,7 +155,7 @@ export interface TransactionMetadata {
   nameChanges: TransactionNameChange[];
 
   /** The total number of propagations that happened */
-  numPropagations: number;
+  propagations: number;
 }
 
 /**

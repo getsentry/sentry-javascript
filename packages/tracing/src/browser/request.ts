@@ -199,7 +199,7 @@ export function fetchCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
     options.headers = addTracingHeaders(request, activeTransaction.getBaggage(), span, options);
-    activeTransaction.metadata.numPropagations += 1;
+    activeTransaction.metadata.propagations += 1;
   }
 }
 
@@ -305,7 +305,7 @@ export function xhrCallback(
           BAGGAGE_HEADER_NAME,
           mergeAndSerializeBaggage(activeTransaction.getBaggage(), headerBaggageString),
         );
-        activeTransaction.metadata.numPropagations += 1;
+        activeTransaction.metadata.propagations += 1;
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }

@@ -671,7 +671,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
                 name: processedEvent.transaction,
                 source,
                 timestamp: timestampInSeconds(),
-                propagations: transactionInfo.num_propagations,
+                propagations: transactionInfo.propagations,
               },
             ],
           };
