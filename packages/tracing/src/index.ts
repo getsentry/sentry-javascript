@@ -27,7 +27,7 @@ export { BrowserTracing, BROWSER_TRACING_INTEGRATION_ID } from './browser';
 export { Span, spanStatusfromHttpCode } from './span';
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
-export { Transaction } from './transaction';
+export { Transaction, generateTransactionNameChange } from './transaction';
 export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from './browser';
 export { IdleTransaction } from './idletransaction';
 export { startIdleTransaction } from './hubextensions';

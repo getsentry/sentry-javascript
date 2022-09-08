@@ -8,8 +8,17 @@ import {
   Transaction as TransactionInterface,
   TransactionContext,
   TransactionMetadata,
+  TransactionNameChange,
+  TransactionSource,
 } from '@sentry/types';
-import { createBaggage, dropUndefinedKeys, getSentryBaggageItems, isBaggageMutable, logger } from '@sentry/utils';
+import {
+  createBaggage,
+  dropUndefinedKeys,
+  getSentryBaggageItems,
+  isBaggageMutable,
+  logger,
+  timestampWithMs,
+} from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -45,6 +54,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this.metadata = {
       ...transactionContext.metadata,
       spanMetadata: {},
+      nameChanges: [],
+      numPropagations: 0,
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -61,7 +72,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /** Setter for `name` property, which also sets `source` */
   public set name(newName: string) {
     this._name = newName;
-    this.metadata.source = 'custom';
+    const source = 'custom';
+    this.metadata.source = source;
+    this.metadata.nameChanges.push(generateTransactionNameChange(newName, source, this.metadata.numPropagations));
   }
 
   /**
@@ -70,6 +83,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
     this.name = name;
     this.metadata.source = source;
+    this.metadata.nameChanges.push(generateTransactionNameChange(name, source, this.metadata.numPropagations));
   }
 
   /**
@@ -156,6 +170,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...(metadata.source && {
         transaction_info: {
           source: metadata.source,
+          name_changes: metadata.nameChanges,
+          num_propagations: metadata.numPropagations,
         },
       }),
     };
@@ -272,4 +288,18 @@ export class Transaction extends SpanClass implements TransactionInterface {
       false, // set baggage immutable
     );
   }
+}
+
+/** Generate objects representing a transaction name change */
+export function generateTransactionNameChange(
+  name: string,
+  source: TransactionSource,
+  propagations: number,
+): TransactionNameChange {
+  return {
+    name,
+    source,
+    timestamp: timestampWithMs(),
+    propagations,
+  };
 }
