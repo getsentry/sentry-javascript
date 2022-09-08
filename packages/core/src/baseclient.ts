@@ -35,6 +35,7 @@ import {
   SyncPromise,
   truncate,
   uuid4,
+  timestampInSeconds,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -651,6 +652,29 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error');
           throw new SentryError('`beforeSend` returned `null`, will not send event.', 'log');
+        }
+
+        const transactionInfo = processedEvent.transaction_info;
+        if (
+          processedEvent.type === 'transaction' &&
+          transactionInfo &&
+          processedEvent.transaction &&
+          processedEvent.transaction !== event.transaction
+        ) {
+          const source = 'custom';
+          event.transaction_info = {
+            ...transactionInfo,
+            source,
+            name_changes: [
+              ...transactionInfo.name_changes,
+              {
+                name: processedEvent.transaction,
+                source,
+                timestamp: timestampInSeconds(),
+                propagations: transactionInfo.num_propagations,
+              },
+            ],
+          };
         }
 
         const session = scope && scope.getSession();
