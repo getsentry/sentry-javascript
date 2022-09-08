@@ -29,11 +29,11 @@ describe('SentryReplay', () => {
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
   jest.spyOn(CaptureReplay, 'captureReplay');
-  const captureReplayMock = CaptureReplay.captureReplay as jest.MockedFunction<
+  const mockCaptureReplay = CaptureReplay.captureReplay as jest.MockedFunction<
     typeof CaptureReplay.captureReplay
   >;
   jest.spyOn(SentryCore, 'captureEvent');
-  const captureEventMock = SentryCore.captureEvent as jest.MockedFunction<
+  const mockCaptureEvent = SentryCore.captureEvent as jest.MockedFunction<
     typeof SentryCore.captureEvent
   >;
 
@@ -78,7 +78,8 @@ describe('SentryReplay', () => {
       value: prevLocation,
       writable: true,
     });
-    captureReplayMock.mockClear();
+    mockCaptureReplay.mockClear();
+    mockCaptureEvent.mockClear();
   });
 
   afterAll(() => {
@@ -104,7 +105,7 @@ describe('SentryReplay', () => {
     });
     expect(replay.session?.id).toBeDefined();
     expect(replay.session?.segmentId).toBeDefined();
-    expect(captureReplayMock).not.toHaveBeenCalled();
+    expect(mockCaptureReplay).not.toHaveBeenCalled();
   });
 
   it('clears session', () => {
@@ -416,13 +417,10 @@ describe('SentryReplay', () => {
     );
 
     expect(replay.session?.segmentId).toBe(1);
-
-    // breadcrumbs array should be empty
-    expect(replay.breadcrumbs).toHaveLength(0);
   });
 
   it('fails to upload data on first two calls and succeeds on the third', async () => {
-    captureEventMock.mockReset();
+    mockCaptureEvent.mockReset();
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     // Suppress console.errors
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
@@ -438,7 +436,7 @@ describe('SentryReplay', () => {
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(captureEventMock).toHaveBeenCalledTimes(1); // root event was created
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(1); // root event was created
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
@@ -446,13 +444,13 @@ describe('SentryReplay', () => {
     // console messages in case an error happens after
     mockConsole.mockClear();
 
-    captureEventMock.mockReset();
+    mockCaptureEvent.mockReset();
     mockSendReplayRequest.mockReset();
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
     });
     await advanceTimers(5000);
-    expect(captureEventMock).not.toHaveBeenCalled();
+    expect(mockCaptureEvent).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
 
     // next tick should retry and succeed
@@ -463,10 +461,10 @@ describe('SentryReplay', () => {
     });
 
     await advanceTimers(8000);
-    expect(captureEventMock).not.toHaveBeenCalled();
+    expect(mockCaptureEvent).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
     await advanceTimers(2000);
-    expect(captureEventMock).toHaveBeenCalled();
+    expect(mockCaptureEvent).toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
@@ -502,7 +500,7 @@ describe('SentryReplay', () => {
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
-    expect(captureReplayMock).toHaveBeenCalled();
+    expect(mockCaptureReplay).toHaveBeenCalled();
     expect(replay.session?.segmentId).toBe(1);
 
     (
@@ -510,13 +508,13 @@ describe('SentryReplay', () => {
         typeof replay.sendReplayRequest
       >
     ).mockClear();
-    captureReplayMock.mockClear();
+    mockCaptureReplay.mockClear();
 
     replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
-    expect(captureReplayMock).not.toHaveBeenCalled();
+    expect(mockCaptureReplay).not.toHaveBeenCalled();
     expect(replay.session?.segmentId).toBe(2);
   });
 
@@ -531,7 +529,7 @@ describe('SentryReplay', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
-    expect(captureReplayMock).not.toHaveBeenCalled();
+    expect(mockCaptureReplay).not.toHaveBeenCalled();
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -546,7 +544,7 @@ describe('SentryReplay', () => {
     replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
-    expect(captureReplayMock).toHaveBeenCalledWith(
+    expect(mockCaptureReplay).toHaveBeenCalledWith(
       expect.objectContaining({
         initialState: {
           timestamp: BASE_TIMESTAMP,
@@ -567,7 +565,7 @@ describe('SentryReplay', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
-    expect(captureReplayMock).not.toHaveBeenCalled();
+    expect(mockCaptureReplay).not.toHaveBeenCalled();
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -590,7 +588,7 @@ describe('SentryReplay', () => {
 
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
-    expect(captureReplayMock).toHaveBeenCalledWith(
+    expect(mockCaptureReplay).toHaveBeenCalledWith(
       expect.objectContaining({
         initialState: {
           timestamp: BASE_TIMESTAMP - 10000,
@@ -598,5 +596,71 @@ describe('SentryReplay', () => {
         },
       })
     );
+  });
+
+  it('does not have stale `replay_start_timestamp`', async function () {
+    // @ts-expect-error read-only
+    window.performance.timeOrigin = BASE_TIMESTAMP;
+    // add a fake/old performance event
+    replay.performanceEvents.push({
+      name: 'https://dev.getsentry.net:7999/_assets/sentry.js',
+      entryType: 'resource',
+      startTime: 0,
+      duration: 101.90000003576279,
+      initiatorType: 'script',
+      nextHopProtocol: 'http/1.1',
+      workerStart: 0,
+      redirectStart: 0,
+      redirectEnd: 0,
+      fetchStart: 325.19999998807907,
+      domainLookupStart: 325.19999998807907,
+      domainLookupEnd: 325.19999998807907,
+      connectStart: 325.19999998807907,
+      connectEnd: 325.19999998807907,
+      secureConnectionStart: 325.19999998807907,
+      requestStart: 394.19999998807907,
+      responseStart: 399.69999998807907,
+      responseEnd: 427.10000002384186,
+      transferSize: 287606,
+      encodedBodySize: 287306,
+      decodedBodySize: 1190668,
+      serverTiming: [],
+    } as unknown as PerformanceEntry);
+
+    const oldSessionId = replay.session?.id;
+
+    // This should be null because `addEvent` has not been called
+    // @ts-expect-error private member
+    expect(replay.context.earliestEvent).toBe(null);
+
+    // Force new session
+    const ELAPSED = 86400000 * 2; // 2 days
+    await advanceTimers(ELAPSED);
+    // XXX: this blur is needed to trigger `flushUpdate` + new session
+    window.dispatchEvent(new Event('blur'));
+
+    const TEST_EVENT = {
+      data: {},
+      timestamp: (BASE_TIMESTAMP + ELAPSED) / 1000,
+      type: 2,
+    };
+
+    // This event will trigger capturing recording
+    replay.addEvent(TEST_EVENT);
+    window.dispatchEvent(new Event('blur'));
+    await new Promise(process.nextTick);
+
+    expect(replay.session?.id).not.toBe(oldSessionId);
+    expect(mockCaptureEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED) / 1000,
+      }),
+      { event_id: expect.any(String) }
+    );
+
+    // This gets reset after sending replay
+    // @ts-expect-error private member
+    expect(replay.context.earliestEvent).toBe(null);
   });
 });

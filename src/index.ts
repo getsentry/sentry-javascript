@@ -72,11 +72,6 @@ export class SentryReplay implements Integration {
   public eventBuffer: IEventBuffer | null;
 
   /**
-   * Buffer of breadcrumbs to be uploaded
-   */
-  public breadcrumbs: Breadcrumb[] = [];
-
-  /**
    * List of PerformanceEntry from PerformanceObserver
    */
   public performanceEvents: PerformanceEntry[] = [];
@@ -347,6 +342,8 @@ export class SentryReplay implements Integration {
   setInitialState() {
     const urlPath = `${window.location.pathname}${window.location.hash}${window.location.search}`;
     const url = `${window.location.origin}${urlPath}`;
+
+    this.performanceEvents = [];
 
     // Reset context as well
     this.popEventContext();
@@ -709,7 +706,11 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    const timestampInMs = event.timestamp * 1000;
+    // TODO: sadness -- we will want to normalize timestamps to be in ms -
+    // requires coordination with frontend
+    const isMs = event.timestamp > 9999999999;
+    const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
+
     if (
       !this.context.earliestEvent ||
       timestampInMs < this.context.earliestEvent
