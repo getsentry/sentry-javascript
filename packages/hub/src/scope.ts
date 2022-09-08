@@ -29,7 +29,6 @@ import {
   isThenable,
   logger,
   SyncPromise,
-  timestampWithMs,
 } from '@sentry/utils';
 
 import { updateSession } from './session';
