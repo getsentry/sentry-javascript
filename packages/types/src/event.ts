@@ -11,7 +11,7 @@ import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity, SeverityLevel } from './severity';
 import { Span } from './span';
-import { TransactionSource } from './transaction';
+import { TransactionNameChange, TransactionSource } from './transaction';
 import { User } from './user';
 
 /** JSDoc */
@@ -49,6 +49,9 @@ export interface Event {
   sdkProcessingMetadata?: { [key: string]: any };
   transaction_info?: {
     source: TransactionSource;
+    name_changes: TransactionNameChange[];
+    // The total number of propagations that happened
+    num_propagations: number;
   };
 }
 
