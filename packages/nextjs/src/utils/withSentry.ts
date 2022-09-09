@@ -59,6 +59,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
         currentScope.addEventProcessor(event =>
           event.type !== 'transaction' ? addRequestDataToEvent(event, req) : event,
         );
+        currentScope.setSDKProcessingMetadata({ request: req });
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
