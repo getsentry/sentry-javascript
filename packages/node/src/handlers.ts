@@ -66,6 +66,11 @@ export function tracingHandler(): (
         ...traceparentData,
         metadata: {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+          // be sure
+          request: req,
           source,
         },
       },
@@ -162,6 +167,8 @@ export function requestHandler(
 
       currentHub.configureScope(scope => {
         scope.addEventProcessor(backwardsCompatibleEventProcessor);
+        scope.setSDKProcessingMetadata({ request: req });
+
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
@@ -240,6 +247,11 @@ export function errorHandler(options?: {
 
     if (shouldHandleError(error)) {
       withScope(_scope => {
+        // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
+        // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
+        // hurt to be sure
+        _scope.setSDKProcessingMetadata({ request: _req });
+
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
