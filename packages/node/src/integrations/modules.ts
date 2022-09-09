@@ -87,7 +87,10 @@ export class Modules implements Integration {
       }
       return {
         ...event,
-        modules: this._getModules(),
+        modules: {
+          ...event.modules,
+          ...this._getModules(),
+        },
       };
     });
   }
