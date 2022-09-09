@@ -628,7 +628,6 @@ export class SentryReplay implements Integration {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
     const newEntries = new Set(list.getEntries());
-    console.log(list.getEntries());
     this.performanceEvents = [
       ...this.performanceEvents,
       ...Array.from(newEntries),
