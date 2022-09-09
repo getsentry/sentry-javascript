@@ -27,9 +27,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _trimEnd?: boolean;
 
-  // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
-  // This value is null
-  // private _frozenDynamicSamplingContext: Partial<DynamicSamplingContext> | undefined = undefined;
+  private _frozenDynamicSamplingContext: Partial<DynamicSamplingContext> | undefined = undefined;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -55,10 +53,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // this is because transactions are also spans, and spans have a transaction pointer
     this.transaction = this;
 
-    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
-    // if ((transactionContext.metadata || {}).dynamicSamplingContext) {
-    //   this.freezeDynamicSamplingContext();
-    // }
+    // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
+    // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
+    const incomingDynamicSamplingContext = (transactionContext.metadata || {}).dynamicSamplingContext;
+    if (incomingDynamicSamplingContext) {
+      this._frozenDynamicSamplingContext = incomingDynamicSamplingContext;
+    }
   }
 
   /** Getter for `name` property */
@@ -145,11 +145,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }).endTimestamp;
     }
 
-    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
-    // if ((transactionContext.metadata || {}).dynamicSamplingContext) {
-    //   this.freezeDynamicSamplingContext();
-    // }
-
     const metadata = this.metadata;
 
     const transaction: Event = {
@@ -219,10 +214,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
    *
    */
   public getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined {
-    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
-    // if (this._frozenDynamicSamplingContext) {
-    //   return this._frozenDynamicSamplingContext;
-    // }
+    if (this._frozenDynamicSamplingContext) {
+      return this._frozenDynamicSamplingContext;
+    }
 
     const hub: Hub = this._hub || getCurrentHub();
     const client = hub && hub.getClient();
@@ -253,7 +247,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       sample_rate,
     });
 
-    // Uncomment if we want to make DSC immutable (Search for "IMMUTABLE DSC" to find all commented out code sections)
+    // Uncomment if we want to make DSC immutable
     // this._frozenDynamicSamplingContext = dsc;
 
     return dsc;

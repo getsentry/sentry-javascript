@@ -172,10 +172,17 @@ function _createWrappedRequestMethodFactory(
             if (parentSpan.transaction) {
               const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
               const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-              const newBaggageHeaderField =
-                sentryBaggageHeader && requestOptions.headers && Array.isArray(requestOptions.headers.baggage)
-                  ? requestOptions.headers.baggage.concat(sentryBaggageHeader)
-                  : sentryBaggageHeader;
+
+              let newBaggageHeaderField = undefined;
+              if (!requestOptions.headers || !requestOptions.headers.baggage) {
+                newBaggageHeaderField = sentryBaggageHeader;
+              } else if (!sentryBaggageHeader) {
+                newBaggageHeaderField = requestOptions.headers.baggage;
+              } else if (Array.isArray(requestOptions.headers.baggage)) {
+                newBaggageHeaderField = [...requestOptions.headers.baggage, sentryBaggageHeader];
+              } else {
+                newBaggageHeaderField = [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
+              }
 
               requestOptions.headers = {
                 ...requestOptions.headers,

@@ -85,7 +85,7 @@ export interface XHRData {
 }
 
 type PolymorphicRequestHeaders =
-  | Record<string, string>
+  | Record<string, string | undefined>
   | Array<[string, string]>
   // the below is not preicsely the Header type used in Request, but it'll pass duck-typing
   | {
@@ -211,58 +211,64 @@ function addTracingHeadersToFetchRequest(
   request: string | Request,
   dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
   span: Span,
-  options: { [key: string]: any },
+  options: {
+    headers?: {
+      [key: string]: string[] | string | undefined;
+    };
+  },
 ): PolymorphicRequestHeaders {
-  let headers = options.headers;
-
-  if (isInstanceOf(request, Request)) {
-    headers = (request as Request).headers;
-  }
-
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
   const sentryTraceHeader = span.toTraceparent();
 
-  if (headers) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (typeof headers.append === 'function') {
+  if (typeof Request !== 'undefined' && isInstanceOf(request, Request)) {
+    const headers = (request as Request).headers;
+    const newHeaders = new Headers(headers);
+
+    newHeaders.append('sentry-trace', sentryTraceHeader);
+
+    if (sentryBaggageHeader) {
       // If the same header is appended miultiple times the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
+      newHeaders.append(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+    }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      headers.append('sentry-trace', sentryTraceHeader);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      headers.append(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
-    } else if (Array.isArray(headers)) {
-      headers.push(['sentry-trace', sentryTraceHeader]);
+    return newHeaders as PolymorphicRequestHeaders;
+  } else {
+    if (!options.headers) {
+      return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };
+    }
+
+    if (Array.isArray(options.headers)) {
+      const newHeaders = [...options.headers];
+      newHeaders.push(['sentry-trace', sentryTraceHeader]);
 
       if (sentryBaggageHeader) {
         // If there are multiple entries with the same key, the browser will merge the values into a single request header.
         // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-        headers.push([BAGGAGE_HEADER_NAME, sentryBaggageHeader]);
+        newHeaders.push([BAGGAGE_HEADER_NAME, sentryBaggageHeader]);
       }
+      return newHeaders;
     } else {
-      const baggageHeaders: string[] = [];
+      const existingBaggageHeader = options.headers.baggage;
+      const newBaggageHeaders: string[] = [];
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (headers.baggage) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        baggageHeaders.push(headers.baggage);
+      if (Array.isArray(existingBaggageHeader)) {
+        newBaggageHeaders.push(...existingBaggageHeader);
+      } else if (existingBaggageHeader) {
+        newBaggageHeaders.push(existingBaggageHeader);
       }
 
       if (sentryBaggageHeader) {
-        baggageHeaders.push(sentryBaggageHeader);
+        newBaggageHeaders.push(sentryBaggageHeader);
       }
 
-      headers = {
-        ...headers,
+      return {
+        ...options.headers,
         'sentry-trace': sentryTraceHeader,
-        baggage: baggageHeaders.join(', '),
+        baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(', ') : undefined,
       };
     }
-  } else {
-    headers = { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };
   }
-  return headers;
 }
 
 /**
