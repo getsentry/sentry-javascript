@@ -17,7 +17,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@babel/parser": "^7.18.10",
     "@rollup/plugin-sucrase": "4.0.4",
     "@sentry/core": "7.12.1",
     "@sentry/hub": "7.12.1",
@@ -29,14 +28,11 @@
     "@sentry/utils": "7.12.1",
     "@sentry/webpack-plugin": "1.19.0",
     "chalk": "3.0.0",
-    "jscodeshift": "^0.13.1",
     "rollup": "2.78.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@babel/types": "7.18.10",
     "@sentry/nextjs": "7.12.1",
-    "@types/jscodeshift": "^0.11.5",
     "@types/webpack": "^4.41.31",
     "next": "10.1.3"
   },
