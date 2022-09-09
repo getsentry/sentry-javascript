@@ -68,8 +68,6 @@ test.each([['array1'], ['array5']])(
       transaction: 'GET /test/array1,/\\/test\\/array[2-9]',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       contexts: {
         trace: {
@@ -106,8 +104,6 @@ test.each([
     transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?',
     transaction_info: {
       source: 'route',
-      changes: [],
-      propagations: 0,
     },
     contexts: {
       trace: {
