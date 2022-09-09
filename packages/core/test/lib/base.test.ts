@@ -1092,6 +1092,53 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
     });
 
+    test('mutating transaction name with event processors sets transaction name change metadata', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableSend: true });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        contexts: {
+          trace: {
+            op: 'pageload',
+            span_id: 'a3df84a60c2e4e76',
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        },
+        environment: 'production',
+        event_id: '972f45b826a248bba98e990878a177e1',
+        spans: [],
+        start_timestamp: 1591603196.614865,
+        timestamp: 1591603196.728485,
+        transaction: 'initialName',
+        type: 'transaction',
+        transaction_info: {
+          source: 'url',
+          changes: [],
+          propagations: 3,
+        },
+      };
+
+      const scope = new Scope();
+      scope.addEventProcessor(event => {
+        event.transaction = 'updatedName';
+        return event;
+      });
+
+      client.captureEvent(transaction, {}, scope);
+      expect(TestClient.instance!.event!.transaction).toEqual('updatedName');
+      expect(TestClient.instance!.event!.transaction_info).toEqual({
+        source: 'custom',
+        changes: [
+          {
+            propagations: 3,
+            source: 'custom',
+            timestamp: expect.any(Number),
+          },
+        ],
+        propagations: 3,
+      });
+    });
+
     test('eventProcessor sends an event and logs when it crashes', () => {
       expect.assertions(3);
 
