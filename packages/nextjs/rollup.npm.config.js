@@ -19,8 +19,7 @@ export default [
       packageSpecificConfig: {
         plugins: [plugins.makeRemoveMultiLineCommentsPlugin()],
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`). (Not entirely
-          // clear why this is necessary here and not for other entrypoints in this file.)
+          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
           entryFileNames: 'config/templates/[name].js',
 
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
@@ -43,6 +42,9 @@ export default [
 
       packageSpecificConfig: {
         output: {
+          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
+          entryFileNames: 'config/loaders/[name].js',
+
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
