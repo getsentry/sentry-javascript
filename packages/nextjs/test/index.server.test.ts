@@ -1,4 +1,3 @@
-import { RewriteFrames } from '@sentry/integrations';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
@@ -6,7 +5,6 @@ import { getGlobalObject, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { init } from '../src/index.server';
-import { NextjsOptions } from '../src/utils/nextjsOptions';
 
 const { Integrations } = SentryNode;
 
@@ -17,6 +15,10 @@ const global = getGlobalObject();
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 const loggerLogSpy = jest.spyOn(logger, 'log');
+
+function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
+  return integrations.find(integration => integration.name === name);
+}
 
 describe('Server init()', () => {
   afterEach(() => {
@@ -49,7 +51,14 @@ describe('Server init()', () => {
         },
         autoSessionTracking: false,
         environment: 'test',
-        integrations: [expect.any(RewriteFrames)],
+
+        // Integrations are tested separately, and we can't be more specific here without depending on the order in
+        // which integrations appear in the array, which we can't guarantee.
+        //
+        // TODO: If we upgrde to Jest 28+, we can follow Jest's example matcher and create an
+        // `expect.ArrayContainingInAnyOrder`. See
+        // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
+        integrations: expect.any(Array),
       }),
     );
   });
@@ -133,82 +142,93 @@ describe('Server init()', () => {
   });
 
   describe('integrations', () => {
-    it('adds RewriteFrames integration by default', () => {
+    // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
+    type ModifiedInitOptions = { integrations: Integration[] };
+
+    it('adds default integrations', () => {
       init({});
 
-      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-      expect(nodeInitOptions.integrations).toHaveLength(1);
-      const integrations = nodeInitOptions.integrations as Integration[];
-      expect(integrations[0]).toEqual(expect.any(RewriteFrames));
+      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.integrations, 'RewriteFrames');
+
+      expect(rewriteFramesIntegration).toBeDefined();
     });
 
-    it('adds Http integration by default if tracesSampleRate is set', () => {
-      init({ tracesSampleRate: 1.0 });
+    it('supports passing unrelated integrations through options', () => {
+      init({ integrations: [new Integrations.Console()] });
 
-      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-      expect(nodeInitOptions.integrations).toHaveLength(2);
-      const integrations = nodeInitOptions.integrations as Integration[];
-      expect(integrations[1]).toEqual(expect.any(Integrations.Http));
+      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const consoleIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Console');
+
+      expect(consoleIntegration).toBeDefined();
     });
 
-    it('adds Http integration by default if tracesSampler is set', () => {
-      init({ tracesSampler: () => true });
+    describe('`Http` integration', () => {
+      it('adds `Http` integration with tracing enabled if `tracesSampleRate` is set', () => {
+        init({ tracesSampleRate: 1.0 });
 
-      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-      expect(nodeInitOptions.integrations).toHaveLength(2);
-      const integrations = nodeInitOptions.integrations as Integration[];
-      expect(integrations[1]).toEqual(expect.any(Integrations.Http));
-    });
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
-    it('adds Http integration with tracing true', () => {
-      init({ tracesSampleRate: 1.0 });
-      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-      expect(nodeInitOptions.integrations).toHaveLength(2);
+        expect(httpIntegration).toBeDefined();
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+      });
 
-      const integrations = nodeInitOptions.integrations as Integration[];
-      expect((integrations[1] as any)._tracing).toBe(true);
-    });
+      it('adds `Http` integration with tracing enabled if `tracesSampler` is set', () => {
+        init({ tracesSampler: () => true });
 
-    it('supports passing integration through options', () => {
-      init({ tracesSampleRate: 1.0, integrations: [new Integrations.Console()] });
-      const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-      expect(nodeInitOptions.integrations).toHaveLength(3);
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
-      const integrations = nodeInitOptions.integrations as Integration[];
-      expect(integrations).toEqual([
-        expect.any(Integrations.Console),
-        expect.any(RewriteFrames),
-        expect.any(Integrations.Http),
-      ]);
-    });
+        expect(httpIntegration).toBeDefined();
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+      });
 
-    describe('custom Http integration', () => {
-      it('sets tracing to true if tracesSampleRate is set', () => {
+      it('does not add `Http` integration if tracing not enabled in SDK', () => {
+        init({});
+
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+
+        expect(httpIntegration).toBeUndefined();
+      });
+
+      it('forces `_tracing = true` if `tracesSampleRate` is set', () => {
         init({
           tracesSampleRate: 1.0,
           integrations: [new Integrations.Http({ tracing: false })],
         });
 
-        const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-        expect(nodeInitOptions.integrations).toHaveLength(2);
-        const integrations = nodeInitOptions.integrations as Integration[];
-        expect(integrations[0] as InstanceType<typeof Integrations.Http>).toEqual(
-          expect.objectContaining({ _breadcrumbs: true, _tracing: true, name: 'Http' }),
-        );
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+
+        expect(httpIntegration).toBeDefined();
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
       });
 
-      it('sets tracing to true if tracesSampler is set', () => {
+      it('forces `_tracing = true` if `tracesSampler` is set', () => {
         init({
           tracesSampler: () => true,
           integrations: [new Integrations.Http({ tracing: false })],
         });
 
-        const nodeInitOptions: NextjsOptions = nodeInit.mock.calls[0][0]!;
-        expect(nodeInitOptions.integrations).toHaveLength(2);
-        const integrations = nodeInitOptions.integrations as Integration[];
-        expect(integrations[0] as InstanceType<typeof Integrations.Http>).toEqual(
-          expect.objectContaining({ _breadcrumbs: true, _tracing: true, name: 'Http' }),
-        );
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+
+        expect(httpIntegration).toBeDefined();
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+      });
+
+      it('does not force `_tracing = true` if tracing not enabled in SDK', () => {
+        init({
+          integrations: [new Integrations.Http({ tracing: false })],
+        });
+
+        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+
+        expect(httpIntegration).toBeDefined();
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: false }));
       });
     });
   });

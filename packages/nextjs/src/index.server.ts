@@ -10,7 +10,7 @@ import * as path from 'path';
 import { isBuild } from './utils/isBuild';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addIntegration } from './utils/userIntegrations';
+import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
@@ -93,6 +93,8 @@ function sdkAlreadyInitialized(): boolean {
 }
 
 function addServerIntegrations(options: NextjsOptions): void {
+  let integrations = options.integrations || [];
+
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
   const distDirName = (global as GlobalWithDistDir).__rewriteFramesDistDir__ || '.next';
@@ -107,19 +109,16 @@ function addServerIntegrations(options: NextjsOptions): void {
       return frame;
     },
   });
-
-  if (options.integrations) {
-    options.integrations = addIntegration(defaultRewriteFramesIntegration, options.integrations);
-  } else {
-    options.integrations = [defaultRewriteFramesIntegration];
-  }
+  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-    options.integrations = addIntegration(defaultHttpTracingIntegration, options.integrations, {
-      Http: { keyPath: '_tracing', value: true },
+    integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
+      _tracing: true,
     });
   }
+
+  options.integrations = integrations;
 }
 
 export type { SentryWebpackPluginOptions } from './config/types';
