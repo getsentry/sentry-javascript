@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { Event, Span } from '@sentry/types';
+import { Span } from '@sentry/types';
 import {
   AddRequestDataToEventOptions,
   addRequestDataToTransaction,
@@ -15,10 +15,9 @@ import * as domain from 'domain';
 import * as http from 'http';
 
 import { NodeClient } from './client';
-import { addRequestDataToEvent, extractRequestData } from './requestdata';
-// TODO (v8 / XXX) Remove these imports
+import { extractRequestData } from './requestdata';
+// TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
-import { parseRequest } from './requestDataDeprecated';
 import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 /**
@@ -164,15 +163,6 @@ export function requestHandler(
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    // TODO (v8 / XXX) Remove this shim and just use `addRequestDataToEvent`
-    let backwardsCompatibleEventProcessor: (event: Event) => Event;
-    if (options && 'include' in options) {
-      backwardsCompatibleEventProcessor = (event: Event) => addRequestDataToEvent(event, req, options);
-    } else {
-      // eslint-disable-next-line deprecation/deprecation
-      backwardsCompatibleEventProcessor = (event: Event) => parseRequest(event, req, options as ParseRequestOptions);
-    }
-
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
@@ -195,7 +185,6 @@ export function requestHandler(
       const currentHub = getCurrentHub();
 
       currentHub.configureScope(scope => {
-        scope.addEventProcessor(backwardsCompatibleEventProcessor);
         scope.setSDKProcessingMetadata({
           request: req,
           // TODO (v8): Stop passing this
