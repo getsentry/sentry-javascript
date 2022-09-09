@@ -5,6 +5,7 @@ import {
   AddRequestDataToEventOptions,
   addRequestDataToTransaction,
   baggageHeaderToDynamicSamplingContext,
+  dropUndefinedKeys,
   extractPathForTransaction,
   extractTraceparentData,
   isString,
@@ -110,12 +111,40 @@ export type RequestHandlerOptions =
     };
 
 /**
+ * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the
+ * `AddRequestDataToEventOptions` interface.
+ *
+ * TODO (v8): Get rid of this, and stop passing `requestDataOptionsFromExpressHandler` to `setSDKProcessingMetadata`.
+ */
+function convertReqHandlerOptsToAddReqDataOpts(
+  reqHandlerOptions: RequestHandlerOptions = {},
+): AddRequestDataToEventOptions | undefined {
+  let addRequestDataOptions: AddRequestDataToEventOptions | undefined;
+
+  if ('include' in reqHandlerOptions) {
+    addRequestDataOptions = { include: reqHandlerOptions.include };
+  } else {
+    // eslint-disable-next-line deprecation/deprecation
+    const { ip, request, transaction, user } = reqHandlerOptions as ParseRequestOptions;
+
+    if (ip || request || transaction || user) {
+      addRequestDataOptions = { include: dropUndefinedKeys({ ip, request, transaction, user }) };
+    }
+  }
+
+  return addRequestDataOptions;
+}
+
+/**
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
 export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
+  // TODO (v8): Get rid of this
+  const requestDataOptions = convertReqHandlerOptsToAddReqDataOpts(options);
+
   const currentHub = getCurrentHub();
   const client = currentHub.getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
@@ -167,7 +196,11 @@ export function requestHandler(
 
       currentHub.configureScope(scope => {
         scope.addEventProcessor(backwardsCompatibleEventProcessor);
-        scope.setSDKProcessingMetadata({ request: req });
+        scope.setSDKProcessingMetadata({
+          request: req,
+          // TODO (v8): Stop passing this
+          requestDataOptionsFromExpressHandler: requestDataOptions,
+        });
 
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
