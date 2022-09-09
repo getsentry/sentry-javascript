@@ -137,11 +137,9 @@ export class TestEnv {
    * @return {*}  {Promise<string>}
    */
   public static async init(testDir: string, serverPath?: string, scenarioPath?: string): Promise<TestEnv> {
-    const port = await getPortPromise();
-    const url = `http://localhost:${port}/test`;
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
-    const server = await new Promise<http.Server>(resolve => {
+    const [server, url] = await new Promise<[http.Server, string]>(resolve => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
       const app = require(serverPath || defaultServerPath).default as Express;
 
@@ -153,8 +151,11 @@ export class TestEnv {
         }
       });
 
-      const server = app.listen(port, () => {
-        resolve(server);
+      void getPortPromise().then(port => {
+        const url = `http://localhost:${port}/test`;
+        const server = app.listen(port, () => {
+          resolve([server, url]);
+        });
       });
     });
 
