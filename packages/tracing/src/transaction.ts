@@ -45,6 +45,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this.metadata = {
       ...transactionContext.metadata,
       spanMetadata: {},
+      nameChanges: [],
+      propagations: 0,
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -156,6 +158,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...(metadata.source && {
         transaction_info: {
           source: metadata.source,
+          name_changes: metadata.nameChanges,
+          propagations: metadata.propagations,
         },
       }),
     };
