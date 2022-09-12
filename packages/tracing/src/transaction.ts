@@ -8,7 +8,7 @@ import {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
@@ -46,6 +46,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this.metadata = {
       ...transactionContext.metadata,
       spanMetadata: {},
+      changes: [],
+      propagations: 0,
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -66,18 +68,22 @@ export class Transaction extends SpanClass implements TransactionInterface {
     return this._name;
   }
 
-  /** Setter for `name` property, which also sets `source` */
+  /** Setter for `name` property, which also sets `source` as custom */
   public set name(newName: string) {
-    this._name = newName;
-    this.metadata.source = 'custom';
+    this.setName(newName);
   }
 
   /**
    * JSDoc
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
-    this.name = name;
+    this._name = name;
     this.metadata.source = source;
+    this.metadata.changes.push({
+      source,
+      timestamp: timestampInSeconds(),
+      propagations: this.metadata.propagations,
+    });
   }
 
   /**
@@ -164,6 +170,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...(metadata.source && {
         transaction_info: {
           source: metadata.source,
+          changes: metadata.changes,
+          propagations: metadata.propagations,
         },
       }),
     };

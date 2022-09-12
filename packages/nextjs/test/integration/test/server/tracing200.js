@@ -18,6 +18,8 @@ module.exports = async ({ url: urlBase, argv }) => {
       transaction: 'GET /api/users',
       transaction_info: {
         source: 'route',
+        changes: [],
+        propagations: 0,
       },
       type: 'transaction',
       request: {

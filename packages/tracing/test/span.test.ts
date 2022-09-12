@@ -497,6 +497,8 @@ describe('Span', () => {
         expect.not.objectContaining({
           transaction_info: {
             source: expect.any(String),
+            changes: [],
+            propagations: 0,
           },
         }),
       );
@@ -516,6 +518,8 @@ describe('Span', () => {
         expect.objectContaining({
           transaction_info: {
             source: 'url',
+            changes: [],
+            propagations: 0,
           },
         }),
       );

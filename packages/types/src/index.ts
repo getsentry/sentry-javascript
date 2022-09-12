@@ -72,6 +72,7 @@ export type {
   TransactionMetadata,
   TransactionSamplingMethod,
   TransactionSource,
+  TransactionNameChange,
 } from './transaction';
 export type {
   DurationUnit,
