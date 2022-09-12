@@ -38,7 +38,13 @@ test('should set a correct transaction name for routes specified in RegEx', asyn
     transaction: 'GET /\\/test\\/regex/',
     transaction_info: {
       source: 'route',
-      changes: [],
+      changes: [
+        {
+          propagations: 0,
+          source: 'route',
+          timestamp: expect.any(Number),
+        },
+      ],
       propagations: 0,
     },
     contexts: {
@@ -68,7 +74,13 @@ test.each([['array1'], ['array5']])(
       transaction: 'GET /test/array1,/\\/test\\/array[2-9]',
       transaction_info: {
         source: 'route',
-        changes: [],
+        changes: [
+          {
+            propagations: 0,
+            source: 'route',
+            timestamp: expect.any(Number),
+          },
+        ],
         propagations: 0,
       },
       contexts: {
@@ -106,7 +118,13 @@ test.each([
     transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?',
     transaction_info: {
       source: 'route',
-      changes: [],
+      changes: [
+        {
+          propagations: 0,
+          source: 'route',
+          timestamp: expect.any(Number),
+        },
+      ],
       propagations: 0,
     },
     contexts: {
