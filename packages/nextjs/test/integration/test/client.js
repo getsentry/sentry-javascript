@@ -27,7 +27,7 @@ const execute = async (scenario, env) => {
 
   const page = (env.page = await env.browser.newPage());
   await page.setRequestInterception(true);
-  page.setDefaultTimeout(4000);
+  page.setDefaultTimeout(8000);
   page.on('request', createRequestInterceptor(env));
 
   return scenario(env);
