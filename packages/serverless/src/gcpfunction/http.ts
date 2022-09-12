@@ -87,7 +87,10 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
       name: `${reqMethod} ${reqUrl}`,
       op: 'gcp.function.http',
       ...traceparentData,
-      metadata: { dynamicSamplingContext, source: 'route' },
+      metadata: {
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        source: 'route',
+      },
     });
 
     // getCurrentHub() is expected to use current active domain as a carrier

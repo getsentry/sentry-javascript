@@ -317,7 +317,10 @@ export function wrapHandler<TEvent, TResult>(
       name: context.functionName,
       op: 'awslambda.handler',
       ...traceparentData,
-      metadata: { dynamicSamplingContext, source: 'component' },
+      metadata: {
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        source: 'component',
+      },
     });
 
     const scope = hub.pushScope();

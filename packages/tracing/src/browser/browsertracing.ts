@@ -228,7 +228,7 @@ export class BrowserTracing implements Integration {
       ...traceParentData,
       metadata: {
         ...context.metadata,
-        dynamicSamplingContext,
+        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
       trimEnd: true,
     };

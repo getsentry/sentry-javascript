@@ -72,7 +72,10 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              metadata: { dynamicSamplingContext, source: 'route' },
+              metadata: {
+                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+                source: 'route',
+              },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

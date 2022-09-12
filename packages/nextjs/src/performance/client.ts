@@ -138,7 +138,7 @@ export function nextRouterInstrumentation(
       ...traceParentData,
       metadata: {
         source,
-        ...(dynamicSamplingContext && { dynamicSamplingContext }),
+        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
     });
   }

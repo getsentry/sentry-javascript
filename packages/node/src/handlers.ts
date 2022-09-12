@@ -63,7 +63,10 @@ export function tracingHandler(): (
         name,
         op: 'http.server',
         ...traceparentData,
-        metadata: { dynamicSamplingContext, source },
+        metadata: {
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          source,
+        },
       },
       // extra context passed to the tracesSampler
       { request: extractRequestData(req) },

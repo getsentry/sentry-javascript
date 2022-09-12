@@ -173,7 +173,8 @@ function _createWrappedRequestMethodFactory(
               const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
               const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
-              let newBaggageHeaderField = undefined;
+              // Append a new baggage header to
+              let newBaggageHeaderField;
               if (!requestOptions.headers || !requestOptions.headers.baggage) {
                 newBaggageHeaderField = sentryBaggageHeader;
               } else if (!sentryBaggageHeader) {
@@ -181,12 +182,16 @@ function _createWrappedRequestMethodFactory(
               } else if (Array.isArray(requestOptions.headers.baggage)) {
                 newBaggageHeaderField = [...requestOptions.headers.baggage, sentryBaggageHeader];
               } else {
+                // Type-cast explanation:
+                // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
+                // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
                 newBaggageHeaderField = [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
               }
 
               requestOptions.headers = {
                 ...requestOptions.headers,
-                baggage: newBaggageHeaderField,
+                // Setting a hader to `undefined` will crash in node so we only set the baggage header when it's defined
+                ...(newBaggageHeaderField && { baggage: newBaggageHeaderField }),
               };
             }
           } else {

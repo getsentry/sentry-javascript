@@ -270,7 +270,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
               name: `${namePrefix}${reqPath}`,
               op: 'http.server',
               metadata: {
-                dynamicSamplingContext,
+                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
                 requestPath: reqPath,
                 // TODO: Investigate if there's a way to tell if this is a dynamic route, so that we can make this more
                 // like `source: isDynamicRoute? 'url' : 'route'`

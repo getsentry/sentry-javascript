@@ -324,8 +324,7 @@ export function startRequestHandlerTransaction(
     ...traceparentData,
     metadata: {
       source,
-      // Only attach baggage if it's defined
-      ...(dynamicSamplingContext && { dynamicSamplingContext }),
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     },
   });
 

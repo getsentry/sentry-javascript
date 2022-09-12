@@ -100,7 +100,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         ...traceparentData,
         metadata: {
           source: 'route',
-          dynamicSamplingContext,
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       });
 
