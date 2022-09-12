@@ -202,12 +202,13 @@ export class TestEnv {
    * @return {*}  {Promise<any>}
    */
   public async getAPIResponse(url?: string, headers?: Record<string, string>): Promise<unknown> {
-    const { data } = await axios.get(url || this.url, { headers: headers || {} });
-
-    await Sentry.flush();
-    this.server.close();
-
-    return data;
+    try {
+      const { data } = await axios.get(url || this.url, { headers: headers || {} });
+      return data;
+    } finally {
+      await Sentry.flush();
+      this.server.close();
+    }
   }
 
   public async setupNock(
