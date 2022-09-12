@@ -7,7 +7,7 @@ import { Express } from 'express';
 import * as http from 'http';
 import nock from 'nock';
 import * as path from 'path';
-import { getPortPromise } from 'portfinder';
+import { getPorts } from 'portfinder';
 
 export type TestServerConfig = {
   url: string;
@@ -151,7 +151,16 @@ export class TestEnv {
         }
       });
 
-      void getPortPromise().then(port => {
+      getPorts(50, {}, (err, ports) => {
+        if (err) {
+          throw err;
+        }
+
+        const port = ports.find(
+          // Only allow ports that do not overlap with other workers - this is done to avoid race-conditions
+          p => p % Number(process.env.TEST_WORKERS_AMOUNT) === Number(process.env.TEST_PORT_MODULO),
+        );
+
         const url = `http://localhost:${port}/test`;
         const server = app.listen(port, () => {
           resolve([server, url]);

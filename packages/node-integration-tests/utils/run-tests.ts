@@ -13,7 +13,11 @@ const threads = os.cpus().map(async (_, i) => {
   while (testPath !== undefined) {
     console.log(`(Worker ${i}) Running test "${testPath}"`);
     await new Promise(resolve => {
-      const p = childProcess.spawn('jest', ['--runTestsByPath', testPath as string, '--forceExit']);
+      const p = childProcess.spawn('jest', ['--runTestsByPath', testPath as string, '--forceExit'], {
+        // These env vars are used to give workers a limited, non-overlapping set of ports to occupy.
+        // This is done to avoid race-conditions during port reservation.
+        env: { ...process.env, TEST_WORKERS_AMOUNT: String(os.cpus().length), TEST_PORT_MODULO: String(i) },
+      });
 
       let output = '';
 
