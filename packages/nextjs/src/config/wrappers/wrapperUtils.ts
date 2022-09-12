@@ -122,14 +122,16 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     if (currentScope) {
       currentScope.setSpan(dataFetcherSpan);
       currentScope.addEventProcessor(event =>
-        addRequestDataToEvent(event, req, {
-          include: {
-            // When the `transaction` option is set to true, it tries to extract a transaction name from the request
-            // object. We don't want this since we already have a high-quality transaction name with a parameterized
-            // route. Setting `transaction` to `true` will clobber that transaction name.
-            transaction: false,
-          },
-        }),
+        event.type !== 'transaction'
+          ? addRequestDataToEvent(event, req, {
+              include: {
+                // When the `transaction` option is set to true, it tries to extract a transaction name from the request
+                // object. We don't want this since we already have a high-quality transaction name with a parameterized
+                // route. Setting `transaction` to `true` will clobber that transaction name.
+                transaction: false,
+              },
+            })
+          : event,
       );
     }
 

@@ -244,7 +244,9 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => addRequestDataToEvent(event, nextReq));
+        currentScope.addEventProcessor(event =>
+          event.type !== 'transaction' ? addRequestDataToEvent(event, nextReq) : event,
+        );
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
