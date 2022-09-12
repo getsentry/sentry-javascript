@@ -465,7 +465,11 @@ export class Scope implements ScopeInterface {
       event.level = this._level;
     }
     if (this._transactionName) {
-      event.transaction = this._transactionName;
+      // This runs before any event processors, so the only way that the event would already have a `transaction` value
+      // at this point is if either a) it's a transaction (they have a `transaction` value - their name - from the
+      // get-go, which we take great pains to ensure is as high-quality as possible), or b) it's a custom event in which
+      // the user has set the `transaction` value (and in that case we should respect that).
+      event.transaction = event.transaction || this._transactionName;
     }
 
     // We want to set the trace context for normal events only if there isn't already

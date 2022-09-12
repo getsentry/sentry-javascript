@@ -302,14 +302,14 @@ describe('Scope', () => {
       });
     });
 
-    test('scope transaction should have priority over event transaction', async () => {
+    test("scope transaction shouldn't overwrite existing event transaction", async () => {
       expect.assertions(1);
       const scope = new Scope();
       scope.setTransactionName('/abc');
       const event: Event = {};
       event.transaction = '/cdf';
       return scope.applyToEvent(event).then(processedEvent => {
-        expect(processedEvent!.transaction).toEqual('/abc');
+        expect(processedEvent!.transaction).toEqual('/cdf');
       });
     });
 
