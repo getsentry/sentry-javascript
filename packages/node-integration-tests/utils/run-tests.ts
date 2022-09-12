@@ -59,7 +59,7 @@ void Promise.all(threads).then(() => {
     });
     process.exit(1);
   } else {
-    console.log('All testcases returned the expected results.');
+    console.log('All tests succeeded.');
     process.exit(0);
   }
 });
