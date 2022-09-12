@@ -78,8 +78,20 @@ function createPaintEntry(entry: PerformancePaintTiming) {
 
 function createNavigationEntry(entry: PerformanceNavigationTiming) {
   // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
+  const {
+    entryType,
+    name,
+    duration,
+    domComplete,
+    startTime,
+    transferSize,
+    type,
+  } = entry;
 
-  const { entryType, name, domComplete, startTime, transferSize, type } = entry;
+  // Ignore entries with no duration, they do not seem to be useful and cause dupes
+  if (duration === 0) {
+    return null;
+  }
 
   return {
     type: `${entryType}.${type}`,
@@ -88,6 +100,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
     name,
     data: {
       size: transferSize,
+      duration,
     },
   };
 }
@@ -98,6 +111,7 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
     name,
     responseEnd,
     startTime,
+    encodedBodySize,
     transferSize,
   } = entry;
 
@@ -118,6 +132,7 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
     name,
     data: {
       size: transferSize,
+      encodedBodySize,
     },
   };
 }
@@ -135,6 +150,7 @@ function createLargestContentfulPaint(
     start,
     end: start + duration,
     data: {
+      duration,
       size,
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       nodeId: record.mirror.getId(entry.element as any),
