@@ -93,16 +93,19 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
-      const newTransaction = startTransaction({
-        op: 'nextjs.data.server',
-        name: options.requestedRouteName,
-        ...traceparentData,
-        status: 'ok',
-        metadata: {
-          source: 'route',
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      const newTransaction = startTransaction(
+        {
+          op: 'nextjs.data.server',
+          name: options.requestedRouteName,
+          ...traceparentData,
+          status: 'ok',
+          metadata: {
+            source: 'route',
+            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          },
         },
-      });
+        { request: req },
+      );
 
       requestTransaction = newTransaction;
       autoEndTransactionOnResponseEnd(newTransaction, res);

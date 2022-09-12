@@ -45,6 +45,11 @@ describe('data-fetching function wrappers', () => {
           op: 'nextjs.data.server',
           metadata: expect.objectContaining({ source: 'route' }),
         }),
+        {
+          request: expect.objectContaining({
+            url: 'http://dogs.are.great/tricks/kangaroo',
+          }),
+        },
       );
 
       expect(setMetadataSpy).toHaveBeenCalledWith({ request: req });
@@ -62,6 +67,11 @@ describe('data-fetching function wrappers', () => {
           op: 'nextjs.data.server',
           metadata: expect.objectContaining({ source: 'route' }),
         }),
+        {
+          request: expect.objectContaining({
+            url: 'http://dogs.are.great/tricks/kangaroo',
+          }),
+        },
       );
 
       expect(setMetadataSpy).toHaveBeenCalledWith({ request: req });
