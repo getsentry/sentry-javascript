@@ -77,11 +77,14 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/loader-json-response/-1`;
 
-    const [transaction_1, event, transaction_2] = await env.getMultipleEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       count: 3,
       envelopeType: ['transaction', 'event'],
     });
+
+    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {

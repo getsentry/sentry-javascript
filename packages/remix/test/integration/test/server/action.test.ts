@@ -37,12 +37,15 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/action-json-response/-1`;
 
-    const [transaction, event] = await env.getMultipleEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       count: 2,
       method: 'post',
       envelopeType: ['transaction', 'event'],
     });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -79,12 +82,15 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/action-json-response/-2`;
 
-    const [transaction_1, event, transaction_2] = await env.getMultipleEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       count: 3,
       method: 'post',
       envelopeType: ['transaction', 'event'],
     });
+
+    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {
