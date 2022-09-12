@@ -180,8 +180,6 @@ export class EventBufferCompressionWorker implements IEventBuffer {
       args: [event],
     });
 
-    logger.log('Message posted to worker');
-
     // XXX: See note in `get length()`
     this.eventBufferItemLength++;
 

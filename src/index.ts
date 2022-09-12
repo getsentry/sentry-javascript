@@ -341,6 +341,7 @@ export class SentryReplay implements Integration {
     const url = `${window.location.origin}${urlPath}`;
 
     this.performanceEvents = [];
+    this.initialEventTimestampSinceFlush = null;
 
     // Reset context as well
     this.popEventContext();
@@ -708,9 +709,12 @@ export class SentryReplay implements Integration {
     const isMs = event.timestamp > 9999999999;
     const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
 
+    // Only record earliest event if a new session was created, otherwise it
+    // shouldn't be relevant
     if (
-      !this.context.earliestEvent ||
-      timestampInMs < this.context.earliestEvent
+      this.newSessionCreated &&
+      (!this.context.earliestEvent ||
+        timestampInMs < this.context.earliestEvent)
     ) {
       this.context.earliestEvent = timestampInMs;
     }
