@@ -118,8 +118,6 @@ describe('tracing', () => {
     const request = http.get('http://dogs.are.great/');
     const baggageHeader = request.getHeader('baggage') as string;
 
-    expect(baggageHeader).toBeDefined();
-    expect(typeof baggageHeader).toEqual('string');
     expect(baggageHeader).toEqual(
       'sentry-environment=production,sentry-release=1.0.0,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
@@ -127,7 +125,7 @@ describe('tracing', () => {
     );
   });
 
-  it('propagates 3rd party baggage header data to outgoing non-sentry requests', async () => {
+  it('keeps 3rd party baggage header data to outgoing non-sentry requests', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
     createTransactionOnScope();
@@ -135,13 +133,10 @@ describe('tracing', () => {
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
 
-    expect(baggageHeader).toBeDefined();
-    expect(typeof baggageHeader).toEqual('string');
-    expect(baggageHeader).toEqual(
-      'dog=great,sentry-environment=production,sentry-release=1.0.0,' +
-        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
-    );
+    expect(baggageHeader).toEqual([
+      'dog=great',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+    ]);
   });
 
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
@@ -152,13 +147,10 @@ describe('tracing', () => {
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
 
-    expect(baggageHeader).toBeDefined();
-    expect(typeof baggageHeader).toEqual('string');
-    expect(baggageHeader).toEqual(
-      'dog=great,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-        'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
-    );
+    expect(baggageHeader).toEqual([
+      'dog=great',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+    ]);
   });
 
   it("doesn't attach the sentry-trace header to outgoing sentry requests", () => {
