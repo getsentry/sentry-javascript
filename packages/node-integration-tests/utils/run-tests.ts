@@ -5,7 +5,7 @@ import os from 'os';
 const testPaths = childProcess.execSync('jest --listTests', { encoding: 'utf8' }).trim().split('\n');
 
 let testsSucceeded = true;
-const testAmount = testPaths.length;
+const numTests = testPaths.length;
 const fails: string[] = [];
 
 const threads = os.cpus().map(async (_, i) => {
@@ -46,7 +46,7 @@ const threads = os.cpus().map(async (_, i) => {
 
 void Promise.all(threads).then(() => {
   console.log('-------------------');
-  console.log(`Successfully ran ${testAmount} tests.`);
+  console.log(`Successfully ran ${numTests} tests.`);
   if (!testsSucceeded) {
     console.log('Not all tests succeeded:\n');
     fails.forEach(fail => {
