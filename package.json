@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "0.5.14",
+  "version": "0.5.15",
   "description": "User replays for Sentry",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
