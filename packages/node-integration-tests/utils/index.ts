@@ -5,9 +5,9 @@ import { logger, parseSemver } from '@sentry/utils';
 import axios, { AxiosRequestConfig } from 'axios';
 import { Express } from 'express';
 import * as http from 'http';
+import { AddressInfo } from 'net';
 import nock from 'nock';
 import * as path from 'path';
-import { getPorts } from 'portfinder';
 
 export type TestServerConfig = {
   url: string;
@@ -151,20 +151,9 @@ export class TestEnv {
         }
       });
 
-      getPorts(50, {}, (err, ports) => {
-        if (err) {
-          throw err;
-        }
-
-        const port = ports.find(
-          // Only allow ports that do not overlap with other workers - this is done to avoid race-conditions
-          p => p % Number(process.env.TEST_WORKERS_AMOUNT) === Number(process.env.TEST_PORT_MODULO),
-        );
-
-        const url = `http://localhost:${port}/test`;
-        const server = app.listen(port, () => {
-          resolve([server, url]);
-        });
+      const server = app.listen(0, () => {
+        const url = `http://localhost:${(server.address() as AddressInfo).port}/test`;
+        resolve([server, url]);
       });
     });
 
