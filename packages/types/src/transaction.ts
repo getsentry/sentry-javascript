@@ -152,7 +152,7 @@ export interface TransactionMetadata {
   spanMetadata: { [spanId: string]: { [key: string]: unknown } };
 
   /** Metadata representing information about transaction name changes  */
-  nameChanges: TransactionNameChange[];
+  changes: TransactionNameChange[];
 
   /** The total number of propagations that happened */
   propagations: number;

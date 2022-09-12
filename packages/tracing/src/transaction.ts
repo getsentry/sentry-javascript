@@ -158,7 +158,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...(metadata.source && {
         transaction_info: {
           source: metadata.source,
-          name_changes: metadata.nameChanges,
+          changes: metadata.nameChanges,
           propagations: metadata.propagations,
         },
       }),

@@ -55,7 +55,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       transaction: 'routes/loader-json-response/$id',
       transaction_info: {
         source: 'route',
-        name_changes: [],
+        changes: [],
         propagations: 0,
       },
       spans: [

@@ -16,7 +16,7 @@ module.exports = async ({ url: urlBase, argv }) => {
       transaction: '/[id]/withInitialProps',
       transaction_info: {
         source: 'route',
-        name_changes: [],
+        changes: [],
         propagations: 0,
       },
       type: 'transaction',

@@ -49,7 +49,7 @@ export interface Event {
   sdkProcessingMetadata?: { [key: string]: any };
   transaction_info?: {
     source: TransactionSource;
-    name_changes: TransactionNameChange[];
+    changes: TransactionNameChange[];
     propagations: number;
   };
 }
