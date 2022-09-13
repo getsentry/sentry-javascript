@@ -17,18 +17,22 @@ export const TRACEPARENT_REGEXP = new RegExp(
  */
 export function extractTraceparentData(traceparent: string): TraceparentData | undefined {
   const matches = traceparent.match(TRACEPARENT_REGEXP);
-  if (matches) {
-    let parentSampled: boolean | undefined;
-    if (matches[3] === '1') {
-      parentSampled = true;
-    } else if (matches[3] === '0') {
-      parentSampled = false;
-    }
-    return {
-      traceId: matches[1],
-      parentSampled,
-      parentSpanId: matches[2],
-    };
+
+  if (!traceparent || !matches) {
+    // empty string or no matches is invalid traceparent data
+    return undefined;
   }
-  return undefined;
+
+  let parentSampled: boolean | undefined;
+  if (matches[3] === '1') {
+    parentSampled = true;
+  } else if (matches[3] === '0') {
+    parentSampled = false;
+  }
+
+  return {
+    traceId: matches[1],
+    parentSampled,
+    parentSpanId: matches[2],
+  };
 }
