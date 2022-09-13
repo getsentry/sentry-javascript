@@ -33,7 +33,6 @@ import {
   resolvedSyncPromise,
   SentryError,
   SyncPromise,
-  timestampInSeconds,
   truncate,
   uuid4,
 } from '@sentry/utils';
@@ -672,7 +671,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
               ...transactionInfo.changes,
               {
                 source,
-                timestamp: timestampInSeconds(),
+                // use the same timestamp as the processed event.
+                timestamp: processedEvent.timestamp as number,
                 propagations: transactionInfo.propagations,
               },
             ],
