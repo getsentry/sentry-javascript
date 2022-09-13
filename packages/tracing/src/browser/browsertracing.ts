@@ -215,8 +215,10 @@ export class BrowserTracing implements Integration {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
 
-    const sentryTraceMetaTagValue = context.op === 'pageload' ? getMetaContent('sentry-trace') : null;
-    const baggageMetaTagValue = context.op === 'pageload' ? getMetaContent('baggage') : null;
+    const isPageloadTransaction = context.op === 'pageload';
+
+    const sentryTraceMetaTagValue = isPageloadTransaction ? getMetaContent('sentry-trace') : null;
+    const baggageMetaTagValue = isPageloadTransaction ? getMetaContent('baggage') : null;
 
     const traceParentData = sentryTraceMetaTagValue ? extractTraceparentData(sentryTraceMetaTagValue) : undefined;
     const dynamicSamplingContext = baggageMetaTagValue
