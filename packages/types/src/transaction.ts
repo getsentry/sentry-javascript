@@ -186,7 +186,7 @@ export interface TransactionNameChange {
    */
   timestamp: number;
 
-  /** New source applied for transaction name change */
+  /** Previous source before transaction name change */
   source: TransactionSource;
 
   /** Number of propagations since start of transaction */
