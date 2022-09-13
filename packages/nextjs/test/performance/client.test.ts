@@ -142,7 +142,7 @@ describe('nextRouterInstrumentation', () => {
           },
           metadata: {
             source: 'route',
-            baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
+            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
           },
           traceId: 'c82b8554881b4d28ad977de04a4fb40a',
           parentSpanId: 'a755953cd3394d5f',
@@ -168,7 +168,7 @@ describe('nextRouterInstrumentation', () => {
           },
           metadata: {
             source: 'route',
-            baggage: [{ environment: 'myEnv', release: '2.1.0' }, '', true],
+            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
           },
           traceId: 'c82b8554881b4d28ad977de04a4fb40a',
           parentSpanId: 'a755953cd3394d5f',
