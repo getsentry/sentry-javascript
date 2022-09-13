@@ -33,9 +33,9 @@ import {
   resolvedSyncPromise,
   SentryError,
   SyncPromise,
+  timestampInSeconds,
   truncate,
   uuid4,
-  timestampInSeconds,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
