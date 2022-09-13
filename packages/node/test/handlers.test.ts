@@ -241,7 +241,7 @@ describe('tracingHandler', () => {
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
-  it('doesn\t populate dynamic sampling context with 3rd party baggage', () => {
+  it("doesn't populate dynamic sampling context with 3rd party baggage", () => {
     req.headers = {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
       baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',

@@ -95,6 +95,7 @@ export interface Transaction extends TransactionContext, Span {
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
+  /** Return the current Dynamic Sampling Context of this transaction */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined;
 }
 
@@ -138,6 +139,10 @@ export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'c
 export interface TransactionMetadata {
   transactionSampling?: { rate?: number; method: TransactionSamplingMethod };
 
+  /**
+   * The Dynamic Sampling Context of a transaction. If provided during transaction creation, its Dynamic Sampling
+   * Context Will be frozen
+   */
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
 
   /** For transactions tracing server-side request handling, the path of the request being tracked. */

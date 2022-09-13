@@ -224,7 +224,9 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * @inheritdoc
    *
+   * @experimental
    */
   public getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined {
     if (this._frozenDynamicSamplingContext) {

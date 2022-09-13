@@ -173,7 +173,6 @@ function _createWrappedRequestMethodFactory(
               const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
               const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
-              // Append a new baggage header to
               let newBaggageHeaderField;
               if (!requestOptions.headers || !requestOptions.headers.baggage) {
                 newBaggageHeaderField = sentryBaggageHeader;

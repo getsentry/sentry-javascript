@@ -17,8 +17,11 @@ export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
 export const MAX_BAGGAGE_STRING_LENGTH = 8192;
 
 /**
- * TODO
- * @param baggageHeader
+ * Takes a baggage header and turns it into Dynamic Sampling Context, by extracting all the "sentry-" prefixed values
+ * from it.
+ *
+ * @param baggageHeader A very bread definition of a baggage header as it might appear in various frameworks.
+ * @returns The Dynamic Sampling Context that was found on `baggageHeader`, if there was any, `undefined` otherwise.
  */
 export function baggageHeaderToDynamicSamplingContext(
   // Very liberal definition of what any incoming header might look like
@@ -70,8 +73,13 @@ export function baggageHeaderToDynamicSamplingContext(
 }
 
 /**
- * TODO
- * @param dynamicSamplingContext
+ * Turns a Dynamic Sampling Object into a baggage header by prefixing all the keys on the object with "sentry-".
+ *
+ * @param dynamicSamplingContext The Dynamic Sampling Context to turn into a header. For convenience and compatibility
+ * with the `getDynamicSamplingContext` method on the Transaction class ,this argument can also be `undefined`. If it is
+ * `undefined` the function will return `undefined`.
+ * @returns a baggage header, created from `dynamicSamplingContext`, or `undefined` either if `dynamicSamplingContext`
+ * was `undefined`, or if `dynamicSamplingContext` didn't contain any values.
  */
 export function dynamicSamplingContextToSentryBaggageHeader(
   // this also takes undefined for convenience and bundle size in other places
@@ -96,10 +104,12 @@ export function dynamicSamplingContextToSentryBaggageHeader(
 }
 
 /**
- * TODO
- * @param baggageHeader
+ * Will parse a baggage header, which is a simple key-value map, into a flat object.
+ *
+ * @param baggageHeader The baggage header to parse.
+ * @returns a flat object containing all the key-value pairs from `baggageHeader`.
  */
-export function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
+function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
   return baggageHeader
     .split(',')
     .map(baggageEntry => baggageEntry.split('=').map(keyOrValue => decodeURIComponent(keyOrValue.trim())))
@@ -110,10 +120,13 @@ export function baggageHeaderToObject(baggageHeader: string): Record<string, str
 }
 
 /**
- * TODO
- * @param object
+ * Turns a flat object (key-value pairs) into a baggage header, which is also just key-value pairs.
+ *
+ * @param object The object to turn into a baggage header.
+ * @returns a baggage header string, or `undefined` if the object didn't have any values, since an empty baggage header
+ * is not spec compliant.
  */
-export function objectToBaggageHeader(object: Record<string, string>): string | undefined {
+function objectToBaggageHeader(object: Record<string, string>): string | undefined {
   if (Object.keys(object).length === 0) {
     // An empty baggage header is not spec compliant: We return undefined.
     return undefined;
