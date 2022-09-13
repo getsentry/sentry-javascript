@@ -2,19 +2,22 @@
 import childProcess from 'child_process';
 import os from 'os';
 
+// This variable will act as a job queue that is consumed by a number of worker threads. Each item represents a test to run.
 const testPaths = childProcess.execSync('jest --listTests', { encoding: 'utf8' }).trim().split('\n');
 
-let testsSucceeded = true;
 const numTests = testPaths.length;
 const fails: string[] = [];
 
-const threads = os.cpus().map(async (_, i) => {
+// We're creating a worker for each CPU core.
+const workers = os.cpus().map(async (_, i) => {
   while (testPaths.length > 0) {
     const testPath = testPaths.pop();
     console.log(`(Worker ${i}) Running test "${testPath}"`);
     await new Promise(resolve => {
       const jestProcess = childProcess.spawn('jest', ['--runTestsByPath', testPath as string, '--forceExit']);
 
+      // We're collecting the output and logging it all at once instead of inheriting stdout and stderr, so that the
+      // test outputs aren't interwoven.
       let output = '';
 
       jestProcess.stdout.on('data', (data: Buffer) => {
@@ -26,8 +29,9 @@ const threads = os.cpus().map(async (_, i) => {
       });
 
       jestProcess.on('error', error => {
-        console.log(`(Worker ${i}) Error in test "${testPath}"`, error);
         console.log(output);
+        console.log(`(Worker ${i}) Error in test "${testPath}"`, error);
+        fails.push(`FAILED: "${testPath}"`);
         resolve();
       });
 
@@ -36,7 +40,6 @@ const threads = os.cpus().map(async (_, i) => {
         console.log(output);
         if (exitcode !== 0) {
           fails.push(`FAILED: "${testPath}"`);
-          testsSucceeded = false;
         }
         resolve();
       });
@@ -44,10 +47,10 @@ const threads = os.cpus().map(async (_, i) => {
   }
 });
 
-void Promise.all(threads).then(() => {
+void Promise.all(workers).then(() => {
   console.log('-------------------');
   console.log(`Successfully ran ${numTests} tests.`);
-  if (!testsSucceeded) {
+  if (fails.length > 0) {
     console.log('Not all tests succeeded:\n');
     fails.forEach(fail => {
       console.log(`● ${fail}`);
