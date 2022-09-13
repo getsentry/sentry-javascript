@@ -1,4 +1,4 @@
-import { addRequestDataToEvent, captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException, flush, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
@@ -56,9 +56,6 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event =>
-          event.type !== 'transaction' ? addRequestDataToEvent(event, req) : event,
-        );
         currentScope.setSDKProcessingMetadata({ request: req });
 
         if (hasTracingEnabled()) {
