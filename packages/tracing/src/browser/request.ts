@@ -195,9 +195,10 @@ export function fetchCallback(
     handlerData.fetchData.__span = span.spanId;
     spans[span.spanId] = span;
 
-    const request = handlerData.args[0] as string | Request;
+    const request = (handlerData.args[0] = handlerData.args[0] as string | Request);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options = (handlerData.args[1] as { [key: string]: any }) || {};
+    const options = (handlerData.args[1] = (handlerData.args[1] as { [key: string]: any }) || {});
+
     options.headers = addTracingHeadersToFetchRequest(
       request,
       activeTransaction.getDynamicSamplingContext(),
