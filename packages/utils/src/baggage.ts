@@ -42,6 +42,12 @@ export function baggageHeaderToDynamicSamplingContext(
       };
     }, {});
   } else {
+    // Return undefined if baggage header is an empty string (technically an empty baggage header is not spec conform but
+    // this is how we choose to handle it)
+    if (!baggageHeader) {
+      return undefined;
+    }
+
     baggageObject = baggageHeaderToObject(baggageHeader);
   }
 
