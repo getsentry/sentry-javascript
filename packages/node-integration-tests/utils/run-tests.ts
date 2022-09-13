@@ -16,8 +16,8 @@ const workers = os.cpus().map(async (_, i) => {
     await new Promise(resolve => {
       const jestProcess = childProcess.spawn('jest', ['--runTestsByPath', testPath as string, '--forceExit']);
 
-      // We're collecting the output and logging it all at once instead of inheriting stdout and stderr, so that the
-      // test outputs aren't interwoven.
+      // We're collecting the output and logging it all at once instead of inheriting stdout and stderr, so that
+      // test outputs of the individual workers aren't interwoven, in case they print at the same time.
       let output = '';
 
       jestProcess.stdout.on('data', (data: Buffer) => {
