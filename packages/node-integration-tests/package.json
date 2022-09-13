@@ -17,7 +17,7 @@
     "fix:prettier": "prettier --write \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
     "pretest": "run-s --silent prisma:init",
-    "test": "jest --forceExit",
+    "test": "ts-node ./utils/run-tests.ts",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
@@ -34,8 +34,7 @@
     "mongodb-memory-server-global": "^7.6.3",
     "mysql": "^2.18.1",
     "nock": "^13.1.0",
-    "pg": "^8.7.3",
-    "portfinder": "^1.0.28"
+    "pg": "^8.7.3"
   },
   "config": {
     "mongodbMemoryServer": {

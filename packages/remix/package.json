@@ -34,7 +34,8 @@
   },
   "devDependencies": {
     "@remix-run/node": "^1.4.3",
-    "@remix-run/react": "^1.4.3"
+    "@remix-run/react": "^1.4.3",
+    "portfinder": "^1.0.28"
   },
   "peerDependencies": {
     "@remix-run/node": "1.x",
