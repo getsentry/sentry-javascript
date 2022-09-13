@@ -209,6 +209,8 @@ export function fetchCallback(
       span,
       options,
     );
+
+    activeTransaction.metadata.propagations += 1;
   }
 }
 
@@ -341,6 +343,8 @@ export function xhrCallback(
           // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
           handlerData.xhr.setRequestHeader(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
         }
+
+        activeTransaction.metadata.propagations += 1;
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
       }

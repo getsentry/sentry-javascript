@@ -33,6 +33,7 @@ import {
   resolvedSyncPromise,
   SentryError,
   SyncPromise,
+  timestampInSeconds,
   truncate,
   uuid4,
 } from '@sentry/utils';
@@ -656,6 +657,26 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         const session = scope && scope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        // None of the Sentry built event processor will update transaction name,
+        // so if the transaction name has been changed by an event processor, we know
+        // it has to come from custom event processor added by a user
+        const transactionInfo = processedEvent.transaction_info;
+        if (isTransaction && transactionInfo && processedEvent.transaction !== event.transaction) {
+          const source = 'custom';
+          processedEvent.transaction_info = {
+            ...transactionInfo,
+            source,
+            changes: [
+              ...transactionInfo.changes,
+              {
+                source,
+                timestamp: timestampInSeconds(),
+                propagations: transactionInfo.propagations,
+              },
+            ],
+          };
         }
 
         this.sendEvent(processedEvent, hint);

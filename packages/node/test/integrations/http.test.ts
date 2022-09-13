@@ -164,6 +164,20 @@ describe('tracing', () => {
     expect(baggage).not.toBeDefined();
   });
 
+  it('records outgoing propagations on the transaction', () => {
+    nock('http://dogs.are.great').get('/').reply(200);
+
+    const transaction = createTransactionOnScope();
+
+    expect(transaction.metadata.propagations).toBe(0);
+
+    http.get('http://dogs.are.great/');
+    expect(transaction.metadata.propagations).toBe(1);
+
+    http.get('http://dogs.are.great/');
+    expect(transaction.metadata.propagations).toBe(2);
+  });
+
   describe('tracePropagationTargets option', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions

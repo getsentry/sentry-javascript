@@ -32,7 +32,7 @@ module.exports = async ({ url: urlBase, argv }) => {
       transaction_info: {
         source: 'route',
         changes: [],
-        propagations: 0,
+        propagations: 1,
       },
       type: 'transaction',
       request: {

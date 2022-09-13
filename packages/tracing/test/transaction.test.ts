@@ -24,7 +24,7 @@ describe('`Transaction` class', () => {
       expect(transaction.metadata.source).toEqual('custom');
     });
 
-    it('updates transaction metadata with correct variables needed', () => {
+    it('updates transaction name changes with correct variables needed', () => {
       const transaction = new Transaction({ name: 'dogpark' });
       expect(transaction.metadata.changes).toEqual([]);
 
@@ -62,6 +62,64 @@ describe('`Transaction` class', () => {
           propagations: 3,
         },
       ]);
+
+      // Only change `source`
+      transaction.setName('playground', 'route');
+
+      expect(transaction.metadata.changes).toEqual([
+        {
+          source: 'custom',
+          timestamp: expect.any(Number),
+          propagations: 0,
+        },
+        {
+          source: 'custom',
+          timestamp: expect.any(Number),
+          propagations: 3,
+        },
+        {
+          source: 'route',
+          timestamp: expect.any(Number),
+          propagations: 3,
+        },
+      ]);
+    });
+
+    it("doesn't update transaction name changes if no change in data", () => {
+      const transaction = new Transaction({ name: 'dogpark' });
+      expect(transaction.metadata.changes).toEqual([]);
+
+      transaction.name = 'ballpit';
+
+      expect(transaction.metadata.changes).toEqual([
+        {
+          source: 'custom',
+          timestamp: expect.any(Number),
+          propagations: 0,
+        },
+      ]);
+
+      transaction.name = 'ballpit';
+
+      // Still only one entry
+      expect(transaction.metadata.changes).toEqual([
+        {
+          source: 'custom',
+          timestamp: expect.any(Number),
+          propagations: 0,
+        },
+      ]);
+
+      transaction.setName('ballpit', 'custom');
+
+      // Still only one entry
+      expect(transaction.metadata.changes).toEqual([
+        {
+          source: 'custom',
+          timestamp: expect.any(Number),
+          propagations: 0,
+        },
+      ]);
     });
 
     describe('`setName` method', () => {
@@ -81,7 +139,7 @@ describe('`Transaction` class', () => {
         expect(transaction.metadata.source).toEqual('route');
       });
 
-      it('updates transaction metadata with correct variables needed', () => {
+      it('updates transaction name changes with correct variables needed', () => {
         const transaction = new Transaction({ name: 'dogpark' });
         expect(transaction.metadata.changes).toEqual([]);
 

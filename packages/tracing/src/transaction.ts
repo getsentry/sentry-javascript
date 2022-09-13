@@ -77,13 +77,18 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * JSDoc
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
+    // `source` could change without the name changing if we discover that an unparameterized route is actually
+    // parameterized by virtue of having no parameters in its path
+    if (name !== this.name || source !== this.metadata.source) {
+      this.metadata.changes.push({
+        source,
+        timestamp: timestampInSeconds(),
+        propagations: this.metadata.propagations,
+      });
+    }
+
     this._name = name;
     this.metadata.source = source;
-    this.metadata.changes.push({
-      source,
-      timestamp: timestampInSeconds(),
-      propagations: this.metadata.propagations,
-    });
   }
 
   /**

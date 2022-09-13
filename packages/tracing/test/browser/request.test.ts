@@ -193,6 +193,19 @@ describe('callbacks', () => {
       expect(newSpan).toBeUndefined();
     });
 
+    it('records outgoing propogations', () => {
+      const firstReqData = { ...fetchHandlerData };
+      const secondReqData = { ...fetchHandlerData };
+
+      expect(transaction.metadata.propagations).toBe(0);
+
+      fetchCallback(firstReqData, alwaysCreateSpan, {});
+      expect(transaction.metadata.propagations).toBe(1);
+
+      fetchCallback(secondReqData, alwaysCreateSpan, {});
+      expect(transaction.metadata.propagations).toBe(2);
+    });
+
     it('adds sentry-trace header to fetch requests', () => {
       // TODO
     });
@@ -303,6 +316,19 @@ describe('callbacks', () => {
       const newSpan = transaction.spanRecorder?.spans[1];
 
       expect(newSpan).toBeUndefined();
+    });
+
+    it('records outgoing propogations', () => {
+      const firstReqData = { ...xhrHandlerData };
+      const secondReqData = { ...xhrHandlerData };
+
+      expect(transaction.metadata.propagations).toBe(0);
+
+      xhrCallback(firstReqData, alwaysCreateSpan, {});
+      expect(transaction.metadata.propagations).toBe(1);
+
+      xhrCallback(secondReqData, alwaysCreateSpan, {});
+      expect(transaction.metadata.propagations).toBe(2);
     });
   });
 });
