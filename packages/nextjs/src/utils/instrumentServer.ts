@@ -247,6 +247,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
         currentScope.addEventProcessor(event =>
           event.type !== 'transaction' ? addRequestDataToEvent(event, nextReq) : event,
         );
+        currentScope.setSDKProcessingMetadata({ request: req });
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
