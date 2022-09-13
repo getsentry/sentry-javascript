@@ -60,6 +60,9 @@ describe('extractTraceparentData', () => {
   });
 
   test('invalid', () => {
+    // empty string
+    expect(extractTraceparentData('')).toBeUndefined();
+
     // trace id wrong length
     expect(extractTraceparentData('a-bbbbbbbbbbbbbbbb-1')).toBeUndefined();
 
