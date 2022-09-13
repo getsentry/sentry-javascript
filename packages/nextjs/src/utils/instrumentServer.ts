@@ -1,12 +1,5 @@
 /* eslint-disable max-lines */
-import {
-  addRequestDataToEvent,
-  captureException,
-  configureScope,
-  deepReadDirSync,
-  getCurrentHub,
-  startTransaction,
-} from '@sentry/node';
+import { captureException, configureScope, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import {
   addExceptionMechanism,
@@ -244,9 +237,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event =>
-          event.type !== 'transaction' ? addRequestDataToEvent(event, nextReq) : event,
-        );
+        // Store the request on the scope so we can pull data from it and add it to the event
         currentScope.setSDKProcessingMetadata({ request: req });
 
         // We only want to record page and API requests
@@ -297,10 +288,6 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
             const transaction = getActiveTransaction();
             if (transaction) {
               transaction.setHttpStatus(res.statusCode);
-
-              // we'll collect this data in a more targeted way in the event processor we added above,
-              // `addRequestDataToEvent`
-              delete transaction.metadata.requestPath;
 
               // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the
               // transaction closes
