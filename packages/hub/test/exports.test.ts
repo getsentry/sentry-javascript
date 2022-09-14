@@ -186,35 +186,6 @@ describe('Top Level API', () => {
     });
   });
 
-  describe('startTransaction', () => {
-    beforeEach(() => {
-      global.__SENTRY__ = {
-        hub: undefined,
-        extensions: {
-          startTransaction: (context: any) => ({
-            name: context.name,
-            // Spread rather than assign in case it's undefined
-            metadata: { ...context.metadata },
-          }),
-        },
-      };
-    });
-
-    it("sets source to `'custom'` if no source provided", () => {
-      const transaction = startTransaction({ name: 'dogpark' });
-
-      expect(transaction.name).toEqual('dogpark');
-      expect(transaction.metadata.source).toEqual('custom');
-    });
-
-    it('uses given `source` value', () => {
-      const transaction = startTransaction({ name: 'dogpark', metadata: { source: 'route' } });
-
-      expect(transaction.name).toEqual('dogpark');
-      expect(transaction.metadata.source).toEqual('route');
-    });
-  });
-
   test('Clear Scope', () => {
     const client: any = new TestClient({});
     getCurrentHub().withScope(() => {
