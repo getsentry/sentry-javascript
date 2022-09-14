@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
-import { CrossPlatformRequest, Event, ExtractedNodeRequestData, SessionStatus, StackParser } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, PolymorphicRequest, SessionStatus, StackParser } from '@sentry/types';
 import {
   addRequestDataToEvent as _addRequestDataToEvent,
   AddRequestDataToEventOptions,
@@ -293,7 +293,7 @@ function startSessionTracking(): void {
  */
 export function addRequestDataToEvent(
   event: Event,
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: Omit<AddRequestDataToEventOptions, 'deps'>,
 ): Event {
   return _addRequestDataToEvent(event, req, {
@@ -317,7 +317,7 @@ export function addRequestDataToEvent(
  * @returns An object containing normalized request data
  */
 export function extractRequestData(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: {
     include?: string[];
   },

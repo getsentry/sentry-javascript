@@ -6,11 +6,10 @@
 
 // TODO (v8 / #5257): Remove everything above
 
-import { Event, TransactionSource, User } from '@sentry/types';
+import { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
-  CrossPlatformRequest,
   extractPathForTransaction,
   extractRequestData as newExtractRequestData,
 } from '@sentry/utils';
@@ -43,7 +42,7 @@ describe.each([parseRequest, addRequestDataToEvent])(
       } else {
         return [
           event,
-          req as CrossPlatformRequest,
+          req as PolymorphicRequest,
           {
             include,
             deps: {
@@ -277,7 +276,7 @@ describe.each([oldExtractRequestData, newExtractRequestData])(
         return [req as ExpressRequest, include] as Parameters<typeof oldExtractRequestData>;
       } else {
         return [
-          req as CrossPlatformRequest,
+          req as PolymorphicRequest,
           {
             include,
             deps: {
@@ -496,7 +495,7 @@ describe('extractPathForTransaction', () => {
         baseUrl: '/api/users',
         route: { path: '/:id/details' },
         originalUrl: '/api/users/123/details',
-      } as CrossPlatformRequest,
+      } as PolymorphicRequest,
       { path: true, method: true },
       'GET /api/users/:id/details',
       'route' as TransactionSource,
@@ -508,7 +507,7 @@ describe('extractPathForTransaction', () => {
         baseUrl: '/api/users',
         route: { path: '/:id/details' },
         originalUrl: '/api/users/123/details',
-      } as CrossPlatformRequest,
+      } as PolymorphicRequest,
       { path: true, method: false },
       '/api/users/:id/details',
       'route' as TransactionSource,
@@ -520,7 +519,7 @@ describe('extractPathForTransaction', () => {
         baseUrl: '/api/users',
         route: { path: '/:id/details' },
         originalUrl: '/api/users/123/details',
-      } as CrossPlatformRequest,
+      } as PolymorphicRequest,
       { path: false, method: true },
       'GET',
       'route' as TransactionSource,
@@ -532,7 +531,7 @@ describe('extractPathForTransaction', () => {
         baseUrl: '/api/users',
         route: { path: '/:id/details' },
         originalUrl: '/api/users/123/details',
-      } as CrossPlatformRequest,
+      } as PolymorphicRequest,
       { path: false, method: false },
       '',
       'route' as TransactionSource,
@@ -543,7 +542,7 @@ describe('extractPathForTransaction', () => {
         method: 'get',
         baseUrl: '/api/users',
         originalUrl: '/api/users/123/details',
-      } as CrossPlatformRequest,
+      } as PolymorphicRequest,
       { path: true, method: true },
       'GET /api/users/123/details',
       'url' as TransactionSource,
@@ -552,7 +551,7 @@ describe('extractPathForTransaction', () => {
     '%s',
     (
       _: string,
-      req: CrossPlatformRequest,
+      req: PolymorphicRequest,
       options: { path?: boolean; method?: boolean },
       expectedRoute: string,
       expectedSource: TransactionSource,
@@ -570,7 +569,7 @@ describe('extractPathForTransaction', () => {
       baseUrl: '/api/users',
       route: { path: '/:id/details' },
       originalUrl: '/api/users/123/details',
-    } as CrossPlatformRequest;
+    } as PolymorphicRequest;
 
     const [route, source] = extractPathForTransaction(req, {
       path: true,

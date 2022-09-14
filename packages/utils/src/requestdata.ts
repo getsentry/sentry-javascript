@@ -12,7 +12,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CrossPlatformRequest, Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, PolymorphicRequest, Transaction, TransactionSource } from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
 import { normalize } from './normalize';
@@ -44,7 +44,7 @@ type InjectedNodeDeps = {
  */
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
@@ -74,7 +74,7 @@ export function addRequestDataToTransaction(
  * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
  */
 export function extractPathForTransaction(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options: { path?: boolean; method?: boolean; customRoute?: string } = {},
 ): [string, TransactionSource] {
   const method = req.method && req.method.toUpperCase();
@@ -110,7 +110,7 @@ export function extractPathForTransaction(
 type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: CrossPlatformRequest, type: boolean | TransactionNamingScheme): string {
+function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
       return extractPathForTransaction(req, { path: true })[0];
@@ -154,7 +154,7 @@ function extractUserData(
  * @returns An object containing normalized request data
  */
 export function extractRequestData(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: {
     include?: string[];
     deps?: InjectedNodeDeps;
@@ -282,7 +282,7 @@ export interface AddRequestDataToEventOptions {
  */
 export function addRequestDataToEvent(
   event: Event,
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: AddRequestDataToEventOptions,
 ): Event {
   const include = {
@@ -335,7 +335,7 @@ export function addRequestDataToEvent(
 }
 
 function extractQueryParams(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   deps?: InjectedNodeDeps,
 ): string | Record<string, unknown> | undefined {
   // url (including path and query string):

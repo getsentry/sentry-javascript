@@ -6,7 +6,7 @@
 
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CrossPlatformRequest, Event, ExtractedNodeRequestData } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, PolymorphicRequest } from '@sentry/types';
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
@@ -16,9 +16,9 @@ import * as cookie from 'cookie';
 import * as url from 'url';
 
 /**
- * @deprecated `Handlers.ExpressRequest` is deprecated and will be removed in v8. Use `CrossPlatformRequest` instead.
+ * @deprecated `Handlers.ExpressRequest` is deprecated and will be removed in v8. Use `PolymorphicRequest` instead.
  */
-export type ExpressRequest = CrossPlatformRequest;
+export type ExpressRequest = PolymorphicRequest;
 
 /**
  * Normalizes data from the request object, accounting for framework differences.

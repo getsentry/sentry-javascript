@@ -1,7 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
-  CrossPlatformRequest,
+  PolymorphicRequest,
   Request,
   SdkInfo,
   Event,

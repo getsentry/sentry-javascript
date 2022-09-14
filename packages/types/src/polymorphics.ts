@@ -13,7 +13,7 @@ export interface PolymorphicEvent {
 }
 
 /** A `Request` type compatible with Node, Express, browser, etc., because everything is optional */
-export type CrossPlatformRequest = BaseRequest &
+export type PolymorphicRequest = BaseRequest &
   BrowserRequest &
   NodeRequest &
   ExpressRequest &

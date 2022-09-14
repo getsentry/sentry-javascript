@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { CrossPlatformRequest, Integration, Transaction } from '@sentry/types';
+import { Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
 
 type Method =
@@ -33,8 +33,8 @@ type Router = {
   [method in Method]: (...args: any) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
-/* Extend the CrossPlatformRequest type with a patched parameter to build a reconstructed route */
-type PatchedRequest = CrossPlatformRequest & { _reconstructedRoute?: string };
+/* Extend the PolymorphicRequest type with a patched parameter to build a reconstructed route */
+type PatchedRequest = PolymorphicRequest & { _reconstructedRoute?: string };
 
 /* Types used for patching the express router prototype */
 type ExpressRouter = Router & {
