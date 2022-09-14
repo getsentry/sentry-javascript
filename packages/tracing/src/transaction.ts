@@ -27,7 +27,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _trimEnd?: boolean;
 
-  private _frozenDynamicSamplingContext: Partial<DynamicSamplingContext> | undefined = undefined;
+  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined = undefined;
 
   /**
    * This constructor should never be called manually. Those instrumenting tracing should use
@@ -57,9 +57,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
     // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = (transactionContext.metadata || {}).dynamicSamplingContext;
+    const incomingDynamicSamplingContext = this.metadata.dynamicSamplingContext;
     if (incomingDynamicSamplingContext) {
-      this._frozenDynamicSamplingContext = incomingDynamicSamplingContext;
+      // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
+      this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
     }
   }
 
@@ -228,7 +229,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    *
    * @experimental
    */
-  public getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined {
+  public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> | undefined {
     if (this._frozenDynamicSamplingContext) {
       return this._frozenDynamicSamplingContext;
     }
