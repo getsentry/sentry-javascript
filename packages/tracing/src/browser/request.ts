@@ -273,7 +273,7 @@ function addTracingHeadersToFetchRequest(
     return {
       ...(headers as Exclude<typeof headers, Headers>),
       'sentry-trace': sentryTraceHeader,
-      baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(', ') : undefined,
+      baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
 }
