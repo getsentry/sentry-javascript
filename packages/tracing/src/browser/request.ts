@@ -247,8 +247,7 @@ function addTracingHeadersToFetchRequest(
 
     return newHeaders as PolymorphicRequestHeaders;
   } else if (Array.isArray(headers)) {
-    const newHeaders = [...headers];
-    newHeaders.push(['sentry-trace', sentryTraceHeader]);
+    const newHeaders = [...headers, ['sentry-trace', sentryTraceHeader]];
 
     if (sentryBaggageHeader) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
