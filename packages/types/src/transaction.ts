@@ -96,7 +96,7 @@ export interface Transaction extends TransactionContext, Span {
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 
   /** Return the current Dynamic Sampling Context of this transaction */
-  getDynamicSamplingContext(): Partial<DynamicSamplingContext> | undefined;
+  getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
 }
 
 /**

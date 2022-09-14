@@ -83,12 +83,8 @@ export function baggageHeaderToDynamicSamplingContext(
  */
 export function dynamicSamplingContextToSentryBaggageHeader(
   // this also takes undefined for convenience and bundle size in other places
-  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
+  dynamicSamplingContext: Partial<DynamicSamplingContext>,
 ): string | undefined {
-  if (!dynamicSamplingContext) {
-    return undefined;
-  }
-
   // Prefix all DSC keys with "sentry-" and put them into a new object
   const sentryPrefixedDSC = Object.entries(dynamicSamplingContext).reduce<Record<string, string>>(
     (acc, [dscKey, dscValue]) => {

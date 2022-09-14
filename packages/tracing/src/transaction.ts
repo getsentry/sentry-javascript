@@ -229,7 +229,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    *
    * @experimental
    */
-  public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> | undefined {
+  public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> {
     if (this._frozenDynamicSamplingContext) {
       return this._frozenDynamicSamplingContext;
     }
@@ -237,7 +237,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const hub: Hub = this._hub || getCurrentHub();
     const client = hub && hub.getClient();
 
-    if (!client) return undefined;
+    if (!client) return {};
 
     const { environment, release } = client.getOptions() || {};
     const { publicKey: public_key } = client.getDsn() || {};

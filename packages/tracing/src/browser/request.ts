@@ -216,7 +216,7 @@ export function fetchCallback(
 
 function addTracingHeadersToFetchRequest(
   request: string | Request,
-  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
+  dynamicSamplingContext: Partial<DynamicSamplingContext>,
   span: Span,
   options: {
     headers?:
