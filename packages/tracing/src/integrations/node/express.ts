@@ -1,12 +1,6 @@
 /* eslint-disable max-lines */
-import { Integration, Transaction } from '@sentry/types';
-import {
-  CrossPlatformRequest,
-  extractPathForTransaction,
-  getNumberOfUrlSegments,
-  isRegExp,
-  logger,
-} from '@sentry/utils';
+import { CrossPlatformRequest, Integration, Transaction } from '@sentry/types';
+import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
 
 type Method =
   | 'all'

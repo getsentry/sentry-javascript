@@ -1,12 +1,11 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
-import { Event, ExtractedNodeRequestData, SessionStatus, StackParser } from '@sentry/types';
+import { CrossPlatformRequest, Event, ExtractedNodeRequestData, SessionStatus, StackParser } from '@sentry/types';
 import {
   addRequestDataToEvent as _addRequestDataToEvent,
   AddRequestDataToEventOptions,
   createStackParser,
-  CrossPlatformRequest,
   extractRequestData as _extractRequestData,
   getGlobalObject,
   logger,

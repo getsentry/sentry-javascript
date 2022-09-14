@@ -6,11 +6,10 @@
 
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Event, ExtractedNodeRequestData } from '@sentry/types';
+import { CrossPlatformRequest, Event, ExtractedNodeRequestData } from '@sentry/types';
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
-  CrossPlatformRequest,
   extractRequestData as _extractRequestData,
 } from '@sentry/utils';
 import * as cookie from 'cookie';

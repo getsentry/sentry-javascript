@@ -1,6 +1,7 @@
 export type {
   Breadcrumb,
   BreadcrumbHint,
+  CrossPlatformRequest,
   Request,
   SdkInfo,
   Event,
@@ -15,7 +16,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions, CrossPlatformRequest } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
 export type { NodeOptions } from './types';
 

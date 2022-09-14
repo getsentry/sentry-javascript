@@ -12,7 +12,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
+import { CrossPlatformRequest, Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
 import { normalize } from './normalize';
@@ -26,71 +26,6 @@ const DEFAULT_INCLUDES = {
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
 const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
-
-type BaseRequest = {
-  method?: string;
-  url?: string;
-};
-
-type BrowserRequest = BaseRequest;
-
-type NodeRequest = BaseRequest & {
-  headers?: {
-    [key: string]: string | string[] | undefined;
-  };
-  protocol?: string;
-  socket?: {
-    encrypted?: boolean;
-    remoteAddress?: string;
-  };
-};
-
-type KoaRequest = NodeRequest & {
-  host?: string;
-  hostname?: string;
-  ip?: string;
-  originalUrl?: string;
-};
-
-type NextjsRequest = NodeRequest & {
-  cookies?: {
-    [key: string]: string;
-  };
-  query?: {
-    [key: string]: any;
-  };
-};
-
-type ExpressRequest = NodeRequest & {
-  baseUrl?: string;
-  body?: string | { [key: string]: any };
-  host?: string;
-  hostname?: string;
-  ip?: string;
-  originalUrl?: string;
-  route?: {
-    path: string;
-    stack: [
-      {
-        name: string;
-      },
-    ];
-  };
-  query?: {
-    [key: string]: any;
-  };
-  user?: {
-    [key: string]: any;
-  };
-};
-
-/** A `Request` type compatible with Node, Express, browser, etc., because everything is optional */
-export type CrossPlatformRequest = BaseRequest &
-  BrowserRequest &
-  NodeRequest &
-  ExpressRequest &
-  KoaRequest &
-  NextjsRequest;
 
 type InjectedNodeDeps = {
   cookie: {
