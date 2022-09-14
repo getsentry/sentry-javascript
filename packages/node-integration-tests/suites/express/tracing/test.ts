@@ -41,7 +41,7 @@ test('should set a correct transaction name for routes specified in RegEx', asyn
       changes: [
         {
           propagations: 0,
-          source: 'url',
+          source: 'route',
           timestamp: expect.any(Number),
         },
       ],
