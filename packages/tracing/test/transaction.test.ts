@@ -25,14 +25,14 @@ describe('`Transaction` class', () => {
     });
 
     it('updates transaction name changes with correct variables needed', () => {
-      const transaction = new Transaction({ name: 'dogpark' });
+      const transaction = new Transaction({ name: 'dogpark', metadata: { source: 'url' } });
       expect(transaction.metadata.changes).toEqual([]);
 
       transaction.name = 'ballpit';
 
       expect(transaction.metadata.changes).toEqual([
         {
-          source: 'custom',
+          source: 'url',
           timestamp: expect.any(Number),
           propagations: 0,
         },
@@ -42,7 +42,7 @@ describe('`Transaction` class', () => {
 
       expect(transaction.metadata.changes).toEqual([
         {
-          source: 'custom',
+          source: 'url',
           timestamp: expect.any(Number),
           propagations: 0,
         },
@@ -52,7 +52,7 @@ describe('`Transaction` class', () => {
 
       expect(transaction.metadata.changes).toEqual([
         {
-          source: 'custom',
+          source: 'url',
           timestamp: expect.any(Number),
           propagations: 0,
         },
@@ -68,7 +68,7 @@ describe('`Transaction` class', () => {
 
       expect(transaction.metadata.changes).toEqual([
         {
-          source: 'custom',
+          source: 'url',
           timestamp: expect.any(Number),
           propagations: 0,
         },
@@ -78,7 +78,7 @@ describe('`Transaction` class', () => {
           propagations: 3,
         },
         {
-          source: 'route',
+          source: 'custom',
           timestamp: expect.any(Number),
           propagations: 3,
         },
@@ -140,14 +140,14 @@ describe('`Transaction` class', () => {
       });
 
       it('updates transaction name changes with correct variables needed', () => {
-        const transaction = new Transaction({ name: 'dogpark' });
+        const transaction = new Transaction({ name: 'dogpark', metadata: { source: 'url' } });
         expect(transaction.metadata.changes).toEqual([]);
 
         transaction.name = 'ballpit';
 
         expect(transaction.metadata.changes).toEqual([
           {
-            source: 'custom',
+            source: 'url',
             timestamp: expect.any(Number),
             propagations: 0,
           },
@@ -157,7 +157,7 @@ describe('`Transaction` class', () => {
 
         expect(transaction.metadata.changes).toEqual([
           {
-            source: 'custom',
+            source: 'url',
             timestamp: expect.any(Number),
             propagations: 0,
           },
@@ -167,12 +167,12 @@ describe('`Transaction` class', () => {
 
         expect(transaction.metadata.changes).toEqual([
           {
-            source: 'custom',
+            source: 'url',
             timestamp: expect.any(Number),
             propagations: 0,
           },
           {
-            source: 'task',
+            source: 'custom',
             timestamp: expect.any(Number),
             propagations: 3,
           },
