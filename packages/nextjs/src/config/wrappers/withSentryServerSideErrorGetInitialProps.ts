@@ -51,8 +51,9 @@ export function withSentryServerSideErrorGetInitialProps(
 
       const requestTransaction = getTransactionFromRequest(req!);
       if (requestTransaction) {
-        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
         errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
+
+        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
         errorGetInitialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }
 

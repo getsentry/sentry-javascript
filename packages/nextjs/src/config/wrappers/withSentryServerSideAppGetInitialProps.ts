@@ -50,8 +50,9 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
 
       const requestTransaction = getTransactionFromRequest(req!);
       if (requestTransaction) {
-        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
         appGetInitialProps.pageProps._sentryTraceData = requestTransaction.toTraceparent();
+
+        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
         appGetInitialProps.pageProps._sentryBaggage =
           dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }

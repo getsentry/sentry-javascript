@@ -44,8 +44,9 @@ export function withSentryGetServerSideProps(
       if ('props' in serverSideProps) {
         const requestTransaction = getTransactionFromRequest(req);
         if (requestTransaction) {
-          const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
           serverSideProps.props._sentryTraceData = requestTransaction.toTraceparent();
+
+          const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
           serverSideProps.props._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }
       }
