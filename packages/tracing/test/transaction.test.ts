@@ -9,11 +9,11 @@ describe('`Transaction` class', () => {
       expect(transaction.metadata.source).toEqual('route');
     });
 
-    it("doesn't set source in constructor if not provided", () => {
+    it("sets source to be `'custom'` in constructor if not provided", () => {
       const transaction = new Transaction({ name: 'dogpark' });
 
       expect(transaction.name).toEqual('dogpark');
-      expect(transaction.metadata.source).toBeUndefined();
+      expect(transaction.metadata.source).toBe('custom');
     });
 
     it("sets source to `'custom'` when assigning to `name` property", () => {
