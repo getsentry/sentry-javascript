@@ -44,6 +44,7 @@
     "@sentry/browser": "^7.7.0",
     "@size-limit/preset-big-lib": "^7.0.8",
     "@types/jest": "^28.1.1",
+    "@types/lodash.throttle": "^4.1.7",
     "@types/node": "^16.0.0",
     "@types/pako": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
@@ -71,6 +72,7 @@
     "@sentry/core": "^7.7.0",
     "@sentry/types": "^7.7.0",
     "@sentry/utils": "^7.7.0",
+    "lodash.throttle": "^4.1.1",
     "pako": "^2.0.4",
     "rrweb": "^1.1.3"
   },

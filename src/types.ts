@@ -6,6 +6,11 @@ export type RecordingConfig = Parameters<typeof record>[0];
 
 export type RecordedEvents = Uint8Array | string;
 
+export type AllPerformanceEntry =
+  | PerformancePaintTiming
+  | PerformanceResourceTiming
+  | PerformanceNavigationTiming;
+
 export interface ReplayRequest {
   endpoint: string;
   events: RecordedEvents;

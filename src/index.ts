@@ -8,6 +8,7 @@ import {
 import { Breadcrumb, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler } from '@sentry/utils';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import throttle from 'lodash.throttle';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -36,6 +37,7 @@ import {
 } from './createPerformanceEntry';
 import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import type {
+  AllPerformanceEntry,
   InitialState,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
@@ -73,7 +75,7 @@ export class SentryReplay implements Integration {
   /**
    * List of PerformanceEntry from PerformanceObserver
    */
-  public performanceEvents: PerformanceEntry[] = [];
+  public performanceEvents: AllPerformanceEntry[] = [];
 
   /**
    * Options to pass to `rrweb.record()`
@@ -104,6 +106,8 @@ export class SentryReplay implements Integration {
    * slightly differently in this case: `replay_start_timestamp` is included.
    */
   private newSessionCreated = false;
+
+  private flushLock: Promise<unknown> | null = null;
 
   /**
    * Is the integration currently active?
@@ -895,33 +899,11 @@ export class SentryReplay implements Integration {
     return context;
   }
 
-  /**
-   * Flushes replay event buffer to Sentry.
-   *
-   * Performance events are only added right before flushing - this is probably
-   * due to the buffered performance observer events.
-   */
-  async flushUpdate() {
-    if (!this.isEnabled) {
-      // This is just a precaution, there should be no listeners that would
-      // cause a flush.
-      return;
-    }
-
-    if (!this.checkAndHandleExpiredSession()) {
-      logger.error(
-        new Error('Attempting to finish replay event after session expired.')
-      );
-      return;
-    }
-
-    if (!this.session?.id) {
+  async runFlush() {
+    if (!this.session) {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
     }
-
-    // Since already flushing, ensure other queued flushes are cancelled
-    clearTimeout(this.timeout);
 
     await this.addPerformanceEntries();
 
@@ -964,6 +946,65 @@ export class SentryReplay implements Integration {
       console.error(err);
     }
   }
+
+  /**
+   * Flushes replay event buffer to Sentry.
+   *
+   * Performance events are only added right before flushing - this is probably
+   * due to the buffered performance observer events.
+   */
+  flushUpdate = async () => {
+    if (!this.isEnabled) {
+      // This is just a precaution, there should be no listeners that would
+      // cause a flush.
+      return;
+    }
+
+    if (!this.checkAndHandleExpiredSession()) {
+      logger.error(
+        new Error('Attempting to finish replay event after session expired.')
+      );
+      return;
+    }
+
+    if (!this.session?.id) {
+      console.error(new Error('[Sentry]: No transaction, no replay'));
+      return;
+    }
+
+    // Since flushing, ensure other queued flushes are cancelled
+    // We do this regardless of having a queued flush since the event updates
+    // will be handled by queued flush
+    clearTimeout(this.timeout);
+
+    // No existing flush in progress, proceed with flushing.
+    // this.flushLock acts as a lock so that future calls to `flushUpdate()`
+    // will be blocked until this promise resolves
+    if (!this.flushLock) {
+      this.flushLock = this.runFlush();
+      await this.flushLock;
+      this.flushLock = null;
+      return;
+    }
+
+    // Wait for previous flush to finish, then call a throttled
+    // `flushUpdate()`. It's throttled because other flush
+    // requests could be queued waiting for it to resolve. We want to reduce
+    // all outstanding requests (as well as any new flush requests that occur
+    // within a second of the locked flush completing) into a single flush.
+    try {
+      await this.flushLock;
+    } catch (err) {
+      console.error(err);
+    } finally {
+      this.throttledFlushUpdate();
+    }
+  };
+
+  throttledFlushUpdate = throttle(this.flushUpdate, 1000, {
+    leading: false,
+    trailing: true,
+  });
 
   /**
    * Send replay attachment using `fetch()`

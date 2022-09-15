@@ -238,6 +238,7 @@ describe('SentryReplay', () => {
 
     replay.addEvent(TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -527,6 +528,7 @@ describe('SentryReplay', () => {
 
     replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
+    jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(mockCaptureReplayEvent).toHaveBeenCalled();
@@ -718,6 +720,7 @@ describe('SentryReplay', () => {
     // This event will trigger capturing recording
     replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay.session?.id).not.toBe(oldSessionId);

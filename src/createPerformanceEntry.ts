@@ -1,6 +1,7 @@
 import { record } from 'rrweb';
 
 import { isIngestHost } from './util/isIngestHost';
+import { AllPerformanceEntry } from './types';
 
 export interface ReplayPerformanceEntry {
   /**
@@ -38,7 +39,7 @@ interface MemoryInfo {
 // Map entryType -> function to normalize data for event
 const ENTRY_TYPES: Record<
   string,
-  (entry: PerformanceEntry) => null | ReplayPerformanceEntry
+  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry
 > = {
   resource: createResourceEntry,
   paint: createPaintEntry,
@@ -46,13 +47,13 @@ const ENTRY_TYPES: Record<
   ['largest-contentful-paint']: createLargestContentfulPaint,
 };
 
-export function createPerformanceEntries(entries: PerformanceEntry[]) {
+export function createPerformanceEntries(entries: AllPerformanceEntry[]) {
   return entries
     .map(createPerformanceEntry)
     .filter(Boolean) as ReplayPerformanceEntry[];
 }
 
-function createPerformanceEntry(entry: PerformanceEntry) {
+function createPerformanceEntry(entry: AllPerformanceEntry) {
   if (ENTRY_TYPES[entry.entryType] === undefined) {
     return null;
   }
