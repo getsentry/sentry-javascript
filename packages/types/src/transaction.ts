@@ -149,7 +149,7 @@ export interface TransactionMetadata {
   requestPath?: string;
 
   /** Information on how a transaction name was generated. */
-  source?: TransactionSource;
+  source: TransactionSource;
 
   /** Metadata for the transaction's spans, keyed by spanId */
   spanMetadata: { [spanId: string]: { [key: string]: unknown } };
@@ -189,7 +189,7 @@ export interface TransactionNameChange {
    */
   timestamp: number;
 
-  /** New source applied for transaction name change */
+  /** Previous source before transaction name change */
   source: TransactionSource;
 
   /** Number of propagations since start of transaction */

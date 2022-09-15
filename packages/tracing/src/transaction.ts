@@ -44,6 +44,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     this._name = transactionContext.name || '';
 
     this.metadata = {
+      source: 'custom',
       ...transactionContext.metadata,
       spanMetadata: {},
       changes: [],
@@ -82,7 +83,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // parameterized by virtue of having no parameters in its path
     if (name !== this.name || source !== this.metadata.source) {
       this.metadata.changes.push({
-        source,
+        // log previous source
+        source: this.metadata.source,
         timestamp: timestampInSeconds(),
         propagations: this.metadata.propagations,
       });

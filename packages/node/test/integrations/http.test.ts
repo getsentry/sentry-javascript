@@ -119,7 +119,7 @@ describe('tracing', () => {
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,' +
+      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
         'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     );
@@ -135,14 +135,14 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     ]);
   });
 
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'custom' } });
+    createTransactionOnScope({}, { metadata: { source: 'route' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -150,6 +150,20 @@ describe('tracing', () => {
     expect(baggageHeader).toEqual([
       'dog=great',
       'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
+    ]);
+  });
+
+  it('does not add the transaction name to the the baggage header if url transaction source is set', async () => {
+    nock('http://dogs.are.great').get('/').reply(200);
+
+    createTransactionOnScope({}, { metadata: { source: 'url' } });
+
+    const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
+    const baggageHeader = request.getHeader('baggage') as string;
+
+    expect(baggageHeader).toEqual([
+      'dog=great',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1',
     ]);
   });
 

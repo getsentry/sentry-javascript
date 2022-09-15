@@ -440,26 +440,23 @@ describe('Span', () => {
         environment: 'production',
         sample_rate: '0.56',
         trace_id: expect.any(String),
+        transaction: 'tx',
       });
     });
 
     describe('Including transaction name in DSC', () => {
-      test.each([
-        ['is not included if transaction source is not set', undefined],
-        ['is not included if transaction source is url', 'url'],
-      ])('%s', (_: string, source) => {
+      test('is not included if transaction source is url', () => {
         const transaction = new Transaction(
           {
             name: 'tx',
             metadata: {
-              ...(source && { source: source as TransactionSource }),
+              source: 'url',
             },
           },
           hub,
         );
 
         const dsc = transaction.getDynamicSamplingContext()!;
-
         expect(dsc.transaction).toBeUndefined();
       });
 
@@ -485,25 +482,6 @@ describe('Span', () => {
   });
 
   describe('Transaction source', () => {
-    test('is not included by default', () => {
-      const spy = jest.spyOn(hub as any, 'captureEvent') as any;
-      const transaction = hub.startTransaction({ name: 'test', sampled: true });
-      expect(spy).toHaveBeenCalledTimes(0);
-
-      transaction.finish();
-
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenLastCalledWith(
-        expect.not.objectContaining({
-          transaction_info: {
-            source: expect.any(String),
-            changes: [],
-            propagations: 0,
-          },
-        }),
-      );
-    });
-
     test('is included when transaction metadata is set', () => {
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const transaction = hub.startTransaction({ name: 'test', sampled: true });

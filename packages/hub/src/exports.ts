@@ -181,11 +181,5 @@ export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
-  return getCurrentHub().startTransaction(
-    {
-      metadata: { source: 'custom' },
-      ...context,
-    },
-    customSamplingContext,
-  );
+  return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
 }
