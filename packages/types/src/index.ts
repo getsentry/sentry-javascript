@@ -38,7 +38,7 @@ export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
-export type { PolymorphicEvent } from './polymorphics';
+export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
 export type { QueryParams, Request } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';

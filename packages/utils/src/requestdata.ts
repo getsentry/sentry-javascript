@@ -12,7 +12,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Event, ExtractedNodeRequestData, Transaction, TransactionSource } from '@sentry/types';
+import { Event, ExtractedNodeRequestData, PolymorphicRequest, Transaction, TransactionSource } from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
 import { normalize } from './normalize';
@@ -26,71 +26,6 @@ const DEFAULT_INCLUDES = {
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
 const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
-
-type BaseRequest = {
-  method?: string;
-  url?: string;
-};
-
-type BrowserRequest = BaseRequest;
-
-type NodeRequest = BaseRequest & {
-  headers?: {
-    [key: string]: string | string[] | undefined;
-  };
-  protocol?: string;
-  socket?: {
-    encrypted?: boolean;
-    remoteAddress?: string;
-  };
-};
-
-type KoaRequest = NodeRequest & {
-  host?: string;
-  hostname?: string;
-  ip?: string;
-  originalUrl?: string;
-};
-
-type NextjsRequest = NodeRequest & {
-  cookies?: {
-    [key: string]: string;
-  };
-  query?: {
-    [key: string]: any;
-  };
-};
-
-type ExpressRequest = NodeRequest & {
-  baseUrl?: string;
-  body?: string | { [key: string]: any };
-  host?: string;
-  hostname?: string;
-  ip?: string;
-  originalUrl?: string;
-  route?: {
-    path: string;
-    stack: [
-      {
-        name: string;
-      },
-    ];
-  };
-  query?: {
-    [key: string]: any;
-  };
-  user?: {
-    [key: string]: any;
-  };
-};
-
-/** A `Request` type compatible with Node, Express, browser, etc., because everything is optional */
-export type CrossPlatformRequest = BaseRequest &
-  BrowserRequest &
-  NodeRequest &
-  ExpressRequest &
-  KoaRequest &
-  NextjsRequest;
 
 type InjectedNodeDeps = {
   cookie: {
@@ -109,7 +44,7 @@ type InjectedNodeDeps = {
  */
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
@@ -139,7 +74,7 @@ export function addRequestDataToTransaction(
  * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
  */
 export function extractPathForTransaction(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options: { path?: boolean; method?: boolean; customRoute?: string } = {},
 ): [string, TransactionSource] {
   const method = req.method && req.method.toUpperCase();
@@ -175,7 +110,7 @@ export function extractPathForTransaction(
 type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /** JSDoc */
-function extractTransaction(req: CrossPlatformRequest, type: boolean | TransactionNamingScheme): string {
+function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
       return extractPathForTransaction(req, { path: true })[0];
@@ -219,7 +154,7 @@ function extractUserData(
  * @returns An object containing normalized request data
  */
 export function extractRequestData(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: {
     include?: string[];
     deps?: InjectedNodeDeps;
@@ -347,7 +282,7 @@ export interface AddRequestDataToEventOptions {
  */
 export function addRequestDataToEvent(
   event: Event,
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   options?: AddRequestDataToEventOptions,
 ): Event {
   const include = {
@@ -400,7 +335,7 @@ export function addRequestDataToEvent(
 }
 
 function extractQueryParams(
-  req: CrossPlatformRequest,
+  req: PolymorphicRequest,
   deps?: InjectedNodeDeps,
 ): string | Record<string, unknown> | undefined {
   // url (including path and query string):
