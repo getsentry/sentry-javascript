@@ -28,8 +28,7 @@
     "@sentry/utils": "7.13.0",
     "@sentry/webpack-plugin": "1.19.0",
     "chalk": "3.0.0",
-    "rollup": "2.78.0",
-    "tslib": "^1.9.3"
+    "rollup": "2.78.0"
   },
   "devDependencies": {
     "@sentry/nextjs": "7.13.0",

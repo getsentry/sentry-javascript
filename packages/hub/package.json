@@ -17,8 +17,7 @@
   },
   "dependencies": {
     "@sentry/types": "7.13.0",
-    "@sentry/utils": "7.13.0",
-    "tslib": "^1.9.3"
+    "@sentry/utils": "7.13.0"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",

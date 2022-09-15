@@ -23,8 +23,7 @@
   "dependencies": {
     "@sentry/browser": "7.13.0",
     "@sentry/types": "7.13.0",
-    "@sentry/utils": "7.13.0",
-    "tslib": "^2.0.0"
+    "@sentry/utils": "7.13.0"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.1002.4",
