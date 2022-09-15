@@ -16,8 +16,8 @@
 - fix(nextjs): Make NextApiHandler type version-agnostic (#5737)
 - fix(tracing): Set sample rate in transaction metadata and DSC (#5691)
 - ref: Make dynamic sampling context mutable (#5710)
-- chore(nextjs): Remove obsolete dataFetchers loader (#5713)
 - ref(tracing): Record transaction name changes (#5723)
+- chore(nextjs): Remove obsolete dataFetchers loader (#5713)
 
 ## 7.12.1
 
