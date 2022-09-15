@@ -117,7 +117,6 @@ describe('withSentry', () => {
           op: 'http.server',
 
           metadata: {
-            baggage: expect.any(Array),
             source: 'route',
           },
         },

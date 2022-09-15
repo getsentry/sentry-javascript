@@ -1,10 +1,10 @@
 import { getCurrentHub } from '@sentry/hub';
 import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
+  baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,
   getGlobalObject,
   logger,
-  parseBaggageHeader,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
@@ -128,6 +128,7 @@ export function nextRouterInstrumentation(
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
     activeTransaction = startTransactionCb({
       name: prevLocationName,
@@ -137,7 +138,7 @@ export function nextRouterInstrumentation(
       ...traceParentData,
       metadata: {
         source,
-        ...(baggage && { baggage: parseBaggageHeader(baggage) }),
+        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
     });
   }

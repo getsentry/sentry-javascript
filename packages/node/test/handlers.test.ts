@@ -2,8 +2,8 @@ import * as sentryCore from '@sentry/core';
 import * as sentryHub from '@sentry/hub';
 import { Hub } from '@sentry/hub';
 import { Transaction } from '@sentry/tracing';
-import { Baggage, Event } from '@sentry/types';
-import { getThirdPartyBaggage, isBaggageMutable, isSentryBaggageEmpty, SentryError } from '@sentry/utils';
+import { Event } from '@sentry/types';
+import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 
 import { NodeClient } from '../src/client';
@@ -221,10 +221,7 @@ describe('tracingHandler', () => {
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
-    expect(transaction.metadata?.baggage).toBeDefined();
-    expect(isSentryBaggageEmpty(transaction.metadata?.baggage)).toBe(true);
-    expect(getThirdPartyBaggage(transaction.metadata?.baggage)).toEqual('');
-    expect(isBaggageMutable(transaction.metadata?.baggage)).toBe(false);
+    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({});
   });
 
   it("pulls parent's data from tracing and baggage headers on the request", () => {
@@ -241,15 +238,10 @@ describe('tracingHandler', () => {
     expect(transaction.traceId).toEqual('12312012123120121231201212312012');
     expect(transaction.parentSpanId).toEqual('1121201211212012');
     expect(transaction.sampled).toEqual(false);
-    expect(transaction.metadata?.baggage).toBeDefined();
-    expect(transaction.metadata?.baggage).toEqual([
-      { version: '1.0', environment: 'production' },
-      '',
-      false,
-    ] as Baggage);
+    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
-  it('ignores 3rd party entries in incoming baggage header', () => {
+  it("doesn't populate dynamic sampling context with 3rd party baggage", () => {
     req.headers = {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
       baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
@@ -258,13 +250,7 @@ describe('tracingHandler', () => {
     sentryTracingMiddleware(req, res, next);
 
     const transaction = (res as any).__sentry_transaction;
-
-    expect(transaction.metadata?.baggage).toBeDefined();
-    expect(transaction.metadata?.baggage).toEqual([
-      { version: '1.0', environment: 'production' },
-      '',
-      false,
-    ] as Baggage);
+    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
   it('extracts request data for sampling context', () => {

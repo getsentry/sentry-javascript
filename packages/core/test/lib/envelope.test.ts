@@ -20,7 +20,7 @@ describe('createEventEnvelope', () => {
         {
           type: 'transaction',
           sdkProcessingMetadata: {
-            baggage: [{ trace_id: '1234', public_key: 'pubKey123' }, '', false],
+            dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
           },
         },
         { trace_id: '1234', public_key: 'pubKey123' },
@@ -30,7 +30,12 @@ describe('createEventEnvelope', () => {
         {
           type: 'transaction',
           sdkProcessingMetadata: {
-            baggage: [{ environment: 'prod', release: '1.0.0', public_key: 'pubKey123', trace_id: '1234' }, '', false],
+            dynamicSamplingContext: {
+              environment: 'prod',
+              release: '1.0.0',
+              public_key: 'pubKey123',
+              trace_id: '1234',
+            },
           },
         },
         { release: '1.0.0', environment: 'prod', trace_id: '1234', public_key: 'pubKey123' },
@@ -40,19 +45,15 @@ describe('createEventEnvelope', () => {
         {
           type: 'transaction',
           sdkProcessingMetadata: {
-            baggage: [
-              {
-                environment: 'prod',
-                release: '1.0.0',
-                transaction: 'TX',
-                user_segment: 'segmentA',
-                sample_rate: '0.95',
-                public_key: 'pubKey123',
-                trace_id: '1234',
-              },
-              '',
-              false,
-            ],
+            dynamicSamplingContext: {
+              environment: 'prod',
+              release: '1.0.0',
+              transaction: 'TX',
+              user_segment: 'segmentA',
+              sample_rate: '0.95',
+              public_key: 'pubKey123',
+              trace_id: '1234',
+            },
           },
         },
         {

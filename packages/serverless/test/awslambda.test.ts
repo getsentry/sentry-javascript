@@ -192,7 +192,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true], source: 'component' },
+        metadata: { source: 'component' },
       };
 
       expect(rv).toStrictEqual(42);
@@ -219,7 +219,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true], source: 'component' },
+          metadata: { source: 'component' },
         };
 
         // @ts-ignore see "Why @ts-ignore" note
@@ -262,13 +262,9 @@ describe('AWSLambda', () => {
             name: 'functionName',
             traceId: '12312012123120121231201212312012',
             metadata: {
-              baggage: [
-                {
-                  release: '2.12.1',
-                },
-                '',
-                false,
-              ],
+              dynamicSamplingContext: {
+                release: '2.12.1',
+              },
               source: 'component',
             },
           }),
@@ -300,7 +296,7 @@ describe('AWSLambda', () => {
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
-          metadata: { baggage: [{}, '', false], source: 'component' },
+          metadata: { dynamicSamplingContext: {}, source: 'component' },
         };
 
         // @ts-ignore see "Why @ts-ignore" note
@@ -327,7 +323,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true], source: 'component' },
+        metadata: { source: 'component' },
       };
 
       expect(rv).toStrictEqual(42);
@@ -365,7 +361,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true], source: 'component' },
+          metadata: { source: 'component' },
         };
 
         // @ts-ignore see "Why @ts-ignore" note
@@ -407,7 +403,7 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'awslambda.handler',
-        metadata: { baggage: [{}, '', true], source: 'component' },
+        metadata: { source: 'component' },
       };
 
       expect(rv).toStrictEqual(42);
@@ -445,7 +441,7 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'awslambda.handler',
-          metadata: { baggage: [{}, '', true], source: 'component' },
+          metadata: { source: 'component' },
         };
 
         // @ts-ignore see "Why @ts-ignore" note

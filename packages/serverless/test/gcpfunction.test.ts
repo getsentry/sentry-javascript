@@ -114,7 +114,7 @@ describe('GCPFunction', () => {
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'gcp.function.http',
-        metadata: { baggage: [{}, '', true], source: 'route' },
+        metadata: { source: 'route' },
       };
       // @ts-ignore see "Why @ts-ignore" note
       const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
@@ -151,13 +151,9 @@ describe('GCPFunction', () => {
         parentSpanId: '1121201211212012',
         parentSampled: false,
         metadata: {
-          baggage: [
-            {
-              release: '2.12.1',
-            },
-            '',
-            false,
-          ],
+          dynamicSamplingContext: {
+            release: '2.12.1',
+          },
           source: 'route',
         },
       };
@@ -190,7 +186,7 @@ describe('GCPFunction', () => {
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
-        metadata: { baggage: [{}, '', false], source: 'route' },
+        metadata: { dynamicSamplingContext: {}, source: 'route' },
       };
       // @ts-ignore see "Why @ts-ignore" note
       const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };

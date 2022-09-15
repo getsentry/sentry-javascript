@@ -1,21 +1,10 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
-import type { Baggage, BaggageObj, BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
-import {
-  getGlobalObject,
-  getThirdPartyBaggage,
-  InstrumentHandlerCallback,
-  InstrumentHandlerType,
-  isSentryBaggageEmpty,
-} from '@sentry/utils';
+import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
+import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import {
-  BrowserTracing,
-  BrowserTracingOptions,
-  extractTraceDataFromMetaTags,
-  getMetaContent,
-} from '../../src/browser/browsertracing';
+import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
@@ -272,7 +261,7 @@ describe('BrowserTracing', () => {
           parentSpanId: 'b6e54397b12a2a0f',
           parentSampled: true,
           metadata: {
-            baggage: [{ release: '2.1.14' }, '', false],
+            dynamicSamplingContext: { release: '2.1.14' },
           },
         }),
         expect.any(Number),
@@ -400,71 +389,6 @@ describe('BrowserTracing', () => {
       });
     });
 
-    describe('extractTraceDataFromMetaTags()', () => {
-      it('correctly parses a valid sentry-trace meta header', () => {
-        document.head.innerHTML =
-          '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">';
-
-        const headerContext = extractTraceDataFromMetaTags();
-
-        expect(headerContext).toBeDefined();
-        expect(headerContext!.traceId).toEqual('12312012123120121231201212312012');
-        expect(headerContext!.parentSpanId).toEqual('1121201211212012');
-        expect(headerContext!.parentSampled).toEqual(false);
-      });
-
-      it('correctly parses a valid baggage meta header and ignored 3rd party entries', () => {
-        document.head.innerHTML = '<meta name="baggage" content="sentry-release=2.1.12,foo=bar">';
-
-        const headerContext = extractTraceDataFromMetaTags();
-
-        expect(headerContext).toBeDefined();
-        expect(headerContext?.metadata?.baggage).toBeDefined();
-        const baggage = headerContext?.metadata?.baggage;
-        expect(baggage && baggage[0]).toBeDefined();
-        expect(baggage && baggage[0]).toEqual({
-          release: '2.1.12',
-        } as BaggageObj);
-        expect(baggage && baggage[1]).toBeDefined();
-        expect(baggage && baggage[1]).toEqual('');
-      });
-
-      it('returns undefined if the sentry-trace header is malformed', () => {
-        document.head.innerHTML = '<meta name="sentry-trace" content="12312012-112120121-0">';
-
-        const headerContext = extractTraceDataFromMetaTags();
-
-        expect(headerContext).toBeDefined();
-        expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isSentryBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
-        expect(getThirdPartyBaggage(headerContext?.metadata?.baggage as Baggage)).toEqual('');
-      });
-
-      it('does not crash if the baggage header is malformed', () => {
-        document.head.innerHTML = '<meta name="baggage" content="sentry-relase:2.1.13;foo-bar">';
-
-        const headerContext = extractTraceDataFromMetaTags();
-
-        // TODO currently this creates invalid baggage. This must be adressed in a follow-up PR
-        expect(headerContext).toBeDefined();
-        expect(headerContext?.metadata?.baggage).toBeDefined();
-        const baggage = headerContext?.metadata?.baggage;
-        expect(baggage && baggage[0]).toBeDefined();
-        expect(baggage && baggage[1]).toBeDefined();
-      });
-
-      it("returns default object if the header isn't there", () => {
-        document.head.innerHTML = '<meta name="dogs" content="12312012123120121231201212312012-1121201211212012-0">';
-
-        const headerContext = extractTraceDataFromMetaTags();
-
-        expect(headerContext).toBeDefined();
-        expect(headerContext?.metadata?.baggage).toBeDefined();
-        expect(isSentryBaggageEmpty(headerContext?.metadata?.baggage as Baggage)).toBe(true);
-        expect(getThirdPartyBaggage(headerContext?.metadata?.baggage as Baggage)).toEqual('');
-      });
-    });
-
     describe('using the <meta> tag data', () => {
       beforeEach(() => {
         hub.getClient()!.getOptions = () => {
@@ -490,21 +414,18 @@ describe('BrowserTracing', () => {
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        const baggage = transaction.getBaggage()!;
+        const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('pageload');
         expect(transaction.traceId).toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
-        expect(baggage).toBeDefined();
-        expect(baggage[0]).toBeDefined();
-        expect(baggage[0]).toEqual({ release: '2.1.14' });
-        expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('');
+        expect(dynamicSamplingContext).toBeDefined();
+        expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
       });
 
-      it('does not add Sentry baggage data to pageload transactions if sentry-trace data is present but passes on 3rd party baggage', () => {
+      it('puts frozen Dynamic Sampling Context on pageload transactions if sentry-trace data and only 3rd party baggage is present', () => {
         // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
         document.head.innerHTML =
           '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
@@ -513,20 +434,17 @@ describe('BrowserTracing', () => {
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        const baggage = transaction.getBaggage()!;
+        const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('pageload');
         expect(transaction.traceId).toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
-        expect(baggage).toBeDefined();
-        expect(isSentryBaggageEmpty(baggage)).toBe(true);
-        expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('');
+        expect(dynamicSamplingContext).toStrictEqual({});
       });
 
-      it('ignores the data for navigation transactions', () => {
+      it('ignores the meta tag data for navigation transactions', () => {
         mockChangeHistory = () => undefined;
         document.head.innerHTML =
           '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
@@ -536,22 +454,18 @@ describe('BrowserTracing', () => {
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
-        const baggage = transaction.getBaggage()!;
+        const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('navigation');
         expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toBeUndefined();
-        expect(baggage).toBeDefined();
-        expect(baggage[0]).toBeDefined();
-        expect(baggage[0]).toEqual({
+        expect(dynamicSamplingContext).toStrictEqual({
           release: '1.0.0',
           environment: 'production',
           public_key: 'pubKey',
           trace_id: expect.not.stringMatching('12312012123120121231201212312012'),
         });
-        expect(baggage[1]).toBeDefined();
-        expect(baggage[1]).toEqual('');
       });
     });
   });
