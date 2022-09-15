@@ -208,6 +208,10 @@ export class SentryReplay implements Integration {
       return;
     }
 
+    // setup() is generally called on page load or manually - in both cases we
+    // should treat it as an activity
+    this.updateLastActivity();
+
     this.eventBuffer = createEventBuffer({
       useCompression: Boolean(this.options.useCompression),
     });
@@ -344,7 +348,7 @@ export class SentryReplay implements Integration {
     this.initialEventTimestampSinceFlush = null;
 
     // Reset context as well
-    this.popEventContext();
+    this.clearContext();
     this.initialState = {
       timestamp: new Date().getTime(),
       url,
@@ -539,6 +543,8 @@ export class SentryReplay implements Integration {
       category: 'ui.blur',
     });
 
+    // Do not count blur as a user action -- it's part of the process of them
+    // leaving the page
     this.doChangeToBackgroundTasks(breadcrumb);
   };
 
@@ -550,6 +556,8 @@ export class SentryReplay implements Integration {
       category: 'ui.focus',
     });
 
+    // Do not count focus as a user action -- instead wait until they focus and
+    // interactive with page
     this.doChangeToForegroundTasks(breadcrumb);
   };
 
@@ -575,6 +583,7 @@ export class SentryReplay implements Integration {
       if (type === 'history') {
         // Need to collect visited URLs
         this.context.urls.push(result.name);
+        this.updateLastActivity();
       }
 
       this.addUpdate(() => {
@@ -606,6 +615,10 @@ export class SentryReplay implements Integration {
 
       if (result.category === 'sentry.transaction') {
         return;
+      }
+
+      if (result.category === 'ui.click') {
+        this.updateLastActivity();
       }
 
       this.addUpdate(() => {
@@ -840,13 +853,26 @@ export class SentryReplay implements Integration {
   }
 
   /**
+   * Clear context
+   */
+  clearContext() {
+    this.context.errorIds.clear();
+    this.context.traceIds.clear();
+    this.context.urls = [];
+    this.context.earliestEvent = null;
+  }
+
+  /**
    * Return and clear context
    */
   popEventContext({
     timestamp,
   }: {
-    timestamp?: number;
-  } = {}): CaptureReplayEventParams {
+    timestamp: number;
+  }): Omit<
+    CaptureReplayEventParams,
+    'includeReplayStartTimestamp' | 'segmentId' | 'replayId'
+  > {
     const initialState = this.initialState;
     if (
       this.initialState &&
@@ -864,12 +890,8 @@ export class SentryReplay implements Integration {
       urls: this.context.urls,
     };
 
-    this.context.errorIds.clear();
-    this.context.traceIds.clear();
-    this.context.urls = [];
-    this.context.earliestEvent = null;
+    this.clearContext();
 
-    // @ts-expect-error: Type 'undefined' is not assignable to type 'Session'.ts(2322)
     return context;
   }
 
@@ -930,13 +952,6 @@ export class SentryReplay implements Integration {
       await this.sendReplay(replayId, recordingData, segmentId);
 
       // The below will only happen after successfully sending replay //
-
-      // TBD: Alternatively we could update this after every rrweb event
-      // `timestamp` should reflect when the event happens. e.g. the timestamp
-      // of the event is passed as an argument in the case where a timeout
-      // occurs.
-      this.updateLastActivity(timestamp);
-
       captureReplayEvent({
         ...this.popEventContext({ timestamp }),
         replayId,

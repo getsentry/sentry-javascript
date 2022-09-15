@@ -135,12 +135,33 @@ describe('SentryReplay (no sticky)', () => {
 
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // Session's last activity should be updated
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    // Session's last activity is not updated because we do not consider
+    // visibilitystate as user being active
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
     expect(replay.eventBuffer?.length).toBe(0);
+  });
+
+  it('update last activity when user clicks mouse', async () => {
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    domHandler({
+      name: 'click',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    domHandler({
+      name: 'click',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
@@ -154,9 +175,8 @@ describe('SentryReplay (no sticky)', () => {
 
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // Right before sending a replay, we add memory usage and perf entries,
-    // which we are considering as an "activity" here.
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    // No user activity to trigger an update
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
@@ -185,7 +205,7 @@ describe('SentryReplay (no sticky)', () => {
     await advanceTimers(5000);
     expect(replay).not.toHaveSentReplay();
 
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + 16000);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
     expect(replay.eventBuffer?.length).toBe(0);

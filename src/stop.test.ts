@@ -75,6 +75,8 @@ describe('SentryReplay - stop', () => {
       },
     });
     const ELAPSED = 5000;
+    // Not sure where the 20ms comes from tbh
+    const EXTRA_TICKS = 20;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
     // stop replays
@@ -89,7 +91,7 @@ describe('SentryReplay - stop', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
     expect(replay).not.toHaveSentReplay();
-    // Session's last activity should be updated
+    // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toEqual(BASE_TIMESTAMP);
     // eventBuffer is destroyed
     expect(replay.eventBuffer).toBe(null);
@@ -97,9 +99,11 @@ describe('SentryReplay - stop', () => {
     // re-enable replay
     replay.setup();
 
-    // Not sure where the .02 comes from tbh
+    jest.advanceTimersByTime(ELAPSED);
+
     const timestamp =
-      +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED) / 1000 + 0.02;
+      +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED + EXTRA_TICKS) / 1000;
+
     const hiddenBreadcrumb = {
       type: 5,
       timestamp,
@@ -113,7 +117,6 @@ describe('SentryReplay - stop', () => {
       },
     };
 
-    jest.advanceTimersByTime(ELAPSED);
     replay.addEvent(TEST_EVENT);
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
@@ -121,10 +124,9 @@ describe('SentryReplay - stop', () => {
     expect(replay).toHaveSentReplay(
       JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
     );
-    // Session's last activity should be updated
-    expect(replay.session?.lastActivity).toBeGreaterThan(
-      BASE_TIMESTAMP + ELAPSED + ELAPSED
-    );
+    // Session's last activity is last updated when we call `setup()` and *NOT*
+    // when tab is blurred
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED + 20);
   });
 
   it('does not buffer events when stopped', async function () {

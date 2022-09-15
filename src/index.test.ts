@@ -217,8 +217,8 @@ describe('SentryReplay', () => {
     expect(replay).toHaveSentReplay(
       JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
     );
-    // Session's last activity should be updated
-    expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    // Session's last activity should not be updated
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
     expect(replay.eventBuffer?.length).toBe(0);
   });
@@ -244,8 +244,9 @@ describe('SentryReplay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // Session's last activity should be updated
-    expect(replay.session?.lastActivity).toBeGreaterThan(BASE_TIMESTAMP);
+    // Session's last activity is not updated because we do not consider
+    // visibilitystate as user being active
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
     expect(replay.eventBuffer?.length).toBe(0);
   });
@@ -261,9 +262,8 @@ describe('SentryReplay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // Right before sending a replay, we add memory usage and perf entries,
-    // which we are considering as an "activity" here.
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    // No user activity to trigger an update
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
@@ -293,7 +293,7 @@ describe('SentryReplay', () => {
 
     expect(replay).not.toHaveSentReplay();
 
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + 16000);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
     expect(replay.eventBuffer?.length).toBe(0);
