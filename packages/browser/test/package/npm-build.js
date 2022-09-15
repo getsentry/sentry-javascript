@@ -52,11 +52,6 @@ function runTests() {
 
   const myLibrary = fs.readFileSync(bundlePath, { encoding: 'utf-8' });
 
-  if (myLibrary.indexOf('tslib_1__default') !== -1) {
-    console.log('"tslib_1__default" reappeared...');
-    process.exit(1);
-  }
-
   const scriptEl = window.document.createElement('script');
   scriptEl.textContent = myLibrary;
   window.document.body.appendChild(scriptEl);
