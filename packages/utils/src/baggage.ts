@@ -1,4 +1,4 @@
-import { Baggage, BaggageObj, HttpHeaderValue, TraceparentData } from '@sentry/types';
+import { DynamicSamplingContext } from '@sentry/types';
 
 import { isString } from './is';
 import { logger } from './logger';
@@ -16,180 +16,129 @@ export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = /^sentry-/;
  */
 export const MAX_BAGGAGE_STRING_LENGTH = 8192;
 
-/** Create an instance of Baggage */
-export function createBaggage(initItems: BaggageObj, baggageString: string = '', mutable: boolean = true): Baggage {
-  return [{ ...initItems }, baggageString, mutable];
-}
-
-/** Get a value from baggage */
-export function getBaggageValue(baggage: Baggage, key: keyof BaggageObj): BaggageObj[keyof BaggageObj] {
-  return baggage[0][key];
-}
-
-/** Add a value to baggage */
-export function setBaggageValue(baggage: Baggage, key: keyof BaggageObj, value: BaggageObj[keyof BaggageObj]): void {
-  if (isBaggageMutable(baggage)) {
-    baggage[0][key] = value;
+/**
+ * Takes a baggage header and turns it into Dynamic Sampling Context, by extracting all the "sentry-" prefixed values
+ * from it.
+ *
+ * @param baggageHeader A very bread definition of a baggage header as it might appear in various frameworks.
+ * @returns The Dynamic Sampling Context that was found on `baggageHeader`, if there was any, `undefined` otherwise.
+ */
+export function baggageHeaderToDynamicSamplingContext(
+  // Very liberal definition of what any incoming header might look like
+  baggageHeader: string | string[] | number | null | undefined | boolean,
+): Partial<DynamicSamplingContext> | undefined {
+  if (!isString(baggageHeader) && !Array.isArray(baggageHeader)) {
+    return undefined;
   }
-}
 
-/** Check if the Sentry part of the passed baggage (i.e. the first element in the tuple) is empty */
-export function isSentryBaggageEmpty(baggage: Baggage): boolean {
-  return Object.keys(baggage[0]).length === 0;
-}
+  // Intermediary object to store baggage key value pairs of incoming baggage headers on.
+  // It is later used to read Sentry-DSC-values from.
+  let baggageObject: Readonly<Record<string, string>> = {};
 
-/** Returns Sentry specific baggage values */
-export function getSentryBaggageItems(baggage: Baggage): BaggageObj {
-  return baggage[0];
-}
-
-/**
- * Returns 3rd party baggage string of @param baggage
- * @param baggage
- */
-export function getThirdPartyBaggage(baggage: Baggage): string {
-  return baggage[1];
-}
-
-/**
- * Checks if baggage is mutable
- * @param baggage
- * @returns true if baggage is mutable, else false
- */
-export function isBaggageMutable(baggage: Baggage): boolean {
-  return baggage[2];
-}
-
-/**
- * Sets the passed baggage immutable
- * @param baggage
- */
-export function setBaggageImmutable(baggage: Baggage): void {
-  baggage[2] = false;
-}
-
-/** Serialize a baggage object */
-export function serializeBaggage(baggage: Baggage): string {
-  return Object.keys(baggage[0]).reduce((prev, key: keyof BaggageObj) => {
-    const val = baggage[0][key] as string;
-    const baggageEntry = `${SENTRY_BAGGAGE_KEY_PREFIX}${encodeURIComponent(key)}=${encodeURIComponent(val)}`;
-    const newVal = prev === '' ? baggageEntry : `${prev},${baggageEntry}`;
-    if (newVal.length > MAX_BAGGAGE_STRING_LENGTH) {
-      __DEBUG_BUILD__ &&
-        logger.warn(`Not adding key: ${key} with val: ${val} to baggage due to exceeding baggage size limits.`);
-      return prev;
-    } else {
-      return newVal;
+  if (Array.isArray(baggageHeader)) {
+    // Combine all baggage headers into one object containing the baggage values so we can later read the Sentry-DSC-values from it
+    baggageObject = baggageHeader.reduce<Record<string, string>>((acc, curr) => {
+      const currBaggageObject = baggageHeaderToObject(curr);
+      return {
+        ...acc,
+        ...currBaggageObject,
+      };
+    }, {});
+  } else {
+    // Return undefined if baggage header is an empty string (technically an empty baggage header is not spec conform but
+    // this is how we choose to handle it)
+    if (!baggageHeader) {
+      return undefined;
     }
-  }, baggage[1]);
+
+    baggageObject = baggageHeaderToObject(baggageHeader);
+  }
+
+  // Read all "sentry-" prefixed values out of the baggage object and put it onto a dynamic sampling context object.
+  const dynamicSamplingContext = Object.entries(baggageObject).reduce<Record<string, string>>((acc, [key, value]) => {
+    if (key.match(SENTRY_BAGGAGE_KEY_PREFIX_REGEX)) {
+      const nonPrefixedKey = key.slice(SENTRY_BAGGAGE_KEY_PREFIX.length);
+      acc[nonPrefixedKey] = value;
+    }
+    return acc;
+  }, {});
+
+  // Only return a dynamic sampling context object if there are keys in it.
+  // A keyless object means there were no sentry values on the header, which means that there is no DSC.
+  if (Object.keys(dynamicSamplingContext).length > 0) {
+    return dynamicSamplingContext as Partial<DynamicSamplingContext>;
+  } else {
+    return undefined;
+  }
 }
 
 /**
- * Parse a baggage header from a string or a string array and return a Baggage object
+ * Turns a Dynamic Sampling Object into a baggage header by prefixing all the keys on the object with "sentry-".
  *
- * If @param includeThirdPartyEntries is set to true, third party baggage entries are added to the Baggage object
- * (This is necessary for merging potentially pre-existing baggage headers in outgoing requests with
- * our `sentry-` values)
+ * @param dynamicSamplingContext The Dynamic Sampling Context to turn into a header. For convenience and compatibility
+ * with the `getDynamicSamplingContext` method on the Transaction class ,this argument can also be `undefined`. If it is
+ * `undefined` the function will return `undefined`.
+ * @returns a baggage header, created from `dynamicSamplingContext`, or `undefined` either if `dynamicSamplingContext`
+ * was `undefined`, or if `dynamicSamplingContext` didn't contain any values.
  */
-export function parseBaggageHeader(
-  inputBaggageValue: HttpHeaderValue,
-  includeThirdPartyEntries: boolean = false,
-): Baggage {
-  // Adding this check here because we got reports of this function failing due to the input value
-  // not being a string. This debug log might help us determine what's going on here.
-  if ((!Array.isArray(inputBaggageValue) && !isString(inputBaggageValue)) || typeof inputBaggageValue === 'number') {
-    __DEBUG_BUILD__ &&
-      logger.warn(
-        '[parseBaggageHeader] Received input value of incompatible type: ',
-        typeof inputBaggageValue,
-        inputBaggageValue,
-      );
-
-    // Gonna early-return an empty baggage object so that we don't fail later on
-    return createBaggage({}, '');
-  }
-
-  const baggageEntries = (isString(inputBaggageValue) ? inputBaggageValue : inputBaggageValue.join(','))
-    .split(',')
-    .map(entry => entry.trim())
-    .filter(entry => entry !== '' && (includeThirdPartyEntries || SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(entry)));
-
-  return baggageEntries.reduce(
-    ([baggageObj, baggageString], curr) => {
-      const [key, val] = curr.split('=');
-      if (SENTRY_BAGGAGE_KEY_PREFIX_REGEX.test(key)) {
-        const baggageKey = decodeURIComponent(key.split('-')[1]);
-        return [
-          {
-            ...baggageObj,
-            [baggageKey]: decodeURIComponent(val),
-          },
-          baggageString,
-          true,
-        ];
-      } else {
-        return [baggageObj, baggageString === '' ? curr : `${baggageString},${curr}`, true];
+export function dynamicSamplingContextToSentryBaggageHeader(
+  // this also takes undefined for convenience and bundle size in other places
+  dynamicSamplingContext: Partial<DynamicSamplingContext>,
+): string | undefined {
+  // Prefix all DSC keys with "sentry-" and put them into a new object
+  const sentryPrefixedDSC = Object.entries(dynamicSamplingContext).reduce<Record<string, string>>(
+    (acc, [dscKey, dscValue]) => {
+      if (dscValue) {
+        acc[`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`] = dscValue;
       }
+      return acc;
     },
-    [{}, '', true],
+    {},
   );
+
+  return objectToBaggageHeader(sentryPrefixedDSC);
 }
 
 /**
- * Merges the baggage header we saved from the incoming request (or meta tag) with
- * a possibly created or modified baggage header by a third party that's been added
- * to the outgoing request header.
+ * Will parse a baggage header, which is a simple key-value map, into a flat object.
  *
- * In case @param headerBaggageString exists, we can safely add the the 3rd party part of @param headerBaggage
- * with our @param incomingBaggage. This is possible because if we modified anything beforehand,
- * it would only affect parts of the sentry baggage (@see Baggage interface).
- *
- * @param incomingBaggage the baggage header of the incoming request that might contain sentry entries
- * @param thirdPartyBaggageHeader possibly existing baggage header string or string[] added from a third
- *        party to the request headers
- *
- * @return a merged and serialized baggage string to be propagated with the outgoing request
+ * @param baggageHeader The baggage header to parse.
+ * @returns a flat object containing all the key-value pairs from `baggageHeader`.
  */
-export function mergeAndSerializeBaggage(incomingBaggage?: Baggage, thirdPartyBaggageHeader?: HttpHeaderValue): string {
-  if (!incomingBaggage && !thirdPartyBaggageHeader) {
-    return '';
+function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
+  return baggageHeader
+    .split(',')
+    .map(baggageEntry => baggageEntry.split('=').map(keyOrValue => decodeURIComponent(keyOrValue.trim())))
+    .reduce<Record<string, string>>((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+}
+
+/**
+ * Turns a flat object (key-value pairs) into a baggage header, which is also just key-value pairs.
+ *
+ * @param object The object to turn into a baggage header.
+ * @returns a baggage header string, or `undefined` if the object didn't have any values, since an empty baggage header
+ * is not spec compliant.
+ */
+function objectToBaggageHeader(object: Record<string, string>): string | undefined {
+  if (Object.keys(object).length === 0) {
+    // An empty baggage header is not spec compliant: We return undefined.
+    return undefined;
   }
 
-  const headerBaggage = (thirdPartyBaggageHeader && parseBaggageHeader(thirdPartyBaggageHeader, true)) || undefined;
-  const thirdPartyHeaderBaggage = headerBaggage && getThirdPartyBaggage(headerBaggage);
-
-  const finalBaggage = createBaggage((incomingBaggage && incomingBaggage[0]) || {}, thirdPartyHeaderBaggage || '');
-  return serializeBaggage(finalBaggage);
-}
-
-/**
- * Helper function that takes a raw baggage value (if available) and the processed sentry-trace header
- * data (if available), parses the baggage value and creates a Baggage object. If there is no baggage
- * value, it will create an empty Baggage object.
- *
- * In a second step, this functions determines if the created Baggage object should be set immutable
- * to prevent mutation of the Sentry data. It does this by looking at the processed sentry-trace header.
- *
- * @param rawBaggageValue baggage value from header
- * @param sentryTraceHeader processed Sentry trace header returned from `extractTraceparentData`
- */
-export function parseBaggageSetMutability(
-  rawBaggageValue: HttpHeaderValue | false | undefined,
-  sentryTraceHeader: TraceparentData | string | false | undefined | null,
-): Baggage {
-  const baggage = parseBaggageHeader(rawBaggageValue || '');
-
-  // Because we are always creating a Baggage object by calling `parseBaggageHeader` above
-  // (either a filled one or an empty one, even if we didn't get a `baggage` header),
-  // we only need to check if we have a sentry-trace header or not. As soon as we have it,
-  // we set baggage immutable. In case we don't get a sentry-trace header, we can assume that
-  // this SDK is the head of the trace and thus we still permit mutation at this time.
-  // There is one exception though, which is that we get a baggage-header with `sentry-`
-  // items but NO sentry-trace header. In this case we also set the baggage immutable for now
-  // but if something like this would ever happen, we should revisit this and determine
-  // what this would actually mean for the trace (i.e. is this SDK the head?, what happened
-  // before that we don't have a sentry-trace header?, etc)
-  (sentryTraceHeader || !isSentryBaggageEmpty(baggage)) && setBaggageImmutable(baggage);
-
-  return baggage;
+  return Object.entries(object).reduce((baggageHeader, [objectKey, objectValue], currentIndex) => {
+    const baggageEntry = `${encodeURIComponent(objectKey)}=${encodeURIComponent(objectValue)}`;
+    const newBaggageHeader = currentIndex === 0 ? baggageEntry : `${baggageHeader},${baggageEntry}`;
+    if (newBaggageHeader.length > MAX_BAGGAGE_STRING_LENGTH) {
+      __DEBUG_BUILD__ &&
+        logger.warn(
+          `Not adding key: ${objectKey} with val: ${objectValue} to baggage header due to exceeding baggage size limits.`,
+        );
+      return baggageHeader;
+    } else {
+      return newBaggageHeader;
+    }
+  }, '');
 }

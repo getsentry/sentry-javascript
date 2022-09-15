@@ -1,5 +1,5 @@
 import { hasTracingEnabled } from '@sentry/tracing';
-import { serializeBaggage } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { NextPage } from 'next';
 
 import { isBuild } from '../../utils/isBuild';
@@ -42,7 +42,9 @@ export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInit
       const requestTransaction = getTransactionFromRequest(req!);
       if (requestTransaction) {
         initialProps._sentryTraceData = requestTransaction.toTraceparent();
-        initialProps._sentryBaggage = serializeBaggage(requestTransaction.getBaggage());
+
+        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
+        initialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }
 
       return initialProps;

@@ -4,14 +4,13 @@ import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
   extractTraceparentData,
   fill,
   isNodeEnv,
-  isSentryBaggageEmpty,
   loadModule,
   logger,
-  parseBaggageSetMutability,
-  serializeBaggage,
 } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -194,9 +193,11 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
       const span = currentScope.getSpan();
 
       if (span && transaction) {
+        const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+
         return {
           sentryTrace: span.toTraceparent(),
-          sentryBaggage: serializeBaggage(transaction.getBaggage()),
+          sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
         };
       }
     }
@@ -312,7 +313,7 @@ export function startRequestHandlerTransaction(
 ): Transaction {
   // If there is a trace header set, we extract the data from it (parentSpanId, traceId, and sampling decision)
   const traceparentData = extractTraceparentData(request.headers['sentry-trace']);
-  const baggage = parseBaggageSetMutability(request.headers.baggage, traceparentData);
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(request.headers.baggage);
 
   const transaction = hub.startTransaction({
     name,
@@ -323,8 +324,7 @@ export function startRequestHandlerTransaction(
     ...traceparentData,
     metadata: {
       source,
-      // Only attach baggage if it's defined
-      ...(!isSentryBaggageEmpty(baggage) && { baggage }),
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     },
   });
 

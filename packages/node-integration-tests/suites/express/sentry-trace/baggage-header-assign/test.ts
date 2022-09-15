@@ -35,7 +35,7 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   });
 });
 
-test('Should propagate empty baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
+test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await env.getAPIResponse(`${env.url}/express`, {
@@ -46,12 +46,11 @@ test('Should propagate empty baggage if sentry-trace header is present in incomi
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: '',
     },
   });
 });
 
-test('Should propagate empty sentry and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
+test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const response = (await env.getAPIResponse(`${env.url}/express`, {
@@ -63,7 +62,6 @@ test('Should propagate empty sentry and ignore original 3rd party baggage entrie
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: '',
     },
   });
 });

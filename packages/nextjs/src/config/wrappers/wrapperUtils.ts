@@ -2,7 +2,7 @@ import { captureException, getCurrentHub, startTransaction } from '@sentry/core'
 import { addRequestDataToEvent } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractTraceparentData, fill, isString, parseBaggageSetMutability } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, fill } from '@sentry/utils';
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
@@ -88,11 +88,11 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
     if (requestTransaction === undefined) {
       const sentryTraceHeader = req.headers['sentry-trace'];
-      const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
+      const rawBaggageString = req.headers && req.headers.baggage;
       const traceparentData =
         typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
 
-      const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+      const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
       const newTransaction = startTransaction({
         op: 'nextjs.data.server',
@@ -100,7 +100,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         ...traceparentData,
         metadata: {
           source: 'route',
-          baggage,
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       });
 

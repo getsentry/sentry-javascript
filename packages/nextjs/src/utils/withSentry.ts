@@ -3,18 +3,33 @@ import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
   isString,
   logger,
   objectify,
-  parseBaggageSetMutability,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import * as domain from 'domain';
-import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-// This is the same as the `NextApiHandler` type, except instead of having a return type of `void | Promise<void>`, it's
-// only `Promise<void>`, because wrapped handlers are always async
-export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
+// These are the same as the official `NextApiHandler` type, except
+//
+// a) The wrapped version returns only promises, because wrapped handlers are always async.
+//
+// b) Instead of having a return types based on `void` (Next < 12.1.6) or `unknown` (Next 12.1.6+), both the wrapped and
+// unwrapped versions of the type have both. This doesn't matter to users, because they exist solely on one side of that
+// version divide or the other. For us, though, it's entirely possible to have one version of Next installed in our
+// local repo (as a dev dependency) and have another Next version installed in a test app which also has the local SDK
+// linked in.
+//
+// In that case, if those two versions are on either side of the 12.1.6 divide, importing the official `NextApiHandler`
+// type here would break the test app's build, because it would set up a situation in which the linked SDK's
+// `withSentry` would refer to one version of the type (from the local repo's `node_modules`) while any typed handler in
+// the test app would refer to the other version of the type (from the test app's `node_modules`). By using a custom
+// version of the type compatible with both the old and new official versions, we can use any Next version we want in
+// a test app without worrying about type errors.
+type NextApiHandler = (req: NextApiRequest, res: NextApiResponse) => void | Promise<void> | unknown | Promise<unknown>;
+export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void> | Promise<unknown>;
 
 export type AugmentedNextApiResponse = NextApiResponse & {
   __sentryTransaction?: Transaction;
@@ -51,8 +66,8 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
             __DEBUG_BUILD__ && logger.log(`[Tracing] Continuing trace ${traceparentData?.traceId}.`);
           }
 
-          const rawBaggageString = req.headers && isString(req.headers.baggage) && req.headers.baggage;
-          const baggage = parseBaggageSetMutability(rawBaggageString, traceparentData);
+          const baggageHeader = req.headers && req.headers.baggage;
+          const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
           const url = `${req.url}`;
           // pull off query string, if any
@@ -72,7 +87,10 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               name: `${reqMethod}${reqPath}`,
               op: 'http.server',
               ...traceparentData,
-              metadata: { baggage, source: 'route' },
+              metadata: {
+                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+                source: 'route',
+              },
             },
             // extra context passed to the `tracesSampler`
             { request: req },

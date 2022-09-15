@@ -1,5 +1,4 @@
 export type { Attachment } from './attachment';
-export type { AllowedBaggageKeys, Baggage, BaggageObj } from './baggage';
 export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
