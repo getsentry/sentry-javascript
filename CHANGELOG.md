@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.13.0
+
+- feat(browser): Use fetch `keepalive` flag (#5697)
+- feat(core): Set custom transaction source for event processors (#5722)
+- feat(nextjs): Trace navigation transactions (#5676)
+- feat(node): Add Modules integration to default integrations (#5706)
+- fix(browser): Use `normalizeDepth` option when creating an event from a plain object
+- fix(core): Fix integration deduping (#5696)
+- fix(node): Use `normalizeDepth` when creating an event from unknown input
+- fix(nextjs): Make NextApiHandler type version-agnostic (#5737)
+- fix(tracing): Set sample rate in transaction metadata and DSC (#5691)
+- ref: Make dynamic sampling context mutable (#5710)
+- ref(tracing): Record transaction name changes (#5723)
+- chore(nextjs): Remove obsolete dataFetchers loader (#5713)
+
 ## 7.12.1
 
 - feat(nextjs): Connect trace between data-fetching methods and pageload (#5655)
