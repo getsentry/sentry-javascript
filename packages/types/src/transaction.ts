@@ -1,7 +1,9 @@
 import { DynamicSamplingContext } from './envelope';
 import { MeasurementUnit } from './measurement';
 import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+import { PolymorphicRequest } from './polymorphics';
 import { Span, SpanContext } from './span';
+
 /**
  * Interface holding Transaction-specific properties
  */
@@ -145,7 +147,11 @@ export interface TransactionMetadata {
    */
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
 
+  /** For transactions tracing server-side request handling, the request being tracked. */
+  request?: PolymorphicRequest;
+
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
+  /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
 
   /** Information on how a transaction name was generated. */
