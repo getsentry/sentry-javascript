@@ -10,7 +10,6 @@ import {
   setTag,
   setTags,
   setUser,
-  startTransaction,
   withScope,
 } from '../src/exports';
 
