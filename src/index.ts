@@ -1091,7 +1091,6 @@ export class SentryReplay implements Integration {
 
     try {
       await this.sendReplayRequest({
-        // endpoint: '/invalid/' + endpoint + '/invalid/',
         endpoint,
         events,
         replayId,
