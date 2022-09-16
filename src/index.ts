@@ -57,7 +57,7 @@ type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
-const UNABLE_TO_SEND_REPLAY = 'Unable to send replay';
+const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
 export class SentryReplay implements Integration {
   /**
@@ -300,7 +300,7 @@ export class SentryReplay implements Integration {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK does not support a teardown
    */
   destroy() {
-    logger.log('Destroying instance');
+    logger.log('Stopping Replays');
     this.isEnabled = false;
     this.removeListeners();
     this.stopRecording?.();
@@ -1057,6 +1057,7 @@ export class SentryReplay implements Integration {
       method: 'POST',
       body: serializeEnvelope(envelope),
     });
+
     if (response.status !== 200) {
       setContext('Send Replay Response', {
         status: response.status,
@@ -1090,6 +1091,7 @@ export class SentryReplay implements Integration {
 
     try {
       await this.sendReplayRequest({
+        // endpoint: '/invalid/' + endpoint + '/invalid/',
         endpoint,
         events,
         replayId,
@@ -1110,30 +1112,23 @@ export class SentryReplay implements Integration {
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
       if (this.retryCount >= MAX_RETRY_COUNT) {
-        this.resetRetries();
-        throw new Error(UNABLE_TO_SEND_REPLAY);
+        throw new Error(`${UNABLE_TO_SEND_REPLAY} - max retries exceeded`);
       }
 
       this.retryCount = this.retryCount + 1;
       // will retry in intervals of 5, 10, 30
       this.retryInterval = this.retryCount * this.retryInterval;
 
-      try {
-        await new Promise((resolve, reject) => {
-          setTimeout(async () => {
-            try {
-              await this.sendReplay(replayId, events, segmentId);
-              resolve(true);
-            } catch {
-              reject(new Error(UNABLE_TO_SEND_REPLAY));
-            }
-          }, this.retryInterval);
-        });
-
-        return true;
-      } catch {
-        throw new Error(UNABLE_TO_SEND_REPLAY);
-      }
+      return await new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            await this.sendReplay(replayId, events, segmentId);
+            resolve(true);
+          } catch (err) {
+            reject(err);
+          }
+        }, this.retryInterval);
+      });
     }
   }
 }

@@ -1,4 +1,3 @@
-// mock functions need to be imported first
 import * as SentryCore from '@sentry/core';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
@@ -51,11 +50,6 @@ describe('SentryReplay', () => {
     ({ replay } = mockSdk());
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
-    mockSendReplayRequest.mockImplementation(
-      jest.fn(async () => {
-        return;
-      })
-    );
     jest.runAllTimers();
   });
 
@@ -63,6 +57,11 @@ describe('SentryReplay', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockSendReplayRequest.mockClear();
     replay.eventBuffer?.destroy();
+    mockSendReplayRequest.mockImplementation(
+      jest.fn(async () => {
+        return;
+      })
+    );
   });
 
   afterEach(async () => {
@@ -72,15 +71,14 @@ describe('SentryReplay', () => {
     sessionStorage.clear();
     replay.clearSession();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
-    mockRecord.takeFullSnapshot.mockClear();
     // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
     delete window.location;
     Object.defineProperty(window, 'location', {
       value: prevLocation,
       writable: true,
     });
-    mockCaptureReplayEvent.mockClear();
-    mockCaptureEvent.mockClear();
+    mockSendReplayRequest.mockReset();
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -304,9 +302,6 @@ describe('SentryReplay', () => {
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
-
-    // Clean-up
-    mockSendReplayRequest.mockReset();
   });
 
   it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
@@ -442,10 +437,6 @@ describe('SentryReplay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
 
-    // Reset console.error mock to minimize the amount of time we are hiding
-    // console messages in case an error happens after
-    mockConsole.mockClear();
-
     mockCaptureEvent.mockReset();
     mockSendReplayRequest.mockReset();
     mockSendReplayRequest.mockImplementationOnce(() => {
@@ -456,7 +447,7 @@ describe('SentryReplay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
 
     // next tick should retry and succeed
-    mockConsole.mockClear();
+    mockConsole.mockRestore();
     mockSendReplayRequest.mockReset();
     mockSendReplayRequest.mockImplementationOnce(() => {
       return Promise.resolve();
@@ -496,6 +487,69 @@ describe('SentryReplay', () => {
     });
     await advanceTimers(5000);
     expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+  });
+
+  it('fails to upload data and hits retry max and stops', async () => {
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    jest.spyOn(replay, 'sendReplay');
+    jest.spyOn(SentryCore, 'captureException');
+    // Suppress console.errors
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    const mockConsole = console.error as jest.MockedFunction<
+      typeof console.error
+    >;
+
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+    expect(replay.session?.segmentId).toBe(0);
+
+    // fail the first and second requests and pass the third one
+    mockSendReplayRequest.mockReset();
+    mockSendReplayRequest.mockImplementation(() => {
+      throw new Error('Something bad happened');
+    });
+    mockRecord._emitter(TEST_EVENT);
+
+    await advanceTimers(5000);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
+
+    mockCaptureEvent.mockReset();
+    await advanceTimers(5000);
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(2);
+
+    await advanceTimers(10000);
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(3);
+
+    await advanceTimers(30000);
+    expect(mockCaptureEvent).toHaveBeenCalledTimes(0);
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
+    expect(replay.sendReplay).toHaveBeenCalledTimes(4);
+
+    mockConsole.mockReset();
+
+    // Make sure it doesn't retry again
+    jest.runAllTimers();
+    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
+    expect(replay.sendReplay).toHaveBeenCalledTimes(4);
+
+    expect(mockCaptureEvent).not.toHaveBeenCalled(); // Does not get captured until recording is uploaded
+
+    // Retries = 3 (total tries = 4 including initial attempt)
+    // + last exception is max retries exceeded
+    expect(SentryCore.captureException).toHaveBeenCalledTimes(5);
+    expect(SentryCore.captureException).toHaveBeenLastCalledWith(
+      new Error('Unable to send Replay - max retries exceeded')
+    );
+
+    // No activity has occurred, session's last activity should remain the same
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    // segmentId increases despite error
+    expect(replay.session?.segmentId).toBe(1);
   });
 
   it('sends a replay event after each recording event', async () => {
