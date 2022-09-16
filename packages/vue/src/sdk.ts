@@ -44,8 +44,8 @@ export function init(
     __DEBUG_BUILD__ &&
       logger.warn(
         'Misconfigured SDK. Vue specific errors will not be captured.\n' +
-          'Update your `Sentry.init` call with an appropriate config option:\n' +
-          '`app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
+        'Update your `Sentry.init` call with an appropriate config option:\n' +
+        '`app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
       );
     return;
   }
@@ -58,7 +58,11 @@ export function init(
   }
 }
 
-const vueInit = (app: Vue, options: Options): void => {
+export const vueInit = (app: Vue, options: Options): void => {
+  options = {
+    ...DEFAULT_CONFIG,
+    ...options,
+  };
   attachErrorHandler(app, options);
 
   if ('tracesSampleRate' in options || 'tracesSampler' in options) {
