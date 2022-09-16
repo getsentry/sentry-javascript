@@ -103,7 +103,8 @@
     "typescript": "3.8.3"
   },
   "resolutions": {
-    "**/agent-base": "5"
+    "**/agent-base": "5",
+    "@types/express-serve-static-core": "4.17.30"
   },
   "version": "0.0.0",
   "dependencies": {}
