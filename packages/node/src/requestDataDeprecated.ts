@@ -7,13 +7,12 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, ExtractedNodeRequestData, PolymorphicRequest } from '@sentry/types';
+
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
   extractRequestData as _extractRequestData,
-} from '@sentry/utils';
-import * as cookie from 'cookie';
-import * as url from 'url';
+} from './requestdata';
 
 /**
  * @deprecated `Handlers.ExpressRequest` is deprecated and will be removed in v8. Use `PolymorphicRequest` instead.
@@ -30,7 +29,7 @@ export type ExpressRequest = PolymorphicRequest;
  * @returns An object containing normalized request data
  */
 export function extractRequestData(req: { [key: string]: any }, keys?: string[]): ExtractedNodeRequestData {
-  return _extractRequestData(req, { include: keys, deps: { cookie, url } });
+  return _extractRequestData(req, { include: keys });
 }
 
 /**
@@ -55,5 +54,5 @@ export type ParseRequestOptions = AddRequestDataToEventOptions['include'] & {
  * @hidden
  */
 export function parseRequest(event: Event, req: ExpressRequest, options: ParseRequestOptions = {}): Event {
-  return addRequestDataToEvent(event, req, { include: options, deps: { cookie, url } });
+  return addRequestDataToEvent(event, req, { include: options });
 }

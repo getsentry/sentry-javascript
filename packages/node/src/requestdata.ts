@@ -1,24 +1,7 @@
-// TODO: Remove this file once equivalent integration is used everywhere
-
-/* eslint-disable complexity */
-/**
- * The functions here, which enrich an event with request data, are mostly for use in Node, but are safe for use in a
- * browser context. They live here in `@sentry/utils` rather than in `@sentry/node` so that they can be used in
- * frameworks (like nextjs), which, because of SSR, run the same code in both Node and browser contexts.
- *
- * TODO (v8 / #5257): Remove the note below
- * Note that for now, the tests for this code have to live in `@sentry/node`, since they test both these functions and
- * the backwards-compatibility-preserving wrappers which still live in `handlers.ts` there.
- */
-
-/* eslint-disable max-lines */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Event, ExtractedNodeRequestData, PolymorphicRequest, Transaction, TransactionSource } from '@sentry/types';
-
-import { isPlainObject, isString } from './is';
-import { normalize } from './normalize';
-import { stripUrlQueryAndFragment } from './url';
+import { isPlainObject, isString, normalize, stripUrlQueryAndFragment } from '@sentry/utils/';
+import * as cookie from 'cookie';
+import * as url from 'url';
 
 const DEFAULT_INCLUDES = {
   ip: false,
@@ -29,26 +12,26 @@ const DEFAULT_INCLUDES = {
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
 const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
-type InjectedNodeDeps = {
-  cookie: {
-    parse: (cookieStr: string) => Record<string, string>;
+/**
+ * Options deciding what parts of the request to use when enhancing an event
+ */
+export interface AddRequestDataToEventOptions {
+  /** Flags controlling whether each type of data should be added to the event */
+  include?: {
+    ip?: boolean;
+    request?: boolean | Array<typeof DEFAULT_REQUEST_INCLUDES[number]>;
+    transaction?: boolean | TransactionNamingScheme;
+    user?: boolean | Array<typeof DEFAULT_USER_INCLUDES[number]>;
   };
-  url: {
-    parse: (urlStr: string) => {
-      query: string | null;
-    };
-  };
-};
+}
+
+type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Sets parameterized route as transaction name e.g.: `GET /users/:id`
  * Also adds more context data on the transaction from the request
  */
-export function addRequestDataToTransaction(
-  transaction: Transaction | undefined,
-  req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
-): void {
+export function addRequestDataToTransaction(transaction: Transaction | undefined, req: PolymorphicRequest): void {
   if (!transaction) return;
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
@@ -58,7 +41,7 @@ export function addRequestDataToTransaction(
   if (req.baseUrl) {
     transaction.setData('baseUrl', req.baseUrl);
   }
-  transaction.setData('query', extractQueryParams(req, deps));
+  transaction.setData('query', extractQueryParams(req));
 }
 
 /**
@@ -109,8 +92,6 @@ export function extractPathForTransaction(
   return [name, source];
 }
 
-type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
-
 /** JSDoc */
 function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
@@ -130,11 +111,11 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
 /** JSDoc */
 function extractUserData(
   user: {
-    [key: string]: any;
+    [key: string]: unknown;
   },
   keys: boolean | string[],
-): { [key: string]: any } {
-  const extractedUser: { [key: string]: any } = {};
+): { [key: string]: unknown } {
+  const extractedUser: { [key: string]: unknown } = {};
   const attributes = Array.isArray(keys) ? keys : DEFAULT_USER_INCLUDES;
 
   attributes.forEach(key => {
@@ -147,23 +128,23 @@ function extractUserData(
 }
 
 /**
- * Normalize data from the request object, accounting for framework differences.
+ * Normalize data from the request object
  *
  * @param req The request object from which to extract data
  * @param options.include An optional array of keys to include in the normalized data. Defaults to
  * DEFAULT_REQUEST_INCLUDES if not provided.
  * @param options.deps Injected, platform-specific dependencies
+ *
  * @returns An object containing normalized request data
  */
 export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
-    deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
-  const requestData: { [key: string]: any } = {};
+  const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
+  const requestData: { [key: string]: unknown } = {};
 
   // headers:
   //   node, express, koa, nextjs: req.headers
@@ -211,7 +192,7 @@ export function extractRequestData(
         requestData.cookies =
           // TODO (v8 / #5257): We're only sending the empty object for backwards compatibility, so the last bit can
           // come off in v8
-          req.cookies || (headers.cookie && deps && deps.cookie && deps.cookie.parse(headers.cookie)) || {};
+          req.cookies || (headers.cookie && cookie.parse(headers.cookie)) || {};
         break;
       }
       case 'query_string': {
@@ -219,7 +200,7 @@ export function extractRequestData(
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = extractQueryParams(req, deps);
+        requestData.query_string = extractQueryParams(req);
         break;
       }
       case 'data': {
@@ -239,7 +220,7 @@ export function extractRequestData(
       }
       default: {
         if ({}.hasOwnProperty.call(req, key)) {
-          requestData[key] = (req as { [key: string]: any })[key];
+          requestData[key] = (req as { [key: string]: unknown })[key];
         }
       }
     }
@@ -249,38 +230,13 @@ export function extractRequestData(
 }
 
 /**
- * Options deciding what parts of the request to use when enhancing an event
- */
-export interface AddRequestDataToEventOptions {
-  /** Flags controlling whether each type of data should be added to the event */
-  include?: {
-    ip?: boolean;
-    request?: boolean | string[];
-    transaction?: boolean | TransactionNamingScheme;
-    user?: boolean | string[];
-  };
-
-  /** Injected platform-specific dependencies */
-  deps?: {
-    cookie: {
-      parse: (cookieStr: string) => Record<string, string>;
-    };
-    url: {
-      parse: (urlStr: string) => {
-        query: string | null;
-      };
-    };
-  };
-}
-
-/**
  * Add data from the given request to the given event
  *
  * @param event The event to which the request data will be added
  * @param req Request object
  * @param options.include Flags to control what data is included
- * @param options.deps Injected platform-specific dependencies
- * @hidden
+ *
+ * @returns The mutated `Event` object
  */
 export function addRequestDataToEvent(
   event: Event,
@@ -294,8 +250,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options?.deps })
-      : extractRequestData(req, { deps: options?.deps });
+      ? extractRequestData(req, { include: include.request })
+      : extractRequestData(req);
 
     event.request = {
       ...event.request,
@@ -336,10 +292,7 @@ export function addRequestDataToEvent(
   return event;
 }
 
-function extractQueryParams(
-  req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
-): string | Record<string, unknown> | undefined {
+function extractQueryParams(req: PolymorphicRequest): string | Record<string, unknown> | undefined {
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
@@ -359,7 +312,7 @@ function extractQueryParams(
     req.query ||
     (typeof URL !== undefined && new URL(originalUrl).search.replace('?', '')) ||
     // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-    (deps && deps.url && deps.url.parse(originalUrl).query) ||
+    url.parse(originalUrl).query ||
     undefined
   );
 }

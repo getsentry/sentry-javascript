@@ -46,17 +46,8 @@ export {
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
-export {
-  addRequestDataToEvent,
-  extractRequestData,
-  defaultIntegrations,
-  init,
-  defaultStackParser,
-  lastEventId,
-  flush,
-  close,
-  getSentryRelease,
-} from './sdk';
+export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
+export { addRequestDataToEvent, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';

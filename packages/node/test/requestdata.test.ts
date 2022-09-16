@@ -1,32 +1,24 @@
 /* eslint-disable deprecation/deprecation */
 
-/* Note: These tests (except for the ones related to cookies) should eventually live in `@sentry/utils`, and can be
- * moved there once the the backwards-compatibility-preserving wrappers in `handlers.ts` are removed.
- */
-
-// TODO (v8 / #5257): Remove everything above
+// TODO (v8 / #5257): Remove everything related to the deprecated functions
 
 import { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
+import * as net from 'net';
+
 import {
   addRequestDataToEvent,
   AddRequestDataToEventOptions,
   extractPathForTransaction,
   extractRequestData as newExtractRequestData,
-} from '@sentry/utils';
-import * as cookie from 'cookie';
-import * as net from 'net';
-import * as url from 'url';
-
+} from '../src/requestdata';
 import {
   ExpressRequest,
   extractRequestData as oldExtractRequestData,
   parseRequest,
 } from '../src/requestDataDeprecated';
 
-const mockCookieModule = { parse: jest.fn() };
-
-// TODO (v8 / #5257): Remove `describe.each` wrapper, remove `formatArgs` wrapper, reformat args in tests, use only
-// `addRequestDataToEvent`, and move these tests to @sentry/utils
+// TODO (v8 / #5257): Remove `describe.each` wrapper, remove `formatArgs` wrapper, reformat args in tests, and use only
+// `addRequestDataToEvent`
 describe.each([parseRequest, addRequestDataToEvent])(
   'backwards compatibility of `parseRequest` rename and move',
   fn => {
@@ -40,17 +32,7 @@ describe.each([parseRequest, addRequestDataToEvent])(
       if (fn.name === 'parseRequest') {
         return [event, req as ExpressRequest, include];
       } else {
-        return [
-          event,
-          req as PolymorphicRequest,
-          {
-            include,
-            deps: {
-              cookie: mockCookieModule,
-              url,
-            },
-          },
-        ];
+        return [event, req as PolymorphicRequest, { include }];
       }
     }
 
@@ -255,8 +237,7 @@ describe.each([parseRequest, addRequestDataToEvent])(
 );
 
 // TODO (v8 / #5257): Remove `describe.each` wrapper, remove `formatArgs` wrapper, reformat args in tests, use only
-// `newExtractRequestData`, rename `newExtractRequestData` to just `extractRequestData`, and move these tests (except
-// the ones involving cookies) to @sentry/utils (use `mockCookieModule` for others)
+// `newExtractRequestData`, and rename `newExtractRequestData` to just `extractRequestData`
 Object.defineProperty(oldExtractRequestData, 'name', {
   value: 'oldExtractRequestData',
 });
@@ -275,16 +256,7 @@ describe.each([oldExtractRequestData, newExtractRequestData])(
       if (fn.name === 'oldExtractRequestData') {
         return [req as ExpressRequest, include] as Parameters<typeof oldExtractRequestData>;
       } else {
-        return [
-          req as PolymorphicRequest,
-          {
-            include,
-            deps: {
-              cookie: include?.includes('cookies') ? cookie : mockCookieModule,
-              url,
-            },
-          },
-        ] as Parameters<typeof newExtractRequestData>;
+        return [req as PolymorphicRequest, { include }] as Parameters<typeof newExtractRequestData>;
       }
     }
 
