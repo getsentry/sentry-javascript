@@ -37,7 +37,7 @@ type MockEventBufferFinish = jest.MockedFunction<
   // @ts-expect-error it's not null
   typeof replay.eventBuffer.finish
 >;
-type MockFlushUpdate = jest.MockedFunction<typeof replay.flushUpdate>;
+type MockFlush = jest.MockedFunction<typeof replay.flush>;
 type MockRunFlush = jest.MockedFunction<typeof replay.runFlush>;
 
 jest.spyOn(replay, 'sendReplay');
@@ -48,15 +48,15 @@ mockSendReplay.mockImplementation(
   })
 );
 
-jest.spyOn(replay, 'flushUpdate');
-const mockFlushUpdate = replay.flushUpdate as MockFlushUpdate;
+jest.spyOn(replay, 'flush');
+const mockFlush = replay.flush as MockFlush;
 
-jest.spyOn(replay, 'throttledFlushUpdate');
-const throttledFn = throttle(mockFlushUpdate, 1000, {
+jest.spyOn(replay, 'throttledFlush');
+const throttledFn = throttle(mockFlush, 1000, {
   leading: false,
   trailing: true,
 });
-(replay.throttledFlushUpdate as jest.MockedFunction<any>).mockImplementation(
+(replay.throttledFlush as jest.MockedFunction<any>).mockImplementation(
   jest.fn(throttledFn)
 );
 
@@ -82,7 +82,7 @@ beforeEach(() => {
   mockSendReplay.mockClear();
   replay.eventBuffer?.destroy();
   mockAddPerformanceEntries.mockClear();
-  mockFlushUpdate.mockClear();
+  mockFlush.mockClear();
   mockRunFlush.mockClear();
   mockAddMemoryEntry.mockClear();
 
@@ -112,7 +112,7 @@ afterAll(() => {
   replay && replay.destroy();
 });
 
-it('flushes twice after multiple flushUpdate() calls)', async () => {
+it('flushes twice after multiple flush() calls)', async () => {
   // blur events cause an immediate flush (as well as a flush due to adding a
   // breadcrumb) -- this means that the first blur event will be flushed and
   // the following blur events will all call a throttled flush function, which
@@ -123,7 +123,7 @@ it('flushes twice after multiple flushUpdate() calls)', async () => {
   window.dispatchEvent(new Event('blur'));
   window.dispatchEvent(new Event('blur'));
 
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(4);
+  expect(replay.flush).toHaveBeenCalledTimes(4);
 
   jest.runAllTimers();
   await new Promise(process.nextTick);
@@ -156,28 +156,28 @@ it('long first flush enqueues following events', async () => {
   });
   await advanceTimers(5000);
   // flush #2 @ t=5s - due to click
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(2);
+  expect(replay.flush).toHaveBeenCalledTimes(2);
 
   await advanceTimers(1000);
   // flush #3 @ t=6s - due to blur
   window.dispatchEvent(new Event('blur'));
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(3);
+  expect(replay.flush).toHaveBeenCalledTimes(3);
 
   // NOTE: Blur also adds a breadcrumb which calls `addUpdate`, meaning it will
   // flush after `flushMinDelay`, but this gets cancelled by the blur
   await advanceTimers(8000);
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(3);
+  expect(replay.flush).toHaveBeenCalledTimes(3);
 
   // flush #4 @ t=14s - due to blur
   window.dispatchEvent(new Event('blur'));
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(4);
+  expect(replay.flush).toHaveBeenCalledTimes(4);
 
   expect(replay.runFlush).toHaveBeenCalledTimes(1);
   await advanceTimers(6000);
   // t=20s
   // addPerformanceEntries is finished, `flushLock` promise is resolved, calls
-  // throttledFlushUpdate, which will call `flushUpdate` in 1 second
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(4);
+  // throttledFlush, which will call `flush` in 1 second
+  expect(replay.flush).toHaveBeenCalledTimes(4);
   // sendReplay is called with replayId, events, segment
   expect(mockSendReplay).toHaveBeenLastCalledWith(
     expect.any(String),
@@ -216,9 +216,9 @@ it('long first flush enqueues following events', async () => {
       ])
     );
   });
-  // flush #5 @ t=21s - throttled flush calls `flushUpdate`
+  // flush #5 @ t=21s - throttled flush calls `flush`
   await advanceTimers(1000);
-  expect(replay.flushUpdate).toHaveBeenCalledTimes(5);
+  expect(replay.flush).toHaveBeenCalledTimes(5);
   expect(replay.runFlush).toHaveBeenCalledTimes(2);
   expect(mockSendReplay).toHaveBeenLastCalledWith(
     expect.any(String),

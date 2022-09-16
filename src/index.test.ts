@@ -708,7 +708,7 @@ describe('SentryReplay', () => {
     // Force new session
     const ELAPSED = 86400000 * 2; // 2 days
     await advanceTimers(ELAPSED);
-    // XXX: this blur is needed to trigger `flushUpdate` + new session
+    // XXX: this blur is needed to trigger `flush` + new session
     window.dispatchEvent(new Event('blur'));
 
     const TEST_EVENT = {

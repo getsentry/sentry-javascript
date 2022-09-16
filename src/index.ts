@@ -261,7 +261,7 @@ export class SentryReplay implements Integration {
     // We need to always run `cb` (e.g. in the case of captureOnlyOnError == true)
     const cbResult = cb?.();
 
-    // If this option is turned on then we will only want to call `flushUpdate`
+    // If this option is turned on then we will only want to call `flush`
     // explicitly
     if (this.options.captureOnlyOnError) {
       return;
@@ -283,7 +283,7 @@ export class SentryReplay implements Integration {
     // Otherwise schedule it to be finished in `this.options.flushMinDelay`
     if (flushMaxDelayExceeded) {
       logger.log('replay max delay exceeded, finishing replay event');
-      this.flushUpdate();
+      this.flush();
       return;
     }
 
@@ -292,7 +292,7 @@ export class SentryReplay implements Integration {
     // elapses.
     this.timeout = window.setTimeout(() => {
       logger.log('replay timeout exceeded, finishing replay event');
-      this.flushUpdate();
+      this.flush();
     }, this.options.flushMinDelay);
   }
 
@@ -475,7 +475,7 @@ export class SentryReplay implements Integration {
     ) {
       // TODO: Do we continue to record after?
       // TODO: What happens if another error happens? Do we record in the same session?
-      setTimeout(() => this.flushUpdate());
+      setTimeout(() => this.flush());
     }
 
     return event;
@@ -853,7 +853,7 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    return this.flushUpdate();
+    return this.flush();
   }
 
   /**
@@ -899,6 +899,12 @@ export class SentryReplay implements Integration {
     return context;
   }
 
+  /**
+   * Flushes replay event buffer to Sentry.
+   *
+   * Performance events are only added right before flushing - this is
+   * due to the buffered performance observer events.
+   */
   async runFlush() {
     if (!this.session) {
       console.error(new Error('[Sentry]: No transaction, no replay'));
@@ -948,12 +954,10 @@ export class SentryReplay implements Integration {
   }
 
   /**
-   * Flushes replay event buffer to Sentry.
-   *
-   * Performance events are only added right before flushing - this is probably
-   * due to the buffered performance observer events.
+   * Flush recording data to Sentry. Creates a lock so that only a single flush
+   * can be active at a time.
    */
-  flushUpdate = async () => {
+  flush = async () => {
     if (!this.isEnabled) {
       // This is just a precaution, there should be no listeners that would
       // cause a flush.
@@ -978,7 +982,7 @@ export class SentryReplay implements Integration {
     clearTimeout(this.timeout);
 
     // No existing flush in progress, proceed with flushing.
-    // this.flushLock acts as a lock so that future calls to `flushUpdate()`
+    // this.flushLock acts as a lock so that future calls to `flush()`
     // will be blocked until this promise resolves
     if (!this.flushLock) {
       this.flushLock = this.runFlush();
@@ -988,7 +992,7 @@ export class SentryReplay implements Integration {
     }
 
     // Wait for previous flush to finish, then call a throttled
-    // `flushUpdate()`. It's throttled because other flush
+    // `flush()`. It's throttled because other flush
     // requests could be queued waiting for it to resolve. We want to reduce
     // all outstanding requests (as well as any new flush requests that occur
     // within a second of the locked flush completing) into a single flush.
@@ -997,11 +1001,17 @@ export class SentryReplay implements Integration {
     } catch (err) {
       console.error(err);
     } finally {
-      this.throttledFlushUpdate();
+      this.throttledFlush();
     }
   };
 
-  throttledFlushUpdate = throttle(this.flushUpdate, 1000, {
+  /**
+   * A throttled `flush()` that is called after a flush is completed and there
+   * are other queued flushes.
+   *
+   * Instead of calling a flush for every <n> queued flush, condense it to a single call
+   */
+  throttledFlush = throttle(this.flush, 1000, {
     leading: false,
     trailing: true,
   });
