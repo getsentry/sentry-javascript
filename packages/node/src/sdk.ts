@@ -1,20 +1,15 @@
 /* eslint-disable max-lines */
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
-import { Event, ExtractedNodeRequestData, PolymorphicRequest, SessionStatus, StackParser } from '@sentry/types';
+import { SessionStatus, StackParser } from '@sentry/types';
 import {
-  addRequestDataToEvent as _addRequestDataToEvent,
-  AddRequestDataToEventOptions,
   createStackParser,
-  extractRequestData as _extractRequestData,
   getGlobalObject,
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
-import * as cookie from 'cookie';
 import * as domain from 'domain';
-import * as url from 'url';
 
 import { NodeClient } from './client';
 import {
@@ -277,52 +272,4 @@ function startSessionTracking(): void {
     // Ref: https://develop.sentry.dev/sdk/sessions/
     if (session && !terminalStates.includes(session.status)) hub.endSession();
   });
-}
-
-/**
- * Add data from the given request to the given event
- *
- * (Note that there is no sister function to this one in `@sentry/browser`, because the whole point of this wrapper is
- * to pass along injected dependencies, which isn't necessary in a browser context. Isomorphic packages like
- * `@sentry/nextjs` should export directly from `@sentry/utils` in their browser index file.)
- *
- * @param event The event to which the request data will be added
- * @param req Request object
- * @param options.include Flags to control what data is included
- * @hidden
- */
-export function addRequestDataToEvent(
-  event: Event,
-  req: PolymorphicRequest,
-  options?: Omit<AddRequestDataToEventOptions, 'deps'>,
-): Event {
-  return _addRequestDataToEvent(event, req, {
-    ...options,
-    // We have to inject these node-only dependencies because we can't import them in `@sentry/utils`, where the
-    // original function lives
-    deps: { cookie, url },
-  });
-}
-
-/**
- * Normalize data from the request object, accounting for framework differences.
- *
- * (Note that there is no sister function to this one in `@sentry/browser`, because the whole point of this wrapper is
- * to inject dependencies, which isn't necessary in a browser context. Isomorphic packages like `@sentry/nextjs` should
- * export directly from `@sentry/utils` in their browser index file.)
- *
- * @param req The request object from which to extract data
- * @param options.keys An optional array of keys to include in the normalized data. Defaults to DEFAULT_REQUEST_KEYS if
- * not provided.
- * @returns An object containing normalized request data
- */
-export function extractRequestData(
-  req: PolymorphicRequest,
-  options?: {
-    include?: string[];
-  },
-): ExtractedNodeRequestData {
-  // We have to inject these node-only dependencies because we can't import them in `@sentry/utils`, where the original
-  // function lives
-  return _extractRequestData(req, { ...options, deps: { cookie, url } });
 }
