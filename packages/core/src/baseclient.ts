@@ -23,6 +23,7 @@ import {
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
   dateTimestampInSeconds,
+  getGlobalObject,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -216,6 +217,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public getOptions(): O {
+    const _global = getGlobalObject();
+
+    if (this._options.release === undefined && _global.SENTRY_RELEASE && _global.SENTRY_RELEASE.id) {
+      this._options.release = _global.SENTRY_RELEASE.id;
+    }
+
     return this._options;
   }
 
