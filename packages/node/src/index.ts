@@ -18,6 +18,7 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
+export type { TransactionNamingScheme } from './requestdata';
 export type { NodeOptions } from './types';
 
 export {

@@ -3,7 +3,12 @@
 
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 
-import { addRequestDataToEvent, AddRequestDataToEventOptions, DEFAULT_USER_INCLUDES } from '../requestdata';
+import {
+  addRequestDataToEvent,
+  AddRequestDataToEventOptions,
+  DEFAULT_USER_INCLUDES,
+  TransactionNamingScheme,
+} from '../requestdata';
 
 type RequestDataOptions = {
   /**
@@ -18,6 +23,9 @@ type RequestDataOptions = {
     url?: boolean;
     user?: boolean | Array<typeof DEFAULT_USER_INCLUDES[number]>;
   };
+
+  /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
+  transactionNamingScheme: TransactionNamingScheme;
 
   /**
    * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
@@ -39,6 +47,7 @@ const DEFAULT_OPTIONS = {
     url: true,
     user: DEFAULT_USER_INCLUDES,
   },
+  transactionNamingScheme: 'methodpath',
 };
 
 /** Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`

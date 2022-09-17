@@ -25,7 +25,7 @@ export interface AddRequestDataToEventOptions {
   };
 }
 
-type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
+export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Sets parameterized route as transaction name e.g.: `GET /users/:id`
