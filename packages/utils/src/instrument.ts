@@ -4,7 +4,7 @@
 import { WrappedFunction } from '@sentry/types';
 
 import { getGlobalObject } from './global';
-import { isInstanceOf, isString } from './is';
+import { isEmptyObj, isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
@@ -562,7 +562,7 @@ function instrumentDOM(): void {
                 }
 
                 // If there are no longer any custom handlers of any type on this element, cleanup everything.
-                if (Object.keys(handlers).length === 0) {
+                if (isEmptyObj(handlers)) {
                   delete el.__sentry_instrumentation_handlers__;
                 }
               }

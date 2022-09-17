@@ -1,6 +1,6 @@
 import { DynamicSamplingContext } from '@sentry/types';
 
-import { isString } from './is';
+import { isEmptyObj, isString } from './is';
 import { logger } from './logger';
 
 export const BAGGAGE_HEADER_NAME = 'baggage';
@@ -123,7 +123,7 @@ function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
  * is not spec compliant.
  */
 function objectToBaggageHeader(object: Record<string, string>): string | undefined {
-  if (Object.keys(object).length === 0) {
+  if (isEmptyObj(object)) {
     // An empty baggage header is not spec compliant: We return undefined.
     return undefined;
   }

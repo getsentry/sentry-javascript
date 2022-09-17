@@ -179,3 +179,13 @@ export function isInstanceOf(wat: any, base: any): boolean {
     return false;
   }
 }
+
+/**
+ * Determine if an object is empty
+ *
+ * @param obj A plain object
+ * @returns True if object has none of its own properties
+ */
+export function isEmptyObj(obj: Record<string, unknown>): boolean {
+  return Object.keys(obj).length === 0;
+}

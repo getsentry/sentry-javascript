@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/hub';
 import { TransactionContext } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { isEmptyObj, logger, timestampWithMs } from '@sentry/utils';
 
 import { Span, SpanRecorder } from './span';
 import { Transaction } from './transaction';
@@ -214,7 +214,7 @@ export class IdleTransaction extends Transaction {
   private _startIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
     this._cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
-      if (!this._finished && Object.keys(this.activities).length === 0) {
+      if (!this._finished && isEmptyObj(this.activities)) {
         this.finish(endTimestamp);
       }
     }, this._idleTimeout);
@@ -243,7 +243,7 @@ export class IdleTransaction extends Transaction {
       __DEBUG_BUILD__ && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
     }
 
-    if (Object.keys(this.activities).length === 0) {
+    if (isEmptyObj(this.activities)) {
       // We need to add the timeout here to have the real endtimestamp of the transaction
       // Remember timestampWithMs is in seconds, timeout is in ms
       const endTimestamp = timestampWithMs() + this._idleTimeout / 1000;
