@@ -64,7 +64,7 @@ describe('SentryReplay - stop', () => {
   });
 
   afterAll(() => {
-    replay && replay.destroy();
+    replay && replay.stop();
   });
 
   it('does not upload replay if it was stopped and can resume replays afterwards', async () => {
@@ -80,7 +80,7 @@ describe('SentryReplay - stop', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
     // stop replays
-    replay.destroy();
+    replay.stop();
 
     // Pretend 5 seconds have passed
     jest.advanceTimersByTime(ELAPSED);
@@ -97,7 +97,7 @@ describe('SentryReplay - stop', () => {
     expect(replay.eventBuffer).toBe(null);
 
     // re-enable replay
-    replay.setup();
+    replay.start();
 
     jest.advanceTimersByTime(ELAPSED);
 
@@ -135,7 +135,7 @@ describe('SentryReplay - stop', () => {
     expect(replay.eventBuffer?.length).toBe(1);
 
     // stop replays
-    replay.destroy();
+    replay.stop();
 
     expect(replay.eventBuffer?.length).toBe(undefined);
 
@@ -148,10 +148,10 @@ describe('SentryReplay - stop', () => {
 
   it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {
     // NOTE: We clear addInstrumentationHandler mock after every test
-    replay.destroy();
-    replay.setup();
-    replay.destroy();
-    replay.setup();
+    replay.stop();
+    replay.start();
+    replay.stop();
+    replay.start();
 
     expect(mockAddInstrumentationHandler).not.toHaveBeenCalled();
   });

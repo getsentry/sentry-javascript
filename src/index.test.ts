@@ -82,7 +82,7 @@ describe('SentryReplay', () => {
   });
 
   afterAll(() => {
-    replay && replay.destroy();
+    replay && replay.stop();
   });
 
   it('calls rrweb.record with custom options', async () => {

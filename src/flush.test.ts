@@ -109,7 +109,7 @@ afterEach(async () => {
 });
 
 afterAll(() => {
-  replay && replay.destroy();
+  replay && replay.stop();
 });
 
 it('flushes twice after multiple flush() calls)', async () => {

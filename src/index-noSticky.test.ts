@@ -60,7 +60,7 @@ describe('SentryReplay (no sticky)', () => {
   });
 
   afterAll(() => {
-    replay && replay.destroy();
+    replay && replay.stop();
   });
 
   it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {

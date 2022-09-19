@@ -69,7 +69,7 @@ describe('SentryReplay (capture only on error)', () => {
   });
 
   afterAll(() => {
-    replay && replay.destroy();
+    replay && replay.stop();
   });
 
   it('uploads a replay when captureException is called', async () => {
