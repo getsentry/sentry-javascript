@@ -7,5 +7,12 @@
     "declarationMap": false,
     "skipLibCheck": true,
     "types": ["node"],
+    // Setting this to `false` causes TS to include the full code for each helper it injects, which allows us to remove
+    // `tslib` as a dependency, with the advantage that it means we don't have to worry about `tslib` version
+    // compatibility with our version of TS. Since we now use Sucrase and Rollup for our main builds, this only affects
+    // our ES5 bundles (which would pull in the helper code in any case, even if specified in an import) and tests
+    // (where the built files last only long enough to run tests againt), so it's safe to include it here in the root
+    // tsconfig.
+    "importHelpers": false,
   }
 }
