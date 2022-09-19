@@ -88,11 +88,11 @@ describe('SentryReplay', () => {
   it('calls rrweb.record with custom options', async () => {
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
-        "blockClass": "sr-block",
+        "blockClass": "sentry-block",
         "emit": [Function],
-        "ignoreClass": "sr-test",
+        "ignoreClass": "sentry-test-ignore",
         "maskAllInputs": true,
-        "maskTextClass": "sr-mask",
+        "maskTextClass": "sentry-mask",
       }
     `);
   });

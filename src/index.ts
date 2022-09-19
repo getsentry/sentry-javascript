@@ -150,9 +150,9 @@ export class SentryReplay implements Integration {
     maskAllText = false,
     recordingConfig: {
       maskAllInputs = true,
-      blockClass = 'sr-block',
-      ignoreClass = 'sr-ignore',
-      maskTextClass = 'sr-mask',
+      blockClass = 'sentry-block',
+      ignoreClass = 'sentry-ignore',
+      maskTextClass = 'sentry-mask',
       ...recordingOptions
     } = {},
   }: SentryReplayConfiguration = {}) {

@@ -39,7 +39,7 @@ class MockTransport implements Transport {
 export function mockSdk({
   replayOptions = {
     stickySession: true,
-    recordingConfig: { ignoreClass: 'sr-test' },
+    recordingConfig: { ignoreClass: 'sentry-test-ignore' },
   },
   sentryOptions = {
     dsn: 'https://dsn@ingest.f00.f00/1',

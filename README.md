@@ -72,6 +72,6 @@ replay.setup(); // Start recording again
 | `useCompression` | `boolean` | `true` | Uses `WebWorkers` (if available) to compress the recording payload before uploading to Sentry. |
 | `captureOnlyOnError` | `boolean` | `false` | Only capture the recording when an error happens. |
 | `recordingConfig.maskAllInputs` | `boolean` | `true` | Mask all `<input>` elements |
-| `recordingConfig.blockClass` | `string` | `'sr-block'` | Redact all elements with the class name `sr-block` |
-| `recordingConfig.ignoreClass` | `string` | `'sr-ignore'` | Ignores all elements with the class name `sr-ignore` |
-| `recordingConfig.maskTextClass` | `string` | `'sr-mask'` | Mask all elements with the class name `sr-ignore` |
+| `recordingConfig.blockClass` | `string` | `'sentry-block'` | Redact all elements with the class name `sentry-block` |
+| `recordingConfig.ignoreClass` | `string` | `'sentry-ignore'` | Ignores all elements with the class name `sentry-ignore` |
+| `recordingConfig.maskTextClass` | `string` | `'sentry-mask'` | Mask all elements with the class name `sentry-ignore` |
