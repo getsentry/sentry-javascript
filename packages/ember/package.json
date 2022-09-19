@@ -29,7 +29,7 @@
     "test:all": "node ./scripts/run-CI-tests.js"
   },
   "dependencies": {
-    "@embroider/macros": "~0.47.2",
+    "@embroider/macros": "1.8.3",
     "@sentry/browser": "7.13.0",
     "@sentry/tracing": "7.13.0",
     "@sentry/types": "7.13.0",
