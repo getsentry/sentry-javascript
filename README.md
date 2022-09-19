@@ -46,17 +46,18 @@ Sentry.init({
 });
 ```
 
-### Stopping Replays
+### Stop Recording 
 
-To stop replays you can call the `stop()` method on the integration instance. It's possible to resume recording by calling `setup()`.
+Replay recording only starts automatically when it is included in the `integrations` key when calling `Sentry.init`. Otherwise you can initialize the plugin and manually call the `start()` method on the integration instance. To stop recording you can call the `stop()`.
 
 ```javascript
 
-const replay = new SentryReplay(); // This will begin recording replays
+const replay = new SentryReplay(); // This will *NOT* begin recording replays
+
+replay.start(); // Start recording
 
 replay.stop(); // Stop recording
 
-replay.start(); // Start recording again
 ```
 
 ## Configuration
