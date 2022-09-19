@@ -83,6 +83,11 @@ export interface SentryReplayPluginOptions {
    * The sampling rate for replays. 1.0 will record all replays, 0 will record none.
    */
   replaysSamplingRate?: number;
+
+  /**
+   * Mask all text in recordings. All text will be replaced with asterisks by default.
+   */
+  maskAllText?: boolean;
 }
 
 export interface SentryReplayConfiguration extends SentryReplayPluginOptions {

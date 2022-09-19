@@ -36,7 +36,7 @@ Sentry.init({
   dsn: '__DSN__',
   integrations: [
     new SentryReplay({
-      stickySession: false, // Default is true
+      maskAllText:  true, // Will mask all text strings
       recordingConfig: {
         maskAllInputs: false, // Default is true
       },
@@ -66,10 +66,11 @@ replay.setup(); // Start recording again
 | `flushMinDelay` | `number` | `5000` | The minimum time to wait (in ms) before sending the recording payload. The payload is sent if `flushMinDelay` ms have elapsed between two events. |
 | `flushMaxDelay` | `number` | `15000` | The maximum time to wait (in ms) when sending the recording payload. The payload is sent if events occur at an interval less than `flushMinDelay` and `flushMaxDelay` ms have elapsed since the last time a payload was sent. |
 | `initialFlushDelay` | `number` | `5000` | The amount of time to wait (in ms) before sending the initial recording payload. This helps drop recordings where users visit and close the page quickly. |
+| `maskAllText` | `boolean` | `false` | Mask *all* text strings with `*`. |
+| `replaysSamplingRate` | `number` | `1.0` | The rate at which to sample replays. (1.0 will collect all replays, 0 will collect no replays). |
 | `stickySession` | `boolean` | `true` | Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well. |
 | `useCompression` | `boolean` | `true` | Uses `WebWorkers` (if available) to compress the recording payload before uploading to Sentry. |
 | `captureOnlyOnError` | `boolean` | `false` | Only capture the recording when an error happens. |
-| `replaysSamplingRate` | `number` | `1.0` | The rate at which to sample replays. (1.0 will collect all replays, 0 will collect no replays). |
 | `recordingConfig.maskAllInputs` | `boolean` | `true` | Mask all `<input>` elements |
 | `recordingConfig.blockClass` | `string` | `'sr-block'` | Redact all elements with the class name `sr-block` |
 | `recordingConfig.ignoreClass` | `string` | `'sr-ignore'` | Ignores all elements with the class name `sr-ignore` |

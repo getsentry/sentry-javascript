@@ -147,6 +147,7 @@ export class SentryReplay implements Integration {
     useCompression = true,
     captureOnlyOnError = false,
     replaysSamplingRate = 1.0,
+    maskAllText = false,
     recordingConfig: {
       maskAllInputs = true,
       blockClass = 'sr-block',
@@ -171,12 +172,20 @@ export class SentryReplay implements Integration {
       captureOnlyOnError,
       replaysSamplingRate,
       useCompression,
+      maskAllText,
     };
 
     // Modify rrweb options to checkoutEveryNthSecond if this is defined, as we don't know when an error occurs, so we want to try to minimize the number of events captured.
     if (this.options.captureOnlyOnError) {
       // Checkout every minute, meaning we only get up-to one minute of events before the error happens
       this.recordingOptions.checkoutEveryNms = 60000;
+    }
+
+    if (this.options.maskAllText) {
+      // `maskAllText` is a more user friendly option to configure
+      // `maskTextSelector`. This means that all nodes will have their text
+      // content masked.
+      this.recordingOptions.maskTextSelector = '*';
     }
   }
 
