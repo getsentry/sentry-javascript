@@ -244,7 +244,9 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => addRequestDataToEvent(event, nextReq));
+        currentScope.addEventProcessor(event =>
+          event.type !== 'transaction' ? addRequestDataToEvent(event, nextReq) : event,
+        );
 
         // We only want to record page and API requests
         if (hasTracingEnabled() && shouldTraceRequest(nextReq.url, publicDirFiles)) {
@@ -276,6 +278,7 @@ function makeWrappedReqHandler(origReqHandler: ReqHandler): WrappedReqHandler {
                 // like `source: isDynamicRoute? 'url' : 'route'`
                 // TODO: What happens when `withSentry` is used also? Which values of `name` and `source` win?
                 source: 'url',
+                request: req,
               },
               ...traceparentData,
             },

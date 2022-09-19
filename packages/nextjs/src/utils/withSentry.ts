@@ -56,7 +56,9 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
-        currentScope.addEventProcessor(event => addRequestDataToEvent(event, req));
+        currentScope.addEventProcessor(event =>
+          event.type !== 'transaction' ? addRequestDataToEvent(event, req) : event,
+        );
 
         if (hasTracingEnabled()) {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
@@ -90,6 +92,7 @@ export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler =
               metadata: {
                 dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
                 source: 'route',
+                request: req,
               },
             },
             // extra context passed to the `tracesSampler`

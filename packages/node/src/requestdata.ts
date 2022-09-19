@@ -10,7 +10,7 @@ const DEFAULT_INCLUDES = {
   user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
-const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
+export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 
 /**
  * Options deciding what parts of the request to use when enhancing an event
@@ -25,7 +25,7 @@ export interface AddRequestDataToEventOptions {
   };
 }
 
-type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
+export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Sets parameterized route as transaction name e.g.: `GET /users/:id`

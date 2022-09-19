@@ -104,7 +104,7 @@ describe('withSentry', () => {
   });
 
   describe('tracing', () => {
-    it('starts a transaction when tracing is enabled', async () => {
+    it('starts a transaction and sets metadata when tracing is enabled', async () => {
       jest
         .spyOn(hub.Hub.prototype, 'getClient')
         .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
@@ -118,6 +118,7 @@ describe('withSentry', () => {
 
           metadata: {
             source: 'route',
+            request: expect.objectContaining({ url: 'http://dogs.are.great' }),
           },
         },
         { request: expect.objectContaining({ url: 'http://dogs.are.great' }) },

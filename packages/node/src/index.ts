@@ -18,6 +18,7 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
+export type { TransactionNamingScheme } from './requestdata';
 export type { NodeOptions } from './types';
 
 export {
@@ -47,7 +48,7 @@ export {
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
-export { addRequestDataToEvent, extractRequestData } from './requestdata';
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
