@@ -110,17 +110,17 @@ function instrumentConsole(): void {
   }
 
   CONSOLE_LEVELS.forEach(function (level: string): void {
-    if (!(level in global.console)) {
+    if (!(level in global['console'])) {
       return;
     }
 
-    fill(global.console, level, function (originalConsoleMethod: () => any): Function {
+    fill(global['console'], level, function (originalConsoleMethod: () => any): Function {
       return function (...args: any[]): void {
         triggerHandlers('console', { args, level });
 
         // this fails for some browsers. :(
         if (originalConsoleMethod) {
-          originalConsoleMethod.apply(global.console, args);
+          originalConsoleMethod.apply(global['console'], args);
         }
       };
     });
