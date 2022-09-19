@@ -424,7 +424,7 @@ describe('Span', () => {
         {
           name: 'tx',
           metadata: {
-            transactionSampling: { rate: 0.56, method: 'client_rate' },
+            sampleRate: 0.56,
           },
         },
         hub,

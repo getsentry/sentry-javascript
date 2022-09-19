@@ -55,10 +55,7 @@ function sample<T extends Transaction>(
   // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
   if (transaction.sampled !== undefined) {
     transaction.setMetadata({
-      transactionSampling: {
-        method: 'explicitly_set',
-        rate: Number(transaction.sampled),
-      },
+      sampleRate: Number(transaction.sampled),
     });
     return transaction;
   }
@@ -69,25 +66,14 @@ function sample<T extends Transaction>(
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
     transaction.setMetadata({
-      transactionSampling: {
-        method: 'client_sampler',
-        // cast to number in case it's a boolean
-        rate: Number(sampleRate),
-      },
+      sampleRate: Number(sampleRate),
     });
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
-    transaction.setMetadata({
-      transactionSampling: { method: 'inheritance' },
-    });
   } else {
     sampleRate = options.tracesSampleRate;
     transaction.setMetadata({
-      transactionSampling: {
-        method: 'client_rate',
-        // cast to number in case it's a boolean
-        rate: Number(sampleRate),
-      },
+      sampleRate: Number(sampleRate),
     });
   }
 

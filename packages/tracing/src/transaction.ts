@@ -244,7 +244,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const { environment, release } = client.getOptions() || {};
     const { publicKey: public_key } = client.getDsn() || {};
 
-    const maybeSampleRate = (this.metadata.transactionSampling || {}).rate;
+    const maybeSampleRate = this.metadata.sampleRate;
     const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
 
     const scope = hub.getScope();
