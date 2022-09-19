@@ -70,7 +70,6 @@ export type {
   Transaction,
   TransactionContext,
   TransactionMetadata,
-  TransactionSamplingMethod,
   TransactionSource,
   TransactionNameChange,
 } from './transaction';

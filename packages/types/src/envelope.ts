@@ -3,7 +3,7 @@ import { DsnComponents } from './dsn';
 import { Event } from './event';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
-import { Transaction, TransactionSamplingMethod } from './transaction';
+import { Transaction } from './transaction';
 import { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
@@ -49,7 +49,6 @@ type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<Bas
 
 type EventItemHeaders = {
   type: 'event' | 'transaction';
-  sample_rates?: [{ id?: TransactionSamplingMethod; rate?: number }];
 };
 type AttachmentItemHeaders = {
   type: 'attachment';

@@ -136,10 +136,9 @@ export interface SamplingContext extends CustomSamplingContext {
   request?: ExtractedNodeRequestData;
 }
 
-export type TransactionSamplingMethod = 'explicitly_set' | 'client_sampler' | 'client_rate' | 'inheritance';
-
 export interface TransactionMetadata {
-  transactionSampling?: { rate?: number; method: TransactionSamplingMethod };
+  /** The sample rate used when sampling this transaction */
+  sampleRate?: number;
 
   /**
    * The Dynamic Sampling Context of a transaction. If provided during transaction creation, its Dynamic Sampling

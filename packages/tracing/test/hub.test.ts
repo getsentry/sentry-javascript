@@ -243,7 +243,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: 'explicitly_set', rate: 1.0 },
+          sampleRate: 1.0,
         });
       });
 
@@ -255,7 +255,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: 'client_sampler', rate: 0.1121 },
+          sampleRate: 0.1121,
         });
       });
 
@@ -265,9 +265,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: 'inheritance' },
-        });
+        expect(Transaction.prototype.setMetadata).toHaveBeenCalledTimes(0);
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
@@ -277,7 +275,7 @@ describe('Hub', () => {
         hub.startTransaction({ name: 'dogpark' });
 
         expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          transactionSampling: { method: 'client_rate', rate: 0.1121 },
+          sampleRate: 0.1121,
         });
       });
     });
