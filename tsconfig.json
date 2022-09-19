@@ -6,6 +6,5 @@
     "declaration": false,
     "declarationMap": false,
     "skipLibCheck": true,
-    "types": ["node"],
   }
 }
