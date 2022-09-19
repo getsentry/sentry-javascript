@@ -32,10 +32,11 @@ body:
         - "@sentry/ember"
         - "@sentry/gatsby"
         - "@sentry/nextjs"
-        - "@sentry/remix"
         - "@sentry/node"
         - "@sentry/react"
+        - "@sentry/remix"
         - "@sentry/serverless"
+        - "@sentry/svelte"
         - "@sentry/vue"
         - "@sentry/wasm"
     validations:
