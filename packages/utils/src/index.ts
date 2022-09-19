@@ -12,6 +12,7 @@ export * from './normalize';
 export * from './object';
 export * from './path';
 export * from './promisebuffer';
+// TODO: Remove requestdata export once equivalent integration is used everywhere
 export * from './requestdata';
 export * from './severity';
 export * from './stacktrace';

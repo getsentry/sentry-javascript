@@ -14,10 +14,11 @@ import * as domain from 'domain';
 import * as http from 'http';
 
 import { NodeClient } from './client';
+import { addRequestDataToEvent, extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove these imports
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { parseRequest } from './requestDataDeprecated';
-import { addRequestDataToEvent, extractRequestData, flush, isAutoSessionTrackingEnabled } from './sdk';
+import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 /**
  * Express-compatible tracing handler.
