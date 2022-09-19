@@ -131,9 +131,6 @@
 
       "skipFiles": [
         "<node_internals>/**",
-        // this prevents us from landing in a neverending cycle of TS async-polyfill functions as we're stepping through
-        // our code
-        "${workspaceFolder}/node_modules/tslib/**/*"
       ],
       "sourceMaps": true,
       // this controls which files are sourcemapped
