@@ -140,8 +140,11 @@ export function makeRemoveMultiLineCommentsPlugin() {
   return regexReplace({
     patterns: [
       {
-        // The `s` flag makes the dot match newlines
-        test: /^\/\*.*\*\//gs,
+        // If we ever want to remove all comments instead of just /* ... */ ones, the regex is
+        // /\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm. We also might consider a plugin like
+        // https://github.com/aMarCruz/rollup-plugin-cleanup (though to remove only multi-line comments we'd end up with
+        // a regex there, too).
+        test: /\/\*[\s\S]*?\*\//gm,
         replace: '',
       },
     ],
