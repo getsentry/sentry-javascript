@@ -11,6 +11,7 @@ module.exports = async ({ url: urlBase, argv }) => {
       contexts: {
         trace: {
           op: 'nextjs.data.server',
+          status: 'ok',
         },
       },
       transaction: '/[id]/withInitialProps',

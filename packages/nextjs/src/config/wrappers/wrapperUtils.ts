@@ -98,6 +98,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         op: 'nextjs.data.server',
         name: options.requestedRouteName,
         ...traceparentData,
+        status: 'ok',
         metadata: {
           source: 'route',
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
@@ -116,6 +117,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     const dataFetcherSpan = requestTransaction.startChild({
       op: 'nextjs.data.server',
       description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+      status: 'ok',
     });
 
     const currentScope = getCurrentHub().getScope();
@@ -137,6 +139,17 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
     try {
       return await origFunction(...origFunctionArguments);
+    } catch (e) {
+      // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
+      // that set the transaction status, we need to manually set the status of the span & transaction
+      dataFetcherSpan.setStatus('internal_error');
+
+      const transaction = dataFetcherSpan.transaction;
+      if (transaction) {
+        transaction.setStatus('internal_error');
+      }
+
+      throw e;
     } finally {
       dataFetcherSpan.finish();
     }
@@ -178,14 +191,17 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   const span = transaction.startChild({
     op: 'nextjs.data.server',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
+    status: 'ok',
   });
 
   try {
     return await origFunction(...origFunctionArgs);
   } catch (err) {
-    if (span) {
-      span.finish();
-    }
+    // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
+    // that set the transaction status, we need to manually set the status of the span & transaction
+    transaction.setStatus('internal_error');
+    span.setStatus('internal_error');
+    span.finish();
 
     // TODO Copy more robust error handling over from `withSentry`
     captureException(err);
