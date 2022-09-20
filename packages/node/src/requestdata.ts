@@ -1,5 +1,5 @@
 import { Event, ExtractedNodeRequestData, PolymorphicRequest, Transaction, TransactionSource } from '@sentry/types';
-import { isPlainObject, isString, normalize, stripUrlQueryAndFragment } from '@sentry/utils/';
+import { isPlainObject, isString, normalize, stripUrlQueryAndFragment } from '@sentry/utils';
 import * as cookie from 'cookie';
 import * as url from 'url';
 
