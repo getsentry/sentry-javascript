@@ -45,7 +45,7 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const withSentry = (origHandler: NextApiHandler, parameterizedRoute?: string): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  return async (req, res) => {
+  return async function sentryWrappedHandler(req: AugmentedNextApiRequest, res: NextApiResponse) {
     // We're now auto-wrapping API route handlers using `withSentryAPI` (which uses `withSentry` under the hood), but
     // users still may have their routes manually wrapped with `withSentry`. This check makes `sentryWrappedHandler`
     // idempotent so that those cases don't break anything.
