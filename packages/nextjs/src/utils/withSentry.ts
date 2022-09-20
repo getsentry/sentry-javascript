@@ -84,17 +84,23 @@ export const withSentry = (origHandler: NextApiHandler, parameterizedRoute?: str
           const baggageHeader = req.headers && req.headers.baggage;
           const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
-          const url = `${req.url}`;
-          // pull off query string, if any
-          let reqPath = stripUrlQueryAndFragment(url);
-          // Replace with placeholder
-          if (req.query) {
-            // TODO get this from next if possible, to avoid accidentally replacing non-dynamic parts of the path if
-            // they happen to match the values of any of the dynamic parts
-            for (const [key, value] of Object.entries(req.query)) {
-              reqPath = reqPath.replace(`${value}`, `[${key}]`);
+          // prefer the parameterized route, if we have it (which we will if we've auto-wrapped the route handler)
+          let reqPath = parameterizedRoute;
+
+          // If not, fake it by just replacing parameter values with their names, hoping that none of them match either
+          // each other or any hard-coded parts of the path
+          if (!reqPath) {
+            const url = `${req.url}`;
+            // pull off query string, if any
+            reqPath = stripUrlQueryAndFragment(url);
+            // Replace with placeholder
+            if (req.query) {
+              for (const [key, value] of Object.entries(req.query)) {
+                reqPath = reqPath.replace(`${value}`, `[${key}]`);
+              }
             }
           }
+
           const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
           const transaction = startTransaction(
