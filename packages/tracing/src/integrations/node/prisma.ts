@@ -1,6 +1,8 @@
 import { Hub } from '@sentry/hub';
 import { EventProcessor, Integration } from '@sentry/types';
-import { isThenable, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
+
+import { trace } from '../../utils';
 
 type PrismaAction =
   | 'findUnique'
@@ -81,28 +83,19 @@ export class Prisma implements Integration {
     }
 
     this._client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
-      const scope = getCurrentHub().getScope();
-      const parentSpan = scope?.getSpan();
-
+      const hub = getCurrentHub();
       const action = params.action;
       const model = params.model;
-
-      const span = parentSpan?.startChild({
-        description: model ? `${model} ${action}` : action,
-        op: 'db.prisma',
-      });
-
-      const rv = next(params);
-
-      if (isThenable(rv)) {
-        return rv.then((res: unknown) => {
-          span?.finish();
-          return res;
-        });
-      }
-
-      span?.finish();
-      return rv;
+      return trace(
+        {
+          description: model ? `${model} ${action}` : action,
+          op: 'db.prisma',
+        },
+        () => next(params),
+        {
+          hub,
+        },
+      );
     });
   }
 }

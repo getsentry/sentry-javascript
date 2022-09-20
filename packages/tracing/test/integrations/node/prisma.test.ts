@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope, makeMain } from '@sentry/hub';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
-import { Span } from '../../../src/span';
+import { Transaction } from '../../../src/transaction';
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
 
@@ -25,37 +25,33 @@ class PrismaClient {
 describe('setupOnce', function () {
   const Client: PrismaClient = new PrismaClient();
 
-  let scope = new Scope();
-  let parentSpan: Span;
-  let childSpan: Span;
-
-  beforeAll(() => {
-    // @ts-ignore, not to export PrismaClient types from integration source
-    new Prisma({ client: Client }).setupOnce(
-      () => undefined,
-      () => new Hub(undefined, scope),
-    );
-  });
+  let scope: Scope;
+  let hub: Hub;
+  let transaction: Transaction;
 
   beforeEach(() => {
     scope = new Scope();
-    parentSpan = new Span();
-    childSpan = parentSpan.startChild();
-    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
-    jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-    jest.spyOn(childSpan, 'finish');
+    hub = new Hub(undefined, scope);
+    makeMain(hub);
+    transaction = new Transaction({ name: 'mock-transaction' });
+    transaction.initSpanRecorder();
+    scope.setSpan(transaction);
+    new Prisma({ client: Client }).setupOnce(
+      () => undefined,
+      () => hub,
+    );
   });
 
-  it('should add middleware with $use method correctly', done => {
-    void Client.user.create()?.then(res => {
-      expect(res).toBe('result');
-      expect(scope.getSpan).toBeCalled();
-      expect(parentSpan.startChild).toBeCalledWith({
-        description: 'user create',
-        op: 'db.prisma',
-      });
-      expect(childSpan.finish).toBeCalled();
-      done();
+  afterEach(() => {
+    transaction.finish();
+  });
+
+  it('should add middleware with $use method correctly', async () => {
+    const res = await Client.user.create();
+    expect(res).toEqual('result');
+    expect(transaction.spanRecorder?.spans[1]).toMatchObject({
+      op: 'db.prisma',
+      description: 'user create',
     });
   });
 });
