@@ -28,7 +28,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 // the test app would refer to the other version of the type (from the test app's `node_modules`). By using a custom
 // version of the type compatible with both the old and new official versions, we can use any Next version we want in
 // a test app without worrying about type errors.
-type NextApiHandler = (req: NextApiRequest, res: NextApiResponse) => void | Promise<void> | unknown | Promise<unknown>;
+export type NextApiHandler = (
+  req: NextApiRequest,
+  res: NextApiResponse,
+) => void | Promise<void> | unknown | Promise<unknown>;
 export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void> | Promise<unknown>;
 
 export type AugmentedNextApiResponse = NextApiResponse & {

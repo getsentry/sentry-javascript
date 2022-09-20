@@ -14,7 +14,11 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/templates/prefixLoaderTemplate.ts', 'src/config/templates/proxyLoaderTemplate.ts'],
+      entrypoints: [
+        'src/config/templates/prefixLoaderTemplate.ts',
+        'src/config/templates/proxyLoaderTemplate.ts',
+        'src/config/templates/apiProxyLoaderTemplate.ts',
+      ],
 
       packageSpecificConfig: {
         plugins: [plugins.makeRemoveMultiLineCommentsPlugin()],
