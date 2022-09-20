@@ -134,6 +134,7 @@ export {
   withSentryServerSideAppGetInitialProps,
   withSentryServerSideDocumentGetInitialProps,
   withSentryServerSideErrorGetInitialProps,
+  withSentryAPI,
 } from './config/wrappers';
 export { withSentry } from './utils/withSentry';
 
