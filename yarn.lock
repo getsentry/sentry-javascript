@@ -128,6 +128,13 @@
     ora "5.0.0"
     rxjs "6.6.2"
 
+"@angular/animations@~10.2.5":
+  version "10.2.5"
+  resolved "https://registry.yarnpkg.com/@angular/animations/-/animations-10.2.5.tgz#9b4aaa2a2f88f848decb5a03f2ddaa2aed37642d"
+  integrity sha512-lIMwjY1pAqpCM4Ayndf2RsvOWRUc5QV7W82XNou6pIBv2T1i1XV6H72I5Sk9Z4sxxBYCWncEaEub+C6NcS8QRg==
+  dependencies:
+    tslib "^2.0.0"
+
 "@angular/cli@^10.2.4":
   version "10.2.4"
   resolved "https://registry.yarnpkg.com/@angular/cli/-/cli-10.2.4.tgz#f8899eee8f774cd805b1831a8f2f865024e9f4e1"
@@ -191,6 +198,20 @@
   version "10.2.5"
   resolved "https://registry.yarnpkg.com/@angular/core/-/core-10.2.5.tgz#2050b0dbb180aa98c2ec46bba6d4827565ba2a2d"
   integrity sha512-krhOKNTj5XE92Rk9ASX5KmgTF72j7qT2PLVxrGEVjuUKjBY2XaK3TV0Kotq9zI3qa9WgeCrP/Njn6jlKQCCAEQ==
+  dependencies:
+    tslib "^2.0.0"
+
+"@angular/platform-browser-dynamic@~10.2.5":
+  version "10.2.5"
+  resolved "https://registry.yarnpkg.com/@angular/platform-browser-dynamic/-/platform-browser-dynamic-10.2.5.tgz#c9eea9e076a9fc8f80d7c041ba9766465613bb96"
+  integrity sha512-7z443I80K2CeqzczlSJ8BlABj0uRgnHUrABE8yLlU2BgifJrriBawzSXEV7UMEN7k7ezbc6NhpOn6Q6BrCKEOA==
+  dependencies:
+    tslib "^2.0.0"
+
+"@angular/platform-browser@~10.2.5":
+  version "10.2.5"
+  resolved "https://registry.yarnpkg.com/@angular/platform-browser/-/platform-browser-10.2.5.tgz#40dd88c937af7af56e3fb246608c7001e4ac09c7"
+  integrity sha512-3JDFRGNxr0IUkjSdGK2Q1BvqnSDpy9YWo0DJP+TEpgW578R84m4X7/wI3jJmFSC2yyouMWrHsot2vcBPAQj89g==
   dependencies:
     tslib "^2.0.0"
 
@@ -26984,3 +27005,10 @@ yocto-queue@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/yocto-queue/-/yocto-queue-0.1.0.tgz#0294eb3dee05028d31ee1a5fa2c556a6aaf10a1b"
   integrity sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
+
+zone.js@^0.11.8:
+  version "0.11.8"
+  resolved "https://registry.yarnpkg.com/zone.js/-/zone.js-0.11.8.tgz#40dea9adc1ad007b5effb2bfed17f350f1f46a21"
+  integrity sha512-82bctBg2hKcEJ21humWIkXRlLBBmrc3nN7DFh5LGGhcyycO2S7FN8NmdvlcKaGFDNVL4/9kFLmwmInTavdJERA==
+  dependencies:
+    tslib "^2.3.0"
