@@ -1,7 +1,8 @@
 // TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
 // now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
 
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import { extractPathForTransaction } from '@sentry/utils';
 
 import {
   addRequestDataToEvent,
@@ -86,10 +87,15 @@ export class RequestData implements Integration {
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (eventProcessor: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const { include, addRequestData } = this._options;
+    // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
+    // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
+    // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
+    // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
+    const { include, addRequestData, transactionNamingScheme } = this._options;
 
     addGlobalEventProcessor(event => {
-      const self = getCurrentHub().getIntegration(RequestData);
+      const hub = getCurrentHub();
+      const self = hub.getIntegration(RequestData);
       const req = event.sdkProcessingMetadata && event.sdkProcessingMetadata.request;
 
       // If the globally installed instance of this integration isn't associated with the current hub, `self` will be
@@ -98,7 +104,36 @@ export class RequestData implements Integration {
         return event;
       }
 
-      return addRequestData(event, req, { include: formatIncludeOption(include) });
+      const processedEvent = addRequestData(event, req, { include: formatIncludeOption(include) });
+
+      // Transaction events already have the right `transaction` value
+      if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
+        return processedEvent;
+      }
+
+      // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
+      // value with a high-quality one
+      const reqWithTransaction = req as { _sentryTransaction?: Transaction };
+      const transaction = reqWithTransaction._sentryTransaction;
+      if (transaction) {
+        // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
+        // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
+        // to break things like alert rules.)
+        const shouldIncludeMethodInTransactionName =
+          getSDKName(hub) === 'sentry.javascript.nextjs'
+            ? transaction.name.startsWith('/api')
+            : transactionNamingScheme !== 'path';
+
+        const [transactionValue] = extractPathForTransaction(req, {
+          path: true,
+          method: shouldIncludeMethodInTransactionName,
+          customRoute: transaction.name,
+        });
+
+        processedEvent.transaction = transactionValue;
+      }
+
+      return processedEvent;
     });
   }
 }
@@ -122,4 +157,16 @@ function formatIncludeOption(
     user,
     request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
   };
+}
+
+function getSDKName(hub: Hub): string | undefined {
+  try {
+    // For a long chain like this, it's fewer bytes to combine a try-catch with assuming everything is there than to
+    // write out a long chain of `a && a.b && a.b.c && ...`
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return hub.getClient()!.getOptions()!._metadata!.sdk!.name;
+  } catch (err) {
+    // In theory we should never get here
+    return undefined;
+  }
 }

@@ -1,6 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/hub';
-import { addExceptionMechanism, addRequestDataToEvent } from '@sentry/utils';
+import { addExceptionMechanism } from '@sentry/utils';
 import { NextPageContext } from 'next';
 
 type ContextOrProps = {
@@ -55,7 +55,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     });
 
     if (req) {
-      scope.addEventProcessor(event => addRequestDataToEvent(event, req));
+      scope.setSDKProcessingMetadata({ request: req });
     }
 
     // If third-party libraries (or users themselves) throw something falsy, we want to capture it as a message (which
