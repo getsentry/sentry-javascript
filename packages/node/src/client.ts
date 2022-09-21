@@ -31,6 +31,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
           version: SDK_VERSION,
         },
       ],
+      integrations: Object.keys(options.integrations).sort(),
       version: SDK_VERSION,
     };
 
