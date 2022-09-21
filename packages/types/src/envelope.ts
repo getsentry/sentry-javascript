@@ -40,11 +40,11 @@ export type BaseEnvelopeItemHeaders = {
   length?: number;
 };
 
-type BaseEnvelopeItem<IH extends BaseEnvelopeItemHeaders, P extends unknown> = [IH, P]; // P is for payload
+type BaseEnvelopeItem<ItemHeader, P extends unknown> = [ItemHeader & BaseEnvelopeItemHeaders, P]; // P is for payload
 
-type BaseEnvelope<EH extends BaseEnvelopeHeaders, I extends BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>> = [
-  EH,
-  I[],
+type BaseEnvelope<EnvelopeHeader, Item> = [
+  EnvelopeHeader & BaseEnvelopeHeaders,
+  Array<Item & BaseEnvelopeItem<BaseEnvelopeItemHeaders, unknown>>,
 ];
 
 type EventItemHeaders = {
