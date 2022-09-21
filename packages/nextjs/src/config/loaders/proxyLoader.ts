@@ -41,7 +41,9 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     return userCode;
   }
 
-  const templateFile = parameterizedRoute.startsWith('/api') ? 'apiProxyLoaderTemplate.js' : 'proxyLoaderTemplate.js';
+  const templateFile = parameterizedRoute.startsWith('/api')
+    ? 'apiProxyLoaderTemplate.js'
+    : 'pageProxyLoaderTemplate.js';
   const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
   let templateCode = fs.readFileSync(templatePath).toString();
   // Make sure the template is included when runing `webpack watch`
