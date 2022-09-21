@@ -148,6 +148,7 @@ it('long first flush enqueues following events', async () => {
 
   // flush #1 @ t=0s - due to blur
   window.dispatchEvent(new Event('blur'));
+  expect(replay.flush).toHaveBeenCalledTimes(1);
   expect(replay.runFlush).toHaveBeenCalledTimes(1);
 
   // This will attempt to flush in 5 seconds (flushMinDelay)
