@@ -909,9 +909,6 @@ export class SentryReplay implements Integration {
     // Only attach memory event if eventBuffer is not empty
     await this.addMemoryEntry();
 
-    // Save the timestamp before sending replay because `captureEvent` should
-    // only be called after successfully uploading a replay
-    const timestamp = new Date().getTime();
     // NOTE: Copy values from instance members, as it's possible they could
     // change before the flush finishes.
     const replayId = this.session.id;
@@ -930,7 +927,7 @@ export class SentryReplay implements Integration {
 
       // The below will only happen after successfully sending replay //
       captureReplayEvent({
-        ...this.popEventContext({ timestamp }),
+        ...this.popEventContext({ timestamp: new Date().getTime() }),
         replayId,
         segmentId,
         includeReplayStartTimestamp: newSessionCreated,

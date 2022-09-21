@@ -463,7 +463,8 @@ describe('SentryReplay', () => {
         replay_id: expect.any(String),
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         segment_id: 0,
-        timestamp: (BASE_TIMESTAMP + 5000) / 1000,
+        // 20seconds = Add up all of the previous `advanceTimers()`
+        timestamp: (BASE_TIMESTAMP + 20000) / 1000 + 0.06,
         trace_ids: [],
         type: 'replay_event',
         urls: ['http://localhost/'],
