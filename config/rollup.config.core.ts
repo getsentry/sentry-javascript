@@ -30,6 +30,7 @@ const config = defineConfig({
       // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
       preventAssignment: false,
       values: {
+        __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
         // @ts-expect-error not gonna deal with types here
         __SENTRY_DEBUG__: !IS_PRODUCTION,
       },

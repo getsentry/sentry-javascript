@@ -1,6 +1,9 @@
 import { SentryReplay } from '@';
 import { Session } from '@/session/Session';
 
+// @ts-expect-error TS error, this is replaced in prod builds bc of rollup
+global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
+
 const ENVELOPE_URL_REGEX = new RegExp(
   'https://ingest.f00.f00/api/1/envelope/\\?sentry_key=dsn&sentry_version=7'
 );

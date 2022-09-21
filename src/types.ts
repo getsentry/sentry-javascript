@@ -36,6 +36,10 @@ export interface WorkerRequest {
   args: any[];
 }
 
+declare global {
+  const __SENTRY_REPLAY_VERSION__: string;
+}
+
 /**
  * The response from the worker
  */
