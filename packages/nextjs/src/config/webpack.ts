@@ -79,7 +79,7 @@ export function constructWebpackConfigFunction(
         ],
       };
 
-      if (userSentryOptions.experiments?.autoWrapDataFetchers) {
+      if (userSentryOptions.autoInstrumentServerFunctions) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
 
         newConfig.module.rules.push({
