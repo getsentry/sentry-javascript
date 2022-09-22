@@ -9,9 +9,9 @@
 
 // We need both replacement plugins because one handles regex and the other runs both before and after rollup does its
 // bundling work.
-import regexReplace from 'rollup-plugin-re';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
+import cleanup from 'rollup-plugin-cleanup';
 
 /**
  * Create a plugin to transpile TS syntax using `sucrase`.
@@ -100,51 +100,18 @@ export function makeDebuggerPlugin(hookName) {
 }
 
 /**
- * Create a plugin to strip eslint-style comments from the output.
+ * Create a plugin to clean up output files by:
+ * - Removing comments
+ * - Converting line endings unix line endings
+ * - Removing consecutive empty lines
  *
- * @returns A `rollup-plugin-re` instance.
+ * @returns A `rollup-plugin-cleanup` instance.
  */
-export function makeRemoveESLintCommentsPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        test: /\/[/*] eslint-.*\n/g,
-        replace: '',
-      },
-    ],
-  });
-}
-
-/**
- * Create a plugin to strip multiple consecutive blank lines, with or without whitespace in them. from the output.
- *
- * @returns A `rollup-plugin-re` instance.
- */
-export function makeRemoveBlankLinesPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        test: /\n(\n\s*)+\n/g,
-        replace: '\n\n',
-      },
-    ],
-  });
-}
-
-/**
- * Create a plugin to strip multi-line comments from the output.
- *
- * @returns A `rollup-plugin-re` instance.
- */
-export function makeRemoveMultiLineCommentsPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        // The `s` flag makes the dot match newlines
-        test: /^\/\*.*\*\//gs,
-        replace: '',
-      },
-    ],
+export function makeCleanupPlugin() {
+  return cleanup({
+    comments: 'none',
+    maxEmptyLines: 1,
+    extensions: ['js', 'jsx', 'ts', 'tsx'],
   });
 }
 
