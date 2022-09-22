@@ -2,7 +2,8 @@ import { getCurrentHub } from '@sentry/hub';
 import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractRequestData, isString, loadModule, logger } from '@sentry/utils';
+import { extractRequestData, isString, logger } from '@sentry/utils';
+import { cwd } from 'process';
 
 import {
   createRoutes,
@@ -18,7 +19,6 @@ import {
   ExpressRequest,
   ExpressRequestHandler,
   ExpressResponse,
-  ReactRouterDomPkg,
   ServerBuild,
 } from '../types';
 
@@ -27,7 +27,6 @@ function wrapExpressRequestHandler(
   build: ServerBuild,
 ): ExpressRequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   // If the core request handler is already wrapped, don't wrap Express handler which uses it.
   if (isRequestHandlerWrapped) {
@@ -52,6 +51,8 @@ function wrapExpressRequestHandler(
     }
 
     const url = new URL(request.url);
+    const pkg = await import(`${cwd()}/node_modules/react-router-dom`);
+
     const [name, source] = getTransactionName(routes, url, pkg);
     const transaction = startRequestHandlerTransaction(hub, name, source, {
       headers: {
