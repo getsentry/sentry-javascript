@@ -5,3 +5,4 @@ export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerS
 export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
 export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
 export { withSentryAPI } from './withSentryAPI';
+export { withSentry } from './withSentry';

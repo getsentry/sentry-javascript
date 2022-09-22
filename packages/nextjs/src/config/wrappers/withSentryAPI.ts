@@ -1,8 +1,8 @@
 import { formatAsCode, nextLogger } from '../../utils/nextLogger';
 // We import these types from `withSentry` rather than directly from `next` because our version can work simultaneously
 // with multiple versions of next. See note in `withSentry` for more.
-import type { NextApiHandler, WrappedNextApiHandler } from '../../utils/withSentry';
-import { withSentry } from '../../utils/withSentry';
+import type { NextApiHandler, WrappedNextApiHandler } from './withSentry';
+import { withSentry } from './withSentry';
 
 /**
  * Wrap the given API route handler for tracing and error capturing. Thin wrapper around `withSentry`, which only

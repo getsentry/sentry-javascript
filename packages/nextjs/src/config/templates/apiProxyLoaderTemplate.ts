@@ -14,7 +14,7 @@ import type { PageConfig } from 'next';
 
 // We import this from `withSentry` rather than directly from `next` because our version can work simultaneously with
 // multiple versions of next. See note in `withSentry` for more.
-import type { NextApiHandler } from '../../utils/withSentry';
+import type { NextApiHandler } from '../wrappers/withSentry';
 
 type NextApiModule = {
   default: NextApiHandler;
