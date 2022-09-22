@@ -19,7 +19,7 @@ docker run --detach --rm \
 
 # Publish built packages to Verdaccio Test Registry
 for package in "$SCRIPT_DIR"/../packages/*/sentry-*.tgz; do
-  npm publish $package --registry http://localhost:4873
+  npm publish $package --userconfig $SCRIPT_DIR/.npmrc
 done
 
 # TODO: Run e2e tests here
