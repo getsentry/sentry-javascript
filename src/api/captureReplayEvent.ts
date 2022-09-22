@@ -1,4 +1,4 @@
-import { captureEvent, getCurrentHub } from '@sentry/core';
+import { captureEvent, withScope } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME } from '@/session/constants';
 import { InitialState } from '@/types';
@@ -51,21 +51,23 @@ export function captureReplayEvent({
   traceIds,
   urls,
 }: CaptureReplayEventParams) {
-  getCurrentHub()?.setTag('replay_sdk_version', __SENTRY_REPLAY_VERSION__);
-  captureEvent(
-    {
-      // @ts-expect-error replay_event is a new event type
-      type: REPLAY_EVENT_NAME,
-      ...(includeReplayStartTimestamp
-        ? { replay_start_timestamp: initialState.timestamp / 1000 }
-        : {}),
-      timestamp: timestamp / 1000,
-      error_ids: errorIds,
-      trace_ids: traceIds,
-      urls,
-      replay_id,
-      segment_id,
-    },
-    { event_id: replay_id }
-  );
+  withScope((scope) => {
+    scope.setTag('replay_sdk_version', __SENTRY_REPLAY_VERSION__);
+    captureEvent(
+      {
+        // @ts-expect-error replay_event is a new event type
+        type: REPLAY_EVENT_NAME,
+        ...(includeReplayStartTimestamp
+          ? { replay_start_timestamp: initialState.timestamp / 1000 }
+          : {}),
+        timestamp: timestamp / 1000,
+        error_ids: errorIds,
+        trace_ids: traceIds,
+        urls,
+        replay_id,
+        segment_id,
+      },
+      { event_id: replay_id }
+    );
+  });
 }
