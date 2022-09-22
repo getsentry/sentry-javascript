@@ -13,7 +13,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
 // We import this from `wrappers` rather than directly from `next` because our version can work simultaneously with
-// multiple versions of next. See note in `wrappers/withSentry` for more.
+// multiple versions of next. See note in `wrappers/types` for more.
 import type { NextApiHandler } from '../wrappers';
 
 type NextApiModule = {

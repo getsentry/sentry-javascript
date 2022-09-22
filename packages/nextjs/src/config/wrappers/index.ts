@@ -1,4 +1,4 @@
-export type { AugmentedNextApiResponse, NextApiHandler, WrappedNextApiHandler } from './withSentry';
+export type { AugmentedNextApiResponse, NextApiHandler, WrappedNextApiHandler } from './types';
 
 export { withSentryGetStaticProps } from './withSentryGetStaticProps';
 export { withSentryServerSideGetInitialProps } from './withSentryServerSideGetInitialProps';
@@ -6,5 +6,4 @@ export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAp
 export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerSideDocumentGetInitialProps';
 export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
 export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
-export { withSentryAPI } from './withSentryAPI';
-export { withSentry } from './withSentry';
+export { withSentry, withSentryAPI } from './withSentryAPI';
