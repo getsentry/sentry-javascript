@@ -55,10 +55,8 @@ export type UserSentryOptions = {
   // up uploading too many files, which is why this defaults to `false`.
   widenClientFileUpload?: boolean;
 
-  experiments?: {
-    // Automatically wrap `getInitialProps`, `getServerSideProps`, and `getStaticProps` in order to instrument them for tracing.
-    autoWrapDataFetchers?: boolean;
-  };
+  // Automatically instrument Next.js data fetching methods and Next.js API routes
+  autoInstrumentServerFunctions?: boolean;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
