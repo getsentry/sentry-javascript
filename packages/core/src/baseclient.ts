@@ -567,7 +567,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const integrationsArray = Object.keys(this._integrations);
     if (integrationsArray.length > 0) {
       event.sdk = event.sdk || {};
-      event.sdk.integrations = [...(event.sdk.integrations || []), ...integrationsArray];
+      event.sdk.integrations = [...(event.sdk.integrations || []), ...integrationsArray].sort();
     }
   }
 
