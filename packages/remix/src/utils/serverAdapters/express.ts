@@ -27,6 +27,8 @@ function wrapExpressRequestHandler(
   build: ServerBuild,
 ): ExpressRequestHandler {
   const routes = createRoutes(build.routes);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pkg = require(`${cwd()}/node_modules/react-router-dom`);
 
   // If the core request handler is already wrapped, don't wrap Express handler which uses it.
   if (isRequestHandlerWrapped) {
@@ -51,8 +53,6 @@ function wrapExpressRequestHandler(
     }
 
     const url = new URL(request.url);
-    const pkg = await import(`${cwd()}/node_modules/react-router-dom`);
-
     const [name, source] = getTransactionName(routes, url, pkg);
     const transaction = startRequestHandlerTransaction(hub, name, source, {
       headers: {
