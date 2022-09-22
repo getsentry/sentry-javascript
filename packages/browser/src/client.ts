@@ -13,7 +13,6 @@ import { eventFromException, eventFromMessage } from './eventbuilder';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
-import { sendReport } from './transports/utils';
 
 const globalObject = getGlobalObject<Window>();
 
@@ -165,7 +164,19 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
     try {
-      sendReport(url, serializeEnvelope(envelope));
+      const global = getGlobalObject<Window>();
+      const isRealNavigator = Object.prototype.toString.call(global && global.navigator) === '[object Navigator]';
+      const hasSendBeacon = isRealNavigator && typeof global.navigator.sendBeacon === 'function';
+      // Make sure beacon is not used if user configures custom transport options
+      if (hasSendBeacon && !this._options.transportOptions) {
+        // Prevent illegal invocations - https://xgwang.me/posts/you-may-not-know-beacon/#it-may-throw-error%2C-be-sure-to-catch
+        const sendBeacon = global.navigator.sendBeacon.bind(global.navigator);
+        sendBeacon(url, serializeEnvelope(envelope));
+      } else {
+        // If beacon is not supported or if they are using the tunnel option
+        // use our regular transport to send client reports to Sentry.
+        this._sendEnvelope(envelope);
+      }
     } catch (e) {
       __DEBUG_BUILD__ && logger.error(e);
     }
