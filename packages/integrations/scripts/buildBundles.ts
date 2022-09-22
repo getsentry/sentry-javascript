@@ -1,22 +1,45 @@
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 
+/** Gets a list of src filenames, one for each integration and excludes the index.ts */
 function getIntegrations(): string[] {
+  const srcDir = join(__dirname, '..', 'src');
+  const srcFiles = readdirSync(srcDir);
   // The index file is only there for the purposes of npm builds (for the CDN we create a separate bundle for each
-  // integration) and the flags file is just a helper for including or not including debug logging, whose contents gets
-  // incorporated into each of the individual integration bundles, so we can skip them both here.
-  return readdirSync(join(__dirname, '..', 'src')).filter(file => !file.endsWith('index.ts'));
+  // integration)
+  return srcFiles.filter(file => file === 'index.ts');
 }
 
-for (const integration of getIntegrations()) {
-  for (const jsVersion of ['ES5', 'ES6']) {
-    // run the build for each integration and js version
-    spawnSync('yarn', ['--silent', 'rollup', '--config', 'rollup.bundle.config.js'], {
+/** Builds a bundle for a specific integration and JavaScript ES version */
+async function buildBundle(integration: string, jsVersion: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('yarn', ['--silent', 'rollup', '--config', 'rollup.bundle.config.js'], {
       env: { ...process.env, INTEGRATION_FILE: integration, JS_VERSION: jsVersion },
     });
-  }
+
+    child.on('exit', exitcode => {
+      if (exitcode !== 0) {
+        reject(new Error(`Failed to build bundle for integration "${integration}" with exit code: ${exitcode}`));
+      } else {
+        resolve();
+      }
+    });
+  });
 }
 
-// eslint-disable-next-line no-console
-console.log('\nIntegration bundles built successfully');
+// We're building a bundle for each integration and each JavaScript version.
+const tasks = getIntegrations().reduce(
+  (tasks, integration) => [...tasks, buildBundle(integration, 'ES5'), buildBundle(integration, 'ES6')],
+  [] as Promise<void>[],
+);
+
+Promise.all(tasks)
+  // eslint-disable-next-line no-console
+  .then(_ => console.log('\nIntegration bundles built successfully'))
+  .catch(error => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    // Important to exit with a non-zero exit code, so that the build fails.
+    process.exit(1);
+  });
