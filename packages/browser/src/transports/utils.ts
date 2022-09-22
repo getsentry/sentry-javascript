@@ -1,4 +1,4 @@
-import { getGlobalObject, isNativeFetch, logger, supportsFetch } from '@sentry/utils';
+import { getGlobalObject, isNativeFetch, logger } from '@sentry/utils';
 
 const global = getGlobalObject<Window>();
 let cachedFetchImpl: FetchImpl;
@@ -76,31 +76,4 @@ export function getNativeFetchImplementation(): FetchImpl {
 
   return (cachedFetchImpl = fetchImpl.bind(global));
   /* eslint-enable @typescript-eslint/unbound-method */
-}
-
-/**
- * Sends sdk client report using sendBeacon or fetch as a fallback if available
- *
- * @param url report endpoint
- * @param body report payload
- */
-export function sendReport(url: string, body: string | Uint8Array): void {
-  const isRealNavigator = Object.prototype.toString.call(global && global.navigator) === '[object Navigator]';
-  const hasSendBeacon = isRealNavigator && typeof global.navigator.sendBeacon === 'function';
-
-  if (hasSendBeacon) {
-    // Prevent illegal invocations - https://xgwang.me/posts/you-may-not-know-beacon/#it-may-throw-error%2C-be-sure-to-catch
-    const sendBeacon = global.navigator.sendBeacon.bind(global.navigator);
-    sendBeacon(url, body);
-  } else if (supportsFetch()) {
-    const fetch = getNativeFetchImplementation();
-    fetch(url, {
-      body,
-      method: 'POST',
-      credentials: 'omit',
-      keepalive: true,
-    }).then(null, error => {
-      __DEBUG_BUILD__ && logger.error(error);
-    });
-  }
 }
