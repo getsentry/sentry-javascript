@@ -12,14 +12,13 @@ import {
   logger,
   resolvedSyncPromise,
   stackParserFromStackParserOptions,
-  supportsFetch,
 } from '@sentry/utils';
 
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { ReportDialogOptions, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
-import { makeFetchTransport, makeXHRTransport } from './transports';
+import { makeXHRTransport } from './transports';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
@@ -111,7 +110,7 @@ export function init(options: BrowserOptions = {}): void {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
+    transport: options.transport || makeXHRTransport,
   };
 
   initAndBind(BrowserClient, clientOptions);
