@@ -395,10 +395,6 @@ function _trackNavigator(transaction: Transaction): void {
     if (isMeasurementValue(connection.rtt)) {
       _measurements['connection.rtt'] = { value: connection.rtt, unit: 'millisecond' };
     }
-
-    if (isMeasurementValue(connection.downlink)) {
-      _measurements['connection.downlink'] = { value: connection.downlink, unit: '' }; // unit is empty string for now, while relay doesn't support download speed units
-    }
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
