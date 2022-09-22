@@ -1,3 +1,5 @@
+export type { AugmentedNextApiResponse, NextApiHandler, WrappedNextApiHandler } from './withSentry';
+
 export { withSentryGetStaticProps } from './withSentryGetStaticProps';
 export { withSentryServerSideGetInitialProps } from './withSentryServerSideGetInitialProps';
 export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAppGetInitialProps';

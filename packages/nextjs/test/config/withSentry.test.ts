@@ -4,7 +4,7 @@ import { Client, ClientOptions } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
-import { AugmentedNextApiResponse, withSentry, WrappedNextApiHandler } from '../../src/config/wrappers/withSentry';
+import { AugmentedNextApiResponse, withSentry, WrappedNextApiHandler } from '../../src/config/wrappers';
 
 const FLUSH_DURATION = 200;
 
