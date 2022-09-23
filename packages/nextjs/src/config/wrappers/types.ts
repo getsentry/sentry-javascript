@@ -1,4 +1,4 @@
-import type { Transaction } from '@sentry/types';
+import type { Transaction, WrappedFunction } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // The `NextApiHandler` and `WrappedNextApiHandler` types are the same as the official `NextApiHandler` type, except:
@@ -42,4 +42,4 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 };
 
 export type ResponseEndMethod = AugmentedNextApiResponse['end'];
-export type WrappedResponseEndMethod = AugmentedNextApiResponse['end'];
+export type WrappedResponseEndMethod = AugmentedNextApiResponse['end'] & WrappedFunction;
