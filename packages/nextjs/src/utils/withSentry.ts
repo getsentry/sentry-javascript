@@ -34,6 +34,10 @@ export type NextApiHandler = (
 ) => void | Promise<void> | unknown | Promise<unknown>;
 export type WrappedNextApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void> | Promise<unknown>;
 
+type AugmentedNextApiRequest = NextApiRequest & {
+  __withSentry_applied__?: boolean;
+};
+
 export type AugmentedNextApiResponse = NextApiResponse & {
   __sentryTransaction?: Transaction;
 };
@@ -42,6 +46,14 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 export const withSentry = (origHandler: NextApiHandler, parameterizedRoute?: string): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async (req, res) => {
+    // We're now auto-wrapping API route handlers using `withSentryAPI` (which uses `withSentry` under the hood), but
+    // users still may have their routes manually wrapped with `withSentry`. This check makes `sentryWrappedHandler`
+    // idempotent so that those cases don't break anything.
+    if (req.__withSentry_applied__) {
+      return origHandler(req, res);
+    }
+    req.__withSentry_applied__ = true;
+
     // first order of business: monkeypatch `res.end()` so that it will wait for us to send events to sentry before it
     // fires (if we don't do this, the lambda will close too early and events will be either delayed or lost)
     // eslint-disable-next-line @typescript-eslint/unbound-method
