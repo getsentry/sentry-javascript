@@ -2,7 +2,8 @@ import { getCurrentHub } from '@sentry/hub';
 import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { extractRequestData, isString, loadModule, logger } from '@sentry/utils';
+import { extractRequestData, isString, logger } from '@sentry/utils';
+import { cwd } from 'process';
 
 import {
   createRoutes,
@@ -22,12 +23,13 @@ import {
   ServerBuild,
 } from '../types';
 
+let pkg: ReactRouterDomPkg;
+
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
   build: ServerBuild,
 ): ExpressRequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   // If the core request handler is already wrapped, don't wrap Express handler which uses it.
   if (isRequestHandlerWrapped) {
@@ -40,6 +42,10 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
+    if (!pkg) {
+      pkg = await import(`${cwd()}/node_modules/react-router-dom`);
+    }
+
     // eslint-disable-next-line @typescript-eslint/unbound-method
     res.end = wrapEndMethod(res.end);
 
