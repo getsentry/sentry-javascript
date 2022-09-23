@@ -32,6 +32,7 @@ const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
 packageTarballPaths.forEach(tarballPath => {
   childProcess.execSync(`npm publish ${tarballPath}`, {
     env: {
+      ...process.env,
       NPM_CONFIG_USERCONFIG: `${__dirname}/test-registry.npmrc`,
     },
     encoding: 'utf8',
