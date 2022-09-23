@@ -37,7 +37,6 @@ packageTarballPaths.forEach(tarballPath => {
     },
     encoding: 'utf8',
     stdio: 'inherit',
-    cwd: __dirname,
   });
 });
 
