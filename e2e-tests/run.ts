@@ -30,7 +30,7 @@ const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
   absolute: true,
 });
 packageTarballPaths.forEach(tarballPath => {
-  childProcess.execSync(`npm publish ${tarballPath}`, {
+  childProcess.execSync(`npm publish ${tarballPath} --registry http://localhost:4873`, {
     env: {
       ...process.env,
       NPM_CONFIG_USERCONFIG: `${__dirname}/test-registry.npmrc`,
@@ -43,5 +43,5 @@ packageTarballPaths.forEach(tarballPath => {
 // TODO: Run e2e tests here
 
 // Stop test registry
-childProcess.execSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
+// childProcess.execSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
 console.log('Successfully stopped test registry container'); // Output from command above is not good so we ignore it and write our own
