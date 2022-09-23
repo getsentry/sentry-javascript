@@ -51,15 +51,15 @@ interface SentryGlobal {
 /** Returns 'it' if it's the global object */
 function check(it: any): any {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return typeof it == 'object' && it.Math == Math && it;
+  return it && it.Math == Math && it;
 }
 
 const GLOBAL =
-  check(globalThis) ||
+  check(typeof globalThis == 'object' && globalThis) ||
   // eslint-disable-next-line no-restricted-globals
-  check(window) ||
-  check(self) ||
-  check(global) ||
+  check(typeof window == 'object' && window) ||
+  check(typeof self == 'object' && self) ||
+  check(typeof global == 'object' && global) ||
   (function (this: any) {
     return this;
   })() ||
