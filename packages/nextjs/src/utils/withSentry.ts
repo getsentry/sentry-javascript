@@ -39,7 +39,7 @@ export type AugmentedNextApiResponse = NextApiResponse & {
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const withSentry = (origHandler: NextApiHandler): WrappedNextApiHandler => {
+export const withSentry = (origHandler: NextApiHandler, parameterizedRoute?: string): WrappedNextApiHandler => {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async (req, res) => {
     // first order of business: monkeypatch `res.end()` so that it will wait for us to send events to sentry before it
