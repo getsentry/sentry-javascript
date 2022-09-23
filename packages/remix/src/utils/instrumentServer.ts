@@ -109,12 +109,12 @@ function makeWrappedDocumentRequestFunction(
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentHub().getScope();
 
-    if (!activeTransaction || !currentScope) {
+    if (!currentScope) {
       return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
     }
 
     try {
-      const span = activeTransaction.startChild({
+      const span = activeTransaction?.startChild({
         op: 'remix.server.documentRequest',
         description: activeTransaction.name,
         tags: {
@@ -125,7 +125,7 @@ function makeWrappedDocumentRequestFunction(
 
       res = await origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context);
 
-      span.finish();
+      span?.finish();
     } catch (err) {
       captureRemixServerException(err, 'documentRequest');
       throw err;
@@ -141,12 +141,12 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentHub().getScope();
 
-    if (!activeTransaction || !currentScope) {
+    if (!currentScope) {
       return origFn.call(this, args);
     }
 
     try {
-      const span = activeTransaction.startChild({
+      const span = activeTransaction?.startChild({
         op: `remix.server.${name}`,
         description: id,
         tags: {
@@ -162,7 +162,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       res = await origFn.call(this, args);
 
       currentScope.setSpan(activeTransaction);
-      span.finish();
+      span?.finish();
     } catch (err) {
       captureRemixServerException(err, name);
       throw err;
