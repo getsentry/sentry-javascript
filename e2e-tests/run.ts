@@ -46,5 +46,5 @@ packageTarballPaths.forEach(tarballPath => {
 // TODO: Run e2e tests here
 
 // Stop test registry
-// childProcess.execSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
+childProcess.execSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
 console.log('Successfully stopped test registry container'); // Output from command above is not good so we ignore it and write our own
