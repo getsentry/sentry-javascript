@@ -9,7 +9,6 @@ import { Breadcrumb, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler } from '@sentry/utils';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import debounce from 'lodash.debounce';
-import throttle from 'lodash.throttle';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -282,6 +281,8 @@ export class SentryReplay implements Integration {
       return;
     }
 
+    // addUpdate is called quite frequently - use debouncedFlush so that it
+    // respects the flush delays and does not flush immediately
     this.debouncedFlush();
   }
 
@@ -896,6 +897,8 @@ export class SentryReplay implements Integration {
    *
    * Performance events are only added right before flushing - this is
    * due to the buffered performance observer events.
+   *
+   * Should never be called directly, only by `flush`
    */
   async runFlush() {
     if (!this.session) {
@@ -965,9 +968,7 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    // Since flushing, ensure other queued flushes are cancelled
-    // We do this regardless of having a queued flush since the event updates
-    // will be handled by queued flush
+    // A flush is about to happen, cancel any queued flushes
     this.debouncedFlush?.cancel();
 
     // No existing flush in progress, proceed with flushing.
@@ -980,30 +981,20 @@ export class SentryReplay implements Integration {
       return;
     }
 
-    // Wait for previous flush to finish, then call a throttled
-    // `flush()`. It's throttled because other flush
-    // requests could be queued waiting for it to resolve. We want to reduce
-    // all outstanding requests (as well as any new flush requests that occur
-    // within a second of the locked flush completing) into a single flush.
+    // Wait for previous flush to finish, then call the debounced `flush()`.
+    // It's possible there are other flush requests queued and waiting for it
+    // to resolve. We want to reduce all outstanding requests (as well as any
+    // new flush requests that occur within a second of the locked flush
+    // completing) into a single flush.
+
     try {
       await this.flushLock;
     } catch (err) {
       console.error(err);
     } finally {
-      this.throttledFlush();
+      this.debouncedFlush();
     }
   };
-
-  /**
-   * A throttled `flush()` that is called after a flush is completed and there
-   * are other queued flushes.
-   *
-   * Instead of calling a flush for every <n> queued flush, condense it to a single call
-   */
-  throttledFlush = throttle(this.flush, 1000, {
-    leading: false,
-    trailing: true,
-  });
 
   /**
    * Send replay attachment using `fetch()`

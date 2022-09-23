@@ -74,7 +74,6 @@
     "@sentry/types": "^7.7.0",
     "@sentry/utils": "^7.7.0",
     "lodash.debounce": "^4.0.8",
-    "lodash.throttle": "^4.1.1",
     "pako": "^2.0.4",
     "rrweb": "^1.1.3"
   },

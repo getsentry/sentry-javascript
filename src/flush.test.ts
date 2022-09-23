@@ -1,7 +1,6 @@
 // mock functions need to be imported first
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
-import throttle from 'lodash.throttle';
 
 import { SESSION_IDLE_DURATION } from '@/session/constants';
 
@@ -50,15 +49,6 @@ mockSendReplay.mockImplementation(
 
 jest.spyOn(replay, 'flush');
 const mockFlush = replay.flush as MockFlush;
-
-jest.spyOn(replay, 'throttledFlush');
-const throttledFn = throttle(mockFlush, 1000, {
-  leading: false,
-  trailing: true,
-});
-(replay.throttledFlush as jest.MockedFunction<any>).mockImplementation(
-  jest.fn(throttledFn)
-);
 
 jest.spyOn(replay, 'runFlush');
 const mockRunFlush = replay.runFlush as MockRunFlush;
@@ -115,7 +105,7 @@ afterAll(() => {
 it('flushes twice after multiple flush() calls)', async () => {
   // blur events cause an immediate flush (as well as a flush due to adding a
   // breadcrumb) -- this means that the first blur event will be flushed and
-  // the following blur events will all call a throttled flush function, which
+  // the following blur events will all call a debounced flush function, which
   // should end up queueing a second flush
 
   window.dispatchEvent(new Event('blur'));
@@ -177,7 +167,7 @@ it('long first flush enqueues following events', async () => {
   await advanceTimers(6000);
   // t=20s
   // addPerformanceEntries is finished, `flushLock` promise is resolved, calls
-  // throttledFlush, which will call `flush` in 1 second
+  // debouncedFlush, which will call `flush` in 1 second
   expect(replay.flush).toHaveBeenCalledTimes(4);
   // sendReplay is called with replayId, events, segment
   expect(mockSendReplay).toHaveBeenLastCalledWith(
@@ -217,8 +207,9 @@ it('long first flush enqueues following events', async () => {
       ])
     );
   });
-  // flush #5 @ t=21s - throttled flush calls `flush`
-  await advanceTimers(1000);
+  // flush #5 @ t=25s - debounced flush calls `flush`
+  // 20s + `flushMinDelay` which is 5 seconds
+  await advanceTimers(5000);
   expect(replay.flush).toHaveBeenCalledTimes(5);
   expect(replay.runFlush).toHaveBeenCalledTimes(2);
   expect(mockSendReplay).toHaveBeenLastCalledWith(
