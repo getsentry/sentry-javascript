@@ -30,8 +30,9 @@ const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
   absolute: true,
 });
 packageTarballPaths.forEach(tarballPath => {
-  // For some reason the auth token must be in the .npmrc, for some other reason the npm `--userconfig` flag doesn't work,
-  // and for some reason the registry must be passed via`--registry` :eye-roll:
+  // For some reason the auth token must be in the .npmrc, for some reason the npm `--userconfig` flag doesn't work,
+  // and for some reason the registry must be passed via `--registry` AND in the .npmrc because different npm versions
+  // apparently work different and we want it to work with different npm versions because of local development.
   childProcess.execSync(`npm publish ${tarballPath} --registry http://localhost:4873`, {
     cwd: __dirname,
     env: {
