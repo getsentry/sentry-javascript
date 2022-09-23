@@ -2,6 +2,7 @@ import { captureEvent, withScope } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME } from '@/session/constants';
 import { InitialState } from '@/types';
+import { addInternalBreadcrumb } from '@/util/addInternalBreadcrumb';
 
 export interface CaptureReplayEventParams {
   /**
@@ -51,6 +52,12 @@ export function captureReplayEvent({
   traceIds,
   urls,
 }: CaptureReplayEventParams) {
+  if (segment_id !== 0 && includeReplayStartTimestamp) {
+    addInternalBreadcrumb({
+      message: `Including replay_start_timestamp on non-initial segment (id: ${segment_id})`,
+    });
+  }
+
   withScope((scope) => {
     scope.setTag('replay_sdk_version', __SENTRY_REPLAY_VERSION__);
     captureEvent(

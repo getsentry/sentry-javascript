@@ -25,6 +25,7 @@ import {
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { Session } from './session/Session';
+import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
 import createBreadcrumb from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
@@ -457,6 +458,15 @@ export class SentryReplay implements Integration {
     // XXX: Is it safe to assume that all other events are error events?
     // @ts-expect-error: Type 'undefined' is not assignable to type 'string'.ts(2345)
     this.context.errorIds.add(event.event_id);
+
+    if (event.exception) {
+      const exc = event.exception?.values?.[0];
+      addInternalBreadcrumb({
+        message: `Tagging event (${event.event_id}) - ${
+          exc?.type || 'Unknown'
+        }: ${exc?.value || 'n/a'}`,
+      });
+    }
 
     // Need to be very careful that this does not cause an infinite loop
     if (
@@ -902,6 +912,14 @@ export class SentryReplay implements Integration {
    * Should never be called directly, only by `flush`
    */
   async runFlush() {
+    const stack = new Error('trace').stack?.split('\n') || [];
+
+    addInternalBreadcrumb({
+      message: `runFlush (${this.session?.segmentId})
+
+${stack.slice(1).join('\n')}`,
+    });
+
     if (!this.session) {
       console.error(new Error('[Sentry]: No transaction, no replay'));
       return;
