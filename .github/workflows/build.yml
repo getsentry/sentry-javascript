@@ -641,4 +641,5 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run integration tests
         run: |
-          sh e2e-tests/run.sh
+          cd e2e-tests
+          yarn start

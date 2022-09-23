@@ -1,0 +1,13 @@
+{
+  "name": "@sentry-internal/e2e-tests",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "ts-node run.ts"
+  },
+  "dependencies": {
+    "glob": "^8.0.3",
+    "ts-node": "^10.9.1"
+  }
+}
