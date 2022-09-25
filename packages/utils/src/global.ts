@@ -24,7 +24,7 @@ interface SentryGlobal {
   };
 }
 
-// The code below for 'check' and 'GLOBAL' was copied from core-js before modification
+// The code below for 'isGlobalObj' and 'GLOBAL' was copied from core-js before modification
 // https://github.com/zloirock/core-js/blob/1b944df55282cdc99c90db5f49eb0b6eda2cc0a3/packages/core-js/internals/global.js
 // core-js has the following licence:
 //
@@ -48,18 +48,17 @@ interface SentryGlobal {
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-/** Returns 'it' if it's the global object */
-function check(it: any): any {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return it && it.Math == Math && it;
+/** Returns 'obj' if it's the global object, otherwise returns undefined */
+function isGlobalObj(obj: { Math?: Math }): any | undefined {
+  return obj && obj.Math == Math ? obj : undefined;
 }
 
 const GLOBAL =
-  check(typeof globalThis == 'object' && globalThis) ||
+  (typeof globalThis == 'object' && isGlobalObj(globalThis)) ||
   // eslint-disable-next-line no-restricted-globals
-  check(typeof window == 'object' && window) ||
-  check(typeof self == 'object' && self) ||
-  check(typeof global == 'object' && global) ||
+  (typeof window == 'object' && isGlobalObj(window)) ||
+  (typeof self == 'object' && isGlobalObj(self)) ||
+  (typeof global == 'object' && isGlobalObj(global)) ||
   (function (this: any) {
     return this;
   })() ||
