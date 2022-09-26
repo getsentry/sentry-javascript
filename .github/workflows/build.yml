@@ -640,6 +640,8 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run E2E tests
+        env:
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}
         run: |
           cd packages/e2e-tests
           yarn test:e2e

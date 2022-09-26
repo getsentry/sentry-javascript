@@ -1,15 +1,15 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
-import * as glob from 'glob';
 import * as path from 'path';
+
+const repositoryRoot = path.resolve(__dirname, '../..');
 
 const TEST_REGISTRY_CONTAINER_NAME = 'verdaccio-e2e-test-registry';
 const VERDACCIO_VERSION = '5.15.3';
 
-const repositoryRoot = path.resolve(__dirname, '../..');
+const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 
-// Create tarballs
-childProcess.execSync('yarn build:npm', { encoding: 'utf8', cwd: repositoryRoot, stdio: 'inherit' });
+const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
 
 try {
   // Stop test registry container (Verdaccio) if it was already running
@@ -25,28 +25,25 @@ childProcess.execSync(
   { encoding: 'utf8', stdio: 'inherit' },
 );
 
-// Publish built packages to test registry
-const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
-  cwd: repositoryRoot,
-  absolute: true,
-});
-packageTarballPaths.forEach(tarballPath => {
-  // For some reason the auth token must be in the .npmrc, for some reason the npm `--userconfig` flag doesn't always work,
-  // and for some reason the registry must be passed via `--registry` AND in the .npmrc because different npm versions
-  // apparently work different and we want it to work with different npm versions because of local development.
-  childProcess.execSync(
-    `npm publish ${tarballPath} --registry http://localhost:4873 --userconfig ${__dirname}/test-registry.npmrc`,
-    {
-      cwd: repositoryRoot, // Can't use __dirname here because npm would try to publish `@sentry-internal/e2e-tests`
-      env: {
-        ...process.env,
-        NPM_CONFIG_USERCONFIG: `${__dirname}/test-registry.npmrc`,
-      },
-      encoding: 'utf8',
-      stdio: 'inherit',
-    },
-  );
-});
+// Build container image that is uploading our packages to fake registry with specific Node.js/npm version
+childProcess.execSync(
+  `docker build --tag ${PUBLISH_PACKAGES_DOCKER_IMAGE_NAME} --file ./Dockerfile.publish-packages ${
+    publishScriptNodeVersion ? `--build-arg NODE_VERSION=${publishScriptNodeVersion}` : ''
+  } .`,
+  {
+    encoding: 'utf8',
+    stdio: 'inherit',
+  },
+);
+
+// Run container that uploads our packages to fake registry
+childProcess.execSync(
+  `docker run --sig-proxy=true -it --rm -v ${repositoryRoot}:/sentry-javascript --network host ${PUBLISH_PACKAGES_DOCKER_IMAGE_NAME}`,
+  {
+    encoding: 'utf8',
+    stdio: 'inherit',
+  },
+);
 
 // TODO: Run e2e tests here
 
