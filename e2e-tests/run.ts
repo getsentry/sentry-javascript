@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
-import * as path from 'path';
 import * as glob from 'glob';
+import * as path from 'path';
 
 const TEST_REGISTRY_CONTAINER_NAME = 'verdaccio-e2e-test-registry';
 

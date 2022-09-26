@@ -6,8 +6,11 @@
   "scripts": {
     "start": "ts-node run.ts"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@types/glob": "^8.0.0",
+    "@types/node": "~10.17.0",
     "glob": "^8.0.3",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "typescript": "3.8.3"
   }
 }
