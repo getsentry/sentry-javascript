@@ -33,12 +33,6 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     // homepage), sub back in the root route
     .replace(/^$/, '/');
 
-  // TODO: For the moment we skip API routes. Those will need to be handled slightly differently because of the manual
-  // wrapping we've already been having people do using `withSentry`.
-  if (parameterizedRoute.startsWith('api')) {
-    return userCode;
-  }
-
   // We don't want to wrap twice (or infinitely), so in the proxy we add this query string onto references to the
   // wrapped file, so that we know that it's already been processed. (Adding this query string is also necessary to
   // convince webpack that it's a different file than the one it's in the middle of loading now, so that the originals
@@ -47,7 +41,10 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     return userCode;
   }
 
-  const templatePath = path.resolve(__dirname, '../templates/proxyLoaderTemplate.js');
+  const templateFile = parameterizedRoute.startsWith('/api')
+    ? 'apiProxyLoaderTemplate.js'
+    : 'pageProxyLoaderTemplate.js';
+  const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
   let templateCode = fs.readFileSync(templatePath).toString();
   // Make sure the template is included when runing `webpack watch`
   this.addDependency(templatePath);
