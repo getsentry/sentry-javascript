@@ -4,17 +4,15 @@ import {
   createClientReportEnvelope,
   dsnToString,
   getEventDescription,
-  getGlobalObject,
   logger,
   serializeEnvelope,
+  WINDOW,
 } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
-
-const globalObject = getGlobalObject<Window>();
 
 export interface BaseBrowserOptions {
   /**
@@ -71,9 +69,9 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
     super(options);
 
-    if (options.sendClientReports && globalObject.document) {
-      globalObject.document.addEventListener('visibilitychange', () => {
-        if (globalObject.document.visibilityState === 'hidden') {
+    if (options.sendClientReports && WINDOW.document) {
+      WINDOW.document.addEventListener('visibilitychange', () => {
+        if (WINDOW.document.visibilityState === 'hidden') {
           this._flushOutcomes();
         }
       });
@@ -164,13 +162,12 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
     try {
-      const global = getGlobalObject<Window>();
-      const isRealNavigator = Object.prototype.toString.call(global && global.navigator) === '[object Navigator]';
-      const hasSendBeacon = isRealNavigator && typeof global.navigator.sendBeacon === 'function';
+      const isRealNavigator = Object.prototype.toString.call(WINDOW && WINDOW.navigator) === '[object Navigator]';
+      const hasSendBeacon = isRealNavigator && typeof WINDOW.navigator.sendBeacon === 'function';
       // Make sure beacon is not used if user configures custom transport options
       if (hasSendBeacon && !this._options.transportOptions) {
         // Prevent illegal invocations - https://xgwang.me/posts/you-may-not-know-beacon/#it-may-throw-error%2C-be-sure-to-catch
-        const sendBeacon = global.navigator.sendBeacon.bind(global.navigator);
+        const sendBeacon = WINDOW.navigator.sendBeacon.bind(WINDOW.navigator);
         sendBeacon(url, serializeEnvelope(envelope));
       } else {
         // If beacon is not supported or if they are using the tunnel option

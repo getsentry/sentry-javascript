@@ -1,9 +1,6 @@
 import { WrappedFunction } from '@sentry/types';
 
-import { getGlobalObject, getGlobalSingleton } from './global';
-
-// TODO: Implement different loggers for different environments
-const global = getGlobalObject<Window | NodeJS.Global>();
+import { getGlobalSingleton, GLOBAL_OBJ } from './global';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
@@ -27,13 +24,11 @@ interface Logger extends LoggerConsoleMethods {
  * @returns The results of the callback
  */
 export function consoleSandbox<T>(callback: () => T): T {
-  const global = getGlobalObject<Window>();
-
-  if (!('console' in global)) {
+  if (!('console' in GLOBAL_OBJ)) {
     return callback();
   }
 
-  const originalConsole = global.console as Console & Record<string, unknown>;
+  const originalConsole = GLOBAL_OBJ.console as Console & Record<string, unknown>;
   const wrappedLevels: Partial<LoggerConsoleMethods> = {};
 
   // Restore all wrapped console methods
@@ -41,7 +36,7 @@ export function consoleSandbox<T>(callback: () => T): T {
     // TODO(v7): Remove this check as it's only needed for Node 6
     const originalWrappedFunc =
       originalConsole[level] && (originalConsole[level] as WrappedFunction).__sentry_original__;
-    if (level in global.console && originalWrappedFunc) {
+    if (level in originalConsole && originalWrappedFunc) {
       wrappedLevels[level] = originalConsole[level] as LoggerConsoleMethods[typeof level];
       originalConsole[level] = originalWrappedFunc as Console[typeof level];
     }
@@ -74,7 +69,7 @@ function makeLogger(): Logger {
       logger[name] = (...args: any[]) => {
         if (enabled) {
           consoleSandbox(() => {
-            global.console[name](`${PREFIX}[${name}]:`, ...args);
+            GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
           });
         }
       };

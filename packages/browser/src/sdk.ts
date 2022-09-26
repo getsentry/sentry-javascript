@@ -8,11 +8,11 @@ import {
 } from '@sentry/core';
 import {
   addInstrumentationHandler,
-  getGlobalObject,
   logger,
   resolvedSyncPromise,
   stackParserFromStackParserOptions,
   supportsFetch,
+  WINDOW,
 } from '@sentry/utils';
 
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
@@ -94,10 +94,9 @@ export function init(options: BrowserOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
   if (options.release === undefined) {
-    const window = getGlobalObject<Window>();
     // This supports the variable that sentry-webpack-plugin injects
-    if (window.SENTRY_RELEASE && window.SENTRY_RELEASE.id) {
-      options.release = window.SENTRY_RELEASE.id;
+    if (WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id) {
+      options.release = WINDOW.SENTRY_RELEASE.id;
     }
   }
   if (options.autoSessionTracking === undefined) {
@@ -128,8 +127,7 @@ export function init(options: BrowserOptions = {}): void {
  */
 export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
   // doesn't work without a document (React Native)
-  const global = getGlobalObject<Window>();
-  if (!global.document) {
+  if (!WINDOW.document) {
     __DEBUG_BUILD__ && logger.error('Global document not defined in showReportDialog call');
     return;
   }
@@ -152,7 +150,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     options.eventId = hub.lastEventId();
   }
 
-  const script = global.document.createElement('script');
+  const script = WINDOW.document.createElement('script');
   script.async = true;
   script.src = getReportDialogEndpoint(dsn, options);
 
@@ -161,7 +159,7 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
     script.onload = options.onLoad;
   }
 
-  const injectionPoint = global.document.head || global.document.body;
+  const injectionPoint = WINDOW.document.head || WINDOW.document.body;
   if (injectionPoint) {
     injectionPoint.appendChild(script);
   } else {
@@ -249,10 +247,7 @@ function startSessionOnHub(hub: Hub): void {
  * Enable automatic Session Tracking for the initial page load.
  */
 function startSessionTracking(): void {
-  const window = getGlobalObject<Window>();
-  const document = window.document;
-
-  if (typeof document === 'undefined') {
+  if (typeof WINDOW.document === 'undefined') {
     __DEBUG_BUILD__ &&
       logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;

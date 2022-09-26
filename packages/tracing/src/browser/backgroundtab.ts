@@ -1,20 +1,18 @@
-import { getGlobalObject, logger } from '@sentry/utils';
+import { logger, WINDOW } from '@sentry/utils';
 
 import { IdleTransaction } from '../idletransaction';
 import { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
-
-const global = getGlobalObject<Window>();
 
 /**
  * Add a listener that cancels and finishes a transaction when the global
  * document is hidden.
  */
 export function registerBackgroundTabDetection(): void {
-  if (global && global.document) {
-    global.document.addEventListener('visibilitychange', () => {
+  if (WINDOW && WINDOW.document) {
+    WINDOW.document.addEventListener('visibilitychange', () => {
       const activeTransaction = getActiveTransaction() as IdleTransaction;
-      if (global.document.hidden && activeTransaction) {
+      if (WINDOW.document.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
         __DEBUG_BUILD__ &&

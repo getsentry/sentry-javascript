@@ -4,12 +4,11 @@ import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
-import { timestampWithMs } from '@sentry/utils';
+import { timestampWithMs, GLOBAL_OBJ } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
-import { getGlobalObject } from '@sentry/utils';
 
 function _getSentryInitConfig() {
-  const _global = getGlobalObject<GlobalConfig>();
+  const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   return _global.__sentryEmberConfig;
 }

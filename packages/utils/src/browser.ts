@@ -1,5 +1,10 @@
-import { getGlobalObject } from './global';
+import { GLOBAL_OBJ } from './global';
 import { isString } from './is';
+
+/**
+ * TODO: Move me to @sentry/browser when @sentry/utils no longer contains any browser code
+ */
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 /**
  * Given a child DOM element, returns a query-selector statement describing that
@@ -115,9 +120,8 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
  * A safe form of location.href
  */
 export function getLocationHref(): string {
-  const global = getGlobalObject<Window>();
   try {
-    return global.document.location.href;
+    return WINDOW.document.location.href;
   } catch (oO) {
     return '';
   }
@@ -141,9 +145,8 @@ export function getLocationHref(): string {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getDomElement<E = any>(selector: string): E | null {
-  const global = getGlobalObject<Window>();
-  if (global.document && global.document.querySelector) {
-    return global.document.querySelector(selector) as unknown as E;
+  if (WINDOW.document && WINDOW.document.querySelector) {
+    return WINDOW.document.querySelector(selector) as unknown as E;
   }
   return null;
 }

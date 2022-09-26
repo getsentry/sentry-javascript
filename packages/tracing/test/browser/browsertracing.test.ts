@@ -1,7 +1,7 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/hub';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
-import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import { InstrumentHandlerCallback, InstrumentHandlerType, WINDOW } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
@@ -35,11 +35,11 @@ const warnSpy = jest.spyOn(logger, 'warn');
 beforeAll(() => {
   const dom = new JSDOM();
   // @ts-ignore need to override global document
-  global.document = dom.window.document;
+  WINDOW.document = dom.window.document;
   // @ts-ignore need to override global document
-  global.window = dom.window;
+  WINDOW.window = dom.window;
   // @ts-ignore need to override global document
-  global.location = dom.window.location;
+  WINDOW.location = dom.window.location;
 });
 
 describe('BrowserTracing', () => {
@@ -484,7 +484,7 @@ describe('BrowserTracing', () => {
     };
 
     it('extracts window.location/self.location for sampling context in pageload transactions', () => {
-      getGlobalObject<Window>().location = dogParkLocation as any;
+      WINDOW.location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });
@@ -501,7 +501,7 @@ describe('BrowserTracing', () => {
     });
 
     it('extracts window.location/self.location for sampling context in navigation transactions', () => {
-      getGlobalObject<Window>().location = dogParkLocation as any;
+      WINDOW.location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });

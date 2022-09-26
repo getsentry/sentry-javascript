@@ -3,15 +3,13 @@ import { getCurrentHub } from '@sentry/hub';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { logger, WINDOW } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
 import { UserIntegrationsFunction } from '../src/utils/userIntegrations';
 
 const { BrowserTracing } = TracingIntegrations;
-
-const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
@@ -24,12 +22,12 @@ const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
-const originalGlobalDocument = getGlobalObject<Window>().document;
-const originalGlobalLocation = getGlobalObject<Window>().location;
+const originalGlobalDocument = WINDOW.document;
+const originalGlobalLocation = WINDOW.location;
 afterAll(() => {
   // Clean up JSDom
-  Object.defineProperty(global, 'document', { value: originalGlobalDocument });
-  Object.defineProperty(global, 'location', { value: originalGlobalLocation });
+  Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
+  Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
 });
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
@@ -39,7 +37,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Client init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    global.__SENTRY__.hub = undefined;
+    WINDOW.__SENTRY__.hub = undefined;
   });
 
   it('inits the React SDK', () => {

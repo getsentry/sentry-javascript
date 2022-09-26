@@ -4,11 +4,11 @@ import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
-  getGlobalObject,
   htmlTreeAsString,
   parseUrl,
   safeJoin,
   severityLevelFromString,
+  WINDOW,
 } from '@sentry/utils';
 
 /** JSDoc */
@@ -245,10 +245,9 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _historyBreadcrumb(handlerData: { [key: string]: any }): void {
-  const global = getGlobalObject<Window>();
   let from = handlerData.from;
   let to = handlerData.to;
-  const parsedLoc = parseUrl(global.location.href);
+  const parsedLoc = parseUrl(WINDOW.location.href);
   let parsedFrom = parseUrl(from);
   const parsedTo = parseUrl(to);
 

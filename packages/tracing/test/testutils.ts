@@ -1,6 +1,6 @@
 import { createTransport } from '@sentry/browser';
 import { ClientOptions } from '@sentry/types';
-import { getGlobalObject, resolvedSyncPromise } from '@sentry/utils';
+import { GLOBAL_OBJ, resolvedSyncPromise } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 /**
@@ -13,14 +13,13 @@ import { JSDOM } from 'jsdom';
  * @param properties The names of the properties to add
  */
 export function addDOMPropertiesToGlobal(properties: string[]): void {
-  // we have to add things into the real global object (rather than mocking the return value of getGlobalObject)
-  // because there are modules which call getGlobalObject as they load, which is too early for jest to intervene
+  // we have to add things into the real global object
+  // because there are modules which call GLOBAL_OBJ as they load, which is too early for jest to intervene
   const { window } = new JSDOM('', { url: 'http://dogs.are.great/' });
-  const global = getGlobalObject<NodeJS.Global & Window>();
 
   properties.forEach(prop => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (global as any)[prop] = window[prop];
+    (GLOBAL_OBJ as any)[prop] = window[prop];
   });
 }
 

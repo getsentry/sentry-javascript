@@ -1,17 +1,15 @@
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub } from '@sentry/node';
-import { getGlobalObject } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../src/index.server';
-
-const global = getGlobalObject();
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    global.__SENTRY__.hub = undefined;
+    GLOBAL_OBJ.__SENTRY__.hub = undefined;
   });
 
   it('inits the Node SDK', () => {

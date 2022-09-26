@@ -1,5 +1,5 @@
 import { Transaction, TransactionSource } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { WINDOW } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -25,8 +25,6 @@ export type RouteConfig = {
 
 type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null;
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
-const global = getGlobalObject<Window>();
 
 let activeTransaction: Transaction | undefined;
 
@@ -57,8 +55,8 @@ function createReactRouterInstrumentation(
       return history.location.pathname;
     }
 
-    if (global && global.location) {
-      return global.location.pathname;
+    if (WINDOW && WINDOW.location) {
+      return WINDOW.location.pathname;
     }
 
     return undefined;

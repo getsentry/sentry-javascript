@@ -7,8 +7,10 @@
 
 import { Integration } from '@sentry/types';
 
-/** Internal */
-interface SentryGlobal {
+/** Internal global with common properties and Sentry extensions  */
+export interface InternalGlobal {
+  navigator?: { userAgent?: string };
+  console: Console;
   Sentry?: {
     Integrations?: Integration[];
   };
@@ -21,10 +23,15 @@ interface SentryGlobal {
     globalEventProcessors: any;
     hub: any;
     logger: any;
+    extensions?: {
+      /** Extension methods for the hub, which are bound to the current Hub instance */
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      [key: string]: Function;
+    };
   };
 }
 
-// The code below for 'isGlobalObj' and 'GLOBAL' was copied from core-js before modification
+// The code below for 'isGlobalObj' and 'GLOBAL_OBJ' was copied from core-js before modification
 // https://github.com/zloirock/core-js/blob/1b944df55282cdc99c90db5f49eb0b6eda2cc0a3/packages/core-js/internals/global.js
 // core-js has the following licence:
 //
@@ -53,7 +60,8 @@ function isGlobalObj(obj: { Math?: Math }): any | undefined {
   return obj && obj.Math == Math ? obj : undefined;
 }
 
-const GLOBAL =
+/** Get's the global object for the current JavaScript runtime */
+export const GLOBAL_OBJ: InternalGlobal =
   (typeof globalThis == 'object' && isGlobalObj(globalThis)) ||
   // eslint-disable-next-line no-restricted-globals
   (typeof window == 'object' && isGlobalObj(window)) ||
@@ -65,15 +73,6 @@ const GLOBAL =
   {};
 
 /**
- * Safely get global scope object
- *
- * @returns Global scope object
- */
-export function getGlobalObject<T>(): T & SentryGlobal {
-  return GLOBAL as T & SentryGlobal;
-}
-
-/**
  * Returns a global singleton contained in the global `__SENTRY__` object.
  *
  * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
@@ -81,12 +80,12 @@ export function getGlobalObject<T>(): T & SentryGlobal {
  *
  * @param name name of the global singleton on __SENTRY__
  * @param creator creator Factory function to create the singleton if it doesn't already exist on `__SENTRY__`
- * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `getGlobalObject`'s return value
+ * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `GLOBAL_OBJ`'s return value
  * @returns the singleton
  */
-export function getGlobalSingleton<T>(name: keyof SentryGlobal['__SENTRY__'], creator: () => T, obj?: unknown): T {
-  const global = (obj || GLOBAL) as SentryGlobal;
-  const __SENTRY__ = (global.__SENTRY__ = global.__SENTRY__ || {});
+export function getGlobalSingleton<T>(name: keyof InternalGlobal['__SENTRY__'], creator: () => T, obj?: unknown): T {
+  const gbl = (obj || GLOBAL_OBJ) as InternalGlobal;
+  const __SENTRY__ = (gbl.__SENTRY__ = gbl.__SENTRY__ || {});
   const singleton = __SENTRY__[name] || (__SENTRY__[name] = creator());
   return singleton;
 }

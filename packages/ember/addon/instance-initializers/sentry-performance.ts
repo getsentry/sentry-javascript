@@ -6,12 +6,12 @@ import { ExtendedBackburner } from '@sentry/ember/runloop';
 import { Span, Transaction, Integration } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
-import { browserPerformanceTimeOrigin, getGlobalObject, timestampWithMs } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig() {
-  const _global = getGlobalObject<GlobalConfig>();
+  const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
   _global.__sentryEmberConfig = _global.__sentryEmberConfig ?? {};
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
   if (!environmentConfig.sentry) {

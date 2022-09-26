@@ -1,5 +1,5 @@
 import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';
 
@@ -7,7 +7,7 @@ describe('Scope', () => {
   afterEach(() => {
     jest.resetAllMocks();
     jest.useRealTimers();
-    getGlobalObject<any>().__SENTRY__.globalEventProcessors = undefined;
+    GLOBAL_OBJ.__SENTRY__.globalEventProcessors = undefined;
   });
 
   describe('attributes modification', () => {

@@ -23,8 +23,8 @@ import {
 import {
   consoleSandbox,
   dateTimestampInSeconds,
-  getGlobalObject,
   getGlobalSingleton,
+  GLOBAL_OBJ,
   isNodeEnv,
   logger,
   uuid4,
@@ -413,8 +413,7 @@ export class Hub implements HubInterface {
     const { release, environment } = (client && client.getOptions()) || {};
 
     // Will fetch userAgent if called from browser sdk
-    const global = getGlobalObject<{ navigator?: { userAgent?: string } }>();
-    const { userAgent } = global.navigator || {};
+    const { userAgent } = GLOBAL_OBJ.navigator || {};
 
     const session = makeSession({
       release,
@@ -500,12 +499,11 @@ export class Hub implements HubInterface {
  * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
  **/
 export function getMainCarrier(): Carrier {
-  const carrier = getGlobalObject();
-  carrier.__SENTRY__ = carrier.__SENTRY__ || {
+  GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {
     extensions: {},
     hub: undefined,
   };
-  return carrier;
+  return GLOBAL_OBJ;
 }
 
 /**
