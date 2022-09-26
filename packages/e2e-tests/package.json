@@ -13,9 +13,10 @@
     "lint:prettier": "prettier --config ../../.prettierrc.json --check ."
   },
   "devDependencies": {
-    "@types/glob": "^8.0.0",
-    "glob": "^8.0.3",
-    "ts-node": "^10.9.1",
-    "typescript": "3.8.3"
+    "@types/glob": "8.0.0",
+    "glob": "8.0.3",
+    "ts-node": "10.9.1",
+    "typescript": "3.8.3",
+    "yaml": "2.1.1"
   }
 }
