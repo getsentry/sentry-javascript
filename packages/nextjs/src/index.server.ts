@@ -135,8 +135,8 @@ export {
   withSentryServerSideDocumentGetInitialProps,
   withSentryServerSideErrorGetInitialProps,
   withSentryAPI,
+  withSentry,
 } from './config/wrappers';
-export { withSentry } from './utils/withSentry';
 
 // Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and

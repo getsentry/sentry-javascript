@@ -12,9 +12,9 @@ import * as origModule from '__RESOURCE_PATH__';
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
-// We import this from `withSentry` rather than directly from `next` because our version can work simultaneously with
-// multiple versions of next. See note in `withSentry` for more.
-import type { NextApiHandler } from '../../utils/withSentry';
+// We import this from `wrappers` rather than directly from `next` because our version can work simultaneously with
+// multiple versions of next. See note in `wrappers/types` for more.
+import type { NextApiHandler } from '../wrappers';
 
 type NextApiModule = {
   default: NextApiHandler;
