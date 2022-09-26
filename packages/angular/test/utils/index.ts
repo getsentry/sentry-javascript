@@ -75,10 +75,10 @@ export class TestEnv {
     return new TestEnv(router, fixture, traceService);
   }
 
-  public async navigateInAngular(url: string, routerState?: { [k: string]: any }): Promise<void> {
+  public async navigateInAngular(url: string): Promise<void> {
     return new Promise(resolve => {
       return this.fixture.ngZone?.run(() => {
-        void this.router.navigateByUrl(url, { state: routerState }).then(() => {
+        void this.router.navigateByUrl(url).then(() => {
           this.fixture.detectChanges();
           resolve();
         });

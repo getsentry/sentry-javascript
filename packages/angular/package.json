@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.1002.4",
-    "@angular/animations": "~10.2.5",
     "@angular/cli": "^10.2.4",
     "@angular/common": "~10.2.5",
     "@angular/compiler": "^10.2.5",

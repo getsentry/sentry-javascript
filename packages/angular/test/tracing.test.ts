@@ -120,6 +120,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.setName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
+      expect(transaction.metadata.source).toBe('custom');
 
       env.destroy();
     });
@@ -167,9 +168,6 @@ describe('Angular Tracing', () => {
         [
           'handles the root URL correctly',
           '/',
-          {
-            root: { firstChild: { routeConfig: null } },
-          },
           '/',
           [
             {
@@ -181,9 +179,6 @@ describe('Angular Tracing', () => {
         [
           'does not alter static routes',
           '/books',
-          {
-            root: { firstChild: { routeConfig: { path: 'books' } } },
-          },
           '/books/',
           [
             {
@@ -195,9 +190,6 @@ describe('Angular Tracing', () => {
         [
           'parameterizes IDs in the URL',
           '/books/1/details',
-          {
-            root: { firstChild: { routeConfig: { path: 'books/:bookId/details' } } },
-          },
           '/books/:bookId/details/',
           [
             {
@@ -209,9 +201,6 @@ describe('Angular Tracing', () => {
         [
           'parameterizes multiple IDs in the URL',
           '/org/sentry/projects/1234/events/04bc6846-4a1e-4af5-984a-003258f33e31',
-          {
-            root: { firstChild: { routeConfig: { path: 'org/:orgId/projects/:projId/events/:eventId' } } },
-          },
           '/org/:orgId/projects/:projId/events/:eventId/',
           [
             {
@@ -223,17 +212,6 @@ describe('Angular Tracing', () => {
         [
           'parameterizes URLs from route with child routes',
           '/org/sentry/projects/1234/events/04bc6846-4a1e-4af5-984a-003258f33e31',
-          {
-            root: {
-              firstChild: {
-                routeConfig: { path: 'org/:orgId' },
-                firstChild: {
-                  routeConfig: { path: 'projects/:projId' },
-                  firstChild: { routeConfig: { path: 'events/:eventId' } },
-                },
-              },
-            },
-          },
           '/org/:orgId/projects/:projId/events/:eventId/',
           [
             {
@@ -254,7 +232,7 @@ describe('Angular Tracing', () => {
             },
           ],
         ],
-      ])('%s and sets the source to `route`', async (_, url, routerState, result, routes) => {
+      ])('%s and sets the source to `route`', async (_, url, result, routes) => {
         const customStartTransaction = jest.fn(defaultStartTransaction);
         const env = await TestEnv.setup({
           customStartTransaction,
@@ -262,7 +240,7 @@ describe('Angular Tracing', () => {
           startTransactionOnPageLoad: false,
         });
 
-        await env.navigateInAngular(url, routerState);
+        await env.navigateInAngular(url);
 
         expect(customStartTransaction).toHaveBeenCalledWith({
           name: url,
@@ -299,6 +277,32 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
         description: '<unknown>',
+      });
+
+      env.destroy();
+    });
+
+    it('should use component name as span description', async () => {
+      const directive = new TraceDirective();
+      const finishMock = jest.fn();
+      const customStartTransaction = jest.fn(defaultStartTransaction);
+
+      const env = await TestEnv.setup({
+        components: [TraceDirective],
+        customStartTransaction,
+        useTraceService: false,
+      });
+
+      transaction.startChild = jest.fn(() => ({
+        finish: finishMock,
+      }));
+
+      directive.componentName = 'test-component';
+      directive.ngOnInit();
+
+      expect(transaction.startChild).toHaveBeenCalledWith({
+        op: 'ui.angular.init',
+        description: '<test-component>',
       });
 
       env.destroy();
