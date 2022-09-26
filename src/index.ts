@@ -85,13 +85,6 @@ export class SentryReplay implements Integration {
 
   readonly options: SentryReplayPluginOptions;
 
-  /**
-   * The timestamp of the first event since the last flush. This is used to
-   * determine if the maximum allowed time has passed before events should be
-   * flushed again.
-   */
-  private initialEventTimestampSinceFlush: number | null = null;
-
   private performanceObserver: PerformanceObserver | null = null;
 
   private retryCount = 0;
@@ -258,16 +251,6 @@ export class SentryReplay implements Integration {
    * processing and hand back control to caller.
    */
   addUpdate(cb?: AddUpdateCallback) {
-    const now = new Date().getTime();
-    // Timestamp of the first replay event since the last flush, this gets
-    // reset when we finish the replay event
-    if (
-      !this.initialEventTimestampSinceFlush &&
-      !this.options.captureOnlyOnError
-    ) {
-      this.initialEventTimestampSinceFlush = now;
-    }
-
     // We need to always run `cb` (e.g. in the case of captureOnlyOnError == true)
     const cbResult = cb?.();
 
@@ -341,7 +324,6 @@ export class SentryReplay implements Integration {
     const url = `${window.location.origin}${urlPath}`;
 
     this.performanceEvents = [];
-    this.initialEventTimestampSinceFlush = null;
 
     // Reset context as well
     this.clearContext();
@@ -940,10 +922,6 @@ ${stack.slice(1).join('\n')}`,
     const newSessionCreated = this.newSessionCreated;
     // Always increment segmentId regardless of outcome of sending replay
     const segmentId = this.session.segmentId++;
-
-    // Reset this to null regardless of `sendReplay` result so that future
-    // events will get flushed properly
-    this.initialEventTimestampSinceFlush = null;
 
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
