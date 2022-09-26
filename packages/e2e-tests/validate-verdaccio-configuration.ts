@@ -30,8 +30,16 @@ const sentryScopedPackageNames = packageJsons
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   .map(packageJson => packageJson.name);
 
-const mergedSize = new Set([...sentryScopedPackagesInVerdaccioConfig, ...sentryScopedPackageNames]).size;
+const extraPackagesInVerdaccioConfig = sentryScopedPackagesInVerdaccioConfig.filter(
+  x => !sentryScopedPackageNames.includes(x),
+);
+const extraPackagesInMonoRepo = sentryScopedPackageNames.filter(
+  x => !sentryScopedPackagesInVerdaccioConfig.includes(x),
+);
+
 assert.ok(
-  mergedSize === sentryScopedPackagesInVerdaccioConfig.length && mergedSize === sentryScopedPackageNames.length,
-  'Packages in Verdaccio configuration do not match the "@sentry"-scoped packages in monorepo. Make sure they match!',
+  extraPackagesInVerdaccioConfig.length === 0 && extraPackagesInMonoRepo.length === 0,
+  `Packages in Verdaccio configuration do not match the "@sentry"-scoped packages in monorepo. Make sure they match!\nPackages missing in Verdaccio configuration: ${JSON.stringify(
+    extraPackagesInMonoRepo,
+  )}\nPackages missing in monorepo: ${JSON.stringify(extraPackagesInVerdaccioConfig)}`,
 );
