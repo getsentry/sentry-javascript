@@ -49,7 +49,6 @@ describe('domains', () => {
       expect(hub.getStack()[1]).toEqual({ client: 'process' });
       // Just in case so we don't have to worry which one finishes first
       // (although it always should be d2)
-      // setImmediate
       setTimeout(() => {
         d1done = true;
         if (d2done) {
