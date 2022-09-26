@@ -5,7 +5,7 @@ import * as path from 'path';
 
 const TEST_REGISTRY_CONTAINER_NAME = 'verdaccio-e2e-test-registry';
 
-const repositoryRoot = path.resolve(__dirname, '..');
+const repositoryRoot = path.resolve(__dirname, '../..');
 
 // Create tarballs
 childProcess.execSync('yarn build:npm', { encoding: 'utf8', cwd: repositoryRoot, stdio: 'inherit' });
@@ -18,34 +18,37 @@ try {
   // Don't throw if container wasn't running
 }
 
-// Start Verdaccio Test Registry
+// Start Verdaccio
 childProcess.execSync(
   `docker run --detach --rm --name verdaccio-e2e-test-registry -p 4873:4873 -v ${__dirname}/verdaccio/conf:/verdaccio/conf verdaccio/verdaccio:5.15.3`,
   { encoding: 'utf8', stdio: 'inherit' },
 );
 
-// Publish built packages to Verdaccio Test Registry
+// Publish built packages to Verdaccio
 const packageTarballPaths = glob.sync('packages/*/sentry-*.tgz', {
   cwd: repositoryRoot,
   absolute: true,
 });
 packageTarballPaths.forEach(tarballPath => {
-  // For some reason the auth token must be in the .npmrc, for some reason the npm `--userconfig` flag doesn't work,
+  // For some reason the auth token must be in the .npmrc, for some reason the npm `--userconfig` flag doesn't always work,
   // and for some reason the registry must be passed via `--registry` AND in the .npmrc because different npm versions
   // apparently work different and we want it to work with different npm versions because of local development.
-  childProcess.execSync(`npm publish ${tarballPath} --registry http://localhost:4873`, {
-    cwd: __dirname,
-    env: {
-      ...process.env,
-      NPM_CONFIG_USERCONFIG: `${__dirname}/test-registry.npmrc`,
+  childProcess.execSync(
+    `npm publish ${tarballPath} --registry http://localhost:4873 --userconfig ${__dirname}/test-registry.npmrc`,
+    {
+      cwd: repositoryRoot, // Can't use __dirname here because npm would try to publish `@sentry-internal/e2e-tests`
+      env: {
+        ...process.env,
+        NPM_CONFIG_USERCONFIG: `${__dirname}/test-registry.npmrc`,
+      },
+      encoding: 'utf8',
+      stdio: 'inherit',
     },
-    encoding: 'utf8',
-    stdio: 'inherit',
-  });
+  );
 });
 
 // TODO: Run e2e tests here
 
 // Stop test registry
 childProcess.execSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
-console.log('Successfully stopped test registry container'); // Output from command above is not good so we ignore it and write our own
+console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
