@@ -4,6 +4,7 @@ import * as glob from 'glob';
 import * as path from 'path';
 
 const TEST_REGISTRY_CONTAINER_NAME = 'verdaccio-e2e-test-registry';
+const VERDACCIO_VERSION = '5.15.3';
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
@@ -20,7 +21,7 @@ try {
 
 // Start test registry (Verdaccio)
 childProcess.execSync(
-  `docker run --detach --rm --name verdaccio-e2e-test-registry -p 4873:4873 -v ${__dirname}/verdaccio-config:/verdaccio/conf verdaccio/verdaccio:5.15.3`,
+  `docker run --detach --rm --name ${TEST_REGISTRY_CONTAINER_NAME} -p 4873:4873 -v ${__dirname}/verdaccio-config:/verdaccio/conf verdaccio/verdaccio:${VERDACCIO_VERSION}`,
   { encoding: 'utf8', stdio: 'inherit' },
 );
 
