@@ -4,7 +4,13 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "test:e2e": "ts-node run.ts"
+    "test:e2e": "ts-node run.ts",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --config ../../.prettierrc.json --write . ",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --config ../../.prettierrc.json --check ."
   },
   "devDependencies": {
     "@types/glob": "^8.0.0",
