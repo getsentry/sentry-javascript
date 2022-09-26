@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';

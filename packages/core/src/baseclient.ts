@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import { Scope, updateSession } from '@sentry/hub';
 import {
   Client,
   ClientOptions,
@@ -40,6 +39,8 @@ import {
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { IntegrationIndex, setupIntegrations } from './integration';
+import { Scope } from './scope';
+import { updateSession } from './session';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 

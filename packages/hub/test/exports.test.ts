@@ -1,9 +1,11 @@
-import { getCurrentHub, getHubFromCarrier, Scope } from '../src';
 import {
   captureEvent,
   captureException,
   captureMessage,
   configureScope,
+  getCurrentHub,
+  getHubFromCarrier,
+  Scope,
   setContext,
   setExtra,
   setExtras,
@@ -11,7 +13,7 @@ import {
   setTags,
   setUser,
   withScope,
-} from '../src/exports';
+} from '../src';
 
 export class TestClient {
   public static instance?: TestClient;

@@ -1,10 +1,18 @@
-export type { Carrier, Layer } from './hub';
+export type { Carrier, Layer } from '@sentry/core';
 
-export { addGlobalEventProcessor, Scope } from './scope';
-export { closeSession, makeSession, updateSession } from './session';
-export { SessionFlusher } from './sessionflusher';
-export { getCurrentHub, getHubFromCarrier, getMainCarrier, Hub, makeMain, setHubOnCarrier } from './hub';
 export {
+  getCurrentHub,
+  addGlobalEventProcessor,
+  Scope,
+  getHubFromCarrier,
+  getMainCarrier,
+  Hub,
+  makeMain,
+  setHubOnCarrier,
+  SessionFlusher,
+  closeSession,
+  makeSession,
+  updateSession,
   addBreadcrumb,
   captureException,
   captureEvent,
@@ -18,4 +26,4 @@ export {
   setTags,
   setUser,
   withScope,
-} from './exports';
+} from '@sentry/core';

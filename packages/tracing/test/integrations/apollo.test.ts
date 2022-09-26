@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 

@@ -1,4 +1,4 @@
-import * as hub from '@sentry/hub';
+import * as hub from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { Client, ClientOptions } from '@sentry/types';
 import * as utils from '@sentry/utils';

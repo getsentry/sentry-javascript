@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { getGlobalObject } from '@sentry/utils';
 

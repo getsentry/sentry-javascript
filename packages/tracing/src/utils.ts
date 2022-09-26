@@ -1,4 +1,4 @@
-import { getCurrentHub, Hub } from '@sentry/hub';
+import { getCurrentHub, Hub } from '@sentry/core';
 import { Options, Transaction } from '@sentry/types';
 
 /**

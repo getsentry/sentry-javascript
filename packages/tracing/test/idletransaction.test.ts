@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 
 import {
   DEFAULT_FINAL_TIMEOUT,

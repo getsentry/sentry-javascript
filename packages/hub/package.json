@@ -16,8 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.13.0",
-    "@sentry/utils": "7.13.0",
+    "@sentry/core": "7.13.0",
     "tslib": "^1.9.3"
   },
   "scripts": {

@@ -1,4 +1,4 @@
-import { Scope, SessionFlusher } from '@sentry/hub';
+import { Scope, SessionFlusher } from '@sentry/core';
 import { Event, EventHint } from '@sentry/types';
 import * as os from 'os';
 
