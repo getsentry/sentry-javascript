@@ -1,11 +1,14 @@
 {
   "extends": "../../tsconfig.json",
-
-  "include": ["src/**/*"],
-
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
-    // package-specific options
     "esModuleInterop": true,
-    "jsx": "react"
+    "jsx": "react",
+    "lib": [
+      "ES6",
+      "DOM"
+    ]
   }
 }

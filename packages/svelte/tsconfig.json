@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig.json",
-
-  "include": ["src/**/*"],
-
-  "compilerOptions": {}
+  "include": [
+    "src/**/*"
+  ],
+  "compilerOptions": {
+    "lib": [
+      "ES6",
+      "DOM"
+    ]
+  }
 }

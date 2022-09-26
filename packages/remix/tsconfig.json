@@ -1,10 +1,14 @@
 {
   "extends": "../../tsconfig.json",
-
-  "include": ["src/**/*"],
-
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
     "jsx": "react",
-    "module": "es2020"
+    "module": "es2020",
+    "lib": [
+      "ES6",
+      "DOM"
+    ]
   }
 }

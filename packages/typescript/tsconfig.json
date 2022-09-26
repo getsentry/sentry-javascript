@@ -7,7 +7,7 @@
     "importHelpers": true,
     "inlineSources": true,
     "isolatedModules": true,
-    "lib": ["es6", "dom"],
+    "lib": ["es6"],
     "moduleResolution": "node",
     "noErrorTruncation": true,
     "noFallthroughCasesInSwitch": true,

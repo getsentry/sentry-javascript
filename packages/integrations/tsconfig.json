@@ -1,10 +1,13 @@
 {
   "extends": "../../tsconfig.json",
-
-  "include": ["src/**/*"],
-
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
-    // package-specific options
     "esModuleInterop": true,
+    "lib": [
+      "ES6",
+      "DOM"
+    ]
   }
 }

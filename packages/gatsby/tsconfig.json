@@ -1,10 +1,13 @@
 {
   "extends": "../../tsconfig.json",
-
-  "include": ["src/**/*"],
-
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
-    // package-specific options
-    "jsx": "react"
+    "jsx": "react",
+    "lib": [
+      "ES6",
+      "DOM"
+    ]
   }
 }

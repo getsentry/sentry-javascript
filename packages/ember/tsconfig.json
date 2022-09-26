@@ -13,6 +13,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "module": "esnext",
+    "lib": ["ES6", "DOM"],
     "experimentalDecorators": true,
     "paths": {
       "dummy/tests/*": ["tests/*"],
