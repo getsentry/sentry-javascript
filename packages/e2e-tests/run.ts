@@ -38,7 +38,7 @@ childProcess.execSync(
 
 // Run container that uploads our packages to fake registry
 childProcess.execSync(
-  `docker run --sig-proxy=true --rm -v ${repositoryRoot}:/sentry-javascript --network host ${PUBLISH_PACKAGES_DOCKER_IMAGE_NAME}`,
+  `docker run --rm -v ${repositoryRoot}:/sentry-javascript --network host ${PUBLISH_PACKAGES_DOCKER_IMAGE_NAME}`,
   {
     encoding: 'utf8',
     stdio: 'inherit',
