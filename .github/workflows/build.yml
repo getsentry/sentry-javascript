@@ -639,7 +639,7 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run integration tests
+      - name: Run E2E tests
         run: |
           cd packages/e2e-tests
           yarn test:e2e
