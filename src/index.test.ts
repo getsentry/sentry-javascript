@@ -52,6 +52,9 @@ describe('SentryReplay', () => {
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     jest.runAllTimers();
+    jest.spyOn(replay, 'flush');
+    jest.spyOn(replay, 'runFlush');
+    // const mockFlush = replay.flush as MockFlush;
   });
 
   beforeEach(() => {
@@ -768,5 +771,23 @@ describe('SentryReplay', () => {
     // This gets reset after sending replay
     // @ts-expect-error private member
     expect(replay.context.earliestEvent).toBe(null);
+  });
+
+  it('has single flush when checkout flush and debounce flush happen near simultaneously', async () => {
+    // click happens first
+    domHandler({
+      name: 'click',
+    });
+
+    // checkout
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    mockRecord._emitter(TEST_EVENT);
+
+    await advanceTimers(5000);
+    expect(replay.flush).toHaveBeenCalledTimes(1);
+
+    // Make sure there's nothing queued up after
+    await advanceTimers(5000);
+    expect(replay.flush).toHaveBeenCalledTimes(1);
   });
 });

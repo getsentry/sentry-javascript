@@ -504,6 +504,16 @@ export class SentryReplay implements Integration {
       // capturing replays of users that immediately close the window.
       setTimeout(() => this.conditionalFlush(), this.options.initialFlushDelay);
 
+      // Cancel any previously debounced flushes to ensure there are no [near]
+      // simultaneous flushes happening. The latter request should be
+      // insignificant in this case, so wait for additional user interaction to
+      // trigger a new flush.
+      //
+      // This can happen because there's no guarantee that a recording event
+      // happens first. e.g. a mouse click can happen and trigger a debounced
+      // flush before the checkout.
+      this.debouncedFlush?.cancel();
+
       return true;
     });
   };
