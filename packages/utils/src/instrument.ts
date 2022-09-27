@@ -217,74 +217,159 @@ function instrumentXHR(): void {
     return;
   }
 
-  const xhrproto = XMLHttpRequest.prototype;
+  const openHandler = function (xhr: SentryWrappedXMLHttpRequest, url: string, method: any) {
+    xhr.__sentry_xhr__ = {
+      method,
+      url
+    }
+    // if Sentry key appears in URL, don't capture it as a request
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (isString(url) && method === 'POST' && url.match(/sentry_key/)) {
+      xhr.__sentry_own_request__ = true;
+    }
+  }
 
-  fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
-    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhr = this;
-      const url = args[1];
-      const xhrInfo: SentryWrappedXMLHttpRequest['__sentry_xhr__'] = (xhr.__sentry_xhr__ = {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        method: isString(args[0]) ? args[0].toUpperCase() : args[0],
-        url: args[1],
-      });
-
-      // if Sentry key appears in URL, don't capture it as a request
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (isString(url) && xhrInfo.method === 'POST' && url.match(/sentry_key/)) {
-        xhr.__sentry_own_request__ = true;
-      }
-
-      const onreadystatechangeHandler = function (): void {
-        if (xhr.readyState === 4) {
-          try {
-            // touching statusCode in some platforms throws
-            // an exception
-            xhrInfo.status_code = xhr.status;
-          } catch (e) {
-            /* do nothing */
-          }
-
-          triggerHandlers('xhr', {
-            args,
-            endTimestamp: Date.now(),
-            startTimestamp: Date.now(),
-            xhr,
-          });
-        }
-      };
-
-      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-        fill(xhr, 'onreadystatechange', function (original: WrappedFunction): Function {
-          return function (...readyStateArgs: any[]): void {
-            onreadystatechangeHandler();
-            return original.apply(xhr, readyStateArgs);
-          };
-        });
-      } else {
-        xhr.addEventListener('readystatechange', onreadystatechangeHandler);
-      }
-
-      return originalOpen.apply(xhr, args);
-    };
-  });
-
-  fill(xhrproto, 'send', function (originalSend: () => void): () => void {
-    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      if (this.__sentry_xhr__ && args[0] !== undefined) {
-        this.__sentry_xhr__.body = args[0];
+  const onreadystatechangeHandler = function (xhr: SentryWrappedXMLHttpRequest, args: any[]): void {
+    if (xhr.readyState === 4) {
+      try {
+        // touching statusCode in some platforms throws
+        // an exception
+        xhr.__sentry_xhr__.status_code = xhr.status;
+      } catch (e) {
+        /* do nothing */
       }
 
       triggerHandlers('xhr', {
         args,
+        endTimestamp: Date.now(),
         startTimestamp: Date.now(),
-        xhr: this,
+        xhr,
       });
+    }
+  }
 
-      return originalSend.apply(this, args);
-    };
-  });
+  const sendHandler = function (xhr: SentryWrappedXMLHttpRequest, args: any[]) {
+    if (xhr.__sentry_xhr__ && args[0] !== undefined) {
+      xhr.__sentry_xhr__.body = args[0];
+    }
+    triggerHandlers('xhr', {
+      args,
+      startTimestamp: Date.now(),
+      xhr
+    });
+  }
+
+  if ('Proxy' in global) {
+    class XHRProxyHandler<T extends XMLHttpRequest> {
+      public xhr: XMLHttpRequest;
+      public openArgs: any[];
+      constructor(xhr: XMLHttpRequest) {
+        this.xhr = xhr;
+        this.openArgs = [];
+        this.xhr.onreadystatechange = () => {
+          this.onReadyStateChange()
+        }
+      }
+
+      public get(target: T, key: string) {
+        switch(key) {
+          case 'open':
+            return this.getOpen(target);
+          case 'send':
+            return this.getSend(target);
+          default:
+            const value = Reflect.get(target, key);
+            if (typeof value === 'function') {
+              return value.bind(target);
+            } else {
+              return value;
+            }
+        }
+      }
+
+      public set(target: T, key: string, value: any) {
+        switch(key) {
+          case 'onreadystatechange':
+            return this.setOnReadyStateChange(target, key, value);
+          default:
+            // do nothing
+        }
+        return Reflect.set(target, key, value);
+      }
+
+      public onReadyStateChange() {
+        onreadystatechangeHandler(this.xhr, this.openArgs)
+      }
+
+      protected getOpen(target: T) {
+          const targetFunction = Reflect.get(target, 'open');
+        return (...args: any[]) => {
+            this.openArgs = args;
+            const url = args[1];
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const method = isString(args[0]) ? args[0].toUpperCase() : args[0];
+            openHandler(this.xhr, url, method)
+            return targetFunction.apply(target, args);
+          };
+      }
+
+      protected getSend(target: T) {
+          const targetFunction = Reflect.get(target, 'send');
+          return (...args: any[]) => {
+              sendHandler(this.xhr, args)
+              return targetFunction.apply(target, args);
+          };
+      }
+
+      protected setOnReadyStateChange(target: T, key: string, value: Function) {
+        return Reflect.set(target, key, (...args: any[]) => {
+            this.onReadyStateChange();
+            value.apply(target, args);
+        });
+      }
+    }
+
+    XMLHttpRequest = new Proxy(XMLHttpRequest, {
+      construct(ctor) {
+        const xhr = new ctor();
+        return new Proxy(xhr, new XHRProxyHandler(xhr))
+      }
+    })
+
+  } else {
+    const xhrproto = XMLHttpRequest.prototype;
+
+    fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
+      return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const xhr = this;
+        const url = args[1];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const method = isString(args[0]) ? args[0].toUpperCase() : args[0];
+        openHandler(xhr, url, method)
+
+        if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
+          fill(xhr, 'onreadystatechange', function (original: WrappedFunction): Function {
+            return function (...readyStateArgs: any[]): void {
+              onreadystatechangeHandler(xhr, args);
+              return original.apply(xhr, readyStateArgs);
+            };
+          });
+        } else {
+          xhr.addEventListener('readystatechange', onreadystatechangeHandler.bind(xhr, xhr, args));
+        }
+
+        return originalOpen.apply(xhr, args);
+      };
+    });
+
+    fill(xhrproto, 'send', function (originalSend: () => void): () => void {
+      return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+        sendHandler(this, args)
+        return originalSend.apply(this, args);
+      };
+    });
+  }
 }
 
 let lastHref: string;
