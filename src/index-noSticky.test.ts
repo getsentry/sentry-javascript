@@ -2,7 +2,7 @@
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { SentryReplay } from '@';
+import { Replay } from '@';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
@@ -15,8 +15,8 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('SentryReplay (no sticky)', () => {
-  let replay: SentryReplay;
+describe('Replay (no sticky)', () => {
+  let replay: Replay;
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;

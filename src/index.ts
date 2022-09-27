@@ -45,10 +45,10 @@ import type {
   RecordedEvents,
   RecordingConfig,
   RecordingEvent,
+  ReplayConfiguration,
   ReplayEventContext,
+  ReplayPluginOptions,
   ReplayRequest,
-  SentryReplayConfiguration,
-  SentryReplayPluginOptions,
 } from './types';
 
 /**
@@ -60,7 +60,7 @@ const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
 const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
-export class SentryReplay implements Integration {
+export class Replay implements Integration {
   /**
    * @inheritDoc
    */
@@ -69,7 +69,7 @@ export class SentryReplay implements Integration {
   /**
    * @inheritDoc
    */
-  public name: string = SentryReplay.id;
+  public name: string = Replay.id;
 
   public eventBuffer: IEventBuffer | null;
 
@@ -83,7 +83,7 @@ export class SentryReplay implements Integration {
    */
   readonly recordingOptions: RecordingConfig;
 
-  readonly options: SentryReplayPluginOptions;
+  readonly options: ReplayPluginOptions;
 
   private performanceObserver: PerformanceObserver | null = null;
 
@@ -146,7 +146,7 @@ export class SentryReplay implements Integration {
       maskTextClass = 'sentry-mask',
       ...recordingOptions
     } = {},
-  }: SentryReplayConfiguration = {}) {
+  }: ReplayConfiguration = {}) {
     this.recordingOptions = {
       maskAllInputs,
       blockClass,

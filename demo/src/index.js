@@ -5,14 +5,14 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 import * as Sentry from '@sentry/browser';
 
-import { SentryReplay } from '@sentry/replay';
+import { Replay } from '@sentry/replay';
 
 Sentry.init({
   // org/project: sentry-emerging-tech/replays
   dsn: 'https://8616b02314c14ca1b499b098e1991eb5@o1176005.ingest.sentry.io/6273278',
   environment: 'demo',
   tracesSampleRate: 1.0,
-  integrations: [new SentryReplay({ stickySession: true })],
+  integrations: [new Replay({ stickySession: true })],
 });
 
 ReactDOM.render(<App />, document.getElementById('root'));

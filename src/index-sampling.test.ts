@@ -5,7 +5,7 @@ import { mockRrweb, mockSdk } from '@test';
 
 jest.useFakeTimers({ advanceTimers: true });
 
-describe('SentryReplay (sampling)', () => {
+describe('Replay (sampling)', () => {
   it('does nothing if not sampled', async () => {
     const { record: mockRecord } = mockRrweb();
     const { replay } = mockSdk({

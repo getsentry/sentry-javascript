@@ -1,4 +1,4 @@
-import { SentryReplay } from '@';
+import { Replay } from '@';
 import { Session } from '@/session/Session';
 
 // @ts-expect-error TS error, this is replaced in prod builds bc of rollup
@@ -10,7 +10,7 @@ const ENVELOPE_URL_REGEX = new RegExp(
 
 expect.extend({
   toHaveSameSession(
-    received: jest.Mocked<SentryReplay>,
+    received: jest.Mocked<Replay>,
     expected: undefined | Session
   ) {
     const pass = this.equals(received.session?.id, expected?.id) as boolean;
@@ -41,7 +41,7 @@ expect.extend({
    * Checks the last call to `sendReplayRequest` and ensures a replay was uploaded
    */
   toHaveSentReplay(
-    received: jest.Mocked<SentryReplay>,
+    received: jest.Mocked<Replay>,
     expected?: string | Uint8Array
   ) {
     const { calls } = received.sendReplayRequest.mock;

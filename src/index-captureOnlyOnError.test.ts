@@ -5,7 +5,7 @@ import { captureException } from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { SentryReplay } from '@';
+import { Replay } from '@';
 import * as CaptureReplayEvent from '@/api/captureReplayEvent';
 import {
   SESSION_IDLE_DURATION,
@@ -19,8 +19,8 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('SentryReplay (capture only on error)', () => {
-  let replay: SentryReplay;
+describe('Replay (capture only on error)', () => {
+  let replay: Replay;
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;

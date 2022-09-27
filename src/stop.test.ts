@@ -2,13 +2,13 @@ import * as SentryUtils from '@sentry/utils';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { SentryReplay } from '@';
+import { Replay } from '@';
 import { SESSION_IDLE_DURATION } from '@/session/constants';
 
 jest.useFakeTimers({ advanceTimers: true });
 
-describe('SentryReplay - stop', () => {
-  let replay: SentryReplay;
+describe('Replay - stop', () => {
+  let replay: Replay;
   const prevLocation = window.location;
 
   type MockSendReplayRequest = jest.MockedFunction<

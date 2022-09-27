@@ -50,7 +50,7 @@ export interface WorkerResponse {
   response: string | Uint8Array;
 }
 
-export interface SentryReplayPluginOptions {
+export interface ReplayPluginOptions {
   /**
    * The amount of time to wait before sending a replay
    */
@@ -94,7 +94,7 @@ export interface SentryReplayPluginOptions {
   maskAllText?: boolean;
 }
 
-export interface SentryReplayConfiguration extends SentryReplayPluginOptions {
+export interface ReplayConfiguration extends ReplayPluginOptions {
   /**
    * Options for `rrweb.record()`
    */

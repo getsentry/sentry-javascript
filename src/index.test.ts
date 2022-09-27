@@ -3,7 +3,7 @@ import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 
-import { SentryReplay } from '@';
+import { Replay } from '@';
 import * as CaptureReplayEvent from '@/api/captureReplayEvent';
 import {
   REPLAY_SESSION_KEY,
@@ -18,8 +18,8 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('SentryReplay', () => {
-  let replay: SentryReplay;
+describe('Replay', () => {
+  let replay: Replay;
   const prevLocation = window.location;
 
   type MockSendReplayRequest = jest.MockedFunction<
