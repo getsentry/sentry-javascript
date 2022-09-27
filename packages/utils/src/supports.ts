@@ -1,4 +1,4 @@
-import { getGlobalObject } from './global';
+import { WINDOW } from './browser';
 import { logger } from './logger';
 
 /**
@@ -56,7 +56,7 @@ export function supportsDOMException(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsFetch(): boolean {
-  if (!('fetch' in getGlobalObject<Window>())) {
+  if (!('fetch' in WINDOW)) {
     return false;
   }
 
@@ -88,18 +88,16 @@ export function supportsNativeFetch(): boolean {
     return false;
   }
 
-  const global = getGlobalObject<Window>();
-
   // Fast path to avoid DOM I/O
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (isNativeFetch(global.fetch)) {
+  if (isNativeFetch(WINDOW.fetch)) {
     return true;
   }
 
   // window.fetch is implemented, but is polyfilled or already wrapped (e.g: by a chrome extension)
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
-  const doc = global.document;
+  const doc = WINDOW.document;
   // eslint-disable-next-line deprecation/deprecation
   if (doc && typeof (doc.createElement as unknown) === 'function') {
     try {
@@ -127,7 +125,7 @@ export function supportsNativeFetch(): boolean {
  * @returns Answer to the given question.
  */
 export function supportsReportingObserver(): boolean {
-  return 'ReportingObserver' in getGlobalObject();
+  return 'ReportingObserver' in WINDOW;
 }
 
 /**
@@ -166,13 +164,12 @@ export function supportsHistory(): boolean {
   // NOTE: in Chrome App environment, touching history.pushState, *even inside
   //       a try/catch block*, will cause Chrome to output an error to console.error
   // borrowed from: https://github.com/angular/angular.js/pull/13945/files
-  const global = getGlobalObject<Window>();
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chrome = (global as any).chrome;
+  const chrome = (WINDOW as any).chrome;
   const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-  const hasHistoryApi = 'history' in global && !!global.history.pushState && !!global.history.replaceState;
+  const hasHistoryApi = 'history' in WINDOW && !!WINDOW.history.pushState && !!WINDOW.history.replaceState;
 
   return !isChromePackagedApp && hasHistoryApi;
 }
