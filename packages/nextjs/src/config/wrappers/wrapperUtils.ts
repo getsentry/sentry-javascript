@@ -95,7 +95,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const newTransaction = startTransaction(
         {
-          op: 'nextjs.data.server',
+          op: 'http.server',
           name: options.requestedRouteName,
           ...traceparentData,
           status: 'ok',

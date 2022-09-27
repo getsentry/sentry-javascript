@@ -42,7 +42,7 @@ describe('data-fetching function wrappers', () => {
       expect(startTransactionSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: '/tricks/[trickName]',
-          op: 'nextjs.data.server',
+          op: 'http.server',
           metadata: expect.objectContaining({ source: 'route' }),
         }),
         {
@@ -64,7 +64,7 @@ describe('data-fetching function wrappers', () => {
       expect(startTransactionSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: '/tricks/[trickName]',
-          op: 'nextjs.data.server',
+          op: 'http.server',
           metadata: expect.objectContaining({ source: 'route' }),
         }),
         {
