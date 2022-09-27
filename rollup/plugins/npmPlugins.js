@@ -2,14 +2,12 @@
  * Rollup plugin hooks docs: https://rollupjs.org/guide/en/#build-hooks and
  * https://rollupjs.org/guide/en/#output-generation-hooks
  *
- * Regex Replace plugin docs: https://github.com/jetiny/rollup-plugin-re
+ * Cleanup plugin docs: https://github.com/aMarCruz/rollup-plugin-cleanup
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
-// We need both replacement plugins because one handles regex and the other runs both before and after rollup does its
-// bundling work.
-import regexReplace from 'rollup-plugin-re';
+import cleanup from 'rollup-plugin-cleanup';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 
@@ -100,54 +98,19 @@ export function makeDebuggerPlugin(hookName) {
 }
 
 /**
- * Create a plugin to strip eslint-style comments from the output.
+ * Create a plugin to clean up output files by:
+ * - Converting line endings unix line endings
+ * - Removing consecutive empty lines
  *
- * @returns A `rollup-plugin-re` instance.
+ * @returns A `rollup-plugin-cleanup` instance.
  */
-export function makeRemoveESLintCommentsPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        test: /\/[/*] eslint-.*\n/g,
-        replace: '',
-      },
-    ],
-  });
-}
-
-/**
- * Create a plugin to strip multiple consecutive blank lines, with or without whitespace in them. from the output.
- *
- * @returns A `rollup-plugin-re` instance.
- */
-export function makeRemoveBlankLinesPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        test: /\n(\n\s*)+\n/g,
-        replace: '\n\n',
-      },
-    ],
-  });
-}
-
-/**
- * Create a plugin to strip multi-line comments from the output.
- *
- * @returns A `rollup-plugin-re` instance.
- */
-export function makeRemoveMultiLineCommentsPlugin() {
-  return regexReplace({
-    patterns: [
-      {
-        // If we ever want to remove all comments instead of just /* ... */ ones, the regex is
-        // /\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm. We also might consider a plugin like
-        // https://github.com/aMarCruz/rollup-plugin-cleanup (though to remove only multi-line comments we'd end up with
-        // a regex there, too).
-        test: /\/\*[\s\S]*?\*\//gm,
-        replace: '',
-      },
-    ],
+export function makeCleanupPlugin() {
+  return cleanup({
+    // line endings are unix-ized by default
+    comments: 'all', // comments to keep
+    compactComments: 'false', // don't remove blank lines in multi-line comments
+    maxEmptyLines: 1,
+    extensions: ['js', 'jsx', 'ts', 'tsx'],
   });
 }
 
