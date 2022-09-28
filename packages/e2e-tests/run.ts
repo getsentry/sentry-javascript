@@ -107,108 +107,109 @@ groupCIOutput('Test Registry Setup', () => {
   }
 });
 
-groupCIOutput('Run E2E Test Suites', () => {
-  // TODO: Run e2e tests here
-  const recipePaths = glob.sync(`${__dirname}/test-applications/*/test-recipe.json`, { absolute: true });
+const recipePaths = glob.sync(`${__dirname}/test-applications/*/test-recipe.json`, { absolute: true });
 
-  const recipeResults = recipePaths.map(recipePath => {
-    type Recipe = {
-      testApplicationName: string;
-      buildCommand?: string;
-      tests: {
-        testName: string;
-        testCommand: string;
-        timeoutSeconds?: number;
-      }[];
-    };
+let someTestFailed = false;
 
-    const recipe: Recipe = JSON.parse(fs.readFileSync(recipePath, 'utf-8'));
-
-    if (recipe.buildCommand) {
-      console.log(`Running E2E test build command for test application "${recipe.testApplicationName}"`);
-      const [buildCommand, ...buildCommandArgs] = recipe.buildCommand.split(' ');
-      const buildCommandProcess = childProcess.spawnSync(buildCommand, buildCommandArgs, {
-        cwd: path.dirname(recipePath),
-        encoding: 'utf8',
-        stdio: 'inherit',
-      });
-
-      if (buildCommandProcess.status !== 0) {
-        process.exit(1);
-      }
-    }
-
-    type TestResult = {
+const recipeResults = recipePaths.map(recipePath => {
+  type Recipe = {
+    testApplicationName: string;
+    buildCommand?: string;
+    tests: {
       testName: string;
-      result: 'PASS' | 'FAIL' | 'TIMEOUT';
-    };
+      testCommand: string;
+      timeoutSeconds?: number;
+    }[];
+  };
 
-    const testResults: TestResult[] = recipe.tests.map(test => {
-      console.log(
-        `Running E2E test command for test application "${recipe.testApplicationName}", test "${test.testName}"`,
-      );
+  const recipe: Recipe = JSON.parse(fs.readFileSync(recipePath, 'utf-8'));
 
-      const [testCommand, ...testCommandArgs] = test.testCommand.split(' ');
-      const testProcessResult = childProcess.spawnSync(testCommand, testCommandArgs, {
-        cwd: path.dirname(recipePath),
-        timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
-        encoding: 'utf8',
-        stdio: 'pipe',
-      });
-
-      console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
-      console.log(testProcessResult.stderr.replace(/^/gm, '[TEST OUTPUT] '));
-
-      const error: undefined | (Error & { code?: string }) = testProcessResult.error;
-
-      if (error?.code === 'ETIMEDOUT') {
-        printCIErrorMessage(
-          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-            recipePath,
-          )}) timed out.`,
-        );
-        return {
-          testName: test.testName,
-          result: 'TIMEOUT',
-        };
-      } else if (testProcessResult.status !== 0) {
-        printCIErrorMessage(
-          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-            recipePath,
-          )}) failed.`,
-        );
-        return {
-          testName: test.testName,
-          result: 'FAIL',
-        };
-      } else {
-        console.log(
-          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-            recipePath,
-          )}) succeeded.`,
-        );
-        return {
-          testName: test.testName,
-          result: 'PASS',
-        };
-      }
+  if (recipe.buildCommand) {
+    console.log(`Running E2E test build command for test application "${recipe.testApplicationName}"`);
+    const [buildCommand, ...buildCommandArgs] = recipe.buildCommand.split(' ');
+    const buildCommandProcess = childProcess.spawnSync(buildCommand, buildCommandArgs, {
+      cwd: path.dirname(recipePath),
+      encoding: 'utf8',
+      stdio: 'inherit',
     });
 
-    return {
-      testApplicationName: recipe.testApplicationName,
-      testApplicationPath: recipePath,
-      testResults,
-    };
+    if (buildCommandProcess.status !== 0) {
+      process.exit(1);
+    }
+  }
+
+  type TestResult = {
+    testName: string;
+    result: 'PASS' | 'FAIL' | 'TIMEOUT';
+  };
+
+  const testResults: TestResult[] = recipe.tests.map(test => {
+    console.log(
+      `Running E2E test command for test application "${recipe.testApplicationName}", test "${test.testName}"`,
+    );
+
+    const [testCommand, ...testCommandArgs] = test.testCommand.split(' ');
+    const testProcessResult = childProcess.spawnSync(testCommand, testCommandArgs, {
+      cwd: path.dirname(recipePath),
+      timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+
+    console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
+    console.log(testProcessResult.stderr.replace(/^/gm, '[TEST OUTPUT] '));
+
+    const error: undefined | (Error & { code?: string }) = testProcessResult.error;
+
+    if (error?.code === 'ETIMEDOUT') {
+      printCIErrorMessage(
+        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+          recipePath,
+        )}) timed out.`,
+      );
+      return {
+        testName: test.testName,
+        result: 'TIMEOUT',
+      };
+    } else if (testProcessResult.status !== 0) {
+      someTestFailed = true;
+      printCIErrorMessage(
+        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+          recipePath,
+        )}) failed.`,
+      );
+      return {
+        testName: test.testName,
+        result: 'FAIL',
+      };
+    } else {
+      someTestFailed = true;
+      console.log(
+        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+          recipePath,
+        )}) succeeded.`,
+      );
+      return {
+        testName: test.testName,
+        result: 'PASS',
+      };
+    }
   });
 
-  console.log('--------------------------------------');
-  console.log('Test Result Summary:');
+  return {
+    testApplicationName: recipe.testApplicationName,
+    testApplicationPath: recipePath,
+    testResults,
+  };
+});
 
-  recipeResults.forEach(recipeResult => {
-    console.log(`● ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`);
-    recipeResult.testResults.forEach(testResult => {
-      console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
-    });
+console.log('--------------------------------------');
+console.log('Test Result Summary:');
+
+recipeResults.forEach(recipeResult => {
+  console.log(`● ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`);
+  recipeResult.testResults.forEach(testResult => {
+    console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
   });
 });
 
@@ -217,3 +218,10 @@ groupCIOutput('Cleanup', () => {
   childProcess.spawnSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
   console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
 });
+
+if (someTestFailed) {
+  console.log('Not all tests succeeded.');
+  process.exit(1);
+} else {
+  console.log('All tests succeeded.');
+}
