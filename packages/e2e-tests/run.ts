@@ -13,6 +13,7 @@ const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
 
+const DEFAULT_BUILD_TIMEOUT_SECONDS = 60;
 const DEFAULT_TEST_TIMEOUT_SECONDS = 60;
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
@@ -127,6 +128,7 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
   type Recipe = {
     testApplicationName: string;
     buildCommand?: string;
+    buildTimeoutSeconds?: number;
     tests: {
       testName: string;
       testCommand: string;
@@ -142,6 +144,7 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       cwd: path.dirname(recipePath),
       encoding: 'utf8',
       shell: true, // needed so we can pass the build command in as whole without splitting it up into args
+      timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
     });
 
     // Prepends some text to the output build command's output so we can distinguish it from logging in this script

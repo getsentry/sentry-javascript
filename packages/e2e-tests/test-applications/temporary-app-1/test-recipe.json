@@ -1,0 +1,11 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "Temporary Application 1",
+  "buildCommand": "yarn install --no-lockfile",
+  "tests": [
+    {
+      "testName": "Example Test (Should Succeed)",
+      "testCommand": "yarn start:good"
+    }
+  ]
+}
