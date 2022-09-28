@@ -43,7 +43,22 @@ export class Apollo implements Integration {
      * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
      */
     fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => unknown) {
-      return function (this: { config: { resolvers: ApolloModelResolvers[] } }) {
+      return function (this: { config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown } }) {
+        if (!this.config.resolvers) {
+          if (this.config.schema) {
+            logger.warn(
+              'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.',
+            );
+          } else if (this.config.modules) {
+            logger.warn(
+              'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
+            );
+          }
+
+          logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
+          return orig.call(this);
+        }
+
         const resolvers = arrayify(this.config.resolvers);
 
         this.config.resolvers = resolvers.map(model => {
