@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.13.1
+
+- feat(nextjs): Add status to data-fetcher spans (#5777)
+- feat(nextjs): Auto-wrap API routes (#5778)
+- feat(nextjs): Promote option to automatically wrap data fetchers and API routes to non-experimental (#5793)
+- feat(utils): Modern implementation of `getGlobalObject` (#5809)
+- fix(gatsby): Include app-* entrypoints as they may include user source code (#5685)
+- fix(nextjs): Handle `pathname` being passed in object in `instrumentServer` (#5782)
+- fix(nextjs): Pass request in sampling context of data fetchers wrapper transaction (#5784)
+- fix(nextjs): Reverse order of checks for instrumenting server (#5828)
+- fix(remix): Do not skip error handling if tracing is not enabled. (#5811)
+- fix(remix): Use import() to get `react-router-dom` in Express wrapper. (#5810)
+- fix(tracing): Remove `connection.downlink` measurement (#5794)
+- ref(browser): Use configured transport as fallback for client reports (#5797)
+- ref(nextjs): Use flush code from `withSentry` in all backend wrappers (#5814)
+- ref(nextjs): Use integration to add request data to transaction events (#5703)
+- ref(nextjs): Use`RequestData` integration for errors (#5729)
+- ref(node): Move request data functions back to `@sentry/node` (#5759)
+- ref(tracing): Don't track transaction sampling method (#5775)
+- ref(types): Use intersections instead of extend in envelope types (#5788)
+
 ## 7.13.0
 
 - feat(browser): Use fetch `keepalive` flag (#5697)
