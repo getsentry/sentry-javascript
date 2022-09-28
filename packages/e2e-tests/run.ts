@@ -126,11 +126,11 @@ const recipeResults = recipePaths.map(recipePath => {
 
   if (recipe.buildCommand) {
     console.log(`Running E2E test build command for test application "${recipe.testApplicationName}"`);
-    const [buildCommand, ...buildCommandArgs] = recipe.buildCommand.split(' ');
-    const buildCommandProcess = childProcess.spawnSync(buildCommand, buildCommandArgs, {
+    const buildCommandProcess = childProcess.spawnSync(recipe.buildCommand, {
       cwd: path.dirname(recipePath),
       encoding: 'utf8',
       stdio: 'inherit',
+      shell: true, // needed so we can pass the build command in as whole without splitting it up into args
     });
 
     if (buildCommandProcess.status !== 0) {
@@ -148,12 +148,12 @@ const recipeResults = recipePaths.map(recipePath => {
       `Running E2E test command for test application "${recipe.testApplicationName}", test "${test.testName}"`,
     );
 
-    const [testCommand, ...testCommandArgs] = test.testCommand.split(' ');
-    const testProcessResult = childProcess.spawnSync(testCommand, testCommandArgs, {
+    const testProcessResult = childProcess.spawnSync(test.testCommand, {
       cwd: path.dirname(recipePath),
       timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
       encoding: 'utf8',
       stdio: 'pipe',
+      shell: true, // needed so we can pass the test command in as whole without splitting it up into args
     });
 
     console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
