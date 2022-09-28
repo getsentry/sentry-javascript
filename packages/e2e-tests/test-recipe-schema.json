@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentry JavaScript E2E Test Recipe",
+  "type": "object",
+  "properties": {
+    "testApplicationName": {
+      "type": "string",
+      "description": "Name displayed in test output"
+    },
+    "buildCommand": {
+      "type": "string",
+      "description": "Command that is run to install dependencies and build the test application. This command is only run once before all tests. Working directory of the command is the root of the test application."
+    },
+    "tests": {
+      "type": "array",
+      "description": "Tests to run in this test application",
+      "items": {
+        "type": "object",
+        "properties": {
+          "testName": {
+            "type": "string",
+            "description": "Name displayed in test output"
+          },
+          "testCommand": {
+            "type": "string",
+            "description": "Command that is run to start the test. Working directory of the command is the root of the test application. If this command returns a non-zero exit code the test counts as failed."
+          },
+          "timeoutSeconds": {
+            "type": "number",
+            "description": "Test timeout in seconds. Default: 60"
+          }
+        },
+        "required": ["testName", "testCommand"]
+      }
+    }
+  },
+  "required": ["testApplicationName", "tests"]
+}

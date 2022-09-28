@@ -1,0 +1,13 @@
+{
+  "name": "temporary-app-2",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start:good": "node good.js",
+    "start:bad": "node bad.js",
+    "start:timeout": "node timeout.js"
+  },
+  "dependencies": {
+    "@sentry/node": "*"
+  }
+}
