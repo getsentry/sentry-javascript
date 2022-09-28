@@ -1,9 +1,11 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, fill } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
+
+import { autoEndTransactionOnResponseEnd } from './utils/responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -24,15 +26,6 @@ export function getTransactionFromRequest(req: IncomingMessage): Transaction | u
 
 function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage): void {
   req._sentryTransaction = transaction;
-}
-
-function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerResponse): void {
-  fill(res, 'end', (originalEnd: ServerResponse['end']) => {
-    return function (this: unknown, ...endArguments: Parameters<ServerResponse['end']>) {
-      transaction.finish();
-      return originalEnd.call(this, ...endArguments);
-    };
-  });
 }
 
 /**

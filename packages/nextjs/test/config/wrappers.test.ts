@@ -24,7 +24,7 @@ describe('data-fetching function wrappers', () => {
   describe('starts a transaction and puts request in metadata if tracing enabled', () => {
     beforeEach(() => {
       req = { headers: {}, url: 'http://dogs.are.great/tricks/kangaroo' } as IncomingMessage;
-      res = {} as ServerResponse;
+      res = { end: jest.fn() } as unknown as ServerResponse;
 
       jest.spyOn(SentryTracing, 'hasTracingEnabled').mockReturnValueOnce(true);
     });

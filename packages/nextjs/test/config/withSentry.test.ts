@@ -96,6 +96,10 @@ describe('withSentry', () => {
     });
 
     it('flushes events before finishing non-erroring response', async () => {
+      jest
+        .spyOn(hub.Hub.prototype, 'getClient')
+        .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
+
       await callWrappedHandler(wrappedHandlerNoError, req, res);
 
       expect(flushSpy).toHaveBeenCalled();
