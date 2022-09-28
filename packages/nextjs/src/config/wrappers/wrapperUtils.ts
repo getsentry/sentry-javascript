@@ -88,7 +88,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const newTransaction = startTransaction(
         {
-          op: 'nextjs.data.server',
+          op: 'http.server',
           name: options.requestedRouteName,
           ...traceparentData,
           status: 'ok',
@@ -110,7 +110,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     }
 
     const dataFetcherSpan = requestTransaction.startChild({
-      op: 'nextjs.data.server',
+      op: 'function.nextjs',
       description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
       status: 'ok',
     });
@@ -173,7 +173,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
   const span = transaction.startChild({
-    op: 'nextjs.data.server',
+    op: 'function.nextjs',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
     status: 'ok',
   });

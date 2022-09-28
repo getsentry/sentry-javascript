@@ -32,7 +32,7 @@ module.exports = async ({ url: urlBase, argv }) => {
     {
       contexts: {
         trace: {
-          op: 'nextjs.data.server',
+          op: 'http.server',
           status: 'internal_error',
         },
       },
