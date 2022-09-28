@@ -1,0 +1,6 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "create-react-app",
+  "buildCommand": "yarn install --no-lockfile",
+  "tests": []
+}
