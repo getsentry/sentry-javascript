@@ -23,7 +23,7 @@ export class GraphQL implements Integration {
     }>('graphql/execution/execute.js');
 
     if (!pkg) {
-      logger.error('GraphQL Integration was unable to require graphql/execution package.');
+      __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');
       return;
     }
 

@@ -35,7 +35,7 @@ export class Apollo implements Integration {
     }>('apollo-server-core');
 
     if (!pkg) {
-      logger.error('Apollo Integration was unable to require apollo-server-core package.');
+      __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
       return;
     }
 
@@ -45,17 +45,20 @@ export class Apollo implements Integration {
     fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => unknown) {
       return function (this: { config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown } }) {
         if (!this.config.resolvers) {
-          if (this.config.schema) {
-            logger.warn(
-              'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.',
-            );
-          } else if (this.config.modules) {
-            logger.warn(
-              'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
-            );
+          if (__DEBUG_BUILD__) {
+            if (this.config.schema) {
+              logger.warn(
+                'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.',
+              );
+            } else if (this.config.modules) {
+              logger.warn(
+                'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
+              );
+            }
+
+            logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
           }
 
-          logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
           return orig.call(this);
         }
 
