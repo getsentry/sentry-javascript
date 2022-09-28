@@ -1,6 +1,7 @@
 # E2E Tests
 
-E2E tests enable us to verify the behavior of the packages in this repository as if they were to be published in their current state.
+E2E tests enable us to verify the behavior of the packages in this repository as if they were to be published in their
+current state.
 
 ## How to run
 
@@ -12,17 +13,20 @@ yarn test:e2e
 
 ## How they work
 
-Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we build our packages, pack them, and publish them to the fake registry.
-The fake registry is hosted in a Docker container, and the script to publish the packages is also run from within a container to ensure that the fake publishing happens with the same Node.js and npm versions as we're using in CI.
+Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we
+build our packages, pack them, and publish them to the fake registry. The fake registry is hosted in a Docker container,
+and the script to publish the packages is also run from within a container to ensure that the fake publishing happens
+with the same Node.js and npm versions as we're using in CI.
 
-After publishing our freshly built packages to the fake registry, the E2E test script will look for `test-recipe.json` files in test applications located in the `test-applications` folder.
-In this folder, we keep standalone test applications, that use our SDKs and can be used to verify their behavior.
-The `test-recipe.json` recipe files contain information on how to build the test applications and how to run tests on these applications.
+After publishing our freshly built packages to the fake registry, the E2E test script will look for `test-recipe.json`
+files in test applications located in the `test-applications` folder. In this folder, we keep standalone test
+applications, that use our SDKs and can be used to verify their behavior. The `test-recipe.json` recipe files contain
+information on how to build the test applications and how to run tests on these applications.
 
 ## How to set up a new test
 
-Test applications are completely standalone applications that can be used to verify our SDKs.
-To set one up, follow these commands:
+Test applications are completely standalone applications that can be used to verify our SDKs. To set one up, follow
+these commands:
 
 ```sh
 cd packages/e2e-tests
@@ -63,15 +67,19 @@ To get you started with the recipe, you can copy the following into `test-recipe
 }
 ```
 
-The `test-recipe.json` files follow a schema (`e2e-tests/test-recipe-schema.json`). Here is a basic explanation of the fields:
+The `test-recipe.json` files follow a schema (`e2e-tests/test-recipe-schema.json`). Here is a basic explanation of the
+fields:
 
-- The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run.
-- The `testCommand` command is supposed to run tests on the test application. If the configured command returns a non-zero exit code, it counts as a failed test.
+- The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If
+  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run.
+- The `testCommand` command is supposed to run tests on the test application. If the configured command returns a
+  non-zero exit code, it counts as a failed test.
 - A test timeout can be configured via `timeoutSeconds`, it defaults to `60`.
 
-**An important thing to note:** In the context of the `buildCommand` the fake test registry is available at `http://localhost:4873`. It hosts all of our packages as if they were to be published with the state of the current branch.
-This means we can install the packages from this registry via the `.npmrc` configuration as seen above.
-If you add Sentry dependencies to your test application, you should set the dependency versions set to `*`:
+**An important thing to note:** In the context of the `buildCommand` the fake test registry is available at
+`http://localhost:4873`. It hosts all of our packages as if they were to be published with the state of the current
+branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
+add Sentry dependencies to your test application, you should set the dependency versions set to `*`:
 
 ```jsonc
 // package.json
