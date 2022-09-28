@@ -36,16 +36,12 @@ function printCIErrorMessage(message: string): void {
 }
 
 groupCIOutput('Test Registry Setup', () => {
-  try {
-    // Stop test registry container (Verdaccio) if it was already running
-    childProcess.spawnSync('docker', ['stop', TEST_REGISTRY_CONTAINER_NAME], { stdio: 'ignore' });
-    console.log('Stopped previously running test registry');
-  } catch (e) {
-    // Don't throw if container wasn't running
-  }
+  // Stop test registry container (Verdaccio) if it was already running
+  childProcess.spawnSync('docker', ['stop', TEST_REGISTRY_CONTAINER_NAME], { stdio: 'ignore' });
+  console.log('Stopped previously running test registry');
 
   // Start test registry (Verdaccio)
-  childProcess.spawnSync(
+  const startRegistryProcessResult = childProcess.spawnSync(
     'docker',
     [
       'run',
@@ -62,8 +58,12 @@ groupCIOutput('Test Registry Setup', () => {
     { encoding: 'utf8', stdio: 'inherit' },
   );
 
+  if (startRegistryProcessResult.status !== 0) {
+    process.exit(1);
+  }
+
   // Build container image that is uploading our packages to fake registry with specific Node.js/npm version
-  childProcess.spawnSync(
+  const buildPublishImageProcessResult = childProcess.spawnSync(
     'docker',
     [
       'build',
@@ -80,8 +80,12 @@ groupCIOutput('Test Registry Setup', () => {
     },
   );
 
+  if (buildPublishImageProcessResult.status !== 0) {
+    process.exit(1);
+  }
+
   // Run container that uploads our packages to fake registry
-  childProcess.spawnSync(
+  const publishImageContainerRunProcess = childProcess.spawnSync(
     'docker',
     [
       'run',
@@ -97,6 +101,10 @@ groupCIOutput('Test Registry Setup', () => {
       stdio: 'inherit',
     },
   );
+
+  if (publishImageContainerRunProcess.status !== 0) {
+    process.exit(1);
+  }
 });
 
 groupCIOutput('Run E2E Test Suites', () => {
@@ -119,11 +127,15 @@ groupCIOutput('Run E2E Test Suites', () => {
     if (recipe.buildCommand) {
       console.log(`Running E2E test build command for test application "${recipe.testApplicationName}"`);
       const [buildCommand, ...buildCommandArgs] = recipe.buildCommand.split(' ');
-      childProcess.spawnSync(buildCommand, buildCommandArgs, {
+      const buildCommandProcess = childProcess.spawnSync(buildCommand, buildCommandArgs, {
         cwd: path.dirname(recipePath),
         encoding: 'utf8',
         stdio: 'inherit',
       });
+
+      if (buildCommandProcess.status !== 0) {
+        process.exit(1);
+      }
     }
 
     type TestResult = {
