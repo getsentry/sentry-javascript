@@ -129,9 +129,12 @@ const recipeResults = recipePaths.map(recipePath => {
     const buildCommandProcess = childProcess.spawnSync(recipe.buildCommand, {
       cwd: path.dirname(recipePath),
       encoding: 'utf8',
-      stdio: 'inherit',
       shell: true, // needed so we can pass the build command in as whole without splitting it up into args
     });
+
+    // Prepends some text to the output build command's output so we can distinguish it from logging in this script
+    console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
+    console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
 
     if (buildCommandProcess.status !== 0) {
       process.exit(1);
@@ -152,16 +155,17 @@ const recipeResults = recipePaths.map(recipePath => {
       cwd: path.dirname(recipePath),
       timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
       encoding: 'utf8',
-      stdio: 'pipe',
       shell: true, // needed so we can pass the test command in as whole without splitting it up into args
     });
 
+    // Prepends some text to the output test command's output so we can distinguish it from logging in this script
     console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
     console.log(testProcessResult.stderr.replace(/^/gm, '[TEST OUTPUT] '));
 
     const error: undefined | (Error & { code?: string }) = testProcessResult.error;
 
     if (error?.code === 'ETIMEDOUT') {
+      someTestFailed = true;
       printCIErrorMessage(
         `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
           recipePath,
@@ -183,7 +187,6 @@ const recipeResults = recipePaths.map(recipePath => {
         result: 'FAIL',
       };
     } else {
-      someTestFailed = true;
       console.log(
         `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
           recipePath,

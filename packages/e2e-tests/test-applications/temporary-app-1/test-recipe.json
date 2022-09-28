@@ -5,17 +5,7 @@
   "tests": [
     {
       "testName": "Example Test (Should Succeed)",
-      "testCommand": "yarn start:good",
-      "timeoutSeconds": 30
-    },
-    {
-      "testName": "Example Test (Should Fail)",
-      "testCommand": "yarn start:bad"
-    },
-    {
-      "testName": "Example Test (Should time out)",
-      "testCommand": "yarn start:timeout",
-      "timeoutSeconds": 5
+      "testCommand": "yarn start:good"
     }
   ]
 }
