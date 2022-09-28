@@ -11,6 +11,10 @@
       "type": "string",
       "description": "Command that is run to install dependencies and build the test application. This command is only run once before all tests. Working directory of the command is the root of the test application."
     },
+    "buildTimeoutSeconds": {
+      "type": "number",
+      "description": "Timeout for the build command in seconds. Default: 60"
+    },
     "tests": {
       "type": "array",
       "description": "Tests to run in this test application",
