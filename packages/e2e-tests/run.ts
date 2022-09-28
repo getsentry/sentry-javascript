@@ -109,9 +109,21 @@ groupCIOutput('Test Registry Setup', () => {
 
 const recipePaths = glob.sync(`${__dirname}/test-applications/*/test-recipe.json`, { absolute: true });
 
-let someTestFailed = false;
+let processShouldExitWithError = false;
 
-const recipeResults = recipePaths.map(recipePath => {
+type TestResult = {
+  testName: string;
+  result: 'PASS' | 'FAIL' | 'TIMEOUT';
+};
+
+type RecipeResult = {
+  testApplicationName: string;
+  testApplicationPath: string;
+  buildFailed: boolean;
+  testResults: TestResult[];
+};
+
+const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
   type Recipe = {
     testApplicationName: string;
     buildCommand?: string;
@@ -137,14 +149,20 @@ const recipeResults = recipePaths.map(recipePath => {
     console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
 
     if (buildCommandProcess.status !== 0) {
-      process.exit(1);
+      processShouldExitWithError = true;
+
+      printCIErrorMessage(
+        `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) failed!`,
+      );
+
+      return {
+        testApplicationName: recipe.testApplicationName,
+        testApplicationPath: recipePath,
+        buildFailed: true,
+        testResults: [],
+      };
     }
   }
-
-  type TestResult = {
-    testName: string;
-    result: 'PASS' | 'FAIL' | 'TIMEOUT';
-  };
 
   const testResults: TestResult[] = recipe.tests.map(test => {
     console.log(
@@ -165,7 +183,7 @@ const recipeResults = recipePaths.map(recipePath => {
     const error: undefined | (Error & { code?: string }) = testProcessResult.error;
 
     if (error?.code === 'ETIMEDOUT') {
-      someTestFailed = true;
+      processShouldExitWithError = true;
       printCIErrorMessage(
         `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
           recipePath,
@@ -176,7 +194,7 @@ const recipeResults = recipePaths.map(recipePath => {
         result: 'TIMEOUT',
       };
     } else if (testProcessResult.status !== 0) {
-      someTestFailed = true;
+      processShouldExitWithError = true;
       printCIErrorMessage(
         `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
           recipePath,
@@ -202,6 +220,7 @@ const recipeResults = recipePaths.map(recipePath => {
   return {
     testApplicationName: recipe.testApplicationName,
     testApplicationPath: recipePath,
+    buildFailed: false,
     testResults,
   };
 });
@@ -210,10 +229,18 @@ console.log('--------------------------------------');
 console.log('Test Result Summary:');
 
 recipeResults.forEach(recipeResult => {
-  console.log(`● ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`);
-  recipeResult.testResults.forEach(testResult => {
-    console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
-  });
+  if (recipeResult.buildFailed) {
+    console.log(
+      `● BUILD FAILED - ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`,
+    );
+  } else {
+    console.log(
+      `● BUILD SUCCEEDED - ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`,
+    );
+    recipeResult.testResults.forEach(testResult => {
+      console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
+    });
+  }
 });
 
 groupCIOutput('Cleanup', () => {
@@ -222,7 +249,7 @@ groupCIOutput('Cleanup', () => {
   console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
 });
 
-if (someTestFailed) {
+if (processShouldExitWithError) {
   console.log('Not all tests succeeded.');
   process.exit(1);
 } else {
