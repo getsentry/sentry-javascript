@@ -71,9 +71,9 @@ groupCIOutput('Test Registry Setup', () => {
       PUBLISH_PACKAGES_DOCKER_IMAGE_NAME,
       '--file',
       './Dockerfile.publish-packages',
-      publishScriptNodeVersion ? `--build-arg NODE_VERSION=${publishScriptNodeVersion}` : undefined,
+      ...(publishScriptNodeVersion ? ['--build-arg', `NODE_VERSION=${publishScriptNodeVersion}`] : []),
       '.',
-    ].filter((arg): arg is string => arg !== undefined),
+    ],
     {
       encoding: 'utf8',
       stdio: 'inherit',
