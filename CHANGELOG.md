@@ -26,6 +26,8 @@
 - ref(tracing): Don't track transaction sampling method (#5775)
 - ref(types): Use intersections instead of extend in envelope types (#5788)
 
+Work in this release contributed by @Auspicus and @dagroe. Thank you for your contributions!
+
 ## 7.13.0
 
 - feat(browser): Use fetch `keepalive` flag (#5697)
