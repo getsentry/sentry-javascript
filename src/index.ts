@@ -138,7 +138,7 @@ export class Replay implements Integration {
     useCompression = true,
     captureOnlyOnError = false,
     replaysSamplingRate = 1.0,
-    maskAllText = false,
+    maskAllText = true,
     recordingConfig: {
       maskAllInputs = true,
       blockClass = 'sentry-block',

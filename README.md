@@ -37,7 +37,7 @@ Sentry.init({
     new Replay({
       maskAllText: true, // Will mask all text strings
       recordingConfig: {
-        maskAllInputs: false, // Default is true
+        maskAllInputs: true, // Mask 
       },
     }),
   ],
@@ -64,7 +64,7 @@ replay.stop(); // Stop recording
 | `flushMinDelay`                 | `number`  | `5000`            | The minimum time to wait (in ms) before sending the recording payload. The payload is sent if `flushMinDelay` ms have elapsed between two events.                                                                             |
 | `flushMaxDelay`                 | `number`  | `15000`           | The maximum time to wait (in ms) when sending the recording payload. The payload is sent if events occur at an interval less than `flushMinDelay` and `flushMaxDelay` ms have elapsed since the last time a payload was sent. |
 | `initialFlushDelay`             | `number`  | `5000`            | The amount of time to wait (in ms) before sending the initial recording payload. This helps drop recordings where users visit and close the page quickly.                                                                     |
-| `maskAllText`                   | `boolean` | `false`           | Mask _all_ text strings with `*`.                                                                                                                                                                                             |
+| `maskAllText`                   | `boolean` | `true`            | Mask _all_ text strings with `*`.                                                                                                                                                                                             |
 | `replaysSamplingRate`           | `number`  | `1.0`             | The rate at which to sample replays. (1.0 will collect all replays, 0 will collect no replays).                                                                                                                               |
 | `stickySession`                 | `boolean` | `true`            | Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well.                                             |
 | `useCompression`                | `boolean` | `true`            | Uses `WebWorkers` (if available) to compress the recording payload before uploading to Sentry.                                                                                                                                |

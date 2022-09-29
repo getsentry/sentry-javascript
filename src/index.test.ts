@@ -97,6 +97,7 @@ describe('Replay', () => {
         "ignoreClass": "sentry-test-ignore",
         "maskAllInputs": true,
         "maskTextClass": "sentry-mask",
+        "maskTextSelector": "*",
       }
     `);
   });
