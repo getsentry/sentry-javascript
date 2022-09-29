@@ -28,7 +28,7 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 // into child threads and `argv` turns into ['node', 'path/to/childProcess.js'], so the original indicator is lost. We
 // thus want to compute it as soon as the SDK is loaded for the first time, which is normally when the user imports
 // `withSentryConfig` into `next.config.js`.
-export const IS_BUILD_PHASE = isBuild();
+export const IS_BUILD = isBuild();
 const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -131,9 +131,16 @@ function addServerIntegrations(options: NextjsOptions): void {
   options.integrations = integrations;
 }
 
+// TODO (v8): Remove this
+/**
+ * @deprecated Use the constant `IS_BUILD` instead.
+ */
+const deprecatedIsBuild = (): boolean => isBuild();
+// eslint-disable-next-line deprecation/deprecation
+export { deprecatedIsBuild as isBuild };
+
 export type { SentryWebpackPluginOptions } from './config/types';
 export { withSentryConfig } from './config';
-export { isBuild } from './utils/isBuild';
 export {
   withSentryGetServerSideProps,
   withSentryGetStaticProps,
@@ -149,7 +156,7 @@ export {
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
-if (!IS_BUILD_PHASE && !IS_VERCEL) {
+if (!IS_BUILD && !IS_VERCEL) {
   // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
   // In environments where the JS file doesn't exist, such as testing, import the TS file.
   try {
