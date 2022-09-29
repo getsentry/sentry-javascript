@@ -1,0 +1,6 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "Typescript Vue + Vite App",
+  "buildCommand": "yarn install --no-lockfile  && yarn build",
+  "tests": []
+}
