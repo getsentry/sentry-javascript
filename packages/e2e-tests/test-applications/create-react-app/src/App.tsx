@@ -5,7 +5,24 @@ import './App.css';
 
 function App() {
   return (
-    <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
+    <Sentry.ErrorBoundary
+      fallback={({ error, componentStack, resetError }) => (
+        <React.Fragment>
+          <div>You have encountered an error</div>
+          <div>{error.toString()}</div>
+          <div>{componentStack}</div>
+          <button
+            onClick={() => {
+              // When resetError() is called it will remove the Fallback component and render the Sentry ErrorBoundary's
+              // children in their initial state
+              resetError();
+            }}
+          >
+            Click here to reset!
+          </button>
+        </React.Fragment>
+      )}
+    >
       <div className="App">
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
