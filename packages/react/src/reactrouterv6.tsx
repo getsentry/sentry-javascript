@@ -205,9 +205,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     const navigationType = _useNavigationType();
 
     _useEffect(() => {
-      if (!routes) {
-        routes = _createRoutesFromChildren(props.children);
-      }
+      // Performance concern:
+      // This is repeated when <Routes /> is rendered.
+      routes = _createRoutesFromChildren(props.children);
       isBaseLocation = true;
 
       updatePageloadTransaction(location, routes);
