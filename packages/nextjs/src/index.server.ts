@@ -29,7 +29,7 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 // thus want to compute it as soon as the SDK is loaded for the first time, which is normally when the user imports
 // `withSentryConfig` into `next.config.js`.
 export const IS_BUILD_PHASE = isBuild();
-const isVercel = !!process.env.VERCEL;
+const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
@@ -70,7 +70,7 @@ export function init(options: NextjsOptions): void {
 
   configureScope(scope => {
     scope.setTag('runtime', 'node');
-    if (isVercel) {
+    if (IS_VERCEL) {
       scope.setTag('vercel', true);
     }
 
@@ -149,7 +149,7 @@ export {
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
-if (!IS_BUILD_PHASE && !isVercel) {
+if (!IS_BUILD_PHASE && !IS_VERCEL) {
   // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
   // In environments where the JS file doesn't exist, such as testing, import the TS file.
   try {
