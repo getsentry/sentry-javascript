@@ -58,6 +58,21 @@ describe('envelope', () => {
         Uint8Array.from([7, 8, 9, 10, 11, 12]),
       ]);
     });
+
+    it("doesn't throw when being passed a an envelope that contains a circular item payload", () => {
+      const chicken: { egg?: unknown } = {};
+      const egg = { chicken };
+      chicken.egg = chicken;
+
+      const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
+        [{ type: 'event' }, egg],
+      ]);
+
+      const serializedEnvelope = serializeEnvelope(env, new TextEncoder());
+      const [, , serializedBody] = serializedEnvelope.toString().split('\n');
+
+      expect(serializedBody).toBe('{"chicken":{"egg":"[Circular ~]"}}');
+    });
   });
 
   describe('addItemToEnvelope()', () => {
