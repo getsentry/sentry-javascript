@@ -190,7 +190,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     !_customStartTransaction
   ) {
     __DEBUG_BUILD__ &&
-      logger.warn('reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.');
+      logger.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
+      useEffect: ${_useEffect}. useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
+      createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}. customStartTransaction: ${_customStartTransaction}.`);
 
     return Routes;
   }
@@ -203,9 +205,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     const navigationType = _useNavigationType();
 
     _useEffect(() => {
-      // Performance concern:
-      // This is repeated when <Routes /> is rendered.
-      routes = _createRoutesFromChildren(props.children);
+      if (!routes) {
+        routes = _createRoutesFromChildren(props.children);
+      }
       isBaseLocation = true;
 
       updatePageloadTransaction(location, routes);
