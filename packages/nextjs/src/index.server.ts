@@ -22,6 +22,13 @@ export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/reac
 type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
 
+// Exporting this constant means we can compute it without the linter complaining, even if we stop directly using it in
+// this file. It's important that it be computed as early as possible, because one of its indicators is seeing 'build'
+// (as in the CLI command `next build`) in `process.argv`. Later on in the build process, everything's been spun out
+// into child threads and `argv` turns into ['node', 'path/to/childProcess.js'], so the original indicator is lost. We
+// thus want to compute it as soon as the SDK is loaded for the first time, which is normally when the user imports
+// `withSentryConfig` into `next.config.js`.
+export const IS_BUILD_PHASE = isBuild();
 const isVercel = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -142,7 +149,7 @@ export {
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
-if (!isBuild() && !isVercel) {
+if (!IS_BUILD_PHASE && !isVercel) {
   // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
   // In environments where the JS file doesn't exist, such as testing, import the TS file.
   try {
