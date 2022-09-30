@@ -1,4 +1,5 @@
 import * as os from 'os';
+
 import { getDeviceContext } from '../../src/integrations/context';
 
 describe('Context', () => {
