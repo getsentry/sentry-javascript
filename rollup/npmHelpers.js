@@ -11,8 +11,7 @@ import {
   makeConstToVarPlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
-  makeRemoveBlankLinesPlugin,
-  makeRemoveESLintCommentsPlugin,
+  makeCleanupPlugin,
   makeSucrasePlugin,
   makeDebugBuildStatementReplacePlugin,
 } from './plugins/index.js';
@@ -32,8 +31,7 @@ export function makeBaseNPMConfig(options = {}) {
   const sucrasePlugin = makeSucrasePlugin();
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const constToVarPlugin = makeConstToVarPlugin();
-  const removeESLintCommentsPlugin = makeRemoveESLintCommentsPlugin();
-  const removeBlankLinesPlugin = makeRemoveBlankLinesPlugin();
+  const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
 
   const defaultBaseConfig = {
@@ -84,8 +82,7 @@ export function makeBaseNPMConfig(options = {}) {
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
       constToVarPlugin,
-      removeESLintCommentsPlugin,
-      removeBlankLinesPlugin,
+      cleanupPlugin,
       extractPolyfillsPlugin,
     ],
 

@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '../../rollup/index.js';
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
 export default [
   ...makeNPMConfigVariants(
@@ -21,7 +21,6 @@ export default [
       ],
 
       packageSpecificConfig: {
-        plugins: [plugins.makeRemoveMultiLineCommentsPlugin()],
         output: {
           // Preserve the original file structure (i.e., so that everything is still relative to `src`)
           entryFileNames: 'config/templates/[name].js',

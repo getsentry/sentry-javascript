@@ -142,7 +142,7 @@ export {
 // deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
 // b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
 // phase.)
-if (!isVercel && !isBuild()) {
+if (!isBuild() && !isVercel) {
   // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
   // In environments where the JS file doesn't exist, such as testing, import the TS file.
   try {

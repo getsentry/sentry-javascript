@@ -8,6 +8,7 @@ import {
   TextEncoderInternal,
 } from '@sentry/types';
 
+import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
 
 /**
@@ -67,9 +68,24 @@ export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderI
   }
 
   for (const item of items) {
-    const [itemHeaders, payload] = item as typeof items[number];
+    const [itemHeaders, payload] = item;
+
     append(`\n${JSON.stringify(itemHeaders)}\n`);
-    append(typeof payload === 'string' || payload instanceof Uint8Array ? payload : JSON.stringify(payload));
+
+    if (typeof payload === 'string' || payload instanceof Uint8Array) {
+      append(payload);
+    } else {
+      let stringifiedPayload: string;
+      try {
+        stringifiedPayload = JSON.stringify(payload);
+      } catch (e) {
+        // In case, despite all our efforts to keep `payload` circular-dependency-free, `JSON.strinify()` still
+        // fails, we try again after normalizing it again with infinite normalization depth. This of course has a
+        // performance impact but in this case a performance hit is better than throwing.
+        stringifiedPayload = JSON.stringify(normalize(payload));
+      }
+      append(stringifiedPayload);
+    }
   }
 
   return typeof parts === 'string' ? parts : concatBuffers(parts);
