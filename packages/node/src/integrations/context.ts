@@ -199,7 +199,9 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   // Hence, we only set boot time, if we get a valid uptime value.
   // @see https://github.com/getsentry/sentry-javascript/issues/5856
   const uptime = os.uptime && os.uptime();
-  device.boot_time = uptime !== undefined ? new Date(Date.now() - uptime * 1000).toISOString() : undefined;
+  if (typeof uptime === 'number') {
+    device.boot_time = new Date(Date.now() - uptime * 1000).toISOString();
+  }
 
   device.arch = os.arch();
 
