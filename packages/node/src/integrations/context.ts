@@ -9,6 +9,7 @@ import {
   Integration,
   OsContext,
 } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import { execFile } from 'child_process';
 import { readdir, readFile } from 'fs';
 import * as os from 'os';
@@ -203,22 +204,30 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
     device.boot_time = new Date(Date.now() - uptime * 1000).toISOString();
   }
 
-  device.arch = os.arch();
+  // wrapping the rest of the device context extraction into a try/catch block because we can't rule out
+  // that other runtimes don't fully support `os` function calls.
+  try {
+    device.arch = os.arch();
 
-  if (deviceOpt === true || deviceOpt.memory) {
-    device.memory_size = os.totalmem();
-    device.free_memory = os.freemem();
-  }
-
-  if (deviceOpt === true || deviceOpt.cpu) {
-    const cpuInfo: os.CpuInfo[] | undefined = os.cpus();
-    if (cpuInfo && cpuInfo.length) {
-      const firstCpu = cpuInfo[0];
-
-      device.processor_count = cpuInfo.length;
-      device.cpu_description = firstCpu.model;
-      device.processor_frequency = firstCpu.speed;
+    if (deviceOpt === true || deviceOpt.memory) {
+      device.memory_size = os.totalmem();
+      device.free_memory = os.freemem();
     }
+
+    if (deviceOpt === true || deviceOpt.cpu) {
+      const cpuInfo: os.CpuInfo[] | undefined = os.cpus();
+      if (cpuInfo && cpuInfo.length) {
+        const firstCpu = cpuInfo[0];
+
+        device.processor_count = cpuInfo.length;
+        device.cpu_description = firstCpu.model;
+        device.processor_frequency = firstCpu.speed;
+      }
+    }
+  } catch (_) {
+    logger.warn(
+      'Failed to obtain device context information. Your runtime might not entirely support Nodes `os` library.',
+    );
   }
 
   return device;
