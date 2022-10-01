@@ -29,22 +29,16 @@ export function withSentryServerSideDocumentGetInitialProps(
 
     const errorWrappedGetInitialProps = withErrorInstrumentation(origDocumentGetInitialProps);
 
-    if (hasTracingEnabled()) {
-      // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
-      // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-      return callTracedServerSideDataFetcher(
-        errorWrappedGetInitialProps,
-        documentGetInitialPropsArguments,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        req!,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        res!,
-        {
-          dataFetcherRouteName: '/_document',
-          requestedRouteName: context.pathname,
-          dataFetchingMethodName: 'getInitialProps',
-        },
-      );
+    // Generally we can assume that `req` and `res` are always defined on the server:
+    // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+    // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
+    // span with eachother when there are no req or res objects, we simply do not trace them at all here.
+    if (hasTracingEnabled() && req && res) {
+      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, documentGetInitialPropsArguments, req, res, {
+        dataFetcherRouteName: '/_document',
+        requestedRouteName: context.pathname,
+        dataFetchingMethodName: 'getInitialProps',
+      });
     } else {
       return errorWrappedGetInitialProps(...documentGetInitialPropsArguments);
     }
