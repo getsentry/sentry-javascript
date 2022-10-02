@@ -186,13 +186,14 @@ export function startIdleTransaction(
   transactionContext: TransactionContext,
   idleTimeout: number,
   finalTimeout: number,
+  heartbeatInterval: number,
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, onScope);
+  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
     transactionContext,

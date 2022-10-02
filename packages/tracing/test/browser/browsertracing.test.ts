@@ -8,7 +8,12 @@ import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import {
+  DEFAULT_FINAL_TIMEOUT,
+  DEFAULT_HEARTBEAT_INTERVAL,
+  DEFAULT_IDLE_TIMEOUT,
+  IdleTransaction,
+} from '../../src/idletransaction';
 import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
@@ -83,6 +88,7 @@ describe('BrowserTracing', () => {
       },
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       finalTimeout: DEFAULT_FINAL_TIMEOUT,
+      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
@@ -264,6 +270,7 @@ describe('BrowserTracing', () => {
             dynamicSamplingContext: { release: '2.1.14' },
           },
         }),
+        expect.any(Number),
         expect.any(Number),
         expect.any(Number),
         expect.any(Boolean),
