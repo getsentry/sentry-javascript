@@ -77,7 +77,7 @@ describe('Scope', () => {
 
     test('addBreadcrumb can go over DEFAULT_MAX_BREADCRUMBS value', () => {
       const scope = new Scope();
-      for (let i = 0; i < 111; i++) {
+      for (let i = 0; i < 120; i++) {
         scope.addBreadcrumb({ message: 'test' }, 111);
       }
       expect((scope as any)._breadcrumbs).toHaveLength(111);
