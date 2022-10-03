@@ -26,21 +26,4 @@ testRecipePaths.forEach(testRecipePath => {
     );
     process.exit(1);
   }
-
-  const gitignorePath = path.resolve(testAppPath, '.gitignore');
-
-  if (!fs.existsSync(gitignorePath)) {
-    console.log(
-      `No .gitignore found in test application "${testAppPath}". Please add a .gitignore to this test application that ignores any kind of lockfiles. (More info in packages/e2e-tests/README.md)`,
-    );
-    process.exit(1);
-  }
-
-  const gitignoreContents = fs.readFileSync(gitignorePath, 'utf-8');
-  if (!gitignoreContents.includes('lock')) {
-    console.log(
-      `.gitignore in test application "${testAppPath} doesn't contain an entry for a lockfile. Please add a .gitignore to this test application that ignores any kind of lockfiles. (More info in packages/e2e-tests/README.md)`,
-    );
-    process.exit(1);
-  }
 });
