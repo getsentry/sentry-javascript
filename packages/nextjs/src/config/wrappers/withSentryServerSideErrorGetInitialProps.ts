@@ -34,7 +34,7 @@ export function withSentryServerSideErrorGetInitialProps(
     // Generally we can assume that `req` and `res` are always defined on the server:
     // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
     // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
-    // span with eachother when there are no req or res objects, we simply do not trace them at all here.
+    // span with each other when there are no req or res objects, we simply do not trace them at all here.
     if (hasTracingEnabled() && req && res) {
       const errorGetInitialProps: ErrorProps & {
         _sentryTraceData?: string;
