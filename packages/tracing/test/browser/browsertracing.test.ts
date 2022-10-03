@@ -307,6 +307,23 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(1);
       });
     });
+
+    describe('heartbeatInterval', () => {
+      it('can be a custom value', () => {
+        const interval = 200;
+        createBrowserTracing(true, { heartbeatInterval: interval, routingInstrumentation: customInstrumentRouting });
+        const mockFinish = jest.fn();
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish = mockFinish;
+
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
+
+        expect(mockFinish).toHaveBeenCalledTimes(0);
+        jest.advanceTimersByTime(interval * 3);
+        expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   // Integration tests for the default routing instrumentation
