@@ -32,6 +32,21 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
+Sentry.addGlobalEventProcessor(event => {
+  if (
+    event.type === 'transaction' &&
+    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
+  ) {
+    const eventId = event.event_id;
+    // @ts-ignore
+    window.recordedTransactions = window.recordedTransactions || [];
+    // @ts-ignore
+    window.recordedTransactions.push(eventId);
+  }
+
+  return event;
+});
+
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);

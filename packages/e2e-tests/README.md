@@ -113,6 +113,23 @@ A standardized frontend test application has the following features:
     if a framework has another way of doing routing, the important part is that the element to click for navigation has
     the correct `id`. Text of the link doesn't matter.
 - An empty page at `/user/5`
+- Apps should write all pageload and navigation transaction IDs into an array at `window.recordedTransactions`. This can
+  be done with an event processor:
+
+  ```ts
+  Sentry.addGlobalEventProcessor(event => {
+    if (
+      event.type === 'transaction' &&
+      (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
+    ) {
+      const eventId = event.event_id;
+      window.recordedTransactions = window.recordedTransactions || [];
+      window.recordedTransactions.push(eventId);
+    }
+
+    return event;
+  });
+  ```
 
 ### Standardized Backend Test Apps
 
