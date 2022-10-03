@@ -65,8 +65,8 @@ The `test-recipe.json` files follow a schema (`e2e-tests/test-recipe-schema.json
 fields:
 
 - The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If
-  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run.
-  In the example above, we use the `--pure-lockfile` flag to install depencies without modifiying the lockfile so that
+  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run. In
+  the example above, we use the `--pure-lockfile` flag to install depencies without modifiying the lockfile so that
   there aren't any changes in the git worktree after running the tests.
 - The `testCommand` command is supposed to run tests on the test application. If the configured command returns a
   non-zero exit code, it counts as a failed test.
