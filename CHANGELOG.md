@@ -8,8 +8,8 @@
 
 - fix(nextjs): Handle CJS API route exports (#5865)
 - fix(node): Only set `DeviceContext.boot_time` if `os.uptime()` is valid (#5859)
-- fix(utils): Normalize when serializing envelope (#5851)
 - fix(tracing): Warn if `resolvers` is not defined in `ApolloServer` config (#5850)
+- fix(utils): Normalize when serializing envelope (#5851)
 - ref(react): Improve React Router v6 error message (#5853)
 
 ## 7.14.0
