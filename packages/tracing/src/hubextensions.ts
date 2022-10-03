@@ -186,7 +186,7 @@ export function startIdleTransaction(
   transactionContext: TransactionContext,
   idleTimeout: number,
   finalTimeout: number,
-  heartbeatInterval: number,
+  heartbeatInterval?: number,
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
 ): IdleTransaction {
