@@ -97,3 +97,27 @@ add Sentry dependencies to your test application, you should set the dependency 
 ```
 
 All that is left for you to do now is to create a test app and run `yarn test:e2e`.
+
+## Standardized Test Apps
+
+For some of our integration tests we define a standard for test applications as to how they should look and behave.
+Standardized test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.
+
+### Standardized Frontend Test Apps
+
+A standardized frontend test application has the following features:
+
+- Just for the sake of consistency we prefix the standardized frontend tests with `standard-frontend-`. For example
+  `standard-frontend-nextjs`.
+- A page at path `/`
+  - Having a `<input type="button" id="exception-button">` that captures an Exception when clicked. The returned
+    `eventId` from the `Sentry.captureException()` call must be written to `window.capturedExceptionId`. It doesn not
+    matter what the captured error looks like.
+  - Having an link with `id="navigation"` that navigates to `/user/5`. It doesn't have to be an `<a>` tag, for example
+    if a framework has another way of doing routing, the important part is that the element to click for navigation has
+    the correct `id`. Text of the link doesn't matter.
+- An empty page at `/user/5`
+
+### Standardized Backend Test Apps
+
+TBD
