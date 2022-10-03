@@ -40,12 +40,6 @@ cat > test-applications/my-new-test-application/.npmrc << EOF
 @sentry-internal:registry=http://localhost:4873
 EOF
 
-# Add a gitignore that ignores lockfiles
-cat > test-applications/my-new-test-application/.gitignore << EOF
-yarn.lock
-package-lock.json
-EOF
-
 # Add a test recipe file to the test application
 touch test-applications/my-new-test-application/test-recipe.json
 ```
@@ -56,7 +50,7 @@ To get you started with the recipe, you can copy the following into `test-recipe
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "My New Test Application",
-  "buildCommand": "yarn install --no-lockfile",
+  "buildCommand": "yarn install --pure-lockfile",
   "tests": [
     {
       "testName": "My new test",
@@ -71,7 +65,9 @@ The `test-recipe.json` files follow a schema (`e2e-tests/test-recipe-schema.json
 fields:
 
 - The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If
-  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run.
+  this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run. In
+  the example above, we use the `--pure-lockfile` flag to install depencies without modifiying the lockfile so that
+  there aren't any changes in the git worktree after running the tests.
 - The `testCommand` command is supposed to run tests on the test application. If the configured command returns a
   non-zero exit code, it counts as a failed test.
 - A test timeout can be configured via `timeoutSeconds`, it defaults to `60`.
