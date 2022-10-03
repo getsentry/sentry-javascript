@@ -30,6 +30,7 @@ Sentry.init({
   // We recommend adjusting this value in production, or using tracesSampler
   // for finer control
   tracesSampleRate: 1.0,
+  release: 'e2e-test',
 });
 
 Sentry.addGlobalEventProcessor(event => {
