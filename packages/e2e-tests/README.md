@@ -40,12 +40,6 @@ cat > test-applications/my-new-test-application/.npmrc << EOF
 @sentry-internal:registry=http://localhost:4873
 EOF
 
-# Add a gitignore that ignores lockfiles
-cat > test-applications/my-new-test-application/.gitignore << EOF
-yarn.lock
-package-lock.json
-EOF
-
 # Add a test recipe file to the test application
 touch test-applications/my-new-test-application/test-recipe.json
 ```
