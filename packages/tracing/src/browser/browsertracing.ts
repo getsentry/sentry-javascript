@@ -41,8 +41,8 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   finalTimeout: number;
 
   /**
-   * The heartbeat interval. If no new spans are started or open spans are finished within 3 heartbeats, 
-   * the transaction will be finished. 
+   * The heartbeat interval. If no new spans are started or open spans are finished within 3 heartbeats,
+   * the transaction will be finished.
    * Time is in ms.
    *
    * Default: 5000
