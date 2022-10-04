@@ -99,7 +99,7 @@ function wrapResolver(
       const parentSpan = scope?.getSpan();
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
-        op: 'db.graphql.apollo',
+        op: 'graphql.resolve',
       });
 
       const rv = orig.call(this, ...args);
