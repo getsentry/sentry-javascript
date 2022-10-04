@@ -85,7 +85,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
 
     const transaction = hub.startTransaction({
       name: `${reqMethod} ${reqUrl}`,
-      op: 'gcp.function.http',
+      op: 'function.gcp.http',
       ...traceparentData,
       metadata: {
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
