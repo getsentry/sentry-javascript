@@ -4,6 +4,7 @@ const moduleExports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  pageExtensions: ['jsx', 'js', 'tsx', 'ts', 'page.tsx'],
   sentry: {
     autoInstrumentServerFunctions: true,
     // Suppress the warning message from `handleSourcemapHidingOptionWarning` in `src/config/webpack.ts`
