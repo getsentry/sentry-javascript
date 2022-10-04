@@ -96,8 +96,8 @@ All that is left for you to do now is to create a test app and run `yarn test:e2
 
 ## Standardized Test Apps
 
-For some of our E2E tests we define a standard for test applications as to how they should look and behave.
-Standardized test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.
+For some of our E2E tests we define a standard for test applications as to how they should look and behave. Standardized
+test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.
 
 ### Standardized Frontend Test Apps
 
