@@ -32,6 +32,8 @@ export type NextConfigObject = {
   basePath?: string;
   // Config which will be available at runtime
   publicRuntimeConfig?: { [key: string]: unknown };
+  // File extensions that count as pages in the `pages/` directory
+  pageExtensions?: string[];
 };
 
 export type UserSentryOptions = {
