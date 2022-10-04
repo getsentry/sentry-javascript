@@ -16,14 +16,29 @@ import type { PageConfig } from 'next';
 // multiple versions of next. See note in `wrappers/types` for more.
 import type { NextApiHandler } from '../wrappers';
 
-type NextApiModule = {
-  default: NextApiHandler;
-  config?: PageConfig;
-};
+type NextApiModule = (
+  | {
+      // ESM export
+      default?: NextApiHandler;
+    }
+  // CJS export
+  | NextApiHandler
+) & { config?: PageConfig };
 
 const userApiModule = origModule as NextApiModule;
 
-const maybeWrappedHandler = userApiModule.default;
+// Default to undefined. It's possible for Next.js users to not define any exports/handlers in an API route. If that is
+// the case Next.js wil crash during runtime but the Sentry SDK should definitely not crash so we need tohandle it.
+let userProvidedHandler = undefined;
+
+if ('default' in userApiModule && typeof userApiModule.default === 'function') {
+  // Handle when user defines via ESM export: `export default myFunction;`
+  userProvidedHandler = userApiModule.default;
+} else if (typeof userApiModule === 'function') {
+  // Handle when user defines via CJS export: "module.exports = myFunction;"
+  userProvidedHandler = userApiModule;
+}
+
 const origConfig = userApiModule.config || {};
 
 // Setting `externalResolver` to `true` prevents nextjs from throwing a warning in dev about API routes resolving
@@ -38,7 +53,7 @@ export const config = {
   },
 };
 
-export default Sentry.withSentryAPI(maybeWrappedHandler, '__ROUTE__');
+export default userProvidedHandler ? Sentry.withSentryAPI(userProvidedHandler, '__ROUTE__') : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.

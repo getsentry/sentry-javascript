@@ -31,25 +31,21 @@ export function withSentryServerSideErrorGetInitialProps(
 
     const errorWrappedGetInitialProps = withErrorInstrumentation(origErrorGetInitialProps);
 
-    if (hasTracingEnabled()) {
-      // Since this wrapper is only applied to `getInitialProps` running on the server, we can assert that `req` and
-      // `res` are always defined: https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+    // Generally we can assume that `req` and `res` are always defined on the server:
+    // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+    // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
+    // span with each other when there are no req or res objects, we simply do not trace them at all here.
+    if (hasTracingEnabled() && req && res) {
       const errorGetInitialProps: ErrorProps & {
         _sentryTraceData?: string;
         _sentryBaggage?: string;
-      } = await callTracedServerSideDataFetcher(
-        errorWrappedGetInitialProps,
-        errorGetInitialPropsArguments,
-        req!,
-        res!,
-        {
-          dataFetcherRouteName: '/_error',
-          requestedRouteName: context.pathname,
-          dataFetchingMethodName: 'getInitialProps',
-        },
-      );
+      } = await callTracedServerSideDataFetcher(errorWrappedGetInitialProps, errorGetInitialPropsArguments, req, res, {
+        dataFetcherRouteName: '/_error',
+        requestedRouteName: context.pathname,
+        dataFetchingMethodName: 'getInitialProps',
+      });
 
-      const requestTransaction = getTransactionFromRequest(req!);
+      const requestTransaction = getTransactionFromRequest(req);
       if (requestTransaction) {
         errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
 
