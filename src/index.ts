@@ -43,8 +43,8 @@ import type {
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
   RecordedEvents,
-  RecordingConfig,
   RecordingEvent,
+  RecordingOptions,
   ReplayConfiguration,
   ReplayEventContext,
   ReplayPluginOptions,
@@ -81,7 +81,7 @@ export class Replay implements Integration {
   /**
    * Options to pass to `rrweb.record()`
    */
-  readonly recordingOptions: RecordingConfig;
+  readonly recordingOptions: RecordingOptions;
 
   readonly options: ReplayPluginOptions;
 
@@ -139,19 +139,19 @@ export class Replay implements Integration {
     captureOnlyOnError = false,
     replaysSamplingRate = 1.0,
     maskAllText = true,
-    recordingConfig: {
-      maskAllInputs = true,
-      blockClass = 'sentry-block',
-      ignoreClass = 'sentry-ignore',
-      maskTextClass = 'sentry-mask',
-      ...recordingOptions
-    } = {},
+    maskAllInputs = true,
+    blockClass = 'sentry-block',
+    ignoreClass = 'sentry-ignore',
+    maskTextClass = 'sentry-mask',
+    blockSelector = '[data-sentry-block]',
+    ...recordingOptions
   }: ReplayConfiguration = {}) {
     this.recordingOptions = {
       maskAllInputs,
       blockClass,
       ignoreClass,
       maskTextClass,
+      blockSelector,
       ...recordingOptions,
     };
 

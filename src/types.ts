@@ -1,8 +1,7 @@
-import { record } from 'rrweb';
-import type { eventWithTime } from 'rrweb/typings/types';
+import type { eventWithTime, recordOptions } from 'rrweb/typings/types';
 
 export type RecordingEvent = eventWithTime;
-export type RecordingConfig = Parameters<typeof record>[0];
+export type RecordingOptions = recordOptions<eventWithTime>;
 
 export type RecordedEvents = Uint8Array | string;
 
@@ -94,12 +93,9 @@ export interface ReplayPluginOptions {
   maskAllText?: boolean;
 }
 
-export interface ReplayConfiguration extends ReplayPluginOptions {
-  /**
-   * Options for `rrweb.record()`
-   */
-  recordingConfig?: RecordingConfig;
-}
+export interface ReplayConfiguration
+  extends ReplayPluginOptions,
+    RecordingOptions {}
 
 /**
  * Some initial state captured before creating a root replay event
