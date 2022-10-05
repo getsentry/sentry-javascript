@@ -1,6 +1,5 @@
-import { getGlobalObject, isNativeFetch, logger } from '@sentry/utils';
+import { isNativeFetch, logger, WINDOW } from '@sentry/utils';
 
-const global = getGlobalObject<Window>();
 let cachedFetchImpl: FetchImpl;
 
 export type FetchImpl = typeof fetch;
@@ -51,12 +50,12 @@ export function getNativeFetchImplementation(): FetchImpl {
   /* eslint-disable @typescript-eslint/unbound-method */
 
   // Fast path to avoid DOM I/O
-  if (isNativeFetch(global.fetch)) {
-    return (cachedFetchImpl = global.fetch.bind(global));
+  if (isNativeFetch(WINDOW.fetch)) {
+    return (cachedFetchImpl = WINDOW.fetch.bind(WINDOW));
   }
 
-  const document = global.document;
-  let fetchImpl = global.fetch;
+  const document = WINDOW.document;
+  let fetchImpl = WINDOW.fetch;
   // eslint-disable-next-line deprecation/deprecation
   if (document && typeof document.createElement === 'function') {
     try {
@@ -74,6 +73,6 @@ export function getNativeFetchImplementation(): FetchImpl {
     }
   }
 
-  return (cachedFetchImpl = fetchImpl.bind(global));
+  return (cachedFetchImpl = fetchImpl.bind(WINDOW));
   /* eslint-enable @typescript-eslint/unbound-method */
 }

@@ -1,8 +1,6 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Event, Integration } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
-
-const global = getGlobalObject<Window>();
+import { WINDOW } from '@sentry/utils';
 
 /** HttpContext integration collects information about HTTP request headers */
 export class HttpContext implements Integration {
@@ -23,14 +21,14 @@ export class HttpContext implements Integration {
     addGlobalEventProcessor((event: Event) => {
       if (getCurrentHub().getIntegration(HttpContext)) {
         // if none of the information we want exists, don't bother
-        if (!global.navigator && !global.location && !global.document) {
+        if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
           return event;
         }
 
         // grab as much info as exists and add it to the event
-        const url = (event.request && event.request.url) || (global.location && global.location.href);
-        const { referrer } = global.document || {};
-        const { userAgent } = global.navigator || {};
+        const url = (event.request && event.request.url) || (WINDOW.location && WINDOW.location.href);
+        const { referrer } = WINDOW.document || {};
+        const { userAgent } = WINDOW.navigator || {};
 
         const headers = {
           ...(event.request && event.request.headers),
