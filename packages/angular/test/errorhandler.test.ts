@@ -121,4 +121,28 @@ describe('SentryErrorHandler', () => {
       expect.any(Function),
     );
   });
+
+  it('handleError method shows report dialog', () => {
+    const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+
+    const errorHandler = createErrorHandler({ showDialog: true });
+    errorHandler.handleError(new Error('test'));
+
+    expect(showReportDialogSpy).toBeCalledTimes(1);
+  });
+
+  it('handleError method extracts error with a custom extractor', () => {
+    const customExtractor = (error: unknown) => {
+      if (typeof error === 'string') {
+        return new Error(`custom ${error}`);
+      }
+      return error;
+    };
+
+    const errorHandler = createErrorHandler({ extractor: customExtractor });
+    errorHandler.handleError('error');
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(new Error('custom error'), expect.any(Function));
+  });
 });
