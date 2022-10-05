@@ -272,9 +272,9 @@ export class BrowserTracing implements Integration {
       finalContext,
       idleTimeout,
       finalTimeout,
-      heartbeatInterval,
       true,
       { location }, // for use in the tracesSampler
+      heartbeatInterval,
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
       addPerformanceEntries(transaction);

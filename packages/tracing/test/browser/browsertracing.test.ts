@@ -272,9 +272,9 @@ describe('BrowserTracing', () => {
         }),
         expect.any(Number),
         expect.any(Number),
-        expect.any(Number),
         expect.any(Boolean),
         expect.any(Object),
+        expect.any(Number),
       );
     });
 
