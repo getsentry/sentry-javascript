@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { getGlobalObject } from '@sentry/utils';
+import { WINDOW } from '@sentry/utils';
 
 import { onHidden } from './onHidden';
 
 let firstHiddenTime = -1;
 
 const initHiddenTime = (): number => {
-  return getGlobalObject<Window>().document.visibilityState === 'hidden' ? 0 : Infinity;
+  return WINDOW.document.visibilityState === 'hidden' ? 0 : Infinity;
 };
 
 const trackChanges = (): void => {

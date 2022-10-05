@@ -23,8 +23,6 @@ jest.spyOn(logger, 'warn');
 jest.spyOn(logger, 'log');
 jest.spyOn(utilsModule, 'isNodeEnv');
 
-// we have to add things into the real global object (rather than mocking the return value of getGlobalObject) because
-// there are modules which call getGlobalObject as they load, which is seemingly too early for jest to intervene
 addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
 
 describe('Hub', () => {
