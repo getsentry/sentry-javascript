@@ -1,3 +1,5 @@
+/* eslint-disable deprecation/deprecation */
+
 import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { getGlobalObject } from '@sentry/utils';
 

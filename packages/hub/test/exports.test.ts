@@ -1,3 +1,5 @@
+/* eslint-disable deprecation/deprecation */
+
 import {
   captureEvent,
   captureException,

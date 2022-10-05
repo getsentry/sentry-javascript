@@ -1,3 +1,5 @@
+/* eslint-disable deprecation/deprecation */
+
 import { Client } from '@sentry/types';
 
 import { SessionFlusher } from '../src';
