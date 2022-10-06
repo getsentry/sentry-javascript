@@ -15,6 +15,8 @@
 - ref(hub): Remove hard cap from maxBreadcrumbs (#5873)
 - ref(nextjs): Make build-phase check more robust (#5857)
 
+Work in this release contributed by @outsideris. Thank you for your contributions!
+
 ## 7.14.1
 
 - fix(nextjs): Handle CJS API route exports (#5865)
