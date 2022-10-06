@@ -6,12 +6,12 @@
 
 ## 7.14.2
 
-- fix(ember): align span operations to new operations (#5883)
+- fix(ember): Align span operations to new operations (#5883)
 - fix(nextjs): Consider pageExtensions option in auto instrumentation (#5881)
-- fix(remix): align span operations to new operations (#5889)
-- fix(serverless): align span operations to new operations (#5890)
-- fix(tracing): align span operations to new operations (#5891)
-- fix(vue): align span operations to new operations (#5892)
+- fix(remix): Align span operations to new operations (#5889)
+- fix(serverless): Align span operations to new operations (#5890)
+- fix(tracing): Align span operations to new operations (#5891)
+- fix(vue): Align span operations to new operations (#5892)
 - ref(hub): Remove hard cap from maxBreadcrumbs (#5873)
 - ref(nextjs): Make build-phase check more robust (#5857)
 
