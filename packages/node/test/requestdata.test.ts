@@ -298,6 +298,37 @@ describe.each([oldExtractRequestData, newExtractRequestData])(
         });
       });
 
+      describe('headers', () => {
+        it('removes the `Cookie` header from requestdata.headers, if `cookies` is not set in the options', () => {
+          const mockReq = {
+            cookies: { foo: 'bar' },
+            headers: { cookie: 'foo=bar', otherHeader: 'hello' },
+          };
+          const optionsWithCookies = ['headers'];
+
+          const [req, options] = formatArgs(fn, mockReq, optionsWithCookies);
+
+          expect(fn(req, options as any)).toStrictEqual({
+            headers: { otherHeader: 'hello' },
+          });
+        });
+
+        it('includes the `Cookie` header in requestdata.headers, if `cookies` is not set in the options', () => {
+          const mockReq = {
+            cookies: { foo: 'bar' },
+            headers: { cookie: 'foo=bar', otherHeader: 'hello' },
+          };
+          const optionsWithCookies = ['headers', 'cookies'];
+
+          const [req, options] = formatArgs(fn, mockReq, optionsWithCookies);
+
+          expect(fn(req, options as any)).toStrictEqual({
+            headers: { otherHeader: 'hello', cookie: 'foo=bar' },
+            cookies: { foo: 'bar' },
+          });
+        });
+      });
+
       describe('cookies', () => {
         it('uses `req.cookies` if available', () => {
           const mockReq = {
