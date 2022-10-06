@@ -209,6 +209,33 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
 
+  job_prettier:
+    name: Prettier
+    needs: [job_get_metadata, job_install_deps]
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Check dependency cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run prettier
+        run: yarn lint:prettier
+
   job_lint:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
@@ -236,7 +263,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Run linter
-        run: yarn lint
+        run: yarn lint:eslint
 
   job_circular_dep_check:
     name: Circular Dependency Check
