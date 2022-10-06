@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.14.2
+
+- fix(ember): align span operations to new operations (#5883)
+- fix(nextjs): Consider pageExtensions option in auto instrumentation (#5881)
+- fix(remix): align span operations to new operations (#5889)
+- fix(serverless): align span operations to new operations (#5890)
+- fix(tracing): align span operations to new operations (#5891)
+- fix(vue): align span operations to new operations (#5892)
+- ref(hub): Remove hard cap from maxBreadcrumbs (#5873)
+- ref(nextjs): Make build-phase check more robust (#5857)
+
 ## 7.14.1
 
 - fix(nextjs): Handle CJS API route exports (#5865)
@@ -22,7 +33,7 @@
 - fix(nextjs): Handle `pathname` being passed in object in `instrumentServer` (#5782)
 - fix(nextjs): Pass request in sampling context of data fetchers wrapper transaction (#5784)
 - fix(nextjs): Reverse order of checks for instrumenting server (#5828)
-- fix(nextjs): Rename `nextjs.data.server` ops (#5830) 
+- fix(nextjs): Rename `nextjs.data.server` ops (#5830)
 - fix(remix): Do not skip error handling if tracing is not enabled. (#5811)
 - fix(remix): Use import() to get `react-router-dom` in Express wrapper. (#5810)
 - fix(tracing): Remove `connection.downlink` measurement (#5794)
