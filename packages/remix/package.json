@@ -41,7 +41,8 @@
   "peerDependencies": {
     "@remix-run/node": "1.x",
     "@remix-run/react": "1.x",
-    "react": "16.x || 17.x || 18.x"
+    "react": "16.x || 17.x || 18.x",
+    "react-router": "6.x"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",
