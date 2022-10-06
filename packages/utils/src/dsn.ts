@@ -3,7 +3,7 @@ import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 import { SentryError } from './error';
 
 /** Regular expression used to parse a Dsn. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)*)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
 
 function isValidProtocol(protocol?: string): protocol is DsnProtocol {
   return protocol === 'http' || protocol === 'https';
