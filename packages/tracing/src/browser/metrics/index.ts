@@ -53,7 +53,7 @@ export function startTrackingLongTasks(): void {
     const duration = msToSec(entry.duration);
     transaction.startChild({
       description: 'Main UI thread blocked',
-      op: 'ui.task',
+      op: 'ui.long-task',
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
     });
