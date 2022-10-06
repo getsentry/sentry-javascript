@@ -11,6 +11,12 @@ on:
         description: If the commit you want to test isn't the head of a branch, provide its SHA here
         required: false
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 env:
   # We pin the exact version to enforce reproducable builds with node + npm.
   DEFAULT_NODE_VERSION: '16.15.1'
