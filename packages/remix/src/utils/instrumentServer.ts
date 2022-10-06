@@ -115,7 +115,7 @@ function makeWrappedDocumentRequestFunction(
 
     try {
       const span = activeTransaction?.startChild({
-        op: 'remix.server.documentRequest',
+        op: 'function.remix.document_request',
         description: activeTransaction.name,
         tags: {
           method: request.method,
@@ -147,7 +147,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
 
     try {
       const span = activeTransaction?.startChild({
-        op: `remix.server.${name}`,
+        op: `function.remix.${name}`,
         description: id,
         tags: {
           name,

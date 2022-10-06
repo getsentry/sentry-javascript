@@ -61,15 +61,15 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       spans: [
         {
           description: 'root',
-          op: 'remix.server.loader',
+          op: 'function.remix.loader',
         },
         {
           description: 'routes/loader-json-response/$id',
-          op: 'remix.server.loader',
+          op: 'function.remix.loader',
         },
         {
           description: 'routes/loader-json-response/$id',
-          op: 'remix.server.documentRequest',
+          op: 'function.remix.document_request',
         },
       ],
     });
