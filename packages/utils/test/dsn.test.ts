@@ -119,6 +119,17 @@ describe('Dsn', () => {
       expect(dsn.path).toBe('123');
       expect(dsn.projectId).toBe('321');
     });
+    
+    test('parses a Dsn with empty password', () => {
+      const dsn = makeDsn('https://abc:@sentry.io/123/321');
+      expect(dsn.protocol).toBe('https');
+      expect(dsn.publicKey).toBe('abc');
+      expect(dsn.pass).toBe('');
+      expect(dsn.host).toBe('sentry.io');
+      expect(dsn.port).toBe('');
+      expect(dsn.path).toBe('123');
+      expect(dsn.projectId).toBe('321');
+    });
 
     test('with a long path', () => {
       const dsn = makeDsn('https://abc@sentry.io/sentry/custom/installation/321');
