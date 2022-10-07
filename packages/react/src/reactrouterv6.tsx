@@ -8,13 +8,23 @@ import React from 'react';
 
 import { Action, Location } from './types';
 
-interface RouteObject {
-  caseSensitive?: boolean;
-  children?: RouteObject[];
-  element?: React.ReactNode;
-  index?: boolean;
-  path?: string;
+interface NonIndexRouteObject {
+    caseSensitive?: boolean;
+    children?: RouteObject[];
+    element?: React.ReactNode | null;
+    index?: false;
+    path?: string;
 }
+
+interface IndexRouteObject {
+    caseSensitive?: boolean;
+    children?: undefined;
+    element?: React.ReactNode | null;
+    index?: true;
+    path?: string;
+}
+
+type RouteObject = IndexRouteObject | NonIndexRouteObject;
 
 type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
