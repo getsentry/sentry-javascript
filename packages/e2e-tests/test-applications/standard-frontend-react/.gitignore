@@ -22,7 +22,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-!*.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+!*.d.ts

@@ -643,6 +643,7 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}
           E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+          E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
         run: |
           cd packages/e2e-tests
           yarn test:e2e

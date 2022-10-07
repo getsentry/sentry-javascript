@@ -15,8 +15,7 @@ import Index from './pages/Index';
 import User from './pages/User';
 
 Sentry.init({
-  // DSN belongs to "e2e-javascript-standard-frontend-react" project in "sentry-sdks" org
-  dsn: 'https://db311937c30c4c96bf06f4d1f08b2ad1@o447951.ingest.sentry.io/4503941750587392',
+  dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
     new BrowserTracing({
       routingInstrumentation: Sentry.reactRouterV6Instrumentation(
