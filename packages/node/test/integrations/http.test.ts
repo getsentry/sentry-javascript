@@ -1,6 +1,5 @@
 import * as sentryCore from '@sentry/core';
-import * as hubModule from '@sentry/hub';
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
 import { TransactionContext } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
@@ -43,10 +42,7 @@ describe('tracing', () => {
       }),
     );
 
-    // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
-    // `@sentry/hub`, and mocking breaks the link between the two
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(hubModule, 'getCurrentHub').mockReturnValue(hub);
 
     const transaction = hub.startTransaction({
       name: 'dogpark',
@@ -212,10 +208,7 @@ describe('tracing', () => {
 
       const hub = new Hub();
 
-      // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
-      // `@sentry/hub`, and mocking breaks the link between the two
       jest.spyOn(sentryCore, 'getCurrentHub').mockImplementation(() => hub);
-      jest.spyOn(hubModule, 'getCurrentHub').mockImplementation(() => hub);
 
       const client = new NodeClient(options);
       jest.spyOn(hub, 'getClient').mockImplementation(() => client);

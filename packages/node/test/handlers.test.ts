@@ -1,6 +1,5 @@
 import * as sentryCore from '@sentry/core';
-import * as sentryHub from '@sentry/hub';
-import { Hub } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -277,10 +276,8 @@ describe('tracingHandler', () => {
   it('puts its transaction on the scope', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
     const hub = new Hub(new NodeClient(options));
-    // we need to mock both of these because the tracing handler relies on `@sentry/core` while the sampler relies on
-    // `@sentry/hub`, and mocking breaks the link between the two
+
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
     sentryTracingMiddleware(req, res, next);
 
@@ -443,7 +440,6 @@ describe('errorHandler()', () => {
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
     scope?.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
@@ -460,7 +456,6 @@ describe('errorHandler()', () => {
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
     scope?.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
@@ -474,7 +469,7 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new sentryHub.Scope();
+    const scope = new Scope();
     const hub = new Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
@@ -493,12 +488,11 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new sentryHub.Scope();
+    const scope = new Scope();
     const hub = new Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryHub, 'getCurrentHub').mockReturnValue(hub);
 
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
     const requestSession = scope?.getRequestSession();

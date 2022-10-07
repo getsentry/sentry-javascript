@@ -16,7 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/hub": "7.14.2",
+    "@sentry/core": "7.14.2",
     "@sentry/types": "7.14.2",
     "@sentry/utils": "7.14.2",
     "tslib": "^1.9.3"

@@ -51,8 +51,7 @@ export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, clos
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
-import { getMainCarrier } from '@sentry/hub';
+import { getMainCarrier, Integrations as CoreIntegrations } from '@sentry/core';
 import * as domain from 'domain';
 
 import * as Handlers from './handlers';
@@ -66,7 +65,7 @@ const INTEGRATIONS = {
 export { INTEGRATIONS as Integrations, Handlers };
 
 // We need to patch domain on the global __SENTRY__ object to make it work for node in cross-platform packages like
-// @sentry/hub. If we don't do this, browser bundlers will have troubles resolving `require('domain')`.
+// @sentry/core. If we don't do this, browser bundlers will have troubles resolving `require('domain')`.
 const carrier = getMainCarrier();
 if (carrier.__SENTRY__) {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};

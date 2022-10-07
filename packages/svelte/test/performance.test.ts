@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/hub';
+import { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
 // linter doesn't like Svelte component imports
@@ -19,8 +19,8 @@ const testInitSpan: any = {
   startChild: jest.fn(),
 };
 
-jest.mock('@sentry/hub', () => {
-  const original = jest.requireActual('@sentry/hub');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub(): {

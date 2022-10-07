@@ -22,7 +22,6 @@
   "dependencies": {
     "@sentry/cli": "2.2.0",
     "@sentry/core": "7.14.2",
-    "@sentry/hub": "7.14.2",
     "@sentry/integrations": "7.14.2",
     "@sentry/node": "7.14.2",
     "@sentry/react": "7.14.2",

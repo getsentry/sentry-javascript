@@ -19,7 +19,6 @@
   "dependencies": {
     "@rollup/plugin-sucrase": "4.0.4",
     "@sentry/core": "7.14.2",
-    "@sentry/hub": "7.14.2",
     "@sentry/integrations": "7.14.2",
     "@sentry/node": "7.14.2",
     "@sentry/react": "7.14.2",

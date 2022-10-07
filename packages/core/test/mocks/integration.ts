@@ -1,5 +1,6 @@
-import { configureScope, getCurrentHub } from '@sentry/hub';
 import { Event, EventProcessor, Integration } from '@sentry/types';
+
+import { configureScope, getCurrentHub } from '../../src';
 
 export class TestIntegration implements Integration {
   public static id: string = 'TestIntegration';

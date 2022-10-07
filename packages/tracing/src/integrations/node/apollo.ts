@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 

@@ -1,4 +1,4 @@
-import { getMainCarrier, Hub } from '@sentry/hub';
+import { getMainCarrier, Hub } from '@sentry/core';
 import {
   ClientOptions,
   CustomSamplingContext,

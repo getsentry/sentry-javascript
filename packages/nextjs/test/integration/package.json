@@ -26,7 +26,6 @@
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
-    "@sentry/hub": "file:../../../hub",
     "@sentry/integrations": "file:../../../integrations",
     "@sentry/node": "file:../../../node",
     "@sentry/react": "file:../../../react",

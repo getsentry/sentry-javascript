@@ -1,4 +1,4 @@
-import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/hub';
+import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';

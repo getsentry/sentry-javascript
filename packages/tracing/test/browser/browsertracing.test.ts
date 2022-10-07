@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import { getGlobalObject, InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';

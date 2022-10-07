@@ -1,5 +1,4 @@
-import { captureException, withScope } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { addExceptionMechanism } from '@sentry/utils';
 import { NextPageContext } from 'next';
 

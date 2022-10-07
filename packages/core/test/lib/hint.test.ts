@@ -1,4 +1,4 @@
-import { captureEvent, configureScope } from '@sentry/hub';
+import { captureEvent, configureScope } from '@sentry/core';
 import { getGlobalObject } from '@sentry/utils';
 
 import { initAndBind } from '../../src/sdk';

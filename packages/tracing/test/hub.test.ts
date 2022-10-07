@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 

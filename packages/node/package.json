@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@sentry/core": "7.14.2",
-    "@sentry/hub": "7.14.2",
     "@sentry/types": "7.14.2",
     "@sentry/utils": "7.14.2",
     "cookie": "^0.4.1",
