@@ -1,7 +1,8 @@
 /* eslint-disable deprecation/deprecation */
 
-import { getCurrentHub, getHubFromCarrier, Hub } from '../src';
 import { GLOBAL_OBJ } from '@sentry/utils';
+
+import { getCurrentHub, getHubFromCarrier, Hub } from '../src';
 
 describe('global', () => {
   test('getGlobalHub', () => {
