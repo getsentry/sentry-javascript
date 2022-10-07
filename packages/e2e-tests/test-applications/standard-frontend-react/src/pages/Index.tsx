@@ -11,7 +11,6 @@ const Index = () => {
         id="exception-button"
         onClick={() => {
           const eventId = Sentry.captureException(new Error('I am an error!'));
-          // @ts-ignore
           window.capturedExceptionId = eventId;
         }}
       />

@@ -15,7 +15,8 @@ import Index from './pages/Index';
 import User from './pages/User';
 
 Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  // DSN belongs to "e2e-javascript-standard-frontend-react" project in "sentry-sdks" org
+  dsn: 'https://db311937c30c4c96bf06f4d1f08b2ad1@o447951.ingest.sentry.io/4503941750587392',
   integrations: [
     new BrowserTracing({
       routingInstrumentation: Sentry.reactRouterV6Instrumentation(
@@ -39,10 +40,10 @@ Sentry.addGlobalEventProcessor(event => {
     (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
   ) {
     const eventId = event.event_id;
-    // @ts-ignore
-    window.recordedTransactions = window.recordedTransactions || [];
-    // @ts-ignore
-    window.recordedTransactions.push(eventId);
+    if (eventId) {
+      window.recordedTransactions = window.recordedTransactions || [];
+      window.recordedTransactions.push(eventId);
+    }
   }
 
   return event;

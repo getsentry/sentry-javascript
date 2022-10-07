@@ -2,5 +2,10 @@
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "standard-frontend-react",
   "buildCommand": "yarn install && yarn build",
-  "tests": []
+  "tests": [
+    {
+      "testName": "Playwright tests",
+      "testCommand": "yarn test"
+    }
+  ]
 }

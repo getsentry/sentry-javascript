@@ -16,6 +16,20 @@ const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSIO
 const DEFAULT_BUILD_TIMEOUT_SECONDS = 60;
 const DEFAULT_TEST_TIMEOUT_SECONDS = 60;
 
+let authToken = process.env.E2E_TEST_AUTH_TOKEN;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-var-requires
+  authToken = require(path.resolve(__dirname, 'auth-token.json')).authToken;
+} catch (e) {
+  console.log('Failed to parse auth-token.json');
+}
+
+if (!authToken) {
+  console.log('No auth token configured!');
+  process.exit(1);
+}
+
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
 function groupCIOutput(groupTitle: string, fn: () => void): void {
   if (process.env.CI) {
@@ -176,6 +190,10 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       cwd: path.dirname(recipePath),
       timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
       encoding: 'utf8',
+      env: {
+        ...process.env,
+        E2E_TEST_AUTH_TOKEN: authToken,
+      },
       shell: true, // needed so we can pass the test command in as whole without splitting it up into args
     });
 
