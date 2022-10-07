@@ -53,15 +53,10 @@ function isGlobalObj(obj: { Math?: Math }): any | undefined {
   return obj && obj.Math == Math ? obj : undefined;
 }
 
+// When our minimum supported version of node.js is v12 this can become simply globalThis
 const GLOBAL =
   (typeof globalThis == 'object' && isGlobalObj(globalThis)) ||
-  // eslint-disable-next-line no-restricted-globals
-  (typeof window == 'object' && isGlobalObj(window)) ||
-  (typeof self == 'object' && isGlobalObj(self)) ||
   (typeof global == 'object' && isGlobalObj(global)) ||
-  (function (this: any) {
-    return this;
-  })() ||
   {};
 
 /**
