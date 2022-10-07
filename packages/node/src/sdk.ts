@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */
-import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
-import { getMainCarrier, setHubOnCarrier } from '@sentry/hub';
+import {
+  getCurrentHub,
+  getIntegrationsToSetup,
+  getMainCarrier,
+  initAndBind,
+  Integrations as CoreIntegrations,
+  setHubOnCarrier,
+} from '@sentry/core';
 import { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,

@@ -128,7 +128,7 @@ describe('GoogleCloudGrpc tracing', () => {
       expect(resp).toEqual('1637084156623860');
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'gcloud.grpc.pubsub',
+        op: 'grpc.pubsub',
         description: 'unary call publish',
       });
       await pubsub.close();

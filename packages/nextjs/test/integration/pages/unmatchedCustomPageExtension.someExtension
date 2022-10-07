@@ -1,0 +1,3 @@
+This page simply exists to test the compatibility of Next.js' `pageExtensions` option with our auto wrapping
+process. This file should not be turned into a page by Next.js and our webpack loader also shouldn't process it.
+This page should not contain valid JavaScript.

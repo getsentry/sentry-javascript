@@ -1,4 +1,4 @@
-import * as hub from '@sentry/hub';
+import * as hub from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { Client, ClientOptions } from '@sentry/types';
 import * as utils from '@sentry/utils';
@@ -96,6 +96,10 @@ describe('withSentry', () => {
     });
 
     it('flushes events before finishing non-erroring response', async () => {
+      jest
+        .spyOn(hub.Hub.prototype, 'getClient')
+        .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
+
       await callWrappedHandler(wrappedHandlerNoError, req, res);
 
       expect(flushSpy).toHaveBeenCalled();

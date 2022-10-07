@@ -1,10 +1,10 @@
 /* eslint-disable max-lines */
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, getGlobalObject, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
@@ -39,6 +39,15 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * Default: 30000
    */
   finalTimeout: number;
+
+  /**
+   * The heartbeat interval. If no new spans are started or open spans are finished within 3 heartbeats,
+   * the transaction will be finished.
+   * Time is in ms.
+   *
+   * Default: 5000
+   */
+  heartbeatInterval: number;
 
   /**
    * Flag to enable/disable creation of `navigation` transaction on history changes.
@@ -105,6 +114,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 const DEFAULT_BROWSER_TRACING_OPTIONS = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   finalTimeout: DEFAULT_FINAL_TIMEOUT,
+  heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
   markBackgroundTransactions: true,
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
@@ -213,7 +223,7 @@ export class BrowserTracing implements Integration {
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    const { beforeNavigate, idleTimeout, finalTimeout } = this.options;
+    const { beforeNavigate, idleTimeout, finalTimeout, heartbeatInterval } = this.options;
 
     const isPageloadTransaction = context.op === 'pageload';
 
@@ -264,6 +274,7 @@ export class BrowserTracing implements Integration {
       finalTimeout,
       true,
       { location }, // for use in the tracesSampler
+      heartbeatInterval,
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
       addPerformanceEntries(transaction);

@@ -191,7 +191,7 @@ describe('AWSLambda', () => {
 
       const fakeTransactionContext = {
         name: 'functionName',
-        op: 'awslambda.handler',
+        op: 'function.aws.lambda',
         metadata: { source: 'component' },
       };
 
@@ -218,7 +218,7 @@ describe('AWSLambda', () => {
       } catch (e) {
         const fakeTransactionContext = {
           name: 'functionName',
-          op: 'awslambda.handler',
+          op: 'function.aws.lambda',
           metadata: { source: 'component' },
         };
 
@@ -258,7 +258,7 @@ describe('AWSLambda', () => {
           expect.objectContaining({
             parentSpanId: '1121201211212012',
             parentSampled: false,
-            op: 'awslambda.handler',
+            op: 'function.aws.lambda',
             name: 'functionName',
             traceId: '12312012123120121231201212312012',
             metadata: {
@@ -292,7 +292,7 @@ describe('AWSLambda', () => {
       } catch (e) {
         const fakeTransactionContext = {
           name: 'functionName',
-          op: 'awslambda.handler',
+          op: 'function.aws.lambda',
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
@@ -322,7 +322,7 @@ describe('AWSLambda', () => {
 
       const fakeTransactionContext = {
         name: 'functionName',
-        op: 'awslambda.handler',
+        op: 'function.aws.lambda',
         metadata: { source: 'component' },
       };
 
@@ -360,7 +360,7 @@ describe('AWSLambda', () => {
       } catch (e) {
         const fakeTransactionContext = {
           name: 'functionName',
-          op: 'awslambda.handler',
+          op: 'function.aws.lambda',
           metadata: { source: 'component' },
         };
 
@@ -402,7 +402,7 @@ describe('AWSLambda', () => {
 
       const fakeTransactionContext = {
         name: 'functionName',
-        op: 'awslambda.handler',
+        op: 'function.aws.lambda',
         metadata: { source: 'component' },
       };
 
@@ -440,7 +440,7 @@ describe('AWSLambda', () => {
       } catch (e) {
         const fakeTransactionContext = {
           name: 'functionName',
-          op: 'awslambda.handler',
+          op: 'function.aws.lambda',
           metadata: { source: 'component' },
         };
 

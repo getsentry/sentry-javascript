@@ -372,7 +372,20 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
         const routerMain = appInstance.lookup('router:main');
-        const routerService = appInstance.lookup('service:router');
+        let routerService = appInstance.lookup('service:router');
+        if (routerService.externalRouter) {
+          // Using ember-engines-router-service in an engine.
+          routerService = routerService.externalRouter;
+        }
+        if (routerService._hasMountedSentryPerformanceRouting) {
+          // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
+          return;
+        }
+        if (!routerService.recognize) {
+          // Router is missing critical functionality to limit cardinality of the transaction names.
+          return;
+        }
+        routerService._hasMountedSentryPerformanceRouting = true;
         _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
       },
       idleTimeout,

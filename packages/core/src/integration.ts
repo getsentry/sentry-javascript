@@ -1,6 +1,8 @@
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/hub';
 import { Integration, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
+
+import { getCurrentHub } from './hub';
+import { addGlobalEventProcessor } from './scope';
 
 declare module '@sentry/types' {
   interface Integration {

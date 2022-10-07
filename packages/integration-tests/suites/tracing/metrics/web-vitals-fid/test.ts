@@ -24,6 +24,6 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   const fidSpan = eventData.spans?.filter(({ description }) => description === 'first input delay')[0];
 
   expect(fidSpan).toBeDefined();
-  expect(fidSpan?.op).toBe('web.vitals');
+  expect(fidSpan?.op).toBe('ui.action');
   expect(fidSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
 });

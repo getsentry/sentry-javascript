@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';

@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/hub';
+import { Scope } from '@sentry/core';
 import { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
@@ -10,8 +10,8 @@ declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
-jest.mock('@sentry/hub', () => {
-  const original = jest.requireActual('@sentry/hub');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub(): {

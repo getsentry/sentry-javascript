@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
@@ -86,7 +86,7 @@ describe('setupOnce', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Query.res_1',
-      op: 'db.graphql.apollo',
+      op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
   });
@@ -96,7 +96,7 @@ describe('setupOnce', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Mutation.res_2',
-      op: 'db.graphql.apollo',
+      op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
   });

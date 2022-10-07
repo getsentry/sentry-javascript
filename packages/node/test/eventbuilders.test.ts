@@ -5,8 +5,8 @@ import { eventFromUnknownInput } from '../src/eventbuilder';
 
 const testScope = new Scope();
 
-jest.mock('@sentry/hub', () => {
-  const original = jest.requireActual('@sentry/hub');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub(): {

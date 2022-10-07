@@ -75,7 +75,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               this.$_sentryRootSpan ||
               activeTransaction.startChild({
                 description: 'Application Render',
-                op: VUE_OP,
+                op: `${VUE_OP}.render`,
               });
           }
         }

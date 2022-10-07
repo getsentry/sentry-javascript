@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 
 import { OnUnhandledRejection } from '../src/integrations/onunhandledrejection';
 
@@ -6,9 +6,9 @@ import { OnUnhandledRejection } from '../src/integrations/onunhandledrejection';
 global.console.warn = () => null;
 global.console.error = () => null;
 
-jest.mock('@sentry/hub', () => {
+jest.mock('@sentry/core', () => {
   // we just want to short-circuit it, so dont worry about types
-  const original = jest.requireActual('@sentry/hub');
+  const original = jest.requireActual('@sentry/core');
   original.Hub.prototype.getIntegration = () => true;
   return {
     ...original,

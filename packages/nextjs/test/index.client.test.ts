@@ -1,5 +1,4 @@
-import { BaseClient } from '@sentry/core';
-import { getCurrentHub } from '@sentry/hub';
+import { BaseClient, getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';

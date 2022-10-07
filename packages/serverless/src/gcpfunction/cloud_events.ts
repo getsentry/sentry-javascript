@@ -34,7 +34,7 @@ function _wrapCloudEventFunction(
 
     const transaction = hub.startTransaction({
       name: context.type || '<unknown>',
-      op: 'gcp.function.cloud_event',
+      op: 'function.gcp.cloud_event',
       metadata: { source: 'component' },
     });
 
