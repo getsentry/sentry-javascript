@@ -21,12 +21,12 @@ conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
       spans: [
         {
           description: 'execute',
-          op: 'db.graphql',
+          op: 'graphql.execute',
           parent_span_id: parentSpanId,
         },
         {
           description: 'Query.hello',
-          op: 'db.graphql.apollo',
+          op: 'graphql.resolve',
           parent_span_id: graphqlSpanId,
         },
       ],

@@ -52,7 +52,7 @@ describe('setupOnce', function () {
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
         description: 'user create',
-        op: 'db.prisma',
+        op: 'db.sql.prisma',
       });
       expect(childSpan.finish).toBeCalled();
       done();

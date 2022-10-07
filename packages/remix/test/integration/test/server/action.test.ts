@@ -15,19 +15,19 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       spans: [
         {
           description: 'routes/action-json-response/$id',
-          op: 'remix.server.action',
+          op: 'function.remix.action',
         },
         {
           description: 'root',
-          op: 'remix.server.loader',
+          op: 'function.remix.loader',
         },
         {
           description: 'routes/action-json-response/$id',
-          op: 'remix.server.loader',
+          op: 'function.remix.loader',
         },
         {
           description: 'routes/action-json-response/$id',
-          op: 'remix.server.documentRequest',
+          op: 'function.remix.document_request',
         },
       ],
     });

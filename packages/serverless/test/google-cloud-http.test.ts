@@ -59,12 +59,12 @@ describe('GoogleCloudHttp tracing', () => {
       expect(resp).toEqual([[{ foo: true }]]);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'gcloud.http.bigquery',
+        op: 'http.client.bigquery',
         description: 'POST /jobs',
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'gcloud.http.bigquery',
+        op: 'http.client.bigquery',
         description: expect.stringMatching(new RegExp('^GET /queries/.+')),
       });
     });

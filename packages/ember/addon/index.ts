@@ -84,7 +84,7 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
     [BaseRoute.name]: class extends BaseRoute {
       beforeModel(...args: any[]) {
         return instrumentFunction(
-          'ember.route.beforeModel',
+          'ui.ember.route.before_model',
           (<any>this).fullRouteName,
           super.beforeModel.bind(this),
           args,
@@ -92,12 +92,12 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
       }
 
       async model(...args: any[]) {
-        return instrumentFunction('ember.route.model', (<any>this).fullRouteName, super.model.bind(this), args);
+        return instrumentFunction('ui.ember.route.model', (<any>this).fullRouteName, super.model.bind(this), args);
       }
 
       async afterModel(...args: any[]) {
         return instrumentFunction(
-          'ember.route.afterModel',
+          'ui.ember.route.after_model',
           (<any>this).fullRouteName,
           super.afterModel.bind(this),
           args,
@@ -106,7 +106,7 @@ export const instrumentRoutePerformance = (BaseRoute: any) => {
 
       async setupController(...args: any[]) {
         return instrumentFunction(
-          'ember.route.setupController',
+          'ui.ember.route.setup_controller',
           (<any>this).fullRouteName,
           super.setupController.bind(this),
           args,

@@ -34,7 +34,7 @@ export class GraphQL implements Integration {
 
         const span = parentSpan?.startChild({
           description: 'execute',
-          op: 'db.graphql',
+          op: 'graphql.execute',
         });
 
         scope?.setSpan(span);

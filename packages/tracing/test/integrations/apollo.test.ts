@@ -86,7 +86,7 @@ describe('setupOnce', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Query.res_1',
-      op: 'db.graphql.apollo',
+      op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
   });
@@ -96,7 +96,7 @@ describe('setupOnce', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'Mutation.res_2',
-      op: 'db.graphql.apollo',
+      op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
   });
