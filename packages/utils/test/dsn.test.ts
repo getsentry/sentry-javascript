@@ -119,7 +119,7 @@ describe('Dsn', () => {
       expect(dsn.path).toBe('123');
       expect(dsn.projectId).toBe('321');
     });
-    
+
     test('parses a Dsn with empty password', () => {
       const dsn = makeDsn('https://abc:@sentry.io/123/321');
       expect(dsn.protocol).toBe('https');
