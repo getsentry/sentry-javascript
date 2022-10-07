@@ -1,5 +1,3 @@
-/* eslint-disable deprecation/deprecation */
-
 export type { Carrier, Layer } from '@sentry/core';
 
 import {
@@ -13,10 +11,10 @@ import {
   getCurrentHub as getCurrentHubCore,
   getHubFromCarrier as getHubFromCarrierCore,
   getMainCarrier as getMainCarrierCore,
-  Hub,
+  Hub as HubCore,
   makeMain as makeMainCore,
   makeSession as makeSessionCore,
-  Scope,
+  Scope as ScopeCore,
   SessionFlusher as SessionFlusherCore,
   setContext as setContextCore,
   setExtra as setExtraCore,
@@ -31,144 +29,126 @@ import {
 } from '@sentry/core';
 
 /**
- * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
+ * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8
  */
-const getCurrentHub = getCurrentHubCore;
+export class Hub extends HubCore {}
+
+/**
+ * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8
+ */
+export class Scope extends ScopeCore {}
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const addGlobalEventProcessor = addGlobalEventProcessorCore;
+export const getCurrentHub = getCurrentHubCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const getHubFromCarrier = getHubFromCarrierCore;
+export const addGlobalEventProcessor = addGlobalEventProcessorCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const getMainCarrier = getMainCarrierCore;
+export const getHubFromCarrier = getHubFromCarrierCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const makeMain = makeMainCore;
+export const getMainCarrier = getMainCarrierCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setHubOnCarrier = setHubOnCarrierCore;
+export const makeMain = makeMainCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const SessionFlusher = SessionFlusherCore;
+export const setHubOnCarrier = setHubOnCarrierCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const closeSession = closeSessionCore;
+export const SessionFlusher = SessionFlusherCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const makeSession = makeSessionCore;
+export const closeSession = closeSessionCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const updateSession = updateSessionCore;
+export const makeSession = makeSessionCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const addBreadcrumb = addBreadcrumbCore;
+export const updateSession = updateSessionCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const captureException = captureExceptionCore;
+export const addBreadcrumb = addBreadcrumbCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const captureEvent = captureEventCore;
+export const captureException = captureExceptionCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const captureMessage = captureMessageCore;
+export const captureEvent = captureEventCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const configureScope = configureScopeCore;
+export const captureMessage = captureMessageCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const startTransaction = startTransactionCore;
+export const configureScope = configureScopeCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setContext = setContextCore;
+export const startTransaction = startTransactionCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setExtra = setExtraCore;
+export const setContext = setContextCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setExtras = setExtrasCore;
+export const setExtra = setExtraCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setTag = setTagCore;
+export const setExtras = setExtrasCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setTags = setTagsCore;
+export const setTag = setTagCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const setUser = setUserCore;
+export const setTags = setTagsCore;
 
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
  */
-const withScope = withScopeCore;
+export const setUser = setUserCore;
 
-export {
-  addBreadcrumb,
-  addGlobalEventProcessor,
-  captureEvent,
-  captureException,
-  captureMessage,
-  closeSession,
-  configureScope,
-  getCurrentHub,
-  getHubFromCarrier,
-  getMainCarrier,
-  Hub,
-  makeMain,
-  makeSession,
-  Scope,
-  SessionFlusher,
-  setContext,
-  setExtra,
-  setExtras,
-  setHubOnCarrier,
-  setTag,
-  setTags,
-  setUser,
-  startTransaction,
-  updateSession,
-  withScope,
-};
+/**
+ * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8.
+ */
+export const withScope = withScopeCore;
