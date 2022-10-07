@@ -1,5 +1,5 @@
 import { captureEvent, configureScope } from '@sentry/core';
-import { getGlobalObject } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { initAndBind } from '../../src/sdk';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -16,7 +16,7 @@ describe('Hint', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    delete getGlobalObject().__SENTRY__;
+    delete GLOBAL_OBJ.__SENTRY__;
   });
 
   describe('attachments', () => {
