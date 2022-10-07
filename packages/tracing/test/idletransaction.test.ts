@@ -3,8 +3,8 @@ import { Hub } from '@sentry/hub';
 
 import {
   DEFAULT_FINAL_TIMEOUT,
+  DEFAULT_HEARTBEAT_INTERVAL,
   DEFAULT_IDLE_TIMEOUT,
-  HEARTBEAT_INTERVAL,
   IdleTransaction,
   IdleTransactionSpanRecorder,
 } from '../src/idletransaction';
@@ -21,7 +21,14 @@ beforeEach(() => {
 describe('IdleTransaction', () => {
   describe('onScope', () => {
     it('sets the transaction on the scope on creation if onScope is true', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, DEFAULT_FINAL_TIMEOUT, true);
+      const transaction = new IdleTransaction(
+        { name: 'foo' },
+        hub,
+        DEFAULT_IDLE_TIMEOUT,
+        DEFAULT_FINAL_TIMEOUT,
+        DEFAULT_HEARTBEAT_INTERVAL,
+        true,
+      );
       transaction.initSpanRecorder(10);
 
       hub.configureScope(s => {
@@ -39,7 +46,14 @@ describe('IdleTransaction', () => {
     });
 
     it('removes sampled transaction from scope on finish if onScope is true', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, DEFAULT_FINAL_TIMEOUT, true);
+      const transaction = new IdleTransaction(
+        { name: 'foo' },
+        hub,
+        DEFAULT_IDLE_TIMEOUT,
+        DEFAULT_FINAL_TIMEOUT,
+        DEFAULT_HEARTBEAT_INTERVAL,
+        true,
+      );
       transaction.initSpanRecorder(10);
 
       transaction.finish();
@@ -56,6 +70,7 @@ describe('IdleTransaction', () => {
         hub,
         DEFAULT_IDLE_TIMEOUT,
         DEFAULT_FINAL_TIMEOUT,
+        DEFAULT_HEARTBEAT_INTERVAL,
         true,
       );
 
@@ -248,17 +263,17 @@ describe('IdleTransaction', () => {
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
@@ -272,15 +287,15 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(1);
     });
 
@@ -293,42 +308,42 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       const span = transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       transaction.startChild(); // push activity
       transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       span.finish(); // pop activity
 
       // Beat 1
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
       expect(mockFinish).toHaveBeenCalledTimes(1);
 
       // Heartbeat does not keep going after finish has been called
