@@ -13,7 +13,7 @@ const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
 
-const DEFAULT_BUILD_TIMEOUT_SECONDS = 60;
+const DEFAULT_BUILD_TIMEOUT_SECONDS = 60 * 5;
 const DEFAULT_TEST_TIMEOUT_SECONDS = 60;
 
 if (!process.env.E2E_TEST_AUTH_TOKEN) {
@@ -173,7 +173,22 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
     console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
     console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
 
-    if (buildCommandProcess.status !== 0) {
+    const error: undefined | (Error & { code?: string }) = buildCommandProcess.error;
+
+    if (error?.code === 'ETIMEDOUT') {
+      processShouldExitWithError = true;
+
+      printCIErrorMessage(
+        `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) timed out!`,
+      );
+
+      return {
+        testApplicationName: recipe.testApplicationName,
+        testApplicationPath: recipePath,
+        buildFailed: true,
+        testResults: [],
+      };
+    } else if (buildCommandProcess.status !== 0) {
       processShouldExitWithError = true;
 
       printCIErrorMessage(
