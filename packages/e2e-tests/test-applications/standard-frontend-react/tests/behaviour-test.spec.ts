@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 
 const SENTRY_TEST_ORG_SLUG = 'sentry-sdks';
-const SENTRY_TEST_PROJECT = 'e2e-javascript-standard-frontend-react';
+const SENTRY_TEST_PROJECT = 'sentry-javascript-e2e-tests';
 
 const EVENT_POLLING_TIMEOUT = 45000;
 const EVENT_POLLING_RETRY_INTERVAL = 1000;
