@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.15.0
+
+This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
+
+- feat(ember): Add ember-engine-router support (#5905)
+- feat(nextjs): Enable `autoInstrumentServerFunctions` per default (#5919)
+- feat(tracing): Make BrowserTracing heartbeat interval configurable (#5867)
+- fix(remix): Rework dynamic imports of `react-router-dom` (#5897)
+- fix(node): Remove Cookie header from requestdata.headers if cookies should not be sent to Sentry (#5898)
+- fix(utils): accept DSN URLs with empty password (#5902)
+- fix(vue): Finish spans in component tracking before starting new ones for same operation (#5918)
+- ref(hub): Move `@sentry/hub` code to `@sentry/core` (#5823)
+
+Work in this release contributed by @outsideris and @JonasKruckenberg. Thank you for your contributions!
+
 ## 7.14.2
 
 - fix(ember): Align span operations to new operations (#5883)
