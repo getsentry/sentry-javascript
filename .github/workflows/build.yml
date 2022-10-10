@@ -646,5 +646,5 @@ jobs:
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
         run: |
           cd packages/e2e-tests
-          npx playwright install-deps
+          npx playwright install
           yarn test:e2e
