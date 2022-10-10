@@ -13,7 +13,7 @@ This release deprecates `@sentry/hub` and all of it's exports. All of the `@sent
 - feat(tracing): Make BrowserTracing heartbeat interval configurable (#5867)
 - fix(node): Remove Cookie header from requestdata.headers if cookies should not be sent to Sentry (#5898)
 - fix(remix): Rework dynamic imports of `react-router-dom` (#5897)
-- fix(utils): accept DSN URLs with empty password (#5902)
+- fix(utils): Accept DSN URLs with empty password (#5902)
 - fix(vue): Finish spans in component tracking before starting new ones for same operation (#5918)
 - ref(hub): Move `@sentry/hub` code to `@sentry/core` (#5823)
 
