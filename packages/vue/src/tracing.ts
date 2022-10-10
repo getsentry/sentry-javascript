@@ -13,7 +13,7 @@ type Mixins = Parameters<Vue['mixin']>[0];
 interface VueSentry extends ViewModel {
   readonly $root: VueSentry;
   $_sentrySpans?: {
-    [key: string]: Span;
+    [key: string]: Span | undefined;
   };
   $_sentryRootSpan?: Span;
   $_sentryRootSpanTimer?: ReturnType<typeof setTimeout>;
@@ -98,6 +98,14 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         if (internalHook == internalHooks[0]) {
           const activeTransaction = this.$root?.$_sentryRootSpan || getActiveTransaction();
           if (activeTransaction) {
+            // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
+            // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
+            // finished so we finish the span before starting a new one, just to be sure.
+            const oldSpan = this.$_sentrySpans[operation];
+            if (oldSpan && !oldSpan.endTimestamp) {
+              oldSpan.finish();
+            }
+
             this.$_sentrySpans[operation] = activeTransaction.startChild({
               description: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,
