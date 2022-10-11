@@ -5,7 +5,6 @@ const SENTRY_TEST_ORG_SLUG = 'sentry-sdks';
 const SENTRY_TEST_PROJECT = 'sentry-javascript-e2e-tests';
 
 const EVENT_POLLING_TIMEOUT = 45000;
-const EVENT_POLLING_RETRY_INTERVAL = 1000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 
@@ -18,32 +17,28 @@ test('Sends an exception to Sentry', async ({ page }) => {
   const exceptionIdHandle = await page.waitForFunction(() => window.capturedExceptionId);
   const exceptionEventId = await exceptionIdHandle.jsonValue();
 
-  let lastErrorResponse: AxiosError | undefined;
-
-  const timeout = setTimeout(() => {
-    if (lastErrorResponse?.response?.status) {
-      throw new Error(
-        `Timeout reached while polling event. Last received status code: ${lastErrorResponse.response.status}`,
-      );
-    } else {
-      throw new Error('Timeout reached while polling event.');
-    }
-  }, EVENT_POLLING_TIMEOUT);
-
-  while (true) {
-    try {
-      const response = await axios.get(
-        `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${exceptionEventId}/`,
-        { headers: { Authorization: `Bearer ${authToken}` } },
-      );
-      clearTimeout(timeout);
-      expect(response?.status).toBe(200);
-      break;
-    } catch (e) {
-      lastErrorResponse = e;
-      await new Promise(resolve => setTimeout(resolve, EVENT_POLLING_RETRY_INTERVAL));
-    }
-  }
+  await expect
+    .poll(
+      async () => {
+        try {
+          const response = await axios.get(
+            `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${exceptionEventId}/`,
+            { headers: { Authorization: `Bearer ${authToken}` } },
+          );
+          return response.status;
+        } catch (e) {
+          if (e instanceof AxiosError && e.response) {
+            return e.response.status;
+          } else {
+            throw e;
+          }
+        }
+      },
+      {
+        timeout: EVENT_POLLING_TIMEOUT,
+      },
+    )
+    .toBe(200);
 });
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
@@ -62,38 +57,44 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
     throw new Error("Application didn't record any transaction event IDs.");
   }
 
-  const timeout = setTimeout(() => {
-    throw new Error('Timeout reached while polling events.');
-  }, EVENT_POLLING_TIMEOUT);
-
   let hadPageLoadTransaction = false;
 
   await Promise.all(
-    recordedTransactionEventIds.map(async (transactionEventId, i) => {
-      while (true) {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-          expect(response?.status).toBe(200);
-          if (response.data.contexts.trace.op === 'pageload') {
-            hadPageLoadTransaction = true;
-          }
-          break;
-        } catch (e) {
-          await new Promise(resolve => setTimeout(resolve, EVENT_POLLING_RETRY_INTERVAL));
-        }
-      }
+    recordedTransactionEventIds.map(async transactionEventId => {
+      await expect
+        .poll(
+          async () => {
+            try {
+              const response = await axios.get(
+                `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
+                { headers: { Authorization: `Bearer ${authToken}` } },
+              );
+
+              if (response.data.contexts.trace.op === 'pageload') {
+                hadPageLoadTransaction = true;
+              }
+
+              return response.status;
+            } catch (e) {
+              if (e instanceof AxiosError && e.response) {
+                return e.response.status;
+              } else {
+                throw e;
+              }
+            }
+          },
+          {
+            timeout: EVENT_POLLING_TIMEOUT,
+          },
+        )
+        .toBe(200);
     }),
   );
-
-  clearTimeout(timeout);
 
   expect(hadPageLoadTransaction).toBe(true);
 });
 
-test.only('Sends a navigation transaction to Sentry', async ({ page }) => {
+test('Sends a navigation transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   // Give pageload transaction time to finish
@@ -109,34 +110,45 @@ test.only('Sends a navigation transaction to Sentry', async ({ page }) => {
       return undefined;
     }
   });
-  const recordedTransactionEventIds = (await recordedTransactionsHandle.jsonValue()) as string[];
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
 
-  const timeout = setTimeout(() => {
-    throw new Error('Timeout reached while polling events.');
-  }, EVENT_POLLING_TIMEOUT);
+  if (recordedTransactionEventIds === undefined) {
+    throw new Error("Application didn't record any transaction event IDs.");
+  }
 
   let hadPageNavigationTransaction = false;
 
   await Promise.all(
-    recordedTransactionEventIds.map(async (transactionEventId, i) => {
-      while (true) {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-          expect(response?.status).toBe(200);
-          if (response.data.contexts.trace.op === 'pageload') {
-            hadPageNavigationTransaction = true;
-          }
-          break;
-        } catch (e) {
-          await new Promise(resolve => setTimeout(resolve, EVENT_POLLING_RETRY_INTERVAL));
-        }
-      }
+    recordedTransactionEventIds.map(async transactionEventId => {
+      await expect
+        .poll(
+          async () => {
+            try {
+              const response = await axios.get(
+                `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
+                { headers: { Authorization: `Bearer ${authToken}` } },
+              );
+
+              if (response.data.contexts.trace.op === 'navigation') {
+                hadPageNavigationTransaction = true;
+              }
+
+              return response.status;
+            } catch (e) {
+              if (e instanceof AxiosError && e.response) {
+                return e.response.status;
+              } else {
+                throw e;
+              }
+            }
+          },
+          {
+            timeout: EVENT_POLLING_TIMEOUT,
+          },
+        )
+        .toBe(200);
     }),
   );
 
-  clearTimeout(timeout);
   expect(hadPageNavigationTransaction).toBe(true);
 });
