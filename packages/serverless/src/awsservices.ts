@@ -65,7 +65,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
       if (transaction) {
         span = transaction.startChild({
           description: describe(this, operation, params),
-          op: 'aws.request',
+          op: 'http.client',
         });
       }
     });

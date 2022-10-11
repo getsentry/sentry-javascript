@@ -34,10 +34,9 @@ import {
 import { updateSession } from './session';
 
 /**
- * Absolute maximum number of breadcrumbs added to an event.
- * The `maxBreadcrumbs` option cannot be higher than this value.
+ * Default value for maximum number of breadcrumbs added to an event.
  */
-const MAX_BREADCRUMBS = 100;
+const DEFAULT_MAX_BREADCRUMBS = 100;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -392,7 +391,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const maxCrumbs = typeof maxBreadcrumbs === 'number' ? Math.min(maxBreadcrumbs, MAX_BREADCRUMBS) : MAX_BREADCRUMBS;
+    const maxCrumbs = typeof maxBreadcrumbs === 'number' ? maxBreadcrumbs : DEFAULT_MAX_BREADCRUMBS;
 
     // No data has been changed, so don't notify scope listeners
     if (maxCrumbs <= 0) {

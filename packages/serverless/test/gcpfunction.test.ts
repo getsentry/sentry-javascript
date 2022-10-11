@@ -113,7 +113,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'POST /path',
-        op: 'gcp.function.http',
+        op: 'function.gcp.http',
         metadata: { source: 'route' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -146,7 +146,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'POST /path',
-        op: 'gcp.function.http',
+        op: 'function.gcp.http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
@@ -182,7 +182,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'POST /path',
-        op: 'gcp.function.http',
+        op: 'function.gcp.http',
         traceId: '12312012123120121231201212312012',
         parentSpanId: '1121201211212012',
         parentSampled: false,
@@ -261,7 +261,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -288,7 +288,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -320,7 +320,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -351,7 +351,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -380,7 +380,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -407,7 +407,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -435,7 +435,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.event',
+        op: 'function.gcp.event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -474,7 +474,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.cloud_event',
+        op: 'function.gcp.cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -501,7 +501,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.cloud_event',
+        op: 'function.gcp.cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -530,7 +530,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.cloud_event',
+        op: 'function.gcp.cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -557,7 +557,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.cloud_event',
+        op: 'function.gcp.cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note
@@ -585,7 +585,7 @@ describe('GCPFunction', () => {
 
       const fakeTransactionContext = {
         name: 'event.type',
-        op: 'gcp.function.cloud_event',
+        op: 'function.gcp.cloud_event',
         metadata: { source: 'component' },
       };
       // @ts-ignore see "Why @ts-ignore" note

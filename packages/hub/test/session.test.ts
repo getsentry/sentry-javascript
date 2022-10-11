@@ -1,7 +1,9 @@
+/* eslint-disable deprecation/deprecation */
+
 import { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
-import { closeSession, makeSession, updateSession } from '../src/session';
+import { closeSession, makeSession, updateSession } from '../src';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {

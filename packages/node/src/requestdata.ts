@@ -174,6 +174,12 @@ export function extractRequestData(
     switch (key) {
       case 'headers': {
         requestData.headers = headers;
+
+        // Remove the Cookie header in case cookie data should not be included in the event
+        if (!include.includes('cookies')) {
+          delete (requestData.headers as { cookie?: string }).cookie;
+        }
+
         break;
       }
       case 'method': {

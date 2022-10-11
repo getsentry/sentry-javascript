@@ -114,7 +114,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         if (transaction) {
           span = transaction.startChild({
             description: `${callType} ${methodName}`,
-            op: `gcloud.grpc.${serviceIdentifier}`,
+            op: `grpc.${serviceIdentifier}`,
           });
         }
         ret.on('status', () => {

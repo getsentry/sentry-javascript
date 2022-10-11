@@ -36,7 +36,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
 
     const transaction = hub.startTransaction({
       name: context.eventType,
-      op: 'gcp.function.event',
+      op: 'function.gcp.event',
       metadata: { source: 'component' },
     });
 
