@@ -1630,69 +1630,6 @@
   resolved "https://registry.yarnpkg.com/@rushstack/eslint-patch/-/eslint-patch-1.2.0.tgz#8be36a1f66f3265389e90b5f9c9962146758f728"
   integrity sha512-sXo/qW2/pAcmT43VoRKOJbDOfV3cYpq3szSVfIThQXNt+E4DfKj361vaAt3c88U5tPUxzEswam7GW48PJqtKAg==
 
-"@sentry/browser@7.14.0":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2fbrowser/-/browser-7.14.0.tgz#bc2c6934f9270e1287ae1437b63e4b0edd67a9f0"
-  integrity sha512-AdLmqeOXvCVYgJAgMUUby+TRh+yIeZO16NPpZWQPGggXIjnhSzoN4liyXJvQ7Mhm326GboFUKjQwqpCEviQcyg==
-  dependencies:
-    "@sentry/core" "7.14.0"
-    "@sentry/types" "7.14.0"
-    "@sentry/utils" "7.14.0"
-    tslib "^1.9.3"
-
-"@sentry/core@7.14.0":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2fcore/-/core-7.14.0.tgz#89178822de75c6023e1718c29bee8d588687cedd"
-  integrity sha512-Hgn7De6CiCFnz868/Lrtei+9rj7/TIwhbDe3J+NeH+2ffXYn4VI8FxrlR/p2XfIq9iCfmG80EQXDtSh+Kh7mOw==
-  dependencies:
-    "@sentry/hub" "7.14.0"
-    "@sentry/types" "7.14.0"
-    "@sentry/utils" "7.14.0"
-    tslib "^1.9.3"
-
-"@sentry/hub@7.14.0":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2fhub/-/hub-7.14.0.tgz#cf8e8a345c63a75ea1f3a2d7169a47ab73ff9603"
-  integrity sha512-O+pxsipeiURC6Mxuivz1pX3yHlkQCI2yjP38bISxUZv1NIijHuxiDmgqrrcCJltiIfyY2+f9LAezKVCAXnPFuw==
-  dependencies:
-    "@sentry/types" "7.14.0"
-    "@sentry/utils" "7.14.0"
-    tslib "^1.9.3"
-
-"@sentry/react@*":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2freact/-/react-7.14.0.tgz#62149de131ebac1d28a672a290c53a24d8de365a"
-  integrity sha512-IXO004UN3DGdd3Cz9nY2MrlyMMMrGz0uTJrkavbqjC/tLfcxB6iWNLkUueRCla6EzwFbuHRheJlK0EO/Qel2pQ==
-  dependencies:
-    "@sentry/browser" "7.14.0"
-    "@sentry/types" "7.14.0"
-    "@sentry/utils" "7.14.0"
-    hoist-non-react-statics "^3.3.2"
-    tslib "^1.9.3"
-
-"@sentry/tracing@*":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2ftracing/-/tracing-7.14.0.tgz#2660be14502b1b7f73d61c2a0273abf52a06771e"
-  integrity sha512-dBQUHOHV9Qed/RzqGwJV/zaNHGZb2IKZl8lXno5p4YwOsGWnfs+54Bgqic0OqvOB5oJ/9Ye7nyGJqN7bbLff7A==
-  dependencies:
-    "@sentry/hub" "7.14.0"
-    "@sentry/types" "7.14.0"
-    "@sentry/utils" "7.14.0"
-    tslib "^1.9.3"
-
-"@sentry/types@7.14.0":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2ftypes/-/types-7.14.0.tgz#8069e58a0104190e328647963036c7597e2e5fa8"
-  integrity sha512-9iFZS9Hr5hAoL+M9oUH2dY9burOaQh+CHGH66fortuTp++YDWKdbPEeKcz8hRJaUyBBn53rdxiBmAyHsrlE6KA==
-
-"@sentry/utils@7.14.0":
-  version "7.14.0"
-  resolved "http://localhost:4873/@sentry%2futils/-/utils-7.14.0.tgz#477e3bf90b3ad75133645502db6162ffb1c949d1"
-  integrity sha512-QmogvExurgOF9jz95ibkiWdLrJoKq9LvozOPjr6ntL4mBKGxXChagfyrbWQ1cs6Z3QgExNIhCJU465Wmfcrqvg==
-  dependencies:
-    "@sentry/types" "7.14.0"
-    tslib "^1.9.3"
-
 "@sinclair/typebox@^0.24.1":
   version "0.24.44"
   resolved "https://registry.yarnpkg.com/@sinclair/typebox/-/typebox-0.24.44.tgz#0a0aa3bf4a155a678418527342a3ee84bd8caa5c"
@@ -4908,13 +4845,6 @@ he@^1.2.0:
   resolved "https://registry.yarnpkg.com/he/-/he-1.2.0.tgz#84ae65fa7eafb165fddb61566ae14baf05664f0f"
   integrity sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==
 
-hoist-non-react-statics@^3.3.2:
-  version "3.3.2"
-  resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
-  integrity sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==
-  dependencies:
-    react-is "^16.7.0"
-
 hoopy@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/hoopy/-/hoopy-0.1.4.tgz#609207d661100033a9a9402ad3dea677381c1b1d"
@@ -7591,7 +7521,7 @@ react-error-overlay@^6.0.11:
   resolved "https://registry.yarnpkg.com/react-error-overlay/-/react-error-overlay-6.0.11.tgz#92835de5841c5cf08ba00ddd2d677b6d17ff9adb"
   integrity sha512-/6UZ2qgEyH2aqzYZgQPxEnz33NJ2gNsnHA2o5+o4wW9bLM/JYQitNP9xPhsXwC08hMMovfGe/8retsdDsczPRg==
 
-react-is@^16.13.1, react-is@^16.7.0:
+react-is@^16.13.1:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
@@ -8726,7 +8656,7 @@ tsconfig-paths@^3.14.1:
     minimist "^1.2.6"
     strip-bom "^3.0.0"
 
-tslib@^1.8.1, tslib@^1.9.3:
+tslib@^1.8.1:
   version "1.14.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
