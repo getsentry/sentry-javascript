@@ -27,6 +27,3 @@ yarn-error.log*
 /playwright/.cache/
 
 !*.d.ts
-/test-results/
-/playwright-report/
-/playwright/.cache/

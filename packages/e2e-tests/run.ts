@@ -213,10 +213,6 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       cwd: path.dirname(recipePath),
       timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
       encoding: 'utf8',
-      env: {
-        ...process.env,
-        E2E_TEST_AUTH_TOKEN: authToken,
-      },
       shell: true, // needed so we can pass the test command in as whole without splitting it up into args
       env: {
         ...process.env,
