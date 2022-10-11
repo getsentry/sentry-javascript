@@ -1,6 +1,11 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "standard-frontend-react",
-  "buildCommand": "yarn install && yarn build",
-  "tests": []
+  "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
+  "tests": [
+    {
+      "testName": "Playwright tests",
+      "testCommand": "yarn test"
+    }
+  ]
 }

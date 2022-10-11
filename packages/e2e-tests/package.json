@@ -13,10 +13,10 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --config ../../.prettierrc.json --check .",
-    "test:e2e": "run-s test:validate-configuration test:test-app-setups test:run",
+    "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",
     "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
-    "test:test-app-setups": "ts-node validate-test-app-setups.ts"
+    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
