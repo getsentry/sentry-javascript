@@ -28,7 +28,11 @@ test('Sends an exception to Sentry', async ({ page }) => {
           return response.status;
         } catch (e) {
           if (e instanceof AxiosError && e.response) {
-            return e.response.status;
+            if (e.response.status !== 404) {
+              throw e;
+            } else {
+              return e.response.status;
+            }
           } else {
             throw e;
           }
@@ -77,7 +81,11 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
               return response.status;
             } catch (e) {
               if (e instanceof AxiosError && e.response) {
-                return e.response.status;
+                if (e.response.status !== 404) {
+                  throw e;
+                } else {
+                  return e.response.status;
+                }
               } else {
                 throw e;
               }
@@ -136,7 +144,11 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
               return response.status;
             } catch (e) {
               if (e instanceof AxiosError && e.response) {
-                return e.response.status;
+                if (e.response.status !== 404) {
+                  throw e;
+                } else {
+                  return e.response.status;
+                }
               } else {
                 throw e;
               }
