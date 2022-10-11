@@ -93,7 +93,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * The maximum number of breadcrumbs sent with events. Defaults to 100.
-   * Values over 100 will be ignored and 100 used instead.
+   * Sentry has a maximum payload size of 1MB and any events exceeding that payload size will be dropped.
    */
   maxBreadcrumbs?: number;
 

@@ -1,5 +1,4 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
-import { SessionFlusher } from '@sentry/hub';
+import { BaseClient, Scope, SDK_VERSION, SessionFlusher } from '@sentry/core';
 import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
 import * as os from 'os';

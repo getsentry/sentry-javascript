@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
@@ -8,7 +8,7 @@ import { Transaction } from './transaction';
 
 export const DEFAULT_IDLE_TIMEOUT = 1000;
 export const DEFAULT_FINAL_TIMEOUT = 30000;
-export const HEARTBEAT_INTERVAL = 5000;
+export const DEFAULT_HEARTBEAT_INTERVAL = 5000;
 
 /**
  * @inheritDoc
@@ -85,6 +85,7 @@ export class IdleTransaction extends Transaction {
      * The final value in ms that a transaction cannot exceed
      */
     private readonly _finalTimeout: number = DEFAULT_FINAL_TIMEOUT,
+    private readonly _heartbeatInterval: number = DEFAULT_HEARTBEAT_INTERVAL,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {
@@ -287,7 +288,7 @@ export class IdleTransaction extends Transaction {
     __DEBUG_BUILD__ && logger.log(`pinging Heartbeat -> current counter: ${this._heartbeatCounter}`);
     setTimeout(() => {
       this._beat();
-    }, HEARTBEAT_INTERVAL);
+    }, this._heartbeatInterval);
   }
 }
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';

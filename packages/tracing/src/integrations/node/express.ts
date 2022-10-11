@@ -140,7 +140,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         if (transaction) {
           const span = transaction.startChild({
             description: fn.name,
-            op: `express.middleware.${method}`,
+            op: `middleware.express.${method}`,
           });
           res.once('finish', () => {
             span.finish();

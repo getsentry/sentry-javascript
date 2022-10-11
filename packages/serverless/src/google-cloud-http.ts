@@ -59,7 +59,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
       const httpMethod = reqOpts.method || 'GET';
       span = transaction.startChild({
         description: `${httpMethod} ${reqOpts.uri}`,
-        op: `gcloud.http.${identifyService(this.apiEndpoint)}`,
+        op: `http.client.${identifyService(this.apiEndpoint)}`,
       });
     }
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {

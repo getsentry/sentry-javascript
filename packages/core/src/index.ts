@@ -1,4 +1,5 @@
 export type { ClientClass } from './sdk';
+export type { Carrier, Layer } from './hub';
 
 export {
   addBreadcrumb,
@@ -14,13 +15,11 @@ export {
   setTags,
   setUser,
   withScope,
-  addGlobalEventProcessor,
-  getCurrentHub,
-  getHubFromCarrier,
-  Hub,
-  makeMain,
-  Scope,
-} from '@sentry/hub';
+} from './exports';
+export { getCurrentHub, getHubFromCarrier, Hub, makeMain, getMainCarrier, setHubOnCarrier } from './hub';
+export { makeSession, closeSession, updateSession } from './session';
+export { SessionFlusher } from './sessionflusher';
+export { addGlobalEventProcessor, Scope } from './scope';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
 export { initAndBind } from './sdk';

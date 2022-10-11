@@ -1,3 +1,5 @@
+/* eslint-disable deprecation/deprecation */
+
 import { getGlobalObject } from '@sentry/utils';
 
 import { getCurrentHub, getHubFromCarrier, Hub } from '../src';

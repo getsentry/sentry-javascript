@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';
@@ -48,7 +48,7 @@ describe('setupOnce', () => {
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
       description: 'execute',
-      op: 'db.graphql',
+      op: 'graphql.execute',
     });
     expect(childSpan.finish).toBeCalled();
     expect(scope.setSpan).toHaveBeenCalledTimes(2);

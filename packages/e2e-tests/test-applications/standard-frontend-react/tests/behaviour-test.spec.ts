@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 
 const SENTRY_TEST_ORG_SLUG = 'sentry-sdks';
-const SENTRY_TEST_PROJECT = 'e2e-javascript-standard-frontend-react';
+const SENTRY_TEST_PROJECT = 'sentry-javascript-e2e-tests';
 
 const EVENT_POLLING_TIMEOUT = 45000;
 const EVENT_POLLING_RETRY_INTERVAL = 1000;
@@ -36,6 +36,7 @@ test('Sends an exception to Sentry', async ({ page }) => {
         `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${exceptionEventId}/`,
         { headers: { Authorization: `Bearer ${authToken}` } },
       );
+      clearTimeout(timeout);
       expect(response?.status).toBe(200);
       break;
     } catch (e) {
@@ -43,8 +44,6 @@ test('Sends an exception to Sentry', async ({ page }) => {
       await new Promise(resolve => setTimeout(resolve, EVENT_POLLING_RETRY_INTERVAL));
     }
   }
-
-  clearTimeout(timeout);
 });
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
@@ -135,6 +134,5 @@ test.only('Sends a navigation transaction to Sentry', async ({ page }) => {
   );
 
   clearTimeout(timeout);
-
   expect(hadPageNavigationTransaction).toBe(true);
 });

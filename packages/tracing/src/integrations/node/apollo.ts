@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -99,7 +99,7 @@ function wrapResolver(
       const parentSpan = scope?.getSpan();
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
-        op: 'db.graphql.apollo',
+        op: 'graphql.resolve',
       });
 
       const rv = orig.call(this, ...args);

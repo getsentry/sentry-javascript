@@ -79,16 +79,20 @@ export function constructWebpackConfigFunction(
         ],
       };
 
-      if (userSentryOptions.autoInstrumentServerFunctions) {
+      if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
+
+        // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
+        const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+        const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
         newConfig.module.rules.push({
           // Nextjs allows the `pages` folder to optionally live inside a `src` folder
-          test: new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/.*\\.(jsx?|tsx?)`),
+          test: new RegExp(`${escapeStringForRegex(projectDir)}(/src)?/pages/.*\\.(${pageExtensionRegex})`),
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
-              options: { pagesDir },
+              options: { pagesDir, pageExtensionRegex },
             },
           ],
         });

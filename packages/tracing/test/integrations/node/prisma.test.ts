@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/hub';
+import { Hub, Scope } from '@sentry/core';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
 import { Span } from '../../../src/span';
@@ -52,7 +52,7 @@ describe('setupOnce', function () {
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
         description: 'user create',
-        op: 'db.prisma',
+        op: 'db.sql.prisma',
       });
       expect(childSpan.finish).toBeCalled();
       done();
