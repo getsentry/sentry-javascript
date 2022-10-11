@@ -56,7 +56,11 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
       return undefined;
     }
   });
-  const recordedTransactionEventIds = (await recordedTransactionsHandle.jsonValue()) as string[];
+  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
+
+  if (recordedTransactionEventIds === undefined) {
+    throw new Error("Application didn't record any transaction event IDs.");
+  }
 
   const timeout = setTimeout(() => {
     throw new Error('Timeout reached while polling events.');
