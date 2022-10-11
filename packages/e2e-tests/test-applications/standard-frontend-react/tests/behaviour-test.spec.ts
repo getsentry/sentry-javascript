@@ -4,7 +4,7 @@ import axios, { AxiosError } from 'axios';
 const SENTRY_TEST_ORG_SLUG = 'sentry-sdks';
 const SENTRY_TEST_PROJECT = 'sentry-javascript-e2e-tests';
 
-const EVENT_POLLING_TIMEOUT = 45000;
+const EVENT_POLLING_TIMEOUT = 30_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 

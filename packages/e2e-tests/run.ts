@@ -14,7 +14,7 @@ const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
 
 const DEFAULT_BUILD_TIMEOUT_SECONDS = 60 * 5;
-const DEFAULT_TEST_TIMEOUT_SECONDS = 60;
+const DEFAULT_TEST_TIMEOUT_SECONDS = 60 * 2;
 
 if (!process.env.E2E_TEST_AUTH_TOKEN) {
   console.log(
