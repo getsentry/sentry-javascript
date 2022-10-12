@@ -36,14 +36,14 @@ export function withSentryConfig(
     // TODO(v8): Remove eslint rule
     // eslint-disable-next-line deprecation/deprecation
     const firstPassPreproc: SentryPreprocessorGroup = componentTrackingPreprocessor(mergedOptions.componentTracking);
-    sentryPreprocessors.set(firstPassPreproc.sentry_id || '', firstPassPreproc);
+    sentryPreprocessors.set(firstPassPreproc.sentryId || '', firstPassPreproc);
   }
 
   // We prioritize user-added preprocessors, so we don't insert sentry processors if they
   // have already been added by users.
   originalPreprocessors.forEach((p: SentryPreprocessorGroup) => {
-    if (p.sentry_id) {
-      sentryPreprocessors.delete(p.sentry_id);
+    if (p.sentryId) {
+      sentryPreprocessors.delete(p.sentryId);
     }
   });
 
