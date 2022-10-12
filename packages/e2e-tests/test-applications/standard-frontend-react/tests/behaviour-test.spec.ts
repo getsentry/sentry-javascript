@@ -95,7 +95,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
             timeout: EVENT_POLLING_TIMEOUT,
           },
         )
-        .toBe(204);
+        .toBe(200);
     }),
   );
 
