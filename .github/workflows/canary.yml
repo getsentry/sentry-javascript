@@ -1,4 +1,4 @@
-name: 'Build & Test'
+name: 'Canary Tests'
 on:
   schedule:
     # Runs "at minute 55 past every hour" (see https://crontab.guru)
@@ -11,9 +11,11 @@ on:
         required: false
 
 env:
-  # We pin the exact version to enforce reproducable builds with node + npm.
-  DEFAULT_NODE_VERSION: '16.15.1'
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   job_canary_test:
@@ -28,7 +30,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+          # ember won't build under node 16, at least not with the versions of the ember build tools we use
+          node-version: '14'
       - name: Install dependencies
         run: yarn install --ignore-engines --frozen-lockfile
       - name: Build packages
@@ -42,3 +45,11 @@ jobs:
         run: |
           cd packages/e2e-tests
           yarn test:e2e
+      - name: Create Issue
+        if: failure()
+      - uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/CANARY_FAILURE_TEMPLATE.md
