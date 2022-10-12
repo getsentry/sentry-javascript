@@ -1,20 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
 
-import { getGlobalObject } from './global';
+import { GLOBAL_OBJ } from './global';
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';
 
-/**
- * Extended Window interface that allows for Crypto API usage in IE browsers
- */
-interface MsCryptoWindow extends Window {
-  msCrypto?: Crypto;
+interface CryptoInternal {
+  getRandomValues(array: Uint8Array): Uint8Array;
+  randomUUID?(): string;
 }
 
-/** Many browser now support native uuid v4 generation */
-interface CryptoWithRandomUUID extends Crypto {
-  randomUUID?(): string;
+/** An interface for common properties on global */
+interface CryptoGlobal {
+  msCrypto?: CryptoInternal;
+  crypto?: CryptoInternal;
 }
 
 /**
@@ -23,8 +22,8 @@ interface CryptoWithRandomUUID extends Crypto {
  * @returns string Generated UUID4.
  */
 export function uuid4(): string {
-  const global = getGlobalObject() as MsCryptoWindow;
-  const crypto = (global.crypto || global.msCrypto) as CryptoWithRandomUUID;
+  const gbl = GLOBAL_OBJ as typeof GLOBAL_OBJ & CryptoGlobal;
+  const crypto = gbl.crypto || gbl.msCrypto;
 
   if (crypto && crypto.randomUUID) {
     return crypto.randomUUID().replace(/-/g, '');

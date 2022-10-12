@@ -1,4 +1,4 @@
-import { getGlobalObject } from './global';
+import { WINDOW } from './browser';
 import { dynamicRequire, isNodeEnv } from './node';
 
 /**
@@ -41,7 +41,7 @@ interface Performance {
  * Wrapping the native API works around differences in behavior from different browsers.
  */
 function getBrowserPerformance(): Performance | undefined {
-  const { performance } = getGlobalObject<Window>();
+  const { performance } = WINDOW;
   if (!performance || !performance.now) {
     return undefined;
   }
@@ -140,7 +140,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
 
-  const { performance } = getGlobalObject<Window>();
+  const { performance } = WINDOW;
   if (!performance || !performance.now) {
     _browserPerformanceTimeOriginMode = 'none';
     return undefined;
