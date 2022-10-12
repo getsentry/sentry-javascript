@@ -1,6 +1,6 @@
-import { withSentryConfig, SvelteConfig, SentrySvelteConfigOptions } from '../src/config';
+import { withSentryConfig } from '../src/config';
 import { componentTrackingPreprocessor, FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID } from '../src/preprocessors';
-import { SentryPreprocessorGroup } from '../src/types';
+import { SentryPreprocessorGroup, SentrySvelteConfigOptions, SvelteConfig } from '../src/types';
 
 describe('withSentryConfig', () => {
   it.each([
@@ -53,6 +53,7 @@ describe('withSentryConfig', () => {
       compilerOptions: {
         enableSourcemap: true,
       },
+      // eslint-disable-next-line deprecation/deprecation
       preprocess: componentTrackingPreprocessor(),
     };
 

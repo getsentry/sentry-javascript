@@ -1,3 +1,4 @@
+import { CompileOptions } from 'svelte/types/compiler';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
 // Adds an id property to the preprocessor object we can use to check for duplication
@@ -6,8 +7,21 @@ export interface SentryPreprocessorGroup extends PreprocessorGroup {
   id?: string;
 }
 
-// Alternatively, we could use a direct from svelte/compiler/preprocess
-// TODO: figure out what's better and roll with that
+/**
+ * The object exported from `svelte.config.js`
+ */
+export type SvelteConfig = {
+  [key: string]: unknown;
+  preprocess?: PreprocessorGroup[] | PreprocessorGroup;
+  compilerOptions?: CompileOptions;
+};
+
+/**
+ * Options users can provide to `withSentryConfig` to customize what Sentry adds too the Svelte config
+ */
+export type SentrySvelteConfigOptions = {
+  componentTracking?: ComponentTrackingInitOptions;
+};
 
 export type SpanOptions = {
   /**
