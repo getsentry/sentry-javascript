@@ -8,26 +8,6 @@
       "testCommand": "yarn test"
     }
   ],
-  "versions": [
-    {
-      "dependencyOverrides": {
-        "react": "^18",
-        "react-dom": "^18"
-      }
-    },
-    {
-      "dependencyOverrides": {
-        "react": "^17",
-        "react-dom": "^17"
-      }
-    },
-    {
-      "dependencyOverrides": {
-        "react": "^16",
-        "react-dom": "^16"
-      }
-    }
-  ],
   "canaryVersions": [
     {
       "dependencyOverrides": {
