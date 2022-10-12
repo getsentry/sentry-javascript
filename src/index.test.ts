@@ -93,7 +93,7 @@ describe('Replay', () => {
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
         "blockClass": "sentry-block",
-        "blockSelector": "[data-sentry-block]",
+        "blockSelector": "[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
         "emit": [Function],
         "ignoreClass": "sentry-test-ignore",
         "maskAllInputs": true,

@@ -91,6 +91,11 @@ export interface ReplayPluginOptions {
    * Mask all text in recordings. All text will be replaced with asterisks by default.
    */
   maskAllText?: boolean;
+
+  /**
+   * Block all media (e.g. images, svg, video) in recordings.
+   */
+  blockAllMedia?: boolean;
 }
 
 export interface ReplayConfiguration

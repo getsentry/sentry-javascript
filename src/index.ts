@@ -59,6 +59,8 @@ type AddUpdateCallback = () => boolean | void;
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
 const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
+const MEDIA_SELECTORS =
+  'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
 
 export class Replay implements Integration {
   /**
@@ -140,6 +142,7 @@ export class Replay implements Integration {
     replaysSamplingRate = 1.0,
     maskAllText = true,
     maskAllInputs = true,
+    blockAllMedia = true,
     blockClass = 'sentry-block',
     ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
@@ -164,6 +167,7 @@ export class Replay implements Integration {
       replaysSamplingRate,
       useCompression,
       maskAllText,
+      blockAllMedia,
     };
 
     // Modify rrweb options to checkoutEveryNthSecond if this is defined, as we don't know when an error occurs, so we want to try to minimize the number of events captured.
@@ -177,6 +181,14 @@ export class Replay implements Integration {
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
       this.recordingOptions.maskTextSelector = '*';
+    }
+
+    if (this.options.blockAllMedia) {
+      // `blockAllMedia` is a more user friendly option to configure blocking
+      // embedded media elements
+      this.recordingOptions.blockSelector = !this.recordingOptions.blockSelector
+        ? MEDIA_SELECTORS
+        : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
     this.debouncedFlush = debounce(
