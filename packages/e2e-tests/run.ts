@@ -283,7 +283,7 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
 
   const versionsToRun: {
     dependencyOverrides?: Record<string, string>;
-  }[] = (process.env.CANARY_E2E_TEST ? recipe.canaryVersions : recipe.versions) ?? [{}];
+  }[] = process.env.CANARY_E2E_TEST ? recipe.canaryVersions ?? [] : recipe.versions ?? [{}];
 
   const versionResults = versionsToRun.map(({ dependencyOverrides }) => {
     if (dependencyOverrides) {
