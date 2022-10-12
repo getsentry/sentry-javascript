@@ -32,7 +32,6 @@ describe('withSentryConfig', () => {
     ],
   ])('adds our preprocessors by default to the provided svelte config with %s', (_, originalConfig: SvelteConfig) => {
     const wrappedConfig = withSentryConfig(originalConfig);
-
     const originalPreprocs = originalConfig.preprocess;
     const originalNumberOfPreprocs = originalPreprocs
       ? Array.isArray(originalPreprocs)
@@ -43,7 +42,7 @@ describe('withSentryConfig', () => {
     expect(Array.isArray(wrappedConfig.preprocess)).toBe(true);
     expect(wrappedConfig).toEqual({ ...originalConfig, preprocess: expect.any(Array) });
     expect(wrappedConfig.preprocess).toHaveLength(originalNumberOfPreprocs + 1);
-    expect((wrappedConfig.preprocess as SentryPreprocessorGroup[])[0].id).toEqual(
+    expect((wrappedConfig.preprocess as SentryPreprocessorGroup[])[0].sentry_id).toEqual(
       FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
     );
   });

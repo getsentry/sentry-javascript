@@ -56,7 +56,7 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
 
   const sentryPreprocessor: SentryPreprocessorGroup = {
     ...preprocessor,
-    id: FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
+    sentry_id: FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
   };
 
   return sentryPreprocessor;

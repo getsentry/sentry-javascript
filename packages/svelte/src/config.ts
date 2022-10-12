@@ -67,6 +67,7 @@ function dedupePreprocessors(
 ): PreprocessorGroup[] {
   return sentryPreprocessors.filter(
     sentryPreproc =>
-      originalPreprocessors.find(p => (p as SentryPreprocessorGroup).id === sentryPreproc.id) === undefined,
+      originalPreprocessors.find(p => (p as SentryPreprocessorGroup).sentry_id === sentryPreproc.sentry_id) ===
+      undefined,
   );
 }
