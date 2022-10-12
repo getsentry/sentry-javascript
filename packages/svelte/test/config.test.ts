@@ -48,18 +48,18 @@ describe('withSentryConfig', () => {
   });
 
   it("doesn't add Sentry preprocessors that were already added by the users", () => {
+    const sentryPreproc = componentTrackingPreprocessor();
     const originalConfig = {
       compilerOptions: {
         enableSourcemap: true,
       },
       // eslint-disable-next-line deprecation/deprecation
-      preprocess: componentTrackingPreprocessor(),
+      preprocess: sentryPreproc,
     };
 
     const wrappedConfig = withSentryConfig(originalConfig);
 
-    expect(wrappedConfig).toEqual({ ...originalConfig, preprocess: expect.any(Array) });
-    expect(wrappedConfig.preprocess).toHaveLength(1);
+    expect(wrappedConfig).toEqual({ ...originalConfig, preprocess: [sentryPreproc] });
   });
 
   it('handles multiple wraps correctly by only adding our preprocessors once', () => {
