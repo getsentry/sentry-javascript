@@ -1,3 +1,4 @@
+import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
 import { isIngestHost } from './util/isIngestHost';
@@ -62,7 +63,12 @@ function createPerformanceEntry(entry: AllPerformanceEntry) {
 }
 
 function getAbsoluteTime(time: number) {
-  return (window.performance.timeOrigin + time) / 1000;
+  // browserPerformanceTimeOrigin can be undefined if `performance` or
+  // `performance.now` doesn't exist, but this is already checked by this integration
+  return (
+    ((browserPerformanceTimeOrigin || window.performance.timeOrigin) + time) /
+    1000
+  );
 }
 
 function createPaintEntry(entry: PerformancePaintTiming) {
@@ -161,8 +167,8 @@ function createLargestContentfulPaint(
 
 export function createMemoryEntry(memoryEntry: MemoryInfo) {
   const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
-  // we can't use getAbsoluteTime because it adds the event time to
-  // window.performance.timeOrigin, so we get right now instead.
+  // we don't want to use `getAbsoluteTime` because it adds the event time to the
+  // time origin, so we get the current timestamp instead
   const time = new Date().getTime() / 1000;
   return {
     type: 'memory',
