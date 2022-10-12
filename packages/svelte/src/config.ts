@@ -25,18 +25,29 @@ export function withSentryConfig(
   };
 
   const originalPreprocessors = getOriginalPreprocessorArray(originalConfig);
-  const allSentryPreprocessors: SentryPreprocessorGroup[] = [];
+
+  // Map is insertion-order-preserving. It's important to add preprocessors
+  // to this map in the right order we want to see them being executed.
+  // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map
+  const sentryPreprocessors = new Map<string, SentryPreprocessorGroup>();
 
   const shouldTrackComponents = mergedOptions.componentTracking && mergedOptions.componentTracking.trackComponents;
   if (shouldTrackComponents) {
     // TODO(v8): Remove eslint rule
     // eslint-disable-next-line deprecation/deprecation
-    allSentryPreprocessors.push(componentTrackingPreprocessor(mergedOptions.componentTracking));
+    const firstPassPreproc: SentryPreprocessorGroup = componentTrackingPreprocessor(mergedOptions.componentTracking);
+    sentryPreprocessors.set(firstPassPreproc.sentry_id || '', firstPassPreproc);
   }
 
-  const dedupedSentryPreprocessors = dedupePreprocessors(allSentryPreprocessors, originalPreprocessors);
+  // We prioritize user-added preprocessors, so we don't insert sentry processors if they
+  // have already been added by users.
+  originalPreprocessors.forEach((p: SentryPreprocessorGroup) => {
+    if (p.sentry_id) {
+      sentryPreprocessors.delete(p.sentry_id);
+    }
+  });
 
-  const mergedPreprocessors = [...dedupedSentryPreprocessors, ...originalPreprocessors];
+  const mergedPreprocessors = [...sentryPreprocessors.values(), ...originalPreprocessors];
 
   return {
     ...originalConfig,
@@ -59,15 +70,4 @@ function getOriginalPreprocessorArray(originalConfig: SvelteConfig): Preprocesso
     return [originalConfig.preprocess];
   }
   return [];
-}
-
-function dedupePreprocessors(
-  sentryPreprocessors: SentryPreprocessorGroup[],
-  originalPreprocessors: PreprocessorGroup[],
-): PreprocessorGroup[] {
-  return sentryPreprocessors.filter(
-    sentryPreproc =>
-      originalPreprocessors.find(p => (p as SentryPreprocessorGroup).sentry_id === sentryPreproc.sentry_id) ===
-      undefined,
-  );
 }
