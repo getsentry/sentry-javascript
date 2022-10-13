@@ -1,5 +1,5 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getFunctionName, getGlobalObject, getOriginalFunction } from '@sentry/utils';
+import { fill, getFunctionName, getOriginalFunction, WINDOW } from '@sentry/utils';
 
 import { wrap } from '../helpers';
 
@@ -80,21 +80,19 @@ export class TryCatch implements Integration {
    * and provide better metadata.
    */
   public setupOnce(): void {
-    const global = getGlobalObject();
-
     if (this._options.setTimeout) {
-      fill(global, 'setTimeout', _wrapTimeFunction);
+      fill(WINDOW, 'setTimeout', _wrapTimeFunction);
     }
 
     if (this._options.setInterval) {
-      fill(global, 'setInterval', _wrapTimeFunction);
+      fill(WINDOW, 'setInterval', _wrapTimeFunction);
     }
 
     if (this._options.requestAnimationFrame) {
-      fill(global, 'requestAnimationFrame', _wrapRAF);
+      fill(WINDOW, 'requestAnimationFrame', _wrapRAF);
     }
 
-    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in global) {
+    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in WINDOW) {
       fill(XMLHttpRequest.prototype, 'send', _wrapXHR);
     }
 
@@ -185,7 +183,7 @@ function _wrapXHR(originalSend: () => void): () => void {
 /** JSDoc */
 function _wrapEventTarget(target: string): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const global = getGlobalObject() as { [key: string]: any };
+  const global = WINDOW as { [key: string]: any };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const proto = global[target] && global[target].prototype;
 
