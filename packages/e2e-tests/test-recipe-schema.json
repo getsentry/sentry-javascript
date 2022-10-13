@@ -36,6 +36,34 @@
         },
         "required": ["testName", "testCommand"]
       }
+    },
+    "versions": {
+      "type": "array",
+      "description": "List of different dependency versions to test. If this property is provided, the tests will run for each item, if it is omitted, the tests will only run once with the dependencies provided in package.json.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dependencyOverrides": {
+            "type": "object",
+            "description": "Object to merge with the \"dependencies\" object in package.json.",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "canaryVersions": {
+      "type": "array",
+      "description": "List of different dependency versions to test as part of the canary test. Canary tests are only run if the CANARY_E2E_TEST environment variable is set. If If CANARY_E2E_TEST is set and this property is provided, the tests will run for each item, if it is omitted, no tests will be executed.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dependencyOverrides": {
+            "type": "object",
+            "description": "Object to merge with the \"dependencies\" object in package.json.",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
     }
   },
   "required": ["testApplicationName", "tests"]

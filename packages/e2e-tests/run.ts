@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
@@ -135,137 +136,192 @@ type TestResult = {
   result: 'PASS' | 'FAIL' | 'TIMEOUT';
 };
 
-type RecipeResult = {
-  testApplicationName: string;
-  testApplicationPath: string;
+type VersionResult = {
+  dependencyOverrides?: Record<string, string>;
   buildFailed: boolean;
   testResults: TestResult[];
 };
 
+type RecipeResult = {
+  testApplicationName: string;
+  testApplicationPath: string;
+  versionResults: VersionResult[];
+};
+
+type Recipe = {
+  testApplicationName: string;
+  buildCommand?: string;
+  buildTimeoutSeconds?: number;
+  tests: {
+    testName: string;
+    testCommand: string;
+    timeoutSeconds?: number;
+  }[];
+  versions?: { dependencyOverrides: Record<string, string> }[];
+  canaryVersions?: { dependencyOverrides: Record<string, string> }[];
+};
+
 const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
-  type Recipe = {
-    testApplicationName: string;
-    buildCommand?: string;
-    buildTimeoutSeconds?: number;
-    tests: {
-      testName: string;
-      testCommand: string;
-      timeoutSeconds?: number;
-    }[];
-  };
-
   const recipe: Recipe = JSON.parse(fs.readFileSync(recipePath, 'utf-8'));
+  const recipeDirname = path.dirname(recipePath);
 
-  if (recipe.buildCommand) {
-    console.log(`Running E2E test build command for test application "${recipe.testApplicationName}"`);
-    const buildCommandProcess = childProcess.spawnSync(recipe.buildCommand, {
-      cwd: path.dirname(recipePath),
-      encoding: 'utf8',
-      shell: true, // needed so we can pass the build command in as whole without splitting it up into args
-      timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
-      env: {
-        ...process.env,
-        ...envVarsToInject,
-      },
+  function runRecipe(dependencyOverrides: Record<string, string> | undefined): VersionResult {
+    const dependencyOverridesInformationString = dependencyOverrides
+      ? ` (Dependency overrides: ${JSON.stringify(dependencyOverrides)})`
+      : '';
+
+    if (recipe.buildCommand) {
+      console.log(
+        `Running E2E test build command for test application "${recipe.testApplicationName}"${dependencyOverridesInformationString}`,
+      );
+      const buildCommandProcess = childProcess.spawnSync(recipe.buildCommand, {
+        cwd: path.dirname(recipePath),
+        encoding: 'utf8',
+        shell: true, // needed so we can pass the build command in as whole without splitting it up into args
+        timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
+        env: {
+          ...process.env,
+          ...envVarsToInject,
+        },
+      });
+
+      // Prepends some text to the output build command's output so we can distinguish it from logging in this script
+      console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
+      console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
+
+      const error: undefined | (Error & { code?: string }) = buildCommandProcess.error;
+
+      if (error?.code === 'ETIMEDOUT') {
+        processShouldExitWithError = true;
+
+        printCIErrorMessage(
+          `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) timed out!`,
+        );
+
+        return {
+          dependencyOverrides,
+          buildFailed: true,
+          testResults: [],
+        };
+      } else if (buildCommandProcess.status !== 0) {
+        processShouldExitWithError = true;
+
+        printCIErrorMessage(
+          `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) failed!`,
+        );
+
+        return {
+          dependencyOverrides,
+          buildFailed: true,
+          testResults: [],
+        };
+      }
+    }
+
+    const testResults: TestResult[] = recipe.tests.map(test => {
+      console.log(
+        `Running E2E test command for test application "${recipe.testApplicationName}", test "${test.testName}"${dependencyOverridesInformationString}`,
+      );
+
+      const testProcessResult = childProcess.spawnSync(test.testCommand, {
+        cwd: path.dirname(recipePath),
+        timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
+        encoding: 'utf8',
+        shell: true, // needed so we can pass the test command in as whole without splitting it up into args
+        env: {
+          ...process.env,
+          ...envVarsToInject,
+        },
+      });
+
+      // Prepends some text to the output test command's output so we can distinguish it from logging in this script
+      console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
+      console.log(testProcessResult.stderr.replace(/^/gm, '[TEST OUTPUT] '));
+
+      const error: undefined | (Error & { code?: string }) = testProcessResult.error;
+
+      if (error?.code === 'ETIMEDOUT') {
+        processShouldExitWithError = true;
+        printCIErrorMessage(
+          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+            recipePath,
+          )}) timed out.`,
+        );
+        return {
+          testName: test.testName,
+          result: 'TIMEOUT',
+        };
+      } else if (testProcessResult.status !== 0) {
+        processShouldExitWithError = true;
+        printCIErrorMessage(
+          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+            recipePath,
+          )}) failed.`,
+        );
+        return {
+          testName: test.testName,
+          result: 'FAIL',
+        };
+      } else {
+        console.log(
+          `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
+            recipePath,
+          )}) succeeded.`,
+        );
+        return {
+          testName: test.testName,
+          result: 'PASS',
+        };
+      }
     });
 
-    // Prepends some text to the output build command's output so we can distinguish it from logging in this script
-    console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
-    console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
-
-    const error: undefined | (Error & { code?: string }) = buildCommandProcess.error;
-
-    if (error?.code === 'ETIMEDOUT') {
-      processShouldExitWithError = true;
-
-      printCIErrorMessage(
-        `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) timed out!`,
-      );
-
-      return {
-        testApplicationName: recipe.testApplicationName,
-        testApplicationPath: recipePath,
-        buildFailed: true,
-        testResults: [],
-      };
-    } else if (buildCommandProcess.status !== 0) {
-      processShouldExitWithError = true;
-
-      printCIErrorMessage(
-        `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) failed!`,
-      );
-
-      return {
-        testApplicationName: recipe.testApplicationName,
-        testApplicationPath: recipePath,
-        buildFailed: true,
-        testResults: [],
-      };
-    }
+    return {
+      dependencyOverrides,
+      buildFailed: false,
+      testResults,
+    };
   }
 
-  const testResults: TestResult[] = recipe.tests.map(test => {
-    console.log(
-      `Running E2E test command for test application "${recipe.testApplicationName}", test "${test.testName}"`,
-    );
+  const versionsToRun: {
+    dependencyOverrides?: Record<string, string>;
+  }[] = process.env.CANARY_E2E_TEST ? recipe.canaryVersions ?? [] : recipe.versions ?? [{}];
 
-    const testProcessResult = childProcess.spawnSync(test.testCommand, {
-      cwd: path.dirname(recipePath),
-      timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
-      encoding: 'utf8',
-      shell: true, // needed so we can pass the test command in as whole without splitting it up into args
-      env: {
-        ...process.env,
-        ...envVarsToInject,
-      },
-    });
+  const versionResults = versionsToRun.map(({ dependencyOverrides }) => {
+    const packageJsonPath = path.resolve(recipeDirname, 'package.json');
+    const packageJsonBackupPath = path.resolve(recipeDirname, 'package.json.bak');
 
-    // Prepends some text to the output test command's output so we can distinguish it from logging in this script
-    console.log(testProcessResult.stdout.replace(/^/gm, '[TEST OUTPUT] '));
-    console.log(testProcessResult.stderr.replace(/^/gm, '[TEST OUTPUT] '));
+    if (dependencyOverrides) {
+      // Back up original package.json
+      fs.copyFileSync(packageJsonPath, packageJsonBackupPath);
 
-    const error: undefined | (Error & { code?: string }) = testProcessResult.error;
-
-    if (error?.code === 'ETIMEDOUT') {
-      processShouldExitWithError = true;
-      printCIErrorMessage(
-        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-          recipePath,
-        )}) timed out.`,
+      // Override dependencies
+      const packageJson: { dependencies?: Record<string, string> } = JSON.parse(
+        fs.readFileSync(packageJsonPath, { encoding: 'utf-8' }),
       );
-      return {
-        testName: test.testName,
-        result: 'TIMEOUT',
-      };
-    } else if (testProcessResult.status !== 0) {
-      processShouldExitWithError = true;
-      printCIErrorMessage(
-        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-          recipePath,
-        )}) failed.`,
-      );
-      return {
-        testName: test.testName,
-        result: 'FAIL',
-      };
-    } else {
-      console.log(
-        `Test "${test.testName}" in test application "${recipe.testApplicationName}" (${path.dirname(
-          recipePath,
-        )}) succeeded.`,
-      );
-      return {
-        testName: test.testName,
-        result: 'PASS',
-      };
+      packageJson.dependencies = packageJson.dependencies
+        ? { ...packageJson.dependencies, ...dependencyOverrides }
+        : dependencyOverrides;
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), {
+        encoding: 'utf-8',
+      });
+    }
+
+    try {
+      return runRecipe(dependencyOverrides);
+    } finally {
+      if (dependencyOverrides) {
+        // Restore original package.json
+        fs.rmSync(packageJsonPath, { force: true });
+        fs.copyFileSync(packageJsonBackupPath, packageJsonPath);
+        fs.rmSync(packageJsonBackupPath, { force: true });
+      }
     }
   });
 
   return {
     testApplicationName: recipe.testApplicationName,
     testApplicationPath: recipePath,
-    buildFailed: false,
-    testResults,
+    versionResults,
   };
 });
 
@@ -273,25 +329,33 @@ console.log('--------------------------------------');
 console.log('Test Result Summary:');
 
 recipeResults.forEach(recipeResult => {
-  if (recipeResult.buildFailed) {
-    console.log(
-      `● BUILD FAILED - ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`,
-    );
-  } else {
-    console.log(
-      `● BUILD SUCCEEDED - ${recipeResult.testApplicationName} (${path.dirname(recipeResult.testApplicationPath)})`,
-    );
-    recipeResult.testResults.forEach(testResult => {
-      console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
-    });
-  }
+  recipeResult.versionResults.forEach(versionResult => {
+    const dependencyOverridesInformationString = versionResult.dependencyOverrides
+      ? ` (Dependency overrides: ${JSON.stringify(versionResult.dependencyOverrides)})`
+      : '';
+
+    if (versionResult.buildFailed) {
+      console.log(
+        `● BUILD FAILED - ${recipeResult.testApplicationName} (${path.dirname(
+          recipeResult.testApplicationPath,
+        )})${dependencyOverridesInformationString}`,
+      );
+    } else {
+      console.log(
+        `● BUILD SUCCEEDED - ${recipeResult.testApplicationName} (${path.dirname(
+          recipeResult.testApplicationPath,
+        )})${dependencyOverridesInformationString}`,
+      );
+      versionResult.testResults.forEach(testResult => {
+        console.log(`  ● ${testResult.result.padEnd(7, ' ')} ${testResult.testName}`);
+      });
+    }
+  });
 });
 
-groupCIOutput('Cleanup', () => {
-  // Stop test registry
-  childProcess.spawnSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
-  console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
-});
+// Stop test registry
+childProcess.spawnSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
+console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
 
 if (processShouldExitWithError) {
   console.log('Not all tests succeeded.');

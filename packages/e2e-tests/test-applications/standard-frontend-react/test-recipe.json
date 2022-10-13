@@ -7,5 +7,13 @@
       "testName": "Playwright tests",
       "testCommand": "yarn test"
     }
+  ],
+  "canaryVersions": [
+    {
+      "dependencyOverrides": {
+        "react": "latest",
+        "react-dom": "latest"
+      }
+    }
   ]
 }
