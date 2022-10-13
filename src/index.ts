@@ -1,6 +1,5 @@
 import {
   addGlobalEventProcessor,
-  captureException,
   getCurrentHub,
   getEnvelopeEndpointWithUrlEncodedAuth,
   setContext,
@@ -26,6 +25,7 @@ import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { Session } from './session/Session';
 import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
+import { captureInternalException } from './util/captureInternalException';
 import createBreadcrumb from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
@@ -959,7 +959,7 @@ ${stack.slice(1).join('\n')}`,
       });
       this.newSessionCreated = false;
     } catch (err) {
-      captureException(err);
+      captureInternalException(err);
       console.error(err);
     }
   }
@@ -1108,7 +1108,7 @@ ${stack.slice(1).join('\n')}`,
         retryCount: this.retryCount,
       });
 
-      captureException(new Error(UNABLE_TO_SEND_REPLAY));
+      captureInternalException(new Error(UNABLE_TO_SEND_REPLAY));
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
