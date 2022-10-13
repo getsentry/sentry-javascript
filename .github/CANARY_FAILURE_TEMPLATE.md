@@ -1,5 +1,5 @@
 ---
 title: Canary tests failed
-labels: 'Status: Untriaged'
+labels: 'Status: Untriaged, Type: Tests'
 ---
 Canary tests failed: {{ env.RUN_LINK }}
