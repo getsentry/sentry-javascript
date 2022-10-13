@@ -73,15 +73,6 @@ export const GLOBAL_OBJ: InternalGlobal =
   {};
 
 /**
- * Safely get global scope object
- *
- * @returns Global scope object
- */
-export function getGlobalObject<T>(): T & InternalGlobal {
-  return GLOBAL_OBJ as T & InternalGlobal;
-}
-
-/**
  * Returns a global singleton contained in the global `__SENTRY__` object.
  *
  * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
