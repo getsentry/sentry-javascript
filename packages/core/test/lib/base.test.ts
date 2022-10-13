@@ -22,20 +22,18 @@ jest.mock('@sentry/utils', () => {
     uuid4(): string {
       return '42';
     },
-    getGlobalObject(): any {
-      return {
-        console: {
-          log(): void {
-            // no-empty
-          },
-          warn(): void {
-            // no-empty
-          },
-          error(): void {
-            // no-empty
-          },
+    GLOBAL_OBJ: {
+      console: {
+        log(): void {
+          // no-empty
         },
-      };
+        warn(): void {
+          // no-empty
+        },
+        error(): void {
+          // no-empty
+        },
+      },
     },
     consoleSandbox(cb: () => any): any {
       return cb();
