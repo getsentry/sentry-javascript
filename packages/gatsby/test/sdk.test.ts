@@ -1,4 +1,4 @@
-import { init as reactInitRaw, SDK_VERSION } from '@sentry/react';
+import { init, SDK_VERSION } from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 
@@ -6,8 +6,15 @@ import { init as gatsbyInit } from '../src/sdk';
 import { UserIntegrations } from '../src/utils/integrations';
 import { GatsbyOptions } from '../src/utils/types';
 
-const reactInit = reactInitRaw as jest.Mock;
-jest.mock('@sentry/react');
+jest.mock('@sentry/react', () => {
+  const actual = jest.requireActual('@sentry/react');
+  return {
+    ...actual,
+    init: jest.fn().mockImplementation(actual.init),
+  };
+});
+
+const reactInit = init as jest.Mock;
 
 describe('Initialize React SDK', () => {
   afterEach(() => reactInit.mockReset());

@@ -1,16 +1,20 @@
-import { addGlobalEventProcessor, init as browserInitRaw, SDK_VERSION } from '@sentry/browser';
+import { addGlobalEventProcessor, init as browserInit, SDK_VERSION } from '@sentry/browser';
 import { EventProcessor } from '@sentry/types';
 
 import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 
-const browserInit = browserInitRaw as jest.Mock;
-const addGlobalEventProcessorFunction = addGlobalEventProcessor as jest.Mock;
 let passedEventProcessor: EventProcessor | undefined;
-addGlobalEventProcessorFunction.mockImplementation(proc => {
-  passedEventProcessor = proc;
-});
 
-jest.mock('@sentry/browser');
+jest.mock('@sentry/browser', () => {
+  const actual = jest.requireActual('@sentry/browser');
+  return {
+    ...actual,
+    init: jest.fn().mockImplementation(actual.init),
+    addGlobalEventProcessor: jest.fn().mockImplementation(proc => {
+      passedEventProcessor = proc;
+    }),
+  };
+});
 
 describe('Initialize Svelte SDk', () => {
   afterAll(() => {
@@ -48,7 +52,7 @@ describe('detectAndReportSvelteKit()', () => {
   it('registers a global event processor', async () => {
     detectAndReportSvelteKit();
 
-    expect(addGlobalEventProcessorFunction).toHaveBeenCalledTimes(1);
+    expect(addGlobalEventProcessor).toHaveBeenCalledTimes(1);
     expect(passedEventProcessor?.id).toEqual('svelteKitProcessor');
   });
 
