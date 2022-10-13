@@ -1,17 +1,15 @@
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import { Integration } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
 import { init } from '../src/index.server';
 
 const { Integrations } = SentryNode;
 
-const global = getGlobalObject();
-
 // normally this is set as part of the build process, so mock it here
-(global as typeof global & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
+(GLOBAL_OBJ as typeof GLOBAL_OBJ & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 const loggerLogSpy = jest.spyOn(logger, 'log');
@@ -23,7 +21,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    global.__SENTRY__.hub = undefined;
+    GLOBAL_OBJ.__SENTRY__.hub = undefined;
     delete process.env.VERCEL;
   });
 

@@ -1,18 +1,16 @@
 import { Transaction } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { WINDOW } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
 import { nextRouterInstrumentation } from '../../src/performance/client';
 
-const globalObject = getGlobalObject<
-  Window & {
-    __BUILD_MANIFEST?: {
-      sortedPages?: string[];
-    };
-  }
->();
+const globalObject = WINDOW as typeof WINDOW & {
+  __BUILD_MANIFEST?: {
+    sortedPages?: string[];
+  };
+};
 
 const originalBuildManifest = globalObject.__BUILD_MANIFEST;
 const originalBuildManifestRoutes = globalObject.__BUILD_MANIFEST?.sortedPages;
@@ -60,8 +58,8 @@ function createMockStartTransaction() {
 }
 
 describe('nextRouterInstrumentation', () => {
-  const originalGlobalDocument = getGlobalObject<Window>().document;
-  const originalGlobalLocation = getGlobalObject<Window>().location;
+  const originalGlobalDocument = WINDOW.document;
+  const originalGlobalLocation = WINDOW.location;
 
   function setUpNextPage(pageProperties: {
     url: string;
@@ -93,25 +91,25 @@ describe('nextRouterInstrumentation', () => {
     // The Next.js routing instrumentations requires a few things to be present on pageload:
     // 1. Access to window.document API for `window.document.getElementById`
     // 2. Access to window.location API for `window.location.pathname`
-    Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
-    Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+    Object.defineProperty(WINDOW, 'document', { value: dom.window.document, writable: true });
+    Object.defineProperty(WINDOW, 'location', { value: dom.window.document.location, writable: true });
 
     // Define Next.js clientside build manifest with navigatable routes
-    (global as any).__BUILD_MANIFEST = {
-      ...(global as any).__BUILD_MANIFEST,
-      sortedPages: pageProperties.navigatableRoutes,
+    globalObject.__BUILD_MANIFEST = {
+      ...globalObject.__BUILD_MANIFEST,
+      sortedPages: pageProperties.navigatableRoutes as string[],
     };
   }
 
   afterEach(() => {
     // Clean up JSDom
-    Object.defineProperty(global, 'document', { value: originalGlobalDocument });
-    Object.defineProperty(global, 'location', { value: originalGlobalLocation });
+    Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
+    Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
 
     // Reset Next.js' __BUILD_MANIFEST
-    (global as any).__BUILD_MANIFEST = originalBuildManifest;
-    if ((global as any).__BUILD_MANIFEST) {
-      (global as any).__BUILD_MANIFEST.sortedPages = originalBuildManifestRoutes;
+    globalObject.__BUILD_MANIFEST = originalBuildManifest;
+    if (globalObject.__BUILD_MANIFEST) {
+      globalObject.__BUILD_MANIFEST.sortedPages = originalBuildManifestRoutes as string[];
     }
 
     // Clear all event handlers

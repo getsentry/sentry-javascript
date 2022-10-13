@@ -1,5 +1,5 @@
 import { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getGlobalObject } from '@sentry/utils';
+import { WINDOW } from '@sentry/utils';
 
 import { Location, ReactRouterInstrumentation } from './types';
 
@@ -20,8 +20,6 @@ export type Match = (
 ) => void;
 
 type ReactRouterV3TransactionSource = Extract<TransactionSource, 'url' | 'route'>;
-
-const global = getGlobalObject<Window>();
 
 /**
  * Creates routing instrumentation for React Router v3
@@ -44,11 +42,11 @@ export function reactRouterV3Instrumentation(
     let activeTransaction: Transaction | undefined;
     let prevName: string | undefined;
 
-    // Have to use global.location because history.location might not be defined.
-    if (startTransactionOnPageLoad && global && global.location) {
+    // Have to use window.location because history.location might not be defined.
+    if (startTransactionOnPageLoad && WINDOW && WINDOW.location) {
       normalizeTransactionName(
         routes,
-        global.location as unknown as Location,
+        WINDOW.location as unknown as Location,
         match,
         (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
           prevName = localName;

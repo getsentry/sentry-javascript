@@ -1,13 +1,15 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { arrayify, getGlobalObject, logger } from '@sentry/utils';
+import { arrayify, GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
 import { Options, TracingOptions, Vue } from './types';
 
+const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
+
 const DEFAULT_CONFIG: Options = {
-  Vue: getGlobalObject<{ Vue: Vue }>().Vue,
+  Vue: globalWithVue.Vue,
   attachProps: true,
   logErrors: false,
   hooks: DEFAULT_HOOKS,

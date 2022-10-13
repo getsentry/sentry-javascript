@@ -2,7 +2,7 @@
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getGlobalObject, getNumberOfUrlSegments, logger } from '@sentry/utils';
+import { getNumberOfUrlSegments, logger, WINDOW } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
@@ -58,8 +58,6 @@ let _matchRoutes: MatchRoutes;
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let _startTransactionOnLocationChange: boolean;
 
-const global = getGlobalObject<Window>();
-
 const SENTRY_TAGS = {
   'routing.instrumentation': 'react-router-v6',
 };
@@ -76,7 +74,7 @@ export function reactRouterV6Instrumentation(
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
-    const initPathName = global && global.location && global.location.pathname;
+    const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
     if (startTransactionOnPageLoad && initPathName) {
       activeTransaction = customStartTransaction({
         name: initPathName,

@@ -1,7 +1,7 @@
 import type { ErrorBoundaryProps } from '@sentry/react';
 import { withErrorBoundary } from '@sentry/react';
 import { Transaction, TransactionContext } from '@sentry/types';
-import { getGlobalObject, logger } from '@sentry/utils';
+import { logger, WINDOW } from '@sentry/utils';
 import * as React from 'react';
 
 const DEFAULT_TAGS = {
@@ -38,11 +38,9 @@ let _useMatches: UseMatches;
 let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let _startTransactionOnLocationChange: boolean;
 
-const global = getGlobalObject<Window>();
-
 function getInitPathName(): string | undefined {
-  if (global && global.location) {
-    return global.location.pathname;
+  if (WINDOW && WINDOW.location) {
+    return WINDOW.location.pathname;
   }
 
   return undefined;
