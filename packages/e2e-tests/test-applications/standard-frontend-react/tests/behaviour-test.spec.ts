@@ -17,6 +17,8 @@ test('Sends an exception to Sentry', async ({ page }) => {
   const exceptionIdHandle = await page.waitForFunction(() => window.capturedExceptionId);
   const exceptionEventId = await exceptionIdHandle.jsonValue();
 
+  console.log(`Polling for error eventId: ${exceptionEventId}`);
+
   await expect
     .poll(
       async () => {
@@ -62,6 +64,8 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   }
 
   let hadPageLoadTransaction = false;
+
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
 
   await Promise.all(
     recordedTransactionEventIds.map(async transactionEventId => {
@@ -125,6 +129,8 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   }
 
   let hadPageNavigationTransaction = false;
+
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
 
   await Promise.all(
     recordedTransactionEventIds.map(async transactionEventId => {
