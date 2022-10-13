@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, logger, normalize, uuid4 } from '@sentry/utils';
+import { logger, normalize, uuid4, WINDOW } from '@sentry/utils';
 import localForage from 'localforage';
 
 type LocalForage = {
@@ -31,12 +31,6 @@ export class Offline implements Integration {
   public readonly name: string = Offline.id;
 
   /**
-   * the global instance
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public global: any;
-
-  /**
    * the current hub instance
    */
   public hub?: Hub;
@@ -55,8 +49,6 @@ export class Offline implements Integration {
    * @inheritDoc
    */
   public constructor(options: { maxStoredEvents?: number } = {}) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.global = getGlobalObject<any>();
     this.maxStoredEvents = options.maxStoredEvents || 30; // set a reasonable default
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     this.offlineEventStore = localForage.createInstance({
@@ -70,8 +62,8 @@ export class Offline implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.hub = getCurrentHub();
 
-    if ('addEventListener' in this.global) {
-      this.global.addEventListener('online', () => {
+    if ('addEventListener' in WINDOW) {
+      WINDOW.addEventListener('online', () => {
         void this._sendEvents().catch(() => {
           __DEBUG_BUILD__ && logger.warn('could not send cached events');
         });
@@ -81,7 +73,7 @@ export class Offline implements Integration {
     const eventProcessor: EventProcessor = event => {
       if (this.hub && this.hub.getIntegration(Offline)) {
         // cache if we are positively offline
-        if ('navigator' in this.global && 'onLine' in this.global.navigator && !this.global.navigator.onLine) {
+        if ('navigator' in WINDOW && 'onLine' in WINDOW.navigator && !WINDOW.navigator.onLine) {
           __DEBUG_BUILD__ && logger.log('Event dropped due to being a offline - caching instead');
 
           void this._cacheEvent(event)
@@ -102,7 +94,7 @@ export class Offline implements Integration {
     addGlobalEventProcessor(eventProcessor);
 
     // if online now, send any events stored in a previous offline session
-    if ('navigator' in this.global && 'onLine' in this.global.navigator && this.global.navigator.onLine) {
+    if ('navigator' in WINDOW && 'onLine' in WINDOW.navigator && WINDOW.navigator.onLine) {
       void this._sendEvents().catch(() => {
         __DEBUG_BUILD__ && logger.warn('could not send cached events');
       });

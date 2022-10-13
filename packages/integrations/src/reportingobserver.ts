@@ -1,5 +1,5 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { getGlobalObject, supportsReportingObserver } from '@sentry/utils';
+import { supportsReportingObserver, WINDOW } from '@sentry/utils';
 
 interface Report {
   [key: string]: unknown;
@@ -76,7 +76,7 @@ export class ReportingObserver implements Integration {
     this._getCurrentHub = getCurrentHub;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const observer = new (getGlobalObject<any>().ReportingObserver)(this.handler.bind(this), {
+    const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
       buffered: true,
       types: this._options.types,
     });
