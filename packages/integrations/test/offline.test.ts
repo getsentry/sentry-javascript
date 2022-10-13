@@ -1,5 +1,5 @@
 import { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
-import * as utils from '@sentry/utils';
+import { WINDOW } from '@sentry/utils';
 
 import { Item, Offline } from '../src/offline';
 
@@ -34,12 +34,30 @@ jest.mock('localforage', () => ({
 }));
 
 let integration: Offline;
-let online: boolean;
+
+// We need to mock the WINDOW object so we can modify 'navigator.online' which is readonly
+jest.mock('@sentry/utils', () => {
+  const originalModule = jest.requireActual('@sentry/utils');
+
+  return {
+    ...originalModule,
+    get WINDOW() {
+      return {
+        addEventListener: (_windowEvent: any, callback: any) => {
+          eventListeners.push(callback);
+        },
+        navigator: {
+          onLine: false,
+        },
+      };
+    },
+  };
+});
 
 describe('Offline', () => {
   describe('when app is online', () => {
     beforeEach(() => {
-      online = true;
+      (WINDOW.navigator as any).onLine = true;
 
       initIntegration();
     });
@@ -71,7 +89,7 @@ describe('Offline', () => {
 
   describe('when app is offline', () => {
     beforeEach(() => {
-      online = false;
+      (WINDOW.navigator as any).onLine = false;
     });
 
     it('stores events in offline store', async () => {
@@ -165,18 +183,6 @@ function initIntegration(options: { maxStoredEvents?: number } = {}): void {
   eventListeners = [];
   eventProcessors = [];
   events = [];
-
-  jest.spyOn(utils, 'getGlobalObject').mockImplementation(
-    () =>
-      ({
-        addEventListener: (_windowEvent: any, callback: any) => {
-          eventListeners.push(callback);
-        },
-        navigator: {
-          onLine: online,
-        },
-      } as any),
-  );
 
   integration = new Offline(options);
 }

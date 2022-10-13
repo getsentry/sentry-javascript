@@ -10,7 +10,7 @@ import {
 import { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
-  getGlobalObject,
+  GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
@@ -233,9 +233,8 @@ export function getSentryRelease(fallback?: string): string | undefined {
   }
 
   // This supports the variable that sentry-webpack-plugin injects
-  const global = getGlobalObject();
-  if (global.SENTRY_RELEASE && global.SENTRY_RELEASE.id) {
-    return global.SENTRY_RELEASE.id;
+  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+    return GLOBAL_OBJ.SENTRY_RELEASE.id;
   }
 
   return (
