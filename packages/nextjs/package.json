@@ -27,7 +27,7 @@
     "@sentry/utils": "7.15.0",
     "@sentry/webpack-plugin": "1.19.0",
     "chalk": "3.0.0",
-    "rollup": "2.78.0",
+    "rollup": "2.79.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
