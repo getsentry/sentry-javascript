@@ -47,7 +47,7 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
       const requestTransaction = getTransactionFromRequest(req);
 
       // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
-      // `App.getInitialProps(appContext)` in their custom`_app` pages which is required as per
+      // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
       // https://nextjs.org/docs/advanced-features/custom-app - resulting in missing `pageProps`.
       // For this reason, we just handle the case where `pageProps` doesn't exist explicitly.
       if (!appGetInitialProps.pageProps) {
