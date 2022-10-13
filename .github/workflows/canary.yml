@@ -1,7 +1,7 @@
 name: 'Canary Tests'
 on:
   schedule:
-    # Runs "at minute 55 past every hour" (see https://crontab.guru)
+    # Run every day at midnight
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:

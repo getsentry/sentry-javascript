@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
@@ -286,18 +287,21 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
   }[] = process.env.CANARY_E2E_TEST ? recipe.canaryVersions ?? [] : recipe.versions ?? [{}];
 
   const versionResults = versionsToRun.map(({ dependencyOverrides }) => {
+    const packageJsonPath = path.resolve(recipeDirname, 'package.json');
+    const packageJsonBackupPath = path.resolve(recipeDirname, 'package.json.bak');
+
     if (dependencyOverrides) {
       // Back up original package.json
-      fs.copyFileSync(path.resolve(recipeDirname, 'package.json'), path.resolve(recipeDirname, 'package.json.bak'));
+      fs.copyFileSync(packageJsonPath, packageJsonBackupPath);
 
       // Override dependencies
       const packageJson: { dependencies?: Record<string, string> } = JSON.parse(
-        fs.readFileSync(path.resolve(recipeDirname, 'package.json'), { encoding: 'utf-8' }),
+        fs.readFileSync(packageJsonPath, { encoding: 'utf-8' }),
       );
       packageJson.dependencies = packageJson.dependencies
         ? { ...packageJson.dependencies, ...dependencyOverrides }
         : dependencyOverrides;
-      fs.writeFileSync(path.resolve(recipeDirname, 'package.json'), JSON.stringify(packageJson, null, 2), {
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), {
         encoding: 'utf-8',
       });
     }
@@ -307,9 +311,9 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
     } finally {
       if (dependencyOverrides) {
         // Restore original package.json
-        fs.rmSync(path.resolve(recipeDirname, 'package.json'), { force: true });
-        fs.copyFileSync(path.resolve(recipeDirname, 'package.json.bak'), path.resolve(recipeDirname, 'package.json'));
-        fs.rmSync(path.resolve(recipeDirname, 'package.json.bak'), { force: true });
+        fs.rmSync(packageJsonPath, { force: true });
+        fs.copyFileSync(packageJsonBackupPath, packageJsonPath);
+        fs.rmSync(packageJsonBackupPath, { force: true });
       }
     }
   });
@@ -349,11 +353,9 @@ recipeResults.forEach(recipeResult => {
   });
 });
 
-groupCIOutput('Cleanup', () => {
-  // Stop test registry
-  childProcess.spawnSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
-  console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
-});
+// Stop test registry
+childProcess.spawnSync(`docker stop ${TEST_REGISTRY_CONTAINER_NAME}`, { encoding: 'utf8', stdio: 'ignore' });
+console.log('Successfully stopped test registry container'); // Output from command above is not good so we `ignore` it and emit our own
 
 if (processShouldExitWithError) {
   console.log('Not all tests succeeded.');
