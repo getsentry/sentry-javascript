@@ -31,7 +31,13 @@ import { Replay } from '@sentry/replay';
 
 Sentry.init({
   dsn: '__DSN__',
-  integrations: [new Replay()],
+  integrations: [
+    new Replay({
+      // This sets the sample rate to be 10%. You may want this to be 100% while
+      // in development and sample at a lower rate in production
+      replaysSamplingRate: 0.1,
+    })
+  ],
   // ...
 });
 ```
