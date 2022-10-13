@@ -73,6 +73,13 @@ export const GLOBAL_OBJ: InternalGlobal =
   {};
 
 /**
+ * @deprecated Use GLOBAL_OBJ instead. This will be removed in v8
+ */
+export function getGlobalObject<T>(): T & InternalGlobal {
+  return GLOBAL_OBJ as T & InternalGlobal;
+}
+
+/**
  * Returns a global singleton contained in the global `__SENTRY__` object.
  *
  * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
