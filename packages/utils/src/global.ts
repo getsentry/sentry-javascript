@@ -73,9 +73,7 @@ export const GLOBAL_OBJ: InternalGlobal =
   {};
 
 /**
- * Safely get global scope object
- *
- * @returns Global scope object
+ * @deprecated Use GLOBAL_OBJ instead. This will be removed in v8
  */
 export function getGlobalObject<T>(): T & InternalGlobal {
   return GLOBAL_OBJ as T & InternalGlobal;
