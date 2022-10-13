@@ -1,6 +1,7 @@
 import MagicString from 'magic-string';
+import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
-import { ComponentTrackingInitOptions, PreprocessorGroup, TrackComponentOptions } from './types';
+import { ComponentTrackingInitOptions, SentryPreprocessorGroup, TrackComponentOptions } from './types';
 
 export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOptions> = {
   trackComponents: true,
@@ -8,18 +9,22 @@ export const defaultComponentTrackingOptions: Required<ComponentTrackingInitOpti
   trackUpdates: true,
 };
 
+export const FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID = 'FIRST_PASS_COMPONENT_TRACKING_PREPROCESSOR';
+
 /**
  * Svelte Preprocessor to inject Sentry performance monitoring related code
  * into Svelte components.
+ *
+ * @deprecated Use `withSentryConfig` which is the new way of making compile-time modifications
+ *             to Svelte apps going forward.
  */
 export function componentTrackingPreprocessor(options?: ComponentTrackingInitOptions): PreprocessorGroup {
   const mergedOptions = { ...defaultComponentTrackingOptions, ...options };
 
   const visitedFiles = new Set<string>();
 
-  return {
-    // This script hook is called whenever a Svelte component's <script>
-    // content is preprocessed.
+  const preprocessor: PreprocessorGroup = {
+    // This script hook is called whenever a Svelte component's <script> content is preprocessed.
     // `content` contains the script code as a string
     script: ({ content, filename, attributes }) => {
       // TODO: Not sure when a filename could be undefined. Using this 'unknown' fallback for the time being
@@ -48,6 +53,13 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
       return { code: updatedCode, map: updatedSourceMap };
     },
   };
+
+  const sentryPreprocessor: SentryPreprocessorGroup = {
+    ...preprocessor,
+    sentryId: FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
+  };
+
+  return sentryPreprocessor;
 }
 
 function shouldInjectFunction(
