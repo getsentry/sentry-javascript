@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { componentTrackingPreprocessor, defaultComponentTrackingOptions } from '../src/preprocessors';
 
 function expectComponentCodeToBeModified(

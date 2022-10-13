@@ -4,6 +4,66 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.15.0
+
+This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
+
+- feat(ember): Add ember-engine-router support (#5905)
+- feat(nextjs): Enable `autoInstrumentServerFunctions` per default (#5919)
+- feat(tracing): Make BrowserTracing heartbeat interval configurable (#5867)
+- fix(node): Remove Cookie header from requestdata.headers if cookies should not be sent to Sentry (#5898)
+- fix(remix): Rework dynamic imports of `react-router-dom` (#5897)
+- fix(utils): Accept DSN URLs with empty password (#5902)
+- fix(vue): Finish spans in component tracking before starting new ones for same operation (#5918)
+- ref(hub): Move `@sentry/hub` code to `@sentry/core` (#5823)
+
+Work in this release contributed by @outsideris and @JonasKruckenberg. Thank you for your contributions!
+
+## 7.14.2
+
+- fix(ember): Align span operations to new operations (#5883)
+- fix(nextjs): Consider pageExtensions option in auto instrumentation (#5881)
+- fix(remix): Align span operations to new operations (#5889)
+- fix(serverless): Align span operations to new operations (#5890)
+- fix(tracing): Align span operations to new operations (#5891)
+- fix(vue): Align span operations to new operations (#5892)
+- ref(hub): Remove hard cap from maxBreadcrumbs (#5873)
+- ref(nextjs): Make build-phase check more robust (#5857)
+
+Work in this release contributed by @outsideris. Thank you for your contributions!
+
+## 7.14.1
+
+- fix(nextjs): Handle CJS API route exports (#5865)
+- fix(node): Only set `DeviceContext.boot_time` if `os.uptime()` is valid (#5859)
+- fix(tracing): Warn if `resolvers` is not defined in `ApolloServer` config (#5850)
+- fix(utils): Normalize when serializing envelope (#5851)
+- ref(react): Improve React Router v6 error message (#5853)
+
+## 7.14.0
+
+- feat(nextjs): Add status to data-fetcher spans (#5777)
+- feat(nextjs): Auto-wrap API routes (#5778)
+- feat(nextjs): Promote option to automatically wrap data fetchers and API routes to non-experimental (#5793)
+- feat(utils): Modern implementation of `getGlobalObject` (#5809)
+- fix(gatsby): Include app-* entrypoints as they may include user source code (#5685)
+- fix(nextjs): Handle `pathname` being passed in object in `instrumentServer` (#5782)
+- fix(nextjs): Pass request in sampling context of data fetchers wrapper transaction (#5784)
+- fix(nextjs): Reverse order of checks for instrumenting server (#5828)
+- fix(nextjs): Rename `nextjs.data.server` ops (#5830)
+- fix(remix): Do not skip error handling if tracing is not enabled. (#5811)
+- fix(remix): Use import() to get `react-router-dom` in Express wrapper. (#5810)
+- fix(tracing): Remove `connection.downlink` measurement (#5794)
+- ref(browser): Use configured transport as fallback for client reports (#5797)
+- ref(nextjs): Use flush code from `withSentry` in all backend wrappers (#5814)
+- ref(nextjs): Use integration to add request data to transaction events (#5703)
+- ref(nextjs): Use`RequestData` integration for errors (#5729)
+- ref(node): Move request data functions back to `@sentry/node` (#5759)
+- ref(tracing): Don't track transaction sampling method (#5775)
+- ref(types): Use intersections instead of extend in envelope types (#5788)
+
+Work in this release contributed by @Auspicus and @dagroe. Thank you for your contributions!
+
 ## 7.13.0
 
 - feat(browser): Use fetch `keepalive` flag (#5697)

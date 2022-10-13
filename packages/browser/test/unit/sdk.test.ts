@@ -21,8 +21,8 @@ function getDefaultBrowserOptions(options: Partial<BrowserOptions> = {}): Browse
   };
 }
 
-jest.mock('@sentry/hub', () => {
-  const original = jest.requireActual('@sentry/hub');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     getCurrentHub(): {

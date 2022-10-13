@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/hub';
+import { Hub, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import { InstrumentHandlerCallback, InstrumentHandlerType, WINDOW } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
@@ -8,7 +8,12 @@ import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_IDLE_TIMEOUT, IdleTransaction } from '../../src/idletransaction';
+import {
+  DEFAULT_FINAL_TIMEOUT,
+  DEFAULT_HEARTBEAT_INTERVAL,
+  DEFAULT_IDLE_TIMEOUT,
+  IdleTransaction,
+} from '../../src/idletransaction';
 import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
@@ -83,6 +88,7 @@ describe('BrowserTracing', () => {
       },
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       finalTimeout: DEFAULT_FINAL_TIMEOUT,
+      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
@@ -268,6 +274,7 @@ describe('BrowserTracing', () => {
         expect.any(Number),
         expect.any(Boolean),
         expect.any(Object),
+        expect.any(Number),
       );
     });
 
@@ -297,6 +304,23 @@ describe('BrowserTracing', () => {
 
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
+        expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('heartbeatInterval', () => {
+      it('can be a custom value', () => {
+        const interval = 200;
+        createBrowserTracing(true, { heartbeatInterval: interval, routingInstrumentation: customInstrumentRouting });
+        const mockFinish = jest.fn();
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        transaction.finish = mockFinish;
+
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
+
+        expect(mockFinish).toHaveBeenCalledTimes(0);
+        jest.advanceTimersByTime(interval * 3);
         expect(mockFinish).toHaveBeenCalledTimes(1);
       });
     });

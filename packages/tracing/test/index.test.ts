@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 
 import { BrowserTracing, Integrations } from '../src';
 

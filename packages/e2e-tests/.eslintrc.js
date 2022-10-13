@@ -3,7 +3,7 @@ module.exports = {
     node: true,
   },
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: [],
+  ignorePatterns: ['test-applications/**'],
   parserOptions: {
     sourceType: 'module',
   },

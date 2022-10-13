@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/hub';
+import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -23,7 +23,7 @@ export class GraphQL implements Integration {
     }>('graphql/execution/execute.js');
 
     if (!pkg) {
-      logger.error('GraphQL Integration was unable to require graphql/execution package.');
+      __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');
       return;
     }
 
@@ -34,7 +34,7 @@ export class GraphQL implements Integration {
 
         const span = parentSpan?.startChild({
           description: 'execute',
-          op: 'db.graphql',
+          op: 'graphql.execute',
         });
 
         scope?.setSpan(span);

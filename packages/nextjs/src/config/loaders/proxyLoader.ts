@@ -7,6 +7,7 @@ import { LoaderThis } from './types';
 
 type LoaderOptions = {
   pagesDir: string;
+  pageExtensionRegex: string;
 };
 
 /**
@@ -16,7 +17,7 @@ type LoaderOptions = {
  */
 export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { pagesDir } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { pagesDir, pageExtensionRegex } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRoute = path
@@ -25,7 +26,7 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     // Add a slash at the beginning
     .replace(/(.*)/, '/$1')
     // Pull off the file extension
-    .replace(/\.(jsx?|tsx?)/, '')
+    .replace(new RegExp(`\\.(${pageExtensionRegex})`), '')
     // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
     // just `/xyz`
     .replace(/\/index$/, '')

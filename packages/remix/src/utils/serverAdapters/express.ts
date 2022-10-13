@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/hub';
+import { getCurrentHub } from '@sentry/core';
 import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
@@ -43,7 +43,15 @@ function wrapExpressRequestHandler(
     next: ExpressNextFunction,
   ): Promise<void> {
     if (!pkg) {
-      pkg = await import(`${cwd()}/node_modules/react-router-dom`);
+      try {
+        pkg = await import('react-router-dom');
+      } catch (e) {
+        pkg = await import(`${cwd()}/node_modules/react-router-dom`);
+      } finally {
+        if (!pkg) {
+          __DEBUG_BUILD__ && logger.error('Could not find `react-router-dom` package.');
+        }
+      }
     }
 
     // eslint-disable-next-line @typescript-eslint/unbound-method

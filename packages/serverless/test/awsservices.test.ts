@@ -32,7 +32,7 @@ describe('AWSServices', () => {
       expect(data.Body?.toString('utf-8')).toEqual('contents');
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'aws.request',
+        op: 'http.client',
         description: 'aws.s3.getObject foo',
       });
       // @ts-ignore see "Why @ts-ignore" note
@@ -49,7 +49,7 @@ describe('AWSServices', () => {
       });
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'aws.request',
+        op: 'http.client',
         description: 'aws.s3.getObject foo',
       });
     });
@@ -64,7 +64,7 @@ describe('AWSServices', () => {
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
-        op: 'aws.request',
+        op: 'http.client',
         description: 'aws.lambda.invoke foo',
       });
     });

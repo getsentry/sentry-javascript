@@ -101,11 +101,11 @@ describe('_addResourceSpans', () => {
     const table = [
       {
         initiatorType: undefined,
-        op: 'resource',
+        op: 'resource.other',
       },
       {
         initiatorType: '',
-        op: 'resource',
+        op: 'resource.other',
       },
       {
         initiatorType: 'css',

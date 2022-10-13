@@ -1,9 +1,11 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, fill } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
+
+import { autoEndTransactionOnResponseEnd } from './utils/responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -24,15 +26,6 @@ export function getTransactionFromRequest(req: IncomingMessage): Transaction | u
 
 function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage): void {
   req._sentryTransaction = transaction;
-}
-
-function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerResponse): void {
-  fill(res, 'end', (originalEnd: ServerResponse['end']) => {
-    return function (this: unknown, ...endArguments: Parameters<ServerResponse['end']>) {
-      transaction.finish();
-      return originalEnd.call(this, ...endArguments);
-    };
-  });
 }
 
 /**
@@ -95,7 +88,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const newTransaction = startTransaction(
         {
-          op: 'nextjs.data.server',
+          op: 'http.server',
           name: options.requestedRouteName,
           ...traceparentData,
           status: 'ok',
@@ -117,7 +110,7 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     }
 
     const dataFetcherSpan = requestTransaction.startChild({
-      op: 'nextjs.data.server',
+      op: 'function.nextjs',
       description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
       status: 'ok',
     });
@@ -180,7 +173,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
   // route's transaction
   const span = transaction.startChild({
-    op: 'nextjs.data.server',
+    op: 'function.nextjs',
     description: `${dataFetchingMethodName} (${parameterizedRoute})`,
     status: 'ok',
   });

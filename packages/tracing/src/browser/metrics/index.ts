@@ -219,7 +219,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
       _startChild(transaction, {
         description: 'first input delay',
         endTimestamp: fidMark.value + msToSec(_measurements['fid'].value),
-        op: 'web.vitals',
+        op: 'ui.action',
         startTimestamp: fidMark.value,
       });
 
@@ -364,7 +364,7 @@ export function _addResourceSpans(
   _startChild(transaction, {
     description: resourceName,
     endTimestamp,
-    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource',
+    op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
     startTimestamp,
     data,
   });
