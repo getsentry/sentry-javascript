@@ -1,4 +1,4 @@
-import { InstrumentationTypeBreadcrumb } from '@/types';
+import { InstrumentationTypeBreadcrumb } from '../types';
 
 import { handleDom } from './handleDom';
 import { handleScope } from './handleScope';

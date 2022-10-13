@@ -1,4 +1,4 @@
-import { logger } from '@/util/logger';
+import { logger } from '../util/logger';
 
 import { saveSession } from './saveSession';
 import { Session } from './Session';

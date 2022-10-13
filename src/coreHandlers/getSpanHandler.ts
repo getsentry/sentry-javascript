@@ -1,4 +1,4 @@
-import { InstrumentationTypeSpan } from '@/types';
+import { InstrumentationTypeSpan } from '../types';
 
 import { handleFetch } from './handleFetch';
 import { handleHistory } from './handleHistory';

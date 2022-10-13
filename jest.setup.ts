@@ -1,5 +1,5 @@
-import { Replay } from '@';
-import { Session } from '@/session/Session';
+import { Session } from './src/session/Session';
+import { Replay } from './src';
 
 // @ts-expect-error TS error, this is replaced in prod builds bc of rollup
 global.__SENTRY_REPLAY_VERSION__ = 'version:Test';

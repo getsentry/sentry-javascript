@@ -3,15 +3,14 @@ import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 
-import { Replay } from '@';
-import * as CaptureReplayEvent from '@/api/captureReplayEvent';
+import * as CaptureReplayEvent from './api/captureReplayEvent';
 import {
   REPLAY_SESSION_KEY,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
-} from '@/session/constants';
-
+} from './session/constants';
 import * as CaptureInternalException from './util/captureInternalException';
+import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
 

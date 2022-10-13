@@ -1,4 +1,4 @@
-import { RecordingEvent } from '@/types';
+import { RecordingEvent } from '../../src/types';
 
 type RecordAdditionalProperties = {
   takeFullSnapshot: jest.Mock;

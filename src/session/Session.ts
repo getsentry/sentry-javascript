@@ -1,6 +1,6 @@
 import { uuid4 } from '@sentry/utils';
 
-import { isSampled } from '@/util/isSampled';
+import { isSampled } from '../util/isSampled';
 
 import { saveSession } from './saveSession';
 

@@ -2,8 +2,8 @@ import * as SentryUtils from '@sentry/utils';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { Replay } from '@';
-import { SESSION_IDLE_DURATION } from '@/session/constants';
+import { SESSION_IDLE_DURATION } from './session/constants';
+import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
 

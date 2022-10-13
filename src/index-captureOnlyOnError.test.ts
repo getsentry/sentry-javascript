@@ -5,12 +5,12 @@ import { captureException } from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { Replay } from '@';
-import * as CaptureReplayEvent from '@/api/captureReplayEvent';
+import * as CaptureReplayEvent from './api/captureReplayEvent';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
-} from '@/session/constants';
+} from './session/constants';
+import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
 

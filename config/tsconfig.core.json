@@ -7,11 +7,7 @@
     "baseUrl": "..",
     "rootDir": "..",
     "strictNullChecks": true,
-    "outDir": "dist",
-    "paths": {
-      "@": ["./src"],
-      "@/*": ["./src/*"]
-    }
+    "outDir": "dist"
   },
   "include": ["../src/**/*.ts"],
   "exclude": ["../src/**/*.test.ts"]

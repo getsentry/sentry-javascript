@@ -1,5 +1,5 @@
-import { isSessionExpired } from '@/util/isSessionExpired';
-import { logger } from '@/util/logger';
+import { isSessionExpired } from '../util/isSessionExpired';
+import { logger } from '../util/logger';
 
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';

@@ -2,8 +2,7 @@
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { SESSION_IDLE_DURATION } from '@/session/constants';
-
+import { SESSION_IDLE_DURATION } from './session/constants';
 import { createPerformanceEntries } from './createPerformanceEntry';
 
 jest.useFakeTimers({ advanceTimers: true });

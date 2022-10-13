@@ -1,8 +1,8 @@
 import { captureEvent, withScope } from '@sentry/core';
 
-import { REPLAY_EVENT_NAME } from '@/session/constants';
-import { InitialState } from '@/types';
-import { addInternalBreadcrumb } from '@/util/addInternalBreadcrumb';
+import { REPLAY_EVENT_NAME } from '../session/constants';
+import { InitialState } from '../types';
+import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
 
 export interface CaptureReplayEventParams {
   /**

@@ -1,5 +1,5 @@
-import { ReplayPerformanceEntry } from '@/createPerformanceEntry';
-import { isIngestHost } from '@/util/isIngestHost';
+import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import { isIngestHost } from '../util/isIngestHost';
 
 interface FetchHandlerData {
   args: Parameters<typeof fetch>;

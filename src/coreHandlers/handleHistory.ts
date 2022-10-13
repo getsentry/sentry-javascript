@@ -1,4 +1,4 @@
-import { ReplayPerformanceEntry } from '@/createPerformanceEntry';
+import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 
 interface HistoryHandlerData {
   from: string;

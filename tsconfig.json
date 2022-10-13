@@ -2,8 +2,6 @@
   "extends": "./config/tsconfig.core.json",
   "compilerOptions": {
     "paths": {
-      "@": ["./src"],
-      "@/*": ["./src/*"],
       "@test": ["./test"],
       "@test/*": ["./test/*"]
     }

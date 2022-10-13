@@ -1,5 +1,5 @@
-import { ReplayPerformanceEntry } from '@/createPerformanceEntry';
-import { isIngestHost } from '@/util/isIngestHost';
+import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import { isIngestHost } from '../util/isIngestHost';
 
 // From sentry-javascript
 // e.g. https://github.com/getsentry/sentry-javascript/blob/c7fc025bf9fa8c073fdb56351808ce53909fbe45/packages/utils/src/instrument.ts#L180
