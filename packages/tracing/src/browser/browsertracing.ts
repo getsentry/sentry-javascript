@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, getDomElement, getGlobalObject, logger } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, getDomElement, logger, WINDOW } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
@@ -265,7 +265,7 @@ export class BrowserTracing implements Integration {
     __DEBUG_BUILD__ && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
 
     const hub = this._getCurrentHub();
-    const { location } = getGlobalObject() as WindowOrWorkerGlobalScope & { location: Location };
+    const { location } = WINDOW;
 
     const idleTransaction = startIdleTransaction(
       hub,

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { Measurements } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getGlobalObject, htmlTreeAsString, logger } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, htmlTreeAsString, logger, WINDOW } from '@sentry/utils';
 
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
@@ -13,10 +13,8 @@ import { observe, PerformanceEntryHandler } from '../web-vitals/lib/observe';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
-const global = getGlobalObject<Window>();
-
 function getBrowserPerformanceAPI(): Performance | undefined {
-  return global && global.addEventListener && global.performance;
+  return WINDOW && WINDOW.addEventListener && WINDOW.performance;
 }
 
 let _performanceCursor: number = 0;
@@ -32,7 +30,7 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     if (performance.mark) {
-      global.performance.mark('sentry-tracing-init');
+      WINDOW.performance.mark('sentry-tracing-init');
     }
     _trackCLS();
     _trackLCP(reportAllChanges);
@@ -112,7 +110,7 @@ function _trackFID(): void {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(transaction: Transaction): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !global.performance.getEntries || !browserPerformanceTimeOrigin) {
+  if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
     // Gatekeeper if performance API not available
     return;
   }
@@ -162,7 +160,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
         break;
       }
       case 'resource': {
-        const resourceName = (entry.name as string).replace(global.location.origin, '');
+        const resourceName = (entry.name as string).replace(WINDOW.location.origin, '');
         _addResourceSpans(transaction, entry, resourceName, startTime, duration, timeOrigin);
         break;
       }
@@ -376,7 +374,7 @@ export function _addResourceSpans(
  * Capture the information of the user agent.
  */
 function _trackNavigator(transaction: Transaction): void {
-  const navigator = global.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
+  const navigator = WINDOW.navigator as null | (Navigator & NavigatorNetworkInformation & NavigatorDeviceMemory);
   if (!navigator) {
     return;
   }

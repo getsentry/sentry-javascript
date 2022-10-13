@@ -53,7 +53,7 @@ export {
 export { SDK_VERSION } from '@sentry/browser';
 
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
-import { getGlobalObject } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { BrowserTracing } from './browser';
 import { addExtensionMethods } from './hubextensions';
@@ -63,9 +63,8 @@ export { Span } from './span';
 let windowIntegrations = {};
 
 // This block is needed to add compatibility with the integrations packages when used with a CDN
-const _window = getGlobalObject<Window>();
-if (_window.Sentry && _window.Sentry.Integrations) {
-  windowIntegrations = _window.Sentry.Integrations;
+if (GLOBAL_OBJ.Sentry && GLOBAL_OBJ.Sentry.Integrations) {
+  windowIntegrations = GLOBAL_OBJ.Sentry.Integrations;
 }
 
 const INTEGRATIONS = {
