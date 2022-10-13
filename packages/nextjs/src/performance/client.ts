@@ -3,21 +3,19 @@ import { Primitive, TraceparentData, Transaction, TransactionContext, Transactio
 import {
   baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,
-  getGlobalObject,
   logger,
   stripUrlQueryAndFragment,
+  WINDOW,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 
-const global = getGlobalObject<
-  Window & {
-    __BUILD_MANIFEST?: {
-      sortedPages?: string[];
-    };
-  }
->();
+const global = WINDOW as typeof WINDOW & {
+  __BUILD_MANIFEST?: {
+    sortedPages?: string[];
+  };
+};
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 

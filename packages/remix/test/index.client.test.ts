@@ -1,17 +1,15 @@
 import { getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { getGlobalObject } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../src/index.client';
-
-const global = getGlobalObject();
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 
 describe('Client init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    global.__SENTRY__.hub = undefined;
+    GLOBAL_OBJ.__SENTRY__.hub = undefined;
   });
 
   it('inits the React SDK', () => {
