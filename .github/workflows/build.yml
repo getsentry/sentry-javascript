@@ -85,7 +85,7 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "::set-output name=hash::${{ hashFiles('yarn.lock') }}"
+        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
       - name: Check dependency cache
         uses: actions/cache@v2
         id: cache_dependencies
@@ -648,6 +648,8 @@ jobs:
       - name: Run E2E tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}
+          E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+          E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
         run: |
           cd packages/e2e-tests
           yarn test:e2e

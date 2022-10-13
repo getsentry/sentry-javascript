@@ -13,8 +13,26 @@ const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 
 const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
 
-const DEFAULT_BUILD_TIMEOUT_SECONDS = 60;
-const DEFAULT_TEST_TIMEOUT_SECONDS = 60;
+const DEFAULT_BUILD_TIMEOUT_SECONDS = 60 * 5;
+const DEFAULT_TEST_TIMEOUT_SECONDS = 60 * 2;
+
+if (!process.env.E2E_TEST_AUTH_TOKEN) {
+  console.log(
+    "No auth token configured! Please configure the E2E_TEST_AUTH_TOKEN environment variable with an auth token that has the scope 'project:read'!",
+  );
+}
+
+if (!process.env.E2E_TEST_DSN) {
+  console.log('No DSN configured! Please configure the E2E_TEST_DSN environment variable with a DSN!');
+}
+
+if (!process.env.E2E_TEST_AUTH_TOKEN || !process.env.E2E_TEST_DSN) {
+  process.exit(1);
+}
+
+const envVarsToInject = {
+  REACT_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
+};
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
 function groupCIOutput(groupTitle: string, fn: () => void): void {
@@ -145,13 +163,32 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       encoding: 'utf8',
       shell: true, // needed so we can pass the build command in as whole without splitting it up into args
       timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
+      env: {
+        ...process.env,
+        ...envVarsToInject,
+      },
     });
 
     // Prepends some text to the output build command's output so we can distinguish it from logging in this script
     console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
     console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
 
-    if (buildCommandProcess.status !== 0) {
+    const error: undefined | (Error & { code?: string }) = buildCommandProcess.error;
+
+    if (error?.code === 'ETIMEDOUT') {
+      processShouldExitWithError = true;
+
+      printCIErrorMessage(
+        `Build command in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) timed out!`,
+      );
+
+      return {
+        testApplicationName: recipe.testApplicationName,
+        testApplicationPath: recipePath,
+        buildFailed: true,
+        testResults: [],
+      };
+    } else if (buildCommandProcess.status !== 0) {
       processShouldExitWithError = true;
 
       printCIErrorMessage(
@@ -177,6 +214,10 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       timeout: (test.timeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
       encoding: 'utf8',
       shell: true, // needed so we can pass the test command in as whole without splitting it up into args
+      env: {
+        ...process.env,
+        ...envVarsToInject,
+      },
     });
 
     // Prepends some text to the output test command's output so we can distinguish it from logging in this script

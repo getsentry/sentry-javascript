@@ -20,8 +20,9 @@
     "web-vitals": "2.1.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "start": "serve -s build",
+    "test": "playwright test"
   },
   "eslintConfig": {
     "extends": [
@@ -40,5 +41,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@playwright/test": "1.26.1",
+    "axios": "1.1.2",
+    "serve": "14.0.1"
   }
 }
