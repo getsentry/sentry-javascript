@@ -1,0 +1,6 @@
+{
+  "description": "This is only used to install the nextjs v12 package so we can test against those types",
+  "dependencies": {
+    "next": "12.3.1"
+  }
+}
