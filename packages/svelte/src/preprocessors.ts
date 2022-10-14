@@ -1,4 +1,5 @@
 import MagicString from 'magic-string';
+import * as svelteCompiler from 'svelte/compiler';
 import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
 import { ComponentTrackingInitOptions, SentryPreprocessorGroup, TrackComponentOptions } from './types';
@@ -123,16 +124,8 @@ function getBaseName(filename: string): string {
 }
 
 function hasScriptTag(content: string): boolean {
-  // This regex is taken from the Svelte compiler code.
-  // They use this regex to find matching script tags that are passed to the `script` preprocessor hook:
-  // https://github.com/sveltejs/svelte/blob/bb83eddfc623437528f24e9fe210885b446e72fa/src/compiler/preprocess/index.ts#L144
-  // However, we remove the first part of the regex to not match HTML comments
-  const scriptTagRegex = /<script(\s[^]*?)?(?:>([^]*?)<\/script>|\/>)/gi;
-
-  // Regex testing is not a super safe way of checking for the presence of a <script> tag in the Svelte
-  // component file but I think we can use it as a start.
-  // A case that is not covered by regex-testing HTML is e.g. nested <script> tags but I cannot
-  // think of why one would do this in Svelte components. For instance, the Svelte compiler errors
-  // when there's more than one top-level script tag.
-  return scriptTagRegex.test(content);
+  const ast = svelteCompiler.parse(content);
+  // ast.instance holds whatever is defined in <script>
+  // if there is no script tag, it's undefined.
+  return ast.instance !== undefined;
 }
