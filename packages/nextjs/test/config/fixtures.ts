@@ -93,6 +93,8 @@ export function getBuildContext(
       ...materializedNextConfig,
     } as NextConfigObject,
     webpack: { version: webpackVersion },
+    defaultLoaders: true,
+    totalPages: 2,
     isServer: buildTarget === 'server',
   };
 }

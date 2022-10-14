@@ -97,7 +97,7 @@ export type BuildContext = {
   config: any;
   webpack: { version: string };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultLoaders: { babel: any };
+  defaultLoaders: any;
   totalPages: number;
   nextRuntime?: 'nodejs' | 'edge';
 };
