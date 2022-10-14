@@ -1,23 +1,22 @@
-import type { RollupSucraseOptions } from '@rollup/plugin-sucrase';
 import sucrase from '@rollup/plugin-sucrase';
+import virtual from '@rollup/plugin-virtual';
 import { logger } from '@sentry/utils';
 import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
 
-const getRollupInputOptions: (proxyPath: string, resourcePath: string) => RollupInputOptions = (
-  proxyPath,
-  resourcePath,
-) => ({
-  input: proxyPath,
+const SENTRY_PROXY_MODULE_NAME = 'sentry-proxy-module';
+
+const getRollupInputOptions = (resourcePath: string, proxyTemplateCode: string): RollupInputOptions => ({
+  input: SENTRY_PROXY_MODULE_NAME,
+
   plugins: [
-    // For some reason, even though everything in `RollupSucraseOptions` besides `transforms` is supposed to be
-    // optional, TS complains that there are a bunch of missing properties (hence the typecast). Similar to
-    // https://github.com/microsoft/TypeScript/issues/20722, though that's been fixed. (In this case it's an interface
-    // exporting a `Pick` picking optional properties which is turning them required somehow.)'
+    virtual({
+      [SENTRY_PROXY_MODULE_NAME]: proxyTemplateCode,
+    }),
     sucrase({
       transforms: ['jsx', 'typescript'],
-    } as unknown as RollupSucraseOptions),
+    }),
   ],
 
   // We want to process as few files as possible, so as not to slow down the build any more than we have to. We need the
@@ -25,7 +24,7 @@ const getRollupInputOptions: (proxyPath: string, resourcePath: string) => Rollup
   // otherwise they won't be processed. (We need Rollup to process the former so that we can use the code, and we need
   // it to process the latter so it knows what exports to re-export from the proxy module.) Past that, we don't care, so
   // don't bother to process anything else.
-  external: importPath => importPath !== proxyPath && importPath !== resourcePath,
+  external: importPath => importPath !== SENTRY_PROXY_MODULE_NAME && importPath !== resourcePath,
 
   // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
   // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -69,11 +68,11 @@ const rollupOutputOptions: RollupOutputOptions = {
  * @param resourcePath The path to the file being wrapped
  * @returns The processed proxy module code, or undefined if an error occurs
  */
-export async function rollupize(tempProxyFilePath: string, resourcePath: string): Promise<string | undefined> {
+export async function rollupize(resourcePath: string, templateCode: string): Promise<string | undefined> {
   let finalBundle;
 
   try {
-    const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, resourcePath));
+    const intermediateBundle = await rollup(getRollupInputOptions(resourcePath, templateCode));
     finalBundle = await intermediateBundle.generate(rollupOutputOptions);
   } catch (err) {
     __DEBUG_BUILD__ &&

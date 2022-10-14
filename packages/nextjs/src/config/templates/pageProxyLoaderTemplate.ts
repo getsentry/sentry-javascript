@@ -8,7 +8,7 @@
 
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__RESOURCE_PATH__';
+import * as wrapee from '__RESOURCE_PATH__?__sentry_wrapped__';
 import * as Sentry from '@sentry/nextjs';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
 

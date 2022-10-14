@@ -55,34 +55,22 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
 
   // Fill in the path to the file we're wrapping and save the result as a temporary file in the same folder (so that
   // relative imports and exports are calculated correctly).
-  //
-  // TODO: We're saving the filled-in template to disk, however temporarily, because Rollup expects a path to a code
-  // file, not code itself. There is a rollup plugin which can fake this (`@rollup/plugin-virtual`) but the virtual file
-  // seems to be inside of a virtual directory (in other words, one level down from where you'd expect it) and that
-  // messes up relative imports and exports. Presumably there's a way to make it work, though, and if we can, it would
-  // be cleaner than having to first write and then delete a temporary file each time we run this loader.
   templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath);
-  const tempFilePath = path.resolve(path.dirname(this.resourcePath), `temp${Math.random()}.js`);
-  fs.writeFileSync(tempFilePath, templateCode);
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require), then delete the tempoary file.
-  let proxyCode = await rollupize(tempFilePath, this.resourcePath);
-  fs.unlinkSync(tempFilePath);
+
+  let proxyCode = await rollupize(this.resourcePath, templateCode);
 
   if (!proxyCode) {
     // We will already have thrown a warning in `rollupize`, so no need to do it again here
     return userCode;
   }
 
-  // Add a query string onto all references to the wrapped file, so that webpack will consider it different from the
-  // non-query-stringged version (which we're already in the middle of loading as we speak), and load it separately from
-  // this. When the second load happens this loader will run again, but we'll be able to see the query string and will
-  // know to immediately return without processing. This avoids an infinite loop.
   const resourceFilename = path.basename(this.resourcePath);
   proxyCode = proxyCode.replace(
-    new RegExp(`/${escapeStringForRegex(resourceFilename)}'`, 'g'),
-    `/${resourceFilename}?__sentry_wrapped__'`,
+    new RegExp(`'../${escapeStringForRegex(resourceFilename)}'`, 'g'),
+    `'./${resourceFilename}?__sentry_wrapped__'`,
   );
 
   return proxyCode;
