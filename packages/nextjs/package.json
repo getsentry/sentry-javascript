@@ -67,7 +67,7 @@
     "test:all": "run-s test:unit test:integration",
     "test:unit": "jest",
     "test:integration": "test/run-integration-tests.sh && yarn test:types",
-    "test:types": "cd test/types/ && yarn && tsc",
+    "test:types": "cd test/types && yarn test",
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh"
