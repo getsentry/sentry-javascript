@@ -88,6 +88,19 @@ interface MongoOptions {
   useMongoose?: boolean;
 }
 
+interface MongoCursor {
+  once(event: 'close', listener: () => void): void;
+}
+
+function isCursor(value: unknown): value is MongoCursor {
+  return (
+    typeof value === 'function' &&
+    value?.constructor?.name.indexOf('Cursor') !== -1 &&
+    'once' in value &&
+    typeof (value as MongoCursor).once === 'function'
+  );
+}
+
 /** Tracing integration for mongo package */
 export class Mongo implements Integration {
   /**
@@ -153,7 +166,7 @@ export class Mongo implements Integration {
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
           const span = parentSpan?.startChild(getSpanContext(this, operation, args));
-          const maybePromise = orig.call(this, ...args) as Promise<unknown>;
+          const maybePromise = orig.call(this, ...args) as Promise<unknown> | MongoCursor;
 
           if (isThenable(maybePromise)) {
             return maybePromise.then((res: unknown) => {
@@ -161,7 +174,13 @@ export class Mongo implements Integration {
               return res;
             });
           } else {
-            span?.finish();
+            if (isCursor(maybePromise)) {
+              maybePromise.once('close', () => {
+                span?.finish();
+              });
+            } else {
+              span?.finish();
+            }
             return maybePromise;
           }
         }
