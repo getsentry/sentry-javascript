@@ -94,8 +94,9 @@ interface MongoCursor {
 
 function isCursor(value: unknown): value is MongoCursor {
   return (
-    typeof value === 'function' &&
-    value?.constructor?.name.indexOf('Cursor') !== -1 &&
+    typeof value === 'object' &&
+    !!value &&
+    value.constructor.name.indexOf('Cursor') !== -1 &&
     'once' in value &&
     typeof (value as MongoCursor).once === 'function'
   );
