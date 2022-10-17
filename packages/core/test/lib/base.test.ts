@@ -8,6 +8,8 @@ import { TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/123';
+// eslint-disable-next-line no-var
+declare var global: any;
 
 const clientEventFromException = jest.spyOn(TestClient.prototype, 'eventFromException');
 const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
@@ -1179,7 +1181,7 @@ describe('BaseClient', () => {
 
   describe('integrations', () => {
     beforeEach(() => {
-      (global as any).__SENTRY__ = {};
+      global.__SENTRY__ = {};
     });
 
     test('setup each one of them on setupIntegration call', () => {

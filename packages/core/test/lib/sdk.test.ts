@@ -5,6 +5,9 @@ import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
+// eslint-disable-next-line no-var
+declare var global: any;
+
 const PUBLIC_DSN = 'https://username@domain/123';
 
 jest.mock('@sentry/core', () => {
@@ -42,7 +45,7 @@ export class MockIntegration implements Integration {
 
 describe('SDK', () => {
   beforeEach(() => {
-    (global as any).__SENTRY__ = {};
+    global.__SENTRY__ = {};
     installedIntegrations.splice(0);
   });
 

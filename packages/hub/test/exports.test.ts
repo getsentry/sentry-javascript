@@ -35,12 +35,12 @@ export function init(options: Record<string, unknown>): void {
   getCurrentHub().bindClient(new TestClient(options) as any);
 }
 
-// @ts-ignore global is defined
-const globalObject: any = global;
+// eslint-disable-next-line no-var
+declare var global: any;
 
 describe('Top Level API', () => {
   beforeEach(() => {
-    globalObject.__SENTRY__ = {
+    global.__SENTRY__ = {
       hub: undefined,
     };
   });
@@ -141,7 +141,7 @@ describe('Top Level API', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: '1234',
       });
       getCurrentHub().popScope();
@@ -154,7 +154,7 @@ describe('Top Level API', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('id', '1234');
       });
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         id: '1234',
       });
       getCurrentHub().popScope();
@@ -165,7 +165,7 @@ describe('Top Level API', () => {
       configureScope((scope: Scope) => {
         scope.setTag('id', '1234');
       });
-      expect(globalObject.__SENTRY__.hub._stack[0].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
         id: '1234',
       });
     });
@@ -177,7 +177,7 @@ describe('Top Level API', () => {
       configureScope((scope: Scope) => {
         scope.setFingerprint(['abcd']);
       });
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['abcd']);
+      expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['abcd']);
     });
 
     test('Level', () => {
@@ -185,7 +185,7 @@ describe('Top Level API', () => {
       const scope = getCurrentHub().pushScope();
       getCurrentHub().bindClient(client);
       scope.setLevel('warning');
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+      expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
     });
   });
 
@@ -193,17 +193,17 @@ describe('Top Level API', () => {
     const client: any = new TestClient({});
     getCurrentHub().withScope(() => {
       getCurrentHub().bindClient(client);
-      expect(globalObject.__SENTRY__.hub._stack.length).toBe(2);
+      expect(global.__SENTRY__.hub._stack.length).toBe(2);
       configureScope((scope: Scope) => {
         scope.setUser({ id: '1234' });
       });
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: '1234',
       });
       configureScope((scope: Scope) => {
         scope.clear();
       });
-      expect(globalObject.__SENTRY__.hub._stack[1].scope._user).toEqual({});
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({});
     });
   });
 
@@ -260,54 +260,54 @@ describe('Top Level API', () => {
         scope2.setFingerprint(['2']);
         withScope(scope3 => {
           scope3.clear();
-          expect(globalObject.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
-          expect(globalObject.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
-          expect(globalObject.__SENTRY__.hub._stack[2].scope._level).toEqual('info');
-          expect(globalObject.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
-          expect(globalObject.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
+          expect(global.__SENTRY__.hub._stack[1].scope._level).toEqual('warning');
+          expect(global.__SENTRY__.hub._stack[1].scope._fingerprint).toEqual(['1']);
+          expect(global.__SENTRY__.hub._stack[2].scope._level).toEqual('info');
+          expect(global.__SENTRY__.hub._stack[2].scope._fingerprint).toEqual(['2']);
+          expect(global.__SENTRY__.hub._stack[3].scope._level).toBeUndefined();
         });
-        expect(globalObject.__SENTRY__.hub._stack).toHaveLength(3);
+        expect(global.__SENTRY__.hub._stack).toHaveLength(3);
       });
-      expect(globalObject.__SENTRY__.hub._stack).toHaveLength(2);
+      expect(global.__SENTRY__.hub._stack).toHaveLength(2);
     });
-    expect(globalObject.__SENTRY__.hub._stack).toHaveLength(1);
+    expect(global.__SENTRY__.hub._stack).toHaveLength(1);
   });
 
   test('setExtras', () => {
     init({});
     setExtras({ a: 'b' });
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ a: 'b' });
   });
 
   test('setTags', () => {
     init({});
     setTags({ a: 'b' });
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   test('setExtra', () => {
     init({});
     setExtra('a', 'b');
     // prettier-ignore
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({ 'a': 'b' });
   });
 
   test('setTag', () => {
     init({});
     setTag('a', 'b');
     // prettier-ignore
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ 'a': 'b' });
   });
 
   test('setUser', () => {
     init({});
     setUser({ id: 'b' });
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({ id: 'b' });
   });
 
   test('setContext', () => {
     init({});
     setContext('test', { id: 'b' });
-    expect(globalObject.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
+    expect(global.__SENTRY__.hub._stack[0].scope._contexts).toEqual({ test: { id: 'b' } });
   });
 });

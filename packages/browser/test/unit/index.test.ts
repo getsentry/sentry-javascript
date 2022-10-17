@@ -21,6 +21,9 @@ import { makeSimpleTransport } from './mocks/simpletransport';
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
+// eslint-disable-next-line no-var
+declare var global: any;
+
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
   return {
@@ -54,7 +57,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect((global as any).__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
@@ -63,7 +66,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect((global as any).__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
@@ -72,7 +75,7 @@ describe('SentryBrowser', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect((global as any).__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -214,22 +217,22 @@ describe('SentryBrowser', () => {
 
 describe('SentryBrowser initialization', () => {
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
-    (global as any).SENTRY_RELEASE = { id: 'foobar' };
+    global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
-    expect((global as any).__SENTRY__.hub._stack[0].client.getOptions().release).toBe('foobar');
-    delete (global as any).SENTRY_RELEASE;
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBe('foobar');
+    delete global.SENTRY_RELEASE;
   });
 
   it('should use initialScope', () => {
     init({ dsn, initialScope: { tags: { a: 'b' } } });
-    expect((global as any).__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope Scope', () => {
     const scope = new Scope();
     scope.setTags({ a: 'b' });
     init({ dsn, initialScope: scope });
-    expect((global as any).__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope callback', () => {
@@ -240,13 +243,13 @@ describe('SentryBrowser initialization', () => {
         return scope;
       },
     });
-    expect((global as any).__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
   });
 
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
-    expect((global as any).__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
+    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
   });
 
   describe('SDK metadata', () => {
