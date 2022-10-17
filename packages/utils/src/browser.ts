@@ -1,5 +1,5 @@
-import { GLOBAL_OBJ } from './worldwide';
 import { isString } from './is';
+import { GLOBAL_OBJ } from './worldwide';
 
 /**
  * TODO: Move me to @sentry/browser when @sentry/utils no longer contains any browser code
