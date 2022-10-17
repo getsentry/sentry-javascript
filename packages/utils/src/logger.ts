@@ -1,6 +1,6 @@
 import { WrappedFunction } from '@sentry/types';
 
-import { getGlobalSingleton, GLOBAL_OBJ } from './global';
+import { getGlobalSingleton, GLOBAL_OBJ } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
