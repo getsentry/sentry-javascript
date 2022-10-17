@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
 
-import { GLOBAL_OBJ } from './global';
+import { GLOBAL_OBJ } from './globalobject';
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';
 

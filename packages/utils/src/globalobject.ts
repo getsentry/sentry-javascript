@@ -1,6 +1,9 @@
 /**
  * NOTE: In order to avoid circular dependencies, if you add a function to this module and it needs to print something,
  * you must either a) use `console.log` rather than the logger, or b) put your function elsewhere.
+ *
+ * Note: This file was originally called `global.ts`, but was changed to unblock users which might be doing
+ * string replaces with bundlers like Vite for `global` (would break imports that rely on importing from utils/src/global).
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
