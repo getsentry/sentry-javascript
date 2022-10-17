@@ -6,7 +6,7 @@ import { extractPathForTransaction } from '@sentry/utils';
 
 import { addRequestDataToEvent, AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
 
-type RequestDataOptions = {
+type RequestDataIntegrationOptions = {
   /**
    * Controls what data is pulled from the request and added to the event
    */
@@ -69,12 +69,12 @@ export class RequestData implements Integration {
    */
   public name: string = RequestData.id;
 
-  private _options: RequestDataOptions;
+  private _options: RequestDataIntegrationOptions;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: Partial<RequestDataOptions> = {}) {
+  public constructor(options: Partial<RequestDataIntegrationOptions> = {}) {
     this._options = {
       ...DEFAULT_OPTIONS,
       ...options,
@@ -154,7 +154,7 @@ export class RequestData implements Integration {
 /** Convert `include` option to match what `addRequestDataToEvent` expects */
 /** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */
 function formatIncludeOption(
-  integrationInclude: RequestDataOptions['include'] = {},
+  integrationInclude: RequestDataIntegrationOptions['include'] = {},
 ): AddRequestDataToEventOptions['include'] {
   const { ip, user, ...requestOptions } = integrationInclude;
 
