@@ -1,6 +1,5 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import * as path from 'path';
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
