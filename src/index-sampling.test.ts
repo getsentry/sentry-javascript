@@ -8,7 +8,7 @@ jest.useFakeTimers({ advanceTimers: true });
 describe('Replay (sampling)', () => {
   it('does nothing if not sampled', async () => {
     const { record: mockRecord } = mockRrweb();
-    const { replay } = mockSdk({
+    const { replay } = await mockSdk({
       replayOptions: { stickySession: true, replaysSamplingRate: 0.0 },
     });
 

@@ -24,7 +24,7 @@ describe('Replay (no sticky)', () => {
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
-  beforeAll(() => {
+  beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest
       .spyOn(SentryUtils, 'addInstrumentationHandler')
@@ -34,7 +34,7 @@ describe('Replay (no sticky)', () => {
         }
       });
 
-    ({ replay } = mockSdk({ replayOptions: { stickySession: false } }));
+    ({ replay } = await mockSdk({ replayOptions: { stickySession: false } }));
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     mockSendReplayRequest.mockImplementation(

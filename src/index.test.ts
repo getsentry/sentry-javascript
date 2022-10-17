@@ -41,7 +41,7 @@ describe('Replay', () => {
 
   jest.spyOn(CaptureInternalException, 'captureInternalException');
 
-  beforeAll(() => {
+  beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest
       .spyOn(SentryUtils, 'addInstrumentationHandler')
@@ -51,7 +51,7 @@ describe('Replay', () => {
         }
       });
 
-    ({ replay } = mockSdk());
+    ({ replay } = await mockSdk());
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     jest.runAllTimers();

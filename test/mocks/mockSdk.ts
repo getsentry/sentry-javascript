@@ -3,7 +3,6 @@ jest.unmock('@sentry/browser');
 import { BrowserOptions, init } from '@sentry/browser';
 import { Transport } from '@sentry/types';
 
-import { Replay } from '../../src';
 import { ReplayConfiguration } from '../../src/types';
 
 interface MockSdkParams {
@@ -36,7 +35,7 @@ class MockTransport implements Transport {
   }
 }
 
-export function mockSdk({
+export async function mockSdk({
   replayOptions = {
     stickySession: true,
     ignoreClass: 'sentry-test-ignore',
@@ -48,6 +47,7 @@ export function mockSdk({
     transport: () => new MockTransport(),
   },
 }: MockSdkParams = {}) {
+  const { Replay } = await import('../../src');
   const replay = new Replay(replayOptions);
 
   init({ ...sentryOptions, integrations: [replay] });

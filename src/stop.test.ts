@@ -22,14 +22,14 @@ describe('Replay - stop', () => {
 
   let mockAddInstrumentationHandler: MockAddInstrumentationHandler;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockAddInstrumentationHandler = jest.spyOn(
       SentryUtils,
       'addInstrumentationHandler'
     ) as MockAddInstrumentationHandler;
 
-    ({ replay } = mockSdk());
+    ({ replay } = await mockSdk());
     jest.spyOn(replay, 'sendReplayRequest');
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     mockSendReplayRequest.mockImplementation(

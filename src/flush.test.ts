@@ -4,6 +4,7 @@ import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
 import { SESSION_IDLE_DURATION } from './session/constants';
 import { createPerformanceEntries } from './createPerformanceEntry';
+import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
 
@@ -12,58 +13,67 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-const prevLocation = window.location;
+type MockSendReplay = jest.MockedFunction<typeof Replay.prototype.sendReplay>;
+type MockAddPerformanceEntries = jest.MockedFunction<
+  typeof Replay.prototype.addPerformanceEntries
+>;
+type MockAddMemoryEntry = jest.MockedFunction<
+  typeof Replay.prototype.addMemoryEntry
+>;
+type MockEventBufferFinish = jest.MockedFunction<
+  Exclude<typeof Replay.prototype.eventBuffer, null>['finish']
+>;
+type MockFlush = jest.MockedFunction<typeof Replay.prototype.flush>;
+type MockRunFlush = jest.MockedFunction<typeof Replay.prototype.runFlush>;
 
+const prevLocation = window.location;
 let domHandler: (args: any) => any;
+
 const { record: mockRecord } = mockRrweb();
 
-jest
-  .spyOn(SentryUtils, 'addInstrumentationHandler')
-  .mockImplementation((type, handler: (args: any) => any) => {
-    if (type === 'dom') {
-      domHandler = handler;
-    }
+let replay: Replay;
+let mockSendReplay: MockSendReplay;
+let mockFlush: MockFlush;
+let mockRunFlush: MockRunFlush;
+let mockEventBufferFinish: MockEventBufferFinish;
+let mockAddMemoryEntry: MockAddMemoryEntry;
+let mockAddPerformanceEntries: MockAddPerformanceEntries;
+
+beforeAll(async () => {
+  jest
+    .spyOn(SentryUtils, 'addInstrumentationHandler')
+    .mockImplementation((type, handler: (args: any) => any) => {
+      if (type === 'dom') {
+        domHandler = handler;
+      }
+    });
+
+  ({ replay } = await mockSdk());
+  jest.spyOn(replay, 'sendReplay');
+  mockSendReplay = replay.sendReplay as MockSendReplay;
+  mockSendReplay.mockImplementation(
+    jest.fn(async () => {
+      return true;
+    })
+  );
+
+  jest.spyOn(replay, 'flush');
+  mockFlush = replay.flush as MockFlush;
+
+  jest.spyOn(replay, 'runFlush');
+  mockRunFlush = replay.runFlush as MockRunFlush;
+
+  jest.spyOn(replay, 'addPerformanceEntries');
+  mockAddPerformanceEntries =
+    replay.addPerformanceEntries as MockAddPerformanceEntries;
+
+  mockAddPerformanceEntries.mockImplementation(async () => {
+    return [];
   });
 
-const { replay } = mockSdk();
-type MockSendReplay = jest.MockedFunction<typeof replay.sendReplay>;
-type MockAddPerformanceEntries = jest.MockedFunction<
-  typeof replay.addPerformanceEntries
->;
-type MockAddMemoryEntry = jest.MockedFunction<typeof replay.addMemoryEntry>;
-type MockEventBufferFinish = jest.MockedFunction<
-  // @ts-expect-error it's not null
-  typeof replay.eventBuffer.finish
->;
-type MockFlush = jest.MockedFunction<typeof replay.flush>;
-type MockRunFlush = jest.MockedFunction<typeof replay.runFlush>;
-
-jest.spyOn(replay, 'sendReplay');
-const mockSendReplay = replay.sendReplay as MockSendReplay;
-mockSendReplay.mockImplementation(
-  jest.fn(async () => {
-    return true;
-  })
-);
-
-jest.spyOn(replay, 'flush');
-const mockFlush = replay.flush as MockFlush;
-
-jest.spyOn(replay, 'runFlush');
-const mockRunFlush = replay.runFlush as MockRunFlush;
-
-jest.spyOn(replay, 'addPerformanceEntries');
-const mockAddPerformanceEntries =
-  replay.addPerformanceEntries as MockAddPerformanceEntries;
-
-mockAddPerformanceEntries.mockImplementation(async () => {
-  return [];
+  jest.spyOn(replay, 'addMemoryEntry');
+  mockAddMemoryEntry = replay.addMemoryEntry as MockAddMemoryEntry;
 });
-
-jest.spyOn(replay, 'addMemoryEntry');
-const mockAddMemoryEntry = replay.addMemoryEntry as MockAddMemoryEntry;
-
-let mockEventBufferFinish: MockEventBufferFinish;
 
 beforeEach(() => {
   jest.runAllTimers();
@@ -75,8 +85,9 @@ beforeEach(() => {
   mockRunFlush.mockClear();
   mockAddMemoryEntry.mockClear();
 
-  // @ts-expect-error blah
-  jest.spyOn(replay.eventBuffer, 'finish');
+  if (replay.eventBuffer) {
+    jest.spyOn(replay.eventBuffer, 'finish');
+  }
   mockEventBufferFinish = replay.eventBuffer?.finish as MockEventBufferFinish;
   mockEventBufferFinish.mockClear();
 });

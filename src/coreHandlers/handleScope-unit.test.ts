@@ -7,8 +7,8 @@ let mockHandleScope: jest.MockedFunction<typeof HandleScope.handleScope>;
 
 jest.useFakeTimers();
 
-beforeAll(function () {
-  const { replay } = mockSdk();
+beforeAll(async function () {
+  const { replay } = await mockSdk();
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;
