@@ -158,7 +158,10 @@ export class RequestData implements Integration {
 function convertReqDataIntegrationOptsToAddReqDataOpts(
   integrationOptions: RequestDataIntegrationOptions,
 ): AddRequestDataToEventOptions {
-  const { ip, user, ...requestOptions } = integrationOptions.include;
+  const {
+    transactionNamingScheme,
+    include: { ip, user, ...requestOptions },
+  } = integrationOptions;
 
   const requestIncludeKeys: string[] = [];
   for (const [key, value] of Object.entries(requestOptions)) {
@@ -187,6 +190,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
       ip,
       user: addReqDataUserOpt,
       request: requestIncludeKeys.length !== 0 ? requestIncludeKeys : undefined,
+      transaction: transactionNamingScheme,
     },
   };
 }
