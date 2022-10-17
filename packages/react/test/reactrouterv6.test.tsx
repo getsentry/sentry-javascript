@@ -6,6 +6,7 @@ import {
   matchRoutes,
   MemoryRouter,
   Navigate,
+  Outlet,
   Route,
   Routes,
   useLocation,
@@ -524,6 +525,97 @@ describe('React Router v6', () => {
         tags: { 'routing.instrumentation': 'react-router-v6' },
         metadata: { source: 'route' },
       });
+    });
+
+    it('does not add double slashes to URLS', () => {
+      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: (
+              <div>
+                <Outlet />
+              </div>
+            ),
+            children: [
+              {
+                path: 'tests',
+                children: [
+                  { index: true, element: <div>Main Test</div> },
+                  { path: ':testId/*', element: <div>Test Component</div> },
+                ],
+              },
+              { path: '/', element: <Navigate to="/home" /> },
+              { path: '*', element: <Navigate to="/404" replace /> },
+            ],
+          },
+          {
+            path: '/',
+            element: <div />,
+            children: [
+              { path: '404', element: <div>Error</div> },
+              { path: '*', element: <Navigate to="/404" replace /> },
+            ],
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/tests']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      // should be /tests not //tests
+      expect(mockSetName).toHaveBeenLastCalledWith('/tests', 'route');
+    });
+
+    it('handles wildcard routes properly', () => {
+      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: (
+              <div>
+                <Outlet />
+              </div>
+            ),
+            children: [
+              {
+                path: 'tests',
+                children: [
+                  { index: true, element: <div>Main Test</div> },
+                  { path: ':testId/*', element: <div>Test Component</div> },
+                ],
+              },
+              { path: '/', element: <Navigate to="/home" /> },
+              { path: '*', element: <Navigate to="/404" replace /> },
+            ],
+          },
+          {
+            path: '/',
+            element: <div />,
+            children: [
+              { path: '404', element: <div>Error</div> },
+              { path: '*', element: <Navigate to="/404" replace /> },
+            ],
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/tests/123']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSetName).toHaveBeenLastCalledWith('/tests/:testId/*', 'route');
     });
   });
 });
