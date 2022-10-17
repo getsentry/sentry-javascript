@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -187,7 +187,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }} || ${{ startsWith(github.ref, 'refs/heads/master/') }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -224,7 +224,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -251,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -279,7 +279,7 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -319,7 +319,7 @@ jobs:
         node: [8, 10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -356,7 +356,7 @@ jobs:
         node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -393,7 +393,7 @@ jobs:
         scenario: [ember-release, ember-beta, ember-classic, ember-lts-3.24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
@@ -451,7 +451,7 @@ jobs:
             tracing_only: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -491,7 +491,7 @@ jobs:
           - WebkitHeadless
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -524,7 +524,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -561,7 +561,7 @@ jobs:
         node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -596,7 +596,7 @@ jobs:
         node: [14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -628,7 +628,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
