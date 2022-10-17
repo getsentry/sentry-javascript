@@ -3,9 +3,6 @@ import { Integration } from '@sentry/types';
 import { init } from '../src/sdk';
 import * as sdk from '../src/sdk';
 
-// eslint-disable-next-line no-var
-declare var global: any;
-
 const PUBLIC_DSN = 'https://username@domain/123';
 
 class MockIntegration implements Integration {
@@ -20,7 +17,7 @@ const defaultIntegrationsBackup = sdk.defaultIntegrations;
 
 describe('init()', () => {
   beforeEach(() => {
-    global.__SENTRY__ = {};
+    (global as any).__SENTRY__ = {};
   });
 
   afterEach(() => {

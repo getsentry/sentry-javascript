@@ -28,9 +28,6 @@ jest.mock('@sentry/core', () => {
 
 const dsn = 'https://53039209a22b4ec1bcc296a3c9fdecd6@sentry.io/4291';
 
-// eslint-disable-next-line no-var
-declare var global: any;
-
 describe('SentryNode', () => {
   beforeAll(() => {
     init({ dsn });
@@ -50,7 +47,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setExtra('abc', { def: [1] });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._extra).toEqual({
+      expect((global as any).__SENTRY__.hub._stack[1].scope._extra).toEqual({
         abc: { def: [1] },
       });
     });
@@ -59,7 +56,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setTag('abc', 'def');
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._tags).toEqual({
+      expect((global as any).__SENTRY__.hub._stack[1].scope._tags).toEqual({
         abc: 'def',
       });
     });
@@ -68,7 +65,7 @@ describe('SentryNode', () => {
       configureScope((scope: Scope) => {
         scope.setUser({ id: 'def' });
       });
-      expect(global.__SENTRY__.hub._stack[1].scope._user).toEqual({
+      expect((global as any).__SENTRY__.hub._stack[1].scope._user).toEqual({
         id: 'def',
       });
     });
@@ -351,11 +348,11 @@ describe('SentryNode initialization', () => {
   });
 
   test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
-    global.SENTRY_RELEASE = { id: 'foobar' };
+    (global as any).SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
+    expect((global as any).__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
     // Unsure if this is needed under jest.
-    global.SENTRY_RELEASE = undefined;
+    (global as any).SENTRY_RELEASE = undefined;
   });
 
   describe('SDK metadata', () => {
