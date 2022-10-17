@@ -8,7 +8,6 @@ import * as path from 'path';
 import deepMerge from 'deepmerge';
 
 import {
-  makeConstToVarPlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
   makeCleanupPlugin,
@@ -30,7 +29,6 @@ export function makeBaseNPMConfig(options = {}) {
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const constToVarPlugin = makeConstToVarPlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
 
@@ -81,7 +79,6 @@ export function makeBaseNPMConfig(options = {}) {
       nodeResolvePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
-      constToVarPlugin,
       cleanupPlugin,
       extractPolyfillsPlugin,
     ],
