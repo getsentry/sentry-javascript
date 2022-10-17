@@ -10,7 +10,7 @@ type RequestDataIntegrationOptions = {
   /**
    * Controls what data is pulled from the request and added to the event
    */
-  include: {
+  include?: {
     cookies?: boolean;
     data?: boolean;
     headers?: boolean;
@@ -27,7 +27,7 @@ type RequestDataIntegrationOptions = {
   };
 
   /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
-  transactionNamingScheme: TransactionNamingScheme;
+  transactionNamingScheme?: TransactionNamingScheme;
 };
 
 const DEFAULT_OPTIONS = {
@@ -67,12 +67,12 @@ export class RequestData implements Integration {
    */
   protected _addRequestData: (event: Event, req: PolymorphicRequest, options?: { [key: string]: unknown }) => Event;
 
-  private _options: RequestDataIntegrationOptions;
+  private _options: Required<RequestDataIntegrationOptions>;
 
   /**
    * @inheritDoc
    */
-  public constructor(options: Partial<RequestDataIntegrationOptions> = {}) {
+  public constructor(options: RequestDataIntegrationOptions = {}) {
     this._addRequestData = addRequestDataToEvent;
     this._options = {
       ...DEFAULT_OPTIONS,
@@ -155,7 +155,7 @@ export class RequestData implements Integration {
 /** Convert this integration's options to match what `addRequestDataToEvent` expects */
 /** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */
 function convertReqDataIntegrationOptsToAddReqDataOpts(
-  integrationOptions: RequestDataIntegrationOptions,
+  integrationOptions: Required<RequestDataIntegrationOptions>,
 ): AddRequestDataToEventOptions {
   const {
     transactionNamingScheme,
