@@ -118,9 +118,6 @@ function addServerIntegrations(options: NextjsOptions): void {
   });
   integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
-  const defaultRequestDataIntegration = new Integrations.RequestData();
-  integrations = addOrUpdateIntegration(defaultRequestDataIntegration, integrations);
-
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
