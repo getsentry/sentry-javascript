@@ -99,7 +99,7 @@ describe('NewFetchTransport', () => {
     });
   });
 
-  it.only('handles when `getNativeFetchImplementation` is undefined', async () => {
+  it('handles when `getNativeFetchImplementation` is undefined', async () => {
     const mockFetch = jest.fn(() => undefined) as unknown as FetchImpl;
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 

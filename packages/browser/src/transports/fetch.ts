@@ -1,5 +1,6 @@
 import { createTransport } from '@sentry/core';
 import { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import { rejectedSyncPromise } from '@sentry/utils';
 
 import { BrowserTransportOptions } from './types';
 import { FetchImpl, getNativeFetchImplementation } from './utils';
@@ -30,13 +31,17 @@ export function makeFetchTransport(
       ...options.fetchOptions,
     };
 
-    return nativeFetch(options.url, requestOptions).then(response => ({
-      statusCode: response.status,
-      headers: {
-        'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-        'retry-after': response.headers.get('Retry-After'),
-      },
-    }));
+    try {
+      return nativeFetch(options.url, requestOptions).then(response => ({
+        statusCode: response.status,
+        headers: {
+          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+          'retry-after': response.headers.get('Retry-After'),
+        },
+      }));
+    } catch (e) {
+      return rejectedSyncPromise(e);
+    }
   }
 
   return createTransport(options, makeRequest);
