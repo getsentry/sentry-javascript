@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from '../src/globalobject';
+import { GLOBAL_OBJ } from '../src/worldwide';
 
 describe('GLOBAL_OBJ', () => {
   test('should return the same object', () => {

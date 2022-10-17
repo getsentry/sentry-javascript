@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from './globalobject';
+import { GLOBAL_OBJ } from './worldwide';
 import { isString } from './is';
 
 /**
