@@ -26,12 +26,16 @@ Sentry.init({
     if (event.message === 'inside') {
       if (event.tags.a !== 'x' && event.tags.b !== 'c') {
         console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
+        console.log(colorize(`Got: ${JSON.stringify(event.tags)}\n`, 'red'));
+        console.log(colorize(`Expected: Object including { a: 'x', b: 'c' }\n`, 'red'));
         process.exit(1);
       }
     }
     if (event.message === 'outside') {
       if (event.tags.a !== 'b') {
         console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
+        console.log(colorize(`Got: ${JSON.stringify(event.tags)}\n`, 'red'));
+        console.log(colorize(`Expected: Object including { a: 'b' }\n`, 'red'));
         process.exit(1);
       }
     }
