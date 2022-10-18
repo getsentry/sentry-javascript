@@ -1,7 +1,6 @@
 # dependencies
 node_modules/
 packages/*/package-lock.json
-packages/**/test/**/yarn.lock
 package-lock.json
 
 # build and test
