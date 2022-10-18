@@ -23,7 +23,7 @@ export type NextConfigFunctionWithSentry = (
 
 export type NextConfigObject = {
   // Custom webpack options
-  webpack?: WebpackConfigFunction;
+  webpack?: WebpackConfigFunction | null;
   // Whether to build serverless functions for all pages, not just API routes. Removed in nextjs 12+.
   target?: 'server' | 'experimental-serverless-trace';
   // The output directory for the built app (defaults to ".next")
@@ -93,8 +93,13 @@ export type BuildContext = {
   isServer: boolean;
   buildId: string;
   dir: string;
-  config: NextConfigObject;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any;
   webpack: { version: string };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  defaultLoaders: any;
+  totalPages: number;
+  nextRuntime?: 'nodejs' | 'edge';
 };
 
 /**

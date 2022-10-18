@@ -410,7 +410,9 @@ export function getWebpackPluginOptions(
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, webpack, config: userNextConfig, dev: isDev, dir: projectDir } = buildContext;
+  const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
+  const userNextConfig = config as NextConfigObject;
+
   const distDir = userNextConfig.distDir ?? '.next'; // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
