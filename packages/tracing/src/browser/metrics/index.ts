@@ -5,9 +5,9 @@ import { browserPerformanceTimeOrigin, htmlTreeAsString, logger, WINDOW } from '
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
-import { getCLS, LayoutShift } from '../web-vitals/getCLS';
-import { getFID } from '../web-vitals/getFID';
-import { getLCP, LargestContentfulPaint } from '../web-vitals/getLCP';
+import { onCLS } from '../web-vitals/getCLS';
+import { onFID } from '../web-vitals/getFID';
+import { onLCP } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe, PerformanceEntryHandler } from '../web-vitals/lib/observe';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
@@ -65,7 +65,7 @@ function _trackCLS(): void {
   // See:
   // https://web.dev/evolving-cls/
   // https://web.dev/cls-web-tooling/
-  getCLS(metric => {
+  onCLS(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -79,21 +79,24 @@ function _trackCLS(): void {
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
 function _trackLCP(reportAllChanges: boolean): void {
-  getLCP(metric => {
-    const entry = metric.entries.pop();
-    if (!entry) {
-      return;
-    }
+  onLCP(
+    metric => {
+      const entry = metric.entries.pop();
+      if (!entry) {
+        return;
+      }
 
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
-    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-    _lcpEntry = entry as LargestContentfulPaint;
-  }, reportAllChanges);
+      __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
+      _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+      _lcpEntry = entry as LargestContentfulPaint;
+    },
+    { reportAllChanges },
+  );
 }
 
 /** Starts tracking the First Input Delay on the current page. */
 function _trackFID(): void {
-  getFID(metric => {
+  onFID(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;

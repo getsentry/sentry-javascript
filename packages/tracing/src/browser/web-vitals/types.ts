@@ -14,36 +14,35 @@
  * limitations under the License.
  */
 
-export interface Metric {
-  // The name of the metric (in acronym form).
-  name: 'CLS' | 'FCP' | 'FID' | 'LCP' | 'TTFB' | 'UpdatedCLS';
+import { FirstInputPolyfillCallback } from './types/polyfills';
 
-  // The current value of the metric.
-  value: number;
+export * from './types/base';
+export * from './types/polyfills';
 
-  // The delta between the current value and the last-reported value.
-  // On the first report, `delta` and `value` will always be the same.
-  delta: number;
+export * from './types/cls';
+export * from './types/fid';
+export * from './types/lcp';
 
-  // A unique ID representing this particular metric instance. This ID can
-  // be used by an analytics tool to dedupe multiple values sent for the same
-  // metric instance, or to group multiple deltas together and calculate a
-  // total. It can also be used to differentiate multiple different metric
-  // instances sent from the same page, which can happen if the page is
-  // restored from the back/forward cache (in that case new metrics object
-  // get created).
-  id: string;
+// --------------------------------------------------------------------------
+// Web Vitals package globals
+// --------------------------------------------------------------------------
 
-  // Any performance entries used in the metric value calculation.
-  // Note, entries will be added to the array as the value changes.
-  entries: (PerformanceEntry | FirstInputPolyfillEntry | NavigationTimingPolyfillEntry)[];
+export interface WebVitalsGlobal {
+  firstInputPolyfill: (onFirstInput: FirstInputPolyfillCallback) => void;
+  resetFirstInputPolyfill: () => void;
+  firstHiddenTime: number;
 }
 
-export interface ReportHandler {
-  (metric: Metric): void;
+declare global {
+  interface Window {
+    webVitals: WebVitalsGlobal;
+
+    // Build flags:
+    __WEB_VITALS_POLYFILL__: boolean;
+  }
 }
 
-// https://wicg.github.io/event-timing/#sec-performance-event-timing
+export type PerformancePaintTiming = PerformanceEntry;
 export interface PerformanceEventTiming extends PerformanceEntry {
   processingStart: DOMHighResTimeStamp;
   processingEnd: DOMHighResTimeStamp;
@@ -52,13 +51,16 @@ export interface PerformanceEventTiming extends PerformanceEntry {
   target?: Element;
 }
 
-export type FirstInputPolyfillEntry = Omit<PerformanceEventTiming, 'processingEnd' | 'toJSON'>;
+// --------------------------------------------------------------------------
+// Everything below is modifications to built-in modules.
+// --------------------------------------------------------------------------
 
-export interface FirstInputPolyfillCallback {
-  (entry: FirstInputPolyfillEntry): void;
+interface PerformanceEntryMap {
+  navigation: PerformanceNavigationTiming;
+  resource: PerformanceResourceTiming;
+  paint: PerformancePaintTiming;
 }
 
-// http://wicg.github.io/netinfo/#navigatornetworkinformation-interface
 export interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
 }
@@ -108,17 +110,54 @@ export type NavigationTimingPolyfillEntry = Omit<
   | 'toJSON'
 >;
 
-export interface WebVitalsGlobal {
-  firstInputPolyfill: (onFirstInput: FirstInputPolyfillCallback) => void;
-  resetFirstInputPolyfill: () => void;
-  firstHiddenTime: number;
-}
-
+// Update built-in types to be more accurate.
 declare global {
-  interface Window {
-    webVitals: WebVitalsGlobal;
+  // https://wicg.github.io/nav-speculation/prerendering.html#document-prerendering
+  interface Document {
+    prerendering?: boolean;
+  }
 
-    // Build flags:
-    __WEB_VITALS_POLYFILL__: boolean;
+  interface Performance {
+    getEntriesByType<K extends keyof PerformanceEntryMap>(type: K): PerformanceEntryMap[K][];
+  }
+
+  // https://w3c.github.io/event-timing/#sec-modifications-perf-timeline
+  interface PerformanceObserverInit {
+    durationThreshold?: number;
+  }
+
+  // https://wicg.github.io/nav-speculation/prerendering.html#performance-navigation-timing-extension
+  interface PerformanceNavigationTiming {
+    activationStart?: number;
+  }
+
+  // https://wicg.github.io/event-timing/#sec-performance-event-timing
+  interface PerformanceEventTiming extends PerformanceEntry {
+    duration: DOMHighResTimeStamp;
+    interactionId?: number;
+  }
+
+  // https://wicg.github.io/layout-instability/#sec-layout-shift-attribution
+  interface LayoutShiftAttribution {
+    node?: Node;
+    previousRect: DOMRectReadOnly;
+    currentRect: DOMRectReadOnly;
+  }
+
+  // https://wicg.github.io/layout-instability/#sec-layout-shift
+  interface LayoutShift extends PerformanceEntry {
+    value: number;
+    sources: LayoutShiftAttribution[];
+    hadRecentInput: boolean;
+  }
+
+  // https://w3c.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
+  interface LargestContentfulPaint extends PerformanceEntry {
+    renderTime: DOMHighResTimeStamp;
+    loadTime: DOMHighResTimeStamp;
+    size: number;
+    id: string;
+    url: string;
+    element?: Element;
   }
 }
