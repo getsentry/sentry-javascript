@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import {FirstInputPolyfillEntry, NavigationTimingPolyfillEntry} from './polyfills.js';
-
+import { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry } from './polyfills';
 
 export interface Metric {
   /**
@@ -65,7 +64,7 @@ export interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType:  'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender';
+  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender';
 }
 
 /**
@@ -77,7 +76,7 @@ export interface MetricWithAttribution extends Metric {
    * can be sent along with the metric value for the current page visit in
    * order to help identify issues happening to real-users in the field.
    */
-  attribution: {[key: string]: unknown};
+  attribution: { [key: string]: unknown };
 }
 
 export interface ReportCallback {

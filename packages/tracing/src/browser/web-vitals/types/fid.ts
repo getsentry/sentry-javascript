@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import {LoadState, Metric, ReportCallback} from './base.js';
-import {FirstInputPolyfillEntry} from './polyfills.js';
-
+import { LoadState, Metric, ReportCallback } from './base';
+import { FirstInputPolyfillEntry } from './polyfills';
 
 /**
  * An FID-specific version of the Metric object.
@@ -50,7 +49,7 @@ export interface FIDAttribution {
    * The `PerformanceEventTiming` entry corresponding to FID (or the
    * polyfill entry in browsers that don't support Event Timing).
    */
-  eventEntry: PerformanceEventTiming | FirstInputPolyfillEntry,
+  eventEntry: PerformanceEventTiming | FirstInputPolyfillEntry;
   /**
    * The loading state of the document at the time when the first interaction
    * occurred (see `LoadState` for details). If the first interaction occurred
