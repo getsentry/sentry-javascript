@@ -1,7 +1,9 @@
 import * as SentryBrowser from '@sentry/browser';
+import { Transaction } from '@sentry/types';
 
 import { vueRouterInstrumentation } from '../src';
 import { Route } from '../src/router';
+import * as vueTracing from '../src/tracing';
 
 const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
 
@@ -74,13 +76,12 @@ describe('vueRouterInstrumentation()', () => {
   });
 
   it.each([
-    ['initialPageloadRoute', 'normalRoute1', 'pageload', '/books/:bookId/chapter/:chapterId', 'route'],
-    ['normalRoute1', 'normalRoute2', 'navigation', '/accounts/:accountId', 'route'],
-    ['normalRoute2', 'namedRoute', 'navigation', 'login-screen', 'custom'],
-    ['normalRoute2', 'unmatchedRoute', 'navigation', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
+    ['normalRoute1', 'normalRoute2', '/accounts/:accountId', 'route'],
+    ['normalRoute2', 'namedRoute', 'login-screen', 'custom'],
+    ['normalRoute2', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
-    'should return instrumentation that instruments VueRouter.beforeEach(%s, %s)',
-    (fromKey, toKey, op, transactionName, transactionSource) => {
+    'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for navigations',
+    (fromKey, toKey, transactionName, transactionSource) => {
       // create instrumentation
       const instrument = vueRouterInstrumentation(mockVueRouter);
 
@@ -95,7 +96,8 @@ describe('vueRouterInstrumentation()', () => {
       const to = testRoutes[toKey];
       beforeEachCallback(to, from, mockNext);
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      // first startTx call happens when the instrumentation is initialized (for pageloads)
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
       expect(mockStartTransaction).toHaveBeenCalledWith({
         name: transactionName,
         metadata: {
@@ -105,11 +107,62 @@ describe('vueRouterInstrumentation()', () => {
           params: to.params,
           query: to.query,
         },
-        op: op,
+        op: 'navigation',
         tags: {
           'routing.instrumentation': 'vue-router',
         },
       });
+
+      expect(mockNext).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    ['initialPageloadRoute', 'normalRoute1', '/books/:bookId/chapter/:chapterId', 'route'],
+    ['initialPageloadRoute', 'namedRoute', 'login-screen', 'custom'],
+    ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
+  ])(
+    'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
+    (fromKey, toKey, _transactionName, _transactionSource) => {
+      const mockedTxn = {
+        setName: jest.fn(),
+        setData: jest.fn(),
+      };
+      const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
+        return mockedTxn;
+      });
+      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+
+      // create instrumentation
+      const instrument = vueRouterInstrumentation(mockVueRouter);
+
+      // instrument
+      instrument(customMockStartTxn, true, true);
+
+      // check for transaction start
+      expect(customMockStartTxn).toHaveBeenCalledTimes(1);
+      expect(customMockStartTxn).toHaveBeenCalledWith({
+        name: '/',
+        metadata: {
+          source: 'url',
+        },
+        op: 'pageload',
+        tags: {
+          'routing.instrumentation': 'vue-router',
+        },
+      });
+
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+      const from = testRoutes[fromKey];
+      const to = testRoutes[toKey];
+
+      beforeEachCallback(to, from, mockNext);
+      expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
+
+      expect(mockedTxn.setName).toHaveBeenCalledWith(_transactionName, _transactionSource);
+      expect(mockedTxn.setData).toHaveBeenNthCalledWith(1, 'params', to.params);
+      expect(mockedTxn.setData).toHaveBeenNthCalledWith(2, 'query', to.query);
 
       expect(mockNext).toHaveBeenCalledTimes(1);
     },
@@ -148,7 +201,7 @@ describe('vueRouterInstrumentation()', () => {
       // create instrumentation
       const instrument = vueRouterInstrumentation(mockVueRouter);
 
-      // instrument
+      // instrument (this will call startTrransaction once for pageloads but we can ignore that)
       instrument(mockStartTransaction, true, startTransactionOnLocationChange);
 
       // check
@@ -157,7 +210,7 @@ describe('vueRouterInstrumentation()', () => {
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
       beforeEachCallback(testRoutes['normalRoute2'], testRoutes['normalRoute1'], mockNext);
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(expectedCallsAmount);
+      expect(mockStartTransaction).toHaveBeenCalledTimes(expectedCallsAmount + 1);
     },
   );
 });

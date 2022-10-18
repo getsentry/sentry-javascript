@@ -1,5 +1,8 @@
 import { captureException } from '@sentry/browser';
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import { WINDOW } from '@sentry/utils';
+
+import { getActiveTransaction } from './tracing';
 
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -31,7 +34,7 @@ interface VueRouter {
 }
 
 /**
- * Creates routing instrumentation for Vue Router v2
+ * Creates routing instrumentation for Vue Router v2, v3 and v4
  *
  * @param router The Vue Router instance that is used
  */
@@ -41,6 +44,23 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
     startTransactionOnPageLoad: boolean = true,
     startTransactionOnLocationChange: boolean = true,
   ) => {
+    const tags = {
+      'routing.instrumentation': 'vue-router',
+    };
+
+    // We have to start the pageload transaction as early as possible (before the router's `beforeEach` hook
+    // is called) to not miss child spans of the pageload.
+    if (startTransactionOnPageLoad) {
+      startTransaction({
+        name: WINDOW.location.pathname,
+        op: 'pageload',
+        tags,
+        metadata: {
+          source: 'url',
+        },
+      });
+    }
+
     router.onError(error => captureException(error));
 
     router.beforeEach((to, from, next) => {
@@ -54,9 +74,6 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
       const isPageLoadNavigation = from.name == null && from.matched.length === 0;
 
-      const tags = {
-        'routing.instrumentation': 'vue-router',
-      };
       const data = {
         params: to.params,
         query: to.query,
@@ -74,15 +91,12 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       }
 
       if (startTransactionOnPageLoad && isPageLoadNavigation) {
-        startTransaction({
-          name: transactionName,
-          op: 'pageload',
-          tags,
-          data,
-          metadata: {
-            source: transactionSource,
-          },
-        });
+        const pageloadTransaction = getActiveTransaction();
+        if (pageloadTransaction) {
+          pageloadTransaction.setName(transactionName, transactionSource);
+          pageloadTransaction.setData('params', data.params);
+          pageloadTransaction.setData('query', data.query);
+        }
       }
 
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
