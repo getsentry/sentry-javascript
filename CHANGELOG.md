@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.16.0
+
+This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.
+
+- feat(node): Export Span type from `@sentry/types` (#5982)
+- feat(svelte): Add `withSentryConfig` function to wrap User Svelte Configuration (#5936)
+- fix(nextjs): Correctly apply auto-instrumentation to pages in `src` folder (#5984)
+- fix(node): Improve logging in express scope tag match test (#5977)
+- fix(remix): Add yargs dependency for uploading sourcemaps (#5926)
+- fix(svelte): Track components without script tags (#5957)
+- fix(utils): Rename `global.ts` -> `worldwide.ts` (#5969)
+- fix(vue): Start pageload transaction earlier to capture missing spans (#5983)
+- ref(browser): Remove `getGlobalObject()` usage from `@sentry/browser` (#5884)
+- ref(build): Remove `constToVarPlugin` (#5970)
+- ref(core): Remove `getGlobalObject()` usage from `@sentry/core` (#5914)
+- ref(nextjs): Don't assert existance of `pageProps` in `_app` (#5945)
+- ref(tracing): Remove `getGlobalObject()` usage from `@sentry/tracing`  (#5885)
+- ref(utils): Deprecate `getGlobalObject` as it's no longer used (#5949)
+- ref(utils): Remove `getGlobalObject()` usage from `@sentry/node` and `integrations` (#5947)
+- ref(utils): Remove `getGlobalObject()` usage from all framework specific SDKs (#5948)
+- ref(utils): Remove `getGlobalObject` usage from utils (#5831)
+
+Work in this release contributed by @jeengbe. Thank you for your contribution!
+
 ## 7.15.0
 
 This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
