@@ -1,7 +1,7 @@
 // TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
 // now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
 
-import { EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction } from '@sentry/utils';
 
 import { addRequestDataToEvent, AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
@@ -28,18 +28,9 @@ type RequestDataIntegrationOptions = {
 
   /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
   transactionNamingScheme: TransactionNamingScheme;
-
-  /**
-   * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
-   * left injectable so this integration can be moved to `@sentry/core` and used in browser-based SDKs in the future.
-   *
-   * @hidden
-   */
-  addRequestData: typeof addRequestDataToEvent;
 };
 
 const DEFAULT_OPTIONS = {
-  addRequestData: addRequestDataToEvent,
   include: {
     cookies: true,
     data: true,
@@ -69,12 +60,20 @@ export class RequestData implements Integration {
    */
   public name: string = RequestData.id;
 
+  /**
+   * Function for adding request data to event. Defaults to `addRequestDataToEvent` from `@sentry/node` for now, but
+   * left as a property so this integration can be moved to `@sentry/core` as a base class in case we decide to use
+   * something similar in browser-based SDKs in the future.
+   */
+  protected _addRequestData: (event: Event, req: PolymorphicRequest, options?: { [key: string]: unknown }) => Event;
+
   private _options: RequestDataIntegrationOptions;
 
   /**
    * @inheritDoc
    */
   public constructor(options: Partial<RequestDataIntegrationOptions> = {}) {
+    this._addRequestData = addRequestDataToEvent;
     this._options = {
       ...DEFAULT_OPTIONS,
       ...options,
@@ -104,7 +103,7 @@ export class RequestData implements Integration {
     // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
     // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
     // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
-    const { addRequestData, transactionNamingScheme } = this._options;
+    const { transactionNamingScheme } = this._options;
 
     addGlobalEventProcessor(event => {
       const hub = getCurrentHub();
@@ -119,7 +118,7 @@ export class RequestData implements Integration {
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
 
-      const processedEvent = addRequestData(event, req, addRequestDataOptions);
+      const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
 
       // Transaction events already have the right `transaction` value
       if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
