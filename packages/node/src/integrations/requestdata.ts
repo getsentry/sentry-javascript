@@ -6,7 +6,7 @@ import { extractPathForTransaction } from '@sentry/utils';
 
 import { addRequestDataToEvent, AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
 
-type RequestDataIntegrationOptions = {
+export type RequestDataIntegrationOptions = {
   /**
    * Controls what data is pulled from the request and added to the event
    */
