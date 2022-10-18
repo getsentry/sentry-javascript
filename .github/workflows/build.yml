@@ -431,6 +431,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: true
       matrix:
         bundle:
           - esm
