@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
@@ -74,11 +74,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
@@ -87,7 +87,7 @@ jobs:
         id: compute_lockfile_hash
         run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache_dependencies
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
@@ -105,21 +105,21 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           # ember won't build under node 16, at least not with the versions of the ember build tools we use
           node-version: '14'
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache_built_packages
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
@@ -144,20 +144,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -187,23 +187,23 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }} || ${{ startsWith(github.ref, 'refs/heads/master/') }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # `master`. We can't change this without making changes to the action, so we'll
           # use Node 14 for now.
           node-version: '14'
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -224,20 +224,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -251,20 +251,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -279,20 +279,20 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -319,20 +319,20 @@ jobs:
         node: [8, 10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -356,20 +356,20 @@ jobs:
         node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -393,7 +393,7 @@ jobs:
         scenario: [ember-release, ember-beta, ember-classic, ember-lts-3.24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
@@ -402,7 +402,7 @@ jobs:
           # well, we can pull it out.
           fetch-depth: 0
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
           # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
@@ -410,12 +410,12 @@ jobs:
           # tests in our Node matrix above.
           node-version: '10'
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -451,20 +451,20 @@ jobs:
             tracing_only: false
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -491,20 +491,20 @@ jobs:
           - WebkitHeadless
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -524,20 +524,20 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -561,20 +561,20 @@ jobs:
         node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -596,20 +596,20 @@ jobs:
         node: [14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -628,20 +628,20 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
