@@ -5,11 +5,11 @@ import { browserPerformanceTimeOrigin, htmlTreeAsString, logger, WINDOW } from '
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
+import { onCLS } from '../web-vitals/getCLS';
+import { onFID } from '../web-vitals/getFID';
+import { onLCP } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe, PerformanceEntryHandler } from '../web-vitals/lib/observe';
-import { onCLS } from '../web-vitals/onCLS';
-import { onFID } from '../web-vitals/onFID';
-import { onLCP } from '../web-vitals/onLCP';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
