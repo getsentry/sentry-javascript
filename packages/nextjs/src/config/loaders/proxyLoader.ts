@@ -68,9 +68,21 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
   }
 
   const resourceFilename = path.basename(this.resourcePath);
+
+  // For some reason when using virtual files (via the @rollup/plugin-virtual), rollup will always resolve imports with
+  // absolute imports to relative imports with `..`.In our case we need`.`, which is why we're replacing for that here.
   proxyCode = proxyCode.replace(
     new RegExp(`'../${escapeStringForRegex(resourceFilename)}'`, 'g'),
-    `'./${resourceFilename}?__sentry_wrapped__'`,
+    `'./${resourceFilename}'`,
+  );
+
+  // Add a query string onto all references to the wrapped file, so that webpack will consider it different from the
+  // non-query-stringged version (which we're already in the middle of loading as we speak), and load it separately from
+  // this. When the second load happens this loader will run again, but we'll be able to see the query string and will
+  // know to immediately return without processing. This avoids an infinite loop.
+  proxyCode = proxyCode.replace(
+    new RegExp(`/${escapeStringForRegex(resourceFilename)}'`, 'g'),
+    `/${resourceFilename}?__sentry_wrapped__'`,
   );
 
   return proxyCode;

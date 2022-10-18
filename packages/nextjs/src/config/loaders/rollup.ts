@@ -7,7 +7,7 @@ import { rollup } from 'rollup';
 
 const SENTRY_PROXY_MODULE_NAME = 'sentry-proxy-module';
 
-const getRollupInputOptions = (resourcePath: string, proxyTemplateCode: string): RollupInputOptions => ({
+const getRollupInputOptions = (userModulePath: string, proxyTemplateCode: string): RollupInputOptions => ({
   input: SENTRY_PROXY_MODULE_NAME,
 
   plugins: [
@@ -24,7 +24,7 @@ const getRollupInputOptions = (resourcePath: string, proxyTemplateCode: string):
   // otherwise they won't be processed. (We need Rollup to process the former so that we can use the code, and we need
   // it to process the latter so it knows what exports to re-export from the proxy module.) Past that, we don't care, so
   // don't bother to process anything else.
-  external: importPath => importPath !== SENTRY_PROXY_MODULE_NAME && importPath !== resourcePath,
+  external: importPath => importPath !== SENTRY_PROXY_MODULE_NAME && importPath !== userModulePath,
 
   // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
   // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -65,19 +65,19 @@ const rollupOutputOptions: RollupOutputOptions = {
  * '<wrapped file>'` call into individual exports (which nextjs seems to need).
  *
  * @param tempProxyFilePath The path to the temporary file containing the proxy module code
- * @param resourcePath The path to the file being wrapped
+ * @param userModulePath The path to the file being wrapped
  * @returns The processed proxy module code, or undefined if an error occurs
  */
-export async function rollupize(resourcePath: string, templateCode: string): Promise<string | undefined> {
+export async function rollupize(userModulePath: string, templateCode: string): Promise<string | undefined> {
   let finalBundle;
 
   try {
-    const intermediateBundle = await rollup(getRollupInputOptions(resourcePath, templateCode));
+    const intermediateBundle = await rollup(getRollupInputOptions(userModulePath, templateCode));
     finalBundle = await intermediateBundle.generate(rollupOutputOptions);
   } catch (err) {
     __DEBUG_BUILD__ &&
       logger.warn(
-        `Could not wrap ${resourcePath}. An error occurred while processing the proxy module template:\n${err}`,
+        `Could not wrap ${userModulePath}. An error occurred while processing the proxy module template:\n${err}`,
       );
     return undefined;
   }
@@ -91,7 +91,7 @@ export async function rollupize(resourcePath: string, templateCode: string): Pro
   // square brackets into underscores. Further, Rollup adds file extensions to bare-path-type import and export sources.
   // Because it assumes that everything will have already been processed, it always uses `.js` as the added extension.
   // We need to restore the original name and extension so that Webpack will be able to find the wrapped file.
-  const resourceFilename = path.basename(resourcePath);
+  const resourceFilename = path.basename(userModulePath);
   const mutatedResourceFilename = resourceFilename
     // `[\\[\\]]` is the character class containing `[` and `]`
     .replace(new RegExp('[\\[\\]]', 'g'), '_')
