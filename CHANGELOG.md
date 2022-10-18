@@ -11,6 +11,8 @@ This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces 
 - feat(node): Export Span type from `@sentry/types` (#5982)
 - feat(svelte): Add `withSentryConfig` function to wrap User Svelte Configuration (#5936)
 - fix(nextjs): Correctly apply auto-instrumentation to pages in `src` folder (#5984)
+- fix(nextjs): Fix typing issue with `withSentryConfig` and `NextConfig` (#5967)
+- fix(react): Support root and wildcard routes in react router v6 (#5971)
 - fix(remix): Add yargs dependency for uploading sourcemaps (#5926)
 - fix(svelte): Track components without script tags (#5957)
 - fix(utils): Rename `global.ts` -> `worldwide.ts` (#5969)
