@@ -10,10 +10,6 @@ import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
 
-import {
-  captureReplayEvent,
-  CaptureReplayEventParams,
-} from './api/captureReplayEvent';
 import { getBreadcrumbHandler } from './coreHandlers/getBreadcrumbHandler';
 import { getSpanHandler } from './coreHandlers/getSpanHandler';
 import {
@@ -48,7 +44,7 @@ import type {
   ReplayConfiguration,
   ReplayEventContext,
   ReplayPluginOptions,
-  ReplayRequest,
+  SendReplayRequest,
 } from './types';
 
 /**
@@ -889,14 +885,7 @@ export class Replay implements Integration {
   /**
    * Return and clear context
    */
-  popEventContext({
-    timestamp,
-  }: {
-    timestamp: number;
-  }): Omit<
-    CaptureReplayEventParams,
-    'includeReplayStartTimestamp' | 'segmentId' | 'replayId'
-  > {
+  popEventContext() {
     const initialState = this.initialState;
     if (
       this.initialState &&
@@ -908,7 +897,6 @@ export class Replay implements Integration {
 
     const context = {
       initialState,
-      timestamp,
       errorIds: Array.from(this.context.errorIds).filter(Boolean),
       traceIds: Array.from(this.context.traceIds).filter(Boolean),
       urls: this.context.urls,
@@ -960,12 +948,9 @@ ${stack.slice(1).join('\n')}`,
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
-      await this.sendReplay(replayId, recordingData, segmentId);
-
-      // The below will only happen after successfully sending replay //
-      captureReplayEvent({
-        ...this.popEventContext({ timestamp: new Date().getTime() }),
+      await this.sendReplay({
         replayId,
+        events: recordingData,
         segmentId,
         includeReplayStartTimestamp: newSessionCreated,
       });
@@ -1035,7 +1020,8 @@ ${stack.slice(1).join('\n')}`,
     events,
     replayId: event_id,
     segmentId: segment_id,
-  }: ReplayRequest) {
+    includeReplayStartTimestamp,
+  }: SendReplayRequest) {
     const payloadWithSequence = createPayload({
       events,
       headers: {
@@ -1043,16 +1029,58 @@ ${stack.slice(1).join('\n')}`,
       },
     });
 
+    const { urls, errorIds, traceIds, initialState } = this.popEventContext();
+
+    const timestamp = new Date().getTime();
+
+    const sdkInfo = {
+      name: 'sentry.javascript.integration.replay',
+      version: __SENTRY_REPLAY_VERSION__,
+    };
+
+    const replayEvent = await new Promise((resolve) => {
+      getCurrentHub()
+        // @ts-expect-error private api
+        ?._withClient(async (client, scope) => {
+          // XXX: This event does not trigger `beforeSend` in SDK
+          const preparedEvent = await client._prepareEvent(
+            {
+              type: REPLAY_EVENT_NAME,
+              ...(includeReplayStartTimestamp
+                ? { replay_start_timestamp: initialState.timestamp / 1000 }
+                : {}),
+              timestamp: timestamp / 1000,
+              error_ids: errorIds,
+              trace_ids: traceIds,
+              urls,
+              replay_id: event_id,
+              segment_id,
+            },
+            { event_id },
+            scope
+          );
+          const session = scope && scope.getSession();
+          if (session) {
+            client._updateSessionFromEvent(session, preparedEvent);
+          }
+          preparedEvent.sdk = {
+            ...preparedEvent.sdk,
+            ...sdkInfo,
+          };
+
+          resolve(preparedEvent);
+        });
+    });
+
     const envelope = createEnvelope(
       {
         event_id,
         sent_at: new Date().toISOString(),
-        sdk: {
-          name: 'sentry.javascript.integration.replay',
-          version: __SENTRY_REPLAY_VERSION__,
-        },
+        sdk: sdkInfo,
       },
       [
+        // @ts-expect-error New types
+        [{ type: 'replay_event' }, replayEvent],
         [
           {
             // @ts-expect-error setting envelope
@@ -1089,11 +1117,17 @@ ${stack.slice(1).join('\n')}`,
   /**
    * Finalize and send the current replay event to Sentry
    */
-  async sendReplay(
-    replayId: string,
-    events: RecordedEvents,
-    segmentId: number
-  ) {
+  async sendReplay({
+    replayId,
+    events,
+    segmentId,
+    includeReplayStartTimestamp,
+  }: {
+    replayId: string;
+    events: RecordedEvents;
+    segmentId: number;
+    includeReplayStartTimestamp: boolean;
+  }) {
     // short circuit if there's no events to upload
     if (!events.length) {
       return;
@@ -1109,6 +1143,7 @@ ${stack.slice(1).join('\n')}`,
         events,
         replayId,
         segmentId,
+        includeReplayStartTimestamp,
       });
       this.resetRetries();
       return true;
@@ -1135,7 +1170,12 @@ ${stack.slice(1).join('\n')}`,
       return await new Promise((resolve, reject) => {
         setTimeout(async () => {
           try {
-            await this.sendReplay(replayId, events, segmentId);
+            await this.sendReplay({
+              replayId,
+              events,
+              segmentId,
+              includeReplayStartTimestamp,
+            });
             resolve(true);
           } catch (err) {
             reject(err);

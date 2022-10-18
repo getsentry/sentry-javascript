@@ -180,11 +180,12 @@ it('long first flush enqueues following events', async () => {
   // debouncedFlush, which will call `flush` in 1 second
   expect(replay.flush).toHaveBeenCalledTimes(4);
   // sendReplay is called with replayId, events, segment
-  expect(mockSendReplay).toHaveBeenLastCalledWith(
-    expect.any(String),
-    expect.anything(),
-    0
-  );
+  expect(mockSendReplay).toHaveBeenLastCalledWith({
+    events: expect.any(String),
+    replayId: expect.any(String),
+    includeReplayStartTimestamp: true,
+    segmentId: 0,
+  });
 
   // Add this to test that segment ID increases
   mockAddPerformanceEntries.mockImplementationOnce(async () => {
@@ -222,11 +223,12 @@ it('long first flush enqueues following events', async () => {
   await advanceTimers(5000);
   expect(replay.flush).toHaveBeenCalledTimes(5);
   expect(replay.runFlush).toHaveBeenCalledTimes(2);
-  expect(mockSendReplay).toHaveBeenLastCalledWith(
-    expect.any(String),
-    expect.anything(),
-    1
-  );
+  expect(mockSendReplay).toHaveBeenLastCalledWith({
+    events: expect.any(String),
+    replayId: expect.any(String),
+    includeReplayStartTimestamp: false,
+    segmentId: 1,
+  });
 
   // Make sure there's no other calls
   jest.runAllTimers();

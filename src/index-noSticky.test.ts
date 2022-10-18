@@ -17,10 +17,6 @@ async function advanceTimers(time: number) {
 
 describe('Replay (no sticky)', () => {
   let replay: Replay;
-  type MockSendReplayRequest = jest.MockedFunction<
-    typeof replay.sendReplayRequest
-  >;
-  let mockSendReplayRequest: MockSendReplayRequest;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
@@ -35,19 +31,11 @@ describe('Replay (no sticky)', () => {
       });
 
     ({ replay } = await mockSdk({ replayOptions: { stickySession: false } }));
-    jest.spyOn(replay, 'sendReplayRequest');
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
-    mockSendReplayRequest.mockImplementation(
-      jest.fn(async () => {
-        return;
-      })
-    );
     jest.runAllTimers();
   });
 
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockSendReplayRequest.mockClear();
     mockRecord.takeFullSnapshot.mockClear();
   });
 
@@ -133,7 +121,7 @@ describe('Replay (no sticky)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
+    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
     // visibilitystate as user being active
@@ -173,7 +161,7 @@ describe('Replay (no sticky)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
+    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -196,12 +184,12 @@ describe('Replay (no sticky)', () => {
     mockRecord._emitter(TEST_EVENT);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([...Array(5)].map(() => TEST_EVENT))
-    );
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
+    });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockSendReplayRequest.mockClear();
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
     await advanceTimers(5000);
     expect(replay).not.toHaveSentReplay();
 
@@ -211,13 +199,10 @@ describe('Replay (no sticky)', () => {
     expect(replay.eventBuffer?.length).toBe(0);
 
     // Let's make sure it continues to work
-    mockSendReplayRequest.mockClear();
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
-
-    // Clean-up
-    mockSendReplayRequest.mockReset();
+    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
   it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
@@ -265,8 +250,8 @@ describe('Replay (no sticky)', () => {
     const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
 
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
@@ -282,7 +267,7 @@ describe('Replay (no sticky)', () => {
             },
           },
         },
-      ])
-    );
+      ]),
+    });
   });
 });

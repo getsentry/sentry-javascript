@@ -11,13 +11,9 @@ describe('Replay - stop', () => {
   let replay: Replay;
   const prevLocation = window.location;
 
-  type MockSendReplayRequest = jest.MockedFunction<
-    typeof replay.sendReplayRequest
-  >;
   type MockAddInstrumentationHandler = jest.MockedFunction<
     typeof SentryUtils.addInstrumentationHandler
   >;
-  let mockSendReplayRequest: MockSendReplayRequest;
   const { record: mockRecord } = mockRrweb();
 
   let mockAddInstrumentationHandler: MockAddInstrumentationHandler;
@@ -31,18 +27,11 @@ describe('Replay - stop', () => {
 
     ({ replay } = await mockSdk());
     jest.spyOn(replay, 'sendReplayRequest');
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
-    mockSendReplayRequest.mockImplementation(
-      jest.fn(async () => {
-        return;
-      })
-    );
     jest.runAllTimers();
   });
 
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockSendReplayRequest.mockClear();
     replay.eventBuffer?.destroy();
   });
 
@@ -122,16 +111,16 @@ describe('Replay - stop', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
-    expect(replay).toHaveSentReplay(
-      JSON.stringify([TEST_EVENT, hiddenBreadcrumb])
-    );
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
+    });
     // Session's last activity is last updated when we call `setup()` and *NOT*
     // when tab is blurred
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED + 20);
   });
 
   it('does not buffer events when stopped', async function () {
-    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('blur'));
     expect(replay.eventBuffer?.length).toBe(1);
 
     // stop replays
@@ -139,11 +128,11 @@ describe('Replay - stop', () => {
 
     expect(replay.eventBuffer?.length).toBe(undefined);
 
-    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
     expect(replay.eventBuffer?.length).toBe(undefined);
-    expect(mockSendReplayRequest).not.toHaveBeenCalled();
+    expect(replay).not.toHaveSentReplay();
   });
 
   it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {

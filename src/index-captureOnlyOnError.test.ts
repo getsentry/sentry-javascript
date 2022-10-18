@@ -2,10 +2,8 @@ jest.unmock('@sentry/browser');
 
 // mock functions need to be imported first
 import { captureException } from '@sentry/browser';
-import * as SentryCore from '@sentry/core';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import * as CaptureReplayEvent from './api/captureReplayEvent';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
@@ -21,42 +19,20 @@ async function advanceTimers(time: number) {
 
 describe('Replay (capture only on error)', () => {
   let replay: Replay;
-  type MockSendReplayRequest = jest.MockedFunction<
-    typeof replay.sendReplayRequest
-  >;
-  let mockSendReplayRequest: MockSendReplayRequest;
   const { record: mockRecord } = mockRrweb();
-
-  jest.spyOn(CaptureReplayEvent, 'captureReplayEvent');
-  const captureReplayEventMock =
-    CaptureReplayEvent.captureReplayEvent as jest.MockedFunction<
-      typeof CaptureReplayEvent.captureReplayEvent
-    >;
-  jest.spyOn(SentryCore, 'captureEvent');
-  const captureEventMock = SentryCore.captureEvent as jest.MockedFunction<
-    typeof SentryCore.captureEvent
-  >;
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     ({ replay } = await mockSdk({
       replayOptions: { captureOnlyOnError: true, stickySession: false },
     }));
-    jest.spyOn(replay, 'sendReplayRequest');
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
-    mockSendReplayRequest.mockImplementation(
-      jest.fn(async () => {
-        return;
-      })
-    );
     jest.runAllTimers();
   });
 
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockSendReplayRequest.mockClear();
+    // mockSendReplayRequest.mockClear();
     mockRecord.takeFullSnapshot.mockClear();
-    captureEventMock.mockClear();
   });
 
   afterEach(async () => {
@@ -84,7 +60,7 @@ describe('Replay (capture only on error)', () => {
     await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
+    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
   it('does not send a replay when triggering a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', async () => {
@@ -99,6 +75,7 @@ describe('Replay (capture only on error)', () => {
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
 
     expect(replay).not.toHaveSentReplay();
   });
@@ -112,6 +89,7 @@ describe('Replay (capture only on error)', () => {
     });
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
 
     expect(replay).not.toHaveSentReplay();
 
@@ -124,6 +102,7 @@ describe('Replay (capture only on error)', () => {
       },
     });
     document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -147,9 +126,9 @@ describe('Replay (capture only on error)', () => {
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-
     expect(replay).not.toHaveSentReplay();
   });
 
@@ -162,6 +141,8 @@ describe('Replay (capture only on error)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
+    await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
     expect(replay).not.toHaveSentReplay();
   });
 
@@ -181,18 +162,15 @@ describe('Replay (capture only on error)', () => {
     expect(replay).not.toHaveSentReplay();
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockSendReplayRequest.mockClear();
     await advanceTimers(5000);
     expect(replay).not.toHaveSentReplay();
 
     // Let's make sure it continues to work
-    mockSendReplayRequest.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
+    await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
     expect(replay).not.toHaveSentReplay();
-
-    // Clean-up
-    mockSendReplayRequest.mockReset();
   });
 
   it('does not upload if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
@@ -210,6 +188,7 @@ describe('Replay (capture only on error)', () => {
     expect(replay).not.toHaveSentReplay();
 
     await new Promise(process.nextTick);
+    await new Promise(process.nextTick);
 
     // Instead of recording the above event, a full snapshot will occur.
     //
@@ -220,23 +199,9 @@ describe('Replay (capture only on error)', () => {
 
     expect(replay).not.toHaveSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
-
-    mockSendReplayRequest.mockReset();
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
-    // Mock `replay.sendReplayRequest` so that it takes 7 seconds to resolve
-    jest.spyOn(replay, 'sendReplayRequest');
-    (
-      replay.sendReplayRequest as jest.MockedFunction<
-        typeof replay.sendReplayRequest
-      >
-    ).mockImplementationOnce(() => {
-      return new Promise((resolve) => {
-        jest.advanceTimersByTime(7000);
-        resolve();
-      });
-    });
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     mockRecord._emitter(TEST_EVENT);
 
@@ -251,40 +216,20 @@ describe('Replay (capture only on error)', () => {
     // ugh...
     await new Promise(process.nextTick);
     await new Promise(process.nextTick);
-    await new Promise(process.nextTick);
 
-    expect(captureReplayEventMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        initialState: {
-          timestamp: BASE_TIMESTAMP,
-          url: 'http://localhost/',
-        },
-        errorIds: [expect.any(String)],
-        traceIds: [],
-        urls: ['http://localhost/'],
-      })
-    );
-
-    expect(captureEventMock).toHaveBeenCalledTimes(1);
-
-    // Replay root
-    expect(captureEventMock).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([TEST_EVENT]),
+      replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // the exception happens roughly 5 seconds after BASE_TIMESTAMP and
-        // after `sendReplayRequest` which is mocked to resolve after 7 seconds.
         // extra time is likely due to async of `addMemoryEntry()`
-        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000 + 7000) / 1000, 1),
-        type: 'replay_event',
+        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000) / 1000, 1),
         error_ids: [expect.any(String)],
         trace_ids: [],
         urls: ['http://localhost/'],
         replay_id: expect.any(String),
-        segment_id: 0,
       }),
-      { event_id: expect.any(String) }
-    );
-
-    expect(replay).toHaveSentReplay(JSON.stringify([TEST_EVENT]));
+      recordingPayloadHeader: { segment_id: 0 },
+    });
   });
 });

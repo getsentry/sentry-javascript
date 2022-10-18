@@ -10,11 +10,12 @@ export type AllPerformanceEntry =
   | PerformanceResourceTiming
   | PerformanceNavigationTiming;
 
-export interface ReplayRequest {
+export interface SendReplayRequest {
   endpoint: string;
   events: RecordedEvents;
   replayId: string;
   segmentId: number;
+  includeReplayStartTimestamp: boolean;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
