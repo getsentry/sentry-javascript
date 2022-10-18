@@ -4,11 +4,15 @@
  *
  * We use `__RESOURCE_PATH__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
  * this causes both TS and ESLint to complain, hence the pragma comments below.
+ *
+ * The `?__sentry_external__` is used to
+ * 1) tell rollup to treat the import as external (i.e. not process it)
+ * 2) tell webpack not to proxy this file again (avoiding an infinite loop)
  */
 
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-import * as origModule from '__RESOURCE_PATH__';
+import * as origModule from '__RESOURCE_PATH__?__sentry_external__';
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
