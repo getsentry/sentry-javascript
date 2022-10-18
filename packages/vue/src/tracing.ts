@@ -29,7 +29,7 @@ const HOOKS: { [key in Operation]: Hook[] } = {
 };
 
 /** Grabs active transaction off scope, if any */
-function getActiveTransaction(): Transaction | undefined {
+export function getActiveTransaction(): Transaction | undefined {
   return getCurrentHub().getScope()?.getTransaction();
 }
 
@@ -117,8 +117,8 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
           // The before hook did not start the tracking span, so the span was not added.
           // This is probably because it happened before there is an active transaction
           if (!span) return;
-
           span.finish();
+
           finishRootSpan(this, timestampInSeconds(), options.timeout);
         }
       };
