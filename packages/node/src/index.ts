@@ -15,6 +15,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Span,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 

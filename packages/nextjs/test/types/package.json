@@ -1,0 +1,9 @@
+{
+  "description": "This is used to install the nextjs v12 so we can test against those types",
+  "scripts": {
+    "test": "ts-node test.ts"
+  },
+  "dependencies": {
+    "next": "12.3.1"
+  }
+}

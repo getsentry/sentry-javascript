@@ -11,6 +11,8 @@ global.console.error = () => null;
 function assertTags(actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     console.log(colorize('FAILED: Scope contains incorrect tags\n', 'red'));
+    console.log(colorize(`Got: ${JSON.stringify(actual)}\n`, 'red'));
+    console.log(colorize(`Expected: ${JSON.stringify(expected)}\n`, 'red'));
     process.exit(1);
   }
 }

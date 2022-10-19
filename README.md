@@ -4,7 +4,9 @@
   </a>
 </p>
 
-_Bad software is everywhere, and we're tired of it. Sentry is on a mission to help developers write better software faster, so we can get back to enjoying technology. If you want to join us [<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
+_Bad software is everywhere, and we're tired of it. Sentry is on a mission to help developers write better software
+faster, so we can get back to enjoying technology. If you want to join us
+[<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
 
 ![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg)
 [![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
@@ -20,7 +22,8 @@ convenient interface and improved consistency between various JavaScript environ
 
 **Sentry is Hiring!!!**
 
-Would you like to work on Open Source software and help maintain this repository? Apply today: https://boards.greenhouse.io/sentry.
+Would you like to work on Open Source software and help maintain this repository? Apply today:
+https://boards.greenhouse.io/sentry.
 
 ---
 
@@ -45,29 +48,30 @@ For each major JavaScript platform, there is a specific high-level SDK that prov
 package. Please refer to the README and instructions of those SDKs for more detailed information:
 
 - [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers
-  including integrations for Backbone
-- [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node, including
-  integrations for Express, Koa, Loopback, Sails and Connect
-- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): browser SDK with Angular integration enabled
-- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): browser SDK with React integration enabled
-- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): browser SDK with Ember integration enabled
-- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): browser SDK with Vue integration enabled
+- [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node including
+  integrations for Express
+- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK with
+  Angular integration enabled
+- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): Browser SDK with Ember
+  integration enabled
+- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): Browser SDK with React
+  integration enabled
+- [`@sentry/svelte`](https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte): Browser SDK with
+  Svelte integration enabled
+- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK with Vue
+  integration enabled
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
+- [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable
   integrations that can be used to enhance JS SDKs
+- [`@sentry/serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless): SDK for
+  Serverless Platforms (AWS, GCP)
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
-- [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for native crashes
-- [`@sentry/capacitor`](https://github.com/getsentry/sentry-capacitor): SDK for Capacitor Apps and Ionic with support for
+- [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for
   native crashes
-- [`sentry-cordova`](https://github.com/getsentry/sentry-cordova): SDK for Cordova Apps and Ionic with support for
-  native crashes
-- [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-js): Our old stable JavaScript
-  SDK, we still support and release bug fixes for the SDK but all new features will be implemented in `@sentry/browser`
-  which is the successor.
-- [`raven`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-node): Our old stable Node SDK,
-  same as for `raven-js` we still support and release bug fixes for the SDK but all new features will be implemented in
-  `@sentry/node` which is the successor.
+- [`@sentry/capacitor`](https://github.com/getsentry/sentry-capacitor): SDK for Capacitor Apps and Ionic with support
+  for native crashes
 
 ## Installation and Usage
 
@@ -97,10 +101,8 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
-- [`@sentry/tracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing): Provides Integrations and
-extensions for Performance Monitoring / Tracing
-- [`@sentry/hub`](https://github.com/getsentry/sentry-javascript/tree/master/packages/hub): Global state management of
-  SDKs
+- [`@sentry/tracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing): Provides
+  Integrations and extensions for Performance Monitoring / Tracing
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and

@@ -1,6 +1,5 @@
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import * as path from 'path';
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
@@ -63,42 +62,6 @@ function installLegacyDeps(legacyDeps: string[] = []): void {
 }
 
 /**
- * Add a tranformer to our jest config, to do the same `const`-to-`var` replacement as our rollup plugin does.
- *
- * This is needed because Node 8 doesn't like the way we shadow `global` (`const global = getGlobalObject()`). Changing
- * it to a `var` solves this by making it redeclarable.
- *
- */
-function addJestTransformer(): void {
-  // Though newer `ts-jest` versions support transformers written in TS, the legacy version does not.
-  run('yarn tsc --skipLibCheck jest/transformers/constReplacer.ts');
-
-  // Loading the existing Jest config will error out unless the config file has an accompanying types file, so we have
-  // to create that before we can load it.
-  run('yarn tsc --allowJs --skipLibCheck --declaration --emitDeclarationOnly jest/jest.config.js');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const jestConfig = require('../jest/jest.config.js');
-
-  // Inject the transformer
-  jestConfig.globals['ts-jest'].astTransformers = ['<rootDir>/../../jest/transformers/constReplacer.js'];
-
-  // When we required the jest config file above, all expressions it contained were evaluated. Specifically, the
-  //     `rootDir: process.cwd()`
-  // entry was replaced with
-  //     `rootDir: "<hard-coded string result of running `process.cwd()` in the current process>"`,
-  // Though it's a little brute-force-y, the easiest way to fix this is to just stringify the code and perform the
-  // substitution in reverse.
-  const stringifiedConfig = JSON.stringify(jestConfig, null, 2).replace(
-    `"rootDir": "${process.cwd()}"`,
-    'rootDir: process.cwd()',
-  );
-
-  // Now we just have to convert it back to a module and write it to disk
-  const code = `module.exports = ${stringifiedConfig}`;
-  fs.writeFileSync(path.resolve('jest/jest.config.js'), code);
-}
-
-/**
  * Modify a json file on disk.
  *
  * @param filepath The path to the file to be modified
@@ -151,8 +114,6 @@ function runWithIgnores(skipPackages: string[] = []): void {
 function runTests(): void {
   if (CURRENT_NODE_VERSION === '8') {
     installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
-    // Inject a `const`-to-`var` transformer, in order to stop Node 8 from complaining when we shadow `global`
-    addJestTransformer();
     // TODO Right now, this just skips incompatible tests, but it could be skipping more (hence the aspirational name),
     // and not just in Node 8. See `skipNonNodeTests`'s docstring.
     skipNonNodeTests();

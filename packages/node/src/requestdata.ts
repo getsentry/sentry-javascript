@@ -15,7 +15,7 @@ export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
 /**
  * Options deciding what parts of the request to use when enhancing an event
  */
-export interface AddRequestDataToEventOptions {
+export type AddRequestDataToEventOptions = {
   /** Flags controlling whether each type of data should be added to the event */
   include?: {
     ip?: boolean;
@@ -23,7 +23,7 @@ export interface AddRequestDataToEventOptions {
     transaction?: boolean | TransactionNamingScheme;
     user?: boolean | Array<typeof DEFAULT_USER_INCLUDES[number]>;
   };
-}
+};
 
 export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 

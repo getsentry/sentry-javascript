@@ -22,8 +22,30 @@ export function componentTrackingPreprocessor(options?: ComponentTrackingInitOpt
   const mergedOptions = { ...defaultComponentTrackingOptions, ...options };
 
   const visitedFiles = new Set<string>();
+  const visitedFilesMarkup = new Set<string>();
 
   const preprocessor: PreprocessorGroup = {
+    // This markup hook is called once per .svelte component file, before the `script` hook is called
+    // We use it to check if the passed component has a <script> tag. If it doesn't, we add one to inject our
+    // code later on, when the `script` hook is executed.
+    markup: ({ content, filename }) => {
+      const finalFilename = filename || 'unknown';
+      const shouldInject = shouldInjectFunction(mergedOptions.trackComponents, finalFilename, {}, visitedFilesMarkup);
+
+      if (shouldInject && !hasScriptTag(content)) {
+        // Insert a <script> tag into the component file where we can later on inject our code.
+        // We have to add a placeholder to the script tag because for empty script tags,
+        // the `script` preprocessor hook won't be called
+        // Note: The space between <script> and </script> is important! Without any content,
+        // the `script` hook wouldn't  be executed for the added script tag.
+        const s = new MagicString(content);
+        s.prepend('<script>\n</script>\n');
+        return { code: s.toString(), map: s.generateMap().toString() };
+      }
+
+      return { code: content };
+    },
+
     // This script hook is called whenever a Svelte component's <script> content is preprocessed.
     // `content` contains the script code as a string
     script: ({ content, filename, attributes }) => {
@@ -98,4 +120,19 @@ function shouldInjectFunction(
 function getBaseName(filename: string): string {
   const segments = filename.split('/');
   return segments[segments.length - 1].replace('.svelte', '');
+}
+
+function hasScriptTag(content: string): boolean {
+  // This regex is taken from the Svelte compiler code.
+  // They use this regex to find matching script tags that are passed to the `script` preprocessor hook:
+  // https://github.com/sveltejs/svelte/blob/bb83eddfc623437528f24e9fe210885b446e72fa/src/compiler/preprocess/index.ts#L144
+  // However, we remove the first part of the regex to not match HTML comments
+  const scriptTagRegex = /<script(\s[^]*?)?(?:>([^]*?)<\/script\s*>|\/>)/gi;
+
+  // Regex testing is not a super safe way of checking for the presence of a <script> tag in the Svelte
+  // component file but I think we can use it as a start.
+  // A case that is not covered by regex-testing HTML is e.g. nested <script> tags but I cannot
+  // think of why one would do this in Svelte components. For instance, the Svelte compiler errors
+  // when there's more than one top-level script tag.
+  return scriptTagRegex.test(content);
 }

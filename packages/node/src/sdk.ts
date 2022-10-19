@@ -27,6 +27,7 @@ import {
   Modules,
   OnUncaughtException,
   OnUnhandledRejection,
+  RequestData,
 } from './integrations';
 import { getModule } from './module';
 import { makeNodeTransport } from './transports';
@@ -46,6 +47,7 @@ export const defaultIntegrations = [
   new ContextLines(),
   new Context(),
   new Modules(),
+  new RequestData(),
   // Misc
   new LinkedErrors(),
 ];

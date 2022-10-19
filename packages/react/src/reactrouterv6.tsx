@@ -122,13 +122,17 @@ function getNormalizedName(
 
         const path = route.path;
         if (path) {
-          const newPath = path[0] === '/' ? path : `/${path}`;
+          const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
           pathBuilder += newPath;
           if (branch.pathname === location.pathname) {
-            // If the route defined on the element is something like
-            // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
-            // We should check against the branch.pathname for the number of / seperators
-            if (getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname)) {
+            if (
+              // If the route defined on the element is something like
+              // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
+              // We should check against the branch.pathname for the number of / seperators
+              getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
+              // We should not count wildcard operators in the url segments calculation
+              pathBuilder.slice(-2) !== '/*'
+            ) {
               return [newPath, 'route'];
             }
             return [pathBuilder, 'route'];
