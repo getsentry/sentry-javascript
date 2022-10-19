@@ -9,21 +9,24 @@ import React from 'react';
 import { Action, Location } from './types';
 
 interface NonIndexRouteObject {
-    caseSensitive?: boolean;
-    children?: RouteObject[];
-    element?: React.ReactNode | null;
-    index?: false;
-    path?: string;
+  caseSensitive?: boolean;
+  children?: RouteObject[];
+  element?: React.ReactNode | null;
+  index?: false;
+  path?: string;
 }
 
 interface IndexRouteObject {
-    caseSensitive?: boolean;
-    children?: undefined;
-    element?: React.ReactNode | null;
-    index?: true;
-    path?: string;
+  caseSensitive?: boolean;
+  children?: undefined;
+  element?: React.ReactNode | null;
+  index?: true;
+  path?: string;
 }
 
+// This type was originally just `type RouteObject = IndexRouteObject`, but this was changed
+// in https://github.com/remix-run/react-router/pull/9366, which was released with `6.4.2`
+// See https://github.com/remix-run/react-router/issues/9427 for a discussion on this.
 type RouteObject = IndexRouteObject | NonIndexRouteObject;
 
 type Params<Key extends string = string> = {
@@ -55,7 +58,10 @@ interface RouteMatch<ParamKey extends string = string> {
 type UseEffect = (cb: () => void, deps: unknown[]) => void;
 type UseLocation = () => Location;
 type UseNavigationType = () => Action;
-type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObject[];
+// Have to make this return any so we maintain backwards compatability between
+// react-router > 6.0.0 and >= 6.4.2
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CreateRoutesFromChildren = (children: JSX.Element[]) => any;
 type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[] | null;
 
 let activeTransaction: Transaction | undefined;
@@ -219,7 +225,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     _useEffect(() => {
       // Performance concern:
       // This is repeated when <Routes /> is rendered.
-      routes = _createRoutesFromChildren(props.children);
+      routes = _createRoutesFromChildren(props.children) as RouteObject[];
       isBaseLocation = true;
 
       updatePageloadTransaction(location, routes);
