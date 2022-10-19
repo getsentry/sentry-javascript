@@ -3,6 +3,7 @@ import { Event, EventProcessor } from '@sentry/types';
 import * as http from 'http';
 
 import { NodeClient } from '../../src/client';
+import { requestHandler } from '../../src/handlers';
 import { RequestData, RequestDataIntegrationOptions } from '../../src/integrations/requestdata';
 import * as requestDataModule from '../../src/requestdata';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
@@ -98,6 +99,26 @@ describe('`RequestData` integration', () => {
 
       expect(passedOptions?.include?.user).toEqual(expect.arrayContaining(['id']));
       expect(passedOptions?.include?.user).not.toEqual(expect.arrayContaining(['email']));
+    });
+  });
+
+  describe('usage with express request handler', () => {
+    it('uses options from request handler', async () => {
+      const sentryRequestMiddleware = requestHandler({ include: { transaction: 'methodPath' } });
+      const res = new http.ServerResponse(req);
+      const next = jest.fn();
+
+      initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
+
+      sentryRequestMiddleware(req, res, next);
+
+      await getCurrentHub().getScope()!.applyToEvent(event, {});
+      requestDataEventProcessor(event);
+
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+
+      // `transaction` matches the request middleware's option, not the integration's option
+      expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'methodPath' }));
     });
   });
 });
