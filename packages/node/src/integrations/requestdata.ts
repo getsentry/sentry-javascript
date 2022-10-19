@@ -119,10 +119,11 @@ export class RequestData implements Integration {
       }
 
       // The Express request handler takes a similar `include` option to that which can be passed to this integration.
-      // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express people to use this
+      // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
       // integration, so that all of this passing and conversion isn't necessary
       const addRequestDataOptions =
         sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
+        sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
         convertReqDataIntegrationOptsToAddReqDataOpts(this._options);
 
       const processedEvent = this._addRequestData(event, req, addRequestDataOptions);
