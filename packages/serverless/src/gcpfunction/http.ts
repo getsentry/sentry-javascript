@@ -1,10 +1,4 @@
-import {
-  addRequestDataToEvent,
-  AddRequestDataToEventOptions,
-  captureException,
-  flush,
-  getCurrentHub,
-} from '@sentry/node';
+import { AddRequestDataToEventOptions, captureException, flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { baggageHeaderToDynamicSamplingContext, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -97,7 +91,6 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // since functions-framework creates a domain for each incoming request.
     // So adding of event processors every time should not lead to memory bloat.
     hub.configureScope(scope => {
-      scope.addEventProcessor(event => addRequestDataToEvent(event, req, options.addRequestDataToEventOptions));
       scope.setSDKProcessingMetadata({
         request: req,
         requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
