@@ -15,7 +15,7 @@ jobs:
 
       - id: versions
         run: |
-          echo "::set-output name=node::$(jq -r '.volta.node' package.json)"
+          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v3
         with:
