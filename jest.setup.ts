@@ -1,3 +1,6 @@
+import { afterEach, beforeAll, expect, jest } from '@jest/globals';
+import type { MatcherFunction } from 'expect';
+
 import { Session } from './src/session/Session';
 import { Replay } from './src';
 
@@ -72,11 +75,8 @@ const ENVELOPE_URL_REGEX = new RegExp(
   'https://ingest.f00.f00/api/1/envelope/\\?sentry_key=dsn&sentry_version=7'
 );
 
-expect.extend({
-  toHaveSameSession(
-    received: jest.Mocked<Replay>,
-    expected: undefined | Session
-  ) {
+const toHaveSameSession: MatcherFunction<[expected: undefined | Session]> =
+  function (received: jest.Mocked<Replay>, expected: undefined | Session) {
     const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
     const options = {
@@ -99,114 +99,124 @@ expect.extend({
         )}\n` +
         `Received: ${this.utils.printReceived(received.session)}`,
     };
-  },
+  };
 
-  /**
-   * Checks the last call to `fetch` and ensures a replay was uploaded by
-   * checking the `fetch()` request's body.
-   */
-  toHaveSentReplay(
-    _received: jest.Mocked<Replay>,
+/**
+ * Checks the last call to `fetch` and ensures a replay was uploaded by
+ * checking the `fetch()` request's body.
+ */
+const toHaveSentReplay: MatcherFunction<
+  [
     expected?:
       | SentReplayExpected
       | { sample: SentReplayExpected; inverse: boolean }
-  ) {
-    const { calls } = (global.fetch as MockFetch).mock;
-    const lastCall = calls[calls.length - 1];
+  ]
+> = function (
+  _received: jest.Mocked<Replay>,
+  expected?:
+    | SentReplayExpected
+    | { sample: SentReplayExpected; inverse: boolean }
+) {
+  const { calls } = (global.fetch as MockFetch).mock;
+  const lastCall = calls[calls.length - 1];
 
-    const { body } = lastCall?.[1] || {};
-    const bodyLines = (body && body.toString().split('\n')) || [];
-    const [
-      envelopeHeader,
-      replayEventHeader,
-      replayEventPayload,
-      recordingHeader,
-      recordingPayloadHeader,
-      events,
-    ] = bodyLines;
-    const actualObj: Required<SentReplayExpected> = {
-      envelopeHeader: envelopeHeader && JSON.parse(envelopeHeader),
-      replayEventHeader: replayEventHeader && JSON.parse(replayEventHeader),
-      replayEventPayload: replayEventPayload && JSON.parse(replayEventPayload),
-      recordingHeader: recordingHeader && JSON.parse(recordingHeader),
-      recordingPayloadHeader:
-        recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
-      events,
-    };
-    const urlPass =
-      !!lastCall && ENVELOPE_URL_REGEX.test(lastCall?.[0].toString());
+  const { body } = lastCall?.[1] || {};
+  const bodyLines = (body && body.toString().split('\n')) || [];
+  const [
+    envelopeHeader,
+    replayEventHeader,
+    replayEventPayload,
+    recordingHeader,
+    recordingPayloadHeader,
+    events,
+  ] = bodyLines;
+  const actualObj: Required<SentReplayExpected> = {
+    envelopeHeader: envelopeHeader && JSON.parse(envelopeHeader),
+    replayEventHeader: replayEventHeader && JSON.parse(replayEventHeader),
+    replayEventPayload: replayEventPayload && JSON.parse(replayEventPayload),
+    recordingHeader: recordingHeader && JSON.parse(recordingHeader),
+    recordingPayloadHeader:
+      recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
+    events,
+  };
+  const urlPass =
+    !!lastCall && ENVELOPE_URL_REGEX.test(lastCall?.[0].toString());
 
-    const isObjectContaining =
-      expected && 'sample' in expected && 'inverse' in expected;
-    const expectedObj = isObjectContaining ? expected.sample : expected;
+  const isObjectContaining =
+    expected && 'sample' in expected && 'inverse' in expected;
+  const expectedObj = isObjectContaining ? expected.sample : expected;
 
-    if (isObjectContaining) {
-      console.warn(
-        '`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher'
-      );
-    }
-    const results = expected
-      ? Object.entries(actualObj)
-          .map(([key, val]: [key: keyof SentReplayExpected, val: any]) => {
-            return [
-              !expectedObj?.[key] || this.equals(expectedObj[key], val),
-              key,
-              expectedObj?.[key],
-              val,
-            ];
-          })
-          .filter(([passed]) => !passed)
-      : [];
+  if (isObjectContaining) {
+    console.warn(
+      '`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher'
+    );
+  }
+  const results = expected
+    ? Object.entries(actualObj)
+        .map(([key, val]: [key: keyof SentReplayExpected, val: any]) => {
+          return [
+            !expectedObj?.[key] || this.equals(expectedObj[key], val),
+            key,
+            expectedObj?.[key],
+            val,
+          ];
+        })
+        .filter(([passed]) => !passed)
+    : [];
 
-    const payloadPassed = lastCall && (!expected || results.length === 0);
+  const payloadPassed = lastCall && (!expected || results.length === 0);
 
-    const options = {
-      isNot: this.isNot,
-      promise: this.promise,
-    };
+  const options = {
+    isNot: this.isNot,
+    promise: this.promise,
+  };
 
-    const allPass = urlPass && payloadPassed;
+  const allPass = urlPass && payloadPassed;
 
-    return {
-      pass: allPass,
-      message: () =>
-        !lastCall
-          ? allPass
-            ? 'Expected Replay to not have been sent, but a request was attempted'
-            : 'Expected Replay to have been sent, but a request was not attempted'
-          : this.utils.matcherHint(
-              'toHaveSentReplay',
-              undefined,
-              undefined,
-              options
-            ) +
-            '\n\n' +
-            (!urlPass
-              ? `Expected URL: ${
-                  !urlPass ? 'not ' : ''
-                }${this.utils.printExpected(ENVELOPE_URL_REGEX)}\n` +
-                `Received URL: ${this.utils.printReceived(lastCall[0])}`
-              : '') +
-            results
-              .map(
-                ([, key, expected, actual]) =>
-                  `Expected (key: ${key}): ${
-                    payloadPassed ? 'not ' : ''
-                  }${this.utils.printExpected(expected)}\n` +
-                  `Received (key: ${key}): ${this.utils.printReceived(actual)}`
-              )
-              .join('\n'),
-    };
-  },
+  return {
+    pass: allPass,
+    message: () =>
+      !lastCall
+        ? allPass
+          ? 'Expected Replay to not have been sent, but a request was attempted'
+          : 'Expected Replay to have been sent, but a request was not attempted'
+        : this.utils.matcherHint(
+            'toHaveSentReplay',
+            undefined,
+            undefined,
+            options
+          ) +
+          '\n\n' +
+          (!urlPass
+            ? `Expected URL: ${
+                !urlPass ? 'not ' : ''
+              }${this.utils.printExpected(ENVELOPE_URL_REGEX)}\n` +
+              `Received URL: ${this.utils.printReceived(lastCall[0])}`
+            : '') +
+          results
+            .map(
+              ([, key, expected, actual]) =>
+                `Expected (key: ${key}): ${
+                  payloadPassed ? 'not ' : ''
+                }${this.utils.printExpected(expected)}\n` +
+                `Received (key: ${key}): ${this.utils.printReceived(actual)}`
+            )
+            .join('\n'),
+  };
+};
+
+expect.extend({
+  toHaveSameSession,
+  toHaveSentReplay,
 });
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace jest {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    interface Matchers<R> {
-      toHaveSentReplay(expected?: SentReplayExpected): CustomMatcherResult;
-      toHaveSameSession(expected: undefined | Session): CustomMatcherResult;
-    }
+declare module 'expect' {
+  interface AsymmetricMatchers {
+    toHaveSentReplay(expected?: SentReplayExpected): void;
+    toHaveSameSession(expected: undefined | Session): void;
+  }
+  interface Matchers<R> {
+    toHaveSentReplay(expected?: SentReplayExpected): R;
+    toHaveSameSession(expected: undefined | Session): R;
   }
 }

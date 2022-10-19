@@ -1,3 +1,5 @@
+import { afterEach, beforeAll, expect, it, jest } from '@jest/globals';
+
 import * as CreateSession from './createSession';
 import * as FetchSession from './fetchSession';
 import { getSession } from './getSession';
@@ -28,8 +30,16 @@ beforeAll(() => {
 
 afterEach(() => {
   window.sessionStorage.clear();
-  (CreateSession.createSession as jest.Mock).mockClear();
-  (FetchSession.fetchSession as jest.Mock).mockClear();
+  (
+    CreateSession.createSession as jest.MockedFunction<
+      typeof CreateSession.createSession
+    >
+  ).mockClear();
+  (
+    FetchSession.fetchSession as jest.MockedFunction<
+      typeof FetchSession.fetchSession
+    >
+  ).mockClear();
 });
 
 it('creates a non-sticky session when one does not exist', function () {

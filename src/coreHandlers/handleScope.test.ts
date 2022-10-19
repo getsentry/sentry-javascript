@@ -1,4 +1,5 @@
-import { Breadcrumb, Scope } from '@sentry/types';
+import { expect, it, jest } from '@jest/globals';
+import type { Breadcrumb, Scope } from '@sentry/types';
 
 import * as HandleScope from './handleScope';
 

@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 jest.unmock('@sentry/browser');
 
 import { BrowserOptions, init } from '@sentry/browser';

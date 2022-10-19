@@ -1,3 +1,4 @@
+import { beforeAll, expect, it, jest } from '@jest/globals';
 import { getCurrentHub } from '@sentry/core';
 import { mockSdk } from '@test';
 

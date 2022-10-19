@@ -1,5 +1,6 @@
 jest.mock('./saveSession');
 
+import { afterEach, beforeEach, expect, it, jest } from '@jest/globals';
 import * as Sentry from '@sentry/browser';
 
 import { saveSession } from './saveSession';

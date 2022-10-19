@@ -1,6 +1,16 @@
 jest.unmock('@sentry/browser');
 
 // mock functions need to be imported first
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import { captureException } from '@sentry/browser';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
@@ -57,6 +67,7 @@ describe('Replay (capture only on error)', () => {
 
     // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
     captureException('testing');
+    jest.runAllTimers();
     await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
@@ -74,7 +85,8 @@ describe('Replay (capture only on error)', () => {
     jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
-    await new Promise(process.nextTick);
+
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveSentReplay();
@@ -88,7 +100,8 @@ describe('Replay (capture only on error)', () => {
       },
     });
     document.dispatchEvent(new Event('visibilitychange'));
-    await new Promise(process.nextTick);
+
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveSentReplay();
@@ -102,7 +115,8 @@ describe('Replay (capture only on error)', () => {
       },
     });
     document.dispatchEvent(new Event('visibilitychange'));
-    await new Promise(process.nextTick);
+
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -125,7 +139,8 @@ describe('Replay (capture only on error)', () => {
     replay.addEvent(TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
-    await new Promise(process.nextTick);
+
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -141,8 +156,9 @@ describe('Replay (capture only on error)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
+    jest.runAllTimers();
     await new Promise(process.nextTick);
-    await new Promise(process.nextTick);
+
     expect(replay).not.toHaveSentReplay();
   });
 
@@ -168,7 +184,7 @@ describe('Replay (capture only on error)', () => {
     // Let's make sure it continues to work
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
-    await new Promise(process.nextTick);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).not.toHaveSentReplay();
   });
@@ -187,7 +203,7 @@ describe('Replay (capture only on error)', () => {
     mockRecord._emitter(TEST_EVENT);
     expect(replay).not.toHaveSentReplay();
 
-    await new Promise(process.nextTick);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     // Instead of recording the above event, a full snapshot will occur.
@@ -213,8 +229,7 @@ describe('Replay (capture only on error)', () => {
     // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
     captureException('testing');
 
-    // ugh...
-    await new Promise(process.nextTick);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({

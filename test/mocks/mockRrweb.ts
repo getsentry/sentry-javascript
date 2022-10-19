@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 import { RecordingEvent } from '../../src/types';
 
 type RecordAdditionalProperties = {
@@ -38,12 +40,13 @@ jest.mock('rrweb', () => {
   });
 
   return {
+    // @ts-expect-error spreading actual rrweb library
     ...ActualRrweb,
-    record: mockRecordFn as RecordMock,
+    record: mockRecordFn,
   };
 });
 
-// Intended to be after `mock('rrweb')`
+// XXX: Intended to be after `mock('rrweb')`
 import * as rrweb from 'rrweb';
 
 export function mockRrweb() {

@@ -1,4 +1,13 @@
-import * as SentryCore from '@sentry/core';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
@@ -386,7 +395,8 @@ describe('Replay', () => {
     });
 
     // Pretend 5 seconds have passed
-    await advanceTimers(5000);
+    const ELAPSED = 5000;
+    await advanceTimers(ELAPSED);
 
     expect(replay).toHaveSentReplay({
       events: JSON.stringify([
@@ -473,7 +483,6 @@ describe('Replay', () => {
   it('fails to upload data and hits retry max and stops', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     jest.spyOn(replay, 'sendReplay');
-    jest.spyOn(SentryCore, 'captureException');
     // Suppress console.errors
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const mockConsole = console.error as jest.MockedFunction<
@@ -616,6 +625,7 @@ describe('Replay', () => {
     // Reset console.error mock to minimize the amount of time we are hiding
     // console messages in case an error happens after
     mockConsole.mockClear();
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');

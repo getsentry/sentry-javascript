@@ -1,3 +1,4 @@
+import { expect, it } from '@jest/globals';
 import pako from 'pako';
 
 import { Compressor } from './Compressor';
