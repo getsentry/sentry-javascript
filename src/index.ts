@@ -60,6 +60,8 @@ const MEDIA_SELECTORS =
 
 let _initialized = false;
 
+const isBrowser = typeof window !== 'undefined';
+
 export class Replay implements Integration {
   /**
    * @inheritDoc
@@ -217,6 +219,9 @@ export class Replay implements Integration {
    * other global event processors to finish
    */
   setupOnce() {
+    if (!isBrowser) {
+      return;
+    }
     // XXX: See method comments above
     window.setTimeout(() => this.start());
   }
@@ -227,6 +232,10 @@ export class Replay implements Integration {
    * Creates or loads a session, attaches listeners to varying events (DOM, PerformanceObserver, Recording, Sentry SDK, etc)
    */
   start() {
+    if (!isBrowser) {
+      return;
+    }
+
     this.loadSession({ expiry: SESSION_IDLE_DURATION });
 
     // If there is no session, then something bad has happened - can't continue
@@ -295,6 +304,9 @@ export class Replay implements Integration {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK does not support a teardown
    */
   stop() {
+    if (!isBrowser) {
+      return;
+    }
     logger.log('Stopping Replays');
     this.isEnabled = false;
     this.removeListeners();
