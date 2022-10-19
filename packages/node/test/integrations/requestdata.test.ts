@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub, makeMain } from '@sentry/core';
-import { Event, EventProcessor } from '@sentry/types';
+import { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
 import * as http from 'http';
 
 import { NodeClient } from '../../src/client';
@@ -102,8 +102,8 @@ describe('`RequestData` integration', () => {
     });
   });
 
-  describe('usage with express request handler', () => {
-    it('uses options from request handler', async () => {
+  describe('usage with express request handler and GCP wrapper', () => {
+    it('uses options from Express request handler', async () => {
       const sentryRequestMiddleware = requestHandler({ include: { transaction: 'methodPath' } });
       const res = new http.ServerResponse(req);
       const next = jest.fn();
@@ -118,6 +118,35 @@ describe('`RequestData` integration', () => {
       const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
 
       // `transaction` matches the request middleware's option, not the integration's option
+      expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'methodPath' }));
+    });
+
+    it('uses options from GCP wrapper', async () => {
+      type GCPHandler = (req: PolymorphicRequest, res: http.ServerResponse) => void;
+      const mockGCPWrapper = (origHandler: GCPHandler, options: Record<string, unknown>): GCPHandler => {
+        const wrappedHandler: GCPHandler = (req, res) => {
+          getCurrentHub().getScope()?.setSDKProcessingMetadata({
+            request: req,
+            requestDataOptionsFromGCPWrapper: options,
+          });
+          origHandler(req, res);
+        };
+        return wrappedHandler;
+      };
+
+      const wrappedGCPFunction = mockGCPWrapper(jest.fn(), { include: { transaction: 'methodPath' } });
+      const res = new http.ServerResponse(req);
+
+      initWithRequestDataIntegrationOptions({ transactionNamingScheme: 'path' });
+
+      wrappedGCPFunction(req, res);
+
+      await getCurrentHub().getScope()!.applyToEvent(event, {});
+      requestDataEventProcessor(event);
+
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+
+      // `transaction` matches the GCP wrapper's option, not the integration's option
       expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'methodPath' }));
     });
   });

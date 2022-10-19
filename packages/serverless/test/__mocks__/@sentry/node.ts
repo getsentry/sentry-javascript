@@ -1,6 +1,7 @@
 const origSentry = jest.requireActual('@sentry/node');
 export const defaultIntegrations = origSentry.defaultIntegrations; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
 export const Handlers = origSentry.Handlers; // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+export const Integrations = origSentry.Integrations;
 export const addRequestDataToEvent = origSentry.addRequestDataToEvent;
 export const SDK_VERSION = '6.6.6';
 export const Severity = {
@@ -20,6 +21,7 @@ export const fakeScope = {
   setContext: jest.fn(),
   setSpan: jest.fn(),
   getTransaction: jest.fn(() => fakeTransaction),
+  setSDKProcessingMetadata: jest.fn(),
 };
 export const fakeSpan = {
   finish: jest.fn(),
