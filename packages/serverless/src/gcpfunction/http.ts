@@ -98,6 +98,10 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // So adding of event processors every time should not lead to memory bloat.
     hub.configureScope(scope => {
       scope.addEventProcessor(event => addRequestDataToEvent(event, req, options.addRequestDataToEventOptions));
+      scope.setSDKProcessingMetadata({
+        request: req,
+        requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
+      });
       // We put the transaction on the scope so users can attach children to it
       scope.setSpan(transaction);
     });
