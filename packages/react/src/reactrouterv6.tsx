@@ -58,11 +58,16 @@ interface RouteMatch<ParamKey extends string = string> {
 type UseEffect = (cb: () => void, deps: unknown[]) => void;
 type UseLocation = () => Location;
 type UseNavigationType = () => Action;
-// Have to make this return any so we maintain backwards compatability between
-// react-router > 6.0.0 and >= 6.4.2
+
+// For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
+// Have to do this so we maintain backwards compatability between
+// react-router > 6.0.0 and >= 6.4.2.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CreateRoutesFromChildren = (children: JSX.Element[]) => any;
-type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[] | null;
+type RouteObjectArrayAlias = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteMatchAlias = any;
+type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
+type MatchRoutes = (routes: RouteObjectArrayAlias, location: Location) => RouteMatchAlias[] | null;
 
 let activeTransaction: Transaction | undefined;
 
@@ -122,7 +127,7 @@ function getNormalizedName(
     return [location.pathname, 'url'];
   }
 
-  const branches = matchRoutes(routes, location);
+  const branches = matchRoutes(routes, location) as unknown as RouteMatch[];
 
   let pathBuilder = '';
   if (branches) {
