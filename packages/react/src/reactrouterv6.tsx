@@ -8,13 +8,26 @@ import React from 'react';
 
 import { Action, Location } from './types';
 
-interface RouteObject {
+interface NonIndexRouteObject {
   caseSensitive?: boolean;
   children?: RouteObject[];
-  element?: React.ReactNode;
-  index?: boolean;
+  element?: React.ReactNode | null;
+  index?: false;
   path?: string;
 }
+
+interface IndexRouteObject {
+  caseSensitive?: boolean;
+  children?: undefined;
+  element?: React.ReactNode | null;
+  index?: true;
+  path?: string;
+}
+
+// This type was originally just `type RouteObject = IndexRouteObject`, but this was changed
+// in https://github.com/remix-run/react-router/pull/9366, which was released with `6.4.2`
+// See https://github.com/remix-run/react-router/issues/9427 for a discussion on this.
+type RouteObject = IndexRouteObject | NonIndexRouteObject;
 
 type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -45,8 +58,16 @@ interface RouteMatch<ParamKey extends string = string> {
 type UseEffect = (cb: () => void, deps: unknown[]) => void;
 type UseLocation = () => Location;
 type UseNavigationType = () => Action;
-type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObject[];
-type MatchRoutes = (routes: RouteObject[], location: Location) => RouteMatch[] | null;
+
+// For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
+// Have to do this so we maintain backwards compatability between
+// react-router > 6.0.0 and >= 6.4.2.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteObjectArrayAlias = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteMatchAlias = any;
+type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
+type MatchRoutes = (routes: RouteObjectArrayAlias, location: Location) => RouteMatchAlias[] | null;
 
 let activeTransaction: Transaction | undefined;
 
@@ -106,7 +127,7 @@ function getNormalizedName(
     return [location.pathname, 'url'];
   }
 
-  const branches = matchRoutes(routes, location);
+  const branches = matchRoutes(routes, location) as unknown as RouteMatch[];
 
   let pathBuilder = '';
   if (branches) {
@@ -209,7 +230,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     _useEffect(() => {
       // Performance concern:
       // This is repeated when <Routes /> is rendered.
-      routes = _createRoutesFromChildren(props.children);
+      routes = _createRoutesFromChildren(props.children) as RouteObject[];
       isBaseLocation = true;
 
       updatePageloadTransaction(location, routes);
