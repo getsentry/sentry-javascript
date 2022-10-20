@@ -23,7 +23,7 @@
     "link:yarn": "lerna exec --parallel yarn link",
     "lint": "lerna run --parallel lint",
     "lint:eslint": "lerna run --parallel lint:eslint",
-    "postpublish": "make publish-docs && lerna run --stream --concurrency 1 postpublish",
+    "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/browser-integration-tests --ignore @sentry-internal/node-integration-tests --stream --concurrency 1 --sort test",
     "test-ci": "ts-node ./scripts/test.ts"
   },
