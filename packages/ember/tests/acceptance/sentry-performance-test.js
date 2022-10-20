@@ -23,9 +23,7 @@ function assertSentryCall(assert, callNumber, options) {
   }
   if (options.spans) {
     event.spans = event.spans.map(s => {
-      // Normalize span descriptions for internal components so tests work on either side of updated Ember versions
-      const normalizedDescription = s.description === 'component:-link-to' ? 'component:link-to' : s.description;
-      return `${s.op} | ${normalizedDescription}`;
+      return `${s.op} | ${s.description}`;
     });
 
     // FIXME: For some reason, the last `afterRender` and `destroy` run queue event are not always called.
@@ -50,7 +48,7 @@ function assertSentryCall(assert, callNumber, options) {
   }
 }
 
-module('Acceptance | Sentry Transactions', function (hooks) {
+module('Acceptance | Sentry Performance', function (hooks) {
   setupApplicationTest(hooks);
   setupSentryTest(hooks);
 
@@ -61,8 +59,6 @@ module('Acceptance | Sentry Transactions', function (hooks) {
     assertSentryCall(assert, 0, {
       spans: [
         'ui.ember.transition | route:undefined -> route:tracing',
-        'ui.ember.component.render | component:link-to',
-        'ui.ember.component.render | component:link-to',
         'ui.ember.component.render | component:test-section',
         'ui.ember.runloop.actions | undefined',
         'ui.ember.runloop.routerTransitions | undefined',
@@ -88,8 +84,6 @@ module('Acceptance | Sentry Transactions', function (hooks) {
     assertSentryCall(assert, 1, {
       spans: [
         'ui.ember.transition | route:tracing -> route:slow-loading-route.index',
-        'ui.ember.component.render | component:link-to',
-        'ui.ember.component.render | component:link-to',
         'ui.ember.route.before_model | slow-loading-route',
         'ui.ember.runloop.actions | undefined',
         'ui.ember.runloop.routerTransitions | undefined',
@@ -105,8 +99,6 @@ module('Acceptance | Sentry Transactions', function (hooks) {
         'ui.ember.route.after_model | slow-loading-route',
         'ui.ember.runloop.actions | undefined',
         'ui.ember.runloop.routerTransitions | undefined',
-        'ui.ember.component.render | component:link-to',
-        'ui.ember.component.render | component:link-to',
         'ui.ember.runloop.render | undefined',
         'ui.ember.runloop.afterRender | undefined',
         'ui.ember.runloop.destroy | undefined',
@@ -127,8 +119,6 @@ module('Acceptance | Sentry Transactions', function (hooks) {
         'ui.ember.route.setup_controller | slow-loading-route',
         'ui.ember.route.setup_controller | slow-loading-route.index',
         'ui.ember.runloop.routerTransitions | undefined',
-        'ui.ember.component.render | component:link-to',
-        'ui.ember.component.render | component:link-to',
         'ui.ember.component.render | component:slow-loading-list',
         'ui.ember.component.render | component:slow-loading-list',
         'ui.ember.runloop.render | undefined',
