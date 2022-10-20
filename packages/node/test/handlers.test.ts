@@ -1,5 +1,5 @@
 import * as sentryCore from '@sentry/core';
-import { Hub, Scope } from '@sentry/core';
+import { Hub, makeMain, Scope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -134,6 +134,22 @@ describe('requestHandler', () => {
     setImmediate(() => {
       expect(res.finished).toBe(true);
       done();
+    });
+  });
+
+  it('stores request and request data options in `sdkProcessingMetadata`', () => {
+    const hub = new Hub(new NodeClient(getDefaultNodeClientOptions()));
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    const requestHandlerOptions = { include: { ip: false } };
+    const sentryRequestMiddleware = requestHandler(requestHandlerOptions);
+
+    sentryRequestMiddleware(req, res, next);
+
+    const scope = sentryCore.getCurrentHub().getScope();
+    expect((scope as any)._sdkProcessingMetadata).toEqual({
+      request: req,
+      requestDataOptionsFromExpressHandler: requestHandlerOptions,
     });
   });
 });
@@ -392,6 +408,19 @@ describe('tracingHandler', () => {
       done();
     });
   });
+
+  it('stores request in transaction metadata', () => {
+    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
+    const hub = new Hub(new NodeClient(options));
+
+    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+
+    sentryTracingMiddleware(req, res, next);
+
+    const transaction = sentryCore.getCurrentHub().getScope()?.getTransaction();
+
+    expect(transaction?.metadata.request).toEqual(req);
+  });
 });
 
 describe('errorHandler()', () => {
@@ -497,5 +526,24 @@ describe('errorHandler()', () => {
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
     const requestSession = scope?.getRequestSession();
     expect(requestSession).toEqual(undefined);
+  });
+
+  it('stores request in `sdkProcessingMetadata`', () => {
+    const options = getDefaultNodeClientOptions({});
+    client = new NodeClient(options);
+
+    const hub = new Hub(client);
+    makeMain(hub);
+
+    // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
+    // `captureException` in order to examine the scope as it exists inside the `withScope` callback
+    hub.captureException = function (this: Hub, _exception: any) {
+      const scope = this.getScope();
+      expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);
+    } as any;
+
+    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
+
+    expect.assertions(1);
   });
 });
