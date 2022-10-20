@@ -10,10 +10,10 @@ import Application from '../app';
 import config from '../config/environment';
 import { setApplication } from '@ember/test-helpers';
 import { start } from 'ember-qunit';
-import Ember from 'ember';
+import { isTesting } from '@embroider/macros';
 
-Sentry.addGlobalEventProcessor((event) => {
-  if (Ember.testing) {
+Sentry.addGlobalEventProcessor(event => {
+  if (isTesting()) {
     if (!window._sentryTestEvents) {
       window._sentryTestEvents = [];
     }

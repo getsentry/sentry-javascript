@@ -1,6 +1,6 @@
-import Ember from 'ember';
 import sinon from 'sinon';
 import { _instrumentEmberRouter } from '@sentry/ember/instance-initializers/sentry-performance';
+import { resetOnerror, setupOnerror } from '@ember/test-helpers';
 
 // Keep a reference to the original startTransaction as the application gets re-initialized and setup for
 // the integration doesn't occur again after the first time.
@@ -41,11 +41,10 @@ export function setupSentryTest(hooks) {
       return true;
     };
 
-    Ember.onerror = function (...args) {
-      const [error] = args;
+    setupOnerror(function (error) {
       errorMessages.push(error.message);
       throw error;
-    };
+    });
 
     this._windowOnError = window.onerror;
 
@@ -64,5 +63,6 @@ export function setupSentryTest(hooks) {
     this.fetchStub.restore();
     this.qunitOnUnhandledRejection.restore();
     window.onerror = this._windowOnError;
+    resetOnerror();
   });
 }

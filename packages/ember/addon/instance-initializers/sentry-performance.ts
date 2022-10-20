@@ -1,6 +1,6 @@
 import ApplicationInstance from '@ember/application/instance';
-import Ember from 'ember';
 import { run, _backburner, scheduleOnce } from '@ember/runloop';
+import { subscribe } from '@ember/instrumentation';
 import * as Sentry from '@sentry/browser';
 import { ExtendedBackburner } from '@sentry/ember/runloop';
 import { Span, Transaction, Integration } from '@sentry/types';
@@ -279,7 +279,6 @@ function _instrumentComponents(config: EmberSentryConfig) {
   const beforeEntries = {} as RenderEntries;
   const beforeComponentDefinitionEntries = {} as RenderEntries;
 
-  const subscribe = Ember.subscribe;
   function _subscribeToRenderEvents() {
     subscribe('render.component', {
       before(_name: string, _timestamp: number, payload: Payload) {
@@ -310,6 +309,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   const endName = '@sentry/ember:initial-load-end';
 
   const { performance } = window;
+  // @ts-ignore
   const HAS_PERFORMANCE = performance && performance.clearMarks && performance.clearMeasures;
 
   if (!HAS_PERFORMANCE) {
@@ -324,6 +324,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
 
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
   const HAS_PERFORMANCE_TIMING =
+    // @ts-ignore
     performance.measure && performance.getEntriesByName && browserPerformanceTimeOrigin !== undefined;
   if (!HAS_PERFORMANCE_TIMING) {
     return;

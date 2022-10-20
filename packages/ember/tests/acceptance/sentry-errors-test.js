@@ -1,7 +1,7 @@
 import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
-import { run } from '@ember/runloop';
+import { next } from '@ember/runloop';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 const defaultAssertOptions = {
@@ -78,7 +78,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     const done = assert.async();
 
-    run.next(() => {
+    next(() => {
       assertSentryErrorCount(assert, 1);
       assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
       done();
