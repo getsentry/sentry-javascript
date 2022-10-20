@@ -29,7 +29,7 @@
     "test:all": "node ./scripts/run-CI-tests.js"
   },
   "dependencies": {
-    "@embroider/macros": "1.8.3",
+    "@embroider/macros": "^1.9.0",
     "@sentry/browser": "7.16.0",
     "@sentry/tracing": "7.16.0",
     "@sentry/types": "7.16.0",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@ember/optional-features": "~1.3.0",
-    "@embroider/test-setup": "~0.47.2",
+    "@embroider/test-setup": "~1.8.3",
     "@glimmer/component": "~1.0.0",
     "@glimmer/tracking": "~1.0.0",
     "@types/ember": "~3.16.5",
