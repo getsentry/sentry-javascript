@@ -1,6 +1,6 @@
 {
   "name": "with-typescript",
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "scripts": {
     "dev": "next",
     "build": "next build",
