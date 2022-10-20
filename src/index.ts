@@ -1162,11 +1162,9 @@ ${stack.slice(1).join('\n')}`,
     } catch (ex) {
       console.error(ex);
       // Capture error for every failed replay
-      // TODO: Remove this before GA as this will create an error on customer's project
       setContext('Replays', {
         retryCount: this.retryCount,
       });
-
       captureInternalException(new Error(UNABLE_TO_SEND_REPLAY));
 
       // If an error happened here, it's likely that uploading the attachment
