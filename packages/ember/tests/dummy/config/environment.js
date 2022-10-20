@@ -53,9 +53,6 @@ module.exports = function (environment) {
 
     // Include fake dsn so that instrumentation is enabled when running from cli
     ENV['@sentry/ember'].sentry.dsn = 'https://0@0.ingest.sentry.io/0';
-
-    ENV['@sentry/ember'].minimumRunloopQueueDuration = 0;
-    ENV['@sentry/ember'].minimumComponentRenderDuration = 0;
   }
 
   if (environment === 'production') {
