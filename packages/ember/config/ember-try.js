@@ -1,7 +1,7 @@
 'use strict';
 
 const getChannelURL = require('ember-source-channel-url');
-const { embroiderSafe } = require('@embroider/test-setup');
+const { embroiderOptimized } = require('@embroider/test-setup');
 
 /**
  * Pick which versions of ember against which to test based on whether the tests are running locally, as part of a PR,
@@ -19,50 +19,41 @@ module.exports = async function () {
           'ember-source': await getChannelURL('release'),
         },
       },
+    },
+    {
+      name: 'ember-4.0',
+      npm: {
+        devDependencies: {
+          'ember-source': '~4.0.1',
+        },
+      },
+    },
+    embroiderOptimized(),
+    {
+      name: 'ember-beta',
+      npm: {
+        devDependencies: {
+          'ember-source': await getChannelURL('beta'),
+        },
+      },
       allowedToFail: true,
     },
+    {
+      name: 'ember-classic',
+      env: {
+        EMBER_OPTIONAL_FEATURES: JSON.stringify({
+          'application-template-wrapper': true,
+          'default-async-observers': false,
+          'template-only-glimmer-components': false,
+        }),
+      },
+      npm: {
+        ember: {
+          edition: 'classic',
+        },
+      },
+    },
   ];
-
-  // in CI we add a few more tests - LTS and embroider (which is an ember compiler)
-  if (process.env.GITHUB_ACTIONS) {
-    scenarios = scenarios.concat([
-      {
-        name: 'ember-4.0',
-        npm: {
-          devDependencies: {
-            'ember-source': '~4.0.1',
-          },
-        },
-      },
-      embroiderSafe(),
-    ]);
-    scenarios = scenarios.concat([
-      {
-        name: 'ember-beta',
-        npm: {
-          devDependencies: {
-            'ember-source': await getChannelURL('beta'),
-          },
-        },
-        allowedToFail: true,
-      },
-      {
-        name: 'ember-classic',
-        env: {
-          EMBER_OPTIONAL_FEATURES: JSON.stringify({
-            'application-template-wrapper': true,
-            'default-async-observers': false,
-            'template-only-glimmer-components': false,
-          }),
-        },
-        npm: {
-          ember: {
-            edition: 'classic',
-          },
-        },
-      },
-    ]);
-  }
 
   return {
     useYarn: true,

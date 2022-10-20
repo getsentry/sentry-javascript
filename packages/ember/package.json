@@ -26,10 +26,8 @@
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
     "lint:ts": "tsc",
     "start": "ember serve",
-    "test:ember": "ember test",
-    "test:ember-all": "ember try:each",
-    "test": "npm-run-all --print-name \"lint\" \"test:*\"",
-    "test:all": "node ./scripts/run-CI-tests.js",
+    "test": "ember test",
+    "test:all": "ember try:each",
     "prepack": "ember ts:precompile",
     "postpack": "ember ts:clean"
   },
