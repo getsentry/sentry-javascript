@@ -404,11 +404,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
-          # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
-          # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
-          # tests in our Node matrix above.
-          node-version: '10'
+          # We support node 14+. If that works, we can safely assume that newer versions will also work.
+          node-version: '14'
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
