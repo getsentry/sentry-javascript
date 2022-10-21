@@ -44,7 +44,7 @@ const DEFAULT_OPTIONS = {
       email: true,
     },
   },
-  transactionNamingScheme: 'methodpath',
+  transactionNamingScheme: 'methodPath',
 };
 
 /** Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
