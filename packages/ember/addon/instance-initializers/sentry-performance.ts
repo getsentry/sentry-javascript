@@ -9,6 +9,7 @@ import { getActiveTransaction } from '..';
 import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
+import RouterService from '@ember/routing/router-service';
 
 function getSentryConfig() {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
@@ -308,13 +309,13 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   const startName = '@sentry/ember:initial-load-start';
   const endName = '@sentry/ember:initial-load-end';
 
-  const { performance } = window;
-  // @ts-ignore
-  const HAS_PERFORMANCE = performance && performance.clearMarks && performance.clearMeasures;
+  let { HAS_PERFORMANCE, HAS_PERFORMANCE_TIMING } = _hasPerformanceSupport();
 
   if (!HAS_PERFORMANCE) {
     return;
   }
+
+  const { performance } = window;
 
   if (config.disableInitialLoadInstrumentation) {
     performance.clearMarks(startName);
@@ -323,9 +324,6 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   }
 
   // Split performance check in two so clearMarks still happens even if timeOrigin isn't available.
-  const HAS_PERFORMANCE_TIMING =
-    // @ts-ignore
-    performance.measure && performance.getEntriesByName && browserPerformanceTimeOrigin !== undefined;
   if (!HAS_PERFORMANCE_TIMING) {
     return;
   }
@@ -356,6 +354,26 @@ function _instrumentInitialLoad(config: EmberSentryConfig) {
   performance.clearMeasures(measureName);
 }
 
+function _hasPerformanceSupport() {
+  // TS says that all of these methods are always available, but some of them may not be supported in older browsers
+  // So we "pretend" they are all optional in order to be able to check this properly without TS complaining
+  const _performance = window.performance as {
+    clearMarks?: Performance['clearMarks'];
+    clearMeasures?: Performance['clearMeasures'];
+    measure?: Performance['measure'];
+    getEntriesByName?: Performance['getEntriesByName'];
+  };
+  const HAS_PERFORMANCE = Boolean(_performance && _performance.clearMarks && _performance.clearMeasures);
+  const HAS_PERFORMANCE_TIMING = Boolean(
+    _performance.measure && _performance.getEntriesByName && browserPerformanceTimeOrigin !== undefined,
+  );
+
+  return {
+    HAS_PERFORMANCE,
+    HAS_PERFORMANCE_TIMING,
+  };
+}
+
 export async function instrumentForPerformance(appInstance: ApplicationInstance) {
   const config = getSentryConfig();
   const sentryConfig = config.sentry;
@@ -373,7 +391,9 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
         const routerMain = appInstance.lookup('router:main');
-        let routerService = appInstance.lookup('service:router');
+        let routerService = appInstance.lookup('service:router') as
+          | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
+
         if (routerService.externalRouter) {
           // Using ember-engines-router-service in an engine.
           routerService = routerService.externalRouter;
