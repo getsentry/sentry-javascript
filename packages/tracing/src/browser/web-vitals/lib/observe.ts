@@ -28,7 +28,7 @@ interface PerformanceEntryMap {
   'first-input': PerformanceEventTiming[] | FirstInputPolyfillEntry[];
   navigation: PerformanceNavigationTiming[] | NavigationTimingPolyfillEntry[];
   resource: PerformanceResourceTiming[];
-  longtask: PerformanceEntry;
+  longtask: PerformanceEntry[];
 }
 
 /**
