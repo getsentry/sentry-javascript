@@ -27,9 +27,7 @@
     "lint:ts": "tsc",
     "start": "ember serve",
     "test": "ember test",
-    "test:all": "ember try:each",
-    "prepack": "ember ts:precompile",
-    "postpack": "ember ts:clean"
+    "test:all": "ember try:each"
   },
   "dependencies": {
     "@embroider/macros": "^1.9.0",
