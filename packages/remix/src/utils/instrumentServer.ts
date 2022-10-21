@@ -353,6 +353,11 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
     return local.bind(async () => {
       const hub = getCurrentHub();
       const options = hub.getClient()?.getOptions();
+      const scope = hub.getScope();
+
+      if (scope) {
+        scope.setSDKProcessingMetadata({ request });
+      }
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);
