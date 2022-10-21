@@ -137,7 +137,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
 function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
   for (let i = 0; i < handlerData.args.length; i++) {
     if (handlerData.args[i] === 'ref=Ref<') {
-      handlerData.args[i + 1] = 'viewRef'
+      handlerData.args[i + 1] = 'viewRef';
       break;
     }
   }
