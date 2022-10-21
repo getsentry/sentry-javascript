@@ -135,6 +135,18 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
+  // This is a hack to fix a Vue3-specific bug that causes an infinite loop of
+  // console warnings. This happens when a Vue template is rendered with
+  // an undeclared variable, which we try to stringify, ultimately causing
+  // Vue to issue another warning which repeats indefinitely.
+  // see: https://github.com/getsentry/sentry-javascript/pull/6010
+  // see: https://github.com/getsentry/sentry-javascript/issues/5916
+  for (let i = 0; i < handlerData.args.length; i++) {
+    if (handlerData.args[i] === 'ref=Ref<') {
+      handlerData.args[i + 1] = 'viewRef';
+      break;
+    }
+  }
   const breadcrumb = {
     category: 'console',
     data: {
