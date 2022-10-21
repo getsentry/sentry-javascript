@@ -94,9 +94,9 @@ export function constructWebpackConfigFunction(
         newConfig.module.rules.push({
           // Nextjs allows the `pages` folder to optionally live inside a `src` folder
           test: new RegExp(
-            `${escapeStringForRegex(projectDir)}${
+            `^${escapeStringForRegex(projectDir)}${
               shouldIncludeSrcDirectory ? '/src' : ''
-            }/pages/.*\\.(${pageExtensionRegex})`,
+            }/pages/.*\\.(${pageExtensionRegex})$`,
           ),
           use: [
             {
