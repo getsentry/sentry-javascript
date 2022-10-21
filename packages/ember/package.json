@@ -62,6 +62,7 @@
     "ember-cli-uglify": "~3.0.0",
     "ember-disable-prototype-extensions": "~1.1.3",
     "ember-load-initializers": "~2.1.1",
+    "ember-maybe-import-regenerator": "~1.0.0",
     "ember-qunit": "~6.0.0",
     "ember-resolver": "~8.0.3",
     "ember-sinon-qunit": "~6.0.0",
