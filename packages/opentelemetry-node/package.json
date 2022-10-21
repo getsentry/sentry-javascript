@@ -23,10 +23,13 @@
     "@sentry/utils": "7.16.0"
   },
   "peerDependencies": {
+    "@opentelemetry/api": "1.x",
+    "@opentelemetry/sdk-trace-base": "1.x"
+  },
+  "devDependencies": {
     "@opentelemetry/api": "^1.2.0",
     "@opentelemetry/sdk-trace-base": "^1.7.0"
   },
-  "devDependencies": {},
   "scripts": {
     "build": "run-p build:rollup build:types",
     "build:dev": "run-s build",
