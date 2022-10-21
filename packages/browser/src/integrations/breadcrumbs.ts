@@ -135,6 +135,12 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
+  for (let i = 0; i < handlerData.args.length; i++) {
+    if (handlerData.args[i] === 'ref=Ref<') {
+      handlerData.args[i + 1] = 'viewRef'
+      break;
+    }
+  }
   const breadcrumb = {
     category: 'console',
     data: {
