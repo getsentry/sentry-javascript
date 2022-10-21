@@ -1,4 +1,4 @@
-import { Event } from '@sentry/types';
+import * as SentryNode from '@sentry/node';
 import * as domain from 'domain';
 
 import * as Sentry from '../src';
@@ -230,23 +230,37 @@ describe('GCPFunction', () => {
     });
   });
 
-  test('wrapHttpFunction request data', async () => {
-    expect.assertions(6);
+  // This tests that the necessary pieces are in place for request data to get added to event - the `RequestData`
+  // integration is included in the defaults and the necessary data is stored in `sdkProcessingMetadata`. The
+  // integration's tests cover testing that it uses that data correctly.
+  test('wrapHttpFunction request data prereqs', async () => {
+    expect.assertions(2);
+
+    Sentry.GCPFunction.init({});
 
     const handler: HttpFunction = (_req, res) => {
       res.end();
     };
-    const wrappedHandler = wrapHttpFunction(handler);
-    const event: Event = {};
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.fakeScope.addEventProcessor.mockImplementation(cb => cb(event));
+    const wrappedHandler = wrapHttpFunction(handler, { addRequestDataToEventOptions: { include: { ip: true } } });
+
     await handleHttp(wrappedHandler);
-    expect(event.transaction).toEqual('POST /path');
-    expect(event.request?.method).toEqual('POST');
-    expect(event.request?.url).toEqual('http://hostname/path?q=query');
-    expect(event.request?.query_string).toEqual('q=query');
-    expect(event.request?.headers).toEqual({ host: 'hostname', 'content-type': 'application/json' });
-    expect(event.request?.data).toEqual('{"foo":"bar"}');
+
+    expect(SentryNode.init).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultIntegrations: expect.arrayContaining([expect.any(SentryNode.Integrations.RequestData)]),
+      }),
+    );
+
+    // @ts-ignore see "Why @ts-ignore" note
+    expect(Sentry.fakeScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
+      request: {
+        method: 'POST',
+        url: '/path?q=query',
+        headers: { host: 'hostname', 'content-type': 'application/json' },
+        body: { foo: 'bar' },
+      },
+      requestDataOptionsFromGCPWrapper: { include: { ip: true } },
+    });
   });
 
   describe('wrapEventFunction() without callback', () => {

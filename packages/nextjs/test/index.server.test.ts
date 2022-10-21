@@ -148,10 +148,8 @@ describe('Server init()', () => {
 
       const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
       const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.integrations, 'RewriteFrames');
-      const requestDataIntegration = findIntegrationByName(nodeInitOptions.integrations, 'RequestData');
 
       expect(rewriteFramesIntegration).toBeDefined();
-      expect(requestDataIntegration).toBeDefined();
     });
 
     it('supports passing unrelated integrations through options', () => {

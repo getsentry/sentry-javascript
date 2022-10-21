@@ -183,9 +183,9 @@ function _wrapXHR(originalSend: () => void): () => void {
 /** JSDoc */
 function _wrapEventTarget(target: string): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const global = WINDOW as { [key: string]: any };
+  const globalObject = WINDOW as { [key: string]: any };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const proto = global[target] && global[target].prototype;
+  const proto = globalObject[target] && globalObject[target].prototype;
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
   if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {

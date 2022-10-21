@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { Event, Span } from '@sentry/types';
+import { Span } from '@sentry/types';
 import {
   AddRequestDataToEventOptions,
   addRequestDataToTransaction,
   baggageHeaderToDynamicSamplingContext,
+  dropUndefinedKeys,
   extractPathForTransaction,
   extractTraceparentData,
   isString,
@@ -14,10 +15,9 @@ import * as domain from 'domain';
 import * as http from 'http';
 
 import { NodeClient } from './client';
-import { addRequestDataToEvent, extractRequestData } from './requestdata';
-// TODO (v8 / XXX) Remove these imports
+import { extractRequestData } from './requestdata';
+// TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
-import { parseRequest } from './requestDataDeprecated';
 import { flush, isAutoSessionTrackingEnabled } from './sdk';
 
 /**
@@ -66,6 +66,11 @@ export function tracingHandler(): (
         ...traceparentData,
         metadata: {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+          // be sure
+          request: req,
           source,
         },
       },
@@ -105,12 +110,40 @@ export type RequestHandlerOptions =
     };
 
 /**
+ * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the
+ * `AddRequestDataToEventOptions` interface.
+ *
+ * TODO (v8): Get rid of this, and stop passing `requestDataOptionsFromExpressHandler` to `setSDKProcessingMetadata`.
+ */
+function convertReqHandlerOptsToAddReqDataOpts(
+  reqHandlerOptions: RequestHandlerOptions = {},
+): AddRequestDataToEventOptions | undefined {
+  let addRequestDataOptions: AddRequestDataToEventOptions | undefined;
+
+  if ('include' in reqHandlerOptions) {
+    addRequestDataOptions = { include: reqHandlerOptions.include };
+  } else {
+    // eslint-disable-next-line deprecation/deprecation
+    const { ip, request, transaction, user } = reqHandlerOptions as ParseRequestOptions;
+
+    if (ip || request || transaction || user) {
+      addRequestDataOptions = { include: dropUndefinedKeys({ ip, request, transaction, user }) };
+    }
+  }
+
+  return addRequestDataOptions;
+}
+
+/**
  * Express compatible request handler.
  * @see Exposed as `Handlers.requestHandler`
  */
 export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
+  // TODO (v8): Get rid of this
+  const requestDataOptions = convertReqHandlerOptsToAddReqDataOpts(options);
+
   const currentHub = getCurrentHub();
   const client = currentHub.getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
@@ -130,15 +163,6 @@ export function requestHandler(
     res: http.ServerResponse,
     next: (error?: any) => void,
   ): void {
-    // TODO (v8 / XXX) Remove this shim and just use `addRequestDataToEvent`
-    let backwardsCompatibleEventProcessor: (event: Event) => Event;
-    if (options && 'include' in options) {
-      backwardsCompatibleEventProcessor = (event: Event) => addRequestDataToEvent(event, req, options);
-    } else {
-      // eslint-disable-next-line deprecation/deprecation
-      backwardsCompatibleEventProcessor = (event: Event) => parseRequest(event, req, options as ParseRequestOptions);
-    }
-
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
@@ -161,7 +185,12 @@ export function requestHandler(
       const currentHub = getCurrentHub();
 
       currentHub.configureScope(scope => {
-        scope.addEventProcessor(backwardsCompatibleEventProcessor);
+        scope.setSDKProcessingMetadata({
+          request: req,
+          // TODO (v8): Stop passing this
+          requestDataOptionsFromExpressHandler: requestDataOptions,
+        });
+
         const client = currentHub.getClient<NodeClient>();
         if (isAutoSessionTrackingEnabled(client)) {
           const scope = currentHub.getScope();
@@ -240,6 +269,11 @@ export function errorHandler(options?: {
 
     if (shouldHandleError(error)) {
       withScope(_scope => {
+        // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
+        // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
+        // hurt to be sure
+        _scope.setSDKProcessingMetadata({ request: _req });
+
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;

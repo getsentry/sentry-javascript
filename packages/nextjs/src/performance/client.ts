@@ -11,7 +11,7 @@ import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
 
-const global = WINDOW as typeof WINDOW & {
+const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {
     sortedPages?: string[];
   };
@@ -57,7 +57,7 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   let nextData: SentryEnhancedNextData | undefined;
   // Let's be on the safe side and actually check first if there is really a __NEXT_DATA__ script tag on the page.
   // Theoretically this should always be the case though.
-  const nextDataTag = global.document.getElementById('__NEXT_DATA__');
+  const nextDataTag = globalObject.document.getElementById('__NEXT_DATA__');
   if (nextDataTag && nextDataTag.innerHTML) {
     try {
       nextData = JSON.parse(nextDataTag.innerHTML);
@@ -122,7 +122,7 @@ export function nextRouterInstrumentation(
   startTransactionOnLocationChange: boolean = true,
 ): void {
   const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
-  prevLocationName = route || global.location.pathname;
+  prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
@@ -197,7 +197,7 @@ export function nextRouterInstrumentation(
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
-  const pageRoutes = (global.__BUILD_MANIFEST || {}).sortedPages;
+  const pageRoutes = (globalObject.__BUILD_MANIFEST || {}).sortedPages;
 
   // Page route should in 99.999% of the cases be defined by now but just to be sure we make a check here
   if (!pageRoutes) {

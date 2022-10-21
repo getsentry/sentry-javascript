@@ -149,6 +149,12 @@ export interface TransactionMetadata {
   /** For transactions tracing server-side request handling, the request being tracked. */
   request?: PolymorphicRequest;
 
+  /** Compatibility shim for transitioning to the `RequestData` integration. The options passed to our Express request
+   * handler controlling what request data is added to the event.
+   * TODO (v8): This should go away
+   */
+  requestDataOptionsFromExpressHandler?: { [key: string]: unknown };
+
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
