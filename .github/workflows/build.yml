@@ -343,7 +343,7 @@ jobs:
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
           yarn test-ci
       - name: Compute test coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
 
   job_nextjs_integration_test:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
@@ -424,7 +424,7 @@ jobs:
           cd packages/ember
           yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
       - name: Compute test coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
 
   job_browser_playwright_tests:
     name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
