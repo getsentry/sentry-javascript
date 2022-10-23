@@ -1,4 +1,6 @@
 /* eslint-disable max-lines */
+// eslint-disable-next-line import/no-extraneous-dependencies
+import * as SentryCLI from '@sentry/cli';
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
@@ -456,22 +458,6 @@ export function getWebpackPluginOptions(
   return { ...defaultPluginOptions, ...userPluginOptions };
 }
 
-/**
- * NOTE: We're faking `require.resolve` here as a workaround for @vercel/nft detecting the binary itself as a hard
- *       dependency and always including it in the bundle, which is not what we want.
- *
- * ref: https://github.com/getsentry/sentry-javascript/issues/3865
- * ref: https://github.com/vercel/nft/issues/203
- */
-function ensureCLIBinaryExists(): boolean {
-  for (const node_modulesPath of module.paths) {
-    if (fs.existsSync(path.resolve(node_modulesPath, '@sentry/cli/sentry-cli'))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer, dev: isDev } = buildContext;
@@ -485,7 +471,7 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.)
-  if (!ensureCLIBinaryExists()) {
+  if (!fs.existsSync(SentryCLI.default.getPath())) {
     return false;
   }
 
