@@ -471,7 +471,8 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.)
-  if (!fs.existsSync(SentryCLI.default.getPath())) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  if (!fs.existsSync((SentryCLI as any).getPath())) {
     return false;
   }
 
