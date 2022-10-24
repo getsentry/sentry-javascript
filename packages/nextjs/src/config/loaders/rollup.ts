@@ -1,22 +1,15 @@
-import type { RollupSucraseOptions } from '@rollup/plugin-sucrase';
 import sucrase from '@rollup/plugin-sucrase';
 import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
 
-const getRollupInputOptions: (proxyPath: string, resourcePath: string) => RollupInputOptions = (
-  proxyPath,
-  resourcePath,
-) => ({
+const getRollupInputOptions = (proxyPath: string, resourcePath: string): RollupInputOptions => ({
   input: proxyPath,
+
   plugins: [
-    // For some reason, even though everything in `RollupSucraseOptions` besides `transforms` is supposed to be
-    // optional, TS complains that there are a bunch of missing properties (hence the typecast). Similar to
-    // https://github.com/microsoft/TypeScript/issues/20722, though that's been fixed. (In this case it's an interface
-    // exporting a `Pick` picking optional properties which is turning them required somehow.)'
     sucrase({
       transforms: ['jsx', 'typescript'],
-    } as unknown as RollupSucraseOptions),
+    }),
   ],
 
   // We want to process as few files as possible, so as not to slow down the build any more than we have to. We need the
