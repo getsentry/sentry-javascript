@@ -8,8 +8,9 @@ import {
   parseUrl,
   safeJoin,
   severityLevelFromString,
-  WINDOW,
 } from '@sentry/utils';
+
+import { WINDOW } from '../client';
 
 /** JSDoc */
 interface BreadcrumbsOptions {

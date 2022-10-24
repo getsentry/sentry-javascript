@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '@sentry/utils';
-
+import { WINDOW } from '../..';
 import { onHidden } from './onHidden';
 
 let firstHiddenTime = -1;

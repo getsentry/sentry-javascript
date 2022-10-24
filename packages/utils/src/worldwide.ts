@@ -80,7 +80,7 @@ export const GLOBAL_OBJ: InternalGlobal =
   {};
 
 /**
- * @deprecated Use GLOBAL_OBJ instead. This will be removed in v8
+ * @deprecated Use GLOBAL_OBJ instead or WINDOW from @sentry/browser. This will be removed in v8
  */
 export function getGlobalObject<T>(): T & InternalGlobal {
   return GLOBAL_OBJ as T & InternalGlobal;

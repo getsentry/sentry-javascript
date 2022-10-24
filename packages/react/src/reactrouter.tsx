@@ -1,5 +1,5 @@
+import { WINDOW } from '@sentry/browser';
 import { Transaction, TransactionSource } from '@sentry/types';
-import { WINDOW } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 

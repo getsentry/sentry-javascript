@@ -4,15 +4,17 @@ import {
   createClientReportEnvelope,
   dsnToString,
   getEventDescription,
+  GLOBAL_OBJ,
   logger,
   serializeEnvelope,
-  WINDOW,
 } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
+
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 export interface BaseBrowserOptions {
   /**

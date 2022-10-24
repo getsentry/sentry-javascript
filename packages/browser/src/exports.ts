@@ -45,7 +45,7 @@ export {
   InboundFilters,
 } from '@sentry/core';
 
-export { BrowserClient } from './client';
+export { BrowserClient, WINDOW } from './client';
 export { makeFetchTransport, makeXHRTransport } from './transports';
 export {
   defaultStackParser,

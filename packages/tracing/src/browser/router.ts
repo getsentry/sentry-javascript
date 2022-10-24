@@ -1,5 +1,7 @@
 import { Transaction, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, logger, WINDOW } from '@sentry/utils';
+import { addInstrumentationHandler, logger } from '@sentry/utils';
+
+import { WINDOW } from '.';
 
 /**
  * Default function implementing pageload and navigation transactions

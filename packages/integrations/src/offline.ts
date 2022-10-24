@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, EventProcessor, Hub, Integration } from '@sentry/types';
-import { logger, normalize, uuid4, WINDOW } from '@sentry/utils';
+import { GLOBAL_OBJ, logger, normalize, uuid4 } from '@sentry/utils';
 import localForage from 'localforage';
+
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 type LocalForage = {
   setItem<T>(key: string, value: T, callback?: (err: any, value: T) => void): Promise<T>;

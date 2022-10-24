@@ -1,5 +1,5 @@
+import { WINDOW } from '@sentry/browser';
 import { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { WINDOW } from '@sentry/utils';
 
 import { Location, ReactRouterInstrumentation } from './types';
 
