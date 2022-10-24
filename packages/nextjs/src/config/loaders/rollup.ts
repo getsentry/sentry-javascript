@@ -1,6 +1,5 @@
 import type { RollupSucraseOptions } from '@rollup/plugin-sucrase';
 import sucrase from '@rollup/plugin-sucrase';
-import { logger } from '@sentry/utils';
 import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
@@ -65,23 +64,15 @@ const rollupOutputOptions: RollupOutputOptions = {
  * Use Rollup to process the proxy module file (located at `tempProxyFilePath`) in order to split its `export * from
  * '<wrapped file>'` call into individual exports (which nextjs seems to need).
  *
+ * Note: Any errors which occur are handled by the proxy loader which calls this function.
+ *
  * @param tempProxyFilePath The path to the temporary file containing the proxy module code
  * @param resourcePath The path to the file being wrapped
- * @returns The processed proxy module code, or undefined if an error occurs
+ * @returns The processed proxy module code
  */
-export async function rollupize(tempProxyFilePath: string, resourcePath: string): Promise<string | undefined> {
-  let finalBundle;
-
-  try {
-    const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, resourcePath));
-    finalBundle = await intermediateBundle.generate(rollupOutputOptions);
-  } catch (err) {
-    __DEBUG_BUILD__ &&
-      logger.warn(
-        `Could not wrap ${resourcePath}. An error occurred while processing the proxy module template:\n${err}`,
-      );
-    return undefined;
-  }
+export async function rollupize(tempProxyFilePath: string, resourcePath: string): Promise<string> {
+  const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, resourcePath));
+  const finalBundle = await intermediateBundle.generate(rollupOutputOptions);
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
   let { code } = finalBundle.output[0];
