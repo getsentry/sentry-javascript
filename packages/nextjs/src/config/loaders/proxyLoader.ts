@@ -1,4 +1,4 @@
-import { escapeStringForRegex } from '@sentry/utils';
+import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -67,12 +67,17 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require), then delete the tempoary file.
-  let proxyCode = await rollupize(tempFilePath, this.resourcePath);
-  fs.unlinkSync(tempFilePath);
-
-  if (!proxyCode) {
-    // We will already have thrown a warning in `rollupize`, so no need to do it again here
+  let proxyCode;
+  try {
+    proxyCode = await rollupize(tempFilePath, this.resourcePath);
+  } catch (err) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `Could not wrap ${this.resourcePath}. An error occurred while processing the proxy module template:\n${err}`,
+      );
     return userCode;
+  } finally {
+    fs.unlinkSync(tempFilePath);
   }
 
   // Add a query string onto all references to the wrapped file, so that webpack will consider it different from the
