@@ -2,10 +2,10 @@
 import { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
-import { WINDOW } from '..';
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
+import { WINDOW } from '../types';
 import { onCLS } from '../web-vitals/getCLS';
 import { onFID } from '../web-vitals/getFID';
 import { onLCP } from '../web-vitals/getLCP';

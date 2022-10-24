@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../..';
+import { WINDOW } from '../../types';
 import { Metric } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../..';
+import { WINDOW } from '../../types';
 
 export interface OnHiddenCallback {
   (event: Event): void;

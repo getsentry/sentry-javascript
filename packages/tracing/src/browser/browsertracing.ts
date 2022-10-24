@@ -6,7 +6,6 @@ import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@s
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
-import { WINDOW } from '.';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
 import {
@@ -15,6 +14,7 @@ import {
   RequestInstrumentationOptions,
 } from './request';
 import { instrumentRoutingWithDefaults } from './router';
+import { WINDOW } from './types';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
