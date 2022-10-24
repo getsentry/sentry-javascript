@@ -2,7 +2,7 @@ export * from './exports';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
-import { WINDOW } from './client';
+import { WINDOW } from './helpers';
 import * as BrowserIntegrations from './integrations';
 
 let windowIntegrations = {};

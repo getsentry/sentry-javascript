@@ -1,20 +1,12 @@
 import { BaseClient, getCurrentHub, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
-import {
-  createClientReportEnvelope,
-  dsnToString,
-  getEventDescription,
-  GLOBAL_OBJ,
-  logger,
-  serializeEnvelope,
-} from '@sentry/utils';
+import { createClientReportEnvelope, dsnToString, getEventDescription, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
+import { WINDOW } from './helpers';
 import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
-
-export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 export interface BaseBrowserOptions {
   /**

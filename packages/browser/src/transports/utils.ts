@@ -1,6 +1,6 @@
 import { isNativeFetch, logger } from '@sentry/utils';
 
-import { WINDOW } from '../client';
+import { WINDOW } from '../helpers';
 
 let cachedFetchImpl: FetchImpl;
 

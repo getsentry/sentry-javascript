@@ -10,7 +10,7 @@ import {
   severityLevelFromString,
 } from '@sentry/utils';
 
-import { WINDOW } from '../client';
+import { WINDOW } from '../helpers';
 
 /** JSDoc */
 interface BreadcrumbsOptions {
