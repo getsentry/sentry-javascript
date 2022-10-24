@@ -153,7 +153,7 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public startChild(
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'spanId' | 'sampled' | 'traceId' | 'parentSpanId'>>,
+    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
   ): Span {
     const childSpan = new Span({
       ...spanContext,
