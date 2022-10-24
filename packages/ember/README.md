@@ -172,7 +172,8 @@ ENV['@sentry/ember'] = {
 
 ### Supported Versions
 
-`@sentry/ember` currently supports Ember **4.0+** for error monitoring.
+* **Ember.js**: v4.0 or above
+* **Node**: v14 or above
 
 ### Previous Integration
 

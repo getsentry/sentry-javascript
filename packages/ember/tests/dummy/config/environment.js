@@ -1,19 +1,15 @@
 'use strict';
 
 module.exports = function (environment) {
-  let ENV = {
+  const ENV = {
     modulePrefix: 'dummy',
     environment,
     rootURL: '/',
-    locationType: 'auto',
+    locationType: 'history',
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
         // e.g. EMBER_NATIVE_DECORATOR_SUPPORT: true
-      },
-      EXTEND_PROTOTYPES: {
-        // Prevent Ember Data from overriding Date.parse.
-        Date: false,
       },
     },
 
@@ -57,9 +53,6 @@ module.exports = function (environment) {
 
     // Include fake dsn so that instrumentation is enabled when running from cli
     ENV['@sentry/ember'].sentry.dsn = 'https://0@0.ingest.sentry.io/0';
-
-    ENV['@sentry/ember'].minimumRunloopQueueDuration = 0;
-    ENV['@sentry/ember'].minimumComponentRenderDuration = 0;
   }
 
   if (environment === 'production') {

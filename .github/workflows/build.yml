@@ -386,11 +386,11 @@ jobs:
     name: Test @sentry/ember
     needs: [job_get_metadata, job_build]
     continue-on-error: true
-    timeout-minutes: 30
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        scenario: [ember-release, ember-beta, ember-classic, ember-lts-3.24]
+        scenario: [ember-release, embroider-optimized, ember-4.0]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -404,11 +404,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          # The only danger with Ember in terms of Node versions is that the build tool, ember-cli, won't work if Node
-          # is too old. Since Oct 2019, Node 10 has been the oldest version supported by ember-cli, so test against
-          # that. If it passes, newer versions of Node should also be fine. This saves us from having to run the Ember
-          # tests in our Node matrix above.
-          node-version: '10'
+          # We support node 14+. If that works, we can safely assume that newer versions will also work.
+          node-version: '14'
       - name: Check dependency cache
         uses: actions/cache@v3
         with:

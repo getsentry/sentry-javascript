@@ -1,7 +1,7 @@
 import { test, module } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import { find, click, visit } from '@ember/test-helpers';
-import { run } from '@ember/runloop';
+import { next } from '@ember/runloop';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 const defaultAssertOptions = {
@@ -39,6 +39,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   setupSentryTest(hooks);
 
   test('Check "Throw Generic Javascript Error"', async function (assert) {
+    assert.expect(3);
+
     await visit('/');
     const button = find('[data-test-button="Throw Generic Javascript Error"]');
 
@@ -49,6 +51,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "Throw EmberError"', async function (assert) {
+    assert.expect(3);
+
     await visit('/');
     const button = find('[data-test-button="Throw EmberError"]');
 
@@ -59,6 +63,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "Caught Thrown EmberError"', async function (assert) {
+    assert.expect(1);
+
     await visit('/');
     const button = find('[data-test-button="Caught Thrown EmberError"]');
 
@@ -68,6 +74,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "Error From Fetch"', async function (assert) {
+    assert.expect(3);
+
     this.fetchStub.onFirstCall().callsFake((...args) => {
       return this.fetchStub.callsThrough(args);
     });
@@ -78,7 +86,7 @@ module('Acceptance | Sentry Errors', function (hooks) {
 
     const done = assert.async();
 
-    run.next(() => {
+    next(() => {
       assertSentryErrorCount(assert, 1);
       assertSentryCall(assert, 0, { errorBodyContains: [...this.errorMessages] });
       done();
@@ -86,6 +94,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "Error in AfterRender"', async function (assert) {
+    assert.expect(4);
+
     await visit('/');
     const button = find('[data-test-button="Error in AfterRender"]');
 
@@ -97,6 +107,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "RSVP Rejection"', async function (assert) {
+    assert.expect(4);
+
     await visit('/');
     const button = find('[data-test-button="RSVP Rejection"]');
 
@@ -108,6 +120,8 @@ module('Acceptance | Sentry Errors', function (hooks) {
   });
 
   test('Check "Error inside RSVP"', async function (assert) {
+    assert.expect(4);
+
     await visit('/');
     const button = find('[data-test-button="Error inside RSVP"]');
 
