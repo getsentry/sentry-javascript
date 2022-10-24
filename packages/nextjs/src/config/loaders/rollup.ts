@@ -40,9 +40,8 @@ const getRollupInputOptions = (proxyPath: string, resourcePath: string): RollupI
   //     rather than the expected `export { helperFunc } from '../../utils/helper'`, thereby causing a build error in
   //     nextjs..
   //
-  // It's not 100% clear why, but telling it not to do the conversion back from absolute to relative (by setting
-  // `makeAbsoluteExternalsRelative` to `false`) seems to also prevent it from going from relative to absolute in the
-  // first place, with the result that the path remains untouched (which is what we want.)
+  // Setting `makeAbsoluteExternalsRelative` to `false` prevents all of the above by causing Rollup to ignore imports of
+  // externals entirely, with the result that their paths remain untouched (which is what we want).
   makeAbsoluteExternalsRelative: false,
 });
 
