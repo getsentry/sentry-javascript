@@ -22,3 +22,11 @@ it('session last activity is not older than expiry time', function () {
     false
   ); // Session expires at ts >= 250
 });
+
+it('session age is not older than max session life', function () {
+  expect(isSessionExpired(createSession(), 1_800_000, 50_000)).toBe(false);
+});
+
+it('session age is older than max session life', function () {
+  expect(isSessionExpired(createSession(), 1_800_000, 1_800_000)).toBe(true); // Session expires at ts >= 1_800_000
+});
