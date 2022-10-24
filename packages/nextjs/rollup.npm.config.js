@@ -7,9 +7,15 @@ export default [
       // doesn't automatically include it when calculating the module dependency tree.
       entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/utils/instrumentServer.ts'],
 
-      // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
-      // the name doesn't match an SDK dependency)
-      packageSpecificConfig: { external: ['next/router'] },
+      packageSpecificConfig: {
+        external: [
+          // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatically because
+          // the name doesn't match an SDK dependency)
+          'next/router',
+          // We need to exclude the cli since we use it to get the binary path and it's not a direct dependency
+          '@sentry/cli',
+        ],
+      },
     }),
   ),
   ...makeNPMConfigVariants(
