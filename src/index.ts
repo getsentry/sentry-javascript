@@ -754,6 +754,14 @@ export class Replay implements Integration {
     const isMs = event.timestamp > 9999999999;
     const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
 
+    // Throw out events that happen more than 5 minutes ago. This can happen if
+    // page has been left open and idle for a long period of time and user
+    // comes back to trigger a new session. The performance entries rely on
+    // `performance.timeOrigin`, which is when the page first opened.
+    if (timestampInMs + SESSION_IDLE_DURATION < new Date().getTime()) {
+      return;
+    }
+
     // Only record earliest event if a new session was created, otherwise it
     // shouldn't be relevant
     if (

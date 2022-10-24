@@ -696,42 +696,55 @@ describe('Replay', () => {
     });
   });
 
-  it('does not have stale `replay_start_timestamp`', async function () {
+  it('does not have stale `replay_start_timestamp` due to an old time origin', async function () {
+    const ELAPSED = 86400000 * 2; // 2 days
+    // Change time origin to something very old (this happens in the browser
+    // when a tab has sat idle for a long period and user comes back to it)
     // @ts-expect-error read-only
-    window.performance.timeOrigin = BASE_TIMESTAMP;
-    // add a fake/old performance event
-    replay.performanceEvents.push(PerformanceEntryResource());
+    SentryUtils.browserPerformanceTimeOrigin = BASE_TIMESTAMP - ELAPSED;
 
-    const oldSessionId = replay.session?.id;
+    // add a mock performance event
+    replay.performanceEvents.push(PerformanceEntryResource());
 
     // This should be null because `addEvent` has not been called
     // @ts-expect-error private member
     expect(replay.context.earliestEvent).toBe(null);
+    expect(global.fetch).toHaveBeenCalledTimes(0);
 
-    // Force new session
-    const ELAPSED = 86400000 * 2; // 2 days
-    await advanceTimers(ELAPSED);
-    // XXX: this blur is needed to trigger `flush` + new session
-    window.dispatchEvent(new Event('blur'));
-
+    // A new checkout occurs (i.e. a new session was started)
     const TEST_EVENT = {
       data: {},
-      timestamp: (BASE_TIMESTAMP + ELAPSED) / 1000,
+      timestamp: BASE_TIMESTAMP / 1000,
       type: 2,
     };
 
-    // This event will trigger capturing recording
     replay.addEvent(TEST_EVENT);
+    // This event will trigger a flush
     window.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    await new Promise(process.nextTick);
 
-    expect(replay.session?.id).not.toBe(oldSessionId);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay({
       replayEventPayload: expect.objectContaining({
-        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED) / 1000,
+        // Make sure the old performance event is thrown out
+        replay_start_timestamp: BASE_TIMESTAMP / 1000,
       }),
+      events: JSON.stringify([
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.blur',
+            },
+          },
+        },
+      ]),
     });
 
     // This gets reset after sending replay
