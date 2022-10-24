@@ -3,7 +3,7 @@ import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
 
-const getRollupInputOptions = (proxyPath: string, resourcePath: string): RollupInputOptions => ({
+const getRollupInputOptions = (proxyPath: string, userModulePath: string): RollupInputOptions => ({
   input: proxyPath,
 
   plugins: [
@@ -17,7 +17,7 @@ const getRollupInputOptions = (proxyPath: string, resourcePath: string): RollupI
   // otherwise they won't be processed. (We need Rollup to process the former so that we can use the code, and we need
   // it to process the latter so it knows what exports to re-export from the proxy module.) Past that, we don't care, so
   // don't bother to process anything else.
-  external: importPath => importPath !== proxyPath && importPath !== resourcePath,
+  external: importPath => importPath !== proxyPath && importPath !== userModulePath,
 
   // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
   // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -59,11 +59,11 @@ const rollupOutputOptions: RollupOutputOptions = {
  * Note: Any errors which occur are handled by the proxy loader which calls this function.
  *
  * @param tempProxyFilePath The path to the temporary file containing the proxy module code
- * @param resourcePath The path to the file being wrapped
+ * @param userModulePath The path to the file being wrapped
  * @returns The processed proxy module code
  */
-export async function rollupize(tempProxyFilePath: string, resourcePath: string): Promise<string> {
-  const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, resourcePath));
+export async function rollupize(tempProxyFilePath: string, userModulePath: string): Promise<string> {
+  const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, userModulePath));
   const finalBundle = await intermediateBundle.generate(rollupOutputOptions);
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
@@ -75,12 +75,12 @@ export async function rollupize(tempProxyFilePath: string, resourcePath: string)
   // square brackets into underscores. Further, Rollup adds file extensions to bare-path-type import and export sources.
   // Because it assumes that everything will have already been processed, it always uses `.js` as the added extension.
   // We need to restore the original name and extension so that Webpack will be able to find the wrapped file.
-  const resourceFilename = path.basename(resourcePath);
-  const mutatedResourceFilename = resourceFilename
+  const userModuleFilename = path.basename(userModulePath);
+  const mutatedUserModuleFilename = userModuleFilename
     // `[\\[\\]]` is the character class containing `[` and `]`
     .replace(new RegExp('[\\[\\]]', 'g'), '_')
     .replace(/(jsx?|tsx?)$/, 'js');
-  code = code.replace(new RegExp(mutatedResourceFilename, 'g'), resourceFilename);
+  code = code.replace(new RegExp(mutatedUserModuleFilename, 'g'), userModuleFilename);
 
   return code;
 }
