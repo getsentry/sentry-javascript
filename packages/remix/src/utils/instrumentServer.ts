@@ -70,7 +70,7 @@ function extractData(response: Response): Promise<unknown> {
   return responseClone.text();
 }
 
-function captureRemixServerException(err: Error, name: string): void {
+function captureRemixServerException(err: Error, name: string, request: Request): void {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
@@ -78,6 +78,8 @@ function captureRemixServerException(err: Error, name: string): void {
   }
 
   captureException(isResponse(err) ? extractData(err) : err, scope => {
+    scope.setSDKProcessingMetadata({ request });
+
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
@@ -127,7 +129,7 @@ function makeWrappedDocumentRequestFunction(
 
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, 'documentRequest');
+      captureRemixServerException(err, 'documentRequest', request);
       throw err;
     }
 
@@ -164,7 +166,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, name);
+      captureRemixServerException(err, name, args.request);
       throw err;
     }
 
