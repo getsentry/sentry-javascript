@@ -78,6 +78,7 @@ Note: you must run `yarn build` before `yarn lint` will work.
 
 When contributing to the codebase, please note:
 
+- Make sure to follow the [Commit, Issue & PR guidelines](#commit-issue--pr-guidelines)
 - Non-trivial PRs will not be accepted without tests (see above).
 - Please do not bump version numbers yourself.
 - [`raven-js`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-js) and [`raven-node`](https://github.com/getsentry/sentry-javascript/tree/3.x/packages/raven-node) are deprecated, and only bug and security fix PRs will be accepted targeting the [3.x branch](https://github.com/getsentry/sentry-javascript/tree/3.x). Any new features and improvements should be to our new SDKs (`browser`, `node`, and framework-specific packages like `react` and `nextjs`) and the packages which support them (`core`, `utils`, `integrations`, and the like).
@@ -98,6 +99,36 @@ Our different types of reviews:
   2. **LGTM with low and medium comments.** The reviewer trusts you to resolve these comments yourself, and you don't need to wait for another approval.
   3. **Only comments.** You must address all the comments and need another review until you merge.
   4. **Request changes.** Only use if something critical is in the PR that absolutely must be addressed. We usually use `h` comments for that. When someone requests changes, the same person must approve the changes to allow merging. Use this sparingly.
+
+## Commit, Issue & PR guidelines
+
+### Commits
+
+For commit messages, we use the format:
+
+```
+<type>(<scope>): <subject> (<github-id>)
+````
+
+For example: `feat(core): Set custom transaction source for event processors (#5722)`.
+
+See [commit message format](https://develop.sentry.dev/commit-messages/#commit-message-format) for details.
+
+The Github-ID can be left out until the PR is merged.
+
+### Issues
+
+Issues should at least be categorized by package, for example `package: Node`.
+Additional labels for categorization can be added, and the Sentry SDK team may also add further labels as needed.
+
+### Pull Requests (PRs)
+
+PRs are merged via `Squash and merge`.
+This means that all commits on the branch will be squashed into a single commit, and commited as such onto master.
+
+* The PR name can generally follow the commit name (e.g. `feat(core): Set custom transaction source for event processors`)
+* Make sure to rebase the branch on `master` before squashing it
+* Make sure to update the commit message of the squashed branch to follow the commit guidelines - including the PR number
 
 ## Publishing a Release
 
