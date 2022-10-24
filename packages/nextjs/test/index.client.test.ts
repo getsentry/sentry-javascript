@@ -1,8 +1,9 @@
 import { BaseClient, getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
+import { WINDOW } from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
-import { logger, WINDOW } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';

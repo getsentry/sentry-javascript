@@ -1,7 +1,7 @@
-import { BrowserClient } from '@sentry/browser';
+import { BrowserClient, WINDOW } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
-import { InstrumentHandlerCallback, InstrumentHandlerType, WINDOW } from '@sentry/utils';
+import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
