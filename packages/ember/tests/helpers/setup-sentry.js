@@ -13,6 +13,7 @@ export function setupSentryTest(hooks) {
     const errorMessages = [];
     this.errorMessages = errorMessages;
 
+    // eslint-disable-next-line ember/no-private-routing-service
     const routerMain = this.owner.lookup('router:main');
     const routerService = this.owner.lookup('service:router');
 

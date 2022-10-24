@@ -53,6 +53,8 @@ module('Acceptance | Sentry Performance', function (hooks) {
   setupSentryTest(hooks);
 
   test('Test transaction', async function (assert) {
+    assert.expect(6);
+
     await visit('/tracing');
 
     assertSentryTransactionCount(assert, 1);
@@ -75,6 +77,8 @@ module('Acceptance | Sentry Performance', function (hooks) {
   });
 
   test('Test navigating to slow route', async function (assert) {
+    assert.expect(7);
+
     await visit('/tracing');
     const button = find('[data-test-button="Transition to slow loading route"]');
 
