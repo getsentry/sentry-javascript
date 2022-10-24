@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '@sentry/utils';
-
+import { WINDOW } from '../..';
 import { Metric } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';

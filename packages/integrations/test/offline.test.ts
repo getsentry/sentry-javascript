@@ -1,5 +1,5 @@
+import { WINDOW } from '@sentry/browser';
 import { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
-import { WINDOW } from '@sentry/utils';
 
 import { Item, Offline } from '../src/offline';
 
@@ -41,7 +41,7 @@ jest.mock('@sentry/utils', () => {
 
   return {
     ...originalModule,
-    get WINDOW() {
+    get GLOBAL_OBJ() {
       return {
         addEventListener: (_windowEvent: any, callback: any) => {
           eventListeners.push(callback);

@@ -1,8 +1,9 @@
-import { logger, WINDOW } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { IdleTransaction } from '../idletransaction';
 import { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
+import { WINDOW } from '.';
 
 /**
  * Add a listener that cancels and finishes a transaction when the global

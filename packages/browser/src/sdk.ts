@@ -12,11 +12,10 @@ import {
   resolvedSyncPromise,
   stackParserFromStackParserOptions,
   supportsFetch,
-  WINDOW,
 } from '@sentry/utils';
 
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
-import { ReportDialogOptions, wrap as internalWrap } from './helpers';
+import { ReportDialogOptions, WINDOW, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';

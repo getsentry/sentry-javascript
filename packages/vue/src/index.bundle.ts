@@ -46,8 +46,7 @@ export {
   SDK_VERSION,
 } from '@sentry/browser';
 
-import { Integrations as BrowserIntegrations } from '@sentry/browser';
-import { WINDOW } from '@sentry/utils';
+import { Integrations as BrowserIntegrations, WINDOW } from '@sentry/browser';
 
 export { init } from './sdk';
 export { vueRouterInstrumentation } from './router';

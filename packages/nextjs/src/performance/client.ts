@@ -1,11 +1,11 @@
 import { getCurrentHub } from '@sentry/core';
+import { WINDOW } from '@sentry/react';
 import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
   baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,
   logger,
   stripUrlQueryAndFragment,
-  WINDOW,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';

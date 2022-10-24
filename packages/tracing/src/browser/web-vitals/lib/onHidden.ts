@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '@sentry/utils';
+import { WINDOW } from '../..';
 
 export interface OnHiddenCallback {
   (event: Event): void;

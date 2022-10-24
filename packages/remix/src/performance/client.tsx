@@ -1,7 +1,6 @@
-import type { ErrorBoundaryProps } from '@sentry/react';
-import { withErrorBoundary } from '@sentry/react';
+import { ErrorBoundaryProps, WINDOW , withErrorBoundary } from '@sentry/react';
 import { Transaction, TransactionContext } from '@sentry/types';
-import { logger, WINDOW } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import * as React from 'react';
 
 const DEFAULT_TAGS = {

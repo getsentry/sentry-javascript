@@ -1,9 +1,9 @@
 /* eslint-disable max-lines */
 import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRouteSnapshot, Event, NavigationEnd, NavigationStart, ResolveEnd, Router } from '@angular/router';
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentHub, WINDOW } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, timestampWithMs, WINDOW } from '@sentry/utils';
+import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
 import { Observable, Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 

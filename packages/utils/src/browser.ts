@@ -1,10 +1,8 @@
 import { isString } from './is';
-import { GLOBAL_OBJ } from './worldwide';
+import { getGlobalObject } from './worldwide';
 
-/**
- * TODO: Move me to @sentry/browser when @sentry/utils no longer contains any browser code
- */
-export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+// eslint-disable-next-line deprecation/deprecation
+const WINDOW = getGlobalObject<Window>();
 
 /**
  * Given a child DOM element, returns a query-selector statement describing that

@@ -1,7 +1,7 @@
 import { Integration, WrappedFunction } from '@sentry/types';
-import { fill, getFunctionName, getOriginalFunction, WINDOW } from '@sentry/utils';
+import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
-import { wrap } from '../helpers';
+import { WINDOW, wrap } from '../helpers';
 
 const DEFAULT_EVENT_TARGET = [
   'EventTarget',

@@ -1,8 +1,9 @@
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
+import { WINDOW } from '@sentry/browser';
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getNumberOfUrlSegments, logger, WINDOW } from '@sentry/utils';
+import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 

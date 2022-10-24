@@ -3,12 +3,15 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { WrappedFunction } from '@sentry/types';
 
-import { WINDOW } from './browser';
 import { isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
 import { supportsHistory, supportsNativeFetch } from './supports';
+import { getGlobalObject } from './worldwide';
+
+// eslint-disable-next-line deprecation/deprecation
+const WINDOW = getGlobalObject<Window>();
 
 export type InstrumentHandlerType =
   | 'console'

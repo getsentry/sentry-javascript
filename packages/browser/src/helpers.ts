@@ -5,8 +5,11 @@ import {
   addExceptionTypeValue,
   addNonEnumerableProperty,
   getOriginalFunction,
+  GLOBAL_OBJ,
   markFunctionWrapped,
 } from '@sentry/utils';
+
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 let ignoreOnError: number = 0;
 

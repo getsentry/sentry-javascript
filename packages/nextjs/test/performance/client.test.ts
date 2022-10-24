@@ -1,5 +1,5 @@
+import { WINDOW } from '@sentry/react';
 import { Transaction } from '@sentry/types';
-import { WINDOW } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';

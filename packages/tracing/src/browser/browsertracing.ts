@@ -1,11 +1,12 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, getDomElement, logger, WINDOW } from '@sentry/utils';
+import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
+import { WINDOW } from '.';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
 import {

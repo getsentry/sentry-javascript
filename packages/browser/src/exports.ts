@@ -45,6 +45,7 @@ export {
   InboundFilters,
 } from '@sentry/core';
 
+export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport, makeXHRTransport } from './transports';
 export {

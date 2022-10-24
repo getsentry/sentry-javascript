@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '@sentry/utils';
-
+import { WINDOW } from '../..';
 import { NavigationTimingPolyfillEntry } from '../types';
 
 const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntry => {

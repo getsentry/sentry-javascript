@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */
 import { Measurements } from '@sentry/types';
-import { browserPerformanceTimeOrigin, htmlTreeAsString, logger, WINDOW } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
+import { WINDOW } from '..';
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
