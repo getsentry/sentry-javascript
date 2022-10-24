@@ -50,34 +50,21 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
   // Make sure the template is included when runing `webpack watch`
   this.addDependency(templatePath);
 
-  // Inject the route into the template
+  // Inject the route and the path to the file we're wrapping into the template
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute);
-
-  // Fill in the path to the file we're wrapping and save the result as a temporary file in the same folder (so that
-  // relative imports and exports are calculated correctly).
-  //
-  // TODO: We're saving the filled-in template to disk, however temporarily, because Rollup expects a path to a code
-  // file, not code itself. There is a rollup plugin which can fake this (`@rollup/plugin-virtual`) but the virtual file
-  // seems to be inside of a virtual directory (in other words, one level down from where you'd expect it) and that
-  // messes up relative imports and exports. Presumably there's a way to make it work, though, and if we can, it would
-  // be cleaner than having to first write and then delete a temporary file each time we run this loader.
   templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath);
-  const tempFilePath = path.resolve(path.dirname(this.resourcePath), `temp${Math.random()}.js`);
-  fs.writeFileSync(tempFilePath, templateCode);
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
-  // individual exports (which nextjs seems to require), then delete the tempoary file.
+  // individual exports (which nextjs seems to require).
   let proxyCode;
   try {
-    proxyCode = await rollupize(tempFilePath, this.resourcePath);
+    proxyCode = await rollupize(templateCode, this.resourcePath);
   } catch (err) {
     __DEBUG_BUILD__ &&
       logger.warn(
         `Could not wrap ${this.resourcePath}. An error occurred while processing the proxy module template:\n${err}`,
       );
     return userCode;
-  } finally {
-    fs.unlinkSync(tempFilePath);
   }
 
   // Add a query string onto all references to the wrapped file, so that webpack will consider it different from the

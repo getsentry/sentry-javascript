@@ -1,12 +1,19 @@
 import sucrase from '@rollup/plugin-sucrase';
+import virtual from '@rollup/plugin-virtual';
 import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
 
-const getRollupInputOptions = (proxyPath: string, userModulePath: string): RollupInputOptions => ({
-  input: proxyPath,
+const SENTRY_PROXY_MODULE_NAME = 'sentry-proxy-module';
+
+const getRollupInputOptions = (templateCode: string, userModulePath: string): RollupInputOptions => ({
+  input: SENTRY_PROXY_MODULE_NAME,
 
   plugins: [
+    virtual({
+      [SENTRY_PROXY_MODULE_NAME]: templateCode,
+    }),
+
     sucrase({
       transforms: ['jsx', 'typescript'],
     }),
@@ -17,7 +24,7 @@ const getRollupInputOptions = (proxyPath: string, userModulePath: string): Rollu
   // otherwise they won't be processed. (We need Rollup to process the former so that we can use the code, and we need
   // it to process the latter so it knows what exports to re-export from the proxy module.) Past that, we don't care, so
   // don't bother to process anything else.
-  external: importPath => importPath !== proxyPath && importPath !== userModulePath,
+  external: importPath => importPath !== SENTRY_PROXY_MODULE_NAME && importPath !== userModulePath,
 
   // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
   // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -53,17 +60,17 @@ const rollupOutputOptions: RollupOutputOptions = {
 };
 
 /**
- * Use Rollup to process the proxy module file (located at `tempProxyFilePath`) in order to split its `export * from
- * '<wrapped file>'` call into individual exports (which nextjs seems to need).
+ * Use Rollup to process the proxy module code, in order to split its `export * from '<wrapped file>'` call into
+ * individual exports (which nextjs seems to need).
  *
  * Note: Any errors which occur are handled by the proxy loader which calls this function.
  *
- * @param tempProxyFilePath The path to the temporary file containing the proxy module code
+ * @param templateCode The proxy module code
  * @param userModulePath The path to the file being wrapped
  * @returns The processed proxy module code
  */
-export async function rollupize(tempProxyFilePath: string, userModulePath: string): Promise<string> {
-  const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, userModulePath));
+export async function rollupize(templateCode: string, userModulePath: string): Promise<string> {
+  const intermediateBundle = await rollup(getRollupInputOptions(templateCode, userModulePath));
   const finalBundle = await intermediateBundle.generate(rollupOutputOptions);
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
