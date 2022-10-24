@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@rollup/plugin-sucrase": "4.0.4",
-    "@rollup/plugin-virtual": "3.0.0",
     "@sentry/core": "7.16.0",
     "@sentry/integrations": "7.16.0",
     "@sentry/node": "7.16.0",
