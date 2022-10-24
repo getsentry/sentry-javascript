@@ -5,11 +5,11 @@ import { browserPerformanceTimeOrigin, htmlTreeAsString, logger, WINDOW } from '
 import { IdleTransaction } from '../../idletransaction';
 import { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
-import { getCLS, LayoutShift } from '../web-vitals/getCLS';
-import { getFID } from '../web-vitals/getFID';
-import { getLCP, LargestContentfulPaint } from '../web-vitals/getLCP';
+import { onCLS } from '../web-vitals/getCLS';
+import { onFID } from '../web-vitals/getFID';
+import { onLCP } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
-import { observe, PerformanceEntryHandler } from '../web-vitals/lib/observe';
+import { observe } from '../web-vitals/lib/observe';
 import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
@@ -42,19 +42,22 @@ export function startTrackingWebVitals(reportAllChanges: boolean = false): void 
  * Start tracking long tasks.
  */
 export function startTrackingLongTasks(): void {
-  const entryHandler: PerformanceEntryHandler = (entry: PerformanceEntry): void => {
-    const transaction = getActiveTransaction() as IdleTransaction | undefined;
-    if (!transaction) {
-      return;
+  const entryHandler = (entries: PerformanceEntry[]): void => {
+    for (const entry of entries) {
+      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      if (!transaction) {
+        return;
+      }
+      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const duration = msToSec(entry.duration);
+
+      transaction.startChild({
+        description: 'Main UI thread blocked',
+        op: 'ui.long-task',
+        startTimestamp: startTime,
+        endTimestamp: startTime + duration,
+      });
     }
-    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
-    const duration = msToSec(entry.duration);
-    transaction.startChild({
-      description: 'Main UI thread blocked',
-      op: 'ui.long-task',
-      startTimestamp: startTime,
-      endTimestamp: startTime + duration,
-    });
   };
 
   observe('longtask', entryHandler);
@@ -65,7 +68,7 @@ function _trackCLS(): void {
   // See:
   // https://web.dev/evolving-cls/
   // https://web.dev/cls-web-tooling/
-  getCLS(metric => {
+  onCLS(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -79,21 +82,24 @@ function _trackCLS(): void {
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
 function _trackLCP(reportAllChanges: boolean): void {
-  getLCP(metric => {
-    const entry = metric.entries.pop();
-    if (!entry) {
-      return;
-    }
+  onLCP(
+    metric => {
+      const entry = metric.entries.pop();
+      if (!entry) {
+        return;
+      }
 
-    __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
-    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-    _lcpEntry = entry as LargestContentfulPaint;
-  }, reportAllChanges);
+      __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
+      _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+      _lcpEntry = entry as LargestContentfulPaint;
+    },
+    { reportAllChanges },
+  );
 }
 
 /** Starts tracking the First Input Delay on the current page. */
 function _trackFID(): void {
-  getFID(metric => {
+  onFID(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;

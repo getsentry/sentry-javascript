@@ -2,9 +2,9 @@
 
 > A modular library for measuring the [Web Vitals](https://web.dev/vitals/) metrics on real users.
 
-This was vendored from: https://github.com/GoogleChrome/web-vitals: v2.1.0
+This was vendored from: https://github.com/GoogleChrome/web-vitals: v3.0.4
 
-The commit SHA used is: [3f3338d994f182172d5b97b22a0fcce0c2846908](https://github.com/GoogleChrome/web-vitals/tree/3f3338d994f182172d5b97b22a0fcce0c2846908)
+The commit SHA used is: [7f0ed0bfb03c356e348a558a3eda111b498a2a11](https://github.com/GoogleChrome/web-vitals/tree/7f0ed0bfb03c356e348a558a3eda111b498a2a11)
 
 Current vendored web vitals are:
 
@@ -22,6 +22,9 @@ As such, logic around `BFCache` and multiple reports were removed from the libra
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
 
 ## CHANGELOG
+
+https://github.com/getsentry/sentry-javascript/pull/5987
+- Bumped from Web Vitals v2.1.0 to v3.0.4
 
 https://github.com/getsentry/sentry-javascript/pull/3781
 - Bumped from Web Vitals v0.2.4 to v2.1.0

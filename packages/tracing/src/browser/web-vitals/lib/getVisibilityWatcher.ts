@@ -21,7 +21,9 @@ import { onHidden } from './onHidden';
 let firstHiddenTime = -1;
 
 const initHiddenTime = (): number => {
-  return WINDOW.document.visibilityState === 'hidden' ? 0 : Infinity;
+  // If the document is hidden and not prerendering, assume it was always
+  // hidden and the page was loaded in the background.
+  return WINDOW.document.visibilityState === 'hidden' && !WINDOW.document.prerendering ? 0 : Infinity;
 };
 
 const trackChanges = (): void => {

@@ -15,55 +15,57 @@
  */
 
 import { bindReporter } from './lib/bindReporter';
+import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
-import { observe, PerformanceEntryHandler } from './lib/observe';
+import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { ReportHandler } from './types';
-
-// https://wicg.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
-export interface LargestContentfulPaint extends PerformanceEntry {
-  renderTime: DOMHighResTimeStamp;
-  loadTime: DOMHighResTimeStamp;
-  size: number;
-  id: string;
-  url: string;
-  element?: Element;
-  toJSON(): Record<string, string>;
-}
+import { LCPMetric, ReportCallback, ReportOpts } from './types';
 
 const reportedMetricIDs: Record<string, boolean> = {};
 
-export const getLCP = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+/**
+ * Calculates the [LCP](https://web.dev/lcp/) value for the current page and
+ * calls the `callback` function once the value is ready (along with the
+ * relevant `largest-contentful-paint` performance entry used to determine the
+ * value). The reported value is a `DOMHighResTimeStamp`.
+ *
+ * If the `reportAllChanges` configuration option is set to `true`, the
+ * `callback` function will be called any time a new `largest-contentful-paint`
+ * performance entry is dispatched, or once the final value of the metric has
+ * been determined.
+ */
+export const onLCP = (onReport: ReportCallback, opts: ReportOpts = {}): void => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('LCP');
   let report: ReturnType<typeof bindReporter>;
 
-  const entryHandler = (entry: PerformanceEntry): void => {
-    // The startTime attribute returns the value of the renderTime if it is not 0,
-    // and the value of the loadTime otherwise.
-    const value = entry.startTime;
+  const handleEntries = (entries: LCPMetric['entries']): void => {
+    const lastEntry = entries[entries.length - 1] as LargestContentfulPaint;
+    if (lastEntry) {
+      // The startTime attribute returns the value of the renderTime if it is
+      // not 0, and the value of the loadTime otherwise. The activationStart
+      // reference is used because LCP should be relative to page activation
+      // rather than navigation start if the page was prerendered.
+      const value = Math.max(lastEntry.startTime - getActivationStart(), 0);
 
-    // If the page was hidden prior to paint time of the entry,
-    // ignore it and mark the metric as final, otherwise add the entry.
-    if (value < visibilityWatcher.firstHiddenTime) {
-      metric.value = value;
-      metric.entries.push(entry);
-    }
-
-    if (report) {
-      report();
+      // Only report if the page wasn't hidden prior to LCP.
+      if (value < visibilityWatcher.firstHiddenTime) {
+        metric.value = value;
+        metric.entries = [lastEntry];
+        report();
+      }
     }
   };
 
-  const po = observe('largest-contentful-paint', entryHandler);
+  const po = observe('largest-contentful-paint', handleEntries);
 
   if (po) {
-    report = bindReporter(onReport, metric, reportAllChanges);
+    report = bindReporter(onReport, metric, opts.reportAllChanges);
 
     const stopListening = (): void => {
       if (!reportedMetricIDs[metric.id]) {
-        po.takeRecords().map(entryHandler as PerformanceEntryHandler);
+        handleEntries(po.takeRecords() as LCPMetric['entries']);
         po.disconnect();
         reportedMetricIDs[metric.id] = true;
         report(true);

@@ -14,15 +14,32 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '@sentry/utils';
+
 import { Metric } from '../types';
 import { generateUniqueID } from './generateUniqueID';
+import { getActivationStart } from './getActivationStart';
+import { getNavigationEntry } from './getNavigationEntry';
 
 export const initMetric = (name: Metric['name'], value?: number): Metric => {
+  const navEntry = getNavigationEntry();
+  let navigationType: Metric['navigationType'] = 'navigate';
+
+  if (navEntry) {
+    if (WINDOW.document.prerendering || getActivationStart() > 0) {
+      navigationType = 'prerender';
+    } else {
+      navigationType = navEntry.type.replace(/_/g, '-') as Metric['navigationType'];
+    }
+  }
+
   return {
     name,
-    value: value ?? -1,
+    value: typeof value === 'undefined' ? -1 : value,
+    rating: 'good', // Will be updated if the value changes.
     delta: 0,
     entries: [],
     id: generateUniqueID(),
+    navigationType,
   };
 };

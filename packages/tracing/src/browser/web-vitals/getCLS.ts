@@ -16,72 +16,80 @@
 
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
-import { observe, PerformanceEntryHandler } from './lib/observe';
+import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { ReportHandler } from './types';
+import { CLSMetric, ReportCallback, ReportOpts } from './types';
 
-// https://wicg.github.io/layout-instability/#sec-layout-shift
-export interface LayoutShift extends PerformanceEntry {
-  value: number;
-  hadRecentInput: boolean;
-  sources: Array<LayoutShiftAttribution>;
-  toJSON(): Record<string, unknown>;
-}
-
-export interface LayoutShiftAttribution {
-  node?: Node;
-  previousRect: DOMRectReadOnly;
-  currentRect: DOMRectReadOnly;
-}
-
-export const getCLS = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+/**
+ * Calculates the [CLS](https://web.dev/cls/) value for the current page and
+ * calls the `callback` function once the value is ready to be reported, along
+ * with all `layout-shift` performance entries that were used in the metric
+ * value calculation. The reported value is a `double` (corresponding to a
+ * [layout shift score](https://web.dev/cls/#layout-shift-score)).
+ *
+ * If the `reportAllChanges` configuration option is set to `true`, the
+ * `callback` function will be called as soon as the value is initially
+ * determined as well as any time the value changes throughout the page
+ * lifespan.
+ *
+ * _**Important:** CLS should be continually monitored for changes throughout
+ * the entire lifespan of a page—including if the user returns to the page after
+ * it's been hidden/backgrounded. However, since browsers often [will not fire
+ * additional callbacks once the user has backgrounded a
+ * page](https://developer.chrome.com/blog/page-lifecycle-api/#advice-hidden),
+ * `callback` is always called when the page's visibility state changes to
+ * hidden. As a result, the `callback` function might be called multiple times
+ * during the same page load._
+ */
+export const onCLS = (onReport: ReportCallback, opts: ReportOpts = {}): void => {
   const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
   let sessionValue = 0;
   let sessionEntries: PerformanceEntry[] = [];
 
-  const entryHandler = (entry: LayoutShift): void => {
-    // Only count layout shifts without recent user input.
-    // TODO: Figure out why entry can be undefined
-    if (entry && !entry.hadRecentInput) {
-      const firstSessionEntry = sessionEntries[0];
-      const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
+  // const handleEntries = (entries: Metric['entries']) => {
+  const handleEntries = (entries: LayoutShift[]): void => {
+    entries.forEach(entry => {
+      // Only count layout shifts without recent user input.
+      if (!entry.hadRecentInput) {
+        const firstSessionEntry = sessionEntries[0];
+        const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
 
-      // If the entry occurred less than 1 second after the previous entry and
-      // less than 5 seconds after the first entry in the session, include the
-      // entry in the current session. Otherwise, start a new session.
-      if (
-        sessionValue &&
-        sessionEntries.length !== 0 &&
-        entry.startTime - lastSessionEntry.startTime < 1000 &&
-        entry.startTime - firstSessionEntry.startTime < 5000
-      ) {
-        sessionValue += entry.value;
-        sessionEntries.push(entry);
-      } else {
-        sessionValue = entry.value;
-        sessionEntries = [entry];
-      }
+        // If the entry occurred less than 1 second after the previous entry and
+        // less than 5 seconds after the first entry in the session, include the
+        // entry in the current session. Otherwise, start a new session.
+        if (
+          sessionValue &&
+          entry.startTime - lastSessionEntry.startTime < 1000 &&
+          entry.startTime - firstSessionEntry.startTime < 5000
+        ) {
+          sessionValue += entry.value;
+          sessionEntries.push(entry);
+        } else {
+          sessionValue = entry.value;
+          sessionEntries = [entry];
+        }
 
-      // If the current session value is larger than the current CLS value,
-      // update CLS and the entries contributing to it.
-      if (sessionValue > metric.value) {
-        metric.value = sessionValue;
-        metric.entries = sessionEntries;
-        if (report) {
-          report();
+        // If the current session value is larger than the current CLS value,
+        // update CLS and the entries contributing to it.
+        if (sessionValue > metric.value) {
+          metric.value = sessionValue;
+          metric.entries = sessionEntries;
+          if (report) {
+            report();
+          }
         }
       }
-    }
+    });
   };
 
-  const po = observe('layout-shift', entryHandler as PerformanceEntryHandler);
+  const po = observe('layout-shift', handleEntries);
   if (po) {
-    report = bindReporter(onReport, metric, reportAllChanges);
+    report = bindReporter(onReport, metric, opts.reportAllChanges);
 
     onHidden(() => {
-      po.takeRecords().map(entryHandler as PerformanceEntryHandler);
+      handleEntries(po.takeRecords() as CLSMetric['entries']);
       report(true);
     });
   }

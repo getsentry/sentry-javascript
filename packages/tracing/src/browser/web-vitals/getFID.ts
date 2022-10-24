@@ -17,29 +17,44 @@
 import { bindReporter } from './lib/bindReporter';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
-import { observe, PerformanceEntryHandler } from './lib/observe';
+import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { PerformanceEventTiming, ReportHandler } from './types';
+import { FIDMetric, PerformanceEventTiming, ReportCallback, ReportOpts } from './types';
 
-export const getFID = (onReport: ReportHandler, reportAllChanges?: boolean): void => {
+/**
+ * Calculates the [FID](https://web.dev/fid/) value for the current page and
+ * calls the `callback` function once the value is ready, along with the
+ * relevant `first-input` performance entry used to determine the value. The
+ * reported value is a `DOMHighResTimeStamp`.
+ *
+ * _**Important:** since FID is only reported after the user interacts with the
+ * page, it's possible that it will not be reported for some page loads._
+ */
+export const onFID = (onReport: ReportCallback, opts: ReportOpts = {}): void => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('FID');
+  // eslint-disable-next-line prefer-const
   let report: ReturnType<typeof bindReporter>;
 
-  const entryHandler = (entry: PerformanceEventTiming): void => {
+  const handleEntry = (entry: PerformanceEventTiming): void => {
     // Only report if the page wasn't hidden prior to the first input.
-    if (report && entry.startTime < visibilityWatcher.firstHiddenTime) {
+    if (entry.startTime < visibilityWatcher.firstHiddenTime) {
       metric.value = entry.processingStart - entry.startTime;
       metric.entries.push(entry);
       report(true);
     }
   };
 
-  const po = observe('first-input', entryHandler as PerformanceEntryHandler);
+  const handleEntries = (entries: FIDMetric['entries']): void => {
+    (entries as PerformanceEventTiming[]).forEach(handleEntry);
+  };
+
+  const po = observe('first-input', handleEntries);
+  report = bindReporter(onReport, metric, opts.reportAllChanges);
+
   if (po) {
-    report = bindReporter(onReport, metric, reportAllChanges);
     onHidden(() => {
-      po.takeRecords().map(entryHandler as PerformanceEntryHandler);
+      handleEntries(po.takeRecords() as FIDMetric['entries']);
       po.disconnect();
     }, true);
   }
