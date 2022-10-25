@@ -22,7 +22,7 @@ test('should create and send transactions for Express routes and spans for middl
     spans: [
       {
         description: 'corsMiddleware',
-        op: 'express.middleware.use',
+        op: 'middleware.express.use',
       },
     ],
   });
