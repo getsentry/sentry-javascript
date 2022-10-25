@@ -1,12 +1,20 @@
 import sucrase from '@rollup/plugin-sucrase';
+import virtual from '@rollup/plugin-virtual';
+import { escapeStringForRegex } from '@sentry/utils';
 import * as path from 'path';
 import type { InputOptions as RollupInputOptions, OutputOptions as RollupOutputOptions } from 'rollup';
 import { rollup } from 'rollup';
 
-const getRollupInputOptions = (proxyPath: string, userModulePath: string): RollupInputOptions => ({
-  input: proxyPath,
+const SENTRY_PROXY_MODULE_NAME = 'sentry-proxy-module';
+
+const getRollupInputOptions = (templateCode: string, userModulePath: string): RollupInputOptions => ({
+  input: SENTRY_PROXY_MODULE_NAME,
 
   plugins: [
+    virtual({
+      [SENTRY_PROXY_MODULE_NAME]: templateCode,
+    }),
+
     sucrase({
       transforms: ['jsx', 'typescript'],
     }),
@@ -17,7 +25,7 @@ const getRollupInputOptions = (proxyPath: string, userModulePath: string): Rollu
   // otherwise they won't be processed. (We need Rollup to process the former so that we can use the code, and we need
   // it to process the latter so it knows what exports to re-export from the proxy module.) Past that, we don't care, so
   // don't bother to process anything else.
-  external: importPath => importPath !== proxyPath && importPath !== userModulePath,
+  external: importPath => importPath !== SENTRY_PROXY_MODULE_NAME && importPath !== userModulePath,
 
   // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
   // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -53,34 +61,44 @@ const rollupOutputOptions: RollupOutputOptions = {
 };
 
 /**
- * Use Rollup to process the proxy module file (located at `tempProxyFilePath`) in order to split its `export * from
- * '<wrapped file>'` call into individual exports (which nextjs seems to need).
+ * Use Rollup to process the proxy module code, in order to split its `export * from '<wrapped file>'` call into
+ * individual exports (which nextjs seems to need).
  *
  * Note: Any errors which occur are handled by the proxy loader which calls this function.
  *
- * @param tempProxyFilePath The path to the temporary file containing the proxy module code
+ * @param templateCode The proxy module code
  * @param userModulePath The path to the file being wrapped
  * @returns The processed proxy module code
  */
-export async function rollupize(tempProxyFilePath: string, userModulePath: string): Promise<string> {
-  const intermediateBundle = await rollup(getRollupInputOptions(tempProxyFilePath, userModulePath));
+export async function rollupize(templateCode: string, userModulePath: string): Promise<string> {
+  const intermediateBundle = await rollup(getRollupInputOptions(templateCode, userModulePath));
   const finalBundle = await intermediateBundle.generate(rollupOutputOptions);
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
   let { code } = finalBundle.output[0];
 
-  // Rollup does a few things to the code we *don't* want. Undo those changes before returning the code.
+  // In addition to doing the desired work, Rollup also does a few things we *don't* want. Specifically, in messes up
+  // the path in both `import * as origModule from '<userModulePath>'` and `export * from '<userModulePath>'`.
   //
-  // Nextjs uses square brackets surrounding a path segment to denote a parameter in the route, but Rollup turns those
-  // square brackets into underscores. Further, Rollup adds file extensions to bare-path-type import and export sources.
-  // Because it assumes that everything will have already been processed, it always uses `.js` as the added extension.
-  // We need to restore the original name and extension so that Webpack will be able to find the wrapped file.
-  const userModuleFilename = path.basename(userModulePath);
-  const mutatedUserModuleFilename = userModuleFilename
-    // `[\\[\\]]` is the character class containing `[` and `]`
-    .replace(new RegExp('[\\[\\]]', 'g'), '_')
-    .replace(/(jsx?|tsx?)$/, 'js');
-  code = code.replace(new RegExp(mutatedUserModuleFilename, 'g'), userModuleFilename);
+  // - It turns the square brackets surrounding each parameterized path segment into underscores.
+  // - It always adds `.js` to the end of the filename.
+  // - It converts the path from aboslute to relative, which would be fine except that when used with the virual plugin,
+  //   it uses an incorrect (and not entirely predicable) base for that relative path.
+  //
+  // To fix this, we overwrite the messed up path with what we know it should be: `./<userModulePathBasename>`. (We can
+  // find the value of the messed up path by looking at what `import * as origModule from '<userModulePath>'` becomes.
+  // Because it's the first line of the template, it's also the first line of the result, and is therefore easy to
+  // find.)
+
+  const importStarStatement = code.split('\n')[0];
+  // This regex should always match (we control both the input and the process which generates it, so we can guarantee
+  // the outcome of that processing), but just in case it somehow doesn't, we need it to throw an error so that the
+  // proxy loader will know to return the user's code untouched rather than returning proxy module code including a
+  // broken path. The non-null assertion asserts that a match has indeed been found.
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const messedUpPath = /^import \* as .* from '(.*)';$/.exec(importStarStatement)![1];
+
+  code = code.replace(new RegExp(escapeStringForRegex(messedUpPath), 'g'), `./${path.basename(userModulePath)}`);
 
   return code;
 }
