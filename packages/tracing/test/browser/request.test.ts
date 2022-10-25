@@ -47,8 +47,8 @@ describe('instrumentOutgoingRequests', () => {
 describe('callbacks', () => {
   let hub: Hub;
   let transaction: Transaction;
-  const alwaysCreateSpan = () => true;
-  const neverCreateSpan = () => false;
+  const always = () => true;
+  const never = () => false;
   const startTimestamp = 1356996072000;
   const endTimestamp = 1356996072000;
   const fetchHandlerData: FetchData = {
@@ -87,7 +87,7 @@ describe('callbacks', () => {
     it('does not create span if shouldCreateSpan returns false', () => {
       const spans = {};
 
-      fetchCallback(fetchHandlerData, neverCreateSpan, spans);
+      fetchCallback(fetchHandlerData, never, never, spans);
 
       expect(spans).toEqual({});
     });
@@ -96,7 +96,7 @@ describe('callbacks', () => {
       const noFetchData = { args: fetchHandlerData.args, startTimestamp: fetchHandlerData.startTimestamp };
       const spans = {};
 
-      fetchCallback(noFetchData, alwaysCreateSpan, spans);
+      fetchCallback(noFetchData, always, never, spans);
       expect(spans).toEqual({});
     });
 
@@ -104,7 +104,7 @@ describe('callbacks', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
       const spans = {};
 
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(fetchHandlerData, always, never, spans);
       expect(spans).toEqual({});
     });
 
@@ -118,7 +118,7 @@ describe('callbacks', () => {
         startTimestamp: 1353501072000,
       };
 
-      fetchCallback(handlerData, alwaysCreateSpan, {});
+      fetchCallback(handlerData, always, never, {});
 
       const headers = (handlerData.args[1].headers as Record<string, string>) || {};
       expect(headers['sentry-trace']).not.toBeDefined();
@@ -128,7 +128,7 @@ describe('callbacks', () => {
       const spans = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(fetchHandlerData, always, never, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -149,7 +149,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(postRequestFetchHandlerData, always, never, spans);
 
       expect(newSpan.endTimestamp).toBeDefined();
     });
@@ -158,7 +158,7 @@ describe('callbacks', () => {
       const spans: Record<string, Span> = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(fetchHandlerData, always, never, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -171,7 +171,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(postRequestFetchHandlerData, always, never, spans);
 
       expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
@@ -186,7 +186,7 @@ describe('callbacks', () => {
       };
 
       // in that case, the response coming back will be ignored
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, {});
+      fetchCallback(postRequestFetchHandlerData, always, never, {});
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
@@ -199,15 +199,17 @@ describe('callbacks', () => {
 
       expect(transaction.metadata.propagations).toBe(0);
 
-      fetchCallback(firstReqData, alwaysCreateSpan, {});
+      fetchCallback(firstReqData, always, always, {});
       expect(transaction.metadata.propagations).toBe(1);
 
-      fetchCallback(secondReqData, alwaysCreateSpan, {});
+      fetchCallback(secondReqData, always, always, {});
       expect(transaction.metadata.propagations).toBe(2);
     });
 
     it('adds sentry-trace header to fetch requests', () => {
-      // TODO
+      fetchCallback(fetchHandlerData, always, always, {});
+
+      expect(fetchHandlerData.args[1].headers['sentry-trace']).toBeDefined();
     });
   });
 
@@ -215,7 +217,7 @@ describe('callbacks', () => {
     it('does not create span if shouldCreateSpan returns false', () => {
       const spans = {};
 
-      xhrCallback(xhrHandlerData, neverCreateSpan, spans);
+      xhrCallback(xhrHandlerData, never, never, spans);
 
       expect(spans).toEqual({});
     });
@@ -224,20 +226,20 @@ describe('callbacks', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
       const spans = {};
 
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, always, never, spans);
       expect(spans).toEqual({});
     });
 
     it('does not add xhr request headers if tracing is disabled', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
 
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
+      xhrCallback(xhrHandlerData, always, always, {});
 
       expect(setRequestHeader).not.toHaveBeenCalled();
     });
 
     it('adds sentry-trace header to XHR requests', () => {
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
+      xhrCallback(xhrHandlerData, always, always, {});
 
       expect(setRequestHeader).toHaveBeenCalledWith(
         'sentry-trace',
@@ -249,7 +251,7 @@ describe('callbacks', () => {
       const spans = {};
 
       // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, always, never, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -270,7 +272,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(postRequestXHRHandlerData, always, never, spans);
 
       expect(newSpan.endTimestamp).toBeDefined();
     });
@@ -279,7 +281,7 @@ describe('callbacks', () => {
       const spans = {};
 
       // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, always, never, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -292,7 +294,7 @@ describe('callbacks', () => {
       postRequestXHRHandlerData.xhr.__sentry_xhr__.status_code = 404;
 
       // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(postRequestXHRHandlerData, always, never, spans);
 
       expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
@@ -311,7 +313,7 @@ describe('callbacks', () => {
       };
 
       // in that case, the response coming back will be ignored
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, {});
+      xhrCallback(postRequestXHRHandlerData, always, never, {});
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
@@ -324,10 +326,10 @@ describe('callbacks', () => {
 
       expect(transaction.metadata.propagations).toBe(0);
 
-      xhrCallback(firstReqData, alwaysCreateSpan, {});
+      xhrCallback(firstReqData, always, always, {});
       expect(transaction.metadata.propagations).toBe(1);
 
-      xhrCallback(secondReqData, alwaysCreateSpan, {});
+      xhrCallback(secondReqData, always, always, {});
       expect(transaction.metadata.propagations).toBe(2);
     });
   });
