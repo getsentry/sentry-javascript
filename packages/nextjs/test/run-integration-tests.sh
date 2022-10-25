@@ -30,7 +30,7 @@ echo "Running integration tests on Node $NODE_VERSION"
 # make a backup of our config file so we can restore it when we're done
 mv next.config.js next.config.js.bak
 
-for NEXTJS_VERSION in 10 11 12; do
+for NEXTJS_VERSION in 10 11 12 13; do
 
   # export this to the env so that we can behave differently depending on which version of next we're testing, without
   # having to pass this value from function to function to function to the one spot, deep in some callstack, where we
@@ -44,7 +44,7 @@ for NEXTJS_VERSION in 10 11 12; do
   fi
 
   # Next.js v11 requires at least Node v12
-  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -eq "11" ]; then
+  if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -ge "11" ]; then
     echo "[nextjs$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
     exit 0
   fi
@@ -60,6 +60,11 @@ for NEXTJS_VERSION in 10 11 12; do
     sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
   else
     sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+  fi
+
+  # Next.js v13 requires React 18.2.0
+  if [ "$NEXTJS_VERSION" -eq "13" ]; then
+    npm i --save react@18.2.0 react-dom@18.2.0
   fi
   # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
   # 10
