@@ -199,7 +199,7 @@ export class Replay implements Integration {
       }
     );
 
-    if (_initialized) {
+    if (isBrowser && _initialized) {
       const error = new Error(
         'Multiple Sentry Session Replay instances are not supported'
       );
