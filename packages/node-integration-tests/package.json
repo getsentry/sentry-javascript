@@ -41,5 +41,8 @@
       "preferGlobalPath": true,
       "runtimeDownload": false
     }
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }
