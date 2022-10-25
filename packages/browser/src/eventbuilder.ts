@@ -278,6 +278,9 @@ export function eventFromString(
       event.exception = {
         values: [{ value: input, stacktrace: { frames } }],
       };
+      event.threads = {
+        values: [{ stacktrace: { frames } }],
+      };
     }
   }
 
