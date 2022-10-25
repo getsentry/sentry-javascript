@@ -5,7 +5,6 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
-  isMatchingPattern,
 } from '@sentry/utils';
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
@@ -104,34 +103,13 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
   };
 
-  // We should cache url -> decision so that we don't have to compute
-  // regexp everytime we create a request.
-  const urlMap: Record<string, boolean> = {};
-
-  const defaultShouldCreateSpan = (url: string): boolean => {
-    if (urlMap[url]) {
-      return urlMap[url];
-    }
-    const origins = tracingOrigins;
-    urlMap[url] =
-      origins.some((origin: string | RegExp) => isMatchingPattern(url, origin)) &&
-      !isMatchingPattern(url, 'sentry_key');
-    return urlMap[url];
-  };
-
-  // We want that our users don't have to re-implement shouldCreateSpanForRequest themselves
-  // That's why we filter out already unwanted Spans from tracingOrigins
-  let shouldCreateSpan = defaultShouldCreateSpan;
-  if (typeof shouldCreateSpanForRequest === 'function') {
-    shouldCreateSpan = (url: string) => {
-      return defaultShouldCreateSpan(url) && shouldCreateSpanForRequest(url);
-    };
-  }
+  const shouldCreateSpan =
+    typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
   const spans: Record<string, Span> = {};
 
