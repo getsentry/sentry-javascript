@@ -86,6 +86,9 @@ export function constructWebpackConfigFunction(
         // if `pages` is present in the root directory"
         // - https://nextjs.org/docs/advanced-features/src-directory
         const shouldIncludeSrcDirectory = !fs.existsSync(path.resolve(projectDir, 'pages'));
+        const pagesDirectory = shouldIncludeSrcDirectory // We're intentionally not including slashes in the paths because we wanne let node do the path resolution for Windows
+          ? path.resolve(projectDir, 'src', 'pages')
+          : path.resolve(projectDir, 'pages');
 
         // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
         const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
@@ -93,11 +96,7 @@ export function constructWebpackConfigFunction(
 
         newConfig.module.rules.push({
           // Nextjs allows the `pages` folder to optionally live inside a `src` folder
-          test: new RegExp(
-            `^${escapeStringForRegex(projectDir)}${
-              shouldIncludeSrcDirectory ? '/src' : ''
-            }/pages/.*\\.(${pageExtensionRegex})$`,
-          ),
+          test: new RegExp(`^${escapeStringForRegex(pagesDirectory)}.*\\.(${pageExtensionRegex})$`),
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
