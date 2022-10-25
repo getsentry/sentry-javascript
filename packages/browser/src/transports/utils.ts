@@ -2,7 +2,7 @@ import { isNativeFetch, logger } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
 
-let cachedFetchImpl: FetchImpl;
+let cachedFetchImpl: FetchImpl | undefined = undefined;
 
 export type FetchImpl = typeof fetch;
 
@@ -77,4 +77,9 @@ export function getNativeFetchImplementation(): FetchImpl {
 
   return (cachedFetchImpl = fetchImpl.bind(WINDOW));
   /* eslint-enable @typescript-eslint/unbound-method */
+}
+
+/** Clears cached fetch impl */
+export function clearCachedFetchImplementation(): void {
+  cachedFetchImpl = undefined;
 }
