@@ -1,7 +1,7 @@
-import { Client } from '@sentry/types';
+import { Client, StackParser } from '@sentry/types';
 
 import { defaultStackParser, Scope } from '../src';
-import { eventFromUnknownInput } from '../src/eventbuilder';
+import { eventFromMessage, eventFromUnknownInput } from '../src/eventbuilder';
 
 const testScope = new Scope();
 
@@ -73,4 +73,33 @@ describe('eventFromUnknownInput', () => {
       },
     });
   });
+});
+
+describe('eventFromMessage', () => {
+  test('message has stack trace in threads and no exception field', () => {
+    const event = eventFromMessage(
+      getMockedStackParser(),
+      'test_message',
+      'info',
+      {
+        syntheticException: getMockedSyntheticException(),
+      },
+      true,
+    );
+    expect(event.exception).toBeUndefined();
+    expect(event.threads).toBeDefined();
+    expect(event.threads!.values[0].stacktrace?.frames?.[0]).toEqual({ filename: 'mocked_stack_frame_filename' });
+  });
+
+  function getMockedSyntheticException(): Error {
+    return {
+      message: 'synthetic_message',
+      stack: 'synthetic_stack',
+      name: 'synthetic_exception_name',
+    };
+  }
+
+  function getMockedStackParser(): StackParser {
+    return (_stacktrace: string, _skipFirst?: number) => [{ filename: 'mocked_stack_frame_filename' }];
+  }
 });

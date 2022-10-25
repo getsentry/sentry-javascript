@@ -116,10 +116,9 @@ export function eventFromMessage(
   if (attachStacktrace && hint && hint.syntheticException) {
     const frames = parseStackFrames(stackParser, hint.syntheticException);
     if (frames.length) {
-      event.exception = {
+      event.threads = {
         values: [
           {
-            value: message,
             stacktrace: { frames },
           },
         ],

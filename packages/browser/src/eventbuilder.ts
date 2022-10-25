@@ -175,7 +175,7 @@ export function eventFromMessage(
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
-  const event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
+  const event = messageEventFromString(stackParser, message, syntheticException, attachStacktrace);
   event.level = level;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
@@ -278,6 +278,28 @@ export function eventFromString(
       event.exception = {
         values: [{ value: input, stacktrace: { frames } }],
       };
+    }
+  }
+
+  return event;
+}
+
+/**
+ * @hidden
+ */
+export function messageEventFromString(
+  stackParser: StackParser,
+  input: string,
+  syntheticException?: Error,
+  attachStacktrace?: boolean,
+): Event {
+  const event: Event = {
+    message: input,
+  };
+
+  if (attachStacktrace && syntheticException) {
+    const frames = parseStackFrames(stackParser, syntheticException);
+    if (frames.length) {
       event.threads = {
         values: [{ stacktrace: { frames } }],
       };

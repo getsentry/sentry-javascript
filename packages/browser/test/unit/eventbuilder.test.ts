@@ -1,7 +1,7 @@
-import { Client } from '@sentry/types';
+import { Client, StackParser } from '@sentry/types';
 
 import { defaultStackParser } from '../../src';
-import { eventFromPlainObject } from '../../src/eventbuilder';
+import { eventFromMessage, eventFromPlainObject } from '../../src/eventbuilder';
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -61,4 +61,33 @@ describe('eventFromPlainObject', () => {
       },
     });
   });
+});
+
+describe('eventFromMessage', () => {
+  test('message has stack trace in threads and no exception field', async () => {
+    const event = await eventFromMessage(
+      getMockedStackParser(),
+      'test_message',
+      'info',
+      {
+        syntheticException: getMockedSyntheticException(),
+      },
+      true,
+    );
+    expect(event.exception).toBeUndefined();
+    expect(event.threads).toBeDefined();
+    expect(event.threads!.values[0].stacktrace?.frames?.[0]).toEqual({ filename: 'mocked_stack_frame_filename' });
+  });
+
+  function getMockedSyntheticException(): Error {
+    return {
+      message: 'synthetic_message',
+      stack: 'synthetic_stack',
+      name: 'synthetic_exception_name',
+    };
+  }
+
+  function getMockedStackParser(): StackParser {
+    return (_stacktrace: string, _skipFirst?: number) => [{ filename: 'mocked_stack_frame_filename' }];
+  }
 });
