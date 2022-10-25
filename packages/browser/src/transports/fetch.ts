@@ -3,7 +3,7 @@ import { Transport, TransportMakeRequestResponse, TransportRequest } from '@sent
 import { rejectedSyncPromise } from '@sentry/utils';
 
 import { BrowserTransportOptions } from './types';
-import { FetchImpl, getNativeFetchImplementation } from './utils';
+import { clearCachedFetchImplementation, FetchImpl, getNativeFetchImplementation } from './utils';
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
@@ -40,6 +40,7 @@ export function makeFetchTransport(
         },
       }));
     } catch (e) {
+      clearCachedFetchImplementation();
       return rejectedSyncPromise(e);
     }
   }
