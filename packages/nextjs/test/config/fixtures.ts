@@ -56,6 +56,7 @@ export const serverWebpackConfig: WebpackConfigObject = {
   output: { filename: '[name].js', path: '/Users/Maisey/projects/squirrelChasingSimulator/.next' },
   target: 'node',
   context: '/Users/Maisey/projects/squirrelChasingSimulator',
+  resolve: { alias: { 'private-next-pages': '/Users/Maisey/projects/squirrelChasingSimulator/pages' } },
 };
 export const clientWebpackConfig: WebpackConfigObject = {
   entry: () =>

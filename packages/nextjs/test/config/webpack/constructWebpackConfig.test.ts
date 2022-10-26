@@ -50,7 +50,11 @@ describe('constructWebpackConfigFunction()', () => {
   it("doesn't set devtool if webpack plugin is disabled", () => {
     const finalNextConfig = materializeFinalNextConfig({
       ...exportedNextConfig,
-      webpack: () => ({ devtool: 'something-besides-source-map' } as any),
+      webpack: () =>
+        ({
+          ...serverWebpackConfig,
+          devtool: 'something-besides-source-map',
+        } as any),
       sentry: { disableServerWebpackPlugin: true },
     });
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
