@@ -49,16 +49,8 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
 
     // We have to start the pageload transaction as early as possible (before the router's `beforeEach` hook
     // is called) to not miss child spans of the pageload.
-    if (startTransactionOnPageLoad) {
-      startTransaction({
-        name: WINDOW.location.pathname,
-        op: 'pageload',
-        tags,
-        metadata: {
-          source: 'url',
-        },
-      });
-    }
+
+    let isStartedPagLoadTransaction = false
 
     router.onError(error => captureException(error));
 
@@ -89,13 +81,17 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
         transactionSource = 'route';
       }
 
-      if (startTransactionOnPageLoad && isPageLoadNavigation) {
-        const pageloadTransaction = getActiveTransaction();
-        if (pageloadTransaction) {
-          pageloadTransaction.setName(transactionName, transactionSource);
-          pageloadTransaction.setData('params', data.params);
-          pageloadTransaction.setData('query', data.query);
-        }
+      if (startTransactionOnPageLoad && !isStartedPagLoadTransaction) {
+        startTransaction({
+          name: transactionName,
+          op: 'pageload',
+          tags,
+          data,
+          metadata: {
+            source: 'url',
+          },
+        });
+        isStartedPagLoadTransaction = true
       }
 
       if (startTransactionOnLocationChange && !isPageLoadNavigation) {
