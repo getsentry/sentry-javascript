@@ -19,6 +19,12 @@ export interface BaseNodeOptions {
    */
   tracePropagationTargets?: TracePropagationTargets;
 
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   */
+  shouldCreateSpanForRequest?(url: string): boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }

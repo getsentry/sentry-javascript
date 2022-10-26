@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/core';
-import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
+import { EventProcessor, Integration, Span } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
@@ -69,11 +69,7 @@ export class Http implements Integration {
 
     const clientOptions = setupOnceGetCurrentHub().getClient()?.getOptions() as NodeClientOptions | undefined;
 
-    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(
-      this._breadcrumbs,
-      this._tracing,
-      clientOptions?.tracePropagationTargets,
-    );
+    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing, clientOptions);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
@@ -109,12 +105,21 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
 function _createWrappedRequestMethodFactory(
   breadcrumbsEnabled: boolean,
   tracingEnabled: boolean,
-  tracePropagationTargets: TracePropagationTargets | undefined,
+  options: NodeClientOptions | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we dont have to recompute regexp everytime we create a request.
   const urlMap: Record<string, boolean> = {};
+
+  const shouldCreateSpan = (url: string): boolean => {
+    if (options?.shouldCreateSpanForRequest === undefined) {
+      return true;
+    }
+
+    return options.shouldCreateSpanForRequest(url);
+  };
+
   const shouldAttachTraceData = (url: string): boolean => {
-    if (tracePropagationTargets === undefined) {
+    if (options?.tracePropagationTargets === undefined) {
       return true;
     }
 
@@ -122,7 +127,7 @@ function _createWrappedRequestMethodFactory(
       return urlMap[url];
     }
 
-    urlMap[url] = tracePropagationTargets.some(tracePropagationTarget =>
+    urlMap[url] = options.tracePropagationTargets.some(tracePropagationTarget =>
       isMatchingPattern(url, tracePropagationTarget),
     );
 
@@ -148,7 +153,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
-      if (scope && tracingEnabled) {
+      if (scope && tracingEnabled && shouldCreateSpan(requestUrl)) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
