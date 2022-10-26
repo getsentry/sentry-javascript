@@ -229,7 +229,7 @@ describe('Replay (capture only on error)', () => {
     // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
     captureException('testing');
 
-    jest.runAllTimers();
+    await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
