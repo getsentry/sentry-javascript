@@ -202,8 +202,8 @@ describe('vueRouterInstrumentation()', () => {
       },
     });
 
-    // now we simulate a custom route call similar to what would happen if
-    // users use the `beforeNavigate` hook
+    // now we give the transaction a custom name, thereby simulating what would
+    // happen when users use the `beforeNavigate` hook
     mockedTxn.name = 'customTxnName';
     mockedTxn.metadata.source = 'custom';
 
