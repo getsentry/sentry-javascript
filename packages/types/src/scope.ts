@@ -175,4 +175,9 @@ export interface Scope {
    * Clears attachments from the scope
    */
   clearAttachments(): this;
+
+  /**
+   * Add data which will be accessible during event processing but won't get sent to Sentry
+   */
+  setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
 }
