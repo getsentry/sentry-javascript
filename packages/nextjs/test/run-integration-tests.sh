@@ -45,7 +45,13 @@ for NEXTJS_VERSION in 10 11 12 13; do
 
   # Next.js v11 requires at least Node v12
   if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -ge "11" ]; then
-    echo "[nextjs$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
+    echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
+    exit 0
+  fi
+
+  # Next.js v13 requires at least Node v14
+  if [ "$NODE_MAJOR" -lt "14" ] && [ "$NEXTJS_VERSION" -ge "13" ]; then
+    echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
     exit 0
   fi
 
@@ -89,11 +95,11 @@ for NEXTJS_VERSION in 10 11 12 13; do
     # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
     # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
     if [ "$NODE_MAJOR" -gt "17" ] && [ "$WEBPACK_VERSION" -eq "4" ]; then
-      echo "[nextjs$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
       exit 0
     fi
     if [ "$NODE_MAJOR" -gt "17" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
-      echo "[nextjs$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
       exit 0
     fi
 
