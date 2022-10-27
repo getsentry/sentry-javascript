@@ -2,13 +2,15 @@ import { Context } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getCurrentHub } from '@sentry/core';
 import { Span as SentrySpan, TransactionContext } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  private readonly _map: Record<SentrySpan['spanId'], [SentrySpan, SentrySpan | undefined]> = {};
+  // public only for testing
+  public readonly _map: Map<SentrySpan['spanId'], SentrySpan> = new Map<SentrySpan['spanId'], SentrySpan>();
 
   /**
    * @inheritDoc
@@ -16,29 +18,34 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
   public onStart(otelSpan: OtelSpan, _parentContext: Context): void {
     const hub = getCurrentHub();
     if (!hub) {
+      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
       return;
     }
     const scope = hub.getScope();
     if (!scope) {
+      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a scope has been setup.');
       return;
     }
 
+    // TODO: handle sentry requests
     // if isSentryRequest(otelSpan) return;
 
     const otelSpanId = otelSpan.spanContext().spanId;
+    const otelParentSpanId = otelSpan.parentSpanId;
 
-    const sentryParentSpan = scope.getSpan();
+    // Otel supports having multiple non-nested spans at the same time
+    // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
+    const sentryParentSpan = otelParentSpanId && this._map.get(otelParentSpanId);
+
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
         // instrumentor: 'otel',
         startTimestamp: otelSpan.startTime[0],
+        spanId: otelSpanId,
       });
-      sentryChildSpan.spanId = otelSpanId;
-      console.log(sentryParentSpan, sentryChildSpan, otelSpan);
 
-      this._map[otelSpanId] = [sentryChildSpan, sentryParentSpan];
-      scope.setSpan(sentryChildSpan);
+      this._map.set(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan);
       const transaction = hub.startTransaction({
@@ -46,12 +53,10 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         ...traceCtx,
         // instrumentor: 'otel',
         startTimestamp: otelSpan.startTime[0],
+        spanId: otelSpanId,
       });
-      transaction.spanId = otelSpanId;
 
-      this._map[otelSpanId] = [transaction, undefined];
-
-      scope.setSpan(transaction);
+      this._map.set(otelSpanId, transaction);
     }
   }
 
@@ -59,28 +64,23 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onEnd(otelSpan: OtelSpan): void {
-    const hub = getCurrentHub();
-    if (!hub) {
-      return;
-    }
-    const scope = hub.getScope();
-    if (!scope) {
-      return;
-    }
-
     const otelSpanId = otelSpan.spanContext().spanId;
-    const mapVal = this._map[otelSpanId];
+    const mapVal = this._map.get(otelSpanId);
 
-    if (mapVal) {
-      const [sentrySpan, sentryParentSpan] = mapVal;
-
-      // updateSpanWithOtelData(sentrySpan, otelSpan);
-
-      sentrySpan.finish(otelSpan.endTime[0]);
-      scope.setSpan(sentryParentSpan);
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this._map[otelSpanId];
+    if (!mapVal) {
+      __DEBUG_BUILD__ &&
+        logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      return;
     }
+
+    const sentrySpan = mapVal;
+
+    // TODO: actually add context etc. to span
+    // updateSpanWithOtelData(sentrySpan, otelSpan);
+
+    sentrySpan.finish(otelSpan.endTime[0]);
+
+    this._map.delete(otelSpanId);
   }
 
   /**
