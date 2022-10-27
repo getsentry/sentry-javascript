@@ -177,6 +177,8 @@ export interface TransactionMetadata {
  * whether or not to scrub identifiers from the transaction name, or replace the entire name with a placeholder.
  */
 export type TransactionSource =
+  /** initialize name */
+  | 'initialize'
   /** User-defined name */
   | 'custom'
   /** Raw URL, potentially containing identifiers */

@@ -92,7 +92,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       if (startTransactionOnPageLoad && isPageLoadNavigation) {
         const pageloadTransaction = getActiveTransaction();
         if (pageloadTransaction) {
-          if (pageloadTransaction.metadata.source !== 'custom') {
+          if (pageloadTransaction.metadata.source !== 'initialize') {
             pageloadTransaction.setName(transactionName, transactionSource);
           }
           pageloadTransaction.setData('params', data.params);
