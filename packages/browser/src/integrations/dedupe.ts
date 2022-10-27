@@ -190,7 +190,7 @@ function _getExceptionFromEvent(event: Event): Exception | undefined {
 
 /** JSDoc */
 function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
-  const exception = event.exception;
+  const exception = event.exception || event.threads;
 
   if (exception) {
     try {
