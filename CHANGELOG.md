@@ -22,7 +22,7 @@ This release also updates the behaviour of [`tracingOrigins`](https://docs.sentr
 - fix(tracing): Align missing express span operation names (#6036)
 - fix(tracing): Don't consider `tracingOrigins` when creating spans (#6039)
 - fix(utils): Remove `WINDOW` from utils (#6024)
-- fix(vue): fix vue3 render warning loop (#6014)
+- fix(vue): Fix vue3 render warning loop (#6014)
 - fix(vue): Don't overwrite custom transaction names of pageload transactions (#6060)
 - ref(node): Make `RequestData` integration default (#5980)
 - ref(node): Use `RequestData` integration in express handlers (#5990)
