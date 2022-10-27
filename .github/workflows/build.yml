@@ -620,7 +620,7 @@ jobs:
   job_e2e_tests:
     name: E2E Tests
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    if: github.repository == 'getsentry/sentry-javascript'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
