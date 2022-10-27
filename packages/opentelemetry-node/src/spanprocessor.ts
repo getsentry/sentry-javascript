@@ -1,6 +1,7 @@
 import { Context } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, setContext } from '@sentry/core';
+import { Transaction } from '@sentry/tracing';
 import { Span as SentrySpan, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -65,18 +66,20 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    */
   public onEnd(otelSpan: OtelSpan): void {
     const otelSpanId = otelSpan.spanContext().spanId;
-    const mapVal = this._map.get(otelSpanId);
+    const sentrySpan = this._map.get(otelSpanId);
 
-    if (!mapVal) {
+    if (!sentrySpan) {
       __DEBUG_BUILD__ &&
         logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
       return;
     }
 
-    const sentrySpan = mapVal;
-
-    // TODO: actually add context etc. to span
-    // updateSpanWithOtelData(sentrySpan, otelSpan);
+    if (sentrySpan instanceof Transaction) {
+      updateContextWithOtelData(otelSpan);
+    } else {
+      // TODO:
+      // updateSpanWithOtelData(sentrySpan, otelSpan);
+    }
 
     sentrySpan.finish(otelSpan.endTime[0]);
 
@@ -111,5 +114,9 @@ function getTraceData(otelSpan: OtelSpan): Partial<TransactionContext> {
   return { spanId, traceId, parentSpanId };
 }
 
-// function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
-// }
+function updateContextWithOtelData(otelSpan: OtelSpan): void {
+  setContext('otel', {
+    attributes: otelSpan.attributes,
+    resource: otelSpan.resource.attributes,
+  });
+}

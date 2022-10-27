@@ -1,8 +1,11 @@
 import * as OpenTelemetry from '@opentelemetry/api';
+import { Resource } from '@opentelemetry/resources';
 import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Span as SentrySpan, Transaction } from '@sentry/tracing';
+import { Contexts, Scope } from '@sentry/types';
 
 import { SentrySpanProcessor } from '../src/spanprocessor';
 
@@ -22,7 +25,11 @@ describe('SentrySpanProcessor', () => {
     makeMain(hub);
 
     spanProcessor = new SentrySpanProcessor();
-    provider = new NodeTracerProvider();
+    provider = new NodeTracerProvider({
+      resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: 'test-service',
+      }),
+    });
     provider.addSpanProcessor(spanProcessor);
     provider.register();
   });
@@ -34,6 +41,11 @@ describe('SentrySpanProcessor', () => {
 
   function getSpanForOtelSpan(otelSpan: OtelSpan | OpenTelemetry.Span) {
     return spanProcessor._map.get(otelSpan.spanContext().spanId);
+  }
+
+  function getContext() {
+    const scope = hub.getScope() as unknown as Scope & { _contexts: Contexts };
+    return scope._contexts;
   }
 
   it('creates a transaction', async () => {
@@ -123,6 +135,60 @@ describe('SentrySpanProcessor', () => {
       span3.end();
 
       parentOtelSpan.end();
+    });
+  });
+
+  it('sets context for transaction', async () => {
+    const otelSpan = provider.getTracer('default').startSpan('GET /users');
+
+    // context is only set after end
+    expect(getContext()).toEqual({});
+
+    otelSpan.end();
+
+    expect(getContext()).toEqual({
+      otel: {
+        attributes: {},
+        resource: {
+          'service.name': 'test-service',
+          'telemetry.sdk.language': 'nodejs',
+          'telemetry.sdk.name': 'opentelemetry',
+          'telemetry.sdk.version': '1.7.0',
+        },
+      },
+    });
+
+    // Start new transaction, context should remain the same
+    const otelSpan2 = provider.getTracer('default').startSpan('GET /companies');
+
+    expect(getContext()).toEqual({
+      otel: {
+        attributes: {},
+        resource: {
+          'service.name': 'test-service',
+          'telemetry.sdk.language': 'nodejs',
+          'telemetry.sdk.name': 'opentelemetry',
+          'telemetry.sdk.version': '1.7.0',
+        },
+      },
+    });
+
+    otelSpan2.setAttribute('test-attribute', 'test-value');
+
+    otelSpan2.end();
+
+    expect(getContext()).toEqual({
+      otel: {
+        attributes: {
+          'test-attribute': 'test-value',
+        },
+        resource: {
+          'service.name': 'test-service',
+          'telemetry.sdk.language': 'nodejs',
+          'telemetry.sdk.name': 'opentelemetry',
+          'telemetry.sdk.version': '1.7.0',
+        },
+      },
     });
   });
 });
