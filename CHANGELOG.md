@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.17.0
+## 7.17.1
 
 This release standardizes our SDKs to use the MIT License, which is our [standard license for Sentry SDKs](https://open.sentry.io/licensing/). We were previously using the BSD 3-Clause License in `@sentry/browser`,`@sentry/core`, `@sentry/gatsby`, `@sentry/hub`, `@sentry/integrations`, `@sentry/node`, `@sentry/react`, `@sentry/types`, `@sentry/typescript`, and `@sentry/utils`.
 
