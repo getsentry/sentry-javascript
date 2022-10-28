@@ -1,6 +1,6 @@
 import { Context } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub, setContext } from '@sentry/core';
+import { getCurrentHub, withScope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import { Span as SentrySpan, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -77,13 +77,12 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     }
 
     if (sentrySpan instanceof Transaction) {
-      updateContextWithOtelData(otelSpan);
       updateTransactionWithOtelData(sentrySpan, otelSpan);
+      finishTransactionWithContextFromOtelData(sentrySpan, otelSpan);
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
+      sentrySpan.finish(otelSpan.endTime[0]);
     }
-
-    sentrySpan.finish(otelSpan.endTime[0]);
 
     this._map.delete(otelSpanId);
   }
@@ -116,10 +115,14 @@ function getTraceData(otelSpan: OtelSpan): Partial<TransactionContext> {
   return { spanId, traceId, parentSpanId };
 }
 
-function updateContextWithOtelData(otelSpan: OtelSpan): void {
-  setContext('otel', {
-    attributes: otelSpan.attributes,
-    resource: otelSpan.resource.attributes,
+function finishTransactionWithContextFromOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
+  withScope(scope => {
+    scope.setContext('otel', {
+      attributes: otelSpan.attributes,
+      resource: otelSpan.resource.attributes,
+    });
+
+    transaction.finish(otelSpan.endTime[0]);
   });
 }
 

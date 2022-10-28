@@ -43,9 +43,25 @@ describe('SentrySpanProcessor', () => {
     return spanProcessor._map.get(otelSpan.spanContext().spanId);
   }
 
-  function getContext() {
-    const scope = hub.getScope() as unknown as Scope & { _contexts: Contexts };
-    return scope._contexts;
+  function getContext(transaction: Transaction) {
+    const transactionWithContext = transaction as unknown as Transaction & { _contexts: Contexts };
+    return transactionWithContext._contexts;
+  }
+
+  // monkey-patch finish to store the context at finish time
+  function monkeyPatchTransactionFinish(transaction: Transaction) {
+    const monkeyPatchedTransaction = transaction as Transaction & { _contexts: Contexts };
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalFinish = monkeyPatchedTransaction.finish;
+    monkeyPatchedTransaction._contexts = {};
+    monkeyPatchedTransaction.finish = function (endTimestamp?: number | undefined) {
+      monkeyPatchedTransaction._contexts = (
+        transaction._hub.getScope() as unknown as Scope & { _contexts: Contexts }
+      )._contexts;
+
+      return originalFinish.apply(monkeyPatchedTransaction, [endTimestamp]);
+    };
   }
 
   it('creates a transaction', async () => {
@@ -141,12 +157,15 @@ describe('SentrySpanProcessor', () => {
   it('sets context for transaction', async () => {
     const otelSpan = provider.getTracer('default').startSpan('GET /users');
 
+    const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
+    monkeyPatchTransactionFinish(transaction);
+
     // context is only set after end
-    expect(getContext()).toEqual({});
+    expect(getContext(transaction)).toEqual({});
 
     otelSpan.end();
 
-    expect(getContext()).toEqual({
+    expect(getContext(transaction)).toEqual({
       otel: {
         attributes: {},
         resource: {
@@ -158,26 +177,19 @@ describe('SentrySpanProcessor', () => {
       },
     });
 
-    // Start new transaction, context should remain the same
+    // Start new transaction
     const otelSpan2 = provider.getTracer('default').startSpan('GET /companies');
 
-    expect(getContext()).toEqual({
-      otel: {
-        attributes: {},
-        resource: {
-          'service.name': 'test-service',
-          'telemetry.sdk.language': 'nodejs',
-          'telemetry.sdk.name': 'opentelemetry',
-          'telemetry.sdk.version': '1.7.0',
-        },
-      },
-    });
+    const transaction2 = getSpanForOtelSpan(otelSpan2) as Transaction;
+    monkeyPatchTransactionFinish(transaction2);
+
+    expect(getContext(transaction2)).toEqual({});
 
     otelSpan2.setAttribute('test-attribute', 'test-value');
 
     otelSpan2.end();
 
-    expect(getContext()).toEqual({
+    expect(getContext(transaction2)).toEqual({
       otel: {
         attributes: {
           'test-attribute': 'test-value',
