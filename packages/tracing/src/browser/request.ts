@@ -10,7 +10,9 @@ import {
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
+// TODO (v8): Remove `tracingOrigins`
 export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
+export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -21,6 +23,14 @@ export interface RequestInstrumentationOptions {
    * Default: ['localhost', /^\//] {@see DEFAULT_TRACING_ORIGINS}
    */
   tracingOrigins: Array<string | RegExp>;
+
+  /**
+   * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * headers attached.
+   *
+   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   */
+  tracePropagationTargets: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -99,11 +109,12 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   tracingOrigins: DEFAULT_TRACING_ORIGINS,
+  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracingOrigins, tracePropagationTargets, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
   };
@@ -111,7 +122,9 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  const shouldAttachHeaders = (url: string): boolean => tracingOrigins.some(origin => isMatchingPattern(url, origin));
+  const shouldAttachHeaders = (url: string): boolean =>
+    tracingOrigins.some(origin => isMatchingPattern(url, origin)) ||
+    tracePropagationTargets.some(origin => isMatchingPattern(url, origin));
 
   const spans: Record<string, Span> = {};
 
