@@ -6,6 +6,7 @@ import { Span as SentrySpan, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { mapOtelStatus } from './utils/map-otel-status';
+import { parseSpanDescription } from './utils/parse-otel-span-description';
 
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
@@ -136,6 +137,10 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
     const value = attributes[prop];
     sentrySpan.setData(prop, value);
   });
+
+  const { op, description } = parseSpanDescription(otelSpan);
+  sentrySpan.op = op;
+  sentrySpan.description = description;
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
