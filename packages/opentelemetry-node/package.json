@@ -24,7 +24,8 @@
   },
   "peerDependencies": {
     "@opentelemetry/api": "1.x",
-    "@opentelemetry/sdk-trace-base": "1.x"
+    "@opentelemetry/sdk-trace-base": "1.x",
+    "@opentelemetry/semantic-conventions": "1.x"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.2.0",

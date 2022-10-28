@@ -5,6 +5,8 @@ import { Transaction } from '@sentry/tracing';
 import { Span as SentrySpan, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { mapOtelStatus } from './utils/map-otel-status';
+
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
@@ -76,6 +78,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     if (sentrySpan instanceof Transaction) {
       updateContextWithOtelData(otelSpan);
+      updateTransactionWithOtelData(sentrySpan, otelSpan);
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
     }
@@ -123,11 +126,15 @@ function updateContextWithOtelData(otelSpan: OtelSpan): void {
 function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
   const { attributes, kind } = otelSpan;
 
-  // TODO: Set status
+  sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', kind.valueOf());
 
   Object.keys(attributes).forEach(prop => {
     const value = attributes[prop];
     sentrySpan.setData(prop, value);
   });
+}
+
+function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
+  transaction.setStatus(mapOtelStatus(otelSpan));
 }
