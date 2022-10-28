@@ -28,7 +28,8 @@
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.2.0",
-    "@opentelemetry/sdk-trace-base": "^1.7.0"
+    "@opentelemetry/sdk-trace-base": "^1.7.0",
+    "@opentelemetry/sdk-trace-node": "^1.7.0"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",
@@ -54,5 +55,12 @@
   },
   "volta": {
     "extends": "../../package.json"
-  }
+  },
+  "sideEffects": [
+    "./cjs/index.js",
+    "./esm/index.js",
+    "./build/npm/cjs/index.js",
+    "./build/npm/esm/index.js",
+    "./src/index.ts"
+  ]
 }
