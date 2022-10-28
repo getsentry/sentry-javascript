@@ -191,6 +191,35 @@ describe('SentrySpanProcessor', () => {
       },
     });
   });
+
+  it('sets data for span', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        child.setAttribute('test-attribute', 'test-value');
+        child.setAttribute('test-attribute-2', [1, 2, 3]);
+        child.setAttribute('test-attribute-3', 0);
+        child.setAttribute('test-attribute-4', false);
+
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        expect(sentrySpan?.data).toEqual({});
+
+        child.end();
+
+        expect(sentrySpan?.data).toEqual({
+          'otel.kind': 0,
+          'test-attribute': 'test-value',
+          'test-attribute-2': [1, 2, 3],
+          'test-attribute-3': 0,
+          'test-attribute-4': false,
+        });
+      });
+
+      parentOtelSpan.end();
+    });
+  });
 });
 
 // OTEL expects a custom date format

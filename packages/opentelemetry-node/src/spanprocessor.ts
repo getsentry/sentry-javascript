@@ -77,8 +77,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (sentrySpan instanceof Transaction) {
       updateContextWithOtelData(otelSpan);
     } else {
-      // TODO:
-      // updateSpanWithOtelData(sentrySpan, otelSpan);
+      updateSpanWithOtelData(sentrySpan, otelSpan);
     }
 
     sentrySpan.finish(otelSpan.endTime[0]);
@@ -118,5 +117,17 @@ function updateContextWithOtelData(otelSpan: OtelSpan): void {
   setContext('otel', {
     attributes: otelSpan.attributes,
     resource: otelSpan.resource.attributes,
+  });
+}
+
+function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
+  const { attributes, kind } = otelSpan;
+
+  // TODO: Set status
+  sentrySpan.setData('otel.kind', kind.valueOf());
+
+  Object.keys(attributes).forEach(prop => {
+    const value = attributes[prop];
+    sentrySpan.setData(prop, value);
   });
 }
