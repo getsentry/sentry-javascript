@@ -3,7 +3,7 @@ import { Hub, makeMain } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
-import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback } from '../../src/browser/request';
+import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
@@ -48,29 +48,9 @@ describe('callbacks', () => {
   let hub: Hub;
   let transaction: Transaction;
   const alwaysCreateSpan = () => true;
-  const neverCreateSpan = () => false;
+  const alwaysAttachHeaders = () => true;
   const startTimestamp = 1356996072000;
   const endTimestamp = 1356996072000;
-  const fetchHandlerData: FetchData = {
-    args: ['http://dogs.are.great/', {}],
-    fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-    startTimestamp,
-  };
-  const xhrHandlerData = {
-    xhr: {
-      __sentry_xhr__: {
-        method: 'GET',
-        url: 'http://dogs.are.great/',
-        status_code: 200,
-        data: {},
-      },
-      __sentry_xhr_span_id__: '1231201211212012',
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      // setRequestHeader: XMLHttpRequest.prototype.setRequestHeader,
-      setRequestHeader,
-    },
-    startTimestamp,
-  };
 
   beforeAll(() => {
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
@@ -83,52 +63,91 @@ describe('callbacks', () => {
     hub.configureScope(scope => scope.setSpan(transaction));
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('fetchCallback()', () => {
-    it('does not create span if shouldCreateSpan returns false', () => {
-      const spans = {};
+    let fetchHandlerData: FetchData;
 
-      fetchCallback(fetchHandlerData, neverCreateSpan, spans);
+    const fetchSpan = {
+      data: {
+        method: 'GET',
+        url: 'http://dogs.are.great/',
+        type: 'fetch',
+      },
+      description: 'GET http://dogs.are.great/',
+      op: 'http.client',
+      parentSpanId: expect.any(String),
+      spanId: expect.any(String),
+      startTimestamp: expect.any(Number),
+      traceId: expect.any(String),
+    };
 
-      expect(spans).toEqual({});
-    });
-
-    it('does not create span if there is no fetch data in handler data', () => {
-      const noFetchData = { args: fetchHandlerData.args, startTimestamp: fetchHandlerData.startTimestamp };
-      const spans = {};
-
-      fetchCallback(noFetchData, alwaysCreateSpan, spans);
-      expect(spans).toEqual({});
-    });
-
-    it('does not add fetch request spans if tracing is disabled', () => {
-      hasTracingEnabled.mockReturnValueOnce(false);
-      const spans = {};
-
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
-      expect(spans).toEqual({});
-    });
-
-    it('does not add fetch request headers if tracing is disabled', () => {
-      hasTracingEnabled.mockReturnValueOnce(false);
-
-      // make a local copy so the global one doesn't get mutated
-      const handlerData: FetchData = {
+    beforeEach(() => {
+      fetchHandlerData = {
         args: ['http://dogs.are.great/', {}],
         fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-        startTimestamp: 1353501072000,
+        startTimestamp,
       };
+    });
 
-      fetchCallback(handlerData, alwaysCreateSpan, {});
+    it.each([
+      // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
+      [true, true, expect.objectContaining(fetchSpan), ['sentry-trace', 'baggage']],
+      [true, false, expect.objectContaining(fetchSpan), []],
+      // If there's no span then there's no parent span id to stick into a header, so no headers, even if there's a
+      // `tracingOrigins` match
+      [false, true, undefined, []],
+      [false, false, undefined, []],
+    ])(
+      'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
+      (shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys) => {
+        fetchCallback(
+          fetchHandlerData,
+          () => shouldCreateSpanReturnValue,
+          () => shouldAttachHeadersReturnValue,
+          {},
+        );
 
-      const headers = (handlerData.args[1].headers as Record<string, string>) || {};
-      expect(headers['sentry-trace']).not.toBeDefined();
+        // spans[0] is the transaction itself
+        const newSpan = transaction.spanRecorder?.spans[1] as Span;
+        expect(newSpan).toEqual(expectedSpan);
+
+        const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
+        expect(Object.keys(headers)).toEqual(expectedHeaderKeys);
+      },
+    );
+
+    it('adds neither fetch request spans nor fetch request headers if there is no fetch data in handler data', () => {
+      delete fetchHandlerData.fetchData;
+      const spans = {};
+
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      expect(spans).toEqual({});
+
+      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
+      expect(Object.keys(headers)).toEqual([]);
+    });
+
+    it('adds neither fetch request spans nor fetch request headers if tracing is disabled', () => {
+      hasTracingEnabled.mockReturnValueOnce(false);
+      const spans = {};
+
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      expect(spans).toEqual({});
+
+      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
+      expect(Object.keys(headers)).toEqual([]);
     });
 
     it('creates and finishes fetch span on active transaction', () => {
       const spans = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -149,7 +168,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.endTimestamp).toBeDefined();
     });
@@ -158,7 +177,7 @@ describe('callbacks', () => {
       const spans: Record<string, Span> = {};
 
       // triggered by request being sent
-      fetchCallback(fetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -171,7 +190,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, spans);
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
@@ -186,7 +205,7 @@ describe('callbacks', () => {
       };
 
       // in that case, the response coming back will be ignored
-      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, {});
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
@@ -199,57 +218,89 @@ describe('callbacks', () => {
 
       expect(transaction.metadata.propagations).toBe(0);
 
-      fetchCallback(firstReqData, alwaysCreateSpan, {});
+      fetchCallback(firstReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(1);
 
-      fetchCallback(secondReqData, alwaysCreateSpan, {});
+      fetchCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(2);
-    });
-
-    it('adds sentry-trace header to fetch requests', () => {
-      // TODO
     });
   });
 
   describe('xhrCallback()', () => {
-    it('does not create span if shouldCreateSpan returns false', () => {
-      const spans = {};
+    let xhrHandlerData: XHRData;
 
-      xhrCallback(xhrHandlerData, neverCreateSpan, spans);
+    const xhrSpan = {
+      data: {
+        method: 'GET',
+        url: 'http://dogs.are.great/',
+        type: 'xhr',
+      },
+      description: 'GET http://dogs.are.great/',
+      op: 'http.client',
+      parentSpanId: expect.any(String),
+      spanId: expect.any(String),
+      startTimestamp: expect.any(Number),
+      traceId: expect.any(String),
+    };
 
-      expect(spans).toEqual({});
+    beforeEach(() => {
+      xhrHandlerData = {
+        xhr: {
+          __sentry_xhr__: {
+            method: 'GET',
+            url: 'http://dogs.are.great/',
+            status_code: 200,
+            data: {},
+          },
+          __sentry_xhr_span_id__: '1231201211212012',
+          setRequestHeader,
+        },
+        startTimestamp,
+      };
     });
 
-    it('does not add xhr request spans if tracing is disabled', () => {
+    it.each([
+      // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
+      [true, true, expect.objectContaining(xhrSpan), ['sentry-trace', 'baggage']],
+      [true, false, expect.objectContaining(xhrSpan), []],
+      // If there's no span then there's no parent span id to stick into a header, so no headers, even if there's a
+      // `tracingOrigins` match
+      [false, true, undefined, []],
+      [false, false, undefined, []],
+    ])(
+      'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
+      (shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys) => {
+        xhrCallback(
+          xhrHandlerData,
+          () => shouldCreateSpanReturnValue,
+          () => shouldAttachHeadersReturnValue,
+          {},
+        );
+
+        // spans[0] is the transaction itself
+        const newSpan = transaction.spanRecorder?.spans[1] as Span;
+        expect(newSpan).toEqual(expectedSpan);
+
+        const headerKeys = setRequestHeader.mock.calls.map(header => header[0]);
+        expect(headerKeys).toEqual(expectedHeaderKeys);
+      },
+    );
+
+    it('adds neither xhr request spans nor xhr request headers if tracing is disabled', () => {
       hasTracingEnabled.mockReturnValueOnce(false);
       const spans = {};
 
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
       expect(spans).toEqual({});
-    });
-
-    it('does not add xhr request headers if tracing is disabled', () => {
-      hasTracingEnabled.mockReturnValueOnce(false);
-
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
-
       expect(setRequestHeader).not.toHaveBeenCalled();
-    });
-
-    it('adds sentry-trace header to XHR requests', () => {
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, {});
-
-      expect(setRequestHeader).toHaveBeenCalledWith(
-        'sentry-trace',
-        expect.stringMatching(tracingUtils.TRACEPARENT_REGEXP),
-      );
     });
 
     it('creates and finishes XHR span on active transaction', () => {
       const spans = {};
 
       // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -261,8 +312,8 @@ describe('callbacks', () => {
       });
       expect(newSpan.description).toBe('GET http://dogs.are.great/');
       expect(newSpan.op).toBe('http.client');
-      expect(xhrHandlerData.xhr.__sentry_xhr_span_id__).toBeDefined();
-      expect(xhrHandlerData.xhr.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
+      expect(xhrHandlerData.xhr?.__sentry_xhr_span_id__).toBeDefined();
+      expect(xhrHandlerData.xhr?.__sentry_xhr_span_id__).toEqual(newSpan?.spanId);
 
       const postRequestXHRHandlerData = {
         ...xhrHandlerData,
@@ -270,7 +321,7 @@ describe('callbacks', () => {
       };
 
       // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.endTimestamp).toBeDefined();
     });
@@ -279,7 +330,7 @@ describe('callbacks', () => {
       const spans = {};
 
       // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
@@ -289,10 +340,10 @@ describe('callbacks', () => {
         ...xhrHandlerData,
         endTimestamp,
       };
-      postRequestXHRHandlerData.xhr.__sentry_xhr__.status_code = 404;
+      postRequestXHRHandlerData.xhr!.__sentry_xhr__!.status_code = 404;
 
       // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, spans);
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
 
       expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
     });
@@ -303,7 +354,7 @@ describe('callbacks', () => {
       const postRequestXHRHandlerData = {
         ...{
           xhr: {
-            __sentry_xhr__: xhrHandlerData.xhr.__sentry_xhr__,
+            __sentry_xhr__: xhrHandlerData.xhr?.__sentry_xhr__,
           },
         },
         startTimestamp,
@@ -311,7 +362,7 @@ describe('callbacks', () => {
       };
 
       // in that case, the response coming back will be ignored
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, {});
+      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
 
       const newSpan = transaction.spanRecorder?.spans[1];
 
@@ -324,10 +375,10 @@ describe('callbacks', () => {
 
       expect(transaction.metadata.propagations).toBe(0);
 
-      xhrCallback(firstReqData, alwaysCreateSpan, {});
+      xhrCallback(firstReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(1);
 
-      xhrCallback(secondReqData, alwaysCreateSpan, {});
+      xhrCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(2);
     });
   });
