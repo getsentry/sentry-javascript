@@ -5,6 +5,7 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
+  isMatchingPattern,
 } from '@sentry/utils';
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
@@ -102,8 +103,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const { traceFetch, traceXHR, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
   };
@@ -111,17 +111,19 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
+  const shouldAttachHeaders = (url: string): boolean => tracingOrigins.some(origin => isMatchingPattern(url, origin));
+
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
-      fetchCallback(handlerData, shouldCreateSpan, spans);
+      fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeaders, spans);
     });
   }
 
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
-      xhrCallback(handlerData, shouldCreateSpan, spans);
+      xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeaders, spans);
     });
   }
 }
@@ -132,6 +134,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 export function fetchCallback(
   handlerData: FetchData,
   shouldCreateSpan: (url: string) => boolean,
+  shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
   if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
@@ -181,14 +184,16 @@ export function fetchCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    options.headers = addTracingHeadersToFetchRequest(
-      request,
-      activeTransaction.getDynamicSamplingContext(),
-      span,
-      options,
-    );
+    if (shouldAttachHeaders(handlerData.fetchData.url)) {
+      options.headers = addTracingHeadersToFetchRequest(
+        request,
+        activeTransaction.getDynamicSamplingContext(),
+        span,
+        options,
+      );
 
-    activeTransaction.metadata.propagations += 1;
+      activeTransaction.metadata.propagations += 1;
+    }
   }
 }
 
@@ -262,6 +267,7 @@ function addTracingHeadersToFetchRequest(
 export function xhrCallback(
   handlerData: XHRData,
   shouldCreateSpan: (url: string) => boolean,
+  shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
   if (
@@ -307,7 +313,7 @@ export function xhrCallback(
     handlerData.xhr.__sentry_xhr_span_id__ = span.spanId;
     spans[handlerData.xhr.__sentry_xhr_span_id__] = span;
 
-    if (handlerData.xhr.setRequestHeader) {
+    if (handlerData.xhr.setRequestHeader && shouldAttachHeaders(handlerData.xhr.__sentry_xhr__.url)) {
       try {
         handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
 
