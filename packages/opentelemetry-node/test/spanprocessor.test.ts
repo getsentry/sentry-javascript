@@ -1,4 +1,5 @@
 import * as OpenTelemetry from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
@@ -328,6 +329,162 @@ describe('SentrySpanProcessor', () => {
       expect(transaction?.status).toBe(expected);
     },
   );
+
+  it('updates op/description for span on end', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.updateName('new name');
+
+        expect(sentrySpan?.op).toBe(undefined);
+        expect(sentrySpan?.description).toBe('SELECT * FROM users;');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe(undefined);
+        expect(sentrySpan?.description).toBe('new name');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for HTTP_METHOD for client', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('/users/all', { kind: SpanKind.CLIENT }, child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('http.client');
+        expect(sentrySpan?.description).toBe('GET /users/all');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for HTTP_METHOD for server', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('/users/all', { kind: SpanKind.SERVER }, child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('http.server');
+        expect(sentrySpan?.description).toBe('GET /users/all');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for DB_SYSTEM', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('fetch users from DB', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
+        child.setAttribute(SemanticAttributes.DB_STATEMENT, 'SELECT * FROM users');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('db');
+        expect(sentrySpan?.description).toBe('SELECT * FROM users');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for DB_SYSTEM without DB_STATEMENT', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('fetch users from DB', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('db');
+        expect(sentrySpan?.description).toBe('fetch users from DB');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for RPC_SERVICE', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('test operation', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.RPC_SERVICE, 'rpc service');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('rpc');
+        expect(sentrySpan?.description).toBe('test operation');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for MESSAGING_SYSTEM', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('test operation', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, 'messaging system');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('message');
+        expect(sentrySpan?.description).toBe('test operation');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for FAAS_TRIGGER', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('test operation', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
+
+        child.end();
+
+        expect(sentrySpan?.op).toBe('test faas trigger');
+        expect(sentrySpan?.description).toBe('test operation');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
 });
 
 // OTEL expects a custom date format
