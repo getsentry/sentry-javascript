@@ -1,17 +1,9 @@
-import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { Event, EventProcessor, Hub, InboundFiltersOptions, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
-
-/** Options for the InboundFilters integration */
-export interface InboundFiltersOptions {
-  allowUrls: Array<string | RegExp>;
-  denyUrls: Array<string | RegExp>;
-  ignoreErrors: Array<string | RegExp>;
-  ignoreInternal: boolean;
-}
 
 /** Inbound filters configurable by the user */
 export class InboundFilters implements Integration {

@@ -33,6 +33,7 @@ export type { Extra, Extras } from './extra';
 // https://www.typescriptlang.org/docs/handbook/declaration-files/templates/global-modifying-module-d-ts.html.
 export type {} from './globals';
 export type { Hub } from './hub';
+export type { InboundFiltersOptions } from './inboundfilters';
 export type { Integration, IntegrationClass } from './integration';
 export type { Mechanism } from './mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';

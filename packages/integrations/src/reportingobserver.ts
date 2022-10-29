@@ -1,7 +1,15 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
-import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
+import { Event, EventProcessor, Hub, InboundFiltersOptions, Integration, StackFrame } from '@sentry/types';
+import { getEventDescription, GLOBAL_OBJ, isMatchingPattern, logger, supportsReportingObserver } from '@sentry/utils';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+
+/** Options for the ReportingObserver integration */
+export interface ReportingObserverOptions {
+  types?: ReportTypes[];
+  applyAllowUrls?: boolean;
+  applyDenyUrls?: boolean;
+  applyIgnoreErrors?: boolean;
+}
 
 interface Report {
   [key: string]: unknown;
@@ -56,26 +64,43 @@ export class ReportingObserver implements Integration {
    */
   private _getCurrentHub?: () => Hub;
 
-  /**
-   * @inheritDoc
-   */
-  public constructor(
-    private readonly _options: {
-      types?: ReportTypes[];
-    } = {
+  private readonly _options: ReportingObserverOptions;
+
+  public constructor(options?: ReportingObserverOptions) {
+    this._options = {
       types: ['crash', 'deprecation', 'intervention'],
-    },
-  ) {}
+      applyAllowUrls: true,
+      applyDenyUrls: true,
+      applyIgnoreErrors: true,
+      ...options,
+    };
+  }
 
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!supportsReportingObserver()) {
       return;
     }
 
     this._getCurrentHub = getCurrentHub;
+
+    const eventProcess: EventProcessor = (event: Event) => {
+      const hub = getCurrentHub();
+      if (hub) {
+        const self = hub.getIntegration(ReportingObserver);
+        if (self) {
+          const client = hub.getClient();
+          const clientOptions = client ? client.getOptions() : {};
+          return _shouldDropEvent(event, self._options, clientOptions) ? null : event;
+        }
+      }
+      return event;
+    };
+
+    eventProcess.id = this.name;
+    addGlobalEventProcessor(eventProcess);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
@@ -128,5 +153,111 @@ export class ReportingObserver implements Integration {
         hub.captureMessage(`${label}: ${details}`);
       });
     }
+  }
+}
+
+/** JSDoc */
+export function _shouldDropEvent(
+  event: Event,
+  internalOptions: Partial<ReportingObserverOptions>,
+  filtersOptions: Partial<InboundFiltersOptions>,
+): boolean {
+  if (internalOptions.applyIgnoreErrors && _isIgnoredError(event, filtersOptions.ignoreErrors)) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+      );
+    return true;
+  }
+  if (internalOptions.applyDenyUrls && _isDeniedUrl(event, filtersOptions.denyUrls)) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
+          event,
+        )}.\nUrl: ${_getEventFilterUrl(event)}`,
+      );
+    return true;
+  }
+  if (internalOptions.applyAllowUrls && !_isAllowedUrl(event, filtersOptions.allowUrls)) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
+          event,
+        )}.\nUrl: ${_getEventFilterUrl(event)}`,
+      );
+    return true;
+  }
+  return false;
+}
+
+function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
+  if (!ignoreErrors || !ignoreErrors.length) {
+    return false;
+  }
+
+  return _getPossibleEventMessages(event).some(message =>
+    ignoreErrors.some(pattern => isMatchingPattern(message, pattern)),
+  );
+}
+
+function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
+  // TODO: Use Glob instead?
+  if (!denyUrls || !denyUrls.length) {
+    return false;
+  }
+  const url = _getEventFilterUrl(event);
+  return !url ? false : denyUrls.some(pattern => isMatchingPattern(url, pattern));
+}
+
+function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
+  // TODO: Use Glob instead?
+  if (!allowUrls || !allowUrls.length) {
+    return true;
+  }
+  const url = _getEventFilterUrl(event);
+  return !url ? true : allowUrls.some(pattern => isMatchingPattern(url, pattern));
+}
+
+function _getPossibleEventMessages(event: Event): string[] {
+  if (event.message) {
+    return [event.message];
+  }
+  if (event.exception) {
+    try {
+      const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
+      return [`${value}`, `${type}: ${value}`];
+    } catch (oO) {
+      __DEBUG_BUILD__ && logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
+      return [];
+    }
+  }
+  return [];
+}
+
+function _getLastValidUrl(frames: StackFrame[] = []): string | null {
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const frame = frames[i];
+
+    if (frame && frame.filename !== '<anonymous>' && frame.filename !== '[native code]') {
+      return frame.filename || null;
+    }
+  }
+
+  return null;
+}
+
+function _getEventFilterUrl(event: Event): string | null {
+  try {
+    let frames;
+    try {
+      // @ts-ignore we only care about frames if the whole thing here is defined
+      frames = event.exception.values[0].stacktrace.frames;
+    } catch (e) {
+      // ignore
+    }
+    return frames ? _getLastValidUrl(frames) : null;
+  } catch (oO) {
+    __DEBUG_BUILD__ && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+    return null;
   }
 }
