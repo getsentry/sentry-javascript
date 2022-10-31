@@ -446,22 +446,6 @@ export function getWebpackPluginOptions(
   return { ...defaultPluginOptions, ...userPluginOptions };
 }
 
-/**
- * NOTE: We're faking `require.resolve` here as a workaround for @vercel/nft detecting the binary itself as a hard
- *       dependency and always including it in the bundle, which is not what we want.
- *
- * ref: https://github.com/getsentry/sentry-javascript/issues/3865
- * ref: https://github.com/vercel/nft/issues/203
- */
-function ensureCLIBinaryExists(): boolean {
-  for (const node_modulesPath of module.paths) {
-    if (fs.existsSync(path.resolve(node_modulesPath, '@sentry/cli/sentry-cli'))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer, dev: isDev } = buildContext;
@@ -469,13 +453,11 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   /** Non-negotiable */
 
-  // TODO: this is a hack to fix https://github.com/getsentry/sentry-cli/issues/1085, which is caused by
-  // https://github.com/getsentry/sentry-cli/issues/915. Once the latter is addressed, this existence check can come
-  // out. (The check is necessary because currently, `@sentry/cli` uses a post-install script to download an
+  // This check is necessary because currently, `@sentry/cli` uses a post-install script to download an
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
-  // try to build their apps.)
-  if (!ensureCLIBinaryExists()) {
+  // try to build their apps.
+  if (!SentryWebpackPlugin.cliBinaryExists()) {
     return false;
   }
 
