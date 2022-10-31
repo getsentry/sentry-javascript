@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.17.3
+
+- chore(ember): Show warning when using invalid config (#6032)
+- fix(nextjs): Log false positive warning only if request is unfinished. (#6070)
+- fix(tracing): Add an extra conditional check to web vitals `onCLS()` (#6091)
+
 ## 7.17.2
 
 - fix(tracing): Fix `tracingOrigins` not applying (#6079)
