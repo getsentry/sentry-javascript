@@ -1,6 +1,3 @@
-/**
- * Test function
- */
-export function test(): void {
-  // no-op
-}
+import '@sentry/tracing';
+
+export { SentrySpanProcessor } from './spanprocessor';

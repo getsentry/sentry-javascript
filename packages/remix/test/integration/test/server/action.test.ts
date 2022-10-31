@@ -30,6 +30,10 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           op: 'function.remix.document_request',
         },
       ],
+      request: {
+        method: 'POST',
+        url,
+      },
     });
   });
 
@@ -74,6 +78,44 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
             },
           },
         ],
+      },
+    });
+  });
+
+  it('includes request data in transaction and error events', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-1`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      transaction: 'routes/action-json-response/$id',
+      request: {
+        method: 'POST',
+        url,
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Unexpected Server Error',
+          },
+        ],
+      },
+      request: {
+        method: 'POST',
+        url,
       },
     });
   });

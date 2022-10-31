@@ -123,10 +123,11 @@ describe('vueRouterInstrumentation()', () => {
     ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
-    (fromKey, toKey, _transactionName, _transactionSource) => {
+    (fromKey, toKey, transactionName, transactionSource) => {
       const mockedTxn = {
         setName: jest.fn(),
         setData: jest.fn(),
+        metadata: {},
       };
       const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
         return mockedTxn;
@@ -160,13 +161,61 @@ describe('vueRouterInstrumentation()', () => {
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      expect(mockedTxn.setName).toHaveBeenCalledWith(_transactionName, _transactionSource);
+      expect(mockedTxn.setName).toHaveBeenCalledWith(transactionName, transactionSource);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(1, 'params', to.params);
       expect(mockedTxn.setData).toHaveBeenNthCalledWith(2, 'query', to.query);
 
       expect(mockNext).toHaveBeenCalledTimes(1);
     },
   );
+
+  it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
+    const mockedTxn = {
+      setName: jest.fn(),
+      setData: jest.fn(),
+      name: '',
+      metadata: {
+        source: 'url',
+      },
+    };
+    const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
+      return mockedTxn;
+    });
+    jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+
+    // create instrumentation
+    const instrument = vueRouterInstrumentation(mockVueRouter);
+
+    // instrument
+    instrument(customMockStartTxn, true, true);
+
+    // check for transaction start
+    expect(customMockStartTxn).toHaveBeenCalledTimes(1);
+    expect(customMockStartTxn).toHaveBeenCalledWith({
+      name: '/',
+      metadata: {
+        source: 'url',
+      },
+      op: 'pageload',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+
+    // now we give the transaction a custom name, thereby simulating what would
+    // happen when users use the `beforeNavigate` hook
+    mockedTxn.name = 'customTxnName';
+    mockedTxn.metadata.source = 'custom';
+
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
+
+    expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
+
+    expect(mockedTxn.setName).not.toHaveBeenCalled();
+    expect(mockedTxn.metadata.source).toEqual('custom');
+    expect(mockedTxn.name).toEqual('customTxnName');
+  });
 
   test.each([
     [undefined, 1],
