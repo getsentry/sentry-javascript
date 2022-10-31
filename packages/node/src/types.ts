@@ -20,8 +20,8 @@ export interface BaseNodeOptions {
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
-   * This function will be called before creating a span for a request with the given url.
-   * Return false if you don't want a span for the given url.
+   * Function determining whether or not to create spans to track outgoing requests to the given URL.
+   * By default, spans will be created for all outgoing requests.
    */
   shouldCreateSpanForRequest?(url: string): boolean;
 
