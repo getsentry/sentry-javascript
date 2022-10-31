@@ -1,5 +1,5 @@
 import {
-  Context as OpenTelemetryContext,
+  Context,
   isSpanContextValid,
   TextMapGetter,
   TextMapPropagator,
@@ -29,7 +29,7 @@ export class SentryPropogator implements TextMapPropagator {
   /**
    * @inheritDoc
    */
-  public inject(context: OpenTelemetryContext, carrier: unknown, setter: TextMapSetter): void {
+  public inject(context: Context, carrier: unknown, setter: TextMapSetter): void {
     const spanContext = trace.getSpanContext(context);
     if (!spanContext || !isSpanContextValid(spanContext) || isTracingSuppressed(context)) {
       return;
@@ -39,7 +39,7 @@ export class SentryPropogator implements TextMapPropagator {
     // Same `isSentryRequest` as is used in `SentrySpanProcessor`.
     // const spanId = isSentryRequest(spanContext) ? spanContext.parentSpanId : spanContext.spanId;
 
-    const traceparent = `${spanContext.traceId}-${spanContext.spanId}-0${
+    const traceparent = `${spanContext.traceId}-${spanContext.spanId}-${
       // eslint-disable-next-line no-bitwise
       spanContext.traceFlags & TraceFlags.SAMPLED ? 1 : 0
     }`;
@@ -58,7 +58,7 @@ export class SentryPropogator implements TextMapPropagator {
   /**
    * @inheritDoc
    */
-  public extract(context: OpenTelemetryContext, carrier: unknown, getter: TextMapGetter): OpenTelemetryContext {
+  public extract(context: Context, carrier: unknown, getter: TextMapGetter): Context {
     let newContext = context;
 
     const maybeSentryTraceHeader: string | string[] | undefined = getter.get(carrier, SENTRY_TRACE_HEADER);
