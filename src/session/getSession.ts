@@ -40,8 +40,9 @@ export function getSession({
   const session = currentSession || (stickySession && fetchSession());
 
   if (session) {
-    // If there is a session, check if it is valid (e.g. "last activity" time should be within the "session idle time")
-    // TODO: We should probably set a max age on this as well
+    // If there is a session, check if it is valid (e.g. "last activity" time
+    // should be within the "session idle time", and "session started" time is
+    // within "max session time").
     const isExpired = isSessionExpired(session, expiry);
 
     if (!isExpired) {

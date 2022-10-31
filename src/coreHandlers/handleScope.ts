@@ -1,6 +1,6 @@
 import { Breadcrumb, Scope } from '@sentry/types';
 
-import createBreadcrumb from '../util/createBreadcrumb';
+import { createBreadcrumb } from '../util/createBreadcrumb';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
 

@@ -43,6 +43,7 @@ describe('Replay (capture only on error)', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     // mockSendReplayRequest.mockClear();
     mockRecord.takeFullSnapshot.mockClear();
+    jest.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -59,7 +60,7 @@ describe('Replay (capture only on error)', () => {
   });
 
   it('uploads a replay when captureException is called', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -71,7 +72,12 @@ describe('Replay (capture only on error)', () => {
     await new Promise(process.nextTick);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        TEST_EVENT,
+      ]),
+    });
   });
 
   it('does not send a replay when triggering a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', async () => {

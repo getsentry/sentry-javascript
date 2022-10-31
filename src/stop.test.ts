@@ -43,6 +43,7 @@ describe('Replay - stop', () => {
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.eventBuffer?.destroy();
+    jest.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -76,7 +77,7 @@ describe('Replay - stop', () => {
     const ELAPSED = 5000;
     // Not sure where the 20ms comes from tbh
     const EXTRA_TICKS = 20;
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
     // stop replays
     replay.stop();
@@ -122,7 +123,16 @@ describe('Replay - stop', () => {
     await new Promise(process.nextTick);
     expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay({
-      events: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
+      events: JSON.stringify([
+        // This event happens when we call `replay.start`
+        {
+          data: { isCheckout: true },
+          timestamp: BASE_TIMESTAMP + ELAPSED + EXTRA_TICKS,
+          type: 2,
+        },
+        TEST_EVENT,
+        hiddenBreadcrumb,
+      ]),
     });
     // Session's last activity is last updated when we call `setup()` and *NOT*
     // when tab is blurred

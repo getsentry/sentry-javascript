@@ -2,7 +2,7 @@ import type { Breadcrumb } from '@sentry/types';
 
 type RequiredProperties = 'category' | 'message';
 
-export default function createBreadcrumb(
+export function createBreadcrumb(
   breadcrumb: Pick<Breadcrumb, RequiredProperties> &
     Partial<Omit<Breadcrumb, RequiredProperties>>
 ): Breadcrumb {

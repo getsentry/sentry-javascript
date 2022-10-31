@@ -1,7 +1,7 @@
 import { htmlTreeAsString } from '@sentry/utils';
 import { record } from 'rrweb';
 
-import createBreadcrumb from '../util/createBreadcrumb';
+import { createBreadcrumb } from '../util/createBreadcrumb';
 
 export function handleDom(handlerData: any) {
   // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
