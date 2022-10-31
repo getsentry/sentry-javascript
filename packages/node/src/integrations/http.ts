@@ -10,6 +10,7 @@ import {
 import * as http from 'http';
 import * as https from 'https';
 
+import { NodeClient } from '../client';
 import { NodeClientOptions } from '../types';
 import {
   cleanSpanDescription,
@@ -67,8 +68,7 @@ export class Http implements Integration {
       return;
     }
 
-    const clientOptions = setupOnceGetCurrentHub().getClient()?.getOptions() as NodeClientOptions | undefined;
-
+    const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
     const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing, clientOptions);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
