@@ -8,7 +8,6 @@ import {
   TraceFlags,
 } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
-import { Transaction } from '@sentry/types';
 import {
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -17,11 +16,11 @@ import {
 
 import {
   SENTRY_BAGGAGE_HEADER,
-  SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY,
   SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY,
   SENTRY_TRACE_HEADER,
   SENTRY_TRACE_PARENT_CONTEXT_KEY,
 } from './constants';
+import { SENTRY_SPAN_PROCESSOR_MAP } from './spanprocessor';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -46,9 +45,9 @@ export class SentryPropogator implements TextMapPropagator {
     }`;
     setter.set(carrier, SENTRY_TRACE_HEADER, traceparent);
 
-    const transaction = context.getValue(SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY) as Transaction | undefined;
-    if (transaction) {
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+    const span = SENTRY_SPAN_PROCESSOR_MAP.get(spanContext.spanId);
+    if (span && span.transaction) {
+      const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
       const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       if (sentryBaggageHeader) {
         setter.set(carrier, SENTRY_BAGGAGE_HEADER, sentryBaggageHeader);
@@ -79,7 +78,7 @@ export class SentryPropogator implements TextMapPropagator {
       }
     }
 
-    const maybeBaggageHeader = getter.get(carrier, BAGGAGE_HEADER);
+    const maybeBaggageHeader = getter.get(carrier, SENTRY_BAGGAGE_HEADER);
     const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(maybeBaggageHeader);
     newContext.setValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, dynamicSamplingContext);
 
@@ -90,6 +89,6 @@ export class SentryPropogator implements TextMapPropagator {
    * @inheritDoc
    */
   public fields(): string[] {
-    return [SENTRY_TRACE_HEADER, BAGGAGE_HEADER];
+    return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER];
   }
 }
