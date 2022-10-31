@@ -1,10 +1,15 @@
-import { defaultTextMapSetter, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import { defaultTextMapGetter, defaultTextMapSetter, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Transaction } from '@sentry/tracing';
 import { TransactionContext } from '@sentry/types';
 
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
+import {
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY,
+  SENTRY_TRACE_HEADER,
+  SENTRY_TRACE_PARENT_CONTEXT_KEY,
+} from '../src/constants';
 import { SentryPropogator } from '../src/propogator';
 import { SENTRY_SPAN_PROCESSOR_MAP } from '../src/spanprocessor';
 
@@ -18,6 +23,10 @@ describe('SentryPropogator', () => {
 
   beforeEach(() => {
     carrier = {};
+  });
+
+  it('returns fields set', () => {
+    expect(propogator.fields()).toEqual([SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER]);
   });
 
   describe('inject', () => {
@@ -201,5 +210,56 @@ describe('SentryPropogator', () => {
     });
   });
 
-  describe('extract', () => {});
+  describe('extract', () => {
+    it('sets sentry span context on the context', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
+      const context = propogator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(trace.getSpanContext(context)).toEqual({
+        isRemote: true,
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.SAMPLED,
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+      });
+    });
+
+    it('sets defined sentry trace header on context', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
+      const context = propogator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(context.getValue(SENTRY_TRACE_PARENT_CONTEXT_KEY)).toEqual({
+        parentSampled: true,
+        parentSpanId: '6e0c63257de34c92',
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+      });
+    });
+
+    it('sets undefined sentry trace header on context', () => {
+      const sentryTraceHeader = undefined;
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
+      const context = propogator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(context.getValue(SENTRY_TRACE_PARENT_CONTEXT_KEY)).toEqual(undefined);
+    });
+
+    it('sets defined dynamic sampling context on context', () => {
+      const baggage =
+        'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dsc-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b';
+      carrier[SENTRY_BAGGAGE_HEADER] = baggage;
+      const context = propogator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(context.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY)).toEqual({
+        environment: 'production',
+        public_key: 'abc',
+        release: '1.0.0',
+        trace_id: 'd4cda95b652f4a1592b449d5929fda1b',
+        transaction: 'dsc-transaction',
+      });
+    });
+
+    it('sets undefined dynamic sampling context on context', () => {
+      const baggage = '';
+      carrier[SENTRY_BAGGAGE_HEADER] = baggage;
+      const context = propogator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(context.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY)).toEqual(undefined);
+    });
+  });
 });

@@ -63,9 +63,9 @@ export class SentryPropogator implements TextMapPropagator {
 
     const maybeSentryTraceHeader: string | string[] | undefined = getter.get(carrier, SENTRY_TRACE_HEADER);
     if (maybeSentryTraceHeader) {
-      const header = maybeSentryTraceHeader ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
+      const header = Array.isArray(maybeSentryTraceHeader) ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
       const traceparentData = extractTraceparentData(header);
-      newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
+      newContext = newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
       if (traceparentData) {
         const traceFlags = traceparentData.parentSampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
         const spanContext = {
@@ -74,13 +74,13 @@ export class SentryPropogator implements TextMapPropagator {
           isRemote: true,
           traceFlags,
         };
-        newContext = trace.setSpanContext(context, spanContext);
+        newContext = trace.setSpanContext(newContext, spanContext);
       }
     }
 
     const maybeBaggageHeader = getter.get(carrier, SENTRY_BAGGAGE_HEADER);
     const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(maybeBaggageHeader);
-    newContext.setValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, dynamicSamplingContext);
+    newContext = newContext.setValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, dynamicSamplingContext);
 
     return newContext;
   }
