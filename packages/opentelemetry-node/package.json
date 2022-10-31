@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry-node",
-  "version": "7.16.0",
+  "version": "7.17.2",
   "description": "Official Sentry SDK for OpenTelemetry Node.js",
   "private": true,
   "repository": "git://github.com/getsentry/sentry-javascript.git",
@@ -17,18 +17,20 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.16.0",
-    "@sentry/tracing": "7.16.0",
-    "@sentry/types": "7.16.0",
-    "@sentry/utils": "7.16.0"
+    "@sentry/core": "7.17.2",
+    "@sentry/tracing": "7.17.2",
+    "@sentry/types": "7.17.2",
+    "@sentry/utils": "7.17.2"
   },
   "peerDependencies": {
     "@opentelemetry/api": "1.x",
-    "@opentelemetry/sdk-trace-base": "1.x"
+    "@opentelemetry/sdk-trace-base": "1.x",
+    "@opentelemetry/semantic-conventions": "1.x"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.2.0",
-    "@opentelemetry/sdk-trace-base": "^1.7.0"
+    "@opentelemetry/sdk-trace-base": "^1.7.0",
+    "@opentelemetry/sdk-trace-node": "^1.7.0"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",
@@ -54,5 +56,12 @@
   },
   "volta": {
     "extends": "../../package.json"
-  }
+  },
+  "sideEffects": [
+    "./cjs/index.js",
+    "./esm/index.js",
+    "./build/npm/cjs/index.js",
+    "./build/npm/esm/index.js",
+    "./src/index.ts"
+  ]
 }

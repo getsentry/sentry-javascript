@@ -4,6 +4,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.17.2
+
+- fix(tracing): Fix `tracingOrigins` not applying (#6079)
+
+## 7.17.1
+
+This release standardizes our SDKs to use the MIT License, which is our [standard license for Sentry SDKs](https://open.sentry.io/licensing/). We were previously using the BSD 3-Clause License in `@sentry/browser`,`@sentry/core`, `@sentry/gatsby`, `@sentry/hub`, `@sentry/integrations`, `@sentry/node`, `@sentry/react`, `@sentry/types`, `@sentry/typescript`, and `@sentry/utils`.
+
+This release also updates the behaviour of [`tracingOrigins`](https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#tracingorigins) to no longer affect span creation. `tracingOrigins` will only affect if `sentry-trace` and `baggage` headers are attached to outgoing requests. To control span creation, use the [`shouldCreateSpanForRequest`](https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#shouldcreatespanforrequest) option.
+
+- chore: Standardize SDKs on MIT License (#5993)
+- feat(nextjs): Add Next 13 to peer dependencies and integration tests (#6042)
+- feat(remix): Enable `RequestData` integration for server-side requests (#6007)
+- feat(tracing): Update to Web Vitals v3 (#5987)
+- feat(tracing): Allow for spanId to be passed into startChild (#6028)
+- fix(browser): Handle case where fetch can be undefined (#5973)
+- fix(build): Prevent Rollup from adding `[Symbol.toStringTag]: 'Module'` to CJS files (#6043)
+- fix(nextjs): Match loader files exactly (#6013)
+- fix(react): Update types to match react router 6.4 updates (#5992)
+- fix(tracing): Align missing express span operation names (#6036)
+- fix(tracing): Don't consider `tracingOrigins` when creating spans (#6039)
+- fix(utils): Remove `WINDOW` from utils (#6024)
+- fix(vue): Fix vue3 render warning loop (#6014)
+- fix(vue): Don't overwrite custom transaction names of pageload transactions (#6060)
+- ref(node): Make `RequestData` integration default (#5980)
+- ref(node): Use `RequestData` integration in express handlers (#5990)
+- ref(serverless): Use RequestData integration in GCP wrapper (#5991)
+
+Work in this release contributed by @philipatkinson, @Rockergmail, @ys-zhifu, and @koenpunt. Thank you for your contributions!
+
+Special shoutout to @Tofandel who helped [fix a bug in Jest](https://github.com/facebook/jest/pull/13513) that was affecting the Sentry JavaScript SDKs!
+
 ## 7.16.0
 
 This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.

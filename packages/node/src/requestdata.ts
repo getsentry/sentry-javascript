@@ -169,7 +169,7 @@ export function extractRequestData(
   //   koa, nextjs: req.url
   const originalUrl = req.originalUrl || req.url || '';
   // absolute url
-  const absoluteUrl = `${protocol}://${host}${originalUrl}`;
+  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
   include.forEach(key => {
     switch (key) {
       case 'headers': {

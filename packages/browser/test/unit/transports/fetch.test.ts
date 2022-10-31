@@ -98,4 +98,13 @@ describe('NewFetchTransport', () => {
       ...REQUEST_OPTIONS,
     });
   });
+
+  it('handles when `getNativeFetchImplementation` is undefined', async () => {
+    const mockFetch = jest.fn(() => undefined) as unknown as FetchImpl;
+    const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
+
+    expect(mockFetch).toHaveBeenCalledTimes(0);
+    await expect(() => transport.send(ERROR_ENVELOPE)).not.toThrow();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });
