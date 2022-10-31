@@ -107,15 +107,22 @@ function _createWrappedRequestMethodFactory(
   tracingEnabled: boolean,
   options: NodeClientOptions | undefined,
 ): WrappedRequestMethodFactory {
-  // We're caching results so we dont have to recompute regexp everytime we create a request.
-  const urlMap: Record<string, boolean> = {};
+  // We're caching results so we don't have to recompute regexp every time we create a request.
+  const createSpanUrlMap: Record<string, boolean> = {};
+  const headersUrlMap: Record<string, boolean> = {};
 
   const shouldCreateSpan = (url: string): boolean => {
     if (options?.shouldCreateSpanForRequest === undefined) {
       return true;
     }
 
-    return options.shouldCreateSpanForRequest(url);
+    if (createSpanUrlMap[url]) {
+      return createSpanUrlMap[url];
+    }
+
+    createSpanUrlMap[url] = options.shouldCreateSpanForRequest(url);
+
+    return createSpanUrlMap[url];
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
@@ -123,15 +130,15 @@ function _createWrappedRequestMethodFactory(
       return true;
     }
 
-    if (urlMap[url]) {
-      return urlMap[url];
+    if (headersUrlMap[url]) {
+      return headersUrlMap[url];
     }
 
-    urlMap[url] = options.tracePropagationTargets.some(tracePropagationTarget =>
+    headersUrlMap[url] = options.tracePropagationTargets.some(tracePropagationTarget =>
       isMatchingPattern(url, tracePropagationTarget),
     );
 
-    return urlMap[url];
+    return headersUrlMap[url];
   };
 
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
