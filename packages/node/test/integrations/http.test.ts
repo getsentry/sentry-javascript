@@ -221,7 +221,35 @@ describe('tracing', () => {
       addExtensionMethods();
       const transaction = hub.startTransaction({ name: 'dogpark' });
       hub.getScope()?.setSpan(transaction);
+      return transaction;
     }
+
+    it("doesn't create span if shouldCreateSpanForRequest returns false", () => {
+      const url = 'http://dogs.are.great/api/v1/index/';
+      nock(url).get(/.*/).reply(200);
+
+      const httpIntegration = new HttpIntegration({ tracing: true });
+
+      const hub = createHub({ shouldCreateSpanForRequest: () => false });
+
+      httpIntegration.setupOnce(
+        () => undefined,
+        () => hub,
+      );
+
+      const transaction = createTransactionAndPutOnScope(hub);
+      const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+      const request = http.get(url);
+
+      // There should be no http spans
+      const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+      expect(httpSpans.length).toBe(0);
+
+      // And headers are not attached without span creation
+      expect(request.getHeader('sentry-trace')).toBeUndefined();
+      expect(request.getHeader('baggage')).toBeUndefined();
+    });
 
     it.each([
       ['http://dogs.are.great/api/v1/index/', [/.*/]],
