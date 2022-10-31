@@ -2,9 +2,10 @@ import { Context } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getCurrentHub, withScope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
-import { Span as SentrySpan, TransactionContext } from '@sentry/types';
+import { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_KEY } from './constants';
 import { mapOtelStatus } from './utils/map-otel-status';
 import { parseSpanDescription } from './utils/parse-otel-span-description';
 
@@ -19,7 +20,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
   /**
    * @inheritDoc
    */
-  public onStart(otelSpan: OtelSpan, _parentContext: Context): void {
+  public onStart(otelSpan: OtelSpan, parentContext: Context): void {
     const hub = getCurrentHub();
     if (!hub) {
       __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
@@ -51,7 +52,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
       this._map.set(otelSpanId, sentryChildSpan);
     } else {
-      const traceCtx = getTraceData(otelSpan);
+      const traceCtx = getTraceData(otelSpan, parentContext);
       const transaction = hub.startTransaction({
         name: otelSpan.name,
         ...traceCtx,
@@ -107,13 +108,27 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
   }
 }
 
-function getTraceData(otelSpan: OtelSpan): Partial<TransactionContext> {
+function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<TransactionContext> {
   const spanContext = otelSpan.spanContext();
   const traceId = spanContext.traceId;
   const spanId = spanContext.spanId;
-
   const parentSpanId = otelSpan.parentSpanId;
-  return { spanId, traceId, parentSpanId };
+
+  const traceparentData = parentContext.getValue(SENTRY_TRACE_PARENT_KEY) as TraceparentData | undefined;
+  const dynamicSamplingContext = parentContext.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY) as
+    | Partial<DynamicSamplingContext>
+    | undefined;
+
+  return {
+    spanId,
+    traceId,
+    parentSpanId,
+    metadata: {
+      // only set dynamic sampling context if sentry-trace header was set
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      source: 'custom',
+    },
+  };
 }
 
 function finishTransactionWithContextFromOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
