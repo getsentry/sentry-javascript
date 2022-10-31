@@ -2,6 +2,7 @@ import { defaultTextMapSetter, ROOT_CONTEXT, trace, TraceFlags } from '@opentele
 import { suppressTracing } from '@opentelemetry/core';
 import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Transaction } from '@sentry/tracing';
+import { TransactionContext } from '@sentry/types';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropogator } from '../src/propogator';
@@ -94,7 +95,23 @@ describe('SentryPropogator', () => {
         SENTRY_SPAN_PROCESSOR_MAP.clear();
       });
 
-      describe.each(['transction', 'span'])('with active %s', type => {
+      enum PerfType {
+        Transaction = 'transaction',
+        Span = 'span',
+      }
+
+      function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
+        const transaction = new Transaction(transactionContext, hub);
+        SENTRY_SPAN_PROCESSOR_MAP.set(transaction.spanId, transaction);
+        if (type === PerfType.Span) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { spanId, ...ctx } = transactionContext;
+          const span = transaction.startChild({ ...ctx, description: transaction.name });
+          SENTRY_SPAN_PROCESSOR_MAP.set(span.spanId, span);
+        }
+      }
+
+      describe.each([PerfType.Transaction, PerfType.Span])('with active %s', type => {
         it.each([
           [
             'should set baggage header when sampled',
@@ -157,14 +174,7 @@ describe('SentryPropogator', () => {
             undefined,
           ],
         ])('%s', (_name, spanContext, transactionContext, expected) => {
-          const transaction = new Transaction(transactionContext, hub);
-          SENTRY_SPAN_PROCESSOR_MAP.set(transaction.spanId, transaction);
-          if (type === 'span') {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { spanId, ...ctx } = transactionContext;
-            const span = transaction.startChild({ ...ctx, description: transaction.name });
-            SENTRY_SPAN_PROCESSOR_MAP.set(span.spanId, span);
-          }
+          createTransactionAndMaybeSpan(type, transactionContext);
           const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
           propogator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(expected);
@@ -182,14 +192,7 @@ describe('SentryPropogator', () => {
             spanId: '6e0c63257de34c92',
             sampled: true,
           };
-          const transaction = new Transaction(transactionContext, hub);
-          SENTRY_SPAN_PROCESSOR_MAP.set(transaction.spanId, transaction);
-          if (type === 'span') {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { spanId, ...ctx } = transactionContext;
-            const span = transaction.startChild({ ...ctx, description: transaction.name });
-            SENTRY_SPAN_PROCESSOR_MAP.set(span.spanId, span);
-          }
+          createTransactionAndMaybeSpan(type, transactionContext);
           const context = suppressTracing(trace.setSpanContext(ROOT_CONTEXT, spanContext));
           propogator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
@@ -197,4 +200,6 @@ describe('SentryPropogator', () => {
       });
     });
   });
+
+  describe('extract', () => {});
 });
