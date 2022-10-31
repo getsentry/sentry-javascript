@@ -5,7 +5,11 @@ import { Transaction } from '@sentry/tracing';
 import { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_KEY } from './constants';
+import {
+  SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY,
+  SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY,
+  SENTRY_TRACE_PARENT_CONTEXT_KEY,
+} from './constants';
 import { mapOtelStatus } from './utils/map-otel-status';
 import { parseSpanDescription } from './utils/parse-otel-span-description';
 
@@ -61,6 +65,8 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
+      parentContext.setValue(SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY, transaction);
+
       this._map.set(otelSpanId, transaction);
     }
   }
@@ -114,7 +120,7 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
   const spanId = spanContext.spanId;
   const parentSpanId = otelSpan.parentSpanId;
 
-  const traceparentData = parentContext.getValue(SENTRY_TRACE_PARENT_KEY) as TraceparentData | undefined;
+  const traceparentData = parentContext.getValue(SENTRY_TRACE_PARENT_CONTEXT_KEY) as TraceparentData | undefined;
   const dynamicSamplingContext = parentContext.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY) as
     | Partial<DynamicSamplingContext>
     | undefined;

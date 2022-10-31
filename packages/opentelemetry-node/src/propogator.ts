@@ -8,13 +8,19 @@ import {
   TraceFlags,
 } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
+import { Transaction } from '@sentry/types';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  extractTraceparentData,
+} from '@sentry/utils';
 
 import {
-  BAGGAGE_HEADER,
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY,
   SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY,
   SENTRY_TRACE_HEADER,
-  SENTRY_TRACE_PARENT_KEY,
+  SENTRY_TRACE_PARENT_CONTEXT_KEY,
 } from './constants';
 
 /**
@@ -39,6 +45,15 @@ export class SentryPropogator implements TextMapPropagator {
       spanContext.traceFlags & TraceFlags.SAMPLED ? 1 : 0
     }`;
     setter.set(carrier, SENTRY_TRACE_HEADER, traceparent);
+
+    const transaction = context.getValue(SENTRY_CURRENT_TRANSACTION_CONTEXT_KEY) as Transaction | undefined;
+    if (transaction) {
+      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+      if (sentryBaggageHeader) {
+        setter.set(carrier, SENTRY_BAGGAGE_HEADER, sentryBaggageHeader);
+      }
+    }
   }
 
   /**
@@ -51,7 +66,7 @@ export class SentryPropogator implements TextMapPropagator {
     if (maybeSentryTraceHeader) {
       const header = maybeSentryTraceHeader ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
       const traceparentData = extractTraceparentData(header);
-      newContext.setValue(SENTRY_TRACE_PARENT_KEY, traceparentData);
+      newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
       if (traceparentData) {
         const traceFlags = traceparentData.parentSampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
         const spanContext = {
