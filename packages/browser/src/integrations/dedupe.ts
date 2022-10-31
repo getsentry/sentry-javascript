@@ -190,15 +190,13 @@ function _getExceptionFromEvent(event: Event): Exception | undefined {
 
 /** JSDoc */
 function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
-  const exception = event.exception || event.threads;
+  const exceptionFrames = event.exception?.values?.[0]?.stacktrace?.frames;
+  const threadsFrames = event.threads?.values?.[0]?.stacktrace?.frames;
 
-  if (exception) {
-    try {
-      // @ts-ignore Object could be undefined
-      return exception.values[0].stacktrace.frames;
-    } catch (_oO) {
-      return undefined;
-    }
+  if (exceptionFrames?.length) {
+    return exceptionFrames;
+  } else if (threadsFrames?.length) {
+    return threadsFrames;
   }
   return undefined;
 }
