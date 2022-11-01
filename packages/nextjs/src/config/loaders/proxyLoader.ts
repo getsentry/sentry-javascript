@@ -47,12 +47,12 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     : 'pageProxyLoaderTemplate.js';
   const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
   let templateCode = fs.readFileSync(templatePath).toString();
-  // Make sure the template is included when runing `webpack watch`
+  // Make sure the template is included when running `webpack watch`
   this.addDependency(templatePath);
 
   // Inject the route and the path to the file we're wrapping into the template
-  templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute);
-  templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath);
+  templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
+  templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath.replace(/\\/g, '\\\\'));
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
