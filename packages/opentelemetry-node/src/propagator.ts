@@ -8,9 +8,18 @@ import {
   TraceFlags,
 } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  extractTraceparentData,
+} from '@sentry/utils';
 
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
+import {
+  SENTRY_BAGGAGE_HEADER,
+  SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY,
+  SENTRY_TRACE_HEADER,
+  SENTRY_TRACE_PARENT_CONTEXT_KEY,
+} from './constants';
 import { SENTRY_SPAN_PROCESSOR_MAP } from './spanprocessor';
 
 /**
@@ -44,8 +53,31 @@ export class SentryPropagator implements TextMapPropagator {
   /**
    * @inheritDoc
    */
-  public extract(context: Context, _carrier: unknown, _getter: TextMapGetter): Context {
-    return context;
+  public extract(context: Context, carrier: unknown, getter: TextMapGetter): Context {
+    let newContext = context;
+
+    const maybeSentryTraceHeader: string | string[] | undefined = getter.get(carrier, SENTRY_TRACE_HEADER);
+    if (maybeSentryTraceHeader) {
+      const header = Array.isArray(maybeSentryTraceHeader) ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
+      const traceparentData = extractTraceparentData(header);
+      newContext = newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
+      if (traceparentData) {
+        const traceFlags = traceparentData.parentSampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
+        const spanContext = {
+          traceId: traceparentData.traceId || '',
+          spanId: traceparentData.parentSpanId || '',
+          isRemote: true,
+          traceFlags,
+        };
+        newContext = trace.setSpanContext(newContext, spanContext);
+      }
+    }
+
+    const maybeBaggageHeader = getter.get(carrier, SENTRY_BAGGAGE_HEADER);
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(maybeBaggageHeader);
+    newContext = newContext.setValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, dynamicSamplingContext);
+
+    return newContext;
   }
 
   /**
