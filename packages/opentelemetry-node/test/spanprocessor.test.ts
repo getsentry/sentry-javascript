@@ -4,11 +4,15 @@ import { Resource } from '@opentelemetry/resources';
 import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Hub, makeMain } from '@sentry/core';
+import { createTransport, Hub, makeMain } from '@sentry/core';
+import { NodeClient } from '@sentry/node';
 import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
 import { Contexts, Scope } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
+
+const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
 // Integration Test of SentrySpanProcessor
 
@@ -22,7 +26,13 @@ describe('SentrySpanProcessor', () => {
   let spanProcessor: SentrySpanProcessor;
 
   beforeEach(() => {
-    hub = new Hub();
+    const client = new NodeClient({
+      dsn: SENTRY_DSN,
+      integrations: [],
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+      stackParser: () => [],
+    });
+    hub = new Hub(client);
     makeMain(hub);
 
     spanProcessor = new SentrySpanProcessor();
@@ -558,6 +568,106 @@ describe('SentrySpanProcessor', () => {
 
         expect(transaction?.op).toBe('test faas trigger');
         expect(transaction?.name).toBe('test operation');
+      });
+    });
+  });
+
+  describe('skip sentry requests', () => {
+    it('does not finish transaction for Sentry request', async () => {
+      const otelSpan = provider.getTracer('default').startSpan('POST to sentry', {
+        attributes: {
+          [SemanticAttributes.HTTP_METHOD]: 'POST',
+          [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+        },
+      }) as OtelSpan;
+
+      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
+      expect(sentrySpanTransaction).toBeDefined();
+
+      otelSpan.end();
+
+      expect(sentrySpanTransaction?.endTimestamp).toBeUndefined();
+
+      // Ensure it is still removed from map!
+      expect(getSpanForOtelSpan(otelSpan)).toBeUndefined();
+    });
+
+    it('finishes transaction for non-Sentry request', async () => {
+      const otelSpan = provider.getTracer('default').startSpan('POST to sentry', {
+        attributes: {
+          [SemanticAttributes.HTTP_METHOD]: 'POST',
+          [SemanticAttributes.HTTP_URL]: 'https://other.sentry.io/sub/route',
+        },
+      }) as OtelSpan;
+
+      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
+      expect(sentrySpanTransaction).toBeDefined();
+
+      otelSpan.end();
+
+      expect(sentrySpanTransaction?.endTimestamp).toBeDefined();
+    });
+
+    it('does not finish spans for Sentry request', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', () => {
+        tracer.startActiveSpan(
+          'SELECT * FROM users;',
+          {
+            attributes: {
+              [SemanticAttributes.HTTP_METHOD]: 'POST',
+              [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+            },
+          },
+          child => {
+            const childOtelSpan = child as OtelSpan;
+
+            const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+            expect(sentrySpan).toBeDefined();
+
+            childOtelSpan.end();
+
+            expect(sentrySpan?.endTimestamp).toBeUndefined();
+
+            // Ensure it is still removed from map!
+            expect(getSpanForOtelSpan(childOtelSpan)).toBeUndefined();
+          },
+        );
+      });
+    });
+
+    it('handles child spans of Sentry requests normally', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', () => {
+        tracer.startActiveSpan(
+          'SELECT * FROM users;',
+          {
+            attributes: {
+              [SemanticAttributes.HTTP_METHOD]: 'POST',
+              [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+            },
+          },
+          child => {
+            const childOtelSpan = child as OtelSpan;
+
+            const grandchildSpan = tracer.startSpan('child 1');
+
+            const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+            expect(sentrySpan).toBeDefined();
+
+            const sentryGrandchildSpan = getSpanForOtelSpan(grandchildSpan);
+            expect(sentryGrandchildSpan).toBeDefined();
+
+            grandchildSpan.end();
+
+            childOtelSpan.end();
+
+            expect(sentryGrandchildSpan?.endTimestamp).toBeDefined();
+            expect(sentrySpan?.endTimestamp).toBeUndefined();
+          },
+        );
       });
     });
   });
