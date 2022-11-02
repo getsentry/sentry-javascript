@@ -45,7 +45,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
         // instrumentor: 'otel',
-        startTimestamp: otelSpan.startTime[0],
+        startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });
 
@@ -56,7 +56,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         name: otelSpan.name,
         ...traceCtx,
         // instrumentor: 'otel',
-        startTimestamp: otelSpan.startTime[0],
+        startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });
 
@@ -82,7 +82,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       finishTransactionWithContextFromOtelData(sentrySpan, otelSpan);
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
-      sentrySpan.finish(otelSpan.endTime[0]);
+      sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
     }
 
     this._map.delete(otelSpanId);
@@ -123,7 +123,7 @@ function finishTransactionWithContextFromOtelData(transaction: Transaction, otel
       resource: otelSpan.resource.attributes,
     });
 
-    transaction.finish(otelSpan.endTime[0]);
+    transaction.finish(convertOtelTimeToSeconds(otelSpan.endTime));
   });
 }
 
@@ -145,4 +145,8 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   transaction.setStatus(mapOtelStatus(otelSpan));
+}
+
+function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {
+  return seconds + nano / 1_000_000_000;
 }
