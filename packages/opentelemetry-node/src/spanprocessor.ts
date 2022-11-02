@@ -5,6 +5,7 @@ import { Transaction } from '@sentry/tracing';
 import { Span as SentrySpan, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { isSentryRequestSpan } from './utils/is-sentry-request';
 import { mapOtelStatus } from './utils/map-otel-status';
 import { parseSpanDescription } from './utils/parse-otel-span-description';
 
@@ -30,9 +31,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a scope has been setup.');
       return;
     }
-
-    // TODO: handle sentry requests
-    // if isSentryRequest(otelSpan) return;
 
     const otelSpanId = otelSpan.spanContext().spanId;
     const otelParentSpanId = otelSpan.parentSpanId;
@@ -74,6 +72,16 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
         logger.error(`SentrySpanProcessor could not find span with OTEL-spanId ${otelSpanId} to finish.`);
+      return;
+    }
+
+    // Auto-instrumentation often captures outgoing HTTP requests
+    // This means that Sentry HTTP requests created by this integration can, in turn, be captured by OTEL auto instrumentation,
+    // leading to an infinite loop.
+    // In this case, we do not want to finish the span, in order to avoid sending it to Sentry
+    if (isSentryRequestSpan(otelSpan)) {
+      // Make sure to remove any references, so this can be GCed
+      this._map.delete(otelSpanId);
       return;
     }
 

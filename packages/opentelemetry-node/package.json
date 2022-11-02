@@ -33,7 +33,8 @@
     "@opentelemetry/core": "^1.7.0",
     "@opentelemetry/sdk-trace-base": "^1.7.0",
     "@opentelemetry/sdk-trace-node": "^1.7.0",
-    "@opentelemetry/semantic-conventions": "^1.7.0"
+    "@opentelemetry/semantic-conventions": "^1.7.0",
+    "@sentry/node": "7.17.3"
   },
   "scripts": {
     "build": "run-p build:rollup build:types",
