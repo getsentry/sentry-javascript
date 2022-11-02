@@ -145,6 +145,10 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
   transaction.setStatus(mapOtelStatus(otelSpan));
+
+  const { op, description } = parseSpanDescription(otelSpan);
+  transaction.op = op;
+  transaction.name = description;
 }
 
 function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {

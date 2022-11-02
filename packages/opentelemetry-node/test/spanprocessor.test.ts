@@ -546,6 +546,20 @@ describe('SentrySpanProcessor', () => {
         });
       });
     });
+
+    it('updates Sentry transaction', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('test operation', parentOtelSpan => {
+        const transaction = getSpanForOtelSpan(parentOtelSpan) as Transaction;
+
+        parentOtelSpan.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
+        parentOtelSpan.end();
+
+        expect(transaction?.op).toBe('test faas trigger');
+        expect(transaction?.name).toBe('test operation');
+      });
+    });
   });
 });
 
