@@ -13,7 +13,7 @@ beforeAll(() => {
 });
 
 describe('SentryPropagator', () => {
-  const propogator = new SentryPropagator();
+  const propagator = new SentryPropagator();
   let carrier: { [key: string]: unknown };
 
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('SentryPropagator', () => {
   });
 
   it('returns fields set', () => {
-    expect(propogator.fields()).toEqual([SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER]);
+    expect(propagator.fields()).toEqual([SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER]);
   });
 
   describe('inject', () => {
@@ -65,7 +65,7 @@ describe('SentryPropagator', () => {
         ],
       ])('%s', (_name, spanContext, expected) => {
         const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
-        propogator.inject(context, carrier, defaultTextMapSetter);
+        propagator.inject(context, carrier, defaultTextMapSetter);
         expect(carrier[SENTRY_TRACE_HEADER]).toBe(expected);
       });
 
@@ -76,7 +76,7 @@ describe('SentryPropagator', () => {
           traceFlags: TraceFlags.SAMPLED,
         };
         const context = suppressTracing(trace.setSpanContext(ROOT_CONTEXT, spanContext));
-        propogator.inject(context, carrier, defaultTextMapSetter);
+        propagator.inject(context, carrier, defaultTextMapSetter);
         expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
       });
     });
@@ -180,7 +180,7 @@ describe('SentryPropagator', () => {
         ])('%s', (_name, spanContext, transactionContext, expected) => {
           createTransactionAndMaybeSpan(type, transactionContext);
           const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
-          propogator.inject(context, carrier, defaultTextMapSetter);
+          propagator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(expected);
         });
 
@@ -198,7 +198,7 @@ describe('SentryPropagator', () => {
           };
           createTransactionAndMaybeSpan(type, transactionContext);
           const context = suppressTracing(trace.setSpanContext(ROOT_CONTEXT, spanContext));
-          propogator.inject(context, carrier, defaultTextMapSetter);
+          propagator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
         });
       });
