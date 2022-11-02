@@ -8,7 +8,7 @@ import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
 import { Contexts, Scope } from '@sentry/types';
 
-import { SentrySpanProcessor } from '../src/spanprocessor';
+import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
 
 // Integration Test of SentrySpanProcessor
 
@@ -41,7 +41,7 @@ describe('SentrySpanProcessor', () => {
   });
 
   function getSpanForOtelSpan(otelSpan: OtelSpan | OpenTelemetry.Span) {
-    return spanProcessor._map.get(otelSpan.spanContext().spanId);
+    return SENTRY_SPAN_PROCESSOR_MAP.get(otelSpan.spanContext().spanId);
   }
 
   function getContext(transaction: Transaction) {

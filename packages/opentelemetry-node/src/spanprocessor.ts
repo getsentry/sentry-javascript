@@ -8,14 +8,16 @@ import { logger } from '@sentry/utils';
 import { mapOtelStatus } from './utils/map-otel-status';
 import { parseSpanDescription } from './utils/parse-otel-span-description';
 
+export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
+  SentrySpan['spanId'],
+  SentrySpan
+>();
+
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  // public only for testing
-  public readonly _map: Map<SentrySpan['spanId'], SentrySpan> = new Map<SentrySpan['spanId'], SentrySpan>();
-
   /**
    * @inheritDoc
    */
@@ -39,7 +41,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     // Otel supports having multiple non-nested spans at the same time
     // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
-    const sentryParentSpan = otelParentSpanId && this._map.get(otelParentSpanId);
+    const sentryParentSpan = otelParentSpanId && SENTRY_SPAN_PROCESSOR_MAP.get(otelParentSpanId);
 
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
@@ -49,7 +51,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
-      this._map.set(otelSpanId, sentryChildSpan);
+      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan);
       const transaction = hub.startTransaction({
@@ -60,7 +62,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
-      this._map.set(otelSpanId, transaction);
+      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, transaction);
     }
   }
 
@@ -69,7 +71,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    */
   public onEnd(otelSpan: OtelSpan): void {
     const otelSpanId = otelSpan.spanContext().spanId;
-    const sentrySpan = this._map.get(otelSpanId);
+    const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
@@ -85,7 +87,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
     }
 
-    this._map.delete(otelSpanId);
+    SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
   }
 
   /**
