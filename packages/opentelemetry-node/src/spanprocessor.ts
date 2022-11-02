@@ -83,7 +83,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     // In this case, we do not want to finish the span, in order to avoid sending it to Sentry
     if (isSentryRequestSpan(otelSpan)) {
       // Make sure to remove any references, so this can be GCed
-      this._map.delete(otelSpanId);
+      SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
       return;
     }
 
