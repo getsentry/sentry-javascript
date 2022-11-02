@@ -613,13 +613,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
-    const { beforeSend, sampleRate } = this.getOptions();
+    const options = this.getOptions();
+    const { sampleRate } = options;
 
     if (!this._isEnabled()) {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
     }
 
     const isTransaction = event.type === 'transaction';
+    const beforeSendProcessorName = isTransaction ? 'beforeSendTransaction' : 'beforeSend';
+    const beforeSendProcessor = options[beforeSendProcessorName];
+
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
@@ -641,17 +645,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-        if (isInternalException || isTransaction || !beforeSend) {
+        if (isInternalException || !beforeSendProcessor) {
           return prepared;
         }
 
-        const beforeSendResult = beforeSend(prepared, hint);
-        return _validateBeforeSendResult(beforeSendResult);
+        const beforeSendResult = beforeSendProcessor(prepared, hint);
+        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error');
-          throw new SentryError('`beforeSend` returned `null`, will not send event.', 'log');
+          throw new SentryError(`\`${beforeSendProcessorName}\` returned \`null\`, will not send event.`, 'log');
         }
 
         const session = scope && scope.getSession();
@@ -764,12 +768,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 }
 
 /**
- * Verifies that return value of configured `beforeSend` is of expected type, and returns the value if so.
+ * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
+  beforeSendProcessorName: 'beforeSend' | 'beforeSendTransaction',
 ): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = '`beforeSend` must return `null` or a valid event.';
+  const invalidValueError = `\`${beforeSendProcessorName}\` must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
       event => {
@@ -779,7 +784,7 @@ function _validateBeforeSendResult(
         return event;
       },
       e => {
-        throw new SentryError(`beforeSend rejected with ${e}`);
+        throw new SentryError(`\`${beforeSendProcessorName}\` rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
