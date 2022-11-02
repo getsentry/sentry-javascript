@@ -364,7 +364,6 @@ describe('SentrySpanProcessor', () => {
         child.end();
 
         expect(sentrySpan?.op).toBe('http.client');
-        expect(sentrySpan?.description).toBe('GET /users/all');
 
         parentOtelSpan.end();
       });
@@ -383,7 +382,63 @@ describe('SentrySpanProcessor', () => {
         child.end();
 
         expect(sentrySpan?.op).toBe('http.server');
-        expect(sentrySpan?.description).toBe('GET /users/all');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for HTTP_METHOD without HTTP_ROUTE', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('HTTP GET', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+        child.end();
+
+        expect(sentrySpan?.description).toBe('HTTP GET');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for HTTP_METHOD with HTTP_ROUTE', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('HTTP GET', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        child.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/{id}');
+        child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+        child.end();
+
+        expect(sentrySpan?.description).toBe('GET /my/route/{id}');
+
+        parentOtelSpan.end();
+      });
+    });
+  });
+
+  it('updates op/description based on attributes for HTTP_METHOD with HTTP_TARGET', async () => {
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('HTTP GET', child => {
+        const sentrySpan = getSpanForOtelSpan(child);
+
+        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+        child.end();
+
+        expect(sentrySpan?.description).toBe('GET /my/route/123');
 
         parentOtelSpan.end();
       });

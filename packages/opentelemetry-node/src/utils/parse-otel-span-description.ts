@@ -69,7 +69,7 @@ function descriptionForDbSystem(otelSpan: OtelSpan, _dbSystem: AttributeValue): 
 }
 
 function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue): SpanDescription {
-  const { name, kind } = otelSpan;
+  const { name, kind, attributes } = otelSpan;
 
   const opParts = ['http'];
 
@@ -82,8 +82,15 @@ function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue
       break;
   }
 
-  // Ex. description="GET /api/users/{user_id}".
-  const description = `${httpMethod} ${name}`;
+  // Ex. /api/users
+  const httpPath = attributes[SemanticAttributes.HTTP_ROUTE] || attributes[SemanticAttributes.HTTP_TARGET];
+
+  if (!httpPath) {
+    return { op: opParts.join('.'), description: name };
+  }
+
+  // Ex. description="GET /api/users".
+  const description = `${httpMethod} ${httpPath}`;
 
   return { op: opParts.join('.'), description };
 }
