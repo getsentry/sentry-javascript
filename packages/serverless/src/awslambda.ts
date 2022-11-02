@@ -64,7 +64,7 @@ function extensionRelayDSN(originalDsn: string | undefined): string | undefined 
 
   const dsn = dsnFromString(originalDsn);
   dsn.host = 'localhost';
-  dsn.port = '3000';
+  dsn.port = '5333';
   dsn.protocol = 'http';
 
   return dsnToString(dsn);
