@@ -1371,7 +1371,7 @@ describe('BaseClient', () => {
       client.recordDroppedEvent('ratelimit_backoff', 'error');
       client.recordDroppedEvent('network_error', 'transaction');
       client.recordDroppedEvent('network_error', 'transaction');
-      client.recordDroppedEvent('before_send', 'session');
+      client.recordDroppedEvent('before_send', 'error');
       client.recordDroppedEvent('event_processor', 'attachment');
       client.recordDroppedEvent('network_error', 'transaction');
 
@@ -1391,7 +1391,7 @@ describe('BaseClient', () => {
           },
           {
             reason: 'before_send',
-            category: 'session',
+            category: 'error',
             quantity: 1,
           },
           {
