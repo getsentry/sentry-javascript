@@ -37,16 +37,19 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     .replace(/^$/, '/');
 
   // For the `excludedServersideEntrypoints` option we need the calculate the relative path to the file in question without file extension.
-  const relativePagePath = path
+  const relativePosixPagePath = path
     .join('pages', path.relative(pagesDir, this.resourcePath))
+    // Make sure that path is in posix style - this should make it easiser for users to configure and copy & paste from docs
+    .split(path.sep)
+    .join(path.posix.sep)
     // Pull off the file extension
     .replace(new RegExp(`\\.(${pageExtensionRegex})`), '');
 
   const isExcluded = excludedServersideEntrypoints.some(exludeEntry => {
     if (typeof exludeEntry === 'string') {
-      return relativePagePath === exludeEntry;
+      return relativePosixPagePath === exludeEntry;
     } else {
-      return relativePagePath.match(exludeEntry);
+      return relativePosixPagePath.match(exludeEntry);
     }
   });
 
