@@ -66,7 +66,7 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      expect(dsnToString(client.getDsn()!)).toBe(PUBLIC_DSN);
+      expect(dsnToString(client.getDsn()!)).toEqual(PUBLIC_DSN);
     });
 
     test('allows missing Dsn', () => {
@@ -120,7 +120,7 @@ describe('BaseClient', () => {
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs[1].message).toBe('world');
+      expect((scope as any)._breadcrumbs[1].message).toEqual('world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -148,8 +148,8 @@ describe('BaseClient', () => {
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs.length).toBe(1);
-      expect((scope as any)._breadcrumbs[0].message).toBe('world');
+      expect((scope as any)._breadcrumbs.length).toEqual(1);
+      expect((scope as any)._breadcrumbs[0].message).toEqual('world');
     });
 
     test('allows concurrent updates', () => {
@@ -177,7 +177,7 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
     });
 
     test('calls `beforeBreadcrumb` and uses the new one', () => {
@@ -191,7 +191,7 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('changed');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
     });
 
     test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
@@ -205,7 +205,7 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs.length).toBe(0);
+      expect((scope as any)._breadcrumbs.length).toEqual(0);
     });
 
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
@@ -219,8 +219,8 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
-      expect((scope as any)._breadcrumbs[0].data).toBe('someRandomThing');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
+      expect((scope as any)._breadcrumbs[0].data).toEqual('someRandomThing');
     });
   });
 
@@ -461,7 +461,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
-      expect(TestClient.instance!.event!.message).toBe('message');
+      expect(TestClient.instance!.event!.message).toEqual('message');
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -481,7 +481,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
 
-      expect(TestClient.instance!.event!.message).toBe('message');
+      expect(TestClient.instance!.event!.message).toEqual('message');
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -896,7 +896,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' });
 
-      expect(TestClient.instance!.event!.message).toBe('hello');
+      expect(TestClient.instance!.event!.message).toEqual('hello');
     });
 
     test('calls `beforeSend` and uses the modified event', () => {
@@ -908,7 +908,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' });
 
-      expect(TestClient.instance!.event!.message).toBe('changed1');
+      expect(TestClient.instance!.event!.message).toEqual('changed1');
     });
 
     test('calls `beforeSend` and discards the event', () => {
@@ -964,7 +964,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
 
       TestClient.sendEventCalled = (event: Event) => {
-        expect(event.message).toBe('hello');
+        expect(event.message).toEqual('hello');
       };
 
       setTimeout(() => {
@@ -993,7 +993,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
 
       TestClient.sendEventCalled = (event: Event) => {
-        expect(event.message).toBe('changed2');
+        expect(event.message).toEqual('changed2');
       };
 
       setTimeout(() => {
@@ -1033,8 +1033,8 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect(TestClient.instance!.event!.message).toBe('hello');
-      expect((TestClient.instance!.event! as any).data).toBe('someRandomThing');
+      expect(TestClient.instance!.event!.message).toEqual('hello');
+      expect((TestClient.instance!.event! as any).data).toEqual('someRandomThing');
     });
 
     test('`beforeSend` records dropped events', () => {
@@ -1189,7 +1189,7 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(1);
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
 
@@ -1200,7 +1200,7 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
@@ -1215,7 +1215,7 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
@@ -1230,7 +1230,7 @@ describe('BaseClient', () => {
       // it should install the first time, because integrations aren't yet installed...
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(1);
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
 
