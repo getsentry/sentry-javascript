@@ -923,6 +923,8 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' });
 
       expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because `beforeSend` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerWarnSpy).toBeCalledWith('`beforeSend` returned `null`, will not send event.');
     });
@@ -1068,6 +1070,8 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {}, scope);
 
       expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because the event processor returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
     });
