@@ -941,9 +941,7 @@ describe('BaseClient', () => {
         client.captureEvent({ message: 'hello' });
 
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          new SentryError('`beforeSend` method has to return `null` or a valid event.'),
-        );
+        expect(loggerWarnSpy).toBeCalledWith(new SentryError('`beforeSend` must return `null` or a valid event.'));
       }
     });
 
@@ -1071,7 +1069,7 @@ describe('BaseClient', () => {
 
       expect(TestClient.instance!.event).toBeUndefined();
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('An event processor returned null, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
     });
 
     test('eventProcessor records dropped events', () => {

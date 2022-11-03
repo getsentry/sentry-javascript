@@ -637,7 +637,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', event.type || 'error');
-          throw new SentryError('An event processor returned null, will not send event.', 'log');
+          throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -767,7 +767,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
  * Verifies that return value of configured `beforeSend` is of expected type.
  */
 function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): PromiseLike<Event | null> | Event | null {
-  const nullErr = '`beforeSend` method has to return `null` or a valid event.';
+  const nullErr = '`beforeSend` must return `null` or a valid event.';
   if (isThenable(rv)) {
     return rv.then(
       event => {
