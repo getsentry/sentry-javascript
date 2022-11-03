@@ -75,14 +75,16 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('record auto breadcrumbs', done => {
@@ -106,14 +108,16 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('capture an exception', done => {
