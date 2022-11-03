@@ -1,8 +1,6 @@
-import { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
+import { ClientOptions, Instrumenter, Options, TracePropagationTargets } from '@sentry/types';
 
 import { NodeTransportOptions } from './transports';
-
-type SentryNodeInstrumenter = 'sentry' | 'otel';
 
 export interface BaseNodeOptions {
   /** Sets an optional server name (device name) */
@@ -28,7 +26,7 @@ export interface BaseNodeOptions {
    *
    * NOTE: Any option except for `sentry` is highly experimental and subject to change!
    */
-  instrumenter?: SentryNodeInstrumenter;
+  instrumenter?: Instrumenter;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;

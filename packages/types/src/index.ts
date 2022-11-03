@@ -92,3 +92,4 @@ export type {
 } from './transport';
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
+export type { Instrumenter } from './instrumenter';
