@@ -38,7 +38,7 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
 
   // For the `excludedServersideEntrypoints` option we need the calculate the relative path to the file in question without file extension.
   const relativePagePath = path
-    .join('path', path.relative(pagesDir, this.resourcePath))
+    .join('pages', path.relative(pagesDir, this.resourcePath))
     // Pull off the file extension
     .replace(new RegExp(`\\.(${pageExtensionRegex})`), '');
 
