@@ -902,7 +902,10 @@ describe('BaseClient', () => {
     test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(1);
 
-      const beforeSend = jest.fn(() => ({ message: 'changed1' }));
+      const beforeSend = jest.fn(event => {
+        event.message = 'changed1';
+        return event;
+      });
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
@@ -980,14 +983,14 @@ describe('BaseClient', () => {
       jest.useFakeTimers();
       expect.assertions(1);
 
-      const beforeSend = jest.fn(
-        async () =>
-          new Promise<Event>(resolve => {
-            setTimeout(() => {
-              resolve({ message: 'changed2' });
-            }, 1);
-          }),
-      );
+      const beforeSend = jest.fn(async event => {
+        event.message = 'changed2';
+        return new Promise<Event>(resolve => {
+          setTimeout(() => {
+            resolve(event);
+          }, 1);
+        });
+      });
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
