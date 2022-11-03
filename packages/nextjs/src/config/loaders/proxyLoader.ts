@@ -8,6 +8,7 @@ import { LoaderThis } from './types';
 type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
+  excludedServersideEntrypoints: (RegExp | string)[];
 };
 
 /**
@@ -17,7 +18,8 @@ type LoaderOptions = {
  */
 export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { pagesDir, pageExtensionRegex } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { pagesDir, pageExtensionRegex, excludedServersideEntrypoints } =
+    'getOptions' in this ? this.getOptions() : this.query;
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRoute = path
@@ -34,11 +36,25 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     // homepage), sub back in the root route
     .replace(/^$/, '/');
 
+  // For the `excludedServersideEntrypoints` option we need the calculate the relative path to the file in question without file extension.
+  const relativePagePath = path
+    .join('path', path.relative(pagesDir, this.resourcePath))
+    // Pull off the file extension
+    .replace(new RegExp(`\\.(${pageExtensionRegex})`), '');
+
+  const isExcluded = excludedServersideEntrypoints.some(exludeEntry => {
+    if (typeof exludeEntry === 'string') {
+      return relativePagePath === exludeEntry;
+    } else {
+      return relativePagePath.match(exludeEntry);
+    }
+  });
+
   // We don't want to wrap twice (or infinitely), so in the proxy we add this query string onto references to the
   // wrapped file, so that we know that it's already been processed. (Adding this query string is also necessary to
   // convince webpack that it's a different file than the one it's in the middle of loading now, so that the originals
   // themselves will have a chance to load.)
-  if (this.resourceQuery.includes('__sentry_wrapped__')) {
+  if (isExcluded || this.resourceQuery.includes('__sentry_wrapped__')) {
     return userCode;
   }
 

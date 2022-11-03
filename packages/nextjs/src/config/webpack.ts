@@ -91,7 +91,11 @@ export function constructWebpackConfigFunction(
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
-              options: { pagesDir, pageExtensionRegex },
+              options: {
+                pagesDir,
+                pageExtensionRegex,
+                excludedServersideEntrypoints: userSentryOptions.excludedServersideEntrypoints ?? [],
+              },
             },
           ],
         });
@@ -135,7 +139,7 @@ export function constructWebpackConfigFunction(
     // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
     // be fixed by using `bind`, but this is way simpler.)
     const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userSentryOptions);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     if (shouldEnableWebpackPlugin(buildContext, userSentryOptions)) {
@@ -248,6 +252,7 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 async function addSentryToEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
+  userSentryOptions: UserSentryOptions,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -268,7 +273,7 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, isServer)) {
+    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludedServersideEntrypoints ?? [])) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     }
   }
@@ -377,13 +382,27 @@ function checkWebpackPluginOverrides(
  *
  * @param entryPointName The name of the entry point in question
  * @param isServer Whether or not this function is being called in the context of a server build
+ * @param excludedServersideEntrypoints A list of excluded serverside entrypoints
  * @returns `true` if sentry code should be injected, and `false` otherwise
  */
-function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
+function shouldAddSentryToEntryPoint(
+  entryPointName: string,
+  isServer: boolean,
+  excludedServersideEntrypoints: (string | RegExp)[],
+): boolean {
+  const isServerSideExcluded = excludedServersideEntrypoints.some(serverSideExclude => {
+    if (typeof serverSideExclude === 'string') {
+      return entryPointName === serverSideExclude;
+    } else {
+      return entryPointName.match(serverSideExclude);
+    }
+  });
+
   return (
-    entryPointName === 'pages/_app' ||
-    (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
-    (isServer && entryPointName === 'pages/_error')
+    (!isServer || !isServerSideExcluded) &&
+    (entryPointName === 'pages/_app' ||
+      (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
+      (isServer && entryPointName === 'pages/_error'))
   );
 }
 
@@ -436,7 +455,8 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: (entryPointName: string) => shouldAddSentryToEntryPoint(entryPointName, isServer),
+    entries: (entryPointName: string) =>
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludedServersideEntrypoints ?? []),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
