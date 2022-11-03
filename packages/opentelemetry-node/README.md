@@ -21,18 +21,20 @@ yarn add @sentry/node @sentry/opentelemetry-node
 
 Note that `@sentry/opentelemetry-node` depends on the following peer dependencies:
 
-* `@opentelemetry/api` version 1 or greater
-* `@opentelemetry/sdk-trace-base` version 1 or greater, or a package that implements that, like `@opentelemetry/sdk-node`.
+- `@opentelemetry/api` version `1.0.0` or greater
+- `@opentelemetry/sdk-trace-base` version `1.0.0` or greater, or a package that implements that, like
+  `@opentelemetry/sdk-node`.
 
 ## Usage
 
-You need to register the SentrySpanProcessor with your OpenTelemetry installation:
+You need to register the `SentrySpanProcessor` and `SentryPropagator` with your OpenTelemetry installation:
 
 ```js
 import * as Sentry from '@sentry/node';
+import * as otelApi from '@opentelemetry/api';
 import { SentrySpanProcessor } from '@sentry/opentelemetry-node';
 
-// Make sure to call this BEFORE setting up OpenTelemetry
+// Make sure to call `Sentry.init` BEFORE initializing the OpenTelemetry SDK
 Sentry.init({
   dsn: '__DSN__',
   // ...
@@ -41,11 +43,13 @@ Sentry.init({
 const sdk = new opentelemetry.NodeSDK({
   // Existing config
   traceExporter: new OTLPTraceExporter(),
-  instrumentations: [ getNodeAutoInstrumentations() ],
+  instrumentations: [getNodeAutoInstrumentations()],
 
   // Sentry config
-  spanProcessor: new SentrySpanProcessor()
-})
+  spanProcessor: new SentrySpanProcessor(),
+});
+
+otelApi.propagation.setGlobalPropagator(new SentryPropagator());
 ```
 
 ## Links
