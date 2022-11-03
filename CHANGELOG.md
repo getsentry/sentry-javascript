@@ -7,9 +7,9 @@
 ## 7.17.4
 
 - fix(aws): Move relay to port 5333 to avoid collisions (#6093)
-- fix(nextjs): Escape Windows paths when writing wrapper templates (#6101)
-- fix(nextjs): CLI binary not found on Windows (#6096)
 - fix(nextjs): Await Next.js server in patched `getServerRequestHandler` (#6072)
+- fix(nextjs): CLI binary not found on Windows (#6096)
+- fix(nextjs): Escape Windows paths when writing wrapper templates (#6101)
 
 ## 7.17.3
 
