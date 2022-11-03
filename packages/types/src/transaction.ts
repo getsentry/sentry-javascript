@@ -1,4 +1,5 @@
 import { DynamicSamplingContext } from './envelope';
+import { Instrumenter } from './instrumenter';
 import { MeasurementUnit } from './measurement';
 import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import { PolymorphicRequest } from './polymorphics';
@@ -70,6 +71,11 @@ export interface Transaction extends TransactionContext, Span {
    * Metadata about the transaction
    */
   metadata: TransactionMetadata;
+
+  /**
+   * The instrumenter that created this transaction.
+   */
+  instrumenter: Instrumenter;
 
   /**
    * Set the name of the transaction

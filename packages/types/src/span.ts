@@ -1,3 +1,4 @@
+import { Instrumenter } from './instrumenter';
 import { Primitive } from './misc';
 import { Transaction } from './transaction';
 
@@ -58,6 +59,11 @@ export interface SpanContext {
    * Timestamp in seconds (epoch time) indicating when the span ended.
    */
   endTimestamp?: number;
+
+  /**
+   * The instrumenter that created this span.
+   */
+  instrumenter?: Instrumenter;
 }
 
 /** Span holding trace_id, span_id */
@@ -91,6 +97,11 @@ export interface Span extends SpanContext {
    * The transaction containing this span
    */
   transaction?: Transaction;
+
+  /**
+   * The instrumenter that created this span.
+   */
+  instrumenter: Instrumenter;
 
   /**
    * Sets the finish timestamp on the current span.

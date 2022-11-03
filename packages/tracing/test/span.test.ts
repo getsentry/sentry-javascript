@@ -24,6 +24,18 @@ describe('Span', () => {
       expect((span2 as any).traceId).toBe((span as any).traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
     });
+
+    test('sets instrumenter to `sentry` if not specified in constructor', () => {
+      const span = new Span({});
+
+      expect(span.instrumenter).toBe('sentry');
+    });
+
+    test('allows to set instrumenter in constructor', () => {
+      const span = new Span({ instrumenter: 'otel' });
+
+      expect(span.instrumenter).toBe('otel');
+    });
   });
 
   describe('new Transaction', () => {
