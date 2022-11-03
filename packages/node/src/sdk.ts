@@ -148,6 +148,10 @@ export function init(options: NodeOptions = {}): void {
     options.autoSessionTracking = true;
   }
 
+  if (options.instrumenter === undefined) {
+    options.instrumenter = 'sentry';
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
     setHubOnCarrier(carrier, getCurrentHub());
