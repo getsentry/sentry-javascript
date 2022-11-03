@@ -1,4 +1,4 @@
-import { ClientOptions, Instrumenter, Options, TracePropagationTargets } from '@sentry/types';
+import { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 
 import { NodeTransportOptions } from './transports';
 
@@ -18,15 +18,6 @@ export interface BaseNodeOptions {
    * array, and only attach tracing headers if a match was found.
    */
   tracePropagationTargets?: TracePropagationTargets;
-
-  /**
-   * The instrumenter to use. Defaults to `sentry`.
-   * When not set to `sentry`, auto-instrumentation inside of Sentry will be disabled,
-   * in favor of using external auto instrumentation.
-   *
-   * NOTE: Any option except for `sentry` is highly experimental and subject to change!
-   */
-  instrumenter?: Instrumenter;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
