@@ -62,7 +62,7 @@ export type UserSentryOptions = {
 
   // Used to exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an
   // array of strings or regular expressions - strings will exactly match a route. Matches are made against routes in
-  // the follwoing form:
+  // the following form:
   // - "pages/home/index"
   // - "pages/about"
   // - "pages/posts/[postId]"
