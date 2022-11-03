@@ -185,4 +185,204 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       },
     });
   });
+
+  it('handles a thrown `json()` error response with `statusText`', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-3`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Sentry Test Error',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'action',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles a thrown `json()` error response without `statusText`', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-4`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Non-Error exception captured with keys: data',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'action',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles a thrown `json()` error response with string body', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-5`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Sentry Test Error [string body]',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'action',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles a thrown `json()` error response with an empty object', async () => {
+    const env = await RemixTestEnv.init(adapter);
+    const url = `${env.url}/action-json-response/-6`;
+
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      count: 2,
+      method: 'post',
+      envelopeType: ['transaction', 'event'],
+    });
+
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+
+    assertSentryTransaction(transaction[2], {
+      contexts: {
+        trace: {
+          op: 'http.server',
+          status: 'internal_error',
+          tags: {
+            method: 'POST',
+            'http.status_code': '500',
+          },
+        },
+      },
+      tags: {
+        transaction: 'routes/action-json-response/$id',
+      },
+    });
+
+    assertSentryEvent(event[2], {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Non-Error exception captured with keys: [object has no keys]',
+            stacktrace: expect.any(Object),
+            mechanism: {
+              data: {
+                function: 'action',
+              },
+              handled: true,
+              type: 'instrument',
+            },
+          },
+        ],
+      },
+    });
+  });
 });
