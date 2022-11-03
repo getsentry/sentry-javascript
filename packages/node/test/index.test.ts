@@ -359,7 +359,7 @@ describe('SentryNode initialization', () => {
   });
 
   describe('SDK metadata', () => {
-    it('should set SDK data when Sentry.init() is called', () => {
+    it('should set SDK data when `Sentry.init()` is called', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,7 +435,7 @@ describe('SentryNode initialization', () => {
       });
     });
 
-    it('should ignore autoloaded integrations when defaultIntegrations:false', () => {
+    it('should ignore autoloaded integrations when `defaultIntegrations` is `false`', () => {
       withAutoloadedIntegrations([new MockIntegration('foo')], () => {
         init({
           defaultIntegrations: false,

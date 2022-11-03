@@ -20,7 +20,7 @@ describe('Hint', () => {
   });
 
   describe('attachments', () => {
-    test('can be mutated in beforeSend', () => {
+    test('can be mutated in `beforeSend`', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({
@@ -38,7 +38,7 @@ describe('Hint', () => {
       expect(hint).toEqual({ attachments: [{ filename: 'another.file', data: 'more text' }] });
     });
 
-    test('gets passed through to beforeSend and can be further mutated', () => {
+    test('gets passed through to `beforeSend` and can be further mutated', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({
@@ -76,7 +76,7 @@ describe('Hint', () => {
       expect(hint?.attachments).toEqual([{ filename: 'integration.file', data: 'great content!' }]);
     });
 
-    test('get copied from scope to hint', () => {
+    test('gets copied from scope to hint', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });

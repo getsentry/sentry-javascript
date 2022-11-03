@@ -137,7 +137,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
     });
 
-    test('discards breadcrumbs beyond maxBreadcrumbs', () => {
+    test('discards breadcrumbs beyond `maxBreadcrumbs`', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
@@ -166,7 +166,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs).toHaveLength(2);
     });
 
-    test('calls beforeBreadcrumb and adds the breadcrumb without any changes', () => {
+    test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
@@ -180,7 +180,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs[0].message).toBe('hello');
     });
 
-    test('calls beforeBreadcrumb and uses the new one', () => {
+    test('calls `beforeBreadcrumb` and uses the new one', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
@@ -194,7 +194,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs[0].message).toBe('changed');
     });
 
-    test('calls beforeBreadcrumb and discards the breadcrumb when returned null', () => {
+    test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(() => null);
@@ -208,7 +208,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs.length).toBe(0);
     });
 
-    test('calls beforeBreadcrumb gets an access to a hint as a second argument', () => {
+    test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
       expect.assertions(2);
 
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
@@ -347,7 +347,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('should call eventFromException if input to captureMessage is not a primitive', () => {
+    test('should call `eventFromException` if input to `captureMessage` is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const spy = jest.spyOn(TestClient.instance!, 'eventFromException');
@@ -492,7 +492,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('adds event_id from hint if available', () => {
+    test('adds `event_id` from hint if available', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -887,7 +887,7 @@ describe('BaseClient', () => {
       expect(capturedEvent).toEqual(normalizedTransaction);
     });
 
-    test('calls beforeSend and uses original event without any changes', () => {
+    test('calls `beforeSend` and uses original event without any changes', () => {
       expect.assertions(1);
 
       const beforeSend = jest.fn(event => event);
@@ -899,7 +899,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.message).toBe('hello');
     });
 
-    test('calls beforeSend and uses the new one', () => {
+    test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(1);
 
       const beforeSend = jest.fn(() => ({ message: 'changed1' }));
@@ -911,7 +911,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.message).toBe('changed1');
     });
 
-    test('calls beforeSend and discards the event', () => {
+    test('calls `beforeSend` and discards the event', () => {
       expect.assertions(3);
 
       const beforeSend = jest.fn(() => null);
@@ -927,7 +927,7 @@ describe('BaseClient', () => {
       expect(loggerWarnSpy).toBeCalledWith('`beforeSend` returned `null`, will not send event.');
     });
 
-    test('calls beforeSend and log info about invalid return value', () => {
+    test('calls `beforeSend` and logs info about invalid return value', () => {
       const invalidValues = [undefined, false, true, [], 1];
       expect.assertions(invalidValues.length * 2);
 
@@ -945,7 +945,7 @@ describe('BaseClient', () => {
       }
     });
 
-    test('calls async beforeSend and uses original event without any changes', done => {
+    test('calls async `beforeSend` and uses original event without any changes', done => {
       jest.useFakeTimers();
       expect.assertions(1);
 
@@ -974,7 +974,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
     });
 
-    test('calls async beforeSend and uses the new one', done => {
+    test('calls async `beforeSend` and uses the modified event', done => {
       jest.useFakeTimers();
       expect.assertions(1);
 
@@ -1003,7 +1003,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
     });
 
-    test('calls async beforeSend and discards the event', () => {
+    test('calls async `beforeSend` and discards the event', () => {
       jest.useFakeTimers();
       expect.assertions(1);
 
@@ -1024,7 +1024,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
-    test('beforeSend gets access to a hint as a second argument', () => {
+    test('`beforeSend` gets access to a hint as a second argument', () => {
       expect.assertions(2);
 
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
@@ -1037,7 +1037,7 @@ describe('BaseClient', () => {
       expect((TestClient.instance!.event! as any).data).toBe('someRandomThing');
     });
 
-    test('beforeSend records dropped events', () => {
+    test('`beforeSend` records dropped events', () => {
       expect.assertions(1);
 
       const client = new TestClient(
@@ -1056,7 +1056,7 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error');
     });
 
-    test('eventProcessor can drop the even when it returns null', () => {
+    test('event processor drops the event when it returns `null`', () => {
       expect.assertions(3);
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
@@ -1072,7 +1072,7 @@ describe('BaseClient', () => {
       expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
     });
 
-    test('eventProcessor records dropped events', () => {
+    test('event processor records dropped events', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1088,7 +1088,7 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
     });
 
-    test('mutating transaction name with event processors sets transaction name change metadata', () => {
+    test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableSend: true });
       const client = new TestClient(options);
 
@@ -1135,7 +1135,7 @@ describe('BaseClient', () => {
       });
     });
 
-    test('eventProcessor sends an event and logs when it crashes', () => {
+    test('event processor sends an event and logs when it crashes', () => {
       expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1164,7 +1164,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('records events dropped due to sampleRate', () => {
+    test('records events dropped due to `sampleRate` option', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
@@ -1182,7 +1182,7 @@ describe('BaseClient', () => {
       global.__SENTRY__ = {};
     });
 
-    test('setup each one of them on setupIntegration call', () => {
+    test('sets up each integration on `setupIntegrations` call', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
@@ -1204,7 +1204,7 @@ describe('BaseClient', () => {
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
-    test('skips installation if enabled is set to false', () => {
+    test('skips installation if `enabled` is set to `false`', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({
@@ -1371,7 +1371,7 @@ describe('BaseClient', () => {
   });
 
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
-    test('record and return outcomes', () => {
+    test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
@@ -1411,7 +1411,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('to clear outcomes', () => {
+    test('clears outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
