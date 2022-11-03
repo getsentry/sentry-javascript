@@ -57,7 +57,7 @@ function isCatchResponse(response: Response): boolean {
 
 // Based on Remix Implementation
 // https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/data.ts#L131-L145
-function extractData(response: Response): Promise<unknown> {
+async function extractData(response: Response): Promise<unknown> {
   const contentType = response.headers.get('Content-Type');
 
   // Cloning the response to avoid consuming the original body stream
@@ -70,14 +70,28 @@ function extractData(response: Response): Promise<unknown> {
   return responseClone.text();
 }
 
-function captureRemixServerException(err: Error, name: string, request: Request): void {
+async function extractResponseError(response: Response): Promise<unknown> {
+  const responseData = await extractData(response);
+
+  if (typeof responseData === 'string') {
+    return responseData;
+  }
+
+  if (response.statusText) {
+    return response.statusText;
+  }
+
+  return responseData;
+}
+
+async function captureRemixServerException(err: Error, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
     return;
   }
 
-  captureException(isResponse(err) ? extractData(err) : err, scope => {
+  captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
     scope.setSDKProcessingMetadata({ request });
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
@@ -128,7 +142,7 @@ function makeWrappedDocumentRequestFunction(
 
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, 'documentRequest', request);
+      await captureRemixServerException(err, 'documentRequest', request);
       throw err;
     }
 
@@ -165,7 +179,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, name, args.request);
+      await captureRemixServerException(err, name, args.request);
       throw err;
     }
 
