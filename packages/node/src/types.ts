@@ -19,6 +19,12 @@ export interface BaseNodeOptions {
    */
   tracePropagationTargets?: TracePropagationTargets;
 
+  /**
+   * Function determining whether or not to create spans to track outgoing requests to the given URL.
+   * By default, spans will be created for all outgoing requests.
+   */
+  shouldCreateSpanForRequest?(url: string): boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(error: Error): void;
 }
