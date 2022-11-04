@@ -13,11 +13,13 @@ interface OnUncaughtExceptionOptions {
   // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
   // falling back to current behaviour when that's not available.
   /**
-   * Whether the SDK should mimic native behaviour when a global error occurs. Default: `true`
-   * - `false`: The SDK will exit the process on all uncaught errors.
-   * - `true`: The SDK will only exit the process when there are no other 'uncaughtException' handlers attached.
+   * Controls if the SDK should register a handler to exit the process on uncaught errors:
+   * - `true`: The SDK will exit the process on all uncaught errors.
+   * - `false`: The SDK will only exit the process when there are no other `uncaughtException` handlers attached.
+   *
+   * Default: `true`
    */
-  exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered: boolean;
+  exitEvenIfOtherHandlersAreRegistered: boolean;
 
   /**
    * This is called when an uncaught error would cause the process to exit.
@@ -55,7 +57,7 @@ export class OnUncaughtException implements Integration {
    */
   public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
     this._options = {
-      exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered: true,
+      exitEvenIfOtherHandlersAreRegistered: true,
       ...options,
     };
   }
@@ -108,8 +110,7 @@ export class OnUncaughtException implements Integration {
         }, 0);
 
       const processWouldExit = userProvidedListenersCount === 0;
-      const shouldApplyFatalHandlingLogic =
-        this._options.exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered || processWouldExit;
+      const shouldApplyFatalHandlingLogic = this._options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;
 
       if (!caughtFirstError) {
         const hub = getCurrentHub();
