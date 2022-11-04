@@ -120,7 +120,7 @@ function addServerIntegrations(options: NextjsOptions): void {
 
   const nativeBehaviourOnUncaughtException = new Integrations.OnUncaughtException();
   integrations = addOrUpdateIntegration(nativeBehaviourOnUncaughtException, integrations, {
-    _options: { exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered: false },
+    _options: { exitEvenIfOtherHandlersAreRegistered: false },
   });
 
   if (hasTracingEnabled(options)) {
