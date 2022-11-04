@@ -94,7 +94,7 @@ export function constructWebpackConfigFunction(
               options: {
                 pagesDir,
                 pageExtensionRegex,
-                excludedServersideEntrypoints: userSentryOptions.excludedServersideEntrypoints ?? [],
+                excludedServersideEntrypoints: userSentryOptions.excludedServersideEntrypoints,
               },
             },
           ],
@@ -388,7 +388,7 @@ function checkWebpackPluginOverrides(
 function shouldAddSentryToEntryPoint(
   entryPointName: string,
   isServer: boolean,
-  excludedServersideEntrypoints: (string | RegExp)[],
+  excludedServersideEntrypoints: (string | RegExp)[] = [],
 ): boolean {
   if (isServer) {
     const isExcluded = excludedServersideEntrypoints.some(serverSideExclude => {
@@ -467,7 +467,7 @@ export function getWebpackPluginOptions(
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
     entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludedServersideEntrypoints ?? []),
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludedServersideEntrypoints),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
