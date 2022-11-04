@@ -1,20 +1,8 @@
+import { SessionOptions } from '../types';
 import { logger } from '../util/logger';
 
 import { saveSession } from './saveSession';
 import { Session } from './Session';
-
-interface CreateSessionParams {
-  /**
-   * Should save to sessionStorage?
-   */
-  stickySession: boolean;
-
-  /**
-   * The sampling rate of the Session. See integration configuration comments
-   * for `replaysSamplingRate`.
-   */
-  samplingRate?: number;
-}
 
 /**
  * Create a new session, which in its current implementation is a Sentry event
@@ -22,10 +10,15 @@ interface CreateSessionParams {
  * one of these Sentry events per "replay session".
  */
 export function createSession({
+  sessionSampleRate,
+  errorSampleRate,
   stickySession = false,
-  samplingRate = 1.0,
-}: CreateSessionParams): Session {
-  const session = new Session(undefined, { stickySession, samplingRate });
+}: SessionOptions): Session {
+  const session = new Session(undefined, {
+    stickySession,
+    errorSampleRate,
+    sessionSampleRate,
+  });
 
   logger.log(`Creating new session: ${session.id}`);
 

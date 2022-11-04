@@ -50,57 +50,86 @@ export interface WorkerResponse {
   response: string | Uint8Array;
 }
 
-export interface ReplayPluginOptions {
+export interface SampleRates {
+  /**
+   * The sample rate for session-long replays. 1.0 will record all sessions and
+   * 0 will record none.
+   */
+  sessionSampleRate: number;
+
+  /**
+   * The sample rate for sessions that has had an error occur. This is
+   * independent of `sessionSampleRate`.
+   */
+  errorSampleRate: number;
+}
+
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends SampleRates {
+  /**
+   * If false, will create a new session per pageload. Otherwise, saves session
+   * to Session Storage.
+   */
+  stickySession: boolean;
+}
+
+export interface ReplayPluginOptions extends SessionOptions {
   /**
    * The amount of time to wait before sending a replay
    */
-  flushMinDelay?: number;
+  flushMinDelay: number;
 
   /**
    * The max amount of time to wait before sending a replay
    */
-  flushMaxDelay?: number;
+  flushMaxDelay: number;
 
   /**
    * The amount of time to buffer the initial snapshot
    */
-  initialFlushDelay?: number;
-
-  /**
-   * If false, will create a new session per pageload
-   */
-  stickySession?: boolean;
+  initialFlushDelay: number;
 
   /**
    * Attempt to use compression when web workers are available
    *
    * (default is true)
    */
-  useCompression?: boolean;
+  useCompression: boolean;
 
   /**
    * Only capture replays when an error happens
+   *
+   * @deprecated
+   * @see errorSampleRate
    */
   captureOnlyOnError?: boolean;
 
   /**
-   * The sampling rate for replays. 1.0 will record all replays, 0 will record none.
+   * The sample rate for replays. 1.0 will record all replays, 0 will record none.
+   *
+   * @deprecated
+   * @see sessionSampleRate
    */
   replaysSamplingRate?: number;
 
   /**
    * Mask all text in recordings. All text will be replaced with asterisks by default.
    */
-  maskAllText?: boolean;
+  maskAllText: boolean;
 
   /**
    * Block all media (e.g. images, svg, video) in recordings.
    */
-  blockAllMedia?: boolean;
+  blockAllMedia: boolean;
 }
 
+// These are optional for ReplayPluginOptions because the plugin sets default values
+type OptionalReplayPluginOptions = Partial<ReplayPluginOptions>;
+
 export interface ReplayConfiguration
-  extends ReplayPluginOptions,
+  extends OptionalReplayPluginOptions,
     RecordingOptions {}
 
 /**

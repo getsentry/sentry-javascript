@@ -1,8 +1,11 @@
 import { uuid4 } from '@sentry/utils';
 
+import { SampleRates, SessionOptions } from '../types';
 import { isSampled } from '../util/isSampled';
 
 import { saveSession } from './saveSession';
+
+type StickyOption = Required<Pick<SessionOptions, 'stickySession'>>;
 
 interface SessionObject {
   id: string;
@@ -26,11 +29,6 @@ interface SessionObject {
    * Is the session sampled?
    */
   sampled: boolean;
-}
-
-interface SessionOptions {
-  stickySession?: boolean;
-  samplingRate?: number;
 }
 
 export class Session {
@@ -64,18 +62,24 @@ export class Session {
    */
   private _sampled: boolean;
 
-  public readonly options: Required<Pick<SessionOptions, 'stickySession'>>;
+  public readonly options: StickyOption;
 
   constructor(
     session: Partial<SessionObject> = {},
-    { stickySession = false, samplingRate = 1.0 }: SessionOptions = {}
+    {
+      stickySession,
+      sessionSampleRate,
+      errorSampleRate,
+    }: StickyOption & SampleRates
   ) {
     const now = new Date().getTime();
     this._id = session.id || uuid4();
     this._started = session.started ?? now;
     this._lastActivity = session.lastActivity ?? now;
     this._segmentId = session.segmentId ?? 0;
-    this._sampled = session.sampled ?? isSampled(samplingRate);
+    this._sampled =
+      session.sampled ??
+      (isSampled(sessionSampleRate) || isSampled(errorSampleRate));
 
     this.options = {
       stickySession,

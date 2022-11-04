@@ -35,7 +35,11 @@ Sentry.init({
     new Replay({
       // This sets the sample rate to be 10%. You may want this to be 100% while
       // in development and sample at a lower rate in production
-      replaysSamplingRate: 0.1,
+      sessionSampleRate: 0.1,
+
+      // If the entire session is not sampled, use the below sample rate to sample
+      // sessions when an error occurs.
+      errorSampleRate: 1.0,
 
       // Mask all text content with asterisks (*). Passes text
       // content through to `maskTextFn` before sending to server.
@@ -79,12 +83,11 @@ replay.stop(); // Stop recording
 
 ### General Configuration
 
-| key                 | type    | default | description                                                                                                                                                                                                                   |
-| ------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| captureOnlyOnError  | boolean | `false` | Only capture the recording when an error happens. The recording is currently limited to up to the last 60 seconds before the error occurs and only records up to the error. |
-| initialFlushDelay   | number  | `5000`  | The amount of time to wait (in ms) before sending the initial recording payload. This helps drop recordings where users visit and close the page quickly.                                                                     |
-| replaysSamplingRate | number  | `1.0`   | The rate at which to sample replays. (1.0 will collect all replays, 0 will collect no replays).                                                                                                                               |
-| stickySession       | boolean | `true`  | Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well.                                             |
+| key                 | type    | default | description                                                                                                                                                                                                                     |
+| ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
+| sessionSampleRate   | number  | `0.1`   | The sample rate for all sessions, which will capture the entirety from when a user begins a session until the session ends. (1.0 will collect all replays, 0 will collect no replays)                                           |
+| errorSampleRate     | number  | `1.0`   | If a session isn't already being recorded via `sessionSampleRate`, based on `errorSampleRate` the SDK will send the captured replay when an error occurs. (1.0 capturing all sessions with an error, and 0 capturing none).     |
+| stickySession       | boolean | `true`  | Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well.                                               |
 
 ### Privacy Configuration
 

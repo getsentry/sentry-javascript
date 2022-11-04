@@ -11,7 +11,11 @@ describe('Replay (sampling)', () => {
   it('does nothing if not sampled', async () => {
     const { record: mockRecord } = mockRrweb();
     const { replay } = await mockSdk({
-      replayOptions: { stickySession: true, replaysSamplingRate: 0.0 },
+      replayOptions: {
+        stickySession: true,
+        sessionSampleRate: 0.0,
+        errorSampleRate: 0.0,
+      },
     });
 
     jest.spyOn(replay, 'loadSession');

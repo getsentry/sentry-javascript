@@ -41,6 +41,8 @@ export async function mockSdk({
   replayOptions = {
     stickySession: true,
     ignoreClass: 'sentry-test-ignore',
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0.0,
   },
   sentryOptions = {
     dsn: 'https://dsn@ingest.f00.f00/1',

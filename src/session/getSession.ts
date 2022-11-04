@@ -1,3 +1,4 @@
+import { SessionOptions } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { logger } from '../util/logger';
 
@@ -5,26 +6,16 @@ import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { Session } from './Session';
 
-interface GetSessionParams {
+interface GetSessionParams extends SessionOptions {
   /**
    * The length of time (in ms) which we will consider the session to be expired.
    */
   expiry: number;
-  /**
-   * Should save session to sessionStorage?
-   */
-  stickySession: boolean;
 
   /**
    * The current session (e.g. if stickySession is off)
    */
   currentSession?: Session;
-
-  /**
-   * The sampling rate of the Session. See integration configuration comments
-   * for `replaysSamplingRate`.
-   */
-  samplingRate?: number;
 }
 
 /**
@@ -34,10 +25,13 @@ export function getSession({
   expiry,
   currentSession,
   stickySession,
-  samplingRate,
+  sessionSampleRate,
+  errorSampleRate,
 }: GetSessionParams) {
   // If session exists and is passed, use it instead of always hitting session storage
-  const session = currentSession || (stickySession && fetchSession());
+  const session =
+    currentSession ||
+    (stickySession && fetchSession({ sessionSampleRate, errorSampleRate }));
 
   if (session) {
     // If there is a session, check if it is valid (e.g. "last activity" time
@@ -53,7 +47,11 @@ export function getSession({
     // Otherwise continue to create a new session
   }
 
-  const newSession = createSession({ stickySession, samplingRate });
+  const newSession = createSession({
+    stickySession,
+    sessionSampleRate,
+    errorSampleRate,
+  });
 
   return { type: 'new', session: newSession };
 }

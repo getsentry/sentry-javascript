@@ -12,7 +12,8 @@ import {
   jest,
 } from '@jest/globals';
 import { captureException } from '@sentry/browser';
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
+import type { RecordMock } from '@test';
+import { BASE_TIMESTAMP } from '@test';
 
 import {
   SESSION_IDLE_DURATION,
@@ -29,27 +30,48 @@ async function advanceTimers(time: number) {
 
 describe('Replay (capture only on error)', () => {
   let replay: Replay;
-  const { record: mockRecord } = mockRrweb();
+  let mockRecord: RecordMock;
+  let domHandler: (args: any) => any;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    ({ replay } = await mockSdk({
-      replayOptions: { captureOnlyOnError: true, stickySession: false },
-    }));
     jest.runAllTimers();
   });
 
-  beforeEach(() => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    // mockSendReplayRequest.mockClear();
-    mockRecord.takeFullSnapshot.mockClear();
+  beforeEach(async () => {
     jest.clearAllMocks();
+    jest.resetModules();
+    // NOTE: The listeners added to `addInstrumentationHandler` are leaking
+    // @ts-expect-error Don't know if there's a cleaner way to clean up old event processors
+    globalThis.__SENTRY__.globalEventProcessors = [];
+    const SentryUtils = await import('@sentry/utils');
+    jest
+      .spyOn(SentryUtils, 'addInstrumentationHandler')
+      .mockImplementation((type, handler: (args: any) => any) => {
+        if (type === 'dom') {
+          domHandler = handler;
+        }
+      });
+    const { mockRrweb } = await import('../test/mocks/mockRrweb');
+    ({ record: mockRecord } = mockRrweb());
+    const { mockSdk } = await import('../test/mocks/mockSdk');
+    ({ replay } = await mockSdk({
+      replayOptions: {
+        errorSampleRate: 1.0,
+        sessionSampleRate: 0.0,
+        stickySession: false,
+      },
+    }));
+    mockRecord.takeFullSnapshot.mockClear();
+    jest.runAllTimers();
+    jest.setSystemTime(new Date(BASE_TIMESTAMP));
   });
 
   afterEach(async () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    replay.stop();
     replay.clearSession();
     replay.eventBuffer?.destroy();
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
@@ -59,23 +81,88 @@ describe('Replay (capture only on error)', () => {
     replay && replay.stop();
   });
 
-  it('uploads a replay when captureException is called', async () => {
+  it('uploads a replay when `Sentry.captureException` is called and continues recording', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveSentReplay();
 
-    // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
-    captureException('testing');
+    // Does not capture mouse click
+    domHandler({
+      name: 'click',
+    });
     jest.runAllTimers();
     await new Promise(process.nextTick);
+    expect(replay).not.toHaveSentReplay();
+
+    captureException(new Error('testing'));
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
       events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
         TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
+
+    (global.fetch as jest.MockedFunction<typeof global.fetch>).mockClear();
+    expect(replay).not.toHaveSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    // New checkout when we call `startRecording` again after uploading segment
+    // after an error occurs
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
+        {
+          data: { isCheckout: true },
+          timestamp: BASE_TIMESTAMP + 5000 + 20,
+          type: 2,
+        },
+      ]),
+    });
+
+    // Check that click will get captured
+    domHandler({
+      name: 'click',
+    });
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP + 15000 + 60,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: (BASE_TIMESTAMP + 15000 + 60) / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
       ]),
     });
   });
@@ -224,27 +311,33 @@ describe('Replay (capture only on error)', () => {
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveSentReplay();
 
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
     jest.advanceTimersByTime(5000);
 
-    // TODO: captureException(new Error('testing')) does not trigger addGlobalEventProcessor
-    captureException('testing');
+    captureException(new Error('testing'));
 
-    await new Promise(process.nextTick);
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      events: JSON.stringify([TEST_EVENT]),
+      events: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        TEST_EVENT,
+      ]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
-        // the exception happens roughly 5 seconds after BASE_TIMESTAMP and
+        // the exception happens roughly 10 seconds after BASE_TIMESTAMP
+        // (advance timers + waiting for flush after the checkout) and
         // extra time is likely due to async of `addMemoryEntry()`
-        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000) / 1000, 1),
+        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000 + 5000) / 1000, 1),
         error_ids: [expect.any(String)],
         trace_ids: [],
         urls: ['http://localhost/'],

@@ -11,13 +11,18 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
-it('fetches a valid session', function () {
+const SAMPLE_RATES = {
+  sessionSampleRate: 1.0,
+  errorSampleRate: 0.0,
+};
+
+it('fetches a valid and sampled session', function () {
   window.sessionStorage.setItem(
     REPLAY_SESSION_KEY,
-    '{"id":"fd09adfc4117477abc8de643e5a5798a","started":1648827162630,"lastActivity":1648827162658}'
+    '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": true,"started":1648827162630,"lastActivity":1648827162658}'
   );
 
-  expect(fetchSession()?.toJSON()).toEqual({
+  expect(fetchSession(SAMPLE_RATES)?.toJSON()).toEqual({
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     segmentId: 0,
@@ -26,11 +31,15 @@ it('fetches a valid session', function () {
   });
 });
 
+it('fetches a session that does not exist', function () {
+  expect(fetchSession(SAMPLE_RATES)).toBe(null);
+});
+
 it('fetches an invalid session', function () {
   window.sessionStorage.setItem(
     REPLAY_SESSION_KEY,
     '{"id":"fd09adfc4117477abc8de643e5a5798a",'
   );
 
-  expect(fetchSession()).toBe(null);
+  expect(fetchSession(SAMPLE_RATES)).toBe(null);
 });

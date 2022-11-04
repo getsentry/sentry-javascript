@@ -26,7 +26,11 @@ afterEach(() => {
 });
 
 it('non-sticky Session does not save to local storage', function () {
-  const newSession = new Session(undefined, { stickySession: false });
+  const newSession = new Session(undefined, {
+    stickySession: false,
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0,
+  });
 
   expect(saveSession).not.toHaveBeenCalled();
   expect(newSession.id).toBe('test_session_id');
@@ -38,7 +42,11 @@ it('non-sticky Session does not save to local storage', function () {
 });
 
 it('sticky Session saves to local storage', function () {
-  const newSession = new Session(undefined, { stickySession: true });
+  const newSession = new Session(undefined, {
+    stickySession: true,
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0,
+  });
 
   expect(saveSession).toHaveBeenCalledTimes(0);
   expect(newSession.id).toBe('test_session_id');
@@ -54,4 +62,29 @@ it('sticky Session saves to local storage', function () {
     })
   );
   expect(newSession.segmentId).toBe(1);
+});
+
+it('samples using `errorSampleRate`', function () {
+  const newSession = new Session(undefined, {
+    stickySession: true,
+    sessionSampleRate: 0,
+    errorSampleRate: 1.0,
+  });
+
+  expect(newSession.sampled).toBe(true);
+});
+
+it('does not run sampling function if existing session was sampled', function () {
+  const newSession = new Session(
+    {
+      sampled: true,
+    },
+    {
+      stickySession: true,
+      sessionSampleRate: 0,
+      errorSampleRate: 0,
+    }
+  );
+
+  expect(newSession.sampled).toBe(true);
 });

@@ -10,3 +10,9 @@ export const VISIBILITY_CHANGE_TIMEOUT = SESSION_IDLE_DURATION;
 
 // The maximum length of a session
 export const MAX_SESSION_LIFE = 1_800_000; // 30 minutes
+
+/**
+ * Defaults for sampling rates
+ */
+export const DEFAULT_SESSION_SAMPLE_RATE = 0.1;
+export const DEFAULT_ERROR_SAMPLE_RATE = 1.0;

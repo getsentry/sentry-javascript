@@ -30,7 +30,11 @@ afterEach(() => {
 });
 
 it('creates a new session with no sticky sessions', function () {
-  const newSession = createSession({ stickySession: false });
+  const newSession = createSession({
+    stickySession: false,
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0,
+  });
   expect(captureEventMock).not.toHaveBeenCalled();
 
   expect(saveSession).not.toHaveBeenCalled();
@@ -41,7 +45,11 @@ it('creates a new session with no sticky sessions', function () {
 });
 
 it('creates a new session with sticky sessions', function () {
-  const newSession = createSession({ stickySession: true });
+  const newSession = createSession({
+    stickySession: true,
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0,
+  });
   expect(captureEventMock).not.toHaveBeenCalled();
 
   expect(saveSession).toHaveBeenCalledWith(
