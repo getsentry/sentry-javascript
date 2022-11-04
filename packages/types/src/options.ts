@@ -1,5 +1,6 @@
 import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import { Event, EventHint } from './event';
+import { Instrumenter } from './instrumenter';
 import { Integration } from './integration';
 import { CaptureContext } from './scope';
 import { SdkMetadata } from './sdkmetadata';
@@ -57,6 +58,15 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * List of integrations that should be installed after SDK was initialized.
    */
   integrations: Integration[];
+
+  /**
+   * The instrumenter to use. Defaults to `sentry`.
+   * When not set to `sentry`, auto-instrumentation inside of Sentry will be disabled,
+   * in favor of using external auto instrumentation.
+   *
+   * NOTE: Any option except for `sentry` is highly experimental and subject to change!
+   */
+  instrumenter?: Instrumenter;
 
   /**
    * A function that takes transport options and returns the Transport object which is used to send events to Sentry.

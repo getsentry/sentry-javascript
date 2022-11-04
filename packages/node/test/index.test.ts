@@ -16,6 +16,7 @@ import {
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
+import { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 jest.mock('@sentry/core', () => {
@@ -468,6 +469,24 @@ describe('SentryNode initialization', () => {
 
       const options = (initAndBind as jest.Mock).mock.calls[0][1];
       expect(options.autoSessionTracking).toBe(undefined);
+    });
+  });
+
+  describe('instrumenter', () => {
+    it('defaults to sentry instrumenter', () => {
+      init({ dsn });
+
+      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+
+      expect(instrumenter).toEqual('sentry');
+    });
+
+    it('allows to set instrumenter', () => {
+      init({ dsn, instrumenter: 'otel' });
+
+      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+
+      expect(instrumenter).toEqual('otel');
     });
   });
 });
