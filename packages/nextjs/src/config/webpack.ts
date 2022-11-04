@@ -390,20 +390,31 @@ function shouldAddSentryToEntryPoint(
   isServer: boolean,
   excludedServersideEntrypoints: (string | RegExp)[],
 ): boolean {
-  const isServerSideExcluded = excludedServersideEntrypoints.some(serverSideExclude => {
-    if (typeof serverSideExclude === 'string') {
-      return entryPointName === serverSideExclude;
-    } else {
-      return entryPointName.match(serverSideExclude);
-    }
-  });
+  if (isServer) {
+    const isExcluded = excludedServersideEntrypoints.some(serverSideExclude => {
+      if (typeof serverSideExclude === 'string') {
+        return entryPointName === serverSideExclude;
+      } else {
+        return entryPointName.match(serverSideExclude);
+      }
+    });
 
-  return (
-    (!isServer || !isServerSideExcluded) &&
-    (entryPointName === 'pages/_app' ||
-      (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
-      (isServer && entryPointName === 'pages/_error'))
-  );
+    if (isExcluded) {
+      return false;
+    } else if (entryPointName === 'pages/_error') {
+      return true;
+    }
+  }
+
+  if (entryPointName === 'pages/_app') {
+    return true;
+  }
+
+  if (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
