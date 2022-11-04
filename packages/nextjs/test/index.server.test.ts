@@ -111,7 +111,7 @@ describe('Server init()', () => {
     await SentryNode.flush();
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned null, will not send event.');
+    expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
   it("initializes both global hub and domain hub when there's an active domain", () => {

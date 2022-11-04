@@ -637,7 +637,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', event.type || 'error');
-          throw new SentryError('An event processor returned null, will not send event.', 'log');
+          throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
@@ -646,7 +646,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const beforeSendResult = beforeSend(prepared, hint);
-        return _ensureBeforeSendRv(beforeSendResult);
+        return _validateBeforeSendResult(beforeSendResult);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
@@ -764,15 +764,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 }
 
 /**
- * Verifies that return value of configured `beforeSend` is of expected type.
+ * Verifies that return value of configured `beforeSend` is of expected type, and returns the value if so.
  */
-function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): PromiseLike<Event | null> | Event | null {
-  const nullErr = '`beforeSend` method has to return `null` or a valid event.';
-  if (isThenable(rv)) {
-    return rv.then(
+function _validateBeforeSendResult(
+  beforeSendResult: PromiseLike<Event | null> | Event | null,
+): PromiseLike<Event | null> | Event | null {
+  const invalidValueError = '`beforeSend` must return `null` or a valid event.';
+  if (isThenable(beforeSendResult)) {
+    return beforeSendResult.then(
       event => {
-        if (!(isPlainObject(event) || event === null)) {
-          throw new SentryError(nullErr);
+        if (!isPlainObject(event) && event !== null) {
+          throw new SentryError(invalidValueError);
         }
         return event;
       },
@@ -780,8 +782,8 @@ function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): Prom
         throw new SentryError(`beforeSend rejected with ${e}`);
       },
     );
-  } else if (!(isPlainObject(rv) || rv === null)) {
-    throw new SentryError(nullErr);
+  } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
+    throw new SentryError(invalidValueError);
   }
-  return rv;
+  return beforeSendResult;
 }

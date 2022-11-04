@@ -66,7 +66,7 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      expect(dsnToString(client.getDsn()!)).toBe(PUBLIC_DSN);
+      expect(dsnToString(client.getDsn()!)).toEqual(PUBLIC_DSN);
     });
 
     test('allows missing Dsn', () => {
@@ -120,7 +120,7 @@ describe('BaseClient', () => {
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs[1].message).toBe('world');
+      expect((scope as any)._breadcrumbs[1].message).toEqual('world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -137,7 +137,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
     });
 
-    test('discards breadcrumbs beyond maxBreadcrumbs', () => {
+    test('discards breadcrumbs beyond `maxBreadcrumbs`', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
@@ -148,8 +148,8 @@ describe('BaseClient', () => {
       scope.addBreadcrumb({ message: 'hello' }, 100);
       hub.addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs.length).toBe(1);
-      expect((scope as any)._breadcrumbs[0].message).toBe('world');
+      expect((scope as any)._breadcrumbs.length).toEqual(1);
+      expect((scope as any)._breadcrumbs[0].message).toEqual('world');
     });
 
     test('allows concurrent updates', () => {
@@ -166,7 +166,7 @@ describe('BaseClient', () => {
       expect((scope as any)._breadcrumbs).toHaveLength(2);
     });
 
-    test('calls beforeBreadcrumb and adds the breadcrumb without any changes', () => {
+    test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
@@ -177,10 +177,10 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
     });
 
-    test('calls beforeBreadcrumb and uses the new one', () => {
+    test('calls `beforeBreadcrumb` and uses the new one', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
@@ -191,10 +191,10 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('changed');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
     });
 
-    test('calls beforeBreadcrumb and discards the breadcrumb when returned null', () => {
+    test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
       expect.assertions(1);
 
       const beforeBreadcrumb = jest.fn(() => null);
@@ -205,10 +205,10 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs.length).toBe(0);
+      expect((scope as any)._breadcrumbs.length).toEqual(0);
     });
 
-    test('calls beforeBreadcrumb gets an access to a hint as a second argument', () => {
+    test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
       expect.assertions(2);
 
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
@@ -219,8 +219,8 @@ describe('BaseClient', () => {
 
       hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect((scope as any)._breadcrumbs[0].message).toBe('hello');
-      expect((scope as any)._breadcrumbs[0].data).toBe('someRandomThing');
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
+      expect((scope as any)._breadcrumbs[0].data).toEqual('someRandomThing');
     });
   });
 
@@ -347,7 +347,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('should call eventFromException if input to captureMessage is not a primitive', () => {
+    test('should call `eventFromException` if input to `captureMessage` is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const spy = jest.spyOn(TestClient.instance!, 'eventFromException');
@@ -461,7 +461,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
-      expect(TestClient.instance!.event!.message).toBe('message');
+      expect(TestClient.instance!.event!.message).toEqual('message');
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -481,7 +481,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message', timestamp: 1234 }, undefined, scope);
 
-      expect(TestClient.instance!.event!.message).toBe('message');
+      expect(TestClient.instance!.event!.message).toEqual('message');
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -492,7 +492,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('adds event_id from hint if available', () => {
+    test('adds `event_id` from hint if available', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -887,7 +887,7 @@ describe('BaseClient', () => {
       expect(capturedEvent).toEqual(normalizedTransaction);
     });
 
-    test('calls beforeSend and uses original event without any changes', () => {
+    test('calls `beforeSend` and uses original event without any changes', () => {
       expect.assertions(1);
 
       const beforeSend = jest.fn(event => event);
@@ -896,22 +896,25 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' });
 
-      expect(TestClient.instance!.event!.message).toBe('hello');
+      expect(TestClient.instance!.event!.message).toEqual('hello');
     });
 
-    test('calls beforeSend and uses the new one', () => {
+    test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(1);
 
-      const beforeSend = jest.fn(() => ({ message: 'changed1' }));
+      const beforeSend = jest.fn(event => {
+        event.message = 'changed1';
+        return event;
+      });
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
       client.captureEvent({ message: 'hello' });
 
-      expect(TestClient.instance!.event!.message).toBe('changed1');
+      expect(TestClient.instance!.event!.message).toEqual('changed1');
     });
 
-    test('calls beforeSend and discards the event', () => {
+    test('calls `beforeSend` and discards the event', () => {
       expect.assertions(3);
 
       const beforeSend = jest.fn(() => null);
@@ -923,11 +926,13 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' });
 
       expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because `beforeSend` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerWarnSpy).toBeCalledWith('`beforeSend` returned `null`, will not send event.');
     });
 
-    test('calls beforeSend and log info about invalid return value', () => {
+    test('calls `beforeSend` and logs info about invalid return value', () => {
       const invalidValues = [undefined, false, true, [], 1];
       expect.assertions(invalidValues.length * 2);
 
@@ -941,13 +946,11 @@ describe('BaseClient', () => {
         client.captureEvent({ message: 'hello' });
 
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(
-          new SentryError('`beforeSend` method has to return `null` or a valid event.'),
-        );
+        expect(loggerWarnSpy).toBeCalledWith(new SentryError('`beforeSend` must return `null` or a valid event.'));
       }
     });
 
-    test('calls async beforeSend and uses original event without any changes', done => {
+    test('calls async `beforeSend` and uses original event without any changes', done => {
       jest.useFakeTimers();
       expect.assertions(1);
 
@@ -966,7 +969,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
 
       TestClient.sendEventCalled = (event: Event) => {
-        expect(event.message).toBe('hello');
+        expect(event.message).toEqual('hello');
       };
 
       setTimeout(() => {
@@ -976,18 +979,18 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
     });
 
-    test('calls async beforeSend and uses the new one', done => {
+    test('calls async `beforeSend` and uses the modified event', done => {
       jest.useFakeTimers();
       expect.assertions(1);
 
-      const beforeSend = jest.fn(
-        async () =>
-          new Promise<Event>(resolve => {
-            setTimeout(() => {
-              resolve({ message: 'changed2' });
-            }, 1);
-          }),
-      );
+      const beforeSend = jest.fn(async event => {
+        event.message = 'changed2';
+        return new Promise<Event>(resolve => {
+          setTimeout(() => {
+            resolve(event);
+          }, 1);
+        });
+      });
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
 
@@ -995,7 +998,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
 
       TestClient.sendEventCalled = (event: Event) => {
-        expect(event.message).toBe('changed2');
+        expect(event.message).toEqual('changed2');
       };
 
       setTimeout(() => {
@@ -1005,7 +1008,7 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
     });
 
-    test('calls async beforeSend and discards the event', () => {
+    test('calls async `beforeSend` and discards the event', () => {
       jest.useFakeTimers();
       expect.assertions(1);
 
@@ -1026,7 +1029,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
-    test('beforeSend gets access to a hint as a second argument', () => {
+    test('`beforeSend` gets access to a hint as a second argument', () => {
       expect.assertions(2);
 
       const beforeSend = jest.fn((event, hint) => ({ ...event, data: hint.data }));
@@ -1035,11 +1038,11 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect(TestClient.instance!.event!.message).toBe('hello');
-      expect((TestClient.instance!.event! as any).data).toBe('someRandomThing');
+      expect(TestClient.instance!.event!.message).toEqual('hello');
+      expect((TestClient.instance!.event! as any).data).toEqual('someRandomThing');
     });
 
-    test('beforeSend records dropped events', () => {
+    test('`beforeSend` records dropped events', () => {
       expect.assertions(1);
 
       const client = new TestClient(
@@ -1058,7 +1061,7 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error');
     });
 
-    test('eventProcessor can drop the even when it returns null', () => {
+    test('event processor drops the event when it returns `null`', () => {
       expect.assertions(3);
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
@@ -1070,11 +1073,13 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {}, scope);
 
       expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because the event processor returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerLogSpy).toBeCalledWith('An event processor returned null, will not send event.');
+      expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
     });
 
-    test('eventProcessor records dropped events', () => {
+    test('event processor records dropped events', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1090,24 +1095,12 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
     });
 
-    test('mutating transaction name with event processors sets transaction name change metadata', () => {
+    test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableSend: true });
       const client = new TestClient(options);
 
       const transaction: Event = {
-        contexts: {
-          trace: {
-            op: 'pageload',
-            span_id: 'a3df84a60c2e4e76',
-            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
-          },
-        },
-        environment: 'production',
-        event_id: '972f45b826a248bba98e990878a177e1',
-        spans: [],
-        start_timestamp: 1591603196.614865,
-        timestamp: 1591603196.728485,
-        transaction: 'initialName',
+        transaction: '/dogs/are/great',
         type: 'transaction',
         transaction_info: {
           source: 'url',
@@ -1118,12 +1111,12 @@ describe('BaseClient', () => {
 
       const scope = new Scope();
       scope.addEventProcessor(event => {
-        event.transaction = 'updatedName';
+        event.transaction = '/adopt/dont/shop';
         return event;
       });
 
       client.captureEvent(transaction, {}, scope);
-      expect(TestClient.instance!.event!.transaction).toEqual('updatedName');
+      expect(TestClient.instance!.event!.transaction).toEqual('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
         changes: [
@@ -1137,7 +1130,7 @@ describe('BaseClient', () => {
       });
     });
 
-    test('eventProcessor sends an event and logs when it crashes', () => {
+    test('event processor sends an event and logs when it crashes', () => {
       expect.assertions(3);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1166,7 +1159,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('records events dropped due to sampleRate', () => {
+    test('records events dropped due to `sampleRate` option', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, sampleRate: 0 });
@@ -1184,14 +1177,14 @@ describe('BaseClient', () => {
       global.__SENTRY__ = {};
     });
 
-    test('setup each one of them on setupIntegration call', () => {
+    test('sets up each integration on `setupIntegrations` call', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(1);
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
     });
 
@@ -1202,11 +1195,11 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
-    test('skips installation if enabled is set to false', () => {
+    test('skips installation if `enabled` is set to `false`', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({
@@ -1217,7 +1210,7 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(0);
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegration(TestIntegration)).toBeFalsy();
     });
 
@@ -1232,7 +1225,7 @@ describe('BaseClient', () => {
       // it should install the first time, because integrations aren't yet installed...
       client.setupIntegrations();
 
-      expect(Object.keys((client as any)._integrations).length).toBe(1);
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
       expect(client.getIntegration(TestIntegration)).toBeTruthy();
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
 
@@ -1373,7 +1366,7 @@ describe('BaseClient', () => {
   });
 
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
-    test('record and return outcomes', () => {
+    test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
@@ -1381,7 +1374,7 @@ describe('BaseClient', () => {
       client.recordDroppedEvent('ratelimit_backoff', 'error');
       client.recordDroppedEvent('network_error', 'transaction');
       client.recordDroppedEvent('network_error', 'transaction');
-      client.recordDroppedEvent('before_send', 'session');
+      client.recordDroppedEvent('before_send', 'error');
       client.recordDroppedEvent('event_processor', 'attachment');
       client.recordDroppedEvent('network_error', 'transaction');
 
@@ -1401,7 +1394,7 @@ describe('BaseClient', () => {
           },
           {
             reason: 'before_send',
-            category: 'session',
+            category: 'error',
             quantity: 1,
           },
           {
@@ -1413,7 +1406,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('to clear outcomes', () => {
+    test('clears outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 

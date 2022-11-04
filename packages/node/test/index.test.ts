@@ -75,14 +75,16 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('record auto breadcrumbs', done => {
@@ -106,14 +108,16 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('capture an exception', done => {
@@ -359,7 +363,7 @@ describe('SentryNode initialization', () => {
   });
 
   describe('SDK metadata', () => {
-    it('should set SDK data when Sentry.init() is called', () => {
+    it('should set SDK data when `Sentry.init()` is called', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,7 +439,7 @@ describe('SentryNode initialization', () => {
       });
     });
 
-    it('should ignore autoloaded integrations when defaultIntegrations:false', () => {
+    it('should ignore autoloaded integrations when `defaultIntegrations` is `false`', () => {
       withAutoloadedIntegrations([new MockIntegration('foo')], () => {
         init({
           defaultIntegrations: false,
