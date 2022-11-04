@@ -28,7 +28,7 @@ describe('OnUncaughtException integration', () => {
     });
   });
 
-  describe('with `exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered` set to false', () => {
+  describe('with `exitEvenIfOtherHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', done => {
       expect.assertions(3);
 
