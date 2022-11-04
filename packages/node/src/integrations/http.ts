@@ -69,6 +69,12 @@ export class Http implements Integration {
     }
 
     const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
+
+    // Do not auto-instrument for other instrumenter
+    if (clientOptions && clientOptions.instrumenter !== 'sentry') {
+      return;
+    }
+
     const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing, clientOptions);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires

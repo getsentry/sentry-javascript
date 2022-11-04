@@ -2,6 +2,8 @@ import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
+
 interface PgClient {
   prototype: {
     query: () => void | Promise<unknown>;
@@ -38,6 +40,11 @@ export class Postgres implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Postgres Integration was unable to require `pg` package.');
+      return;
+    }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Postgres Integration is skipped because of instrumenter configuration.');
       return;
     }
 
