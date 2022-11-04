@@ -2,8 +2,9 @@ const { sleep } = require('../utils/common');
 const { expectRequestCount, isTransactionRequest, expectTransaction } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
+  const requestPromise = page.waitForRequest(isTransactionRequest);
   await page.goto(`${url}/42/withInitialProps/`);
-  await page.waitForRequest(isTransactionRequest);
+  await requestPromise;
 
   expectTransaction(requests.transactions[0], {
     transaction: '/[id]/withInitialProps',
