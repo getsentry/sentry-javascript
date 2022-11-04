@@ -7,6 +7,7 @@ import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
+// CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
 interface OnUncaughtExceptionOptions {
   // TODO(v8): Evaluate whether we should switch the default behaviour here.
   // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
@@ -48,6 +49,7 @@ export class OnUncaughtException implements Integration {
    */
   public readonly handler: (error: Error) => void = this._makeErrorHandler();
 
+  // CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
   private readonly _options: OnUncaughtExceptionOptions;
 
   /**
