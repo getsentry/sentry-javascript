@@ -118,6 +118,11 @@ function addServerIntegrations(options: NextjsOptions): void {
   });
   integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
+  const nativeBehaviourOnUncaughtException = new Integrations.OnUncaughtException();
+  integrations = addOrUpdateIntegration(nativeBehaviourOnUncaughtException, integrations, {
+    _options: { mimicNativeBehaviour: true },
+  });
+
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
