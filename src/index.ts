@@ -98,13 +98,6 @@ export class Replay implements Integration {
   private retryInterval = BASE_RETRY_INTERVAL;
 
   private debouncedFlush: ReturnType<typeof debounce>;
-
-  /**
-   * Flag when a new session has been created. Captured replay events behave
-   * slightly differently in this case: `replay_start_timestamp` is included.
-   */
-  private newSessionCreated = false;
-
   private flushLock: Promise<unknown> | null = null;
 
   /**
@@ -356,7 +349,6 @@ export class Replay implements Integration {
     // If session was newly created (i.e. was not loaded from storage), then
     // enable flag to create the root replay
     if (type === 'new') {
-      this.newSessionCreated = true;
       this.setInitialState();
     }
 
@@ -815,7 +807,7 @@ export class Replay implements Integration {
     // Only record earliest event if a new session was created, otherwise it
     // shouldn't be relevant
     if (
-      this.newSessionCreated &&
+      this.session?.segmentId === 0 &&
       (!this.context.earliestEvent ||
         timestampInMs < this.context.earliestEvent)
     ) {
@@ -1050,7 +1042,6 @@ export class Replay implements Integration {
     // NOTE: Copy values from instance members, as it's possible they could
     // change before the flush finishes.
     const replayId = this.session.id;
-    const newSessionCreated = this.newSessionCreated;
     // Always increment segmentId regardless of outcome of sending replay
     const segmentId = this.session.segmentId++;
 
@@ -1061,9 +1052,8 @@ export class Replay implements Integration {
         replayId,
         events: recordingData,
         segmentId,
-        includeReplayStartTimestamp: newSessionCreated,
+        includeReplayStartTimestamp: segmentId === 0,
       });
-      this.newSessionCreated = false;
     } catch (err) {
       captureInternalException(err);
       console.error(err);
