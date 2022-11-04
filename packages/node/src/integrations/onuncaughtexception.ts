@@ -12,11 +12,11 @@ interface OnUncaughtExceptionOptions {
   // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
   // falling back to current behaviour when that's not available.
   /**
-   * Whether the SDK should mimic native behaviour when a global error occurs. Default: `false`
+   * Whether the SDK should mimic native behaviour when a global error occurs. Default: `true`
    * - `false`: The SDK will exit the process on all uncaught errors.
    * - `true`: The SDK will only exit the process when there are no other 'uncaughtException' handlers attached.
    */
-  mimicNativeBehaviour: boolean;
+  exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered: boolean;
 
   /**
    * This is called when an uncaught error would cause the process to exit.
@@ -53,7 +53,7 @@ export class OnUncaughtException implements Integration {
    */
   public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
     this._options = {
-      mimicNativeBehaviour: false,
+      exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered: true,
       ...options,
     };
   }
@@ -62,7 +62,7 @@ export class OnUncaughtException implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    global.process.on('uncaughtException', this.handler.bind(this));
+    global.process.on('uncaughtException', this.handler);
   }
 
   /**
@@ -78,6 +78,14 @@ export class OnUncaughtException implements Integration {
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
+
+      if (this._options.onFatalError) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        onFatalError = this._options.onFatalError;
+      } else if (client && client.getOptions().onFatalError) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        onFatalError = client.getOptions().onFatalError as OnFatalErrorHandler;
+      }
 
       // Attaching a listener to `uncaughtException` will prevent the node process from exiting. We generally do not
       // want to alter this behaviour so we check for other listeners that users may have attached themselves and adjust
@@ -97,15 +105,9 @@ export class OnUncaughtException implements Integration {
           }
         }, 0);
 
-      const shouldExitProcess: boolean = !this._options.mimicNativeBehaviour || userProvidedListenersCount === 0;
-
-      if (this._options.onFatalError) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        onFatalError = this._options.onFatalError;
-      } else if (client && client.getOptions().onFatalError) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        onFatalError = client.getOptions().onFatalError as OnFatalErrorHandler;
-      }
+      const processWouldExit = userProvidedListenersCount === 0;
+      const shouldApplyFatalHandlingLogic =
+        this._options.exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered || processWouldExit;
 
       if (!caughtFirstError) {
         const hub = getCurrentHub();
@@ -123,47 +125,53 @@ export class OnUncaughtException implements Integration {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
             });
-            if (!calledFatalError && shouldExitProcess) {
+            if (!calledFatalError && shouldApplyFatalHandlingLogic) {
               calledFatalError = true;
               onFatalError(error);
             }
           });
         } else {
-          if (!calledFatalError && shouldExitProcess) {
+          if (!calledFatalError && shouldApplyFatalHandlingLogic) {
             calledFatalError = true;
             onFatalError(error);
           }
         }
-      } else if (calledFatalError && shouldExitProcess) {
-        // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
-        __DEBUG_BUILD__ &&
-          logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
-        logAndExitProcess(error);
-      } else if (!caughtSecondError && shouldExitProcess) {
-        // two cases for how we can hit this branch:
-        //   - capturing of first error blew up and we just caught the exception from that
-        //     - quit trying to capture, proceed with shutdown
-        //   - a second independent error happened while waiting for first error to capture
-        //     - want to avoid causing premature shutdown before first error capture finishes
-        // it's hard to immediately tell case 1 from case 2 without doing some fancy/questionable domain stuff
-        // so let's instead just delay a bit before we proceed with our action here
-        // in case 1, we just wait a bit unnecessarily but ultimately do the same thing
-        // in case 2, the delay hopefully made us wait long enough for the capture to finish
-        // two potential nonideal outcomes:
-        //   nonideal case 1: capturing fails fast, we sit around for a few seconds unnecessarily before proceeding correctly by calling onFatalError
-        //   nonideal case 2: case 2 happens, 1st error is captured but slowly, timeout completes before capture and we treat second error as the sendErr of (nonexistent) failure from trying to capture first error
-        // note that after hitting this branch, we might catch more errors where (caughtSecondError && !calledFatalError)
-        //   we ignore them - they don't matter to us, we're just waiting for the second error timeout to finish
-        caughtSecondError = true;
-        setTimeout(() => {
-          if (!calledFatalError) {
-            // it was probably case 1, let's treat err as the sendErr and call onFatalError
-            calledFatalError = true;
-            onFatalError(firstError, error);
-          } else {
-            // it was probably case 2, our first error finished capturing while we waited, cool, do nothing
+      } else {
+        if (shouldApplyFatalHandlingLogic) {
+          if (calledFatalError) {
+            // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
+            __DEBUG_BUILD__ &&
+              logger.warn(
+                'uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown',
+              );
+            logAndExitProcess(error);
+          } else if (!caughtSecondError) {
+            // two cases for how we can hit this branch:
+            //   - capturing of first error blew up and we just caught the exception from that
+            //     - quit trying to capture, proceed with shutdown
+            //   - a second independent error happened while waiting for first error to capture
+            //     - want to avoid causing premature shutdown before first error capture finishes
+            // it's hard to immediately tell case 1 from case 2 without doing some fancy/questionable domain stuff
+            // so let's instead just delay a bit before we proceed with our action here
+            // in case 1, we just wait a bit unnecessarily but ultimately do the same thing
+            // in case 2, the delay hopefully made us wait long enough for the capture to finish
+            // two potential nonideal outcomes:
+            //   nonideal case 1: capturing fails fast, we sit around for a few seconds unnecessarily before proceeding correctly by calling onFatalError
+            //   nonideal case 2: case 2 happens, 1st error is captured but slowly, timeout completes before capture and we treat second error as the sendErr of (nonexistent) failure from trying to capture first error
+            // note that after hitting this branch, we might catch more errors where (caughtSecondError && !calledFatalError)
+            //   we ignore them - they don't matter to us, we're just waiting for the second error timeout to finish
+            caughtSecondError = true;
+            setTimeout(() => {
+              if (!calledFatalError) {
+                // it was probably case 1, let's treat err as the sendErr and call onFatalError
+                calledFatalError = true;
+                onFatalError(firstError, error);
+              } else {
+                // it was probably case 2, our first error finished capturing while we waited, cool, do nothing
+              }
+            }, timeout); // capturing could take at least sendTimeout to fail, plus an arbitrary second for how long it takes to collect surrounding source etc
           }
-        }, timeout); // capturing could take at least sendTimeout to fail, plus an arbitrary second for how long it takes to collect surrounding source etc
+        }
       }
     };
   }

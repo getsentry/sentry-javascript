@@ -28,11 +28,11 @@ describe('OnUncaughtException integration', () => {
     });
   });
 
-  describe('with `mimicNativeBehaviour` set to true', () => {
+  describe('with `exitEvenWhenOtherOnUncaughtExceptionHandlersAreRegistered` set to false', () => {
     test('should close process on uncaught error with no additional listeners registered', done => {
       expect.assertions(3);
 
-      const testScriptPath = path.resolve(__dirname, 'mimic-behaviour-no-additional-listener-test-script.js');
+      const testScriptPath = path.resolve(__dirname, 'mimic-native-behaviour-no-additional-listener-test-script.js');
 
       childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout) => {
         expect(err).not.toBeNull();
@@ -45,7 +45,7 @@ describe('OnUncaughtException integration', () => {
     test('should not close process on uncaught error when additional listeners are registered', done => {
       expect.assertions(2);
 
-      const testScriptPath = path.resolve(__dirname, 'mimic-behaviour-additional-listener-test-script.js');
+      const testScriptPath = path.resolve(__dirname, 'mimic-native-behaviour-additional-listener-test-script.js');
 
       childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (err, stdout) => {
         expect(err).toBeNull();
