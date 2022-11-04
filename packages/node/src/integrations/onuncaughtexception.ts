@@ -7,6 +7,28 @@ import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
+interface OnUncaughtExceptionOptions {
+  // TODO(v8): Evaluate whether we should switch the default behaviour here.
+  // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
+  // falling back to current behaviour when that's not available.
+  /**
+   * Whether the SDK should mimic native behaviour when a global error occurs. Default: `false`
+   * - `false`: The SDK will exit the process on all uncaught errors.
+   * - `true`: The SDK will only exit the process when there are no other 'uncaughtException' handlers attached.
+   */
+  mimicNativeBehaviour: boolean;
+
+  /**
+   * This is called when an uncaught error would cause the process to exit.
+   *
+   * @param firstError Uncaught error causing the process to exit
+   * @param secondError Will be set if the handler was called multiple times. This can happen either because
+   * `onFatalError` itself threw, or because an independent error happened somewhere else while `onFatalError`
+   * was running.
+   */
+  onFatalError?(firstError: Error, secondError?: Error): void;
+}
+
 /** Global Exception handler */
 export class OnUncaughtException implements Integration {
   /**
@@ -24,19 +46,18 @@ export class OnUncaughtException implements Integration {
    */
   public readonly handler: (error: Error) => void = this._makeErrorHandler();
 
+  private readonly _options: OnUncaughtExceptionOptions;
+
   /**
    * @inheritDoc
    */
-  public constructor(
-    private readonly _options: {
-      /**
-       * Default onFatalError handler
-       * @param firstError Error that has been thrown
-       * @param secondError If this was called multiple times this will be set
-       */
-      onFatalError?(firstError: Error, secondError?: Error): void;
-    } = {},
-  ) {}
+  public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
+    this._options = {
+      mimicNativeBehaviour: false,
+      ...options,
+    };
+  }
+
   /**
    * @inheritDoc
    */
@@ -57,6 +78,26 @@ export class OnUncaughtException implements Integration {
     return (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
       const client = getCurrentHub().getClient<NodeClient>();
+
+      // Attaching a listener to `uncaughtException` will prevent the node process from exiting. We generally do not
+      // want to alter this behaviour so we check for other listeners that users may have attached themselves and adjust
+      // exit behaviour of the SDK accordingly:
+      // - If other listeners are attached, do not exit.
+      // - If the only listener attached is ours, exit.
+      const userProvidedListenersCount = global.process
+        .listeners('uncaughtException')
+        .reduce<number>((acc, listener) => {
+          if (
+            listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
+            listener === this.handler // filter the handler we registered ourselves)
+          ) {
+            return acc;
+          } else {
+            return acc + 1;
+          }
+        }, 0);
+
+      const shouldExitProcess: boolean = !this._options.mimicNativeBehaviour || userProvidedListenersCount === 0;
 
       if (this._options.onFatalError) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -82,23 +123,23 @@ export class OnUncaughtException implements Integration {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
             });
-            if (!calledFatalError) {
+            if (!calledFatalError && shouldExitProcess) {
               calledFatalError = true;
               onFatalError(error);
             }
           });
         } else {
-          if (!calledFatalError) {
+          if (!calledFatalError && shouldExitProcess) {
             calledFatalError = true;
             onFatalError(error);
           }
         }
-      } else if (calledFatalError) {
+      } else if (calledFatalError && shouldExitProcess) {
         // we hit an error *after* calling onFatalError - pretty boned at this point, just shut it down
         __DEBUG_BUILD__ &&
           logger.warn('uncaught exception after calling fatal error shutdown callback - this is bad! forcing shutdown');
         logAndExitProcess(error);
-      } else if (!caughtSecondError) {
+      } else if (!caughtSecondError && shouldExitProcess) {
         // two cases for how we can hit this branch:
         //   - capturing of first error blew up and we just caught the exception from that
         //     - quit trying to capture, proceed with shutdown
