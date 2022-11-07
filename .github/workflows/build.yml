@@ -80,6 +80,13 @@ jobs:
               - 'packages/tracing/**'
               - 'packages/utils/**'
               - 'packages/types/**'
+            browser:
+              - *shared
+              - 'packages/browser/**'
+            browser_integration:
+              - *shared
+              - 'packages/browser/**'
+              - 'packages/integration-tests/**'
             ember:
               - *shared
               - 'packages/ember/**'
@@ -109,6 +116,8 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_browser: ${{ steps.changed.outputs.browser }}
+      changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
 
   job_install_deps:
     name: Install Dependencies
@@ -471,6 +480,7 @@ jobs:
   job_browser_playwright_tests:
     name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
     needs: [job_get_metadata, job_build]
+    if: ${{ needs.job_get_metadata.outputs.changed_browser_integration == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -522,6 +532,7 @@ jobs:
   job_browser_integration_tests:
     name: Old Browser Integration Tests (${{ matrix.browser }})
     needs: [job_get_metadata, job_build]
+    if: ${{ needs.job_get_metadata.outputs.changed_browser == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
