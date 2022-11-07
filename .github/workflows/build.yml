@@ -71,25 +71,25 @@ jobs:
         with:
           filters: |
             shared: &shared
-              - '/*.{js,ts,json,yml,lock}'
-              - '/.github/**'
-              - '/jest/**'
-              - '/rollup/**'
-              - '/packages/core/**'
-              - '/packages/tracing/**'
-              - '/packages/utils/**'
-              - '/packages/types/**'
+              - '*.{js,ts,json,yml,lock}'
+              - '.github/**'
+              - 'jest/**'
+              - 'rollup/**'
+              - 'packages/core/**'
+              - 'packages/tracing/**'
+              - 'packages/utils/**'
+              - 'packages/types/**'
             ember:
               - *shared
-              - '/packages/ember/**'
-              - '/packages/browser/**'
+              - 'packages/ember/**'
+              - 'packages/browser/**'
             nextjs:
               - *shared
-              - '/packages/nextjs/**'
-              - '/packages/node/**'
-              - '/packages/react/**'
-              - '/packages/intergrations/**'
-              - '/packages/browser/**'
+              - 'packages/nextjs/**'
+              - 'packages/node/**'
+              - 'packages/react/**'
+              - 'packages/intergrations/**'
+              - 'packages/browser/**'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
