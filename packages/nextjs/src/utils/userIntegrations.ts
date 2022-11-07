@@ -82,3 +82,50 @@ function addOrUpdateIntegrationInFunction(
   };
   return wrapper;
 }
+
+/**
+ * Updates the internal fields of a given integration in an integration array or integration function.
+ *
+ * @param defaultIntegrationInstance The `name` field of the integration to patch.
+ * @param userIntegrations Integrations defined by the user.
+ * @param forcedOptions Options with which to patch an existing integration instance.
+ * @returns A final integrations array.
+ */
+export function updateIntegration(
+  integrationName: string,
+  userIntegrations: UserIntegrations,
+  forcedOptions: ForcedIntegrationOptions,
+): UserIntegrations {
+  return Array.isArray(userIntegrations)
+    ? updateIntegrationInArray(integrationName, userIntegrations, forcedOptions)
+    : updateIntegrationInFunction(integrationName, userIntegrations, forcedOptions);
+}
+
+function updateIntegrationInFunction(
+  integrationName: string,
+  userIntegrationsFunc: UserIntegrationsFunction,
+  forcedOptions: ForcedIntegrationOptions,
+): UserIntegrationsFunction {
+  const wrapper: UserIntegrationsFunction = defaultIntegrations => {
+    const userFinalIntegrations = userIntegrationsFunc(defaultIntegrations);
+    updateIntegrationInArray(integrationName, userFinalIntegrations, forcedOptions);
+    return userFinalIntegrations;
+  };
+  return wrapper;
+}
+
+function updateIntegrationInArray(
+  integrationName: string,
+  userIntegrations: Integration[],
+  forcedOptions: ForcedIntegrationOptions,
+): Integration[] {
+  const userInstance = userIntegrations.find(integration => integration.name === integrationName);
+
+  if (userInstance) {
+    for (const [keyPath, value] of Object.entries(forcedOptions)) {
+      setNestedKey(userInstance, keyPath, value);
+    }
+  }
+
+  return userIntegrations;
+}

@@ -10,7 +10,7 @@ import * as path from 'path';
 import { isBuild } from './utils/isBuild';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addOrUpdateIntegration } from './utils/userIntegrations';
+import { addOrUpdateIntegration, updateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
@@ -118,17 +118,16 @@ function addServerIntegrations(options: NextjsOptions): void {
   });
   integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
-  const nativeBehaviourOnUncaughtException = new Integrations.OnUncaughtException();
-  integrations = addOrUpdateIntegration(nativeBehaviourOnUncaughtException, integrations, {
-    _options: { exitEvenIfOtherHandlersAreRegistered: false },
-  });
-
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
       _tracing: true,
     });
   }
+
+  updateIntegration('OnUncaughtException', integrations, {
+    _options: { exitEvenIfOtherHandlersAreRegistered: false },
+  });
 
   options.integrations = integrations;
 }
