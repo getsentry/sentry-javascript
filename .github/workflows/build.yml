@@ -76,6 +76,7 @@ jobs:
               - '.github/**'
               - 'jest/**'
               - 'rollup/**'
+              - 'scripts/**'
               - 'packages/core/**'
               - 'packages/tracing/**'
               - 'packages/utils/**'
