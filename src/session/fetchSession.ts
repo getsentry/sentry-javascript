@@ -1,5 +1,4 @@
 import { SampleRates } from '../types';
-import { captureInternalException } from '../util/captureInternalException';
 
 import { REPLAY_SESSION_KEY } from './constants';
 import { Session } from './Session';
@@ -27,12 +26,7 @@ export function fetchSession({
   try {
     const sessionObj = JSON.parse(sessionStringFromStorage);
 
-    // NOTE: This shouldn't happen
-    if (sessionObj.segmentId === 0) {
-      captureInternalException(
-        new Error('Session storage object with segmentId = 0')
-      );
-    }
+    // TODO: It's unexpected, but people seem to encounter `sessionObj.segmentId === 0`
 
     return new Session(
       sessionObj,
