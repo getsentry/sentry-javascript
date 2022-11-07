@@ -3,6 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 
 import { Postgres } from '../../../src/integrations/node/postgres';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 class PgClient {
   // https://node-postgres.com/api/client#clientquery
@@ -93,5 +94,18 @@ describe('setupOnce', () => {
       });
       expect(childSpan.finish).toBeCalled();
     });
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Postgres() as Postgres & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
   });
 });

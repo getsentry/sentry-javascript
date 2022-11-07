@@ -102,6 +102,11 @@ export class Mongo implements Integration {
    */
   public name: string = Mongo.id;
 
+  /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
   private _operations: Operation[];
   private _describeOperations?: boolean | Operation[];
   private _useMongoose: boolean;
@@ -124,11 +129,13 @@ export class Mongo implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

@@ -17,6 +17,11 @@ export class GraphQL implements Integration {
   public name: string = GraphQL.id;
 
   /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
+  /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
@@ -26,11 +31,13 @@ export class GraphQL implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

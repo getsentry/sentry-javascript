@@ -21,6 +21,11 @@ export class Mysql implements Integration {
   public name: string = Mysql.id;
 
   /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
+  /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
@@ -28,11 +33,13 @@ export class Mysql implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to require `mysql` package.');
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

@@ -55,6 +55,11 @@ export class Prisma implements Integration {
   public name: string = Prisma.id;
 
   /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
+  /**
    * Prisma ORM Client Instance
    */
   private readonly _client?: PrismaClient;
@@ -79,11 +84,13 @@ export class Prisma implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._client) {
       __DEBUG_BUILD__ && logger.error('PrismaIntegration is missing a Prisma Client Instance');
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Prisma Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

@@ -3,6 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 
 import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';
+import { getTestClient } from '../testutils';
 
 const GQLExecute = {
   execute() {
@@ -52,5 +53,18 @@ describe('setupOnce', () => {
     });
     expect(childSpan.finish).toBeCalled();
     expect(scope.setSpan).toHaveBeenCalledTimes(2);
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new GraphQL() as GraphQL & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
   });
 });

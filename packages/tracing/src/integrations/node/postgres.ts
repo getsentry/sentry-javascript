@@ -26,6 +26,11 @@ export class Postgres implements Integration {
    */
   public name: string = Postgres.id;
 
+  /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
   private _usePgNative: boolean;
 
   public constructor(options: PgOptions = {}) {
@@ -40,11 +45,13 @@ export class Postgres implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Postgres Integration was unable to require `pg` package.');
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Postgres Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

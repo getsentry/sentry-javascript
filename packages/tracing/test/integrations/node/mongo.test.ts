@@ -3,6 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 class Collection {
   public collectionName: string = 'mockedCollectionName';
@@ -110,5 +111,18 @@ describe('patchOperation()', () => {
       description: 'initializeOrderedBulkOp',
     });
     expect(childSpan.finish).toBeCalled();
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Mongo() as Mongo & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
   });
 });

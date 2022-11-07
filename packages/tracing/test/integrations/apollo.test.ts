@@ -3,6 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
+import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
   [key: string]: () => any;
@@ -99,5 +100,18 @@ describe('setupOnce', () => {
       op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Apollo() as Apollo & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
   });
 });

@@ -3,6 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
 
@@ -57,5 +58,18 @@ describe('setupOnce', function () {
       expect(childSpan.finish).toBeCalled();
       done();
     });
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Prisma() as Prisma & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
   });
 });

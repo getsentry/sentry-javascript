@@ -91,6 +91,11 @@ export class Express implements Integration {
   public name: string = Express.id;
 
   /**
+   * If the integration was skipped due to internal checks.
+   */
+  public _wasSkipped: boolean = false;
+
+  /**
    * Express App instance
    */
   private readonly _router?: Router;
@@ -110,11 +115,13 @@ export class Express implements Integration {
   public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
     if (!this._router) {
       __DEBUG_BUILD__ && logger.error('ExpressIntegration is missing an Express instance');
+      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Express Integration is skipped because of instrumenter configuration.');
+      this._wasSkipped = true;
       return;
     }
 

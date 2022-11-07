@@ -188,6 +188,26 @@ describe('tracing', () => {
     expect(transaction.metadata.propagations).toBe(2);
   });
 
+  it("doesn't attach when using otel instrumenter", () => {
+    const options = getDefaultNodeClientOptions({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      integrations: [new HttpIntegration({ tracing: true })],
+      release: '1.0.0',
+      environment: 'production',
+      instrumenter: 'otel',
+    });
+    const hub = new Hub(new NodeClient(options));
+
+    const integration = new HttpIntegration() as HttpIntegration & { _wasSkipped: boolean };
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(integration._wasSkipped).toBe(true);
+  });
+
   describe('tracePropagationTargets option', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions
