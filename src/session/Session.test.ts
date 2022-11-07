@@ -64,6 +64,26 @@ it('sticky Session saves to local storage', function () {
   expect(newSession.segmentId).toBe(1);
 });
 
+it('does not sample', function () {
+  const newSession = new Session(undefined, {
+    stickySession: true,
+    sessionSampleRate: 0.0,
+    errorSampleRate: 0.0,
+  });
+
+  expect(newSession.sampled).toBe(false);
+});
+
+it('samples using `sessionSampleRate`', function () {
+  const newSession = new Session(undefined, {
+    stickySession: true,
+    sessionSampleRate: 1.0,
+    errorSampleRate: 0.0,
+  });
+
+  expect(newSession.sampled).toBe('session');
+});
+
 it('samples using `errorSampleRate`', function () {
   const newSession = new Session(undefined, {
     stickySession: true,
@@ -71,13 +91,13 @@ it('samples using `errorSampleRate`', function () {
     errorSampleRate: 1.0,
   });
 
-  expect(newSession.sampled).toBe(true);
+  expect(newSession.sampled).toBe('error');
 });
 
 it('does not run sampling function if existing session was sampled', function () {
   const newSession = new Session(
     {
-      sampled: true,
+      sampled: 'session',
     },
     {
       stickySession: true,
@@ -86,5 +106,5 @@ it('does not run sampling function if existing session was sampled', function ()
     }
   );
 
-  expect(newSession.sampled).toBe(true);
+  expect(newSession.sampled).toBe('session');
 });

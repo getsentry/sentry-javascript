@@ -25,7 +25,7 @@ function createMockSession(when: number = new Date().getTime()) {
       segmentId: 0,
       lastActivity: when,
       started: when,
-      sampled: true,
+      sampled: 'session',
     },
     { stickySession: false, ...SAMPLE_RATES }
   );
@@ -65,7 +65,7 @@ it('creates a non-sticky session when one does not exist', function () {
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
-    sampled: true,
+    sampled: 'session',
     started: expect.any(Number),
   });
 
@@ -128,7 +128,7 @@ it('creates a sticky session when one does not exist', function () {
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
-    sampled: true,
+    sampled: 'session',
     started: expect.any(Number),
   });
 
@@ -137,7 +137,7 @@ it('creates a sticky session when one does not exist', function () {
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
-    sampled: true,
+    sampled: 'session',
     started: expect.any(Number),
   });
 });
@@ -160,7 +160,7 @@ it('fetches an existing sticky session', function () {
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: now,
-    sampled: true,
+    sampled: 'session',
     started: now,
   });
 });

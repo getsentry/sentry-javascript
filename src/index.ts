@@ -198,17 +198,6 @@ export class Replay implements Integration {
       blockAllMedia,
     };
 
-    // Modify recording options to checkoutEveryNthSecond if this is defined, as we
-    // don't know when an error will occur, so we need to keep a buffer of replay events.
-    if (
-      this.options.errorSampleRate > 0 &&
-      this.options.sessionSampleRate < 1.0
-    ) {
-      // Checkout every minute, meaning we only get up-to one minute of events before the error happens
-      this.recordingOptions.checkoutEveryNms = 60000;
-      this.waitForError = true;
-    }
-
     // TODO(deprecated): Maintain backwards compatibility for alpha users
     if (usingDeprecatedCaptureOnlyOnError) {
       console.warn(
@@ -293,6 +282,16 @@ export class Replay implements Integration {
     if (!this.session.sampled) {
       // If session was not sampled, then we do not initialize the integration at all.
       return;
+    }
+
+    // Modify recording options to checkoutEveryNthSecond if
+    // sampling for error replay. This is because we don't know
+    // when an error will occur, so we need to keep a buffer of
+    // replay events.
+    if (this.session.sampled === 'error') {
+      // Checkout every minute, meaning we only get up-to one minute of events before the error happens
+      this.recordingOptions.checkoutEveryNms = 60000;
+      this.waitForError = true;
     }
 
     // setup() is generally called on page load or manually - in both cases we

@@ -7,6 +7,8 @@ import { saveSession } from './saveSession';
 
 type StickyOption = Required<Pick<SessionOptions, 'stickySession'>>;
 
+type Sampled = false | 'session' | 'error';
+
 interface SessionObject {
   id: string;
 
@@ -26,9 +28,9 @@ interface SessionObject {
   segmentId: number;
 
   /**
-   * Is the session sampled?
+   * Is the session sampled? `null` if the sampled, otherwise, `session` or `error`
    */
-  sampled: boolean;
+  sampled: Sampled;
 }
 
 export class Session {
@@ -60,7 +62,7 @@ export class Session {
   /**
    * Is the Session sampled?
    */
-  private _sampled: boolean;
+  private _sampled: Sampled;
 
   public readonly options: StickyOption;
 
@@ -79,7 +81,11 @@ export class Session {
     this._segmentId = session.segmentId ?? 0;
     this._sampled =
       session.sampled ??
-      (isSampled(sessionSampleRate) || isSampled(errorSampleRate));
+      (isSampled(sessionSampleRate)
+        ? 'session'
+        : isSampled(errorSampleRate)
+        ? 'error'
+        : false);
 
     this.options = {
       stickySession,
@@ -128,7 +134,7 @@ export class Session {
     return this._sampled;
   }
 
-  set sampled(_isSampled: boolean) {
+  set sampled(_isSampled: Sampled) {
     throw new Error('Unable to change sampled value');
   }
 

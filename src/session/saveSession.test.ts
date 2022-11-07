@@ -19,7 +19,7 @@ it('saves a valid session', function () {
       segmentId: 0,
       started: 1648827162630,
       lastActivity: 1648827162658,
-      sampled: true,
+      sampled: 'session',
     },
     { stickySession: true, sessionSampleRate: 1.0, errorSampleRate: 0 }
   );
