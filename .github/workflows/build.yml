@@ -80,28 +80,35 @@ jobs:
               - 'packages/tracing/**'
               - 'packages/utils/**'
               - 'packages/types/**'
-              - 'packages/browser/**'
             ember:
               - *shared
               - 'packages/ember/**'
+              - 'packages/browser/**'
             nextjs:
               - *shared
               - 'packages/nextjs/**'
               - 'packages/node/**'
               - 'packages/react/**'
               - 'packages/intergrations/**'
+              - 'packages/browser/**'
             remix:
               - *shared
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
               - 'packages/intergrations/**'
+              - 'packages/browser/**'
+            node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/node-integration-tests/**'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       changed_nextjs: ${{ steps.changed.outputs.nextjs }}
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
+      changed_node: ${{ steps.changed.outputs.node }}
 
   job_install_deps:
     name: Install Dependencies
@@ -588,6 +595,7 @@ jobs:
   job_node_integration_tests:
     name: Node SDK Integration Tests (${{ matrix.node }})
     needs: [job_get_metadata, job_build]
+    if: ${{ needs.job_get_metadata.outputs.changed_node == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
