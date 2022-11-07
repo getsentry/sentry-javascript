@@ -48,6 +48,8 @@ jobs:
   job_get_metadata:
     name: Get Metadata
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - name: Check out current commit
         uses: actions/checkout@v3
@@ -64,8 +66,35 @@ jobs:
           COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+      - uses: getsentry/paths-filter@v2.11.1
+        id: changed
+        with:
+          filters: |
+            shared: &shared
+              - '/*.{js,ts,json,yml,lock}'
+              - '/.github/**'
+              - '/jest/**'
+              - '/rollup/**'
+              - '/packages/core/**'
+              - '/packages/tracing/**'
+              - '/packages/utils/**'
+              - '/packages/types/**'
+            ember:
+              - *shared
+              - '/packages/ember/**'
+              - '/packages/browser/**'
+            nextjs:
+              - *shared
+              - '/packages/nextjs/**'
+              - '/packages/node/**'
+              - '/packages/react/**'
+              - '/packages/intergrations/**'
+              - '/packages/browser/**'
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      changed_nextjs: ${{ steps.changed.outputs.nextjs }}
+      changed_ember: ${{ steps.changed.outputs.ember }}
 
   job_install_deps:
     name: Install Dependencies
@@ -348,6 +377,7 @@ jobs:
   job_nextjs_integration_test:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
+    if: ${{ needs.job_get_metadata.outputs.changed_nextjs == 'true' }}
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -385,6 +415,7 @@ jobs:
   job_ember_tests:
     name: Test @sentry/ember
     needs: [job_get_metadata, job_build]
+    if: ${{ needs.job_get_metadata.outputs.changed_ember == 'true' }}
     continue-on-error: true
     timeout-minutes: 10
     runs-on: ubuntu-latest
