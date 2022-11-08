@@ -1,3 +1,4 @@
+import { Context } from './context';
 import { DynamicSamplingContext } from './envelope';
 import { Instrumenter } from './instrumenter';
 import { MeasurementUnit } from './measurement';
@@ -81,6 +82,11 @@ export interface Transaction extends TransactionContext, Span {
    * Set the name of the transaction
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
+
+  /**
+   * Set the context of a transaction event
+   */
+  setContext(key: string, context: Context): void;
 
   /**
    * Set observed measurement for this transaction.
