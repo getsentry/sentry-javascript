@@ -899,6 +899,18 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.message).toEqual('hello');
     });
 
+    test('calls `beforeSendTransaction` and uses original event without any changes', () => {
+      expect.assertions(1);
+
+      const beforeSendTransaction = jest.fn(event => event);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+
+      expect(TestClient.instance!.event!.transaction).toBe('/dogs/are/great');
+    });
+
     test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(1);
 
@@ -912,6 +924,21 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' });
 
       expect(TestClient.instance!.event!.message).toEqual('changed1');
+    });
+
+    test('calls `beforeSendTransaction` and uses the modified event', () => {
+      expect.assertions(1);
+
+      const beforeSendTransaction = jest.fn(event => {
+        event.transaction = '/adopt/dont/shop';
+        return event;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+
+      expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
     });
 
     test('calls `beforeSend` and discards the event', () => {
@@ -932,6 +959,24 @@ describe('BaseClient', () => {
       expect(loggerWarnSpy).toBeCalledWith('`beforeSend` returned `null`, will not send event.');
     });
 
+    test('calls `beforeSendTransaction` and discards the event', () => {
+      expect.assertions(3);
+
+      const beforeSendTransaction = jest.fn(() => null);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerWarnSpy = jest.spyOn(logger, 'log');
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because `beforeSendTransaction` returned `null`
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerWarnSpy).toBeCalledWith('`beforeSendTransaction` returned `null`, will not send event.');
+    });
+
     test('calls `beforeSend` and logs info about invalid return value', () => {
       const invalidValues = [undefined, false, true, [], 1];
       expect.assertions(invalidValues.length * 2);
@@ -947,6 +992,26 @@ describe('BaseClient', () => {
 
         expect(TestClient.instance!.event).toBeUndefined();
         expect(loggerWarnSpy).toBeCalledWith(new SentryError('`beforeSend` must return `null` or a valid event.'));
+      }
+    });
+
+    test('calls `beforeSendTransaction` and logs info about invalid return value', () => {
+      const invalidValues = [undefined, false, true, [], 1];
+      expect.assertions(invalidValues.length * 2);
+
+      for (const val of invalidValues) {
+        const beforeSendTransaction = jest.fn(() => val);
+        // @ts-ignore we need to test regular-js behavior
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+        const client = new TestClient(options);
+        const loggerWarnSpy = jest.spyOn(logger, 'warn');
+
+        client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+
+        expect(TestClient.instance!.event).toBeUndefined();
+        expect(loggerWarnSpy).toBeCalledWith(
+          new SentryError('`beforeSendTransaction` must return `null` or a valid event.'),
+        );
       }
     });
 
@@ -970,6 +1035,35 @@ describe('BaseClient', () => {
 
       TestClient.sendEventCalled = (event: Event) => {
         expect(event.message).toEqual('hello');
+      };
+
+      setTimeout(() => {
+        done();
+      }, 5);
+
+      jest.runOnlyPendingTimers();
+    });
+
+    test('calls async `beforeSendTransaction` and uses original event without any changes', done => {
+      jest.useFakeTimers();
+      expect.assertions(1);
+
+      const beforeSendTransaction = jest.fn(
+        async event =>
+          new Promise<Event>(resolve => {
+            setTimeout(() => {
+              resolve(event);
+            }, 1);
+          }),
+      );
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+      jest.runOnlyPendingTimers();
+
+      TestClient.sendEventCalled = (event: Event) => {
+        expect(event.transaction).toBe('/dogs/are/great');
       };
 
       setTimeout(() => {
@@ -1008,6 +1102,35 @@ describe('BaseClient', () => {
       jest.runOnlyPendingTimers();
     });
 
+    test('calls async `beforeSendTransaction` and uses the modified event', done => {
+      jest.useFakeTimers();
+      expect.assertions(1);
+
+      const beforeSendTransaction = jest.fn(async event => {
+        event.transaction = '/adopt/dont/shop';
+        return new Promise<Event>(resolve => {
+          setTimeout(() => {
+            resolve(event);
+          }, 1);
+        });
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+      jest.runOnlyPendingTimers();
+
+      TestClient.sendEventCalled = (event: Event) => {
+        expect(event.transaction).toBe('/adopt/dont/shop');
+      };
+
+      setTimeout(() => {
+        done();
+      }, 5);
+
+      jest.runOnlyPendingTimers();
+    });
+
     test('calls async `beforeSend` and discards the event', () => {
       jest.useFakeTimers();
       expect.assertions(1);
@@ -1029,6 +1152,27 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toBeUndefined();
     });
 
+    test('calls async `beforeSendTransaction` and discards the event', () => {
+      jest.useFakeTimers();
+      expect.assertions(1);
+
+      const beforeSendTransaction = jest.fn(
+        async () =>
+          new Promise<null>(resolve => {
+            setTimeout(() => {
+              resolve(null);
+            });
+          }),
+      );
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+      jest.runAllTimers();
+
+      expect(TestClient.instance!.event).toBeUndefined();
+    });
+
     test('`beforeSend` gets access to a hint as a second argument', () => {
       expect.assertions(2);
 
@@ -1040,6 +1184,22 @@ describe('BaseClient', () => {
 
       expect(TestClient.instance!.event!.message).toEqual('hello');
       expect((TestClient.instance!.event! as any).data).toEqual('someRandomThing');
+    });
+
+    test('`beforeSendTransaction` gets access to a hint as a second argument', () => {
+      expect.assertions(2);
+
+      const beforeSendTransaction = jest.fn((event, hint) => ({ ...event, data: hint.data }));
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent(
+        { transaction: '/dogs/are/great', type: 'transaction' },
+        { data: { dogs: 'yes', cats: 'maybe' } },
+      );
+
+      expect(TestClient.instance!.event!.transaction).toBe('/dogs/are/great');
+      expect((TestClient.instance!.event! as any).data).toEqual({ dogs: 'yes', cats: 'maybe' });
     });
 
     test('`beforeSend` records dropped events', () => {
@@ -1061,7 +1221,26 @@ describe('BaseClient', () => {
       expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error');
     });
 
-    test('event processor drops the event when it returns `null`', () => {
+    test('`beforeSendTransaction` records dropped events', () => {
+      expect.assertions(1);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          beforeSendTransaction() {
+            return null;
+          },
+        }),
+      );
+
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+    });
+
+    test('event processor drops error event when it returns `null`', () => {
       expect.assertions(3);
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
@@ -1079,7 +1258,25 @@ describe('BaseClient', () => {
       expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
     });
 
-    test('event processor records dropped events', () => {
+    test('event processor drops transaction event when it returns `null`', () => {
+      expect.assertions(3);
+
+      const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
+      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      const loggerLogSpy = jest.spyOn(logger, 'log');
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' }, {}, scope);
+
+      expect(TestClient.instance!.event).toBeUndefined();
+      // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
+      // error, but because the event processor returned `null`
+      expect(captureExceptionSpy).not.toBeCalled();
+      expect(loggerLogSpy).toBeCalledWith('An event processor returned `null`, will not send event.');
+    });
+
+    test('event processor records dropped error events', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -1093,6 +1290,22 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {}, scope);
 
       expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+    });
+
+    test('event processor records dropped transaction events', () => {
+      expect.assertions(1);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+
+      const scope = new Scope();
+      scope.addEventProcessor(() => null);
+
+      client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' }, {}, scope);
+
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
@@ -1117,6 +1330,38 @@ describe('BaseClient', () => {
 
       client.captureEvent(transaction, {}, scope);
       expect(TestClient.instance!.event!.transaction).toEqual('/adopt/dont/shop');
+      expect(TestClient.instance!.event!.transaction_info).toEqual({
+        source: 'custom',
+        changes: [
+          {
+            propagations: 3,
+            source: 'custom',
+            timestamp: expect.any(Number),
+          },
+        ],
+        propagations: 3,
+      });
+    });
+
+    test('mutating transaction name with `beforeSendTransaction` sets transaction-name-change metadata', () => {
+      const beforeSendTransaction = jest.fn(event => {
+        event.transaction = '/adopt/dont/shop';
+        return event;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        transaction_info: {
+          source: 'url',
+          changes: [],
+          propagations: 3,
+        },
+      });
+
+      expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
         changes: [
@@ -1375,6 +1620,7 @@ describe('BaseClient', () => {
       client.recordDroppedEvent('network_error', 'transaction');
       client.recordDroppedEvent('network_error', 'transaction');
       client.recordDroppedEvent('before_send', 'error');
+      client.recordDroppedEvent('before_send', 'transaction');
       client.recordDroppedEvent('event_processor', 'attachment');
       client.recordDroppedEvent('network_error', 'transaction');
 
@@ -1395,6 +1641,11 @@ describe('BaseClient', () => {
           {
             reason: 'before_send',
             category: 'error',
+            quantity: 1,
+          },
+          {
+            reason: 'before_send',
+            category: 'transaction',
             quantity: 1,
           },
           {

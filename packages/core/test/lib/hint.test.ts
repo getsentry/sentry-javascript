@@ -61,6 +61,32 @@ describe('Hint', () => {
       });
     });
 
+    test('gets passed through to `beforeSendTransaction` and can be further mutated', () => {
+      expect.assertions(1);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        beforeSendTransaction: (event, hint) => {
+          hint.attachments = [...(hint.attachments || []), { filename: 'another.file', data: 'more text' }];
+          return event;
+        },
+      });
+
+      const client = new TestClient(options);
+      client.captureEvent(
+        { transaction: '/dogs/are/great', type: 'transaction' },
+        { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] },
+      );
+
+      const [, hint] = sendEvent.mock.calls[0];
+      expect(hint).toEqual({
+        attachments: [
+          { filename: 'some-file.txt', data: 'Hello' },
+          { filename: 'another.file', data: 'more text' },
+        ],
+      });
+    });
+
     test('can be mutated by an integration via event processor', () => {
       expect.assertions(1);
 
