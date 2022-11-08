@@ -4,7 +4,6 @@ jest.unmock('@sentry/browser');
 import {
   afterAll,
   afterEach,
-  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -16,9 +15,11 @@ import type { RecordMock } from '@test';
 import { BASE_TIMESTAMP } from '@test';
 
 import {
+  REPLAY_SESSION_KEY,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
+import { ReplayConfiguration } from './types';
 import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
@@ -28,17 +29,27 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
+async function getMockReplay(options: ReplayConfiguration = {}) {
+  const { mockSdk } = await import('../test/mocks/mockSdk');
+  const { replay } = await mockSdk({
+    replayOptions: {
+      errorSampleRate: 1.0,
+      sessionSampleRate: 0.0,
+      stickySession: false,
+      ...options,
+    },
+  });
+
+  return replay;
+}
+
 describe('Replay (capture only on error)', () => {
   let replay: Replay;
   let mockRecord: RecordMock;
   let domHandler: (args: any) => any;
 
-  beforeAll(() => {
+  async function resetMocks() {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.runAllTimers();
-  });
-
-  beforeEach(async () => {
     jest.clearAllMocks();
     jest.resetModules();
     // NOTE: The listeners added to `addInstrumentationHandler` are leaking
@@ -54,15 +65,12 @@ describe('Replay (capture only on error)', () => {
       });
     const { mockRrweb } = await import('../test/mocks/mockRrweb');
     ({ record: mockRecord } = mockRrweb());
-    const { mockSdk } = await import('../test/mocks/mockSdk');
-    ({ replay } = await mockSdk({
-      replayOptions: {
-        errorSampleRate: 1.0,
-        sessionSampleRate: 0.0,
-        stickySession: false,
-      },
-    }));
     mockRecord.takeFullSnapshot.mockClear();
+  }
+
+  beforeEach(async () => {
+    await resetMocks();
+    replay = await getMockReplay();
     jest.runAllTimers();
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
   });
@@ -344,6 +352,64 @@ describe('Replay (capture only on error)', () => {
         replay_id: expect.any(String),
       }),
       recordingPayloadHeader: { segment_id: 0 },
+    });
+  });
+
+  /**
+   * This is testing a case that should only happen with error-only sessions.
+   * Previously we had assumed that loading a session from session storage meant
+   * that the session was not new. However, this is not the case with error-only
+   * sampling since we can load a saved session that did not have an error (and
+   * thus no replay was created).
+   */
+  it('sends a replay after loading the session multiple times', async () => {
+    // Pretend that a session is already saved before loading replay
+    window.sessionStorage.setItem(
+      REPLAY_SESSION_KEY,
+      `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`
+    );
+    await resetMocks();
+
+    replay = await getMockReplay({ stickySession: true });
+    replay.start();
+
+    jest.runAllTimers();
+
+    await new Promise(process.nextTick);
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(replay).not.toHaveSentReplay();
+
+    captureException(new Error('testing'));
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        TEST_EVENT,
+      ]),
+    });
+
+    (global.fetch as jest.MockedFunction<typeof global.fetch>).mockClear();
+    expect(replay).not.toHaveSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    // New checkout when we call `startRecording` again after uploading segment
+    // after an error occurs
+    expect(replay).toHaveSentReplay({
+      events: JSON.stringify([
+        {
+          data: { isCheckout: true },
+          timestamp: BASE_TIMESTAMP + 10000 + 20,
+          type: 2,
+        },
+      ]),
     });
   });
 });

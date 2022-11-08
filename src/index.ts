@@ -271,6 +271,8 @@ export class Replay implements Integration {
       return;
     }
 
+    this.setInitialState();
+
     this.loadSession({ expiry: SESSION_IDLE_DURATION });
 
     // If there is no session, then something bad has happened - can't continue
@@ -303,10 +305,6 @@ export class Replay implements Integration {
     });
 
     this.addListeners();
-
-    // Tag all (non replay) events that get sent to Sentry with the current
-    // replay ID so that we can reference them later in the UI
-    addGlobalEventProcessor(this.handleGlobalEvent);
 
     this.startRecording();
 
@@ -438,6 +436,10 @@ export class Replay implements Integration {
         'history',
         this.handleCoreSpanListener('history')
       );
+
+      // Tag all (non replay) events that get sent to Sentry with the current
+      // replay ID so that we can reference them later in the UI
+      addGlobalEventProcessor(this.handleGlobalEvent);
 
       this.hasInitializedCoreListeners = true;
     }
@@ -1308,7 +1310,7 @@ export class Replay implements Integration {
       setContext('Replays', {
         retryCount: this.retryCount,
       });
-      captureInternalException(new Error(UNABLE_TO_SEND_REPLAY));
+      captureInternalException(ex);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload

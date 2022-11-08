@@ -26,8 +26,6 @@ export function fetchSession({
   try {
     const sessionObj = JSON.parse(sessionStringFromStorage);
 
-    // TODO: It's unexpected, but people seem to encounter `sessionObj.segmentId === 0`
-
     return new Session(
       sessionObj,
       // We are assuming that if there is a saved item, then the session is sticky,
