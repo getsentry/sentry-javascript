@@ -81,6 +81,7 @@ jobs:
               - 'packages/tracing/**'
               - 'packages/utils/**'
               - 'packages/types/**'
+              - 'packages/integrations/**'
             browser:
               - *shared
               - 'packages/browser/**'
@@ -97,14 +98,12 @@ jobs:
               - 'packages/nextjs/**'
               - 'packages/node/**'
               - 'packages/react/**'
-              - 'packages/intergrations/**'
               - 'packages/browser/**'
             remix:
               - *shared
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
-              - 'packages/intergrations/**'
               - 'packages/browser/**'
             node:
               - *shared
