@@ -6,13 +6,10 @@
 
 ## 7.18.0
 
-This release adds the `beforeSendTransaction` callback to all JS SDKs, letting you make changes or drop transactions before they're sent to Sentry. This callback works identically to `beforeSend`, just for transactions.
-
-Furthermore, this release adds the `shouldCreateSpanForRequest` option to the Node SDK and the `tracePropagationTargets` option to the Browser SDK, providing fine grained control over which outgoing Http requests should be represented as a span in an ongoing transaction and which requests should be traced by Sentry.
+This release adds the `beforeSendTransaction` callback to all JS SDKs, letting you make changes to or drop transactions before they're sent to Sentry. This callback works identically to `beforeSend`, just for transactions.
 
 - feat(core): Add `beforeSendTransaction` (#6121)
 - feat(node): Add option to `OnUncaughtException` integration that allows mimicking native uncaught error exit behaviour (#6137)
-- feat(node): Add `shouldCreateSpanForRequest` option (#6055)
 - feat(tracing): Add `tracePropagationTargets` option to browser routing instrumentation (#6080)
 - fix(nextjs): Allow `onUncaughtException` integration to remain excluded (#6148)
 - fix(nextjs): Do not exit process when errors bubble up while additional `uncaughtException`-handlers are registered (#6138)
