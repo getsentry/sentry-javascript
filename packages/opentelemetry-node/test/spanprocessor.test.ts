@@ -7,7 +7,6 @@ import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/s
 import { createTransport, Hub, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
-import { Scope } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
@@ -58,22 +57,6 @@ describe('SentrySpanProcessor', () => {
     const transactionWithContext = transaction as unknown as Transaction;
     // @ts-ignore accessing private property
     return transactionWithContext._contexts;
-  }
-
-  // monkey-patch finish to store the context at finish time
-  function monkeyPatchTransactionFinish(transaction: Transaction) {
-    const monkeyPatchedTransaction = transaction as Transaction;
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalFinish = monkeyPatchedTransaction.finish;
-    // @ts-ignore accessing private property
-    monkeyPatchedTransaction._contexts = {};
-    monkeyPatchedTransaction.finish = function (endTimestamp?: number | undefined) {
-      // @ts-ignore accessing private property
-      monkeyPatchedTransaction._contexts = (transaction._hub.getScope() as unknown as Scope)._contexts;
-
-      return originalFinish.apply(monkeyPatchedTransaction, [endTimestamp]);
-    };
   }
 
   it('creates a transaction', async () => {
@@ -173,7 +156,6 @@ describe('SentrySpanProcessor', () => {
     const otelSpan = provider.getTracer('default').startSpan('GET /users');
 
     const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
-    monkeyPatchTransactionFinish(transaction);
 
     // context is only set after end
     expect(getContext(transaction)).toEqual({});
@@ -196,7 +178,6 @@ describe('SentrySpanProcessor', () => {
     const otelSpan2 = provider.getTracer('default').startSpan('GET /companies');
 
     const transaction2 = getSpanForOtelSpan(otelSpan2) as Transaction;
-    monkeyPatchTransactionFinish(transaction2);
 
     expect(getContext(transaction2)).toEqual({});
 
