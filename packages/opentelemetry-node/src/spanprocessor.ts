@@ -158,6 +158,8 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
   sentrySpan.setData('otel.kind', kind.valueOf());
 
+  // WIP: Just a small comment to change this file...
+
   Object.keys(attributes).forEach(prop => {
     const value = attributes[prop];
     sentrySpan.setData(prop, value);
