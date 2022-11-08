@@ -10,13 +10,9 @@ This release adds the `beforeSendTransaction` callback to all JS SDKs, letting y
 
 Furthermore, this release adds the `shouldCreateSpanForRequest` option to the Node SDK and the `tracePropagationTargets` option to the Browser SDK, providing fine grained control over which outgoing Http requests should be represented as a span in an ongoing transaction and which requests should be traced by Sentry.
 
-This release also marks the starting point of adding support for OpenTelemetry to the Node SDK, by adding the `instrumenter` option to the Node SDK's init options.
-
 - feat(core): Add `beforeSendTransaction` (#6121)
-- feat(core): Add `instrumenter` option to `ClientOptions` (#6128)
 - feat(node): Add option to `OnUncaughtException` integration that allows mimicking native uncaught error exit behaviour (#6137)
 - feat(node): Add `shouldCreateSpanForRequest` option (#6055)
-- feat(otel): Add extract functionality to SentryPropagator (#6115)
 - feat(tracing): Add `tracePropagationTargets` option to browser routing instrumentation (#6080)
 - fix(nextjs): Allow `onUncaughtException` integration to remain excluded (#6148)
 - fix(nextjs): Do not exit process when errors bubble up while additional `uncaughtException`-handlers are registered (#6138)
