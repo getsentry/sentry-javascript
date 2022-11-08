@@ -7,7 +7,7 @@ import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/s
 import { createTransport, Hub, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
-import { Contexts, Scope } from '@sentry/types';
+import { Scope } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
@@ -56,6 +56,7 @@ describe('SentrySpanProcessor', () => {
 
   function getContext(transaction: Transaction) {
     const transactionWithContext = transaction as unknown as Transaction;
+    // @ts-ignore accessing private property
     return transactionWithContext._contexts;
   }
 
@@ -65,8 +66,10 @@ describe('SentrySpanProcessor', () => {
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalFinish = monkeyPatchedTransaction.finish;
+    // @ts-ignore accessing private property
     monkeyPatchedTransaction._contexts = {};
     monkeyPatchedTransaction.finish = function (endTimestamp?: number | undefined) {
+      // @ts-ignore accessing private property
       monkeyPatchedTransaction._contexts = (transaction._hub.getScope() as unknown as Scope)._contexts;
 
       return originalFinish.apply(monkeyPatchedTransaction, [endTimestamp]);
