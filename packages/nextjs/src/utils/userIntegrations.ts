@@ -7,6 +7,15 @@ type ForcedIntegrationOptions = {
   [keyPath: string]: unknown;
 };
 
+export type IntegrationWithExclusionOption = Integration & {
+  /**
+   * Allow the user to exclude this integration by not returning it from a function provided as the `integrations` option
+   * in `Sentry.init()`. Meant to be used with default integrations, the idea being that if a user has actively filtered
+   * an integration out, we should be able to respect that choice if we wish.
+   */
+  allowExclusionByUser?: boolean;
+};
+
 /**
  * Recursively traverses an object to update an existing nested key.
  * Note: The provided key path must include existing properties,
@@ -79,13 +88,27 @@ function addOrUpdateIntegrationInArray(
 }
 
 function addOrUpdateIntegrationInFunction(
-  defaultIntegrationInstance: Integration,
+  defaultIntegrationInstance: IntegrationWithExclusionOption,
   userIntegrationsFunc: UserIntegrationsFunction,
   forcedOptions: ForcedIntegrationOptions,
 ): UserIntegrationsFunction {
   const wrapper: UserIntegrationsFunction = defaultIntegrations => {
     const userFinalIntegrations = userIntegrationsFunc(defaultIntegrations);
+
+    // There are instances where we want the user to be able to prevent an integration from appearing at all, which they
+    // would do by providing a function which filters out the integration in question. If that's happened in one of
+    // those cases, don't add our default back in.
+    if (defaultIntegrationInstance.allowExclusionByUser) {
+      const userFinalInstance = userFinalIntegrations.find(
+        integration => integration.name === defaultIntegrationInstance.name,
+      );
+      if (!userFinalInstance) {
+        return userFinalIntegrations;
+      }
+    }
+
     return addOrUpdateIntegrationInArray(defaultIntegrationInstance, userFinalIntegrations, forcedOptions);
   };
+
   return wrapper;
 }
