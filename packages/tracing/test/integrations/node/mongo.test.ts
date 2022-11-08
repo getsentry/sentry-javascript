@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { Integration } from '@sentry/types';
 
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
@@ -117,7 +118,7 @@ describe('patchOperation()', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Mongo() as Mongo & { _wasSkipped: boolean };
+    const integration = new Mongo() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,

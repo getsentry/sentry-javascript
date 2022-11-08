@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { Integration } from '@sentry/types';
 
 import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';
@@ -59,7 +60,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new GraphQL() as GraphQL & { _wasSkipped: boolean };
+    const integration = new GraphQL() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,

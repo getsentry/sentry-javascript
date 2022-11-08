@@ -105,7 +105,8 @@ export class Mongo implements Integration {
   /**
    * If the integration was skipped due to internal checks.
    */
-  public _wasSkipped: boolean = false;
+  // @ts-ignore This is only used for tests
+  private _wasSkipped: boolean = false;
 
   private _operations: Operation[];
   private _describeOperations?: boolean | Operation[];

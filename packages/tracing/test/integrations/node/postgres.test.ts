@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { Integration } from '@sentry/types';
 
 import { Postgres } from '../../../src/integrations/node/postgres';
 import { Span } from '../../../src/span';
@@ -100,7 +101,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Postgres() as Postgres & { _wasSkipped: boolean };
+    const integration = new Postgres() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,

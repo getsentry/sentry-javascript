@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { Integration } from '@sentry/types';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
@@ -106,7 +107,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo() as Apollo & { _wasSkipped: boolean };
+    const integration = new Apollo() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,

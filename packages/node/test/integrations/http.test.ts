@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
-import { TransactionContext } from '@sentry/types';
+import { Integration, TransactionContext } from '@sentry/types';
 import { parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -199,7 +199,7 @@ describe('tracing', () => {
     });
     const hub = new Hub(new NodeClient(options));
 
-    const integration = new HttpIntegration() as HttpIntegration & { _wasSkipped: boolean };
+    const integration = new HttpIntegration() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,

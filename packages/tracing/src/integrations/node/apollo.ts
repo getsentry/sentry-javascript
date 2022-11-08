@@ -27,7 +27,8 @@ export class Apollo implements Integration {
   /**
    * If the integration was skipped due to internal checks.
    */
-  public _wasSkipped: boolean = false;
+  // @ts-ignore This is only used for tests
+  private _wasSkipped: boolean = false;
 
   /**
    * @inheritDoc

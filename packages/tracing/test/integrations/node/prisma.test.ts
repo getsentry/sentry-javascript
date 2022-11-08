@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { Integration } from '@sentry/types';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
 import { Span } from '../../../src/span';
@@ -64,7 +65,7 @@ describe('setupOnce', function () {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Prisma() as Prisma & { _wasSkipped: boolean };
+    const integration = new Prisma() as unknown as Integration & { _wasSkipped: boolean };
     integration.setupOnce(
       () => {},
       () => hub,
