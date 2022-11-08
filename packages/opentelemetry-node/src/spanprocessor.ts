@@ -129,7 +129,7 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
     | Partial<DynamicSamplingContext>
     | undefined;
 
-  return {
+  const context: Partial<TransactionContext> = {
     spanId,
     traceId,
     parentSpanId,
@@ -139,6 +139,13 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
       source: 'custom',
     },
   };
+
+  // Only inherit sample rate if `traceId` is the same
+  if (traceparentData && traceId === traceparentData.traceId) {
+    context.parentSampled = traceparentData.parentSampled;
+  }
+
+  return context;
 }
 
 function finishTransactionWithContextFromOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
