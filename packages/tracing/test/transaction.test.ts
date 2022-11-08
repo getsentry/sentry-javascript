@@ -24,6 +24,18 @@ describe('`Transaction` class', () => {
       expect(transaction.metadata.source).toEqual('custom');
     });
 
+    it('sets instrumenter to be `sentry` in constructor if not provided', () => {
+      const transaction = new Transaction({ name: 'dogpark' });
+
+      expect(transaction.instrumenter).toEqual('sentry');
+    });
+
+    it('allows to set instrumenter', () => {
+      const transaction = new Transaction({ name: 'dogpark', instrumenter: 'otel' });
+
+      expect(transaction.instrumenter).toEqual('otel');
+    });
+
     it('updates transaction name changes with correct variables needed', () => {
       const transaction = new Transaction({ name: 'dogpark', metadata: { source: 'url' } });
       expect(transaction.metadata.changes).toEqual([]);
