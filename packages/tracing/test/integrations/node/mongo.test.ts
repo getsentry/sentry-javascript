@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { Mongo } from '../../../src/integrations/node/mongo';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 class Collection {
   public collectionName: string = 'mockedCollectionName';
@@ -110,5 +112,20 @@ describe('patchOperation()', () => {
       description: 'initializeOrderedBulkOp',
     });
     expect(childSpan.finish).toBeCalled();
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Mongo();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('Mongo Integration is skipped because of instrumenter configuration.');
   });
 });

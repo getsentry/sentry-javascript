@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
 import { TransactionContext } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -186,6 +186,28 @@ describe('tracing', () => {
 
     http.get('http://dogs.are.great/');
     expect(transaction.metadata.propagations).toBe(2);
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const options = getDefaultNodeClientOptions({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      integrations: [new HttpIntegration({ tracing: true })],
+      release: '1.0.0',
+      environment: 'production',
+      instrumenter: 'otel',
+    });
+    const hub = new Hub(new NodeClient(options));
+
+    const integration = new HttpIntegration();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
   });
 
   describe('tracePropagationTargets option', () => {

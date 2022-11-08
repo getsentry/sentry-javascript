@@ -72,6 +72,7 @@ export class Http implements Integration {
 
     // Do not auto-instrument for other instrumenter
     if (clientOptions && clientOptions.instrumenter !== 'sentry') {
+      __DEBUG_BUILD__ && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
       return;
     }
 
