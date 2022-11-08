@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { GraphQL } from '../../src/integrations/node/graphql';
 import { Span } from '../../src/span';
+import { getTestClient } from '../testutils';
 
 const GQLExecute = {
   execute() {
@@ -52,5 +54,20 @@ describe('setupOnce', () => {
     });
     expect(childSpan.finish).toBeCalled();
     expect(scope.setSpan).toHaveBeenCalledTimes(2);
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new GraphQL();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('GraphQL Integration is skipped because of instrumenter configuration.');
   });
 });

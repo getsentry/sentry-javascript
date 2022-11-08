@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
+import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
   [key: string]: () => any;
@@ -99,5 +101,20 @@ describe('setupOnce', () => {
       op: 'graphql.resolve',
     });
     expect(childSpan.finish).toBeCalled();
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Apollo();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('Apollo Integration is skipped because of instrumenter configuration.');
   });
 });

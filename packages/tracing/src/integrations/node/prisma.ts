@@ -2,6 +2,8 @@ import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { isThenable, logger } from '@sentry/utils';
 
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
+
 type PrismaAction =
   | 'findUnique'
   | 'findMany'
@@ -77,6 +79,11 @@ export class Prisma implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (!this._client) {
       __DEBUG_BUILD__ && logger.error('PrismaIntegration is missing a Prisma Client Instance');
+      return;
+    }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Prisma Integration is skipped because of instrumenter configuration.');
       return;
     }
 

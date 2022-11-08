@@ -2,6 +2,8 @@ import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
+
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
 // and not just a string[])
@@ -122,6 +124,11 @@ export class Mongo implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
+      return;
+    }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
       return;
     }
 
