@@ -1,3 +1,4 @@
+import { Context } from './context';
 import { DynamicSamplingContext } from './envelope';
 import { MeasurementUnit } from './measurement';
 import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
@@ -75,6 +76,11 @@ export interface Transaction extends TransactionContext, Span {
    * Set the name of the transaction
    */
   setName(name: string, source?: TransactionMetadata['source']): void;
+
+  /**
+   * Set the context of a transaction event
+   */
+  setContext(key: string, context: Context): void;
 
   /**
    * Set observed measurement for this transaction.

@@ -1,5 +1,7 @@
 import { getCurrentHub, Hub } from '@sentry/core';
 import {
+  Context,
+  Contexts,
   DynamicSamplingContext,
   Event,
   Measurements,
@@ -24,6 +26,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
   private _name: string;
 
   private _measurements: Measurements = {};
+
+  private _contexts: Contexts = {};
 
   private _trimEnd?: boolean;
 
@@ -108,6 +112,18 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * @inheritDoc
    */
+  public setContext(key: string, context: Context | null): void {
+    if (context === null) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this._contexts[key];
+    } else {
+      this._contexts = { ...this._contexts, [key]: context };
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
   public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
   }
@@ -163,6 +179,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     const transaction: Event = {
       contexts: {
+        ...this._contexts,
+        // We don't want to override trace context
         trace: this.getTraceContext(),
       },
       spans: finishedSpans,
