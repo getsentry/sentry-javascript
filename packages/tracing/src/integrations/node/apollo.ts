@@ -25,12 +25,6 @@ export class Apollo implements Integration {
   public name: string = Apollo.id;
 
   /**
-   * If the integration was skipped due to internal checks.
-   */
-  // @ts-ignore This is only used for tests
-  private _wasSkipped: boolean = false;
-
-  /**
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
@@ -44,13 +38,11 @@ export class Apollo implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
-      this._wasSkipped = true;
       return;
     }
 
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       __DEBUG_BUILD__ && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
-      this._wasSkipped = true;
       return;
     }
 

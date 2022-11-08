@@ -1,8 +1,8 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
-import { Integration, TransactionContext } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { TransactionContext } from '@sentry/types';
+import { logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -189,6 +189,8 @@ describe('tracing', () => {
   });
 
   it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
@@ -199,13 +201,13 @@ describe('tracing', () => {
     });
     const hub = new Hub(new NodeClient(options));
 
-    const integration = new HttpIntegration() as unknown as Integration & { _wasSkipped: boolean };
+    const integration = new HttpIntegration();
     integration.setupOnce(
       () => {},
       () => hub,
     );
 
-    expect(integration._wasSkipped).toBe(true);
+    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
   });
 
   describe('tracePropagationTargets option', () => {

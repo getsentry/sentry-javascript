@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { Apollo } from '../../src/integrations/node/apollo';
 import { Span } from '../../src/span';
@@ -104,15 +104,17 @@ describe('setupOnce', () => {
   });
 
   it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo() as unknown as Integration & { _wasSkipped: boolean };
+    const integration = new Apollo();
     integration.setupOnce(
       () => {},
       () => hub,
     );
 
-    expect(integration._wasSkipped).toBe(true);
+    expect(loggerLogSpy).toBeCalledWith('Apollo Integration is skipped because of instrumenter configuration.');
   });
 });

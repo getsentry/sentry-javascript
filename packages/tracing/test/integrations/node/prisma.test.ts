@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
 import { Span } from '../../../src/span';
@@ -32,7 +32,6 @@ describe('setupOnce', function () {
   let childSpan: Span;
 
   beforeAll(() => {
-    // @ts-ignore, not to export PrismaClient types from integration source
     new Prisma({ client: Client }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
@@ -62,15 +61,17 @@ describe('setupOnce', function () {
   });
 
   it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Prisma() as unknown as Integration & { _wasSkipped: boolean };
+    const integration = new Prisma({ client: Client });
     integration.setupOnce(
       () => {},
       () => hub,
     );
 
-    expect(integration._wasSkipped).toBe(true);
+    expect(loggerLogSpy).toBeCalledWith('Prisma Integration is skipped because of instrumenter configuration.');
   });
 });

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { Postgres } from '../../../src/integrations/node/postgres';
 import { Span } from '../../../src/span';
@@ -98,15 +98,17 @@ describe('setupOnce', () => {
   });
 
   it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Postgres() as unknown as Integration & { _wasSkipped: boolean };
+    const integration = new Postgres();
     integration.setupOnce(
       () => {},
       () => hub,
     );
 
-    expect(integration._wasSkipped).toBe(true);
+    expect(loggerLogSpy).toBeCalledWith('Postgres Integration is skipped because of instrumenter configuration.');
   });
 });

@@ -39,12 +39,6 @@ export class Http implements Integration {
   public name: string = Http.id;
 
   /**
-   * If the integration was skipped due to internal checks.
-   */
-  // @ts-ignore This is only used for tests
-  private _wasSkipped: boolean = false;
-
-  /**
    * @inheritDoc
    */
   private readonly _breadcrumbs: boolean;
@@ -71,7 +65,6 @@ export class Http implements Integration {
   ): void {
     // No need to instrument if we don't want to track anything
     if (!this._breadcrumbs && !this._tracing) {
-      this._wasSkipped = true;
       return;
     }
 
@@ -79,7 +72,7 @@ export class Http implements Integration {
 
     // Do not auto-instrument for other instrumenter
     if (clientOptions && clientOptions.instrumenter !== 'sentry') {
-      this._wasSkipped = true;
+      __DEBUG_BUILD__ && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
       return;
     }
 
