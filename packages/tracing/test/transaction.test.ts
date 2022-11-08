@@ -1,7 +1,8 @@
-import { Transaction } from '../src/transaction';
-import { addExtensionMethods } from '../src';
-import { getDefaultBrowserClientOptions } from './testutils';
 import { BrowserClient, Hub } from '@sentry/browser';
+
+import { addExtensionMethods } from '../src';
+import { Transaction } from '../src/transaction';
+import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('`Transaction` class', () => {
   beforeAll(() => {
@@ -268,7 +269,9 @@ describe('`Transaction` class', () => {
       transaction.setContext('foo', { key: 'val' });
       transaction.finish();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenLastCalledWith(
         expect.objectContaining({
           contexts: {
@@ -293,7 +296,9 @@ describe('`Transaction` class', () => {
       transaction.setContext('trace', { key: 'val' });
       transaction.finish();
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(hub.captureEvent).toHaveBeenLastCalledWith(
         expect.objectContaining({
           contexts: {

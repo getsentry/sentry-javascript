@@ -55,21 +55,19 @@ describe('SentrySpanProcessor', () => {
   }
 
   function getContext(transaction: Transaction) {
-    const transactionWithContext = transaction as unknown as Transaction & { _contexts: Contexts };
+    const transactionWithContext = transaction as unknown as Transaction;
     return transactionWithContext._contexts;
   }
 
   // monkey-patch finish to store the context at finish time
   function monkeyPatchTransactionFinish(transaction: Transaction) {
-    const monkeyPatchedTransaction = transaction as Transaction & { _contexts: Contexts };
+    const monkeyPatchedTransaction = transaction as Transaction;
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalFinish = monkeyPatchedTransaction.finish;
     monkeyPatchedTransaction._contexts = {};
     monkeyPatchedTransaction.finish = function (endTimestamp?: number | undefined) {
-      monkeyPatchedTransaction._contexts = (
-        transaction._hub.getScope() as unknown as Scope & { _contexts: Contexts }
-      )._contexts;
+      monkeyPatchedTransaction._contexts = (transaction._hub.getScope() as unknown as Scope)._contexts;
 
       return originalFinish.apply(monkeyPatchedTransaction, [endTimestamp]);
     };
