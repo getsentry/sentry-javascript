@@ -43,14 +43,21 @@ function setNestedKey(obj: Record<string, any>, keyPath: string, value: unknown)
  * @param forcedOptions Options with which to patch an existing user-derived instance on the integration.
  * @returns A final integrations array.
  */
-export function addOrUpdateIntegration(
+export function addOrUpdateIntegration<T extends UserIntegrations>(
   defaultIntegrationInstance: Integration,
-  userIntegrations: UserIntegrations,
+  userIntegrations: T,
   forcedOptions: ForcedIntegrationOptions = {},
-): UserIntegrations {
-  return Array.isArray(userIntegrations)
-    ? addOrUpdateIntegrationInArray(defaultIntegrationInstance, userIntegrations, forcedOptions)
-    : addOrUpdateIntegrationInFunction(defaultIntegrationInstance, userIntegrations, forcedOptions);
+): T {
+  return (
+    Array.isArray(userIntegrations)
+      ? addOrUpdateIntegrationInArray(defaultIntegrationInstance, userIntegrations, forcedOptions)
+      : addOrUpdateIntegrationInFunction(
+          defaultIntegrationInstance,
+          // Somehow TS can't figure out that not being an array makes this necessarily a function
+          userIntegrations as UserIntegrationsFunction,
+          forcedOptions,
+        )
+  ) as T;
 }
 
 function addOrUpdateIntegrationInArray(
