@@ -17,7 +17,6 @@ Furthermore, this release adds the `shouldCreateSpanForRequest` option to the No
 - fix(nextjs): Allow `onUncaughtException` integration to remain excluded (#6148)
 - fix(nextjs): Do not exit process when errors bubble up while additional `uncaughtException`-handlers are registered (#6138)
 - fix(remix): Prevent capturing pending promises as exceptions. (#6129)
-- ref(core): Pre-`beforeSendTransaction` cleanup (#6135)
 
 ## 7.17.4
 
