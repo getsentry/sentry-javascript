@@ -59,6 +59,7 @@ export function init(options: NextjsOptions): void {
 
 function createClientIntegrations(userIntegrations: UserIntegrations = []): UserIntegrations {
   const defaultBrowserTracingIntegration = new BrowserTracing({
+    // eslint-disable-next-line deprecation/deprecation
     tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
     routingInstrumentation: nextRouterInstrumentation,
   });

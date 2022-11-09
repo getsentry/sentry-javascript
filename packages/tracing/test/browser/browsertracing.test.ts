@@ -136,6 +136,7 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
 
@@ -146,6 +147,7 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
     });
