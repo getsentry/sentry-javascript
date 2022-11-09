@@ -7,68 +7,22 @@ import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import React from 'react';
 
-import { Action, Location } from './types';
-
-interface NonIndexRouteObject {
-  caseSensitive?: boolean;
-  children?: RouteObject[];
-  element?: React.ReactNode | null;
-  index?: false;
-  path?: string;
-}
-
-interface IndexRouteObject {
-  caseSensitive?: boolean;
-  children?: undefined;
-  element?: React.ReactNode | null;
-  index?: true;
-  path?: string;
-}
-
-// This type was originally just `type RouteObject = IndexRouteObject`, but this was changed
-// in https://github.com/remix-run/react-router/pull/9366, which was released with `6.4.2`
-// See https://github.com/remix-run/react-router/issues/9427 for a discussion on this.
-type RouteObject = IndexRouteObject | NonIndexRouteObject;
-
-type Params<Key extends string = string> = {
-  readonly [key in Key]: string | undefined;
-};
-
-type UseRoutes = (routes: RouteObject[], locationArg?: Partial<Location> | string) => React.ReactElement | null;
-
-// https://github.com/remix-run/react-router/blob/9fa54d643134cd75a0335581a75db8100ed42828/packages/react-router/lib/router.ts#L114-L134
-interface RouteMatch<ParamKey extends string = string> {
-  /**
-   * The names and values of dynamic parameters in the URL.
-   */
-  params: Params<ParamKey>;
-  /**
-   * The portion of the URL pathname that was matched.
-   */
-  pathname: string;
-  /**
-   * The portion of the URL pathname that was matched before child routes.
-   */
-  pathnameBase: string;
-  /**
-   * The route object that was used to match.
-   */
-  route: RouteObject;
-}
-
-type UseEffect = (cb: () => void, deps: unknown[]) => void;
-type UseLocation = () => Location;
-type UseNavigationType = () => Action;
-
-// For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
-// Have to do this so we maintain backwards compatability between
-// react-router > 6.0.0 and >= 6.4.2.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RouteObjectArrayAlias = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RouteMatchAlias = any;
-type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
-type MatchRoutes = (routes: RouteObjectArrayAlias, location: Location) => RouteMatchAlias[] | null;
+import {
+  Action,
+  AgnosticDataRouteMatch,
+  CreateRouterFunction,
+  CreateRoutesFromChildren,
+  Location,
+  MatchRoutes,
+  RouteMatch,
+  RouteObject,
+  Router,
+  RouterState,
+  UseEffect,
+  UseLocation,
+  UseNavigationType,
+  UseRoutes,
+} from './types';
 
 let activeTransaction: Transaction | undefined;
 
@@ -122,13 +76,11 @@ export function reactRouterV6Instrumentation(
 function getNormalizedName(
   routes: RouteObject[],
   location: Location,
-  matchRoutes: MatchRoutes,
+  branches: RouteMatch[],
 ): [string, TransactionSource] {
-  if (!routes || routes.length === 0 || !matchRoutes) {
+  if (!routes || routes.length === 0) {
     return [location.pathname, 'url'];
   }
-
-  const branches = matchRoutes(routes, location) as unknown as RouteMatch[];
 
   let pathBuilder = '';
   if (branches) {
@@ -167,9 +119,11 @@ function getNormalizedName(
   return [location.pathname, 'url'];
 }
 
-function updatePageloadTransaction(location: Location, routes: RouteObject[]): void {
-  if (activeTransaction) {
-    activeTransaction.setName(...getNormalizedName(routes, location, _matchRoutes));
+function updatePageloadTransaction(location: Location, routes: RouteObject[], matches?: AgnosticDataRouteMatch): void {
+  const branches = Array.isArray(matches) ? matches : (_matchRoutes(routes, location) as unknown as RouteMatch[]);
+
+  if (activeTransaction && branches) {
+    activeTransaction.setName(...getNormalizedName(routes, location, branches));
   }
 }
 
@@ -178,6 +132,7 @@ function handleNavigation(
   routes: RouteObject[],
   navigationType: Action,
   isBaseLocation: boolean,
+  matches?: AgnosticDataRouteMatch,
 ): void {
   if (isBaseLocation) {
     if (activeTransaction) {
@@ -187,12 +142,14 @@ function handleNavigation(
     return;
   }
 
-  if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP')) {
+  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location);
+
+  if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     if (activeTransaction) {
       activeTransaction.finish();
     }
 
-    const [name, source] = getNormalizedName(routes, location, _matchRoutes);
+    const [name, source] = getNormalizedName(routes, location, branches);
     activeTransaction = _customStartTransaction({
       name,
       op: 'navigation',
@@ -292,5 +249,34 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     };
 
     return <SentryRoutes />;
+  };
+}
+
+export function wrapCreateBrowserRouter(createRouterFunction: CreateRouterFunction): CreateRouterFunction {
+  // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (routes: RouteObject[], opts?: any): Router {
+    const router = createRouterFunction(routes, opts);
+
+    // The initial load ends when `createBrowserRouter` is called.
+    // This is the earliest convenient time to update the transaction name.
+    // Callbacks to `router.subscribe` are not called for the initial load.
+    if (router.state.historyAction === 'POP' && activeTransaction) {
+      updatePageloadTransaction(router.state.location, routes);
+    }
+
+    router.subscribe((state: RouterState) => {
+      const location = state.location;
+
+      if (
+        _startTransactionOnLocationChange &&
+        (state.historyAction === 'PUSH' || state.historyAction === 'POP') &&
+        activeTransaction
+      ) {
+        handleNavigation(location, routes, state.historyAction, false);
+      }
+    });
+
+    return router;
   };
 }
