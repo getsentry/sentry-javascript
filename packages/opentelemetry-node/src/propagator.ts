@@ -62,12 +62,12 @@ export class SentryPropagator implements TextMapPropagator {
       const traceparentData = extractTraceparentData(header);
       newContext = newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
       if (traceparentData) {
-        const traceFlags = traceparentData.parentSampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
         const spanContext = {
           traceId: traceparentData.traceId || '',
           spanId: traceparentData.parentSpanId || '',
           isRemote: true,
-          traceFlags,
+          // Always sample if traceparent exists, we use SentrySpanProcessor to make sampling decisions with `startTransaction`.
+          traceFlags: TraceFlags.SAMPLED,
         };
         newContext = trace.setSpanContext(newContext, spanContext);
       }
