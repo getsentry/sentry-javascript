@@ -23,7 +23,7 @@ export interface NodeTransportOptions extends BaseTransportOptions {
   caCerts?: string | Buffer | Array<string | Buffer>;
   /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
   httpModule?: HTTPModule;
-  /** Allow overriding connection keepAlive, defaults to false*/
+  /** Allow overriding connection keepAlive, defaults to false */
   keepAlive?: boolean;
 }
 

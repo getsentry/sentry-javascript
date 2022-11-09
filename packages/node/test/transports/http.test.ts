@@ -118,7 +118,7 @@ describe('makeNewHttpTransport()', () => {
         );
       });
 
-      const transport = makeNodeTransport({ keepAlive: true });
+      const transport = makeNodeTransport({ keepAlive: true, ...defaultOptions });
       await transport.send(EVENT_ENVELOPE);
     });
 
