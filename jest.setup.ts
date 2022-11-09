@@ -1,4 +1,6 @@
-import { afterEach, beforeAll, expect, jest } from '@jest/globals';
+import { afterEach, expect, jest } from '@jest/globals';
+import { getCurrentHub } from '@sentry/core';
+import { Transport } from '@sentry/types';
 import type { MatcherFunction } from 'expect';
 
 import { Session } from './src/session/Session';
@@ -7,52 +9,21 @@ import { Replay } from './src';
 // @ts-expect-error TS error, this is replaced in prod builds bc of rollup
 global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
 
-type Fetch = (
-  input: RequestInfo | URL,
-  init?: RequestInit | undefined
-) => Promise<Response>;
-
-type MockFetch = jest.MockedFunction<Fetch>;
-
-// Not the best fetch mock, but probably good enough - (remove the
-// Headers/Response casts to see unmocked behavior)
-const mockFetch = jest.fn(
-  (_input: RequestInfo | URL) =>
-    new Promise<Response>((resolve) => {
-      resolve({
-        body: null,
-        bodyUsed: false,
-        headers: {} as Headers,
-        ok: true,
-        redirected: false,
-        status: 200,
-        statusText: '',
-        type: 'default',
-        url: '',
-      } as Response);
-    })
-);
-
-beforeAll(() => {
-  // mock fetch
-  if (typeof global.fetch === 'undefined') {
-    global.fetch = mockFetch;
-  } else {
-    // `jsdom-worker` has its own fetch that should not be mocked
-    if ('jsdomWorker' in global.fetch) {
-      return;
-    }
-
-    jest.spyOn(global, 'fetch');
-    (global.fetch as MockFetch).mockImplementation(mockFetch);
-  }
-});
+type MockTransport = jest.MockedFunction<Transport['send']>;
 
 afterEach(() => {
-  // `jsdom-worker` has its own fetch that should not be mocked
-  if (!('jsdomWorker' in global.fetch)) {
-    (global.fetch as MockFetch).mockClear();
+  const hub = getCurrentHub();
+  if (typeof hub?.getClient !== 'function') {
+    // Potentially not a function due to partial mocks
+    return;
   }
+
+  const client = hub?.getClient();
+  if (typeof client?.getTransport !== 'function') {
+    return;
+  }
+
+  (client.getTransport()?.send as MockTransport).mockClear();
 });
 
 type SentReplayExpected = {
@@ -70,10 +41,6 @@ type SentReplayExpected = {
   recordingPayloadHeader?: Record<string, any>;
   events?: string | Uint8Array;
 };
-
-const ENVELOPE_URL_REGEX = new RegExp(
-  'https://ingest.f00.f00/api/1/envelope/\\?sentry_key=dsn&sentry_version=7'
-);
 
 const toHaveSameSession: MatcherFunction<[expected: undefined | Session]> =
   function (received: jest.Mocked<Replay>, expected: undefined | Session) {
@@ -117,30 +84,34 @@ const toHaveSentReplay: MatcherFunction<
     | SentReplayExpected
     | { sample: SentReplayExpected; inverse: boolean }
 ) {
-  const { calls } = (global.fetch as MockFetch).mock;
-  const lastCall = calls[calls.length - 1];
+  const { calls } = (
+    getCurrentHub().getClient()?.getTransport()?.send as MockTransport
+  ).mock;
+  const lastCall = calls[calls.length - 1]?.[0];
 
-  const { body } = lastCall?.[1] || {};
-  const bodyLines = (body && body.toString().split('\n')) || [];
+  const envelopeHeader = lastCall?.[0];
+  const envelopeItems = lastCall?.[1] || [[], []];
   const [
-    envelopeHeader,
-    replayEventHeader,
-    replayEventPayload,
-    recordingHeader,
-    recordingPayloadHeader,
-    events,
-  ] = bodyLines;
+    [replayEventHeader, replayEventPayload],
+    [recordingHeader, recordingPayload],
+  ] = envelopeItems;
+
+  // @ts-expect-error recordingPayload is always a string in our tests
+  const [recordingPayloadHeader, events] = recordingPayload?.split('\n') || [];
+
   const actualObj: Required<SentReplayExpected> = {
-    envelopeHeader: envelopeHeader && JSON.parse(envelopeHeader),
-    replayEventHeader: replayEventHeader && JSON.parse(replayEventHeader),
-    replayEventPayload: replayEventPayload && JSON.parse(replayEventPayload),
-    recordingHeader: recordingHeader && JSON.parse(recordingHeader),
+    // @ts-expect-error Custom envelope
+    envelopeHeader: envelopeHeader,
+    // @ts-expect-error Custom envelope
+    replayEventHeader: replayEventHeader,
+    // @ts-expect-error Custom envelope
+    replayEventPayload: replayEventPayload,
+    // @ts-expect-error Custom envelope
+    recordingHeader: recordingHeader,
     recordingPayloadHeader:
       recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
     events,
   };
-  const urlPass =
-    !!lastCall && ENVELOPE_URL_REGEX.test(lastCall?.[0].toString());
 
   const isObjectContaining =
     expected && 'sample' in expected && 'inverse' in expected;
@@ -151,6 +122,7 @@ const toHaveSentReplay: MatcherFunction<
       '`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher'
     );
   }
+
   const results = expected
     ? Object.entries(actualObj)
         .map(([key, val]: [key: keyof SentReplayExpected, val: any]) => {
@@ -164,14 +136,16 @@ const toHaveSentReplay: MatcherFunction<
         .filter(([passed]) => !passed)
     : [];
 
-  const payloadPassed = lastCall && (!expected || results.length === 0);
+  const payloadPassed = Boolean(
+    lastCall && (!expected || results.length === 0)
+  );
 
   const options = {
     isNot: this.isNot,
     promise: this.promise,
   };
 
-  const allPass = urlPass && payloadPassed;
+  const allPass = payloadPassed;
 
   return {
     pass: allPass,
@@ -187,12 +161,6 @@ const toHaveSentReplay: MatcherFunction<
             options
           ) +
           '\n\n' +
-          (!urlPass
-            ? `Expected URL: ${
-                !urlPass ? 'not ' : ''
-              }${this.utils.printExpected(ENVELOPE_URL_REGEX)}\n` +
-              `Received URL: ${this.utils.printReceived(lastCall[0])}`
-            : '') +
           results
             .map(
               ([, key, expected, actual]) =>

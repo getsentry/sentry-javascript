@@ -1,15 +1,10 @@
 import {
   addGlobalEventProcessor,
   getCurrentHub,
-  getEnvelopeEndpointWithUrlEncodedAuth,
   setContext,
 } from '@sentry/core';
 import { Breadcrumb, Event, Integration } from '@sentry/types';
-import {
-  addInstrumentationHandler,
-  createEnvelope,
-  serializeEnvelope,
-} from '@sentry/utils';
+import { addInstrumentationHandler, createEnvelope } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
 
@@ -45,13 +40,12 @@ import type {
   InitialState,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
-  RecordedEvents,
   RecordingEvent,
   RecordingOptions,
   ReplayConfiguration,
   ReplayEventContext,
   ReplayPluginOptions,
-  SendReplayRequest,
+  SendReplay,
 } from './types';
 
 /**
@@ -1173,12 +1167,11 @@ export class Replay implements Integration {
    * Send replay attachment using `fetch()`
    */
   async sendReplayRequest({
-    endpoint,
     events,
     replayId: event_id,
     segmentId: segment_id,
     includeReplayStartTimestamp,
-  }: SendReplayRequest) {
+  }: SendReplay) {
     const payloadWithSequence = createPayload({
       events,
       headers: {
@@ -1250,18 +1243,10 @@ export class Replay implements Integration {
       ]
     );
 
-    // Otherwise use `fetch`, which *WILL* get cancelled on page reloads/unloads
-    logger.log(`uploading attachment via fetch()`);
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: serializeEnvelope(envelope),
-    });
-
-    if (response.status !== 200) {
-      setContext('Send Replay Response', {
-        status: response.status,
-        body: await response.text(),
-      });
+    const client = getCurrentHub().getClient();
+    try {
+      return client?.getTransport()?.send(envelope);
+    } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
   }
@@ -1279,24 +1264,14 @@ export class Replay implements Integration {
     events,
     segmentId,
     includeReplayStartTimestamp,
-  }: {
-    replayId: string;
-    events: RecordedEvents;
-    segmentId: number;
-    includeReplayStartTimestamp: boolean;
-  }) {
+  }: SendReplay) {
     // short circuit if there's no events to upload
     if (!events.length) {
       return;
     }
 
-    const client = getCurrentHub().getClient();
-    // @ts-expect-error: Type 'undefined' is not assignable to type 'DsnComponents'.ts(2345)
-    const endpoint = getEnvelopeEndpointWithUrlEncodedAuth(client.getDsn());
-
     try {
       await this.sendReplayRequest({
-        endpoint,
         events,
         replayId,
         segmentId,

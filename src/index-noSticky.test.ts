@@ -9,6 +9,8 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import { getCurrentHub } from '@sentry/core';
+import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
@@ -25,8 +27,11 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
+type MockTransport = jest.MockedFunction<Transport['send']>;
+
 describe('Replay (no sticky)', () => {
   let replay: Replay;
+  let mockTransport: MockTransport;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
@@ -48,11 +53,14 @@ describe('Replay (no sticky)', () => {
       },
     }));
     jest.runAllTimers();
+    mockTransport = getCurrentHub()?.getClient()?.getTransport()
+      ?.send as MockTransport;
   });
 
   beforeEach(() => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockRecord.takeFullSnapshot.mockClear();
+    mockTransport.mockClear();
   });
 
   afterEach(async () => {
@@ -205,7 +213,7 @@ describe('Replay (no sticky)', () => {
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+    mockTransport.mockClear();
     await advanceTimers(5000);
     expect(replay).not.toHaveSentReplay();
 
@@ -215,7 +223,7 @@ describe('Replay (no sticky)', () => {
     expect(replay.eventBuffer?.length).toBe(0);
 
     // Let's make sure it continues to work
-    (global.fetch as jest.MockedFunction<typeof fetch>).mockClear();
+    mockTransport.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
     expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });

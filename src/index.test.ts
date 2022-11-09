@@ -8,6 +8,8 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import { getCurrentHub } from '@sentry/core';
+import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
@@ -28,7 +30,7 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockFetch = jest.MockedFunction<typeof fetch>;
+type MockTransport = jest.MockedFunction<Transport['send']>;
 describe('Replay', () => {
   let replay: Replay;
   const prevLocation = window.location;
@@ -39,7 +41,7 @@ describe('Replay', () => {
   let mockSendReplayRequest: MockSendReplayRequest;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
-  let mockFetch: MockFetch;
+  let mockTransport: MockTransport;
 
   jest.spyOn(CaptureInternalException, 'captureInternalException');
 
@@ -57,7 +59,8 @@ describe('Replay', () => {
     jest.runAllTimers();
     jest.spyOn(replay, 'flush');
     jest.spyOn(replay, 'runFlush');
-    mockFetch = global.fetch as MockFetch;
+    mockTransport = getCurrentHub()?.getClient()?.getTransport()
+      ?.send as MockTransport;
   });
 
   beforeEach(() => {
@@ -218,7 +221,6 @@ describe('Replay', () => {
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay({
       events: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
     });
@@ -247,7 +249,6 @@ describe('Replay', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
@@ -294,7 +295,7 @@ describe('Replay', () => {
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockFetch.mockClear();
+    mockTransport.mockClear();
     await advanceTimers(5000);
 
     expect(replay).not.toHaveSentReplay();
@@ -305,7 +306,7 @@ describe('Replay', () => {
     expect(replay.eventBuffer?.length).toBe(0);
 
     // Let's make sure it continues to work
-    mockFetch.mockClear();
+    mockTransport.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
     expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
@@ -583,7 +584,7 @@ describe('Replay', () => {
       recordingPayloadHeader: { segment_id: 0 },
       events: JSON.stringify([TEST_EVENT]),
     });
-    mockFetch.mockClear();
+    mockTransport.mockClear();
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session?.lastActivity).toBeGreaterThanOrEqual(BASE_TIMESTAMP);
@@ -779,7 +780,7 @@ describe('Replay', () => {
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
-    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
+    expect(replay).not.toHaveSentReplay();
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -823,7 +824,7 @@ describe('Replay', () => {
     // This should be null because `addEvent` has not been called
     // @ts-expect-error private member
     expect(replay.context.earliestEvent).toBe(null);
-    expect(global.fetch).toHaveBeenCalledTimes(0);
+    expect(mockTransport).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
     const TEST_EVENT = {
@@ -838,7 +839,7 @@ describe('Replay', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(mockTransport).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay({
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out

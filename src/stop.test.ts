@@ -36,7 +36,6 @@ describe('Replay - stop', () => {
     ) as MockAddInstrumentationHandler;
 
     ({ replay } = await mockSdk());
-    jest.spyOn(replay, 'sendReplayRequest');
     jest.runAllTimers();
   });
 
@@ -89,7 +88,6 @@ describe('Replay - stop', () => {
     window.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
     expect(replay).not.toHaveSentReplay();
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toEqual(BASE_TIMESTAMP);
@@ -121,7 +119,6 @@ describe('Replay - stop', () => {
     window.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay.sendReplayRequest).toHaveBeenCalled();
     expect(replay).toHaveSentReplay({
       events: JSON.stringify([
         // This event happens when we call `replay.start`

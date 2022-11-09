@@ -9,17 +9,7 @@ let mockHandleScope: jest.MockedFunction<typeof HandleScope.handleScope>;
 jest.useFakeTimers();
 
 beforeAll(async function () {
-  const { replay } = await mockSdk();
-  type MockSendReplayRequest = jest.MockedFunction<
-    typeof replay.sendReplayRequest
-  >;
-  const mockSendReplayRequest =
-    replay.sendReplayRequest as MockSendReplayRequest;
-  mockSendReplayRequest.mockImplementation(
-    jest.fn(async () => {
-      return;
-    })
-  );
+  await mockSdk();
   jest.spyOn(HandleScope, 'handleScope');
   mockHandleScope = HandleScope.handleScope as jest.MockedFunction<
     typeof HandleScope.handleScope

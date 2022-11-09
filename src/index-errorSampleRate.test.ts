@@ -11,6 +11,8 @@ import {
   jest,
 } from '@jest/globals';
 import { captureException } from '@sentry/browser';
+import { getCurrentHub } from '@sentry/core';
+import { Transport } from '@sentry/types';
 import type { RecordMock } from '@test';
 import { BASE_TIMESTAMP } from '@test';
 
@@ -29,24 +31,30 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-async function getMockReplay(options: ReplayConfiguration = {}) {
-  const { mockSdk } = await import('../test/mocks/mockSdk');
-  const { replay } = await mockSdk({
-    replayOptions: {
-      errorSampleRate: 1.0,
-      sessionSampleRate: 0.0,
-      stickySession: false,
-      ...options,
-    },
-  });
-
-  return replay;
-}
+type MockTransport = jest.MockedFunction<Transport['send']>;
 
 describe('Replay (capture only on error)', () => {
   let replay: Replay;
   let mockRecord: RecordMock;
+  let mockTransport: MockTransport;
   let domHandler: (args: any) => any;
+
+  async function getMockReplay(options: ReplayConfiguration = {}) {
+    const { mockSdk } = await import('../test/mocks/mockSdk');
+    const { replay } = await mockSdk({
+      replayOptions: {
+        errorSampleRate: 1.0,
+        sessionSampleRate: 0.0,
+        stickySession: false,
+        ...options,
+      },
+    });
+
+    mockTransport = getCurrentHub()?.getClient()?.getTransport()
+      ?.send as MockTransport;
+
+    return replay;
+  }
 
   async function resetMocks() {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
@@ -73,6 +81,7 @@ describe('Replay (capture only on error)', () => {
     replay = await getMockReplay();
     jest.runAllTimers();
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    mockTransport?.mockClear();
   });
 
   afterEach(async () => {
@@ -129,7 +138,7 @@ describe('Replay (capture only on error)', () => {
       ]),
     });
 
-    (global.fetch as jest.MockedFunction<typeof global.fetch>).mockClear();
+    mockTransport.mockClear();
     expect(replay).not.toHaveSentReplay();
 
     jest.runAllTimers();
@@ -392,7 +401,7 @@ describe('Replay (capture only on error)', () => {
       ]),
     });
 
-    (global.fetch as jest.MockedFunction<typeof global.fetch>).mockClear();
+    mockTransport.mockClear();
     expect(replay).not.toHaveSentReplay();
 
     jest.runAllTimers();

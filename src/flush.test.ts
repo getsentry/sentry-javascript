@@ -62,7 +62,7 @@ beforeAll(async () => {
   mockSendReplay = replay.sendReplay as MockSendReplay;
   mockSendReplay.mockImplementation(
     jest.fn(async () => {
-      return true;
+      return;
     })
   );
 

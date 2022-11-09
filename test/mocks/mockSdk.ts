@@ -13,9 +13,9 @@ interface MockSdkParams {
 }
 
 class MockTransport implements Transport {
-  async send() {
+  send = jest.fn(async () => {
     return;
-  }
+  });
   async flush() {
     return true;
   }
@@ -55,7 +55,6 @@ export async function mockSdk({
   const replay = new Replay(replayOptions);
 
   init({ ...sentryOptions, integrations: [replay] });
-  jest.spyOn(replay, 'sendReplayRequest');
 
   return { replay };
 }
