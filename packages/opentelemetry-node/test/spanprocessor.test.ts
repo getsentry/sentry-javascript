@@ -443,6 +443,36 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
+    it('adds transaction source `url` for HTTP_TARGET', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', otelSpan => {
+        const sentrySpan = getSpanForOtelSpan(otelSpan);
+
+        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+        otelSpan.end();
+
+        expect(sentrySpan?.transaction?.metadata.source).toBe('url');
+      });
+    });
+
+    it('adds transaction source `url` for HTTP_ROUTE', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', otelSpan => {
+        const sentrySpan = getSpanForOtelSpan(otelSpan);
+
+        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/:id');
+
+        otelSpan.end();
+
+        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+      });
+    });
+
     it('updates based on attributes for DB_SYSTEM', async () => {
       const tracer = provider.getTracer('default');
 

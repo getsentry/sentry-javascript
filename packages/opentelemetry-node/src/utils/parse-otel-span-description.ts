@@ -1,10 +1,12 @@
 import { AttributeValue, SpanKind } from '@opentelemetry/api';
 import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { TransactionSource } from '@sentry/types';
 
 interface SpanDescription {
   op: string | undefined;
   description: string;
+  source: TransactionSource;
 }
 
 /**
@@ -36,6 +38,7 @@ export function parseSpanDescription(otelSpan: OtelSpan): SpanDescription {
     return {
       op: 'rpc',
       description: name,
+      source: 'route',
     };
   }
 
@@ -45,16 +48,17 @@ export function parseSpanDescription(otelSpan: OtelSpan): SpanDescription {
     return {
       op: 'message',
       description: name,
+      source: 'route',
     };
   }
 
   // If faas.trigger exists then this is a function as a service span.
   const faasTrigger = attributes[SemanticAttributes.FAAS_TRIGGER];
   if (faasTrigger) {
-    return { op: faasTrigger.toString(), description: name };
+    return { op: faasTrigger.toString(), description: name, source: 'route' };
   }
 
-  return { op: undefined, description: name };
+  return { op: undefined, description: name, source: 'custom' };
 }
 
 function descriptionForDbSystem(otelSpan: OtelSpan, _dbSystem: AttributeValue): SpanDescription {
@@ -65,7 +69,7 @@ function descriptionForDbSystem(otelSpan: OtelSpan, _dbSystem: AttributeValue): 
 
   const description = statement ? statement.toString() : name;
 
-  return { op: 'db', description };
+  return { op: 'db', description, source: 'task' };
 }
 
 function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue): SpanDescription {
@@ -82,15 +86,19 @@ function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue
       break;
   }
 
+  const httpTarget = attributes[SemanticAttributes.HTTP_TARGET];
+  const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
+
   // Ex. /api/users
-  const httpPath = attributes[SemanticAttributes.HTTP_ROUTE] || attributes[SemanticAttributes.HTTP_TARGET];
+  const httpPath = httpRoute || httpTarget;
 
   if (!httpPath) {
-    return { op: opParts.join('.'), description: name };
+    return { op: opParts.join('.'), description: name, source: 'custom' };
   }
 
   // Ex. description="GET /api/users".
   const description = `${httpMethod} ${httpPath}`;
+  const source: TransactionSource = httpRoute ? 'route' : 'url';
 
-  return { op: opParts.join('.'), description };
+  return { op: opParts.join('.'), description, source };
 }
