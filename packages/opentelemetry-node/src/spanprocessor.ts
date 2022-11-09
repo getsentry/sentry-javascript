@@ -148,6 +148,8 @@ function finishTransactionWithContextFromOtelData(transaction: Transaction, otel
       resource: otelSpan.resource.attributes,
     });
 
+    // just change SOMETHING!
+
     transaction.finish(convertOtelTimeToSeconds(otelSpan.endTime));
   });
 }
