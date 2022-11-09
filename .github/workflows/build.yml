@@ -66,6 +66,7 @@ jobs:
           COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+
       - name: Determine changed packages
         uses: getsentry/paths-filter@v2.11.1
         id: changed
@@ -73,6 +74,7 @@ jobs:
           filters: |
             shared: &shared
               - '*.{js,ts,json,yml,lock}'
+              - 'CHANGELOG.md'
               - '.github/**'
               - 'jest/**'
               - 'rollup/**'
