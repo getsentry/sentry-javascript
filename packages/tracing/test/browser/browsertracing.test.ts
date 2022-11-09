@@ -34,9 +34,6 @@ jest.mock('@sentry/utils', () => {
 
 jest.mock('../../src/browser/metrics');
 
-const { logger } = jest.requireActual('@sentry/utils');
-const warnSpy = jest.spyOn(logger, 'warn');
-
 beforeAll(() => {
   const dom = new JSDOM();
   // @ts-ignore need to override global document
@@ -55,8 +52,6 @@ describe('BrowserTracing', () => {
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
     document.head.innerHTML = '';
-
-    warnSpy.mockClear();
   });
 
   afterEach(() => {
@@ -134,25 +129,6 @@ describe('BrowserTracing', () => {
     });
 
     describe('tracingOrigins', () => {
-      it('warns and uses default tracing origins if none are provided', () => {
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-        });
-
-        expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
-      });
-
-      it('warns and uses default tracing origins if tracing origins are not defined', () => {
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: undefined,
-        });
-
-        expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
-      });
-
       it('sets tracing origins if provided and does not warn', () => {
         const sampleTracingOrigins = ['something'];
         const inst = createBrowserTracing(true, {
@@ -160,7 +136,6 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
-        expect(warnSpy).toHaveBeenCalledTimes(0);
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
 
@@ -171,7 +146,6 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
-        expect(warnSpy).toHaveBeenCalledTimes(0);
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
     });
