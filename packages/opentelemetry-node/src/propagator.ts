@@ -35,17 +35,16 @@ export class SentryPropagator implements TextMapPropagator {
       return;
     }
 
-    // eslint-disable-next-line no-bitwise
-    const samplingDecision = spanContext.traceFlags & TraceFlags.SAMPLED ? 1 : 0;
-    const traceparent = `${spanContext.traceId}-${spanContext.spanId}-${samplingDecision}`;
-    setter.set(carrier, SENTRY_TRACE_HEADER, traceparent);
-
     const span = SENTRY_SPAN_PROCESSOR_MAP.get(spanContext.spanId);
-    if (span && span.transaction) {
-      const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
-      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-      if (sentryBaggageHeader) {
-        setter.set(carrier, SENTRY_BAGGAGE_HEADER, sentryBaggageHeader);
+    if (span) {
+      setter.set(carrier, SENTRY_TRACE_HEADER, span.toTraceparent());
+
+      if (span.transaction) {
+        const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
+        const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+        if (sentryBaggageHeader) {
+          setter.set(carrier, SENTRY_BAGGAGE_HEADER, sentryBaggageHeader);
+        }
       }
     }
   }
