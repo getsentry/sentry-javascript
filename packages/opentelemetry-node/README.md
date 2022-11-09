@@ -10,6 +10,11 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
 
+This package allows you to send your NodeJS OpenTelemetry trace data to Sentry via OpenTelemetry SpanProcessors.
+
+This SDK is considered experimental and in an alpha state. It may experience breaking changes. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
 ## Installation
 
 ```bash
@@ -55,7 +60,3 @@ otelApi.propagation.setGlobalPropagator(new SentryPropagator());
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-
-## Usage
-
-TODO
