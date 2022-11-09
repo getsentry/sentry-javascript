@@ -21,6 +21,7 @@ const mathRandom = jest.spyOn(Math, 'random');
 jest.spyOn(Transaction.prototype, 'setMetadata');
 jest.spyOn(logger, 'warn');
 jest.spyOn(logger, 'log');
+jest.spyOn(logger, 'error');
 jest.spyOn(utilsModule, 'isNodeEnv');
 
 addDOMPropertiesToGlobal(['XMLHttpRequest', 'Event', 'location', 'document']);
@@ -375,6 +376,27 @@ describe('Hub', () => {
       expect(transaction.sampled).toBe(false);
       expect(transaction.finish).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
+    });
+
+    it('should drop transactions when using wrong instrumenter', () => {
+      const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1, instrumenter: 'otel' });
+      const client = new BrowserClient(options);
+      jest.spyOn(client, 'captureEvent');
+
+      const hub = new Hub(client);
+      makeMain(hub);
+      const transaction = hub.startTransaction({ name: 'dogpark' });
+
+      jest.spyOn(transaction, 'finish');
+      transaction.finish();
+
+      expect(transaction.sampled).toBe(false);
+      expect(transaction.finish).toReturnWith(undefined);
+      expect(client.captureEvent).not.toBeCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        `A transaction was started with instrumenter=\`sentry\`, but the SDK is configured with the \`otel\` instrumenter.
+The transaction will not be sampled. Please use the otel instrumentation to start transactions.`,
+      );
     });
 
     describe('sampling inheritance', () => {

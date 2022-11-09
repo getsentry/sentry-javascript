@@ -45,7 +45,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
-        // instrumentor: 'otel',
+        instrumenter: 'otel',
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });
@@ -56,7 +56,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       const transaction = hub.startTransaction({
         name: otelSpan.name,
         ...traceCtx,
-        // instrumentor: 'otel',
+        instrumenter: 'otel',
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });

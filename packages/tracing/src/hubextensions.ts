@@ -166,6 +166,19 @@ function _startTransaction(
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  const configInstrumenter = options.instrumenter || 'sentry';
+  const transactionInstrumenter = transactionContext.instrumenter || 'sentry';
+
+  if (configInstrumenter !== transactionInstrumenter) {
+    __DEBUG_BUILD__ &&
+      logger.error(
+        `A transaction was started with instrumenter=\`${transactionInstrumenter}\`, but the SDK is configured with the \`${configInstrumenter}\` instrumenter.
+The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
+      );
+
+    transactionContext.sampled = false;
+  }
+
   let transaction = new Transaction(transactionContext, this);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
