@@ -15,6 +15,7 @@ import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 import type { RecordMock } from '@test';
 import { BASE_TIMESTAMP } from '@test';
+import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 
 import {
   REPLAY_SESSION_KEY,
@@ -33,7 +34,7 @@ async function advanceTimers(time: number) {
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
-describe('Replay (capture only on error)', () => {
+describe('Replay (errorSampleRate)', () => {
   let replay: Replay;
   let mockRecord: RecordMock;
   let mockTransport: MockTransport;
@@ -416,6 +417,52 @@ describe('Replay (capture only on error)', () => {
         {
           data: { isCheckout: true },
           timestamp: BASE_TIMESTAMP + 10000 + 20,
+          type: 2,
+        },
+      ]),
+    });
+  });
+
+  it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
+    const ELAPSED = 60000;
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    // add a mock performance event
+    replay.performanceEvents.push(PerformanceEntryResource());
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveSentReplay();
+
+    jest.advanceTimersByTime(ELAPSED);
+
+    // in production, this happens at a time interval
+    // session started time should be updated to this current timestamp
+    mockRecord.takeFullSnapshot(true);
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    captureException(new Error('testing'));
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
+
+    // Does not capture mouse click
+    expect(replay).toHaveSentReplay({
+      replayEventPayload: expect.objectContaining({
+        // Make sure the old performance event is thrown out
+        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
+      }),
+      events: JSON.stringify([
+        {
+          data: { isCheckout: true },
+          timestamp: BASE_TIMESTAMP + ELAPSED + 20,
           type: 2,
         },
       ]),

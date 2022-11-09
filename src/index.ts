@@ -560,6 +560,10 @@ export class Replay implements Integration {
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
       setTimeout(async () => {
+        // Allow flush to complete before resuming as a session recording, otherwise
+        // the checkout from `startRecording` may be included in the payload.
+        // Prefer to keep the error replay as a separate (and smaller) segment
+        // than the session replay.
         await this.flushImmediate();
 
         if (this.stopRecording) {
@@ -590,6 +594,15 @@ export class Replay implements Integration {
     }
 
     this.addUpdate(() => {
+      // The session is always started immediately on pageload/init, but for
+      // error-only replays, it should reflect the most recent checkout
+      // when an error occurs. Clear any state that happens before this current
+      // checkout. This needs to happen before `addEvent()` which updates state
+      // dependent on this reset.
+      if (this.waitForError && event.type === 2) {
+        this.setInitialState();
+      }
+
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
       this.addEvent(event, isCheckout);
@@ -608,6 +621,12 @@ export class Replay implements Integration {
       // be captured if they perform any follow-up actions.
       if (this.session?.previousSessionId) {
         return true;
+      }
+
+      // See note above re: session start needs to reflect the most recent
+      // checkout.
+      if (this.waitForError && this.session && this.context.earliestEvent) {
+        this.session.started = this.context.earliestEvent;
       }
 
       // If the full snapshot is due to an initial load, we will not have
