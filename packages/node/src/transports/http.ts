@@ -23,6 +23,8 @@ export interface NodeTransportOptions extends BaseTransportOptions {
   caCerts?: string | Buffer | Array<string | Buffer>;
   /** Custom HTTP module. Defaults to the native 'http' and 'https' modules. */
   httpModule?: HTTPModule;
+  /** Allow overriding connection keepAlive, defaults to false */
+  keepAlive?: boolean;
 }
 
 // Estimated maximum size for reasonable standalone event
@@ -56,12 +58,13 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   );
 
   const nativeHttpModule = isHttps ? https : http;
+  const keepAlive = options.keepAlive === undefined ? false : options.keepAlive;
 
   // TODO(v7): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
   // versions(>= 8) as they had memory leaks when using it: #2555
   const agent = proxy
     ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
-    : new nativeHttpModule.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 });
+    : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
   return createTransport(options, requestExecutor);
