@@ -113,7 +113,7 @@ describe('makeNewHttpTransport()', () => {
         expect(req.headers).toEqual(
           expect.objectContaining({
             // node http module lower-cases incoming headers
-            Connection: 'keep-alive',
+            connection: 'keep-alive',
           }),
         );
       });
