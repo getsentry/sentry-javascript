@@ -402,7 +402,7 @@ jobs:
   job_nextjs_integration_test:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
+    # Currently always runs because it is required for merging PRs
     continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -608,7 +608,7 @@ jobs:
   job_node_integration_tests:
     name: Node SDK Integration Tests (${{ matrix.node }})
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
+    # Currently always runs because it is required for merging PRs
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
