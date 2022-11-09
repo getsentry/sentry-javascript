@@ -84,11 +84,18 @@ export function safeJoin(input: any[], delimiter?: string): string {
 }
 
 /**
- * Checks if the value matches a regex or includes the string
- * @param value The string value to be checked against
- * @param pattern Either a regex or a string that must be contained in value
+ * Checks if the given value matches a regex or string
+ *
+ * @param value The string to test
+ * @param pattern Either a regex or a string against which `value` will be matched
+ * @param requireExactStringMatch If true, `value` must match `pattern` exactly. If false, `value` will match
+ * `pattern` if it contains `pattern`. Only applies to string-type patterns.
  */
-export function isMatchingPattern(value: string, pattern: RegExp | string): boolean {
+export function isMatchingPattern(
+  value: string,
+  pattern: RegExp | string,
+  requireExactStringMatch: boolean = false,
+): boolean {
   if (!isString(value)) {
     return false;
   }
@@ -96,9 +103,10 @@ export function isMatchingPattern(value: string, pattern: RegExp | string): bool
   if (isRegExp(pattern)) {
     return pattern.test(value);
   }
-  if (typeof pattern === 'string') {
-    return value.indexOf(pattern) !== -1;
+  if (isString(pattern)) {
+    return requireExactStringMatch ? value === pattern : value.includes(pattern);
   }
+
   return false;
 }
 

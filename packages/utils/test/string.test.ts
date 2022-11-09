@@ -18,11 +18,29 @@ describe('truncate()', () => {
 });
 
 describe('isMatchingPattern()', () => {
-  test('match using string substring', () => {
+  test('match using string substring if `requireExactStringMatch` not given', () => {
     expect(isMatchingPattern('foobar', 'foobar')).toEqual(true);
     expect(isMatchingPattern('foobar', 'foo')).toEqual(true);
     expect(isMatchingPattern('foobar', 'bar')).toEqual(true);
     expect(isMatchingPattern('foobar', 'nope')).toEqual(false);
+  });
+
+  test('match using string substring if `requireExactStringMatch` is `false`', () => {
+    expect(isMatchingPattern('foobar', 'foobar', false)).toEqual(true);
+    expect(isMatchingPattern('foobar', 'foo', false)).toEqual(true);
+    expect(isMatchingPattern('foobar', 'bar', false)).toEqual(true);
+    expect(isMatchingPattern('foobar', 'nope', false)).toEqual(false);
+  });
+
+  test('match using exact string match if `requireExactStringMatch` is `true`', () => {
+    expect(isMatchingPattern('foobar', 'foobar', true)).toEqual(true);
+    expect(isMatchingPattern('foobar', 'foo', true)).toEqual(false);
+    expect(isMatchingPattern('foobar', 'nope', true)).toEqual(false);
+  });
+
+  test('matches when `value` constains `pattern` but not vice-versa', () => {
+    expect(isMatchingPattern('foobar', 'foo')).toEqual(true);
+    expect(isMatchingPattern('foobar', 'foobarbaz')).toEqual(false);
   });
 
   test('match using regexp test', () => {
