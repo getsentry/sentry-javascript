@@ -723,7 +723,11 @@ jobs:
         job_remix_integration_tests,
         job_ember_tests,
       ]
+    # Always run this, even if a dependent job failed
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: All required tests passed!
-        run: echo "OK"
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
