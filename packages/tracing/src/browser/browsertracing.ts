@@ -147,23 +147,10 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _emitOptionsWarning?: boolean;
-
   public constructor(_options?: Partial<BrowserTracingOptions>) {
-    let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
-    // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
-    if (_options) {
-      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins)) {
-        tracingOrigins = _options.tracingOrigins;
-      } else {
-        __DEBUG_BUILD__ && (this._emitOptionsWarning = true);
-      }
-    }
-
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
       ..._options,
-      tracingOrigins,
     };
 
     const { _metricOptions } = this.options;
@@ -179,17 +166,6 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
-    if (this._emitOptionsWarning) {
-      __DEBUG_BUILD__ &&
-        logger.warn(
-          '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-        );
-      __DEBUG_BUILD__ &&
-        logger.warn(
-          `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
-        );
-    }
-
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
       routingInstrumentation: instrumentRouting,
@@ -198,6 +174,7 @@ export class BrowserTracing implements Integration {
       markBackgroundTransactions,
       traceFetch,
       traceXHR,
+      // eslint-disable-next-line deprecation/deprecation
       tracingOrigins,
       shouldCreateSpanForRequest,
     } = this.options;

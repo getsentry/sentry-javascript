@@ -17,10 +17,9 @@ export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * List of strings / regex where the integration should create Spans out of. Additionally this will be used
-   * to define which outgoing requests the `sentry-trace` header will be attached to.
-   *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACING_ORIGINS}
+   * @deprecated Will be removed in v8.
+   * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
+   * trace header attachment.
    */
   tracingOrigins: Array<string | RegExp>;
 
@@ -50,7 +49,7 @@ export interface RequestInstrumentationOptions {
    * This function will be called before creating a span for a request with the given url.
    * Return false if you don't want a span for the given url.
    *
-   * By default it uses the `tracingOrigins` options as a url match.
+   * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(url: string): boolean;
 }
@@ -114,6 +113,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
+  // eslint-disable-next-line deprecation/deprecation
   const { traceFetch, traceXHR, tracingOrigins, tracePropagationTargets, shouldCreateSpanForRequest } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
