@@ -8,11 +8,13 @@ import { clearCachedFetchImplementation, FetchImpl, getNativeFetchImplementation
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeFetchTransport(
-  options: BrowserTransportOptions,
-  nativeFetch: FetchImpl = getNativeFetchImplementation(),
-): Transport {
+export function makeFetchTransport(options: BrowserTransportOptions, maybeNativeFetch?: FetchImpl): Transport {
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    // Lazy initialization of the native fetch implementation.
+    // So that if `getNativeFetchImplementation` causes DOM I/O it
+    // happens when request is made, not during Sentry initialization.
+    const nativeFetch = maybeNativeFetch || getNativeFetchImplementation();
+
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
