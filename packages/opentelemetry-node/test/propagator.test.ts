@@ -30,63 +30,7 @@ describe('SentryPropagator', () => {
   });
 
   describe('inject', () => {
-    describe('sentry-trace', () => {
-      it.each([
-        [
-          'should set sentry-trace header when sampled',
-          {
-            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-            spanId: '6e0c63257de34c92',
-            traceFlags: TraceFlags.SAMPLED,
-          },
-          'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
-        ],
-        [
-          'should set sentry-trace header when not sampled',
-          {
-            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-            spanId: '6e0c63257de34c92',
-            traceFlags: TraceFlags.NONE,
-          },
-          'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0',
-        ],
-        [
-          'should NOT set sentry-trace header when traceId is empty',
-          {
-            traceId: '',
-            spanId: '6e0c63257de34c92',
-            traceFlags: TraceFlags.SAMPLED,
-          },
-          undefined,
-        ],
-        [
-          'should NOT set sentry-trace header when spanId is empty',
-          {
-            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-            spanId: '',
-            traceFlags: TraceFlags.NONE,
-          },
-          undefined,
-        ],
-      ])('%s', (_name, spanContext, expected) => {
-        const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
-        propagator.inject(context, carrier, defaultTextMapSetter);
-        expect(carrier[SENTRY_TRACE_HEADER]).toBe(expected);
-      });
-
-      it('should NOT set sentry-trace header if instrumentation is supressed', () => {
-        const spanContext = {
-          traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-          spanId: '6e0c63257de34c92',
-          traceFlags: TraceFlags.SAMPLED,
-        };
-        const context = suppressTracing(trace.setSpanContext(ROOT_CONTEXT, spanContext));
-        propagator.inject(context, carrier, defaultTextMapSetter);
-        expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
-      });
-    });
-
-    describe('baggage', () => {
+    describe('baggage and sentry-trace', () => {
       const client = {
         getOptions: () => ({
           environment: 'production',
@@ -123,7 +67,7 @@ describe('SentryPropagator', () => {
       describe.each([PerfType.Transaction, PerfType.Span])('with active %s', type => {
         it.each([
           [
-            'should set baggage header when sampled',
+            'should set baggage and header when sampled',
             {
               traceId: 'd4cda95b652f4a1592b449d5929fda1b',
               spanId: '6e0c63257de34c92',
@@ -136,6 +80,7 @@ describe('SentryPropagator', () => {
               sampled: true,
             },
             'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
           ],
           [
             'should NOT set baggage header when not sampled',
@@ -151,6 +96,7 @@ describe('SentryPropagator', () => {
               sampled: false,
             },
             'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=not-sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0',
           ],
           [
             'should NOT set baggage header when traceId is empty',
@@ -165,6 +111,7 @@ describe('SentryPropagator', () => {
               spanId: '6e0c63257de34c92',
               sampled: true,
             },
+            undefined,
             undefined,
           ],
           [
@@ -181,15 +128,17 @@ describe('SentryPropagator', () => {
               sampled: true,
             },
             undefined,
+            undefined,
           ],
-        ])('%s', (_name, spanContext, transactionContext, expected) => {
+        ])('%s', (_name, spanContext, transactionContext, baggage, sentryTrace) => {
           createTransactionAndMaybeSpan(type, transactionContext);
           const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
           propagator.inject(context, carrier, defaultTextMapSetter);
-          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(expected);
+          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(baggage);
+          expect(carrier[SENTRY_TRACE_HEADER]).toBe(sentryTrace);
         });
 
-        it('should NOT set sentry-trace header if instrumentation is supressed', () => {
+        it('should NOT set baggage and sentry-trace header if instrumentation is supressed', () => {
           const spanContext = {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
             spanId: '6e0c63257de34c92',
@@ -205,6 +154,7 @@ describe('SentryPropagator', () => {
           const context = suppressTracing(trace.setSpanContext(ROOT_CONTEXT, spanContext));
           propagator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
+          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(undefined);
         });
       });
     });
