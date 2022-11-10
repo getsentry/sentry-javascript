@@ -248,6 +248,56 @@ describe('ErrorBoundary', () => {
       expect(cause.message).toEqual(error.message);
     });
 
+    // Regression test against:
+    // https://github.com/getsentry/sentry-javascript/issues/6167
+    it('does not set cause if non Error objected is thrown', () => {
+      const TestAppThrowingString: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
+        const [isError, setError] = React.useState(false);
+        function StringBam(): JSX.Element {
+          throw 'bam';
+        }
+        return (
+          <ErrorBoundary
+            {...props}
+            onReset={(...args) => {
+              setError(false);
+              if (props.onReset) {
+                props.onReset(...args);
+              }
+            }}
+          >
+            {isError ? <StringBam /> : children}
+            <button
+              data-testid="errorBtn"
+              onClick={() => {
+                setError(true);
+              }}
+            />
+          </ErrorBoundary>
+        );
+      };
+
+      render(
+        <TestAppThrowingString fallback={<p>You have hit an error</p>}>
+          <h1>children</h1>
+        </TestAppThrowingString>,
+      );
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith('bam', {
+        contexts: { react: { componentStack: expect.any(String) } },
+      });
+
+      // Check if error.cause -> react component stack
+      const error = mockCaptureException.mock.calls[0][0];
+      expect(error.cause).not.toBeDefined();
+    });
+
     it('calls `beforeCapture()` when an error occurs', () => {
       const mockBeforeCapture = jest.fn();
 
