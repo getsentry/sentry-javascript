@@ -1,6 +1,6 @@
- # Upgrading from 7.18.0 to 7.19.0
+ # Deprecations in 7.x
 
- ## Deprecated `tracingOrigins`
+ ## Deprecated `tracingOrigins` (since 7.19.0)
 
  The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
  See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
