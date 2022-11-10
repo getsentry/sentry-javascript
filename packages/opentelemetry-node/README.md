@@ -36,8 +36,10 @@ You need to register the `SentrySpanProcessor` and `SentryPropagator` with your 
 
 ```js
 import * as Sentry from '@sentry/node';
-import * as otelApi from '@opentelemetry/api';
 import { SentrySpanProcessor } from '@sentry/opentelemetry-node';
+import * as otelApi from '@opentelemetry/api';
+import { getNodeAutoInstrumentations } from  '@opentelemetry/auto-instrumentations-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 
 // Make sure to call `Sentry.init` BEFORE initializing the OpenTelemetry SDK
 Sentry.init({
