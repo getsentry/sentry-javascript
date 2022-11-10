@@ -715,7 +715,16 @@ jobs:
 
   job_required_tests:
     name: All required tests passed or skipped
-    needs: [job_unit_test, job_nextjs_integration_test, job_node_integration_tests]
+    needs:
+      [
+        job_unit_test,
+        job_nextjs_integration_test,
+        job_node_integration_tests,
+        job_browser_playwright_tests,
+        job_browser_integration_tests,
+        job_remix_integration_tests,
+        job_ember_tests,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: All required tests passed!
