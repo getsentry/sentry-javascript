@@ -712,3 +712,11 @@ jobs:
         run: |
           cd packages/e2e-tests
           yarn test:e2e
+
+  job_required_tests:
+    name: All required tests passed or skipped
+    needs: [job_unit_test, job_nextjs_integration_test, job_node_integration_tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required tests passed!
+        run: echo "OK"
