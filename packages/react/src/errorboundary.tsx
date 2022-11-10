@@ -1,5 +1,5 @@
 import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
-import { logger } from '@sentry/utils';
+import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -75,7 +75,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // If on React version >= 17, create stack trace from componentStack param and links
       // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
       // Linking errors requires the `LinkedErrors` integration be enabled.
-      if (isAtLeastReact17(React.version)) {
+      // See: https://reactjs.org/blog/2020/08/10/react-v17-rc.html#native-component-stacks
+      //
+      // Although `componentDidCatch` is typed to accept an `Error` object, it can also be invoked
+      // with non-error objects. This is why we need to check if the error is an error-like object.
+      // See: https://github.com/getsentry/sentry-javascript/issues/6167
+      if (isAtLeastReact17(React.version) && isError(error)) {
         const errorBoundaryError = new Error(error.message);
         errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
         errorBoundaryError.stack = componentStack;
