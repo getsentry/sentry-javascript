@@ -1,7 +1,7 @@
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
-export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 interface Report {
   [key: string]: unknown;
