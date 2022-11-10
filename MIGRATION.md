@@ -1,3 +1,10 @@
+ # Upgrading from 7.18.0 to 7.19.0
+
+ ## Deprecated `tracingOrigins`
+
+ The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+ See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
+
 # Upgrading from 6.x to 7.x
 
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.

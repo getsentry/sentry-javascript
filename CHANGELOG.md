@@ -10,8 +10,12 @@ This release adds a new SDK, [@sentry/opentelemetry-node](./packages/opentelemet
 which is available as an alpha release to integrate OpenTelemetry performance tracing with Sentry.
 Give it a try and let us know if you have any feedback or problems with using it. (#6000)
 
-- chore(deps): bump socket.io-parser from 4.0.4 to 4.0.5 (#6178)
-- feat(node): allow keepAlive override (#6161)
+ ### Deprecation for `tracingOrigins` added
+
+ The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+ See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
+
+- feat(node): Allow keepAlive override (#6161)
 - feat(tracing): Add `transaction.setContext` method (#6154)
 - feat(tracing): Allow to set `instrumenter` on Span & Transaction (#6136)
 - fix(integrations): Remove erroneous WINDOW exports (#6185)
