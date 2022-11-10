@@ -8,7 +8,7 @@
 
  This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.
 
-## Deprecate `getGlobalObject` (since 7.16.0) - #5949
+## Deprecate `getGlobalObject` in `@sentry/utils` (since 7.16.0) - #5949
 
 This is no longer used.
 
