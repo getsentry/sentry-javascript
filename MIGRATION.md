@@ -1,3 +1,21 @@
+ # Deprecations in 7.x
+
+ ## Deprecated `tracingOrigins` (since 7.19.0) - #6176
+
+ The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+
+ ## Deprecate `componentTrackingPreprocessor` in Svelte SDK (since 7.16.0) - #5936
+
+ This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.
+
+## Deprecate `getGlobalObject` in `@sentry/utils` (since 7.16.0) - #5949
+
+This is no longer used.
+
+ ## Deprecate @sentry/hub (since 7.15.0) - #5823
+
+This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
+
 # Upgrading from 6.x to 7.x
 
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.
