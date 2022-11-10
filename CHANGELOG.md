@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.19.0
+
+This release adds a new SDK, [@sentry/opentelemetry-node](./packages/opentelemetry-node/),
+which is available as an alpha release to integrate OpenTelemetry performance tracing with Sentry.
+Give it a try and let us know if you have any feedback or problems with using it. (#6000)
+
+- chore(deps): bump socket.io-parser from 4.0.4 to 4.0.5 (#6178)
+- feat(node): allow keepAlive override (#6161)
+- feat(tracing): Add `transaction.setContext` method (#6154)
+- feat(tracing): Allow to set `instrumenter` on Span & Transaction (#6136)
+- fix(integrations): Remove erroneous WINDOW exports (#6185)
+- fix(react): Guard against non-error obj in ErrorBoundary (#6181)
+- perf(core): Prevent creation of new contexts object on scope (#6156)
+- ref(tracing): Deprecate `tracingOrigins` (#6176)
+
 ## 7.18.0
 
 This release adds the `beforeSendTransaction` callback to all JS SDKs, letting you make changes to or drop transactions before they're sent to Sentry. This callback works identically to `beforeSend`, just for transactions.
