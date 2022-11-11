@@ -403,7 +403,7 @@ export function getWebpackPluginOptions(
   const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
 
-  const distDir = userNextConfig.distDir ?? '.next'; // `.next` is the default directory
+  const distDir = userSentryOptions.distDirOverride ?? userNextConfig.distDir ?? '.next'; // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';

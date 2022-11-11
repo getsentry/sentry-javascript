@@ -99,6 +99,27 @@ describe('Sentry webpack plugin config', () => {
       ]);
     });
 
+    it('has the correct value when building client bundles using `distDirOverride` option', async () => {
+      const exportedNextConfigWithDistDirOverride = {
+        ...exportedNextConfig,
+        sentry: { distDirOverride: 'dist/.next' },
+      };
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithDistDirOverride,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithDistDirOverride),
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        { paths: ['dist/.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' },
+      ]);
+    });
+
     it('has the correct value when building serverless server bundles', async () => {
       const exportedNextConfigServerless = {
         ...exportedNextConfig,
@@ -466,6 +487,54 @@ describe('Sentry webpack plugin config', () => {
         {}, // userPluginOptions
         {}, // userSentryOptions
       ).include as { paths: [] }[];
+
+      for (const pathDescriptor of includePaths) {
+        for (const path of pathDescriptor.paths) {
+          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+        }
+      }
+    });
+  });
+
+  describe('correct paths from `distDirOverride` in WebpackPluginOptions', () => {
+    const customDistDir = 'tmpDir';
+    const defaultDistDir = '.next';
+    const expectedDistDir = 'dist/.next';
+
+    it.each([
+      getBuildContext('client', {}),
+      getBuildContext('server', { target: 'experimental-serverless-trace' }), // serverless
+      getBuildContext('server', {}, '4'),
+      getBuildContext('server', {}, '5'),
+    ])('`distDir` is not defined', (buildContext: BuildContext) => {
+      const includePaths = getWebpackPluginOptions(
+        buildContext,
+        {}, // userPluginOptions
+        { distDirOverride: expectedDistDir }, // userSentryOptions
+      ).include as { paths: [] }[];
+
+      expect(buildContext.config.distDir).toEqual(defaultDistDir);
+
+      for (const pathDescriptor of includePaths) {
+        for (const path of pathDescriptor.paths) {
+          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+        }
+      }
+    });
+
+    it.each([
+      getBuildContext('client', { distDir: customDistDir }),
+      getBuildContext('server', { distDir: customDistDir, target: 'experimental-serverless-trace' }), // serverless
+      getBuildContext('server', { distDir: customDistDir }, '4'),
+      getBuildContext('server', { distDir: customDistDir }, '5'),
+    ])('`distDir` is defined', (buildContext: BuildContext) => {
+      const includePaths = getWebpackPluginOptions(
+        buildContext,
+        {}, // userPluginOptions
+        { distDirOverride: expectedDistDir }, // userSentryOptions
+      ).include as { paths: [] }[];
+
+      expect(buildContext.config.distDir).toEqual(customDistDir);
 
       for (const pathDescriptor of includePaths) {
         for (const path of pathDescriptor.paths) {

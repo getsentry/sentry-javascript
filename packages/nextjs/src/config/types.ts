@@ -59,6 +59,14 @@ export type UserSentryOptions = {
 
   // Automatically instrument Next.js data fetching methods and Next.js API routes
   autoInstrumentServerFunctions?: boolean;
+
+  // Override the distDir which is helpful if the if you're using a monorepo, such as Nx.
+  // Ultimately, directs the Sentry CLI to the correct directory.
+  // Monorepo example:
+  //    App Directory: `apps/my-next-app`
+  //    NextJS `distDir` is set to`../../dist/apps/my-next-app/.next`.
+  //    Sentry `distDirOverride` should be set to `dist/apps/my-next-app/.next`, as the CLI is run from the monorepo root.
+  distDirOverride?: string;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
