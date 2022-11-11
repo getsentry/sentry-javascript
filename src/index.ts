@@ -1237,9 +1237,17 @@ export class Replay implements Integration {
           if (session) {
             client._updateSessionFromEvent(session, preparedEvent);
           }
+
           preparedEvent.sdk = {
             ...preparedEvent.sdk,
             ...sdkInfo,
+          };
+
+          preparedEvent.tags = {
+            ...preparedEvent.tags,
+            sessionSampleRate: this.options.sessionSampleRate,
+            errorSampleRate: this.options.errorSampleRate,
+            replayType: this.session?.sampled,
           };
 
           resolve(preparedEvent);

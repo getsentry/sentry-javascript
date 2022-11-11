@@ -119,6 +119,13 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
+      replayEventPayload: expect.objectContaining({
+        tags: expect.objectContaining({
+          errorSampleRate: 1,
+          replayType: 'error',
+          sessionSampleRate: 0,
+        }),
+      }),
       events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
         TEST_EVENT,
