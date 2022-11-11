@@ -535,10 +535,15 @@ export class Replay implements Integration {
       return event;
     }
 
-    event.tags = { ...event.tags, replayId: this.session?.id };
+    // Only tag transactions with replayId if not waiting for an error
+    if (event.type !== 'transaction' || !this.waitForError) {
+      event.tags = { ...event.tags, replayId: this.session?.id };
+    }
 
+    // Collect traceIds in context regardless of `waitForError` - if it's true,
+    // context gets cleared on every checkout
     if (event.type === 'transaction') {
-      this.context.traceIds.add(String(event.contexts?.trace.trace_id || ''));
+      this.context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
       return event;
     }
 
