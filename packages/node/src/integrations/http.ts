@@ -1,5 +1,5 @@
 import { getCurrentHub, Hub } from '@sentry/core';
-import { EventProcessor, Integration, Span } from '@sentry/types';
+import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
@@ -11,7 +11,6 @@ import * as http from 'http';
 import * as https from 'https';
 
 import { NodeClient } from '../client';
-import { NodeClientOptions } from '../types';
 import {
   cleanSpanDescription,
   extractUrl,
@@ -22,6 +21,39 @@ import {
 } from './utils/http';
 
 const NODE_VERSION = parseSemver(process.versions.node);
+
+interface TracingOptions {
+  /**
+   * List of strings/regex controlling to which outgoing requests
+   * the SDK will attach tracing headers.
+   *
+   * By default the SDK will attach those headers to all outgoing
+   * requests. If this option is provided, the SDK will match the
+   * request URL of outgoing requests against the items in this
+   * array, and only attach tracing headers if a match was found.
+   */
+  tracePropagationTargets?: TracePropagationTargets;
+
+  /**
+   * Function determining whether or not to create spans to track outgoing requests to the given URL.
+   * By default, spans will be created for all outgoing requests.
+   */
+  shouldCreateSpanForRequest?: (url: string) => boolean;
+}
+
+interface HttpOptions {
+  /**
+   * Whether breadcrumbs should be recorded for requests
+   * Defaults to true
+   */
+  breadcrumbs?: boolean;
+
+  /**
+   * Whether tracing spans should be created for requests
+   * Defaults to false
+   */
+  tracing?: TracingOptions | boolean;
+}
 
 /**
  * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
@@ -38,22 +70,15 @@ export class Http implements Integration {
    */
   public name: string = Http.id;
 
-  /**
-   * @inheritDoc
-   */
   private readonly _breadcrumbs: boolean;
+  private readonly _tracing: TracingOptions | undefined;
 
   /**
    * @inheritDoc
    */
-  private readonly _tracing: boolean;
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: { breadcrumbs?: boolean; tracing?: boolean } = {}) {
+  public constructor(options: HttpOptions = {}) {
     this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
-    this._tracing = typeof options.tracing === 'undefined' ? false : options.tracing;
+    this._tracing = !options.tracing ? undefined : options.tracing === true ? {} : options.tracing;
   }
 
   /**
@@ -76,7 +101,11 @@ export class Http implements Integration {
       return;
     }
 
-    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, this._tracing, clientOptions);
+    // TODO (v8): `tracePropagationTargets` and `shouldCreateSpanForRequest` will be removed from clientOptions
+    // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
+    const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
+
+    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
@@ -111,15 +140,14 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
  */
 function _createWrappedRequestMethodFactory(
   breadcrumbsEnabled: boolean,
-  tracingEnabled: boolean,
-  options: NodeClientOptions | undefined,
+  tracingOptions: TracingOptions | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
   const createSpanUrlMap: Record<string, boolean> = {};
   const headersUrlMap: Record<string, boolean> = {};
 
   const shouldCreateSpan = (url: string): boolean => {
-    if (options?.shouldCreateSpanForRequest === undefined) {
+    if (tracingOptions?.shouldCreateSpanForRequest === undefined) {
       return true;
     }
 
@@ -127,13 +155,13 @@ function _createWrappedRequestMethodFactory(
       return createSpanUrlMap[url];
     }
 
-    createSpanUrlMap[url] = options.shouldCreateSpanForRequest(url);
+    createSpanUrlMap[url] = tracingOptions.shouldCreateSpanForRequest(url);
 
     return createSpanUrlMap[url];
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
-    if (options?.tracePropagationTargets === undefined) {
+    if (tracingOptions?.tracePropagationTargets === undefined) {
       return true;
     }
 
@@ -141,7 +169,7 @@ function _createWrappedRequestMethodFactory(
       return headersUrlMap[url];
     }
 
-    headersUrlMap[url] = options.tracePropagationTargets.some(tracePropagationTarget =>
+    headersUrlMap[url] = tracingOptions.tracePropagationTargets.some(tracePropagationTarget =>
       isMatchingPattern(url, tracePropagationTarget),
     );
 
@@ -167,7 +195,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
-      if (scope && tracingEnabled && shouldCreateSpan(requestUrl)) {
+      if (scope && tracingOptions && shouldCreateSpan(requestUrl)) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
@@ -235,7 +263,7 @@ function _createWrappedRequestMethodFactory(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('response', requestUrl, req, res);
           }
-          if (tracingEnabled && requestSpan) {
+          if (requestSpan) {
             if (res.statusCode) {
               requestSpan.setHttpStatus(res.statusCode);
             }
@@ -250,7 +278,7 @@ function _createWrappedRequestMethodFactory(
           if (breadcrumbsEnabled) {
             addRequestBreadcrumb('error', requestUrl, req);
           }
-          if (tracingEnabled && requestSpan) {
+          if (requestSpan) {
             requestSpan.setHttpStatus(500);
             requestSpan.description = cleanSpanDescription(requestSpan.description, requestOptions, req);
             requestSpan.finish();
