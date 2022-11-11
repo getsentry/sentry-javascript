@@ -238,7 +238,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     # Size Check will error out outside of the context of a PR
-    if: ${{ github.event_name == 'pull_request' }} || ${{ startsWith(github.ref, 'refs/heads/master/') }}
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/master/')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -365,10 +365,10 @@ jobs:
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
-    continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [8, 10, 12, 14, 16, 18]
     steps:
@@ -403,10 +403,10 @@ jobs:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
     # Currently always runs because it is required for merging PRs
-    continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
@@ -441,10 +441,10 @@ jobs:
     name: Test @sentry/ember
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_ember == 'true' || github.event_name != 'pull_request'
-    continue-on-error: true
     timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         scenario: [ember-release, embroider-optimized, ember-4.0]
     steps:
@@ -537,8 +537,8 @@ jobs:
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         browser:
           - ChromeHeadless
@@ -576,7 +576,6 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -611,8 +610,8 @@ jobs:
     # Currently always runs because it is required for merging PRs
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
@@ -647,8 +646,8 @@ jobs:
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         node: [14, 16, 18]
     steps:
@@ -684,7 +683,6 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -712,3 +710,24 @@ jobs:
         run: |
           cd packages/e2e-tests
           yarn test:e2e
+
+  job_required_tests:
+    name: All required tests passed or skipped
+    needs:
+      [
+        job_unit_test,
+        job_nextjs_integration_test,
+        job_node_integration_tests,
+        job_browser_playwright_tests,
+        job_browser_integration_tests,
+        job_remix_integration_tests,
+        job_ember_tests,
+      ]
+    # Always run this, even if a dependent job failed
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
