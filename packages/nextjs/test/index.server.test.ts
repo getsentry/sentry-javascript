@@ -169,7 +169,7 @@ describe('Server init()', () => {
         const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
       it('adds `Http` integration with tracing enabled if `tracesSampler` is set', () => {
@@ -179,7 +179,7 @@ describe('Server init()', () => {
         const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
       it('does not add `Http` integration if tracing not enabled in SDK', () => {
@@ -201,7 +201,7 @@ describe('Server init()', () => {
         const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
       it('forces `_tracing = true` if `tracesSampler` is set', () => {
@@ -214,7 +214,7 @@ describe('Server init()', () => {
         const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: true }));
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
       it('does not force `_tracing = true` if tracing not enabled in SDK', () => {
@@ -226,7 +226,7 @@ describe('Server init()', () => {
         const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: false }));
+        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: undefined }));
       });
     });
   });

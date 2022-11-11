@@ -129,7 +129,7 @@ function addServerIntegrations(options: NextjsOptions): void {
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-      _tracing: true,
+      _tracing: {},
     });
   }
 
