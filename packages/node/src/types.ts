@@ -8,13 +8,17 @@ export interface BaseNodeOptions {
 
   // TODO (v8): Remove this in v8
   /**
-   * @deprecated Moved to constructor options of `BrowserTracing`.
+   * @deprecated Moved to constructor options of the `Http` integration.
    * @example
    * ```js
-   * new BrowserTracing({
-   *    tracing: {
-   *      tracePropagationTargets: ['api.site.com'],
-   *    }
+   * Sentry.init({
+   *   integrations: [
+   *     new Sentry.Integrations.Http({
+   *       tracing: {
+   *         tracePropagationTargets: ['api.site.com'],
+   *       }
+   *     });
+   *   ],
    * });
    * ```
    */
@@ -22,14 +26,18 @@ export interface BaseNodeOptions {
 
   // TODO (v8): Remove this in v8
   /**
-   * @deprecated Moved to constructor options of `BrowserTracing`.
+   * @deprecated Moved to constructor options of the `Http` integration.
    * @example
    * ```js
-   * new BrowserTracing({
-   *   tracing: {
-   *     shouldCreateSpanForRequest: (url: string) => false,
-   *   }
-   * })
+   * Sentry.init({
+   *   integrations: [
+   *     new Sentry.Integrations.Http({
+   *       tracing: {
+   *         shouldCreateSpanForRequest: (url: string) => false,
+   *       }
+   *     });
+   *   ],
+   * });
    * ```
    */
   shouldCreateSpanForRequest?(url: string): boolean;
