@@ -134,6 +134,8 @@ This means that all commits on the branch will be squashed into a single commit,
 
 _These steps are only relevant to Sentry employees when preparing and publishing a new SDK release._
 
+**If you want to release a new SDK for the first time, be sure to follow the [New SDK Release Checklist](./docs/new-sdk-release-checklist.md)**
+
 1. Determine what version will be released (we use [semver](https://semver.org)).
 2. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry for the next release number and a list of changes since the last release. (See details below.)
 3. Run the [Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) workflow.
