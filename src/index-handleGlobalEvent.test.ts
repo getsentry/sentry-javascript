@@ -1,47 +1,22 @@
 // mock functions need to be imported first
 import { afterEach, beforeEach, expect, it, jest } from '@jest/globals';
-import type { RecordMock } from '@test';
-import { BASE_TIMESTAMP } from '@test';
 import { Error } from '@test/fixtures/error';
 import { Transaction } from '@test/fixtures/transaction';
+import { resetSdkMock } from '@test/mocks';
 
 import { REPLAY_EVENT_NAME } from './session/constants';
-import { ReplayConfiguration } from './types';
 import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
 
 let replay: Replay;
-let mockRecord: RecordMock;
 
-async function getMockReplay(options: ReplayConfiguration = {}) {
-  const { mockSdk } = await import('../test/mocks/mockSdk');
-  const { replay } = await mockSdk({
-    replayOptions: {
-      errorSampleRate: 1.0,
-      sessionSampleRate: 0.0,
-      stickySession: false,
-      ...options,
-    },
-  });
-
-  return replay;
-}
-async function resetMocks() {
-  jest.setSystemTime(new Date(BASE_TIMESTAMP));
-  jest.clearAllMocks();
-  jest.resetModules();
-  // NOTE: The listeners added to `addInstrumentationHandler` are leaking
-  // @ts-expect-error Don't know if there's a cleaner way to clean up old event processors
-  globalThis.__SENTRY__.globalEventProcessors = [];
-  const { mockRrweb } = await import('../test/mocks/mockRrweb');
-  ({ record: mockRecord } = mockRrweb());
-  mockRecord.takeFullSnapshot.mockClear();
-}
 beforeEach(async () => {
-  await resetMocks();
-  replay = await getMockReplay();
-  jest.runAllTimers();
+  ({ replay } = await resetSdkMock({
+    errorSampleRate: 1.0,
+    sessionSampleRate: 0.0,
+    stickySession: false,
+  }));
 });
 
 afterEach(() => {
@@ -111,11 +86,10 @@ it('only tags errors with replay id, adds trace and error id to context for erro
 });
 
 it('tags errors and transactions with replay id for session samples', async () => {
-  await resetMocks();
-  replay = await getMockReplay({
+  ({ replay } = await resetSdkMock({
     sessionSampleRate: 1.0,
     errorSampleRate: 0,
-  });
+  }));
   replay.start();
   const transaction = Transaction();
   const error = Error();

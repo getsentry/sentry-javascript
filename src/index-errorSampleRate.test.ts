@@ -11,18 +11,17 @@ import {
   jest,
 } from '@jest/globals';
 import { captureException } from '@sentry/browser';
-import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
-import type { RecordMock } from '@test';
+import { RecordMock } from '@test';
 import { BASE_TIMESTAMP } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
+import { resetSdkMock } from '@test/mocks';
+import { DomHandler, MockTransportSend } from '@test/types';
 
 import {
   REPLAY_SESSION_KEY,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
-import { ReplayConfiguration } from './types';
 import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
@@ -32,57 +31,20 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockTransport = jest.MockedFunction<Transport['send']>;
-
 describe('Replay (errorSampleRate)', () => {
   let replay: Replay;
   let mockRecord: RecordMock;
-  let mockTransport: MockTransport;
-  let domHandler: (args: any) => any;
-
-  async function getMockReplay(options: ReplayConfiguration = {}) {
-    const { mockSdk } = await import('../test/mocks/mockSdk');
-    const { replay } = await mockSdk({
-      replayOptions: {
-        errorSampleRate: 1.0,
-        sessionSampleRate: 0.0,
-        stickySession: false,
-        ...options,
-      },
-    });
-
-    mockTransport = getCurrentHub()?.getClient()?.getTransport()
-      ?.send as MockTransport;
-
-    return replay;
-  }
-
-  async function resetMocks() {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.clearAllMocks();
-    jest.resetModules();
-    // NOTE: The listeners added to `addInstrumentationHandler` are leaking
-    // @ts-expect-error Don't know if there's a cleaner way to clean up old event processors
-    globalThis.__SENTRY__.globalEventProcessors = [];
-    const SentryUtils = await import('@sentry/utils');
-    jest
-      .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((type, handler: (args: any) => any) => {
-        if (type === 'dom') {
-          domHandler = handler;
-        }
-      });
-    const { mockRrweb } = await import('../test/mocks/mockRrweb');
-    ({ record: mockRecord } = mockRrweb());
-    mockRecord.takeFullSnapshot.mockClear();
-  }
+  let mockTransportSend: MockTransportSend;
+  let domHandler: DomHandler;
 
   beforeEach(async () => {
-    await resetMocks();
-    replay = await getMockReplay();
-    jest.runAllTimers();
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockTransport?.mockClear();
+    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock(
+      {
+        errorSampleRate: 1.0,
+        sessionSampleRate: 0.0,
+        stickySession: true,
+      }
+    ));
   });
 
   afterEach(async () => {
@@ -146,7 +108,7 @@ describe('Replay (errorSampleRate)', () => {
       ]),
     });
 
-    mockTransport.mockClear();
+    mockTransportSend.mockClear();
     expect(replay).not.toHaveSentReplay();
 
     jest.runAllTimers();
@@ -385,9 +347,9 @@ describe('Replay (errorSampleRate)', () => {
       REPLAY_SESSION_KEY,
       `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`
     );
-    await resetMocks();
-
-    replay = await getMockReplay({ stickySession: true });
+    ({ mockRecord, mockTransportSend, replay } = await resetSdkMock({
+      stickySession: true,
+    }));
     replay.start();
 
     jest.runAllTimers();
@@ -409,7 +371,7 @@ describe('Replay (errorSampleRate)', () => {
       ]),
     });
 
-    mockTransport.mockClear();
+    mockTransportSend.mockClear();
     expect(replay).not.toHaveSentReplay();
 
     jest.runAllTimers();
