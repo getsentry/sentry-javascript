@@ -341,7 +341,7 @@ describe('tracing', () => {
       );
     });
 
-    describe('as BrowserTracing constructor options', () => {
+    describe('as Http integration constructor options', () => {
       it("doesn't create span if shouldCreateSpanForRequest returns false", () => {
         const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
