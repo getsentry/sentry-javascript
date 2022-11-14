@@ -37,6 +37,10 @@ export type NextConfigObject = {
 };
 
 export type UserSentryOptions = {
+  // Override the automatic disabling of Sentry when `VERCEL_ENV` is `preview`.
+  // Useful for `preview` -> `staging` -> `production` workflows.
+  allowedPreviewBranches?: string[];
+
   // Override the SDK's default decision about whether or not to enable to the webpack plugin. Note that `false` forces
   // the plugin to be enabled, even in situations where it's not recommended.
   disableServerWebpackPlugin?: boolean;

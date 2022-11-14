@@ -306,7 +306,6 @@ describe('Sentry webpack plugin config', () => {
         true,
         false,
       ],
-
       [
         'obeys `disableServerWebpackPlugin = true`',
         {
@@ -323,6 +322,16 @@ describe('Sentry webpack plugin config', () => {
         { VERCEL_ENV: 'preview' },
         false,
         false,
+      ],
+      [
+        'allows the plugin in Vercel `preview` environment with a branch of `staging`',
+        {
+          ...exportedNextConfig,
+          sentry: { allowedPreviewBranches: ['staging'] },
+        },
+        { VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'staging' },
+        true,
+        true,
       ],
       [
         'disables the plugin in Vercel `development` environment',

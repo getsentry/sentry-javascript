@@ -449,7 +449,7 @@ export function getWebpackPluginOptions(
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer, dev: isDev } = buildContext;
-  const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
+  const { allowedPreviewBranches, disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
 
   /** Non-negotiable */
 
@@ -471,7 +471,7 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   /** Situations where the default is to disable the plugin */
 
-  // TODO: Are there analogs to Vercel's preveiw and dev modes on other deployment platforms?
+  // TODO: Are there analogs to Vercel's preview and dev modes on other deployment platforms?
 
   if (isDev || process.env.NODE_ENV === 'development') {
     // TODO (v8): Right now in dev we set the plugin to dryrun mode, and our boilerplate includes setting the plugin to
@@ -480,7 +480,16 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
     // return false
   }
 
-  if (process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'development') {
+  // Disable in preview environments but allow for user-defined preview environments.
+  // The user-defined environments are based on the Git branch name, which is how
+  // Vercel segments them out for separate configurations.
+  if (
+    process.env.VERCEL_ENV === 'preview' &&
+    (typeof process.env.VERCEL_GIT_COMMIT_REF === 'undefined' ||
+      !allowedPreviewBranches?.includes(process.env.VERCEL_GIT_COMMIT_REF))
+  ) {
+    return false;
+  } else if (process.env.VERCEL_ENV === 'development') {
     return false;
   }
 
