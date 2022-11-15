@@ -9,6 +9,7 @@ const moduleExports = {
     // Suppress the warning message from `handleSourcemapHidingOptionWarning` in `src/config/webpack.ts`
     // TODO (v8): This can come out in v8, because this option will get a default value
     hideSourceMaps: false,
+    excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
   },
 };
 const SentryWebpackPluginOptions = {
