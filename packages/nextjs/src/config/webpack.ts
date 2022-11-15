@@ -475,7 +475,8 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: (entryPointName: string) => shouldAddSentryToEntryPoint(entryPointName, isServer),
+    entries: (entryPointName: string) =>
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
