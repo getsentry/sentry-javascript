@@ -1101,15 +1101,16 @@ export class Replay implements Integration {
     // Only attach memory event if eventBuffer is not empty
     await this.addMemoryEntry();
 
-    // NOTE: Copy values from instance members, as it's possible they could
-    // change before the flush finishes.
-    const replayId = this.session.id;
-    // Always increment segmentId regardless of outcome of sending replay
-    const segmentId = this.session.segmentId++;
-
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
+
+      // NOTE: Copy values from instance members, as it's possible they could
+      // change before the flush finishes.
+      const replayId = this.session.id;
+      // Always increment segmentId regardless of outcome of sending replay
+      const segmentId = this.session.segmentId++;
+
       await this.sendReplay({
         replayId,
         events: recordingData,
