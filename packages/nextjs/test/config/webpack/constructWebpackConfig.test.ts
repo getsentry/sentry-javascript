@@ -241,5 +241,30 @@ describe('constructWebpackConfigFunction()', () => {
         simulatorBundle: './src/simulator/index.ts',
       });
     });
+
+    it('does not inject into routes included in `excludeServerRoutes`', async () => {
+      const nextConfigWithExcludedRoutes = {
+        ...exportedNextConfig,
+        sentry: {
+          excludeServerRoutes: [/simulator/],
+        },
+      };
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: nextConfigWithExcludedRoutes,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.entry).toEqual(
+        expect.objectContaining({
+          'pages/simulator/leaderboard': {
+            import: expect.not.arrayContaining([serverConfigFilePath]),
+          },
+          'pages/api/simulator/dogStats/[name]': {
+            import: expect.not.arrayContaining([serverConfigFilePath]),
+          },
+        }),
+      );
+    });
   });
 });
