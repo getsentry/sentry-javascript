@@ -701,7 +701,6 @@ export class Replay implements Integration {
    * Handler for Sentry Core SDK events.
    *
    * These specific events will create span-like objects in the recording.
-   *
    */
   handleCoreSpanListener =
     (type: InstrumentationTypeSpan) => (handlerData: any) => {
@@ -900,8 +899,9 @@ export class Replay implements Integration {
   }
 
   /**
-   * Updates the user activity timestamp and resumes recording. This should be called in an event handler for a user action that we consider as the user being "active" (e.g. a mouse click).
-   *
+   * Updates the user activity timestamp and resumes recording. This should be
+   * called in an event handler for a user action that we consider as the user
+   * being "active" (e.g. a mouse click).
    */
   async triggerUserActivity() {
     this.updateUserActivity();
@@ -909,7 +909,8 @@ export class Replay implements Integration {
     // This case means that recording was once stopped due to inactivity.
     // Ensure that recording is resumed.
     if (!this.stopRecording) {
-      // Create a new session, otherwise when the user action is flushed, it will get rejected due to an expired session.
+      // Create a new session, otherwise when the user action is flushed, it
+      // will get rejected due to an expired session.
       this.loadSession({ expiry: SESSION_IDLE_DURATION });
 
       // Note: This will cause a new DOM checkout
@@ -1025,12 +1026,7 @@ export class Replay implements Integration {
       return true;
     }
 
-    // TODO: We could potentially figure out a way to save the last session,
-    // and produce a checkout based on a previous checkout + updates, and then
-    // replay the event on top. Or maybe replay the event on top of a refresh
-    // snapshot.
-
-    // For now create a new snapshot
+    // Session is expired, trigger a full snapshot (which will create a new session)
     this.triggerFullSnapshot();
 
     return false;
