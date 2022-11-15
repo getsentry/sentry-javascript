@@ -59,6 +59,14 @@ export type UserSentryOptions = {
 
   // Automatically instrument Next.js data fetching methods and Next.js API routes
   autoInstrumentServerFunctions?: boolean;
+
+  // Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
+  // strings or regular expressions.
+  //
+  // NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
+  // (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
+  // exact match.
+  excludeServerRoutes?: Array<RegExp | string>;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
