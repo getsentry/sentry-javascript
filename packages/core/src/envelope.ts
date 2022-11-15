@@ -35,6 +35,8 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   event.sdk.version = event.sdk.version || sdkInfo.version;
   event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
   event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+  // Either 'CDN', 'npm', or 'lambdaLayer'. This is hardcoded as part of our build process.
+  event.sdk.source = '__SDK_SOURCE__';
   return event;
 }
 
