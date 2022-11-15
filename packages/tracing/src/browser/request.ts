@@ -5,7 +5,7 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
-  isMatchingPattern,
+  stringMatchesSomePattern,
 } from '@sentry/utils';
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
@@ -123,8 +123,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
   const shouldAttachHeaders = (url: string): boolean =>
-    tracingOrigins.some(origin => isMatchingPattern(url, origin)) ||
-    tracePropagationTargets.some(origin => isMatchingPattern(url, origin));
+    stringMatchesSomePattern(url, tracingOrigins) || stringMatchesSomePattern(url, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
 
