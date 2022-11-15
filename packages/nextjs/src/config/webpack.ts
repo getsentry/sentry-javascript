@@ -275,6 +275,16 @@ async function addSentryToEntryProperty(
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes)) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+    } else {
+      if (
+        isServer &&
+        // If the user has asked to exclude pages, confirm for them that it's worked
+        userSentryOptions.excludeServerRoutes &&
+        // We always skip these, so it's not worth telling the user that we've done so
+        !['pages/_app', 'pages/_document'].includes(entryPointName)
+      ) {
+        __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
+      }
     }
   }
 
