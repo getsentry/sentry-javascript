@@ -10,6 +10,7 @@ import {
   makeBrowserBuildPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
+  makeSDKSourcePlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeCleanupPlugin,
@@ -28,6 +29,8 @@ export function makeBaseBundleConfig(options) {
   const sucrasePlugin = makeSucrasePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
+  const markAsCDNSourcePlugin = makeSDKSourcePlugin('CDN');
+  const markAsLambdaLayerSourcePlugin = makeSDKSourcePlugin('lambdaLayer');
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
 
@@ -43,7 +46,7 @@ export function makeBaseBundleConfig(options) {
       name: 'Sentry',
     },
     context: 'window',
-    plugins: [markAsBrowserBuildPlugin],
+    plugins: [markAsBrowserBuildPlugin, markAsCDNSourcePlugin],
   };
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
@@ -76,7 +79,7 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [markAsBrowserBuildPlugin],
+    plugins: [markAsBrowserBuildPlugin, markAsCDNSourcePlugin],
   };
 
   // used by `@sentry/serverless`, when creating the lambda layer
@@ -84,7 +87,7 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'cjs',
     },
-    plugins: [commonJSPlugin],
+    plugins: [commonJSPlugin, markAsLambdaLayerSourcePlugin],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };

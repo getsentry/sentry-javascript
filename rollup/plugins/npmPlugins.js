@@ -104,4 +104,21 @@ export function makeDebugBuildStatementReplacePlugin() {
   });
 }
 
+/**
+ * Creates a plugin to replace all instances of "__SDK_SOURCE__" with either "CDN" or "npm".
+ *
+ * @returns A `@rollup/plugin-replace` instance.
+ */
+export function makeSDKSourcePlugin(source) {
+  return replace({
+    // TODO `preventAssignment` will default to true in version 5.x of the replace plugin, at which point we can get rid
+    // of this. (It actually makes no difference in this case whether it's true or false, since we never assign to
+    // `__SDK_SOURCE__`, but if we don't give it a value, it will spam with warnings.)
+    preventAssignment: true,
+    values: {
+      __SDK_SOURCE__: source,
+    },
+  });
+}
+
 export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.js';
