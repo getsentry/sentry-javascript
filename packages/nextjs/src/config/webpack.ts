@@ -380,11 +380,37 @@ function checkWebpackPluginOverrides(
  * @returns `true` if sentry code should be injected, and `false` otherwise
  */
 function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
-  return (
-    entryPointName === 'pages/_app' ||
-    (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
-    (isServer && entryPointName === 'pages/_error')
-  );
+  // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
+  if (isServer) {
+    const entryPointRoute = entryPointName.replace(/^pages/, '');
+    if (
+      // All non-API pages contain both of these components, and we don't want to inject more than once, so as long as
+      // we're doing the individual pages, it's fine to skip these. (Note: Even if a given user doesn't have either or
+      // both of these in their `pages/` folder, they'll exist as entrypoints because nextjs will supply default
+      // versions.)
+      entryPointRoute === '/_app' ||
+      entryPointRoute === '/_document' ||
+      // While middleware was in beta, it could be anywhere (at any level) in the `pages` directory, and would be called
+      // `_middleware.js`. Until the SDK runs successfully in the lambda edge environment, we have to exclude these.
+      entryPointName.includes('_middleware') ||
+      // Newer versions of nextjs are starting to introduce things outside the `pages/` folder (middleware, an `app/`
+      // directory, etc), but until those features are stable and we know how we want to support them, the safest bet is
+      // not to inject anywhere but inside `pages/`.
+      !entryPointName.startsWith('pages/')
+    ) {
+      return false;
+    }
+
+    // We want to inject Sentry into all other pages
+    return true;
+  }
+
+  // On the client side, we only want to inject into `_app`, because that guarantees there'll be only one copy of the
+  // SDK in the eventual bundle. Since `_app` is the (effectively) the root component for every nextjs app, inclusing
+  // Sentry there means it will be available for every front end page.
+  else {
+    return entryPointName === 'pages/_app';
+  }
 }
 
 /**
