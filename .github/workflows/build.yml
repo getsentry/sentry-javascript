@@ -475,7 +475,7 @@ jobs:
       - name: Run Ember tests
         run: |
           cd packages/ember
-          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
+          yarn failing-test-because-not-exists
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
