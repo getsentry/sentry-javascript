@@ -111,6 +111,24 @@ export function isMatchingPattern(
 }
 
 /**
+ * Test the given string against an array of strings and regexes. By default, string matching is done on a
+ * substring-inclusion basis rather than a strict equality basis
+ *
+ * @param testString The string to test
+ * @param patterns The patterns against which to test the string
+ * @param requireExactStringMatch If true, `testString` must match one of the given string patterns exactly in order to
+ * count. If false, `testString` will match a string pattern if it contains that pattern.
+ * @returns
+ */
+export function stringMatchesSomePattern(
+  testString: string,
+  patterns: Array<string | RegExp> = [],
+  requireExactStringMatch: boolean = false,
+): boolean {
+  return patterns.some(pattern => isMatchingPattern(testString, pattern, requireExactStringMatch));
+}
+
+/**
  * Given a string, escape characters which have meaning in the regex grammar, such that the result is safe to feed to
  * `new RegExp()`.
  *
