@@ -1,5 +1,5 @@
 import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
-import { getEventDescription, isMatchingPattern, logger } from '@sentry/utils';
+import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -107,9 +107,7 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
     return false;
   }
 
-  return _getPossibleEventMessages(event).some(message =>
-    ignoreErrors.some(pattern => isMatchingPattern(message, pattern)),
-  );
+  return _getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, ignoreErrors));
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
@@ -118,7 +116,7 @@ function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean 
     return false;
   }
   const url = _getEventFilterUrl(event);
-  return !url ? false : denyUrls.some(pattern => isMatchingPattern(url, pattern));
+  return !url ? false : stringMatchesSomePattern(url, denyUrls);
 }
 
 function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
@@ -127,7 +125,7 @@ function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolea
     return true;
   }
   const url = _getEventFilterUrl(event);
-  return !url ? true : allowUrls.some(pattern => isMatchingPattern(url, pattern));
+  return !url ? true : stringMatchesSomePattern(url, allowUrls);
 }
 
 function _getPossibleEventMessages(event: Event): string[] {

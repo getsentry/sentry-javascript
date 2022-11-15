@@ -3,9 +3,9 @@ import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sen
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
-  isMatchingPattern,
   logger,
   parseSemver,
+  stringMatchesSomePattern,
 } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
@@ -169,9 +169,7 @@ function _createWrappedRequestMethodFactory(
       return headersUrlMap[url];
     }
 
-    headersUrlMap[url] = tracingOptions.tracePropagationTargets.some(tracePropagationTarget =>
-      isMatchingPattern(url, tracePropagationTarget),
-    );
+    headersUrlMap[url] = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
 
     return headersUrlMap[url];
   };
