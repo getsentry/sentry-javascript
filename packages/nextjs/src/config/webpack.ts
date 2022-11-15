@@ -91,7 +91,11 @@ export function constructWebpackConfigFunction(
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
-              options: { pagesDir, pageExtensionRegex },
+              options: {
+                pagesDir,
+                pageExtensionRegex,
+                excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+              },
             },
           ],
         });
