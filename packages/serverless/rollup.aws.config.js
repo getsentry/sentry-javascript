@@ -5,7 +5,7 @@ export default [
   ...makeBundleConfigVariants(
     makeBaseBundleConfig({
       // this automatically sets it to be CJS
-      bundleType: 'node',
+      bundleType: 'lambdaLayer',
       entrypoints: ['src/index.awslambda.ts'],
       jsVersion: 'es6',
       licenseTitle: '@sentry/serverless',

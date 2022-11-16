@@ -83,7 +83,7 @@ export function makeBaseBundleConfig(options) {
   };
 
   // used by `@sentry/serverless`, when creating the lambda layer
-  const nodeBundleConfig = {
+  const lambdaLayerBundleConfig = {
     output: {
       format: 'cjs',
     },
@@ -113,7 +113,7 @@ export function makeBaseBundleConfig(options) {
   const bundleTypeConfigMap = {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
-    node: nodeBundleConfig,
+    lambdaLayer: lambdaLayerBundleConfig,
   };
 
   return deepMerge.all([sharedBundleConfig, bundleTypeConfigMap[bundleType], packageSpecificConfig || {}], {
