@@ -1,5 +1,6 @@
+jest.mock('./util/isInternal', () => ({ isInternal: jest.fn(() => true) }));
+
 import {
-  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
@@ -8,19 +9,16 @@ import {
   it,
   jest,
 } from '@jest/globals';
-import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
-import * as SentryUtils from '@sentry/utils';
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
+import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
+import { resetSdkMock } from '@test/mocks';
+import { DomHandler, MockTransportSend } from '@test/types';
 
 import {
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
-import * as CaptureInternalException from './util/captureInternalException';
 import { Replay } from './';
 
 jest.useFakeTimers({ advanceTimers: true });
@@ -30,71 +28,72 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockTransport = jest.MockedFunction<Transport['send']>;
 describe('Replay', () => {
   let replay: Replay;
+  let mockRecord: RecordMock;
+  let mockTransportSend: MockTransportSend;
+  let domHandler: DomHandler;
+  let spyCaptureException: jest.MockedFunction<any>;
   const prevLocation = window.location;
 
   type MockSendReplayRequest = jest.MockedFunction<
     typeof replay.sendReplayRequest
   >;
   let mockSendReplayRequest: MockSendReplayRequest;
-  let domHandler: (args: any) => any;
-  const { record: mockRecord } = mockRrweb();
-  let mockTransport: MockTransport;
-
-  jest.spyOn(CaptureInternalException, 'captureInternalException');
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest
-      .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((type, handler: (args: any) => any) => {
-        if (type === 'dom') {
-          domHandler = handler;
-        }
-      });
-
-    ({ replay } = await mockSdk());
     jest.runAllTimers();
-    jest.spyOn(replay, 'flush');
-    jest.spyOn(replay, 'runFlush');
-    mockTransport = getCurrentHub()?.getClient()?.getTransport()
-      ?.send as MockTransport;
   });
 
-  beforeEach(() => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    replay.eventBuffer?.destroy();
+  beforeEach(async () => {
+    ({
+      mockRecord,
+      mockTransportSend,
+      domHandler,
+      replay,
+      spyCaptureException,
+    } = await resetSdkMock({
+      sessionSampleRate: 1.0,
+      errorSampleRate: 0.0,
+      stickySession: true,
+    }));
+
+    jest.spyOn(replay, 'flush');
+    jest.spyOn(replay, 'runFlush');
     jest.spyOn(replay, 'sendReplayRequest');
+
+    // Create a new session and clear mocks because a segment (from initial
+    // checkout) will have already been uploaded by the time the tests run
+    replay.clearSession();
+    replay.loadSession({ expiry: 0 });
+    mockTransportSend.mockClear();
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
+    mockSendReplayRequest.mockClear();
   });
 
   afterEach(async () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
     // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
     delete window.location;
     Object.defineProperty(window, 'location', {
       value: prevLocation,
       writable: true,
     });
-    sessionStorage.clear();
     replay.clearSession();
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     jest.clearAllMocks();
     mockSendReplayRequest.mockRestore();
     mockRecord.takeFullSnapshot.mockClear();
-    // @ts-expect-error private
-    replay.lastActivity = BASE_TIMESTAMP;
-  });
-
-  afterAll(() => {
-    replay && replay.stop();
+    replay.stop();
   });
 
   it('calls rrweb.record with custom options', async () => {
+    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock(
+      {
+        ignoreClass: 'sentry-test-ignore',
+      }
+    ));
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       {
         "blockClass": "sentry-block",
@@ -266,7 +265,7 @@ describe('Replay', () => {
     await advanceTimers(ELAPSED);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
@@ -295,7 +294,7 @@ describe('Replay', () => {
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockTransport.mockClear();
+    mockTransportSend.mockClear();
     await advanceTimers(5000);
 
     expect(replay).not.toHaveSentReplay();
@@ -306,7 +305,7 @@ describe('Replay', () => {
     expect(replay.eventBuffer?.length).toBe(0);
 
     // Let's make sure it continues to work
-    mockTransport.mockClear();
+    mockTransportSend.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
     expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
@@ -317,10 +316,12 @@ describe('Replay', () => {
 
     expect(initialSession?.id).toBeDefined();
     // @ts-expect-error private member
-    expect(replay.initialState).toEqual({
-      url: 'http://localhost/',
-      timestamp: BASE_TIMESTAMP,
-    });
+    expect(replay.context).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://localhost/',
+        initialTimestamp: BASE_TIMESTAMP,
+      })
+    );
 
     const url = 'http://dummy/';
     Object.defineProperty(window, 'location', {
@@ -387,12 +388,14 @@ describe('Replay', () => {
       ]),
     });
 
-    // `initialState` should be reset when a new session is created
+    // `context` should be reset when a new session is created
     // @ts-expect-error private member
-    expect(replay.initialState).toEqual({
-      url: 'http://dummy/',
-      timestamp: newTimestamp,
-    });
+    expect(replay.context).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://dummy/',
+        initialTimestamp: newTimestamp,
+      })
+    );
   });
 
   it('does not record if user has been idle for more than MAX_SESSION_LIFE and only starts a new session after a user action', async () => {
@@ -401,10 +404,12 @@ describe('Replay', () => {
 
     expect(initialSession?.id).toBeDefined();
     // @ts-expect-error private member
-    expect(replay.initialState).toEqual({
-      url: 'http://localhost/',
-      timestamp: BASE_TIMESTAMP,
-    });
+    expect(replay.context).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://localhost/',
+        initialTimestamp: BASE_TIMESTAMP,
+      })
+    );
 
     const url = 'http://dummy/';
     Object.defineProperty(window, 'location', {
@@ -496,12 +501,14 @@ describe('Replay', () => {
       ]),
     });
 
-    // `initialState` should be reset when a new session is created
+    // `context` should be reset when a new session is created
     // @ts-expect-error private member
-    expect(replay.initialState).toEqual({
-      url: 'http://dummy/',
-      timestamp: newTimestamp,
-    });
+    expect(replay.context).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://dummy/',
+        initialTimestamp: newTimestamp,
+      })
+    );
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
@@ -536,39 +543,32 @@ describe('Replay', () => {
   });
 
   it('fails to upload data on first two calls and succeeds on the third', async () => {
+    expect(replay.session?.segmentId).toBe(0);
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+
     // Suppress console.errors
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const mockConsole = console.error as jest.MockedFunction<
       typeof console.error
     >;
+
     // fail the first and second requests and pass the third one
-    mockSendReplayRequest.mockImplementationOnce(() => {
+    mockTransportSend.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
     });
     mockRecord._emitter(TEST_EVENT);
-
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay).not.toHaveSentReplay();
-
-    mockSendReplayRequest.mockReset();
-    mockSendReplayRequest.mockImplementationOnce(() => {
+    mockTransportSend.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
     });
     await advanceTimers(5000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
-    expect(replay).not.toHaveSentReplay();
 
     // next tick should retry and succeed
     mockConsole.mockRestore();
-    mockSendReplayRequest.mockReset();
 
     await advanceTimers(8000);
-    expect(replay.sendReplayRequest).not.toHaveBeenCalled();
-    mockSendReplayRequest.mockRestore();
     await advanceTimers(2000);
 
     expect(replay).toHaveSentReplay({
@@ -577,15 +577,15 @@ describe('Replay', () => {
         replay_id: expect.any(String),
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // 20seconds = Add up all of the previous `advanceTimers()`
-        timestamp: (BASE_TIMESTAMP + 20000) / 1000,
+        timestamp: (BASE_TIMESTAMP + 20000) / 1000 + 0.02,
         trace_ids: [],
         urls: ['http://localhost/'],
       }),
       recordingPayloadHeader: { segment_id: 0 },
       events: JSON.stringify([TEST_EVENT]),
     });
-    mockTransport.mockClear();
 
+    mockTransportSend.mockClear();
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session?.lastActivity).toBeGreaterThanOrEqual(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
@@ -598,6 +598,7 @@ describe('Replay', () => {
   it('fails to upload data and hits retry max and stops', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     jest.spyOn(replay, 'sendReplay');
+
     // Suppress console.errors
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     const mockConsole = console.error as jest.MockedFunction<
@@ -635,14 +636,11 @@ describe('Replay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
     expect(replay.sendReplay).toHaveBeenCalledTimes(4);
 
+    expect(spyCaptureException).toHaveBeenCalledTimes(5);
     // Retries = 3 (total tries = 4 including initial attempt)
     // + last exception is max retries exceeded
-    expect(
-      CaptureInternalException.captureInternalException
-    ).toHaveBeenCalledTimes(5);
-    expect(
-      CaptureInternalException.captureInternalException
-    ).toHaveBeenLastCalledWith(
+    expect(spyCaptureException).toHaveBeenCalledTimes(5);
+    expect(spyCaptureException).toHaveBeenLastCalledWith(
       new Error('Unable to send Replay - max retries exceeded')
     );
 
@@ -771,6 +769,9 @@ describe('Replay', () => {
   });
 
   it('has correct timestamps when there events earlier than initial timestamp', async function () {
+    replay.clearSession();
+    replay.loadSession({ expiry: 0 });
+    mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -818,23 +819,27 @@ describe('Replay', () => {
 
   it('does not have stale `replay_start_timestamp` due to an old time origin', async function () {
     const ELAPSED = 86400000 * 2; // 2 days
-    // Change time origin to something very old (this happens in the browser
-    // when a tab has sat idle for a long period and user comes back to it)
-    // @ts-expect-error read-only
-    SentryUtils.browserPerformanceTimeOrigin = BASE_TIMESTAMP - ELAPSED;
+    // Add a mock performance event that happens 2 days ago. This can happen in the browser
+    // when a tab has sat idle for a long period and user comes back to it.
+    //
+    // We pass a negative start time as it's a bit difficult to mock
+    // `@sentry/utils/browserPerformanceTimeOrigin`. This would not happen in
+    // real world.
+    replay.performanceEvents.push(
+      PerformanceEntryResource({
+        startTime: -ELAPSED,
+      })
+    );
 
-    // add a mock performance event
-    replay.performanceEvents.push(PerformanceEntryResource());
-
-    // This should be null because `addEvent` has not been called
+    // This should be null because `addEvent` has not been called yet
     // @ts-expect-error private member
     expect(replay.context.earliestEvent).toBe(null);
-    expect(mockTransport).toHaveBeenCalledTimes(0);
+    expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
     const TEST_EVENT = {
       data: {},
-      timestamp: BASE_TIMESTAMP / 1000,
+      timestamp: BASE_TIMESTAMP,
       type: 2,
     };
 
@@ -844,7 +849,7 @@ describe('Replay', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(mockTransport).toHaveBeenCalledTimes(1);
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
     expect(replay).toHaveSentReplay({
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out

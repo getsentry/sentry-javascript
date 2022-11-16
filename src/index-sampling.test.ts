@@ -26,10 +26,12 @@ describe('Replay (sampling)', () => {
 
     expect(replay.session?.sampled).toBe(false);
     // @ts-expect-error private
-    expect(replay.initialState).toEqual({
-      timestamp: expect.any(Number),
-      url: 'http://localhost/',
-    });
+    expect(replay.context).toEqual(
+      expect.objectContaining({
+        initialTimestamp: expect.any(Number),
+        initialUrl: 'http://localhost/',
+      })
+    );
     expect(mockRecord).not.toHaveBeenCalled();
     expect(replay.addListeners).not.toHaveBeenCalled();
   });

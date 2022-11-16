@@ -93,7 +93,7 @@ const toHaveSentReplay: MatcherFunction<
   const envelopeItems = lastCall?.[1] || [[], []];
   const [
     [replayEventHeader, replayEventPayload],
-    [recordingHeader, recordingPayload],
+    [recordingHeader, recordingPayload] = [],
   ] = envelopeItems;
 
   // @ts-expect-error recordingPayload is always a string in our tests

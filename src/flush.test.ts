@@ -194,6 +194,7 @@ it('long first flush enqueues following events', async () => {
     replayId: expect.any(String),
     includeReplayStartTimestamp: true,
     segmentId: 0,
+    eventContext: expect.anything(),
   });
 
   // Add this to test that segment ID increases
@@ -237,6 +238,7 @@ it('long first flush enqueues following events', async () => {
     replayId: expect.any(String),
     includeReplayStartTimestamp: false,
     segmentId: 1,
+    eventContext: expect.anything(),
   });
 
   // Make sure there's no other calls

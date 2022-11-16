@@ -37,13 +37,13 @@ import {
 import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import type {
   AllPerformanceEntry,
-  InitialState,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
+  InternalEventContext,
+  PopEventContext,
   RecordingEvent,
   RecordingOptions,
   ReplayConfiguration,
-  ReplayEventContext,
   ReplayPluginOptions,
   SendReplay,
 } from './types';
@@ -130,16 +130,13 @@ export class Replay implements Integration {
    */
   private stopRecording: ReturnType<typeof record> | null = null;
 
-  /**
-   * Captured state when integration is first initialized
-   */
-  private initialState: InitialState;
-
-  private context: ReplayEventContext = {
+  private context: InternalEventContext = {
     errorIds: new Set(),
     traceIds: new Set(),
     urls: [],
     earliestEvent: null,
+    initialTimestamp: new Date().getTime(),
+    initialUrl: '',
   };
 
   session: Session | undefined;
@@ -402,11 +399,9 @@ export class Replay implements Integration {
 
     // Reset context as well
     this.clearContext();
-    this.initialState = {
-      timestamp: new Date().getTime(),
-      url,
-    };
 
+    this.context.initialUrl = url;
+    this.context.initialTimestamp = new Date().getTime();
     this.context.urls.push(url);
   }
 
@@ -1047,6 +1042,7 @@ export class Replay implements Integration {
    * Clear context
    */
   clearContext() {
+    // XXX: `initialTimestamp` and `initialUrl` do not get cleared
     this.context.errorIds.clear();
     this.context.traceIds.clear();
     this.context.urls = [];
@@ -1056,18 +1052,17 @@ export class Replay implements Integration {
   /**
    * Return and clear context
    */
-  popEventContext() {
-    const initialState = this.initialState;
+  popEventContext(): PopEventContext {
     if (
-      this.initialState &&
       this.context.earliestEvent &&
-      this.context.earliestEvent < this.initialState.timestamp
+      this.context.earliestEvent < this.context.initialTimestamp
     ) {
-      initialState.timestamp = this.context.earliestEvent;
+      this.context.initialTimestamp = this.context.earliestEvent;
     }
 
     const context = {
-      initialState,
+      initialTimestamp: this.context.initialTimestamp,
+      initialUrl: this.context.initialUrl,
       errorIds: Array.from(this.context.errorIds).filter(Boolean),
       traceIds: Array.from(this.context.traceIds).filter(Boolean),
       urls: this.context.urls,
@@ -1108,6 +1103,7 @@ export class Replay implements Integration {
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
       const replayId = this.session.id;
+      const eventContext = this.popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
 
@@ -1116,6 +1112,7 @@ export class Replay implements Integration {
         events: recordingData,
         segmentId,
         includeReplayStartTimestamp: segmentId === 0,
+        eventContext,
       });
     } catch (err) {
       captureInternalException(err);
@@ -1194,6 +1191,7 @@ export class Replay implements Integration {
     replayId: event_id,
     segmentId: segment_id,
     includeReplayStartTimestamp,
+    eventContext,
   }: SendReplay) {
     const payloadWithSequence = createPayload({
       events,
@@ -1202,9 +1200,9 @@ export class Replay implements Integration {
       },
     });
 
-    const { urls, errorIds, traceIds, initialState } = this.popEventContext();
+    const { urls, errorIds, traceIds, initialTimestamp } = eventContext;
 
-    const timestamp = new Date().getTime();
+    const currentTimestamp = new Date().getTime();
 
     const sdkInfo = {
       name: 'sentry.javascript.integration.replay',
@@ -1220,9 +1218,9 @@ export class Replay implements Integration {
             {
               type: REPLAY_EVENT_NAME,
               ...(includeReplayStartTimestamp
-                ? { replay_start_timestamp: initialState.timestamp / 1000 }
+                ? { replay_start_timestamp: initialTimestamp / 1000 }
                 : {}),
-              timestamp: timestamp / 1000,
+              timestamp: currentTimestamp / 1000,
               error_ids: errorIds,
               trace_ids: traceIds,
               urls,
@@ -1295,8 +1293,9 @@ export class Replay implements Integration {
     events,
     segmentId,
     includeReplayStartTimestamp,
+    eventContext,
   }: SendReplay) {
-    // short circuit if there's no events to upload
+    // short circuit if there's no events to upload (this shouldn't happen as runFlush makes this check)
     if (!events.length) {
       return;
     }
@@ -1307,6 +1306,7 @@ export class Replay implements Integration {
         replayId,
         segmentId,
         includeReplayStartTimestamp,
+        eventContext,
       });
       this.resetRetries();
       return true;
@@ -1336,6 +1336,7 @@ export class Replay implements Integration {
               events,
               segmentId,
               includeReplayStartTimestamp,
+              eventContext,
             });
             resolve(true);
           } catch (err) {

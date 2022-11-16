@@ -25,6 +25,13 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
   const { mockRrweb } = await import('./mockRrweb');
   const { record: mockRecord } = mockRrweb();
 
+  // Because of `resetModules`, we need to import and add a spy for
+  // `@sentry/core` here before `mockSdk` is called
+  // XXX: This is probably going to make writing future tests difficult and/or
+  // bloat this area of code
+  const SentryCore = await import('@sentry/core');
+  const spyCaptureException = jest.spyOn(SentryCore, 'captureException');
+
   const { mockSdk } = await import('./mockSdk');
   const { replay } = await mockSdk({
     replayOptions: {
@@ -35,7 +42,9 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
   const mockTransportSend = getCurrentHub()?.getClient()?.getTransport()
     ?.send as MockTransportSend;
 
+  // XXX: This is needed to ensure `domHandler` is set
   jest.runAllTimers();
+  await new Promise(process.nextTick);
   jest.setSystemTime(new Date(BASE_TIMESTAMP));
 
   return {
@@ -44,5 +53,6 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
     mockRecord,
     mockTransportSend,
     replay,
+    spyCaptureException,
   };
 }

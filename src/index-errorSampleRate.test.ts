@@ -2,7 +2,6 @@ jest.unmock('@sentry/browser');
 
 // mock functions need to be imported first
 import {
-  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -19,7 +18,6 @@ import { DomHandler, MockTransportSend } from '@test/types';
 
 import {
   REPLAY_SESSION_KEY,
-  SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
 import { Replay } from './';
@@ -48,17 +46,8 @@ describe('Replay (errorSampleRate)', () => {
   });
 
   afterEach(async () => {
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    replay.stop();
     replay.clearSession();
-    replay.eventBuffer?.destroy();
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
-  });
-
-  afterAll(() => {
-    replay && replay.stop();
+    replay.stop();
   });
 
   it('uploads a replay when `Sentry.captureException` is called and continues recording', async () => {

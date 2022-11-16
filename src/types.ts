@@ -15,6 +15,7 @@ export interface SendReplay {
   replayId: string;
   segmentId: number;
   includeReplayStartTimestamp: boolean;
+  eventContext: PopEventContext;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
@@ -131,18 +132,39 @@ export interface ReplayConfiguration
   extends OptionalReplayPluginOptions,
     RecordingOptions {}
 
-/**
- * Some initial state captured before creating a root replay event
- */
-export interface InitialState {
-  timestamp: number;
-  url: string;
+interface CommonEventContext {
+  /**
+   * The initial URL of the session
+   */
+  initialUrl: string;
+
+  /**
+   * The initial starting timestamp of the session
+   */
+  initialTimestamp: number;
+
+  /**
+   * Ordered list of URLs that have been visited during a replay segment
+   */
+  urls: string[];
+}
+
+export interface PopEventContext extends CommonEventContext {
+  /**
+   * List of Sentry error ids that have occurred during a replay segment
+   */
+  errorIds: Array<string>;
+
+  /**
+   * List of Sentry trace ids that have occurred during a replay segment
+   */
+  traceIds: Array<string>;
 }
 
 /**
  * Additional context that will be sent w/ `replay_event`
  */
-export interface ReplayEventContext {
+export interface InternalEventContext extends CommonEventContext {
   /**
    * Set of Sentry error ids that have occurred during a replay segment
    */
@@ -152,11 +174,6 @@ export interface ReplayEventContext {
    * Set of Sentry trace ids that have occurred during a replay segment
    */
   traceIds: Set<string>;
-
-  /**
-   * Ordered list of URLs that have been visited during a replay segment
-   */
-  urls: string[];
 
   /**
    * The timestamp of the earliest event that has been added to event buffer. This can happen due to the Performance Observer which buffers events.

@@ -40,7 +40,6 @@ class MockTransport implements Transport {
 export async function mockSdk({
   replayOptions = {
     stickySession: true,
-    ignoreClass: 'sentry-test-ignore',
     sessionSampleRate: 1.0,
     errorSampleRate: 0.0,
   },
