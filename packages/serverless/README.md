@@ -59,7 +59,7 @@ Another and much simpler way to integrate Sentry to your AWS Lambda function is 
 1. Choose Layers -> Add Layer.
 2. Specify an ARN: `arn:aws:lambda:us-west-1:TODO:layer:TODO:VERSION`.
 3. Go to Environment variables and add:
-   - `NODE_OPTIONS`: `-r @sentry/serverless/cjs/awslambda-auto`.
+   - `NODE_OPTIONS`: `-r @sentry/serverless/build/npm/cjs/awslambda-auto`.
    - `SENTRY_DSN`: `your dsn`.
    - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For more information, see [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
 
