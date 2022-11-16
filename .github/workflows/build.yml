@@ -13,14 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: versions
-        run: |
-          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ steps.versions.outputs.node }}
-          cache: 'yarn'
+      - uses: volta-cli/action@v4
 
       - name: Install dependencies
         run: |
