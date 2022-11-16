@@ -77,16 +77,18 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/static/chunks/pages'], urlPrefix: '~/_next/static/chunks/pages' },
+        { paths: [`${clientBuildContext.dir}/.next/static/chunks/pages`], urlPrefix: '~/_next/static/chunks/pages' },
       ]);
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
       const exportedNextConfigWithWidening = { ...exportedNextConfig, sentry: { widenClientFileUpload: true } };
+      const buildContext = getBuildContext('client', exportedNextConfigWithWidening);
+
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigWithWidening,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithWidening),
+        incomingWebpackBuildContext: buildContext,
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -95,7 +97,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/static/chunks'], urlPrefix: '~/_next/static/chunks' },
+        { paths: [`${buildContext.dir}/.next/static/chunks`], urlPrefix: '~/_next/static/chunks' },
       ]);
     });
 
@@ -104,11 +106,12 @@ describe('Sentry webpack plugin config', () => {
         ...exportedNextConfig,
         target: 'experimental-serverless-trace' as const,
       };
+      const buildContext = getBuildContext('server', exportedNextConfigServerless);
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigServerless),
+        incomingWebpackBuildContext: buildContext,
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -117,7 +120,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/serverless/'], urlPrefix: '~/_next/serverless' },
+        { paths: [`${buildContext.dir}/.next/serverless/`], urlPrefix: '~/_next/serverless' },
       ]);
     });
 
@@ -137,7 +140,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
+        { paths: [`${serverBuildContextWebpack4.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
       ]);
     });
 
@@ -154,8 +157,8 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/server/pages/'], urlPrefix: '~/_next/server/pages' },
-        { paths: ['.next/server/chunks/'], urlPrefix: '~/_next/server/chunks' },
+        { paths: [`${serverBuildContext.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
+        { paths: [`${serverBuildContext.dir}/.next/server/chunks/`], urlPrefix: '~/_next/server/chunks' },
       ]);
     });
   });
@@ -206,10 +209,11 @@ describe('Sentry webpack plugin config', () => {
     };
 
     it('has the correct value when building client bundles', async () => {
+      const buildContext = getBuildContext('client', exportedNextConfigWithBasePath);
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigWithBasePath,
         incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithBasePath),
+        incomingWebpackBuildContext: buildContext,
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -218,7 +222,10 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/static/chunks/pages'], urlPrefix: '~/city-park/_next/static/chunks/pages' },
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/city-park/_next/static/chunks/pages',
+        },
       ]);
     });
 
@@ -227,11 +234,12 @@ describe('Sentry webpack plugin config', () => {
         ...exportedNextConfigWithBasePath,
         target: 'experimental-serverless-trace' as const,
       };
+      const buildContext = getBuildContext('server', exportedNextConfigServerless);
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigServerless,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigServerless),
+        incomingWebpackBuildContext: buildContext,
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -240,7 +248,7 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/serverless/'], urlPrefix: '~/city-park/_next/serverless' },
+        { paths: [`${buildContext.dir}/.next/serverless/`], urlPrefix: '~/city-park/_next/serverless' },
       ]);
     });
 
@@ -260,15 +268,19 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
+        {
+          paths: [`${serverBuildContextWebpack4.dir}/.next/server/pages/`],
+          urlPrefix: '~/city-park/_next/server/pages',
+        },
       ]);
     });
 
     it('has the correct value when building serverful server bundles using webpack 5', async () => {
+      const buildContext = getBuildContext('server', exportedNextConfigWithBasePath);
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigWithBasePath,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: getBuildContext('server', exportedNextConfigWithBasePath),
+        incomingWebpackBuildContext: buildContext,
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -277,8 +289,8 @@ describe('Sentry webpack plugin config', () => {
       ) as SentryWebpackPlugin;
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
-        { paths: ['.next/server/pages/'], urlPrefix: '~/city-park/_next/server/pages' },
-        { paths: ['.next/server/chunks/'], urlPrefix: '~/city-park/_next/server/chunks' },
+        { paths: [`${buildContext.dir}/.next/server/pages/`], urlPrefix: '~/city-park/_next/server/pages' },
+        { paths: [`${buildContext.dir}/.next/server/chunks/`], urlPrefix: '~/city-park/_next/server/chunks' },
       ]);
     });
   });
@@ -450,7 +462,7 @@ describe('Sentry webpack plugin config', () => {
 
       for (const pathDescriptor of includePaths) {
         for (const path of pathDescriptor.paths) {
-          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+          expect(path).toMatch(new RegExp(`${buildContext.dir}/${expectedDistDir}.*`));
         }
       }
     });
@@ -469,7 +481,7 @@ describe('Sentry webpack plugin config', () => {
 
       for (const pathDescriptor of includePaths) {
         for (const path of pathDescriptor.paths) {
-          expect(path).toMatch(new RegExp(`^${expectedDistDir}.*`));
+          expect(path).toMatch(new RegExp(`${buildContext.dir}/${expectedDistDir}.*`));
         }
       }
     });
