@@ -30,7 +30,7 @@
     "url": "git+https://github.com/getsentry/sentry-replay.git"
   },
   "author": "Sentry",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/getsentry/sentry-replay/issues"
   },
