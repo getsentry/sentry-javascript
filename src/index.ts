@@ -310,10 +310,15 @@ export class Replay implements Integration {
    * Note that this will cause a new DOM checkout
    */
   startRecording() {
-    this.stopRecording = record({
-      ...this.recordingOptions,
-      emit: this.handleRecordingEmit,
-    });
+    try {
+      this.stopRecording = record({
+        ...this.recordingOptions,
+        emit: this.handleRecordingEmit,
+      });
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
+    }
   }
 
   /**
@@ -324,23 +329,35 @@ export class Replay implements Integration {
     if (!isBrowser) {
       return;
     }
-    logger.log('Stopping Replays');
-    this.isEnabled = false;
-    this.removeListeners();
-    this.stopRecording?.();
-    this.eventBuffer?.destroy();
-    this.eventBuffer = null;
+
+    try {
+      logger.log('Stopping Replays');
+      this.isEnabled = false;
+      this.removeListeners();
+      this.stopRecording?.();
+      this.eventBuffer?.destroy();
+      this.eventBuffer = null;
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
+    }
   }
 
   /**
    * Pause some replay functionality. See comments for `isPaused`.
    * This differs from stop as this only stops DOM recording, it is
-   * not as thorough of a shutdown as `stop()`. */
+   * not as thorough of a shutdown as `stop()`.
+   */
   pause() {
     this.isPaused = true;
-    if (this.stopRecording) {
-      this.stopRecording();
-      this.stopRecording = undefined;
+    try {
+      if (this.stopRecording) {
+        this.stopRecording();
+        this.stopRecording = undefined;
+      }
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
     }
   }
 
@@ -356,8 +373,13 @@ export class Replay implements Integration {
   }
 
   clearSession() {
-    deleteSession();
-    this.session = undefined;
+    try {
+      deleteSession();
+      this.session = undefined;
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
+    }
   }
 
   /**
@@ -409,31 +431,42 @@ export class Replay implements Integration {
    * Adds listeners to record events for the replay
    */
   addListeners() {
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
-    window.addEventListener('blur', this.handleWindowBlur);
-    window.addEventListener('focus', this.handleWindowFocus);
-
-    // There is no way to remove these listeners, so ensure they are only added once
-    if (!this.hasInitializedCoreListeners) {
-      // Listeners from core SDK //
-      const scope = getCurrentHub().getScope();
-      scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
-      addInstrumentationHandler(
-        'dom',
-        this.handleCoreBreadcrumbListener('dom')
+    try {
+      document.addEventListener(
+        'visibilitychange',
+        this.handleVisibilityChange
       );
-      addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
-      addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
-      addInstrumentationHandler(
-        'history',
-        this.handleCoreSpanListener('history')
-      );
+      window.addEventListener('blur', this.handleWindowBlur);
+      window.addEventListener('focus', this.handleWindowFocus);
 
-      // Tag all (non replay) events that get sent to Sentry with the current
-      // replay ID so that we can reference them later in the UI
-      addGlobalEventProcessor(this.handleGlobalEvent);
+      // There is no way to remove these listeners, so ensure they are only added once
+      if (!this.hasInitializedCoreListeners) {
+        // Listeners from core SDK //
+        const scope = getCurrentHub().getScope();
+        scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
+        addInstrumentationHandler(
+          'dom',
+          this.handleCoreBreadcrumbListener('dom')
+        );
+        addInstrumentationHandler(
+          'fetch',
+          this.handleCoreSpanListener('fetch')
+        );
+        addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
+        addInstrumentationHandler(
+          'history',
+          this.handleCoreSpanListener('history')
+        );
 
-      this.hasInitializedCoreListeners = true;
+        // Tag all (non replay) events that get sent to Sentry with the current
+        // replay ID so that we can reference them later in the UI
+        addGlobalEventProcessor(this.handleGlobalEvent);
+
+        this.hasInitializedCoreListeners = true;
+      }
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
     }
 
     // PerformanceObserver //
@@ -473,17 +506,22 @@ export class Replay implements Integration {
    * Cleans up listeners that were created in `addListeners`
    */
   removeListeners() {
-    document.removeEventListener(
-      'visibilitychange',
-      this.handleVisibilityChange
-    );
+    try {
+      document.removeEventListener(
+        'visibilitychange',
+        this.handleVisibilityChange
+      );
 
-    window.removeEventListener('blur', this.handleWindowBlur);
-    window.removeEventListener('focus', this.handleWindowFocus);
+      window.removeEventListener('blur', this.handleWindowBlur);
+      window.removeEventListener('focus', this.handleWindowFocus);
 
-    if (this.performanceObserver) {
-      this.performanceObserver.disconnect();
-      this.performanceObserver = null;
+      if (this.performanceObserver) {
+        this.performanceObserver.disconnect();
+        this.performanceObserver = null;
+      }
+    } catch (err) {
+      logger.error(err);
+      captureInternalException(err);
     }
   }
 
