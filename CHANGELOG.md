@@ -9,8 +9,8 @@
 - feat(angular): Add Angular 15 Peer Dependencies (#6220)
 - feat(nextjs): Add `excludeServerRoutes` config option (#6207)
 - feat(node): Move tracing options to `Http` integration (#6191)
-- fix(remix): Resolve Remix Request API compatibility issues. (#6215)
 - fix(nextjs): Use absolute path for `distDir` in webpack plugin options (#6214)
+- fix(remix): Resolve Remix Request API compatibility issues. (#6215)
 - ref(nextjs): Invert serverside injection criteria (#6206)
 
 ## 7.19.0
