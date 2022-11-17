@@ -159,7 +159,7 @@ const UNKNOWN_COMPONENT = 'unknown';
  */
 @Directive({ selector: '[trace]' })
 export class TraceDirective implements OnInit, AfterViewInit {
-  @Input('trace') public componentName: string = UNKNOWN_COMPONENT;
+  @Input('trace') public componentName?: string;
 
   private _tracingSpan?: Span;
 
@@ -168,6 +168,10 @@ export class TraceDirective implements OnInit, AfterViewInit {
    * @inheritdoc
    */
   public ngOnInit(): void {
+    if (!this.componentName) {
+      this.componentName = UNKNOWN_COMPONENT;
+    }
+
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
       this._tracingSpan = activeTransaction.startChild({
