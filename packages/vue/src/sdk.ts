@@ -61,6 +61,23 @@ export function init(
 }
 
 const vueInit = (app: Vue, options: Options): void => {
+  // Check app is not mounted yet - should be mounted _after_ init()!
+  // This is _somewhat_ private, but in the case that this doesn't exist we simply ignore it
+  // See: https://github.com/vuejs/core/blob/eb2a83283caa9de0a45881d860a3cbd9d0bdd279/packages/runtime-core/src/component.ts#L394
+  const appWithInstance = app as Vue & {
+    _instance?: {
+      isMounted?: boolean;
+    };
+  };
+
+  const isMounted = appWithInstance._instance && appWithInstance._instance.isMounted;
+  if (isMounted === true) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',
+    );
+  }
+
   attachErrorHandler(app, options);
 
   if ('tracesSampleRate' in options || 'tracesSampler' in options) {

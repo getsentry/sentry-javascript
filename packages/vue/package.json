@@ -25,6 +25,9 @@
   "peerDependencies": {
     "vue": "2.x || 3.x"
   },
+  "devDependencies": {
+    "vue": "~3.2.41"
+  },
   "scripts": {
     "build": "run-p build:rollup build:types",
     "build:bundle": "yarn ts-node ../../scripts/ensure-bundle-deps.ts && yarn rollup --config rollup.bundle.config.js",
