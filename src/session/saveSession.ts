@@ -10,6 +10,6 @@ export function saveSession(session: Session) {
   try {
     window.sessionStorage.setItem(REPLAY_SESSION_KEY, JSON.stringify(session));
   } catch {
-    // this shouldn't happen
+    // Ignore potential SecurityError exceptions
   }
 }

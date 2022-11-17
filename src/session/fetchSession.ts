@@ -16,14 +16,15 @@ export function fetchSession({
     return null;
   }
 
-  const sessionStringFromStorage =
-    window.sessionStorage.getItem(REPLAY_SESSION_KEY);
-
-  if (!sessionStringFromStorage) {
-    return null;
-  }
-
   try {
+    // This can throw if cookies are disabled
+    const sessionStringFromStorage =
+      window.sessionStorage.getItem(REPLAY_SESSION_KEY);
+
+    if (!sessionStringFromStorage) {
+      return null;
+    }
+
     const sessionObj = JSON.parse(sessionStringFromStorage);
 
     return new Session(

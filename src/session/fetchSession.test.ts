@@ -1,13 +1,19 @@
-import { afterEach, beforeAll, expect, it } from '@jest/globals';
+import { afterEach, beforeAll, expect, it, jest } from '@jest/globals';
 
 import { REPLAY_SESSION_KEY } from './constants';
 import { fetchSession } from './fetchSession';
+
+const oldSessionStorage = window.sessionStorage;
 
 beforeAll(() => {
   window.sessionStorage.clear();
 });
 
 afterEach(() => {
+  Object.defineProperty(window, 'sessionStorage', {
+    writable: true,
+    value: oldSessionStorage,
+  });
   window.sessionStorage.clear();
 });
 
@@ -42,4 +48,17 @@ it('fetches an invalid session', function () {
   );
 
   expect(fetchSession(SAMPLE_RATES)).toBe(null);
+});
+
+it('safely attempts to fetch session when Session Storage is disabled', function () {
+  Object.defineProperty(window, 'sessionStorage', {
+    writable: true,
+    value: {
+      getItem: () => {
+        throw new Error('No Session Storage for you');
+      },
+    },
+  });
+
+  expect(fetchSession(SAMPLE_RATES)).toEqual(null);
 });
