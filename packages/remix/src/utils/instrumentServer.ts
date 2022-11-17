@@ -21,12 +21,14 @@ import {
   DataFunctionArgs,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
+  RemixRequest,
   RequestHandler,
   RouteMatch,
   ServerBuild,
   ServerRoute,
   ServerRouteManifest,
 } from './types';
+import { normalizeRemixRequest } from './web-fetch';
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -91,8 +93,10 @@ async function captureRemixServerException(err: Error, name: string, request: Re
     return;
   }
 
+  const normalizedRequest = normalizeRemixRequest(request as unknown as any);
+
   captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
-    scope.setSDKProcessingMetadata({ request });
+    scope.setSDKProcessingMetadata({ request: normalizedRequest });
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
@@ -252,6 +256,7 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
     // Note: `redirect` and `catch` responses do not have bodies to extract
     if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
       const data = await extractData(res);
+
       if (typeof data === 'object') {
         return json(
           { ...data, ...traceAndBaggage },
@@ -363,15 +368,20 @@ export function getTransactionName(
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
-  return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
+
+  return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
     return local.bind(async () => {
       const hub = getCurrentHub();
       const options = hub.getClient()?.getOptions();
       const scope = hub.getScope();
 
+      const normalizedRequest = normalizeRemixRequest(request);
+
       if (scope) {
-        scope.setSDKProcessingMetadata({ request });
+        scope.setSDKProcessingMetadata({
+          request: normalizedRequest,
+        });
       }
 
       if (!options || !hasTracingEnabled(options)) {

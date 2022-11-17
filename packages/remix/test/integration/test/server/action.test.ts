@@ -33,6 +33,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       request: {
         method: 'POST',
         url,
+        cookies: expect.any(Object),
+        headers: {
+          'user-agent': expect.any(String),
+          host: 'localhost:8000',
+        },
       },
     });
   });
@@ -101,6 +106,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       request: {
         method: 'POST',
         url,
+        cookies: expect.any(Object),
+        headers: {
+          'user-agent': expect.any(String),
+          host: 'localhost:8000',
+        },
       },
     });
 
@@ -116,6 +126,11 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       request: {
         method: 'POST',
         url,
+        cookies: expect.any(Object),
+        headers: {
+          'user-agent': expect.any(String),
+          host: 'localhost:8000',
+        },
       },
     });
   });
