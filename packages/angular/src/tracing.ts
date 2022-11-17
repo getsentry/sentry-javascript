@@ -1,5 +1,15 @@
 /* eslint-disable max-lines */
-import { AfterViewInit, Directive, Injectable, Input, NgModule, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Directive,
+  Injectable,
+  Input,
+  NgModule,
+  OnDestroy,
+  OnInit,
+  Optional,
+  ViewContainerRef,
+} from '@angular/core';
 import { ActivatedRouteSnapshot, Event, NavigationEnd, NavigationStart, ResolveEnd, Router } from '@angular/router';
 import { getCurrentHub, WINDOW } from '@sentry/browser';
 import { Span, Transaction, TransactionContext } from '@sentry/types';
@@ -163,13 +173,15 @@ export class TraceDirective implements OnInit, AfterViewInit {
 
   private _tracingSpan?: Span;
 
+  public constructor(@Optional() private readonly _vcRef: ViewContainerRef) {}
+
   /**
    * Implementation of OnInit lifecycle method
    * @inheritdoc
    */
   public ngOnInit(): void {
     if (!this.componentName) {
-      this.componentName = UNKNOWN_COMPONENT;
+      this.componentName = detectComponentName(this._vcRef as EnhancedVieContainerRef);
     }
 
     const activeTransaction = getActiveTransaction();
@@ -190,6 +202,29 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this._tracingSpan.finish();
     }
   }
+}
+
+type EnhancedVieContainerRef = ViewContainerRef & {
+  _lContainer?: {
+    localName?: string;
+  }[][];
+};
+
+/**
+ * Detects the angular component name from the passed ViewContainerReference.
+ * Specifically, it looks up the selector of the component (e.g. `app-my-component`) or
+ * falls back to the default component name if the selector is not available.
+ */
+function detectComponentName(vcRef: EnhancedVieContainerRef | undefined): string {
+  if (vcRef && vcRef._lContainer && vcRef._lContainer[0] && vcRef._lContainer[0][0]) {
+    // TODO: is this preferrable?
+    // Alternative: We could get the class name like so:
+    // const className = Object.getPrototypeOf(vcRef._lContainer[0][8]).constructor.name;
+
+    const selectorName = vcRef._lContainer[0][0].localName;
+    return selectorName || UNKNOWN_COMPONENT;
+  }
+  return UNKNOWN_COMPONENT;
 }
 
 /**

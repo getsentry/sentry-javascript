@@ -256,12 +256,50 @@ describe('Angular Tracing', () => {
 
   describe('TraceDirective', () => {
     it('should create an instance', () => {
-      const directive = new TraceDirective();
+      const directive = new TraceDirective({} as unknown as any);
       expect(directive).toBeTruthy();
     });
 
+    it('should create a child tracingSpan on init (WIP)', async () => {
+      const customStartTransaction = jest.fn(defaultStartTransaction);
+
+      @Component({
+        selector: 'app-component',
+        template: `<app-child trace></app-child>`,
+      })
+      class AppComponent {
+        public constructor() {}
+      }
+
+      @Component({
+        selector: 'app-child',
+        template: `<p>Hi</p>`,
+      })
+      class ChildComponent {
+        public constructor() {}
+      }
+
+      const env = await TestEnv.setup({
+        components: [AppComponent, ChildComponent, TraceDirective],
+        defaultComponent: AppComponent,
+        customStartTransaction,
+        useTraceService: false,
+      });
+
+      transaction.startChild = jest.fn();
+
+      //directive.ngOnInit();
+
+      expect(transaction.startChild).toHaveBeenCalledWith({
+        op: 'ui.angular.init',
+        description: '<unknown>',
+      });
+
+      env.destroy();
+    });
+
     it('should create a child tracingSpan on init', async () => {
-      const directive = new TraceDirective();
+      //const directive = new TraceDirective({} as unknown as any);
       const customStartTransaction = jest.fn(defaultStartTransaction);
 
       const env = await TestEnv.setup({
@@ -272,7 +310,7 @@ describe('Angular Tracing', () => {
 
       transaction.startChild = jest.fn();
 
-      directive.ngOnInit();
+      //directive.ngOnInit();
 
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
@@ -283,7 +321,7 @@ describe('Angular Tracing', () => {
     });
 
     it('should use component name as span description', async () => {
-      const directive = new TraceDirective();
+      const directive = new TraceDirective({} as unknown as any);
       const finishMock = jest.fn();
       const customStartTransaction = jest.fn(defaultStartTransaction);
 
@@ -309,7 +347,7 @@ describe('Angular Tracing', () => {
     });
 
     it('should finish tracingSpan after view init', async () => {
-      const directive = new TraceDirective();
+      const directive = new TraceDirective({} as unknown as any);
       const finishMock = jest.fn();
       const customStartTransaction = jest.fn(defaultStartTransaction);
 
