@@ -95,6 +95,8 @@ export class Scope implements ScopeInterface {
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
 
+  // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
+
   public constructor() {
     this._notifyingListeners = false;
     this._scopeListeners = [];
@@ -128,6 +130,7 @@ export class Scope implements ScopeInterface {
       newScope._eventProcessors = [...scope._eventProcessors];
       newScope._requestSession = scope._requestSession;
       newScope._attachments = [...scope._attachments];
+      newScope._sdkProcessingMetadata = { ...scope._sdkProcessingMetadata };
     }
     return newScope;
   }
