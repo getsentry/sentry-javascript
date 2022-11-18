@@ -165,8 +165,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          # ember won't build under node 16, at least not with the versions of the ember build tools we use
-          node-version: '14'
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
