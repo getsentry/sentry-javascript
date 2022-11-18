@@ -1,5 +1,3 @@
-// mock functions need to be imported first
-import { afterEach, beforeEach, expect, it, jest } from '@jest/globals';
 import { Error } from '@test/fixtures/error';
 import { Transaction } from '@test/fixtures/transaction';
 import { resetSdkMock } from '@test/mocks';

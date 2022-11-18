@@ -1,14 +1,3 @@
-// mock functions need to be imported first
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from '@jest/globals';
 import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';

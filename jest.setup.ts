@@ -1,7 +1,5 @@
-import { afterEach, expect, jest } from '@jest/globals';
 import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
-import type { MatcherFunction } from 'expect';
 
 import { Session } from './src/session/Session';
 import { Replay } from './src';
@@ -42,43 +40,37 @@ type SentReplayExpected = {
   events?: string | Uint8Array;
 };
 
-const toHaveSameSession: MatcherFunction<[expected: undefined | Session]> =
-  function (received: jest.Mocked<Replay>, expected: undefined | Session) {
-    const pass = this.equals(received.session?.id, expected?.id) as boolean;
+const toHaveSameSession = function (
+  received: jest.Mocked<Replay>,
+  expected: undefined | Session
+) {
+  const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
-    const options = {
-      isNot: this.isNot,
-      promise: this.promise,
-    };
-
-    return {
-      pass,
-      message: () =>
-        this.utils.matcherHint(
-          'toHaveSameSession',
-          undefined,
-          undefined,
-          options
-        ) +
-        '\n\n' +
-        `Expected: ${pass ? 'not ' : ''}${this.utils.printExpected(
-          expected
-        )}\n` +
-        `Received: ${this.utils.printReceived(received.session)}`,
-    };
+  const options = {
+    isNot: this.isNot,
+    promise: this.promise,
   };
+
+  return {
+    pass,
+    message: () =>
+      this.utils.matcherHint(
+        'toHaveSameSession',
+        undefined,
+        undefined,
+        options
+      ) +
+      '\n\n' +
+      `Expected: ${pass ? 'not ' : ''}${this.utils.printExpected(expected)}\n` +
+      `Received: ${this.utils.printReceived(received.session)}`,
+  };
+};
 
 /**
  * Checks the last call to `fetch` and ensures a replay was uploaded by
  * checking the `fetch()` request's body.
  */
-const toHaveSentReplay: MatcherFunction<
-  [
-    expected?:
-      | SentReplayExpected
-      | { sample: SentReplayExpected; inverse: boolean }
-  ]
-> = function (
+const toHaveSentReplay = function (
   _received: jest.Mocked<Replay>,
   expected?:
     | SentReplayExpected
@@ -178,13 +170,16 @@ expect.extend({
   toHaveSentReplay,
 });
 
-declare module 'expect' {
-  interface AsymmetricMatchers {
-    toHaveSentReplay(expected?: SentReplayExpected): void;
-    toHaveSameSession(expected: undefined | Session): void;
-  }
-  interface Matchers<R> {
-    toHaveSentReplay(expected?: SentReplayExpected): R;
-    toHaveSameSession(expected: undefined | Session): R;
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    interface AsymmetricMatchers {
+      toHaveSentReplay(expected?: SentReplayExpected): void;
+      toHaveSameSession(expected: undefined | Session): void;
+    }
+    interface Matchers<R> {
+      toHaveSentReplay(expected?: SentReplayExpected): R;
+      toHaveSameSession(expected: undefined | Session): R;
+    }
   }
 }

@@ -1,5 +1,3 @@
-import { expect, it } from '@jest/globals';
-
 import { isExpired } from './isExpired';
 
 it('is expired', function () {

@@ -1,5 +1,3 @@
-import { describe, expect, it, jest } from '@jest/globals';
-
 jest.unmock('@sentry/browser');
 
 // mock functions need to be imported first

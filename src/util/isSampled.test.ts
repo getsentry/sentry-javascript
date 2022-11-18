@@ -1,5 +1,3 @@
-import { describe, expect, jest, test } from '@jest/globals';
-
 import { isSampled } from './isSampled';
 
 // Note Math.random generates a value from 0 (inclusive) to <1 (1 exclusive).

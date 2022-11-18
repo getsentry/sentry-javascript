@@ -1,6 +1,5 @@
 import 'jsdom-worker';
 
-import { expect, it } from '@jest/globals';
 import { BASE_TIMESTAMP } from '@test';
 import pako from 'pako';
 

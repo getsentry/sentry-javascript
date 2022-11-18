@@ -1,4 +1,3 @@
-import { afterEach, beforeAll, expect, it, jest } from '@jest/globals';
 import * as Sentry from '@sentry/core';
 
 import { createSession } from './createSession';

@@ -1,14 +1,5 @@
 jest.unmock('@sentry/browser');
 
-// mock functions need to be imported first
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from '@jest/globals';
 import { captureException } from '@sentry/browser';
 import { RecordMock } from '@test';
 import { BASE_TIMESTAMP } from '@test';

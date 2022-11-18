@@ -1,14 +1,4 @@
 jest.mock('./util/isInternal', () => ({ isInternal: jest.fn(() => true) }));
-
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from '@jest/globals';
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';

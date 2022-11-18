@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { getCurrentHub } from '@sentry/core';
 import { BASE_TIMESTAMP } from '@test';
 import { DomHandler, MockTransportSend } from '@test/types';

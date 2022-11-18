@@ -1,4 +1,3 @@
-import { beforeAll, expect, it, jest } from '@jest/globals';
 import { mockSdk } from '@test';
 
 import { handleFetch } from './handleFetch';

@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import { Transport } from '@sentry/types';
 
 export type MockTransportSend = jest.MockedFunction<Transport['send']>;
