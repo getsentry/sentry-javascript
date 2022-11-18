@@ -1,5 +1,5 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { arrayify, GLOBAL_OBJ, logger } from '@sentry/utils';
+import { arrayify, GLOBAL_OBJ } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
@@ -43,12 +43,12 @@ export function init(
   browserInit(options);
 
   if (!options.Vue && !options.app) {
-    __DEBUG_BUILD__ &&
-      logger.warn(
-        'Misconfigured SDK. Vue specific errors will not be captured.\n' +
-          'Update your `Sentry.init` call with an appropriate config option:\n' +
-          '`app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
-      );
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
+Update your \`Sentry.init\` call with an appropriate config option:
+\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
+    );
     return;
   }
 

@@ -71,4 +71,23 @@ describe('Sentry.init', () => {
       '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',
     ]);
   });
+
+  it('warns when not passing app & Vue', () => {
+    const el = document.createElement('div');
+    const app = createApp({
+      template: '<div>hello</div>',
+    });
+
+    Sentry.init({
+      defaultIntegrations: false,
+    });
+
+    app.mount(el);
+
+    expect(warnings).toEqual([
+      `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
+Update your \`Sentry.init\` call with an appropriate config option:
+\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
+    ]);
+  });
 });
