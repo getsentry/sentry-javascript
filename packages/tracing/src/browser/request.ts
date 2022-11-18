@@ -21,7 +21,7 @@ export interface RequestInstrumentationOptions {
    * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
    * trace header attachment.
    */
-  tracingOrigins: Array<string | RegExp>;
+  tracingOrigins?: Array<string | RegExp>;
 
   /**
    * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
@@ -29,7 +29,7 @@ export interface RequestInstrumentationOptions {
    *
    * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
-  tracePropagationTargets: Array<string | RegExp>;
+  tracePropagationTargets?: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -107,8 +107,6 @@ type PolymorphicRequestHeaders =
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
-  tracingOrigins: DEFAULT_TRACING_ORIGINS,
-  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -122,8 +120,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  const shouldAttachHeaders = (url: string): boolean =>
-    stringMatchesSomePattern(url, tracingOrigins) || stringMatchesSomePattern(url, tracePropagationTargets);
+  const shouldAttachHeaders = makeShouldAttachHeaders(tracingOrigins, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
 
@@ -138,6 +135,23 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
       xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeaders, spans);
     });
   }
+}
+
+/**
+ * Creates a function that determines whether to attach tracing headers to a request.
+ * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
+ * TODO (v8): Remove `tracingOrigins` which should drastically simplify this function.
+ */
+export function makeShouldAttachHeaders(
+  tracePropagationTargets: (string | RegExp)[] | undefined,
+  tracingOrigins: (string | RegExp)[] | undefined,
+) {
+  return (url: string): boolean => {
+    if (tracePropagationTargets || tracingOrigins) {
+      return stringMatchesSomePattern(url, tracePropagationTargets || tracingOrigins);
+    }
+    return stringMatchesSomePattern(url, DEFAULT_TRACE_PROPAGATION_TARGETS);
+  };
 }
 
 /**

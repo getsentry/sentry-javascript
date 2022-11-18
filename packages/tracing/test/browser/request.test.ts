@@ -3,7 +3,14 @@ import { Hub, makeMain } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
-import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
+import {
+  fetchCallback,
+  FetchData,
+  instrumentOutgoingRequests,
+  makeShouldAttachHeaders,
+  xhrCallback,
+  XHRData,
+} from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
@@ -380,6 +387,55 @@ describe('callbacks', () => {
 
       xhrCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(2);
+    });
+  });
+});
+
+// TODO (v8): Adapt these tests once we remove `tracingOrigins`
+describe('[pre-v8]: shouldAttachHeaders', () => {
+  describe('prefer `tracePropagationTargets` over `tracingOrigins`', () => {
+    it('should return `true` if the url matches the new tracePropagationTargets', () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], undefined);
+      expect(shouldAttachHeaders('http://example.com')).toBe(true);
+    });
+    it('should return `false` if tracePropagationTargets array is empty', () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders([], ['localhost']);
+      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+    });
+    it("should return `false` if tracePropagationTargets array doesn't match", () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], ['localhost']);
+      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+    });
+  });
+
+  describe('tracingOrigins backwards compatibility (tracePropagationTargets not defined)', () => {
+    it('should return `true` if the url matches tracingOrigns', () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
+      expect(shouldAttachHeaders('http://example.com')).toBe(true);
+    });
+    it('should return `false` if tracePropagationTargets array is empty', () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, []);
+      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+    });
+    it("should return `false` if tracePropagationTargets array doesn't match", () => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
+      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+    });
+  });
+
+  describe('should fall back to defaults if no options are specified', () => {
+    it.each([
+      '/api/test',
+      'http://localhost:3000/test',
+      'http://somewhere.com/test/localhost/123',
+      'http://somewhere.com/test?url=localhost:3000&test=123',
+    ])('return `true` for urls matching defaults (%s)', url => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
+      expect(shouldAttachHeaders(url)).toBe(true);
+    });
+    it.each(['notmydoman/api/test', 'example.com'])('return `false` for urls not matching defaults (%s)', url => {
+      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
+      expect(shouldAttachHeaders(url)).toBe(false);
     });
   });
 });
