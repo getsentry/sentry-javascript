@@ -18,9 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # We pin the exact version to enforce reproducable builds with node + npm.
-  DEFAULT_NODE_VERSION: '16.15.1'
-
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -132,9 +129,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -163,9 +158,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -201,9 +194,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -281,9 +272,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -308,9 +297,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -336,9 +323,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -508,9 +493,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -549,9 +532,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -581,9 +562,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -688,9 +667,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -701,9 +678,13 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get node version
+        id: versions
+        run: |
+          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
       - name: Run E2E tests
         env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
           E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
         run: |
