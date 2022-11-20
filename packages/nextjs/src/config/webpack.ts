@@ -459,23 +459,31 @@ export function getWebpackPluginOptions(
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
 
+  let basePath = userNextConfig.basePath || '';
+  if (basePath) {
+    basePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
+  }
+  const serverUrlPrefix = `~${basePath}/_next`;
+
   let assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   if (assetPrefix) {
     const assertPrefixUrl = url.parse(assetPrefix);
     assetPrefix = assertPrefixUrl.pathname || '';
     assetPrefix = assetPrefix.endsWith('/') ? assetPrefix.slice(0, -1) : assetPrefix;
   }
-  const urlPrefix = `~${assetPrefix}/_next`;
+  const clientUrlPrefix = `~${assetPrefix}/_next`;
 
   const serverInclude = isServerless
-    ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
-    : [{ paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
-        isWebpack5 ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
+    ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${serverUrlPrefix}/serverless` }]
+    : [{ paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${serverUrlPrefix}/server/pages` }].concat(
+        isWebpack5
+          ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${serverUrlPrefix}/server/chunks` }]
+          : [],
       );
 
   const clientInclude = userSentryOptions.widenClientFileUpload
-    ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
-    : [{ paths: [`${distDirAbsPath}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+    ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${clientUrlPrefix}/static/chunks` }]
+    : [{ paths: [`${distDirAbsPath}/static/chunks/pages`], urlPrefix: `${clientUrlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
@@ -492,7 +500,6 @@ export function getWebpackPluginOptions(
     authToken: process.env.SENTRY_AUTH_TOKEN,
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
-    urlPrefix,
     entries: (entryPointName: string) =>
       shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes),
     release: getSentryRelease(buildId),

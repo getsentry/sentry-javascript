@@ -35,7 +35,6 @@ describe('Sentry webpack plugin config', () => {
         project: 'simulator', // from user webpack plugin config
         authToken: 'dogsarebadatkeepingsecrets', // picked up from env
         stripPrefix: ['webpack://_N_E/'], // default
-        urlPrefix: '~/_next', // default
         entries: expect.any(Function), // default, tested separately elsewhere
         release: 'doGsaREgReaT', // picked up from env
         dryRun: false, // based on buildContext.dev being false
@@ -295,7 +294,34 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
-  describe('Sentry webpack plugin `urlPrefix` option with assetPrefix set', () => {
+  describe('Sentry webpack plugin `includes` option with assetPrefix set', () => {
+    it('does not affect server build', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
+        assetPrefix: '/asset-prefix',
+      };
+      const serverBuildContextWebpack4 = getBuildContext('server', exportedNextConfigWithAssetPrefix);
+      serverBuildContextWebpack4.webpack.version = '4.15.13';
+
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContextWebpack4,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${serverBuildContextWebpack4.dir}/.next/server/pages/`],
+          urlPrefix: '~/_next/server/pages',
+        },
+      ]);
+    });
+
     it('has the correct value given a path', async () => {
       const exportedNextConfigWithAssetPrefix = {
         ...exportedNextConfig,
@@ -313,7 +339,12 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/asset-prefix/_next/static/chunks/pages',
+        },
+      ]);
     });
 
     it('has the correct value given a path with a leading slash', async () => {
@@ -333,10 +364,15 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/asset-prefix/_next/static/chunks/pages',
+        },
+      ]);
     });
 
-    it('has the correct value when given a full URL', async () => {
+    it('has the correct value when given a full URL with no path', async () => {
       const exportedNextConfigWithAssetPrefix = {
         ...exportedNextConfig,
         assetPrefix: 'https://cdn.mydomain.com',
@@ -353,7 +389,12 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/_next');
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/_next/static/chunks/pages',
+        },
+      ]);
     });
 
     it('has the correct value when given a full URL with a path', async () => {
@@ -373,7 +414,12 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/asset-prefix/_next/static/chunks/pages',
+        },
+      ]);
     });
 
     it('takes priority over basePath ', async () => {
@@ -394,7 +440,12 @@ describe('Sentry webpack plugin config', () => {
         'SentryCliPlugin',
       ) as SentryWebpackPlugin;
 
-      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+      expect(sentryWebpackPluginInstance.options.include).toEqual([
+        {
+          paths: [`${buildContext.dir}/.next/static/chunks/pages`],
+          urlPrefix: '~/asset-prefix/_next/static/chunks/pages',
+        },
+      ]);
     });
   });
 
