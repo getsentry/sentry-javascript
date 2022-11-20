@@ -339,6 +339,26 @@ describe('Sentry webpack plugin config', () => {
     it('has the correct value when given a full URL', async () => {
       const exportedNextConfigWithAssetPrefix = {
         ...exportedNextConfig,
+        assetPrefix: 'https://cdn.mydomain.com',
+      };
+      const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: buildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/_next');
+    });
+
+    it('has the correct value when given a full URL with a path', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
         assetPrefix: 'https://cdn.mydomain.com/asset-prefix',
       };
       const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
