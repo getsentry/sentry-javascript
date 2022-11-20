@@ -5,6 +5,7 @@ import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as url from 'url';
 
 import {
   BuildContext,
@@ -457,7 +458,14 @@ export function getWebpackPluginOptions(
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
-  const urlPrefix = userNextConfig.basePath ? `~${userNextConfig.basePath}/_next` : '~/_next';
+
+  let assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+  if (assetPrefix) {
+    const assertPrefixUrl = url.parse(assetPrefix);
+    assetPrefix = assertPrefixUrl.pathname || '';
+    assetPrefix = assetPrefix.endsWith('/') ? assetPrefix.slice(0, -1) : assetPrefix;
+  }
+  const urlPrefix = `~${assetPrefix}/_next`;
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]

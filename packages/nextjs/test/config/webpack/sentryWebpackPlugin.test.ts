@@ -295,6 +295,89 @@ describe('Sentry webpack plugin config', () => {
     });
   });
 
+  describe('Sentry webpack plugin `urlPrefix` option with assetPrefix set', () => {
+    it('has the correct value given a path', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
+        assetPrefix: '/asset-prefix',
+      };
+      const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: buildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+    });
+
+    it('has the correct value given a path with a leading slash', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
+        assetPrefix: '/asset-prefix/',
+      };
+      const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: buildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+    });
+
+    it('has the correct value when given a full URL', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
+        assetPrefix: 'https://cdn.mydomain.com/asset-prefix',
+      };
+      const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: buildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+    });
+
+    it('takes priority over basePath ', async () => {
+      const exportedNextConfigWithAssetPrefix = {
+        ...exportedNextConfig,
+        assetPrefix: '/asset-prefix',
+        basePath: '/base-path',
+      };
+      const buildContext = getBuildContext('client', exportedNextConfigWithAssetPrefix);
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: exportedNextConfigWithAssetPrefix,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: buildContext,
+      });
+
+      const sentryWebpackPluginInstance = findWebpackPlugin(
+        finalWebpackConfig,
+        'SentryCliPlugin',
+      ) as SentryWebpackPlugin;
+
+      expect(sentryWebpackPluginInstance.options.urlPrefix).toEqual('~/asset-prefix/_next');
+    });
+  });
+
   describe('SentryWebpackPlugin enablement', () => {
     let processEnvBackup: typeof process.env;
 
