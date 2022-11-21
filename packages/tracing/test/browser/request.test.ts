@@ -398,10 +398,12 @@ describe('[pre-v8]: shouldAttachHeaders', () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], undefined);
       expect(shouldAttachHeaders('http://example.com')).toBe(true);
     });
+
     it('should return `false` if tracePropagationTargets array is empty', () => {
       const shouldAttachHeaders = makeShouldAttachHeaders([], ['localhost']);
       expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
     });
+
     it("should return `false` if tracePropagationTargets array doesn't match", () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], ['localhost']);
       expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
@@ -413,10 +415,12 @@ describe('[pre-v8]: shouldAttachHeaders', () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
       expect(shouldAttachHeaders('http://example.com')).toBe(true);
     });
+
     it('should return `false` if tracePropagationTargets array is empty', () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(undefined, []);
       expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
     });
+
     it("should return `false` if tracePropagationTargets array doesn't match", () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
       expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
@@ -433,6 +437,7 @@ describe('[pre-v8]: shouldAttachHeaders', () => {
       const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
       expect(shouldAttachHeaders(url)).toBe(true);
     });
+
     it.each(['notmydoman/api/test', 'example.com'])('return `false` for urls not matching defaults (%s)', url => {
       const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
       expect(shouldAttachHeaders(url)).toBe(false);

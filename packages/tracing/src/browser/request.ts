@@ -10,8 +10,6 @@ import {
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
-// TODO (v8): Remove `tracingOrigins`
-export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 
 /** Options for Request Instrumentation */
@@ -140,6 +138,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
 /**
  * Creates a function that determines whether to attach tracing headers to a request.
  * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
+ * We only export this fuction for testing purposes.
  * TODO (v8): Remove `tracingOrigins` which should drastically simplify this function.
  */
 export function makeShouldAttachHeaders(
@@ -147,6 +146,8 @@ export function makeShouldAttachHeaders(
   tracingOrigins: (string | RegExp)[] | undefined,
 ) {
   return (url: string): boolean => {
+    // TODO (v8): Replace the code below with this one-liner:
+    // return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
     if (tracePropagationTargets || tracingOrigins) {
       return stringMatchesSomePattern(url, tracePropagationTargets || tracingOrigins);
     }
