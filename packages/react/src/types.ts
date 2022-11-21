@@ -2,11 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Transaction, TransactionContext } from '@sentry/types';
 
-export enum Action {
-  Pop = 'POP',
-  Push = 'PUSH',
-  Replace = 'REPLACE',
-}
+export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
 export type Location = {
   pathname: string;
@@ -197,8 +193,14 @@ export type Navigation = NavigationStates[keyof NavigationStates];
 export type RouteData = any;
 export type Fetcher = any;
 
+export declare enum HistoryAction {
+  Pop = 'POP',
+  Push = 'PUSH',
+  Replace = 'REPLACE',
+}
+
 export interface RouterState {
-  historyAction: Action;
+  historyAction: Action | HistoryAction | any;
   location: any;
   matches: AgnosticDataRouteMatch[];
   initialized: boolean;
