@@ -2,7 +2,6 @@ import { render } from '@testing-library/react';
 import { Request } from 'node-fetch';
 import * as React from 'react';
 import {
-  createMemoryRouter,
   createRoutesFromChildren,
   matchPath,
   matchRoutes,
@@ -10,12 +9,13 @@ import {
   Navigate,
   Outlet,
   Route,
-  RouterProvider,
   Routes,
   useLocation,
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
+
+import { createMemoryRouter, RouterProvider, Navigate as Navigate_6_4 } from 'react-router-6.4';
 
 import { reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
 import { withSentryReactRouterV6Routing, wrapUseRoutes } from '../src/reactrouterv6';
@@ -630,219 +630,217 @@ describe('React Router v6', () => {
   });
 
   describe('wrapCreateBrowserRouter', () => {
-    describe('pageload', () => {
-      it('starts a pageload transaction', () => {
-        const [mockStartTransaction] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+    it('starts a pageload transaction', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: '/',
-              element: <div>TEST</div>,
-            },
-          ],
+      const router = sentryCreateBrowserRouter(
+        [
           {
-            initialEntries: ['/'],
+            path: '/',
+            element: <div>TEST</div>,
           },
-        );
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
 
-        render(<RouterProvider router={router} />);
+      render(<RouterProvider router={router} />);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-        expect(mockStartTransaction).toHaveBeenCalledWith({
-          name: '/',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'react-router-v6',
-          },
-          metadata: {
-            source: 'url',
-          },
-        });
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockStartTransaction).toHaveBeenCalledWith({
+        name: '/',
+        op: 'pageload',
+        tags: {
+          'routing.instrumentation': 'react-router-v6',
+        },
+        metadata: {
+          source: 'url',
+        },
       });
+    });
 
-      it('starts a navigation transaction', () => {
-        const [mockStartTransaction] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+    it('starts a navigation transaction', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: '/',
-              element: <Navigate to="/about" />,
-            },
-            {
-              path: 'about',
-              element: <div>About</div>,
-            },
-          ],
+      const router = sentryCreateBrowserRouter(
+        [
           {
-            initialEntries: ['/'],
+            path: '/',
+            element: <Navigate_6_4 to="/about" />,
           },
-        );
-
-        render(<RouterProvider router={router} />);
-
-        expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith({
-          name: '/about',
-          op: 'navigation',
-          tags: { 'routing.instrumentation': 'react-router-v6' },
-          metadata: { source: 'route' },
-        });
-      });
-
-      it('works with nested routes', () => {
-        const [mockStartTransaction] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
-
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: '/',
-              element: <Navigate to="/about/us" />,
-            },
-            {
-              path: 'about',
-              element: <div>About</div>,
-              children: [
-                {
-                  path: 'us',
-                  element: <div>Us</div>,
-                },
-              ],
-            },
-          ],
           {
-            initialEntries: ['/'],
+            path: 'about',
+            element: <div>About</div>,
           },
-        );
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
 
-        render(<RouterProvider router={router} />);
+      render(<RouterProvider router={router} />);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith({
-          name: '/about/us',
-          op: 'navigation',
-          tags: { 'routing.instrumentation': 'react-router-v6' },
-          metadata: { source: 'route' },
-        });
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
       });
+    });
 
-      it('works with parameterized paths', () => {
-        const [mockStartTransaction] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+    it('works with nested routes', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: '/',
-              element: <Navigate to="/about/us" />,
-            },
-            {
-              path: 'about',
-              element: <div>About</div>,
-              children: [
-                {
-                  path: ':page',
-                  element: <div>Page</div>,
-                },
-              ],
-            },
-          ],
+      const router = sentryCreateBrowserRouter(
+        [
           {
-            initialEntries: ['/'],
+            path: '/',
+            element: <Navigate_6_4 to="/about/us" />,
           },
-        );
-
-        render(<RouterProvider router={router} />);
-
-        expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith({
-          name: '/about/:page',
-          op: 'navigation',
-          tags: { 'routing.instrumentation': 'react-router-v6' },
-          metadata: { source: 'route' },
-        });
-      });
-
-      it('works with paths with multiple parameters', () => {
-        const [mockStartTransaction] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
-
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: '/',
-              element: <Navigate to="/stores/foo/products/234" />,
-            },
-            {
-              path: 'stores',
-              element: <div>Stores</div>,
-              children: [
-                {
-                  path: ':storeId',
-                  element: <div>Store</div>,
-                  children: [
-                    {
-                      path: 'products',
-                      element: <div>Products</div>,
-                      children: [
-                        {
-                          path: ':productId',
-                          element: <div>Product</div>,
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
           {
-            initialEntries: ['/'],
+            path: 'about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: 'us',
+                element: <div>Us</div>,
+              },
+            ],
           },
-        );
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
 
-        render(<RouterProvider router={router} />);
+      render(<RouterProvider router={router} />);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith({
-          name: '/stores/:storeId/products/:productId',
-          op: 'navigation',
-          tags: { 'routing.instrumentation': 'react-router-v6' },
-          metadata: { source: 'route' },
-        });
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about/us',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
       });
+    });
 
-      it('updates pageload transaction to a parameterized route', () => {
-        const [mockStartTransaction, { mockSetName }] = createInstrumentation();
-        const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+    it('works with parameterized paths', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
-        const router = sentryCreateBrowserRouter(
-          [
-            {
-              path: 'about',
-              element: <div>About</div>,
-              children: [
-                {
-                  path: ':page',
-                  element: <div>page</div>,
-                },
-              ],
-            },
-          ],
+      const router = sentryCreateBrowserRouter(
+        [
           {
-            initialEntries: ['/about/us'],
+            path: '/',
+            element: <Navigate_6_4 to="/about/us" />,
           },
-        );
+          {
+            path: 'about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: ':page',
+                element: <div>Page</div>,
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
 
-        render(<RouterProvider router={router} />);
+      render(<RouterProvider router={router} />);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-        expect(mockSetName).toHaveBeenLastCalledWith('/about/:page', 'route');
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/about/:page',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
       });
+    });
+
+    it('works with paths with multiple parameters', () => {
+      const [mockStartTransaction] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <Navigate_6_4 to="/stores/foo/products/234" />,
+          },
+          {
+            path: 'stores',
+            element: <div>Stores</div>,
+            children: [
+              {
+                path: ':storeId',
+                element: <div>Store</div>,
+                children: [
+                  {
+                    path: 'products',
+                    element: <div>Products</div>,
+                    children: [
+                      {
+                        path: ':productId',
+                        element: <div>Product</div>,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
+
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
+      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+        name: '/stores/:storeId/products/:productId',
+        op: 'navigation',
+        tags: { 'routing.instrumentation': 'react-router-v6' },
+        metadata: { source: 'route' },
+      });
+    });
+
+    it('updates pageload transaction to a parameterized route', () => {
+      const [mockStartTransaction, { mockSetName }] = createInstrumentation();
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: 'about',
+            element: <div>About</div>,
+            children: [
+              {
+                path: ':page',
+                element: <div>page</div>,
+              },
+            ],
+          },
+        ],
+        {
+          initialEntries: ['/about/us'],
+        },
+      );
+
+      render(<RouterProvider router={router} />);
+
+      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSetName).toHaveBeenLastCalledWith('/about/:page', 'route');
     });
   });
 });

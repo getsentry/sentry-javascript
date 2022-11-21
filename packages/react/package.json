@@ -46,7 +46,8 @@
     "react-router-3": "npm:react-router@3.2.0",
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.0.0",
-    "react-router-6": "npm:react-router@6.4.2",
+    "react-router-6": "npm:react-router@6.3.0",
+    "react-router-6.4": "npm:react-router@6.4.2",
     "redux": "^4.0.5"
   },
   "scripts": {
