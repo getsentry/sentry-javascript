@@ -145,7 +145,7 @@ const deprecatedIsBuild = (): boolean => isBuild();
 export { deprecatedIsBuild as isBuild };
 
 export type { SentryWebpackPluginOptions } from './config/types';
-export { withSentryConfig } from './config';
+export { withSentryConfig } from './config/withSentryConfig';
 export {
   withSentryGetServerSideProps,
   withSentryGetStaticProps,
