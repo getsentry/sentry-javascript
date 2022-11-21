@@ -698,6 +698,8 @@ jobs:
     name: All required tests passed or skipped
     needs:
       [
+        job_build,
+        job_browser_build_tests,
         job_unit_test,
         job_nextjs_integration_test,
         job_node_integration_tests,
