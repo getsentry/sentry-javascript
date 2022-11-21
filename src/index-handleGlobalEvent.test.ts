@@ -2,11 +2,11 @@ import { Error } from '@test/fixtures/error';
 import { Transaction } from '@test/fixtures/transaction';
 import { resetSdkMock } from '@test/mocks';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import { REPLAY_EVENT_NAME } from './session/constants';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
-
+useFakeTimers();
 let replay: Replay;
 
 beforeEach(async () => {
@@ -27,7 +27,7 @@ it('deletes breadcrumbs from replay events', () => {
     breadcrumbs: [{ type: 'fakecrumb' }],
   };
 
-  // @ts-expect-error replay event type
+  // @ts-ignore replay event type
   expect(replay.handleGlobalEvent(replayEvent)).toEqual({
     type: REPLAY_EVENT_NAME,
   });
@@ -58,7 +58,7 @@ it('does not delete breadcrumbs from error and transaction events', () => {
 it('only tags errors with replay id, adds trace and error id to context for error samples', async () => {
   const transaction = Transaction();
   const error = Error();
-  // @ts-expect-error idc
+  // @ts-ignore idc
   expect(replay.handleGlobalEvent(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.not.objectContaining({ replayId: expect.anything() }),
@@ -70,16 +70,16 @@ it('only tags errors with replay id, adds trace and error id to context for erro
     })
   );
 
-  // @ts-expect-error private
+  // @ts-ignore private
   expect(replay.context.traceIds).toContain('trace_id');
-  // @ts-expect-error private
+  // @ts-ignore private
   expect(replay.context.errorIds).toContain('event_id');
 
   jest.runAllTimers();
   await new Promise(process.nextTick); // wait for flush
 
   // Turns off `waitForError` mode
-  // @ts-expect-error private
+  // @ts-ignore private
   expect(replay.waitForError).toBe(false);
 });
 
@@ -91,7 +91,7 @@ it('tags errors and transactions with replay id for session samples', async () =
   replay.start();
   const transaction = Transaction();
   const error = Error();
-  // @ts-expect-error idc
+  // @ts-ignore idc
   expect(replay.handleGlobalEvent(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),

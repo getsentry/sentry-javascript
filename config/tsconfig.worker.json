@@ -4,6 +4,7 @@
     "declaration": false,
     "lib": ["webworker", "scripthost"],
     "baseUrl": "../worker/src",
+    "rootDir": "../worker/src",
     "outDir": "../src/worker"
   },
   "include": ["../worker/src/worker.ts", "../src/types.ts"]

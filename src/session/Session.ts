@@ -42,17 +42,17 @@ export class Session {
   /**
    * Start time of current session
    */
-  private _started;
+  private _started: number;
 
   /**
    * Last known activity of the session
    */
-  private _lastActivity;
+  private _lastActivity: number;
 
   /**
    * Sequence ID specific to replay updates
    */
-  private _segmentId;
+  private _segmentId: number;
 
   /**
    * Previous session ID

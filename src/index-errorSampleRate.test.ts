@@ -7,13 +7,14 @@ import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resour
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import {
   REPLAY_SESSION_KEY,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
+useFakeTimers();
 
 async function advanceTimers(time: number) {
   jest.advanceTimersByTime(time);
@@ -34,6 +35,7 @@ describe('Replay (errorSampleRate)', () => {
         stickySession: true,
       }
     ));
+    // jest.advanceTimersToNextTimer();
   });
 
   afterEach(async () => {
@@ -304,7 +306,8 @@ describe('Replay (errorSampleRate)', () => {
         // the exception happens roughly 10 seconds after BASE_TIMESTAMP
         // (advance timers + waiting for flush after the checkout) and
         // extra time is likely due to async of `addMemoryEntry()`
-        timestamp: expect.closeTo((BASE_TIMESTAMP + 5000 + 5000) / 1000, 1),
+
+        timestamp: (BASE_TIMESTAMP + 5000 + 5000 + 20) / 1000,
         error_ids: [expect.any(String)],
         trace_ids: [],
         urls: ['http://localhost/'],
@@ -393,11 +396,13 @@ describe('Replay (errorSampleRate)', () => {
     mockRecord.takeFullSnapshot(true);
 
     jest.runAllTimers();
+    jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
 
     captureException(new Error('testing'));
 
     jest.runAllTimers();
+    jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
 
     expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);

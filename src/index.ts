@@ -179,7 +179,7 @@ export class Replay implements Integration {
       stickySession,
       initialFlushDelay,
       sessionSampleRate: usingDeprecatedReplaysSamplingRate
-        ? replaysSamplingRate
+        ? (replaysSamplingRate as number)
         : sessionSampleRate,
       errorSampleRate: usingDeprecatedCaptureOnlyOnError
         ? 1.0
@@ -562,7 +562,7 @@ export class Replay implements Integration {
   handleGlobalEvent = (event: Event) => {
     // Do not apply replayId to the root event
     if (
-      // @ts-expect-error new event type
+      // @ts-ignore new event type
       event.type === REPLAY_EVENT_NAME
     ) {
       // Replays have separate set of breadcrumbs, do not include breadcrumbs
@@ -584,7 +584,7 @@ export class Replay implements Integration {
     }
 
     // XXX: Is it safe to assume that all other events are error events?
-    // @ts-expect-error: Type 'undefined' is not assignable to type 'string'.ts(2345)
+    // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
     this.context.errorIds.add(event.event_id);
 
     const exc = event.exception?.values?.[0];
@@ -1021,7 +1021,7 @@ export class Replay implements Integration {
     }
 
     return this.createPerformanceSpans([
-      // @ts-expect-error memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
+      // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
       createMemoryEntry(window.performance.memory),
     ]);
   }
@@ -1249,7 +1249,7 @@ export class Replay implements Integration {
 
     const replayEvent = await new Promise((resolve) => {
       getCurrentHub()
-        // @ts-expect-error private api
+        // @ts-ignore private api
         ?._withClient(async (client, scope) => {
           // XXX: This event does not trigger `beforeSend` in SDK
           const preparedEvent = await client._prepareEvent(
@@ -1296,15 +1296,15 @@ export class Replay implements Integration {
         sdk: sdkInfo,
       },
       [
-        // @ts-expect-error New types
+        // @ts-ignore New types
         [{ type: 'replay_event' }, replayEvent],
         [
           {
-            // @ts-expect-error setting envelope
+            // @ts-ignore setting envelope
             type: 'replay_recording',
             length: payloadWithSequence.length,
           },
-          // @ts-expect-error: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
+          // @ts-ignore: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
           payloadWithSequence,
         ],
       ]

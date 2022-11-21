@@ -1,11 +1,12 @@
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import { SESSION_IDLE_DURATION } from './session/constants';
 import { createPerformanceEntries } from './createPerformanceEntry';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
+useFakeTimers();
 
 async function advanceTimers(time: number) {
   jest.advanceTimersByTime(time);
@@ -99,7 +100,7 @@ afterEach(async () => {
   replay.clearSession();
   replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   mockRecord.takeFullSnapshot.mockClear();
-  // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
+  // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
   delete window.location;
   Object.defineProperty(window, 'location', {
     value: prevLocation,

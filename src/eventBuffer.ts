@@ -32,7 +32,7 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams) {
 }
 
 export interface IEventBuffer {
-  get length(): number;
+  readonly length: number;
   destroy(): void;
   addEvent(event: RecordingEvent, isCheckout?: boolean): void;
   finish(): Promise<string | Uint8Array>;
@@ -100,7 +100,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     args,
   }: WorkerRequest): Promise<WorkerResponse['response']> {
     return new Promise((resolve, reject) => {
-      const listener = ({ data }: MessageEvent<WorkerResponse>) => {
+      const listener = ({ data }: MessageEvent) => {
         if (data.method !== method) {
           return;
         }

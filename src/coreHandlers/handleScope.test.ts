@@ -13,7 +13,7 @@ it('returns a breadcrumb only if last breadcrumb has changed (unit)', function (
   } as unknown as Scope;
 
   function addBreadcrumb(breadcrumb: Breadcrumb) {
-    // @ts-expect-error using private member
+    // @ts-ignore using private member
     scope._breadcrumbs.push(breadcrumb);
   }
 

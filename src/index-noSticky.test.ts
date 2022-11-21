@@ -3,13 +3,14 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
 } from './session/constants';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
+useFakeTimers();
 
 async function advanceTimers(time: number) {
   jest.advanceTimersByTime(time);

@@ -3,7 +3,9 @@ jest.unmock('@sentry/browser');
 // mock functions need to be imported first
 import { mockRrweb, mockSdk } from '@test';
 
-jest.useFakeTimers({ advanceTimers: true });
+import { useFakeTimers } from './../test/utils/use-fake-timers';
+
+useFakeTimers();
 
 describe('Replay (sampling)', () => {
   it('does nothing if not sampled', async () => {
@@ -18,12 +20,12 @@ describe('Replay (sampling)', () => {
 
     jest.spyOn(replay, 'loadSession');
     jest.spyOn(replay, 'addListeners');
-    // @ts-expect-error private
+    // @ts-ignore private
     expect(replay.initialState).toEqual(undefined);
     jest.runAllTimers();
 
     expect(replay.session?.sampled).toBe(false);
-    // @ts-expect-error private
+    // @ts-ignore private
     expect(replay.context).toEqual(
       expect.objectContaining({
         initialTimestamp: expect.any(Number),

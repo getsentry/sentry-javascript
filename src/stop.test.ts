@@ -2,10 +2,11 @@ import * as SentryUtils from '@sentry/utils';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import { SESSION_IDLE_DURATION } from './session/constants';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
+useFakeTimers();
 
 describe('Replay - stop', () => {
   let replay: Replay;
@@ -44,7 +45,7 @@ describe('Replay - stop', () => {
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
-    // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
+    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
     delete window.location;
     Object.defineProperty(window, 'location', {
       value: prevLocation,

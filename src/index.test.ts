@@ -4,6 +4,7 @@ import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resour
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
+import { useFakeTimers } from './../test/utils/use-fake-timers';
 import {
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
@@ -11,7 +12,7 @@ import {
 } from './session/constants';
 import { Replay } from './';
 
-jest.useFakeTimers({ advanceTimers: true });
+useFakeTimers();
 
 async function advanceTimers(time: number) {
   jest.advanceTimersByTime(time);
@@ -65,7 +66,7 @@ describe('Replay', () => {
   afterEach(async () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    // @ts-expect-error: The operand of a 'delete' operator must be optional.ts(2790)
+    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
     delete window.location;
     Object.defineProperty(window, 'location', {
       value: prevLocation,
@@ -85,7 +86,7 @@ describe('Replay', () => {
       }
     ));
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
-      {
+      Object {
         "blockClass": "sentry-block",
         "blockSelector": "[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
         "emit": [Function],
@@ -305,7 +306,7 @@ describe('Replay', () => {
     const initialSession = replay.session;
 
     expect(initialSession?.id).toBeDefined();
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
@@ -379,7 +380,7 @@ describe('Replay', () => {
     });
 
     // `context` should be reset when a new session is created
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
@@ -393,7 +394,7 @@ describe('Replay', () => {
     const initialSession = replay.session;
 
     expect(initialSession?.id).toBeDefined();
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
@@ -438,7 +439,7 @@ describe('Replay', () => {
     // Should be the same session because user has been idle and no events have caused a new session to be created
     expect(replay).toHaveSameSession(initialSession);
 
-    // @ts-expect-error private
+    // @ts-ignore private
     expect(replay.stopRecording).toBeUndefined();
 
     // Now do a click
@@ -492,7 +493,7 @@ describe('Replay', () => {
     });
 
     // `context` should be reset when a new session is created
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
@@ -822,7 +823,7 @@ describe('Replay', () => {
     );
 
     // This should be null because `addEvent` has not been called yet
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context.earliestEvent).toBe(null);
     expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
@@ -863,7 +864,7 @@ describe('Replay', () => {
     });
 
     // This gets reset after sending replay
-    // @ts-expect-error private member
+    // @ts-ignore private member
     expect(replay.context.earliestEvent).toBe(null);
   });
 

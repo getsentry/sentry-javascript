@@ -4,7 +4,7 @@ import { Transport } from '@sentry/types';
 import { Session } from './src/session/Session';
 import { Replay } from './src';
 
-// @ts-expect-error TS error, this is replaced in prod builds bc of rollup
+// @ts-ignore TS error, this is replaced in prod builds bc of rollup
 global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
@@ -88,17 +88,17 @@ const toHaveSentReplay = function (
     [recordingHeader, recordingPayload] = [],
   ] = envelopeItems;
 
-  // @ts-expect-error recordingPayload is always a string in our tests
+  // @ts-ignore recordingPayload is always a string in our tests
   const [recordingPayloadHeader, events] = recordingPayload?.split('\n') || [];
 
   const actualObj: Required<SentReplayExpected> = {
-    // @ts-expect-error Custom envelope
+    // @ts-ignore Custom envelope
     envelopeHeader: envelopeHeader,
-    // @ts-expect-error Custom envelope
+    // @ts-ignore Custom envelope
     replayEventHeader: replayEventHeader,
-    // @ts-expect-error Custom envelope
+    // @ts-ignore Custom envelope
     replayEventPayload: replayEventPayload,
-    // @ts-expect-error Custom envelope
+    // @ts-ignore Custom envelope
     recordingHeader: recordingHeader,
     recordingPayloadHeader:
       recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
@@ -107,7 +107,9 @@ const toHaveSentReplay = function (
 
   const isObjectContaining =
     expected && 'sample' in expected && 'inverse' in expected;
-  const expectedObj = isObjectContaining ? expected.sample : expected;
+  const expectedObj = isObjectContaining
+    ? (expected as { sample: SentReplayExpected }).sample
+    : (expected as SentReplayExpected);
 
   if (isObjectContaining) {
     console.warn(
@@ -117,7 +119,7 @@ const toHaveSentReplay = function (
 
   const results = expected
     ? Object.entries(actualObj)
-        .map(([key, val]: [key: keyof SentReplayExpected, val: any]) => {
+        .map(([key, val]: [keyof SentReplayExpected, any]) => {
           return [
             !expectedObj?.[key] || this.equals(expectedObj[key], val),
             key,

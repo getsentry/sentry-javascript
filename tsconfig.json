@@ -3,8 +3,10 @@
   "compilerOptions": {
     "paths": {
       "@test": ["./test"],
-      "@test/*": ["./test/*"]
-    }
+      "@test/*":
+       ["./test/*"]
+    },
+    "types": ["node", "jest"]
   },
   "include": [
     "src/**/*.ts",

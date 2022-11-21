@@ -26,7 +26,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
 }
 
 interface XhrHandlerData {
-  args: [method: string, url: string];
+  args: [string, string];
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp: number;
   endTimestamp?: number;

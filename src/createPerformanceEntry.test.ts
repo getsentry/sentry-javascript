@@ -35,6 +35,6 @@ it('ignores sdks own requests', function () {
     workerTiming: [],
   } as const;
 
-  // @ts-expect-error Needs a PerformanceEntry mock
+  // @ts-ignore Needs a PerformanceEntry mock
   expect(createPerformanceEntries([data])).toEqual([]);
 });

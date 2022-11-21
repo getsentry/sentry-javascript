@@ -11,7 +11,7 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
   jest.clearAllMocks();
   jest.resetModules();
   // NOTE: The listeners added to `addInstrumentationHandler` are leaking
-  // @ts-expect-error Don't know if there's a cleaner way to clean up old event processors
+  // @ts-ignore Don't know if there's a cleaner way to clean up old event processors
   globalThis.__SENTRY__.globalEventProcessors = [];
   const SentryUtils = await import('@sentry/utils');
   jest
@@ -47,7 +47,7 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
   jest.setSystemTime(new Date(BASE_TIMESTAMP));
 
   return {
-    // @ts-expect-error use before assign
+    // @ts-ignore use before assign
     domHandler,
     mockRecord,
     mockTransportSend,

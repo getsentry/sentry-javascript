@@ -32,7 +32,7 @@ export function PerformanceEntryNavigation(
     domComplete: 682.5,
     loadEventStart: 682.5,
     loadEventEnd: 682.6999999284744,
-    type: 'navigate' as NavigationTimingType,
+    type: 'navigate' as NavigationType,
     redirectCount: 0,
     ...obj,
   };
