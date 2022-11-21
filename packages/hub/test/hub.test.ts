@@ -7,11 +7,13 @@ import { getCurrentHub, Hub, Scope } from '../src';
 
 const clientFn: any = jest.fn();
 
+const MOCK_EVENT_ID = '7bab5137428b4de29891fb8bd34a31cb';
+
 function makeClient() {
   return {
     getOptions: jest.fn(),
     captureEvent: jest.fn(),
-    captureException: jest.fn(),
+    captureException: jest.fn().mockReturnValue(MOCK_EVENT_ID),
     close: jest.fn(),
     flush: jest.fn(),
     getDsn: jest.fn(),
@@ -224,16 +226,6 @@ describe('Hub', () => {
       expect(args[0]).toBe('a');
     });
 
-    test('should set event_id in hint', () => {
-      const testClient = makeClient();
-      const hub = new Hub(testClient);
-
-      hub.captureException('a');
-      const args = getPassedArgs(testClient.captureException);
-
-      expect(args[1].event_id).toBeTruthy();
-    });
-
     test('should keep event_id from hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
@@ -270,14 +262,12 @@ describe('Hub', () => {
       expect(args[0]).toBe('a');
     });
 
-    test('should set event_id in hint', () => {
+    test('should get event_id from client', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
 
-      hub.captureMessage('a');
-      const args = getPassedArgs(testClient.captureMessage);
-
-      expect(args[2].event_id).toBeTruthy();
+      const id = hub.captureMessage('a');
+      expect(id).toBeTruthy();
     });
 
     test('should keep event_id from hint', () => {
@@ -318,17 +308,15 @@ describe('Hub', () => {
       expect(args[0]).toBe(event);
     });
 
-    test('should set event_id in hint', () => {
+    test('should get event_id from client', () => {
       const event: Event = {
         extra: { b: 3 },
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
 
-      hub.captureEvent(event);
-      const args = getPassedArgs(testClient.captureEvent);
-
-      expect(args[1].event_id).toBeTruthy();
+      const id = hub.captureEvent(event);
+      expect(id).toBeTruthy();
     });
 
     test('should keep event_id from hint', () => {
@@ -352,10 +340,8 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
 
-      hub.captureEvent(event);
-      const args = getPassedArgs(testClient.captureEvent);
-
-      expect(args[1].event_id).toEqual(hub.lastEventId());
+      const id = hub.captureEvent(event);
+      expect(id).toEqual(hub.lastEventId());
     });
 
     test('transactions do not set lastEventId', () => {
@@ -366,10 +352,8 @@ describe('Hub', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
 
-      hub.captureEvent(event);
-      const args = getPassedArgs(testClient.captureEvent);
-
-      expect(args[1].event_id).not.toEqual(hub.lastEventId());
+      const id = hub.captureEvent(event);
+      expect(id).not.toEqual(hub.lastEventId());
     });
   });
 
