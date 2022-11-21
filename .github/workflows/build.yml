@@ -23,6 +23,9 @@ jobs:
           yarn test
 
       - run: |
+          yarn build
+
+      - run: |
           yarn build:npm
 
       - uses: actions/upload-artifact@v3.1.1

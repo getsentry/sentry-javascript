@@ -2,9 +2,9 @@
   "name": "@sentry/replay",
   "version": "0.6.14",
   "description": "User replays for Sentry",
-  "main": "dist/index.js",
-  "module": "dist/index.es.js",
-  "types": "dist/types/src/index.d.ts",
+  "main": "build/npm/index.js",
+  "module": "build/npm/index.es.js",
+  "types": "build/npm/types/src/index.d.ts",
   "sideEffects": false,
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
@@ -17,9 +17,9 @@
     "build:watch": "NODE_ENV=production yarn build:all:watch",
     "build:dev:watch": "NODE_ENV=development yarn build:all:watch",
     "build:all:watch": "yarn clean && run-p \"build:worker --watch\" \"build:core --watch\"",
-    "build:npm": "yarn pack #TODO: use JS sdk prepack script after migration",
+    "build:npm": "ts-node ./scripts/tmp-prepack.ts --bundles && npm pack ./build/npm #TODO: use JS sdk prepack script after migration",
     "circularDepCheck": "#TODO comment in after migration: madge --circular src/index.ts",
-    "clean": "rimraf dist sentry-replay-*.tgz",
+    "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts,worker}/**/*.ts\"",
@@ -29,13 +29,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "start:demo": "yarn build:dev && cd demo && yarn start",
-    "prepack": "yarn build #TODO: remove after migration",
     "build:prod": "yarn build #TODO remove, we don't need this anymore after migration",
     "dev": "yarn build:dev:watch #TODO remove, we don't need this anymore after migration"
   },
-  "files": [
-    "dist"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getsentry/sentry-replay.git"
@@ -92,7 +88,7 @@
   },
   "size-limit": [
     {
-      "path": "dist/index.js",
+      "path": "build/npm/index.js",
       "limit": "4500ms"
     }
   ],
