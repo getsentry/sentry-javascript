@@ -7,7 +7,7 @@ import {
   fetchCallback,
   FetchData,
   instrumentOutgoingRequests,
-  makeShouldAttachHeaders,
+  shouldAttachHeaders,
   xhrCallback,
   XHRData,
 } from '../../src/browser/request';
@@ -395,35 +395,29 @@ describe('callbacks', () => {
 describe('[pre-v8]: shouldAttachHeaders', () => {
   describe('prefer `tracePropagationTargets` over `tracingOrigins`', () => {
     it('should return `true` if the url matches the new tracePropagationTargets', () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], undefined);
-      expect(shouldAttachHeaders('http://example.com')).toBe(true);
+      expect(shouldAttachHeaders('http://example.com', ['example.com'], undefined)).toBe(true);
     });
 
     it('should return `false` if tracePropagationTargets array is empty', () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders([], ['localhost']);
-      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+      expect(shouldAttachHeaders('http://localhost:3000/test', [], ['localhost'])).toBe(false);
     });
 
     it("should return `false` if tracePropagationTargets array doesn't match", () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(['example.com'], ['localhost']);
-      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+      expect(shouldAttachHeaders('http://localhost:3000/test', ['example.com'], ['localhost'])).toBe(false);
     });
   });
 
   describe('tracingOrigins backwards compatibility (tracePropagationTargets not defined)', () => {
     it('should return `true` if the url matches tracingOrigns', () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
-      expect(shouldAttachHeaders('http://example.com')).toBe(true);
+      expect(shouldAttachHeaders('http://example.com', undefined, ['example.com'])).toBe(true);
     });
 
     it('should return `false` if tracePropagationTargets array is empty', () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, []);
-      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+      expect(shouldAttachHeaders('http://localhost:3000/test', undefined, [])).toBe(false);
     });
 
     it("should return `false` if tracePropagationTargets array doesn't match", () => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, ['example.com']);
-      expect(shouldAttachHeaders('http://localhost:3000/test')).toBe(false);
+      expect(shouldAttachHeaders('http://localhost:3000/test', undefined, ['example.com'])).toBe(false);
     });
   });
 
@@ -434,13 +428,11 @@ describe('[pre-v8]: shouldAttachHeaders', () => {
       'http://somewhere.com/test/localhost/123',
       'http://somewhere.com/test?url=localhost:3000&test=123',
     ])('return `true` for urls matching defaults (%s)', url => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
-      expect(shouldAttachHeaders(url)).toBe(true);
+      expect(shouldAttachHeaders(url, undefined, undefined)).toBe(true);
     });
 
     it.each(['notmydoman/api/test', 'example.com'])('return `false` for urls not matching defaults (%s)', url => {
-      const shouldAttachHeaders = makeShouldAttachHeaders(undefined, undefined);
-      expect(shouldAttachHeaders(url)).toBe(false);
+      expect(shouldAttachHeaders(url, undefined, undefined)).toBe(false);
     });
   });
 });
