@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.20.1
+
+- fix(angular): Set `<unknown>` component name default in TraceDirective (#6222)
+- fix(core): Include `_sdkProcessingMetadata` when cloning scope (#6218)
+- fix(tracing): Make `shouldAttachHeaders` not fall back to default values (#6238)
+- ref(vue): Check if SDK is initialized before app is mounted (#6227)
+
 ## 7.20.0
 
 - feat(angular): Add Angular 15 Peer Dependencies (#6220)
