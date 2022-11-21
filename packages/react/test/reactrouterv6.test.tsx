@@ -14,8 +14,7 @@ import {
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
-
-import { createMemoryRouter, RouterProvider, Navigate as Navigate_6_4 } from 'react-router-6.4';
+import { createMemoryRouter, Navigate as Navigate_6_4,RouterProvider } from 'react-router-6.4';
 
 import { reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
 import { withSentryReactRouterV6Routing, wrapUseRoutes } from '../src/reactrouterv6';

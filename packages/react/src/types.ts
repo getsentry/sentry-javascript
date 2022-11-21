@@ -1,11 +1,16 @@
+// Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Transaction, TransactionContext } from '@sentry/types';
 
-export type Action = 'PUSH' | 'REPLACE' | 'POP';
+export enum Action {
+  Pop = 'POP',
+  Push = 'PUSH',
+  Replace = 'REPLACE',
+}
 
 export type Location = {
   pathname: string;
   action?: Action;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } & Record<string, any>;
 
 export type ReactRouterInstrumentation = <T extends Transaction>(
@@ -19,7 +24,7 @@ export interface NonIndexRouteObject {
   caseSensitive?: boolean;
   children?: RouteObject[];
   element?: React.ReactNode | null;
-  index?: false;
+  index?: any;
   path?: string;
 }
 
@@ -27,7 +32,7 @@ export interface IndexRouteObject {
   caseSensitive?: boolean;
   children?: undefined;
   element?: React.ReactNode | null;
-  index: true;
+  index: any;
   path?: string;
 }
 
@@ -69,9 +74,7 @@ export type UseNavigationType = () => Action;
 // For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
 // Have to do this so we maintain backwards compatability between
 // react-router > 6.0.0 and >= 6.4.2.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RouteObjectArrayAlias = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RouteMatchAlias = any;
 export type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
 export type MatchRoutes = (routes: RouteObjectArrayAlias, location: Location) => RouteMatchAlias[] | null;
@@ -104,15 +107,9 @@ declare type AgnosticBaseRouteObject = {
   handle?: any;
 };
 
-export declare type AgnosticIndexRouteObject = AgnosticBaseRouteObject & {
-  children?: undefined;
-  index: true;
-};
+export declare type AgnosticIndexRouteObject = AgnosticBaseRouteObject & Record<string, any>;
 
-export declare type AgnosticNonIndexRouteObject = AgnosticBaseRouteObject & {
-  children?: AgnosticRouteObject[];
-  index?: false;
-};
+export declare type AgnosticNonIndexRouteObject = AgnosticBaseRouteObject & Record<string, any>;
 
 export declare type AgnosticDataIndexRouteObject = AgnosticIndexRouteObject & {
   id: string;
@@ -183,50 +180,39 @@ declare type SubmissionNavigateOptions = {
 };
 
 export interface RouterInit {
-  basename?: string;
+  basename: string;
   routes: AgnosticRouteObject[];
   history: History;
   hydrationData?: HydrationState;
 }
 
 export type NavigationStates = {
-  Idle: {
-    state: 'idle';
-    location: undefined;
-    formMethod: undefined;
-    formAction: undefined;
-    formEncType: undefined;
-    formData: undefined;
-  };
-  Loading: {
-    state: 'loading';
-    location: Location;
-    formMethod: FormMethod | undefined;
-    formAction: string | undefined;
-    formEncType: FormEncType | undefined;
-    formData: FormData | undefined;
-  };
-  Submitting: {
-    state: 'submitting';
-    location: Location;
-    formMethod: FormMethod;
-    formAction: string;
-    formEncType: FormEncType;
-    formData: FormData;
-  };
+  Idle: any;
+  Loading: any;
+  Submitting: any;
 };
 
 export type Navigation = NavigationStates[keyof NavigationStates];
 
+export type RouteData = any;
+export type Fetcher = any;
+
 export interface RouterState {
   historyAction: Action;
-  location: Location;
+  location: any;
   matches: AgnosticDataRouteMatch[];
   initialized: boolean;
   navigation: Navigation;
+  restoreScrollPosition: number | false | null;
+  preventScrollReset: boolean;
+  revalidation: any;
+  loaderData: RouteData;
+  actionData: RouteData | null;
+  errors: RouteData | null;
+  fetchers: Map<string, Fetcher>;
 }
 export interface Router {
-  basename: string;
+  basename: string | undefined;
   state: RouterState;
   routes: AgnosticDataRouteObject[];
   _internalFetchControllers: any;
@@ -248,8 +234,4 @@ export interface Router {
   dispose(): void;
 }
 
-export type CreateRouterFunction = (
-  routes: RouteObject[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  opts?: any,
-) => Router;
+export type CreateRouterFunction = (routes: RouteObject[], opts?: any) => Router;
