@@ -1,16 +1,18 @@
-jest.mock('./util/isInternal', () => ({ isInternal: jest.fn(() => true) }));
+jest.mock('./../../src/util/isInternal', () => ({
+  isInternal: jest.fn(() => true),
+}));
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
-import { useFakeTimers } from './../test/utils/use-fake-timers';
+import { Replay } from '../../src';
 import {
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
   VISIBILITY_CHANGE_TIMEOUT,
-} from './session/constants';
-import { Replay } from './';
+} from '../../src/session/constants';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 

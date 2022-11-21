@@ -1,6 +1,5 @@
-import { Session } from '../session/Session';
-
-import { isSessionExpired } from './isSessionExpired';
+import { Session } from '../../../src/session/Session';
+import { isSessionExpired } from '../../../src/util/isSessionExpired';
 
 function createSession(extra?: Record<string, any>) {
   return new Session(

@@ -1,6 +1,6 @@
-import { REPLAY_SESSION_KEY } from './constants';
-import { saveSession } from './saveSession';
-import { Session } from './Session';
+import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
+import { saveSession } from '../../../src/session/saveSession';
+import { Session } from '../../../src/session/Session';
 
 beforeAll(() => {
   window.sessionStorage.clear();

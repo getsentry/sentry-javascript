@@ -1,6 +1,6 @@
 import { mockSdk } from '@test';
 
-import { Replay } from './';
+import { Replay } from '../../src';
 
 let replay: Replay;
 

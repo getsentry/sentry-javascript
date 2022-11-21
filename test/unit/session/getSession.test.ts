@@ -1,8 +1,8 @@
-import * as CreateSession from './createSession';
-import * as FetchSession from './fetchSession';
-import { getSession } from './getSession';
-import { saveSession } from './saveSession';
-import { Session } from './Session';
+import * as CreateSession from '../../../src/session/createSession';
+import * as FetchSession from '../../../src/session/fetchSession';
+import { getSession } from '../../../src/session/getSession';
+import { saveSession } from '../../../src/session/saveSession';
+import { Session } from '../../../src/session/Session';
 
 jest.mock('@sentry/utils', () => {
   return {

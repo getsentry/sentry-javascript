@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/core';
 
-import { createSession } from './createSession';
-import { saveSession } from './saveSession';
+import { createSession } from '../../../src/session/createSession';
+import { saveSession } from '../../../src/session/saveSession';
 
-jest.mock('./saveSession');
+jest.mock('./../../../src/session/saveSession');
 
 jest.mock('@sentry/utils', () => {
   return {

@@ -3,7 +3,7 @@ jest.unmock('@sentry/browser');
 // mock functions need to be imported first
 import { mockRrweb, mockSdk } from '@test';
 
-import { useFakeTimers } from './../test/utils/use-fake-timers';
+import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
 

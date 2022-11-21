@@ -1,9 +1,9 @@
-jest.mock('./saveSession');
+jest.mock('./../../../src/session/saveSession');
 
 import * as Sentry from '@sentry/browser';
 
-import { saveSession } from './saveSession';
-import { Session } from './Session';
+import { saveSession } from '../../../src/session/saveSession';
+import { Session } from '../../../src/session/Session';
 
 type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 

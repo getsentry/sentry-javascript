@@ -2,7 +2,7 @@ import { PerformanceEntryLcp } from '@test/fixtures/performanceEntry/lcp';
 import { PerformanceEntryNavigation } from '@test/fixtures/performanceEntry/navigation';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 
-import { dedupePerformanceEntries } from './dedupePerformanceEntries';
+import { dedupePerformanceEntries } from '../../../src/util/dedupePerformanceEntries';
 
 it('does nothing with a single entry', function () {
   const entries = [PerformanceEntryNavigation()];

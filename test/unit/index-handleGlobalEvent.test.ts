@@ -2,9 +2,9 @@ import { Error } from '@test/fixtures/error';
 import { Transaction } from '@test/fixtures/transaction';
 import { resetSdkMock } from '@test/mocks';
 
-import { useFakeTimers } from './../test/utils/use-fake-timers';
-import { REPLAY_EVENT_NAME } from './session/constants';
-import { Replay } from './';
+import { Replay } from './../../src';
+import { REPLAY_EVENT_NAME } from './../../src/session/constants';
+import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
 let replay: Replay;

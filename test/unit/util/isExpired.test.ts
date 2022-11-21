@@ -1,4 +1,4 @@
-import { isExpired } from './isExpired';
+import { isExpired } from '../../../src/util/isExpired';
 
 it('is expired', function () {
   expect(isExpired(0, 150, 200)).toBe(true); //  expired at ts = 150

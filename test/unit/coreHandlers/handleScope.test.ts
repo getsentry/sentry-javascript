@@ -1,6 +1,6 @@
 import type { Breadcrumb, Scope } from '@sentry/types';
 
-import * as HandleScope from './handleScope';
+import * as HandleScope from '../../../src/coreHandlers/handleScope';
 
 jest.spyOn(HandleScope, 'handleScope');
 const mockHandleScope = HandleScope.handleScope as jest.MockedFunction<

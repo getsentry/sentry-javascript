@@ -1,4 +1,4 @@
-import { Replay } from './';
+import { Replay } from './../../src';
 
 it('throws on creating multiple instances', function () {
   expect(() => {

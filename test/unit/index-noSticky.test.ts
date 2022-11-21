@@ -3,12 +3,12 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
-import { useFakeTimers } from './../test/utils/use-fake-timers';
+import { Replay } from './../../src';
 import {
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
-} from './session/constants';
-import { Replay } from './';
+} from './../../src/session/constants';
+import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
 

@@ -12,6 +12,6 @@ export default async (): Promise<Config.InitialOptions> => {
     }),
     setupFilesAfterEnv: ['./jest.setup.ts'],
     testEnvironment: 'jsdom',
-    testMatch: ['<rootDir>/(src|worker)/**/*(*.)@(spec|test).ts'],
+    testMatch: ['<rootDir>/test/**/*(*.)@(spec|test).ts'],
   };
 };

@@ -1,6 +1,6 @@
 import { mockSdk } from '@test';
 
-import { handleFetch } from './handleFetch';
+import { handleFetch } from '../../../src/coreHandlers/handleFetch';
 
 jest.unmock('@sentry/browser');
 

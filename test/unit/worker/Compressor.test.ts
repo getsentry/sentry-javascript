@@ -1,6 +1,6 @@
 import pako from 'pako';
 
-import { Compressor } from './Compressor';
+import { Compressor } from '../../../worker/src/Compressor';
 
 describe('Compressor', () => {
   it('compresses multiple events', () => {

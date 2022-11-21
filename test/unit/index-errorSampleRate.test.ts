@@ -7,12 +7,12 @@ import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resour
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
-import { useFakeTimers } from './../test/utils/use-fake-timers';
+import { Replay } from './../../src';
 import {
   REPLAY_SESSION_KEY,
   VISIBILITY_CHANGE_TIMEOUT,
-} from './session/constants';
-import { Replay } from './';
+} from './../../src/session/constants';
+import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
 

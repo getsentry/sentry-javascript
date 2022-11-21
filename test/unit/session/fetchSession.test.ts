@@ -1,5 +1,5 @@
-import { REPLAY_SESSION_KEY } from './constants';
-import { fetchSession } from './fetchSession';
+import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
+import { fetchSession } from '../../../src/session/fetchSession';
 
 const oldSessionStorage = window.sessionStorage;
 
