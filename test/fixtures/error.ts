@@ -13,8 +13,7 @@ export function Error(obj?: Event) {
           stacktrace: {
             frames: [
               {
-                filename:
-                  'webpack-internal:///../../getsentry/static/getsentry/gsApp/components/replayInit.tsx',
+                filename: 'webpack-internal:///../../getsentry/static/getsentry/gsApp/components/replayInit.tsx',
                 function: 'eval',
                 in_app: true,
                 lineno: 64,

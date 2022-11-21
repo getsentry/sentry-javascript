@@ -25,7 +25,7 @@ function createMockSession(when: number = new Date().getTime()) {
       started: when,
       sampled: 'session',
     },
-    { stickySession: false, ...SAMPLE_RATES }
+    { stickySession: false, ...SAMPLE_RATES },
   );
 }
 
@@ -37,16 +37,8 @@ beforeAll(() => {
 
 afterEach(() => {
   window.sessionStorage.clear();
-  (
-    CreateSession.createSession as jest.MockedFunction<
-      typeof CreateSession.createSession
-    >
-  ).mockClear();
-  (
-    FetchSession.fetchSession as jest.MockedFunction<
-      typeof FetchSession.fetchSession
-    >
-  ).mockClear();
+  (CreateSession.createSession as jest.MockedFunction<typeof CreateSession.createSession>).mockClear();
+  (FetchSession.fetchSession as jest.MockedFunction<typeof FetchSession.fetchSession>).mockClear();
 });
 
 it('creates a non-sticky session when one does not exist', function () {
@@ -98,7 +90,7 @@ it('creates a non-sticky session, when one is expired', function () {
         started: new Date().getTime() - 1001,
         segmentId: 0,
       },
-      { stickySession: false, ...SAMPLE_RATES }
+      { stickySession: false, ...SAMPLE_RATES },
     ),
   });
 
@@ -194,7 +186,7 @@ it('fetches a non-expired non-sticky session', function () {
         started: +new Date() - 500,
         segmentId: 0,
       },
-      { stickySession: false, ...SAMPLE_RATES }
+      { stickySession: false, ...SAMPLE_RATES },
     ),
   });
 

@@ -1,6 +1,4 @@
-export function PerformanceEntryLcp(
-  obj?: Partial<PerformancePaintTiming>
-): PerformancePaintTiming {
+export function PerformanceEntryLcp(obj?: Partial<PerformancePaintTiming>): PerformancePaintTiming {
   const entry = {
     name: '',
     entryType: 'largest-contentful-paint',

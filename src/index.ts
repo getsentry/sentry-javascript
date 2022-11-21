@@ -1,8 +1,4 @@
-import {
-  addGlobalEventProcessor,
-  getCurrentHub,
-  setContext,
-} from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub, setContext } from '@sentry/core';
 import { Breadcrumb, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope } from '@sentry/utils';
 import debounce from 'lodash.debounce';
@@ -29,11 +25,7 @@ import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { logger } from './util/logger';
-import {
-  createMemoryEntry,
-  createPerformanceEntries,
-  ReplayPerformanceEntry,
-} from './createPerformanceEntry';
+import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
 import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import type {
   AllPerformanceEntry,
@@ -56,8 +48,7 @@ type AddUpdateCallback = () => boolean | void;
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
 const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
-const MEDIA_SELECTORS =
-  'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
+const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
 
 let _initialized = false;
 
@@ -169,8 +160,7 @@ export class Replay implements Integration {
       ...recordingOptions,
     };
 
-    const usingDeprecatedReplaysSamplingRate =
-      replaysSamplingRate !== undefined;
+    const usingDeprecatedReplaysSamplingRate = replaysSamplingRate !== undefined;
     const usingDeprecatedCaptureOnlyOnError = captureOnlyOnError !== undefined;
 
     this.options = {
@@ -178,12 +168,8 @@ export class Replay implements Integration {
       flushMaxDelay,
       stickySession,
       initialFlushDelay,
-      sessionSampleRate: usingDeprecatedReplaysSamplingRate
-        ? (replaysSamplingRate as number)
-        : sessionSampleRate,
-      errorSampleRate: usingDeprecatedCaptureOnlyOnError
-        ? 1.0
-        : errorSampleRate,
+      sessionSampleRate: usingDeprecatedReplaysSamplingRate ? (replaysSamplingRate as number) : sessionSampleRate,
+      errorSampleRate: usingDeprecatedCaptureOnlyOnError ? 1.0 : errorSampleRate,
       useCompression,
       maskAllText,
       blockAllMedia,
@@ -192,13 +178,13 @@ export class Replay implements Integration {
     // TODO(deprecated): Maintain backwards compatibility for alpha users
     if (usingDeprecatedCaptureOnlyOnError) {
       console.warn(
-        '[@sentry/replay]: The `captureOnlyOnError` option is deprecated! Please configure `errorSampleRate` instead.'
+        '[@sentry/replay]: The `captureOnlyOnError` option is deprecated! Please configure `errorSampleRate` instead.',
       );
     }
 
     if (usingDeprecatedReplaysSamplingRate) {
       console.warn(
-        '[@sentry/replay]: The `replaysSamplingRate` option is deprecated! Please configure `sessionSampleRate` instead.'
+        '[@sentry/replay]: The `replaysSamplingRate` option is deprecated! Please configure `sessionSampleRate` instead.',
       );
     }
 
@@ -217,18 +203,12 @@ export class Replay implements Integration {
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    this.debouncedFlush = debounce(
-      () => this.flush(),
-      this.options.flushMinDelay,
-      {
-        maxWait: this.options.flushMaxDelay,
-      }
-    );
+    this.debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
+      maxWait: this.options.flushMaxDelay,
+    });
 
     if (isBrowser && _initialized) {
-      const error = new Error(
-        'Multiple Sentry Session Replay instances are not supported'
-      );
+      const error = new Error('Multiple Sentry Session Replay instances are not supported');
       captureInternalException(error);
       throw error;
     }
@@ -432,10 +412,7 @@ export class Replay implements Integration {
    */
   addListeners() {
     try {
-      document.addEventListener(
-        'visibilitychange',
-        this.handleVisibilityChange
-      );
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
       window.addEventListener('blur', this.handleWindowBlur);
       window.addEventListener('focus', this.handleWindowFocus);
 
@@ -444,19 +421,10 @@ export class Replay implements Integration {
         // Listeners from core SDK //
         const scope = getCurrentHub().getScope();
         scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
-        addInstrumentationHandler(
-          'dom',
-          this.handleCoreBreadcrumbListener('dom')
-        );
-        addInstrumentationHandler(
-          'fetch',
-          this.handleCoreSpanListener('fetch')
-        );
+        addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
+        addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
         addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
-        addInstrumentationHandler(
-          'history',
-          this.handleCoreSpanListener('history')
-        );
+        addInstrumentationHandler('history', this.handleCoreSpanListener('history'));
 
         // Tag all (non replay) events that get sent to Sentry with the current
         // replay ID so that we can reference them later in the UI
@@ -474,9 +442,7 @@ export class Replay implements Integration {
       return;
     }
 
-    this.performanceObserver = new PerformanceObserver(
-      this.handlePerformanceObserver
-    );
+    this.performanceObserver = new PerformanceObserver(this.handlePerformanceObserver);
 
     // Observe almost everything for now (no mark/measure)
     [
@@ -489,7 +455,7 @@ export class Replay implements Integration {
       'navigation',
       'paint',
       'resource',
-    ].forEach((type) => {
+    ].forEach(type => {
       try {
         this.performanceObserver?.observe({
           type,
@@ -507,10 +473,7 @@ export class Replay implements Integration {
    */
   removeListeners() {
     try {
-      document.removeEventListener(
-        'visibilitychange',
-        this.handleVisibilityChange
-      );
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
 
       window.removeEventListener('blur', this.handleWindowBlur);
       window.removeEventListener('focus', this.handleWindowFocus);
@@ -589,9 +552,9 @@ export class Replay implements Integration {
 
     const exc = event.exception?.values?.[0];
     addInternalBreadcrumb({
-      message: `Tagging event (${event.event_id}) - ${event.message} - ${
-        exc?.type || 'Unknown'
-      }: ${exc?.value || 'n/a'}`,
+      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
+        exc?.value || 'n/a'
+      }`,
     });
 
     // Need to be very careful that this does not cause an infinite loop
@@ -735,78 +698,76 @@ export class Replay implements Integration {
    *
    * These specific events will create span-like objects in the recording.
    */
-  handleCoreSpanListener =
-    (type: InstrumentationTypeSpan) => (handlerData: any) => {
-      if (!this.isEnabled) {
-        return;
-      }
+  handleCoreSpanListener = (type: InstrumentationTypeSpan) => (handlerData: any) => {
+    if (!this.isEnabled) {
+      return;
+    }
 
-      const handler = getSpanHandler(type);
-      const result = handler(handlerData);
+    const handler = getSpanHandler(type);
+    const result = handler(handlerData);
 
-      if (result === null) {
-        return;
-      }
+    if (result === null) {
+      return;
+    }
 
-      if (type === 'history') {
-        // Need to collect visited URLs
-        this.context.urls.push(result.name);
-        this.triggerUserActivity();
-      }
+    if (type === 'history') {
+      // Need to collect visited URLs
+      this.context.urls.push(result.name);
+      this.triggerUserActivity();
+    }
 
-      this.addUpdate(() => {
-        this.createPerformanceSpans([result as ReplayPerformanceEntry]);
-        // Returning true will cause `addUpdate` to not flush
-        // We do not want network requests to cause a flush. This will prevent
-        // recurring/polling requests from keeping the replay session alive.
-        return ['xhr', 'fetch'].includes(type);
-      });
-    };
+    this.addUpdate(() => {
+      this.createPerformanceSpans([result as ReplayPerformanceEntry]);
+      // Returning true will cause `addUpdate` to not flush
+      // We do not want network requests to cause a flush. This will prevent
+      // recurring/polling requests from keeping the replay session alive.
+      return ['xhr', 'fetch'].includes(type);
+    });
+  };
 
   /**
    * Handler for Sentry Core SDK events.
    *
    * These events will create breadcrumb-like objects in the recording.
    */
-  handleCoreBreadcrumbListener =
-    (type: InstrumentationTypeBreadcrumb) => (handlerData: any) => {
-      if (!this.isEnabled) {
-        return;
-      }
+  handleCoreBreadcrumbListener = (type: InstrumentationTypeBreadcrumb) => (handlerData: any) => {
+    if (!this.isEnabled) {
+      return;
+    }
 
-      const handler = getBreadcrumbHandler(type);
-      const result = handler(handlerData);
+    const handler = getBreadcrumbHandler(type);
+    const result = handler(handlerData);
 
-      if (result === null) {
-        return;
-      }
+    if (result === null) {
+      return;
+    }
 
-      if (result.category === 'sentry.transaction') {
-        return;
-      }
+    if (result.category === 'sentry.transaction') {
+      return;
+    }
 
-      if (result.category === 'ui.click') {
-        this.triggerUserActivity();
-      } else {
-        this.checkAndHandleExpiredSession();
-      }
+    if (result.category === 'ui.click') {
+      this.triggerUserActivity();
+    } else {
+      this.checkAndHandleExpiredSession();
+    }
 
-      this.addUpdate(() => {
-        this.addEvent({
-          type: EventType.Custom,
-          // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-          // but maybe we should just keep them as milliseconds
-          timestamp: (result.timestamp || 0) * 1000,
-          data: {
-            tag: 'breadcrumb',
-            payload: result,
-          },
-        });
-
-        // Do not flush after console log messages
-        return result.category === 'console';
+    this.addUpdate(() => {
+      this.addEvent({
+        type: EventType.Custom,
+        // TODO: We were converting from ms to seconds for breadcrumbs, spans,
+        // but maybe we should just keep them as milliseconds
+        timestamp: (result.timestamp || 0) * 1000,
+        data: {
+          tag: 'breadcrumb',
+          payload: result,
+        },
       });
-    };
+
+      // Do not flush after console log messages
+      return result.category === 'console';
+    });
+  };
 
   /**
    * Keep a list of performance entries that will be sent with a replay
@@ -814,10 +775,7 @@ export class Replay implements Integration {
   handlePerformanceObserver = (list: PerformanceObserverEntryList) => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(
-      this.performanceEvents,
-      list.getEntries()
-    );
+    const newPerformanceEntries = dedupePerformanceEntries(this.performanceEvents, list.getEntries());
     this.performanceEvents = newPerformanceEntries;
   };
 
@@ -904,11 +862,7 @@ export class Replay implements Integration {
 
     // Only record earliest event if a new session was created, otherwise it
     // shouldn't be relevant
-    if (
-      this.session?.segmentId === 0 &&
-      (!this.context.earliestEvent ||
-        timestampInMs < this.context.earliestEvent)
-    ) {
+    if (this.session?.segmentId === 0 && (!this.context.earliestEvent || timestampInMs < this.context.earliestEvent)) {
       this.context.earliestEvent = timestampInMs;
     }
 
@@ -992,8 +946,8 @@ export class Replay implements Integration {
               data,
             },
           },
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -1033,9 +987,7 @@ export class Replay implements Integration {
    *
    * Returns true if session is not expired, false otherwise.
    */
-  checkAndHandleExpiredSession({
-    expiry = SESSION_IDLE_DURATION,
-  }: { expiry?: number } = {}) {
+  checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}) {
     const oldSessionId = this.session?.id;
 
     // Prevent starting a new session if the last user activity is older than
@@ -1091,10 +1043,7 @@ export class Replay implements Integration {
    * Return and clear context
    */
   popEventContext(): PopEventContext {
-    if (
-      this.context.earliestEvent &&
-      this.context.earliestEvent < this.context.initialTimestamp
-    ) {
+    if (this.context.earliestEvent && this.context.earliestEvent < this.context.initialTimestamp) {
       this.context.initialTimestamp = this.context.earliestEvent;
     }
 
@@ -1170,9 +1119,7 @@ export class Replay implements Integration {
     }
 
     if (!this.checkAndHandleExpiredSession()) {
-      logger.error(
-        new Error('Attempting to finish replay event after session expired.')
-      );
+      logger.error(new Error('Attempting to finish replay event after session expired.'));
       return;
     }
 
@@ -1247,7 +1194,7 @@ export class Replay implements Integration {
       version: __SENTRY_REPLAY_VERSION__,
     };
 
-    const replayEvent = await new Promise((resolve) => {
+    const replayEvent = await new Promise(resolve => {
       getCurrentHub()
         // @ts-ignore private api
         ?._withClient(async (client, scope) => {
@@ -1255,9 +1202,7 @@ export class Replay implements Integration {
           const preparedEvent = await client._prepareEvent(
             {
               type: REPLAY_EVENT_NAME,
-              ...(includeReplayStartTimestamp
-                ? { replay_start_timestamp: initialTimestamp / 1000 }
-                : {}),
+              ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
               timestamp: currentTimestamp / 1000,
               error_ids: errorIds,
               trace_ids: traceIds,
@@ -1266,7 +1211,7 @@ export class Replay implements Integration {
               segment_id,
             },
             { event_id },
-            scope
+            scope,
           );
           const session = scope && scope.getSession();
           if (session) {
@@ -1307,7 +1252,7 @@ export class Replay implements Integration {
           // @ts-ignore: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
           payloadWithSequence,
         ],
-      ]
+      ],
     );
 
     const client = getCurrentHub().getClient();
@@ -1326,13 +1271,7 @@ export class Replay implements Integration {
   /**
    * Finalize and send the current replay event to Sentry
    */
-  async sendReplay({
-    replayId,
-    events,
-    segmentId,
-    includeReplayStartTimestamp,
-    eventContext,
-  }: SendReplay) {
+  async sendReplay({ replayId, events, segmentId, includeReplayStartTimestamp, eventContext }: SendReplay) {
     // short circuit if there's no events to upload (this shouldn't happen as runFlush makes this check)
     if (!events.length) {
       return;

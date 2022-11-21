@@ -57,7 +57,7 @@ it('creates a new session with sticky sessions', function () {
       segmentId: 0,
       started: expect.any(Number),
       lastActivity: expect.any(Number),
-    })
+    }),
   );
 
   expect(newSession.id).toBe('test_session_id');

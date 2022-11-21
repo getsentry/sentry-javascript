@@ -5,8 +5,5 @@ const isBrowser = typeof window !== 'undefined';
  * (e.g. on https://sentry.io )
  */
 export function isInternal() {
-  return (
-    isBrowser &&
-    ['sentry.io', 'dev.getsentry.net'].includes(window.location.host)
-  );
+  return isBrowser && ['sentry.io', 'dev.getsentry.net'].includes(window.location.host);
 }

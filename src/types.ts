@@ -5,10 +5,7 @@ export type RecordingOptions = recordOptions<eventWithTime>;
 
 export type RecordedEvents = Uint8Array | string;
 
-export type AllPerformanceEntry =
-  | PerformancePaintTiming
-  | PerformanceResourceTiming
-  | PerformanceNavigationTiming;
+export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
 export interface SendReplay {
   events: RecordedEvents;
@@ -134,9 +131,7 @@ export interface ReplayPluginOptions extends SessionOptions {
 // These are optional for ReplayPluginOptions because the plugin sets default values
 type OptionalReplayPluginOptions = Partial<ReplayPluginOptions>;
 
-export interface ReplayConfiguration
-  extends OptionalReplayPluginOptions,
-    RecordingOptions {}
+export interface ReplayConfiguration extends OptionalReplayPluginOptions, RecordingOptions {}
 
 interface CommonEventContext {
   /**

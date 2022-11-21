@@ -14,15 +14,9 @@ async function advanceTimers(time: number) {
 }
 
 type MockSendReplay = jest.MockedFunction<typeof Replay.prototype.sendReplay>;
-type MockAddPerformanceEntries = jest.MockedFunction<
-  typeof Replay.prototype.addPerformanceEntries
->;
-type MockAddMemoryEntry = jest.MockedFunction<
-  typeof Replay.prototype.addMemoryEntry
->;
-type MockEventBufferFinish = jest.MockedFunction<
-  Exclude<typeof Replay.prototype.eventBuffer, null>['finish']
->;
+type MockAddPerformanceEntries = jest.MockedFunction<typeof Replay.prototype.addPerformanceEntries>;
+type MockAddMemoryEntry = jest.MockedFunction<typeof Replay.prototype.addMemoryEntry>;
+type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof Replay.prototype.eventBuffer, null>['finish']>;
 type MockFlush = jest.MockedFunction<typeof Replay.prototype.flush>;
 type MockRunFlush = jest.MockedFunction<typeof Replay.prototype.runFlush>;
 
@@ -40,13 +34,11 @@ let mockAddMemoryEntry: MockAddMemoryEntry;
 let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
 beforeAll(async () => {
-  jest
-    .spyOn(SentryUtils, 'addInstrumentationHandler')
-    .mockImplementation((type, handler: (args: any) => any) => {
-      if (type === 'dom') {
-        domHandler = handler;
-      }
-    });
+  jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
+    if (type === 'dom') {
+      domHandler = handler;
+    }
+  });
 
   ({ replay } = await mockSdk());
   jest.spyOn(replay, 'sendReplay');
@@ -54,7 +46,7 @@ beforeAll(async () => {
   mockSendReplay.mockImplementation(
     jest.fn(async () => {
       return;
-    })
+    }),
   );
 
   jest.spyOn(replay, 'flush');
@@ -64,8 +56,7 @@ beforeAll(async () => {
   mockRunFlush = replay.runFlush as MockRunFlush;
 
   jest.spyOn(replay, 'addPerformanceEntries');
-  mockAddPerformanceEntries =
-    replay.addPerformanceEntries as MockAddPerformanceEntries;
+  mockAddPerformanceEntries = replay.addPerformanceEntries as MockAddPerformanceEntries;
 
   mockAddPerformanceEntries.mockImplementation(async () => {
     return [];
@@ -141,7 +132,7 @@ it('flushes twice after multiple flush() calls)', async () => {
 it('long first flush enqueues following events', async () => {
   // Mock this to resolve after 20 seconds so that we can queue up following flushes
   mockAddPerformanceEntries.mockImplementationOnce(async () => {
-    return await new Promise((resolve) => setTimeout(resolve, 20000));
+    return await new Promise(resolve => setTimeout(resolve, 20000));
   });
 
   expect(mockAddPerformanceEntries).not.toHaveBeenCalled();
@@ -216,7 +207,7 @@ it('long first flush enqueues following events', async () => {
           decodedBodySize: 0,
           serverTiming: [],
         } as unknown as PerformanceResourceTiming,
-      ])
+      ]),
     );
   });
   // flush #5 @ t=25s - debounced flush calls `flush`

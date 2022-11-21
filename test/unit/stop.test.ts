@@ -12,9 +12,7 @@ describe('Replay - stop', () => {
   let replay: Replay;
   const prevLocation = window.location;
 
-  type MockAddInstrumentationHandler = jest.MockedFunction<
-    typeof SentryUtils.addInstrumentationHandler
-  >;
+  type MockAddInstrumentationHandler = jest.MockedFunction<typeof SentryUtils.addInstrumentationHandler>;
   const { record: mockRecord } = mockRrweb();
 
   let mockAddInstrumentationHandler: MockAddInstrumentationHandler;
@@ -23,7 +21,7 @@ describe('Replay - stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockAddInstrumentationHandler = jest.spyOn(
       SentryUtils,
-      'addInstrumentationHandler'
+      'addInstrumentationHandler',
     ) as MockAddInstrumentationHandler;
 
     ({ replay } = await mockSdk());
@@ -90,8 +88,7 @@ describe('Replay - stop', () => {
 
     jest.advanceTimersByTime(ELAPSED);
 
-    const timestamp =
-      +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED + EXTRA_TICKS) / 1000;
+    const timestamp = +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED + EXTRA_TICKS) / 1000;
 
     const hiddenBreadcrumb = {
       type: 5,

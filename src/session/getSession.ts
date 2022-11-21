@@ -29,9 +29,7 @@ export function getSession({
   errorSampleRate,
 }: GetSessionParams) {
   // If session exists and is passed, use it instead of always hitting session storage
-  const session =
-    currentSession ||
-    (stickySession && fetchSession({ sessionSampleRate, errorSampleRate }));
+  const session = currentSession || (stickySession && fetchSession({ sessionSampleRate, errorSampleRate }));
 
   if (session) {
     // If there is a session, check if it is valid (e.g. "last activity" time

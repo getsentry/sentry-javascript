@@ -5,9 +5,7 @@ interface HistoryHandlerData {
   to: string;
 }
 
-export function handleHistory(
-  handlerData: HistoryHandlerData
-): ReplayPerformanceEntry {
+export function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
   const { from, to } = handlerData;
 
   const now = new Date().getTime() / 1000;

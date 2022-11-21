@@ -8,10 +8,7 @@ import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
 import { Replay } from './../../src';
-import {
-  REPLAY_SESSION_KEY,
-  VISIBILITY_CHANGE_TIMEOUT,
-} from './../../src/session/constants';
+import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT } from './../../src/session/constants';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
@@ -28,13 +25,11 @@ describe('Replay (errorSampleRate)', () => {
   let domHandler: DomHandler;
 
   beforeEach(async () => {
-    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock(
-      {
-        errorSampleRate: 1.0,
-        sessionSampleRate: 0.0,
-        stickySession: true,
-      }
-    ));
+    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
+      errorSampleRate: 1.0,
+      sessionSampleRate: 0.0,
+      stickySession: true,
+    }));
     // jest.advanceTimersToNextTimer();
   });
 
@@ -297,10 +292,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      events: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
-        TEST_EVENT,
-      ]),
+      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // the exception happens roughly 10 seconds after BASE_TIMESTAMP
@@ -328,7 +320,7 @@ describe('Replay (errorSampleRate)', () => {
     // Pretend that a session is already saved before loading replay
     window.sessionStorage.setItem(
       REPLAY_SESSION_KEY,
-      `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`
+      `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
     );
     ({ mockRecord, mockTransportSend, replay } = await resetSdkMock({
       stickySession: true,
@@ -348,10 +340,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      events: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
-        TEST_EVENT,
-      ]),
+      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
     });
 
     mockTransportSend.mockClear();

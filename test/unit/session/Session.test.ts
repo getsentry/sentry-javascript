@@ -58,7 +58,7 @@ it('sticky Session saves to local storage', function () {
   expect(saveSession).toHaveBeenCalledWith(
     expect.objectContaining({
       segmentId: 1,
-    })
+    }),
   );
   expect(newSession.segmentId).toBe(1);
 });
@@ -102,7 +102,7 @@ it('does not run sampling function if existing session was sampled', function ()
       stickySession: true,
       sessionSampleRate: 0,
       errorSampleRate: 0,
-    }
+    },
   );
 
   expect(newSession.sampled).toBe('session');

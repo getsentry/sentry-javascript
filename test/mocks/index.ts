@@ -14,13 +14,11 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
   // @ts-ignore Don't know if there's a cleaner way to clean up old event processors
   globalThis.__SENTRY__.globalEventProcessors = [];
   const SentryUtils = await import('@sentry/utils');
-  jest
-    .spyOn(SentryUtils, 'addInstrumentationHandler')
-    .mockImplementation((type, handler: (args: any) => any) => {
-      if (type === 'dom') {
-        domHandler = handler;
-      }
-    });
+  jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
+    if (type === 'dom') {
+      domHandler = handler;
+    }
+  });
   const { mockRrweb } = await import('./mockRrweb');
   const { record: mockRecord } = mockRrweb();
 
@@ -38,8 +36,7 @@ export async function resetSdkMock(options?: ReplayConfiguration) {
     },
   });
 
-  const mockTransportSend = getCurrentHub()?.getClient()?.getTransport()
-    ?.send as MockTransportSend;
+  const mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
 
   // XXX: This is needed to ensure `domHandler` is set
   jest.runAllTimers();

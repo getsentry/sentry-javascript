@@ -4,10 +4,7 @@ import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
 import { Replay } from './../../src';
-import {
-  SESSION_IDLE_DURATION,
-  VISIBILITY_CHANGE_TIMEOUT,
-} from './../../src/session/constants';
+import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from './../../src/session/constants';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
@@ -27,13 +24,11 @@ describe('Replay (no sticky)', () => {
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest
-      .spyOn(SentryUtils, 'addInstrumentationHandler')
-      .mockImplementation((type, handler: (args: any) => any) => {
-        if (type === 'dom') {
-          domHandler = handler;
-        }
-      });
+    jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
+      if (type === 'dom') {
+        domHandler = handler;
+      }
+    });
 
     ({ replay } = await mockSdk({
       replayOptions: {
@@ -43,8 +38,7 @@ describe('Replay (no sticky)', () => {
       },
     }));
     jest.runAllTimers();
-    mockTransport = getCurrentHub()?.getClient()?.getTransport()
-      ?.send as MockTransport;
+    mockTransport = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransport;
   });
 
   beforeEach(() => {

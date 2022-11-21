@@ -23,6 +23,6 @@ describe('isSampled', () => {
       mockRandom.mockImplementationOnce(() => mockRandomValue);
       const result = isSampled(sampleRate);
       expect(result).toEqual(expectedResult);
-    }
+    },
   );
 });

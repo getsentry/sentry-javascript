@@ -3,10 +3,7 @@ import 'jsdom-worker';
 import { BASE_TIMESTAMP } from '@test';
 import pako from 'pako';
 
-import {
-  createEventBuffer,
-  EventBufferCompressionWorker,
-} from './../../src/eventBuffer';
+import { createEventBuffer, EventBufferCompressionWorker } from './../../src/eventBuffer';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 

@@ -9,7 +9,7 @@ function createSession(extra?: Record<string, any>) {
       segmentId: 0,
       ...extra,
     },
-    { stickySession: false, sessionSampleRate: 1.0, errorSampleRate: 0 }
+    { stickySession: false, sessionSampleRate: 1.0, errorSampleRate: 0 },
   );
 }
 
@@ -18,9 +18,7 @@ it('session last activity is older than expiry time', function () {
 });
 
 it('session last activity is not older than expiry time', function () {
-  expect(isSessionExpired(createSession({ lastActivity: 100 }), 150, 200)).toBe(
-    false
-  ); // Session expires at ts >= 250
+  expect(isSessionExpired(createSession({ lastActivity: 100 }), 150, 200)).toBe(false); // Session expires at ts >= 250
 });
 
 it('session age is not older than max session life', function () {

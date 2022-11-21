@@ -17,7 +17,7 @@ describe('Compressor', () => {
       },
     ];
 
-    events.forEach((event) => compressor.addEvent(event));
+    events.forEach(event => compressor.addEvent(event));
 
     const compressed = compressor.finish();
 
@@ -41,7 +41,7 @@ describe('Compressor', () => {
       },
     ] as Record<string, any>[];
 
-    events.forEach((event) => compressor.addEvent(event));
+    events.forEach(event => compressor.addEvent(event));
 
     const compressed = compressor.finish();
 

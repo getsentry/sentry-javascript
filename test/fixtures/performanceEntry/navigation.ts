@@ -1,6 +1,4 @@
-export function PerformanceEntryNavigation(
-  obj?: Partial<PerformanceNavigationTiming>
-): PerformanceNavigationTiming {
+export function PerformanceEntryNavigation(obj?: Partial<PerformanceNavigationTiming>): PerformanceNavigationTiming {
   const entry = {
     name: 'https://sentry.io/organizations/sentry/discover/',
     entryType: 'navigation',

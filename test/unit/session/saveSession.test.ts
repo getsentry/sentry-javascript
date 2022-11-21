@@ -19,11 +19,9 @@ it('saves a valid session', function () {
       lastActivity: 1648827162658,
       sampled: 'session',
     },
-    { stickySession: true, sessionSampleRate: 1.0, errorSampleRate: 0 }
+    { stickySession: true, sessionSampleRate: 1.0, errorSampleRate: 0 },
   );
   saveSession(session);
 
-  expect(window.sessionStorage.getItem(REPLAY_SESSION_KEY)).toEqual(
-    JSON.stringify(session)
-  );
+  expect(window.sessionStorage.getItem(REPLAY_SESSION_KEY)).toEqual(JSON.stringify(session));
 });

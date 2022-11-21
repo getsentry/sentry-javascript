@@ -9,11 +9,7 @@ import { Session } from './Session';
  * that all replays will be saved to as attachments. Currently, we only expect
  * one of these Sentry events per "replay session".
  */
-export function createSession({
-  sessionSampleRate,
-  errorSampleRate,
-  stickySession = false,
-}: SessionOptions): Session {
+export function createSession({ sessionSampleRate, errorSampleRate, stickySession = false }: SessionOptions): Session {
   const session = new Session(undefined, {
     stickySession,
     errorSampleRate,

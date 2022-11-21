@@ -8,7 +8,7 @@ const NAVIGATION_ENTRY_KEYS: Array<keyof PerformanceNavigationTiming> = [
 
 function isNavigationEntryEqual(a: PerformanceNavigationTiming) {
   return function (b: PerformanceNavigationTiming) {
-    return NAVIGATION_ENTRY_KEYS.every((key) => a[key] === b[key]);
+    return NAVIGATION_ENTRY_KEYS.every(key => a[key] === b[key]);
   };
 }
 
@@ -21,41 +21,29 @@ function isNavigationEntryEqual(a: PerformanceNavigationTiming) {
  *
  * Compare the values of several keys to determine if the entries are duplicates or not.
  */
-export function dedupePerformanceEntries(
-  currentList: PerformanceEntryList,
-  newList: PerformanceEntryList
-) {
+export function dedupePerformanceEntries(currentList: PerformanceEntryList, newList: PerformanceEntryList) {
   // Partition `currentList` into 3 different lists based on entryType
-  const [existingNavigationEntries, existingLcpEntries, existingEntries] =
-    currentList.reduce(
-      (
-        acc: [
-          PerformanceNavigationTiming[],
-          PerformancePaintTiming[],
-          PerformanceEntryList
-        ],
-        entry
-      ) => {
-        if (entry.entryType === 'navigation') {
-          acc[0].push(entry as PerformanceNavigationTiming);
-        } else if (entry.entryType === 'largest-contentful-paint') {
-          acc[1].push(entry as PerformancePaintTiming);
-        } else {
-          acc[2].push(entry);
-        }
-        return acc;
-      },
-      [[], [], []]
-    );
+  const [existingNavigationEntries, existingLcpEntries, existingEntries] = currentList.reduce(
+    (acc: [PerformanceNavigationTiming[], PerformancePaintTiming[], PerformanceEntryList], entry) => {
+      if (entry.entryType === 'navigation') {
+        acc[0].push(entry as PerformanceNavigationTiming);
+      } else if (entry.entryType === 'largest-contentful-paint') {
+        acc[1].push(entry as PerformancePaintTiming);
+      } else {
+        acc[2].push(entry);
+      }
+      return acc;
+    },
+    [[], [], []],
+  );
 
   const newEntries: PerformanceEntryList = [];
   const newNavigationEntries: PerformanceNavigationTiming[] = [];
-  let newLcpEntry: PerformancePaintTiming | undefined =
-    existingLcpEntries.length
-      ? existingLcpEntries[existingLcpEntries.length - 1] // Take the last element as list is sorted
-      : undefined;
+  let newLcpEntry: PerformancePaintTiming | undefined = existingLcpEntries.length
+    ? existingLcpEntries[existingLcpEntries.length - 1] // Take the last element as list is sorted
+    : undefined;
 
-  newList.forEach((entry) => {
+  newList.forEach(entry => {
     if (entry.entryType === 'largest-contentful-paint') {
       // We want the latest LCP event only
       if (!newLcpEntry || newLcpEntry.startTime < entry.startTime) {
@@ -72,9 +60,7 @@ export function dedupePerformanceEntries(
         // Ignore any navigation entries with duration 0, as they are likely duplicates
         entry.duration > 0 &&
         // Ensure new entry does not already exist in existing entries
-        !existingNavigationEntries.find(
-          isNavigationEntryEqual(navigationEntry)
-        ) &&
+        !existingNavigationEntries.find(isNavigationEntryEqual(navigationEntry)) &&
         // Ensure new entry does not already exist in new list of navigation entries
         !newNavigationEntries.find(isNavigationEntryEqual(navigationEntry))
       ) {

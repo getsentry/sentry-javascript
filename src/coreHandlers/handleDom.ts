@@ -10,9 +10,7 @@ export function handleDom(handlerData: any) {
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
-    targetNode =
-      (handlerData.event.target as Node) ||
-      (handlerData.event as unknown as Node);
+    targetNode = (handlerData.event.target as Node) || (handlerData.event as unknown as Node);
     target = htmlTreeAsString(targetNode);
   } catch (e) {
     target = '<unknown>';

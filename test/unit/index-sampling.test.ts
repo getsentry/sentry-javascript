@@ -30,7 +30,7 @@ describe('Replay (sampling)', () => {
       expect.objectContaining({
         initialTimestamp: expect.any(Number),
         initialUrl: 'http://localhost/',
-      })
+      }),
     );
     expect(mockRecord).not.toHaveBeenCalled();
     expect(replay.addListeners).not.toHaveBeenCalled();

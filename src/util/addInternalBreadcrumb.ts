@@ -5,9 +5,7 @@ import { isInternal } from './isInternal';
 /**
  * Wrapper for core SDK's `addBreadcrumb` only when used on `sentry.io`
  */
-export function addInternalBreadcrumb(
-  arg: Parameters<typeof addBreadcrumb>[0]
-) {
+export function addInternalBreadcrumb(arg: Parameters<typeof addBreadcrumb>[0]) {
   if (!isInternal()) {
     return;
   }

@@ -60,8 +60,7 @@ export function Transaction(obj?: Partial<Event>) {
           url: '/api/0/projects/sentry-emerging-tech/billy-test/replays/c11bd625b0e14081a0827a22a0a9be4e/',
           type: 'fetch',
         },
-        description:
-          'GET /api/0/projects/sentry-emerging-tech/billy-test/replays/c11bd625b0e14081a0827a22a0a9be4e/',
+        description: 'GET /api/0/projects/sentry-emerging-tech/billy-test/replays/c11bd625b0e14081a0827a22a0a9be4e/',
         op: 'http.client',
         parent_span_id: 'b44b173b1c74a782',
         span_id: '87497c337838d561',

@@ -1,6 +1,4 @@
-export function PerformanceEntryResource(
-  obj?: Partial<PerformanceResourceTiming>
-): PerformanceResourceTiming {
+export function PerformanceEntryResource(obj?: Partial<PerformanceResourceTiming>): PerformanceResourceTiming {
   const entry = {
     name: 'https://dev.getsentry.net:7999/_assets/sentry.js',
     entryType: 'resource',

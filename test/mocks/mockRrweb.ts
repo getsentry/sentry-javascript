@@ -12,8 +12,7 @@ type RecordAdditionalProperties = {
   _emitter: (event: RecordingEvent, ...args: any[]) => void;
 };
 
-export type RecordMock = jest.MockedFunction<typeof rrweb.record> &
-  RecordAdditionalProperties;
+export type RecordMock = jest.MockedFunction<typeof rrweb.record> & RecordAdditionalProperties;
 
 function createCheckoutPayload(isCheckout = true) {
   return {
@@ -25,16 +24,14 @@ function createCheckoutPayload(isCheckout = true) {
 
 jest.mock('rrweb', () => {
   const ActualRrweb = jest.requireActual('rrweb');
-  const mockRecordFn: jest.Mock & Partial<RecordAdditionalProperties> = jest.fn(
-    ({ emit }) => {
-      mockRecordFn._emitter = emit;
+  const mockRecordFn: jest.Mock & Partial<RecordAdditionalProperties> = jest.fn(({ emit }) => {
+    mockRecordFn._emitter = emit;
 
-      emit(createCheckoutPayload());
-      return function stop() {
-        mockRecordFn._emitter = jest.fn();
-      };
-    }
-  );
+    emit(createCheckoutPayload());
+    return function stop() {
+      mockRecordFn._emitter = jest.fn();
+    };
+  });
   mockRecordFn.takeFullSnapshot = jest.fn((isCheckout: boolean) => {
     if (!mockRecordFn._emitter) {
       return;

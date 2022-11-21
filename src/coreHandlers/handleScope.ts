@@ -17,9 +17,7 @@ export function handleScope(scope: Scope) {
   _LAST_BREADCRUMB = newBreadcrumb;
 
   if (
-    ['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(
-      newBreadcrumb.category
-    ) ||
+    ['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(newBreadcrumb.category) ||
     newBreadcrumb.category?.startsWith('ui.')
   ) {
     return null;

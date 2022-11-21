@@ -63,7 +63,7 @@ class EventBufferArray implements IEventBuffer {
   }
 
   finish() {
-    return new Promise<string>((resolve) => {
+    return new Promise<string>(resolve => {
       // Make a copy of the events array reference and immediately clear the
       // events member so that we do not lose new events while uploading
       // attachment.
@@ -94,11 +94,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
   /**
    * Post message to worker and wait for response before resolving promise.
    */
-  postMessage({
-    id,
-    method,
-    args,
-  }: WorkerRequest): Promise<WorkerResponse['response']> {
+  postMessage({ id, method, args }: WorkerRequest): Promise<WorkerResponse['response']> {
     return new Promise((resolve, reject) => {
       const listener = ({ data }: MessageEvent) => {
         if (data.method !== method) {

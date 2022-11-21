@@ -9,10 +9,9 @@ beforeAll(function () {
 });
 
 const DEFAULT_DATA = {
-  args: [
-    '/api/0/organizations/sentry/',
-    { method: 'GET', headers: {}, credentials: 'include' },
-  ] as Parameters<typeof fetch>,
+  args: ['/api/0/organizations/sentry/', { method: 'GET', headers: {}, credentials: 'include' }] as Parameters<
+    typeof fetch
+  >,
   endTimestamp: 15000,
   fetchData: {
     method: 'GET',

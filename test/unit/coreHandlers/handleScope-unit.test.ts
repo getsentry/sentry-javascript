@@ -10,9 +10,7 @@ jest.useFakeTimers();
 beforeAll(async function () {
   await mockSdk();
   jest.spyOn(HandleScope, 'handleScope');
-  mockHandleScope = HandleScope.handleScope as jest.MockedFunction<
-    typeof HandleScope.handleScope
-  >;
+  mockHandleScope = HandleScope.handleScope as jest.MockedFunction<typeof HandleScope.handleScope>;
 
   jest.runAllTimers();
 });
@@ -21,9 +19,7 @@ it('returns a breadcrumb only if last breadcrumb has changed (integration)', fun
   getCurrentHub().getScope()?.addBreadcrumb({ message: 'testing' });
 
   expect(mockHandleScope).toHaveBeenCalledTimes(1);
-  expect(mockHandleScope).toHaveReturnedWith(
-    expect.objectContaining({ message: 'testing' })
-  );
+  expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ message: 'testing' }));
 
   mockHandleScope.mockClear();
 

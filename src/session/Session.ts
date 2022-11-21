@@ -68,11 +68,7 @@ export class Session {
 
   constructor(
     session: Partial<SessionObject> = {},
-    {
-      stickySession,
-      sessionSampleRate,
-      errorSampleRate,
-    }: StickyOption & SampleRates
+    { stickySession, sessionSampleRate, errorSampleRate }: StickyOption & SampleRates,
   ) {
     const now = new Date().getTime();
     this._id = session.id || uuid4();
@@ -80,12 +76,7 @@ export class Session {
     this._lastActivity = session.lastActivity ?? now;
     this._segmentId = session.segmentId ?? 0;
     this._sampled =
-      session.sampled ??
-      (isSampled(sessionSampleRate)
-        ? 'session'
-        : isSampled(errorSampleRate)
-        ? 'error'
-        : false);
+      session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
 
     this.options = {
       stickySession,

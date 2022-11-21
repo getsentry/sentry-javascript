@@ -28,35 +28,24 @@ const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkgJson: { [key: string]: unknown } = require(path.resolve(
-  'package.json'
-));
+const pkgJson: { [key: string]: unknown } = require(path.resolve('package.json'));
 
 // check if build dir exists
 if (!fs.existsSync(path.resolve(buildDir))) {
-  console.error(
-    `\nERROR: Directory '${buildDir}' does not exist in ${pkgJson.name}.`
-  );
-  console.error(
-    "This script should only be executed after you've run `yarn build`."
-  );
+  console.error(`\nERROR: Directory '${buildDir}' does not exist in ${pkgJson.name}.`);
+  console.error("This script should only be executed after you've run `yarn build`.");
   process.exit(1);
 }
 
 // copy non-code assets to build dir
-ASSETS.forEach((asset) => {
+ASSETS.forEach(asset => {
   const assetPath = path.resolve(asset);
   if (!fs.existsSync(assetPath)) {
     console.error(`\nERROR: Asset '${asset}' does not exist.`);
     process.exit(1);
   }
   const destinationPath = path.resolve(buildDir, path.basename(asset));
-  console.log(
-    `Copying ${path.basename(asset)} to ${path.relative(
-      '../..',
-      destinationPath
-    )}.`
-  );
+  console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
   fs.copyFileSync(assetPath, destinationPath);
 });
 
@@ -66,14 +55,9 @@ const newPackageJsonPath = path.resolve(buildDir, 'package.json');
 const newPkgJson: { [key: string]: unknown } = require(newPackageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
-ENTRY_POINTS.filter((entryPoint) => newPkgJson[entryPoint]).forEach(
-  (entryPoint) => {
-    newPkgJson[entryPoint] = (newPkgJson[entryPoint] as string).replace(
-      `${buildDir}/`,
-      ''
-    );
-  }
-);
+ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => {
+  newPkgJson[entryPoint] = (newPkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
+});
 
 delete newPkgJson.scripts;
 delete newPkgJson.volta;
@@ -83,9 +67,6 @@ delete newPkgJson.jest;
 try {
   fs.writeFileSync(newPackageJsonPath, JSON.stringify(newPkgJson, null, 2));
 } catch (error) {
-  console.error(
-    `\nERROR: Error while writing modified 'package.json' to disk in ${pkgJson.name}:\n`,
-    error
-  );
+  console.error(`\nERROR: Error while writing modified 'package.json' to disk in ${pkgJson.name}:\n`, error);
   process.exit(1);
 }

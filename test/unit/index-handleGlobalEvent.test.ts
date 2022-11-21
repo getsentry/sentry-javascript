@@ -37,21 +37,21 @@ it('does not delete breadcrumbs from error and transaction events', () => {
   expect(
     replay.handleGlobalEvent({
       breadcrumbs: [{ type: 'fakecrumb' }],
-    })
+    }),
   ).toEqual(
     expect.objectContaining({
       breadcrumbs: [{ type: 'fakecrumb' }],
-    })
+    }),
   );
   expect(
     replay.handleGlobalEvent({
       type: 'transaction',
       breadcrumbs: [{ type: 'fakecrumb' }],
-    })
+    }),
   ).toEqual(
     expect.objectContaining({
       breadcrumbs: [{ type: 'fakecrumb' }],
-    })
+    }),
   );
 });
 
@@ -62,12 +62,12 @@ it('only tags errors with replay id, adds trace and error id to context for erro
   expect(replay.handleGlobalEvent(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.not.objectContaining({ replayId: expect.anything() }),
-    })
+    }),
   );
   expect(replay.handleGlobalEvent(error)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
-    })
+    }),
   );
 
   // @ts-ignore private
@@ -95,11 +95,11 @@ it('tags errors and transactions with replay id for session samples', async () =
   expect(replay.handleGlobalEvent(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
-    })
+    }),
   );
   expect(replay.handleGlobalEvent(error)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
-    })
+    }),
   );
 });

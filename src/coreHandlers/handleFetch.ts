@@ -18,9 +18,7 @@ interface FetchHandlerData {
   endTimestamp?: number;
 }
 
-export function handleFetch(
-  handlerData: FetchHandlerData
-): null | ReplayPerformanceEntry {
+export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerformanceEntry {
   if (!handlerData.endTimestamp) {
     return null;
   }

@@ -3,13 +3,7 @@ import { isIngestHost } from '../util/isIngestHost';
 
 // From sentry-javascript
 // e.g. https://github.com/getsentry/sentry-javascript/blob/c7fc025bf9fa8c073fdb56351808ce53909fbe45/packages/utils/src/instrument.ts#L180
-type XHRSendInput =
-  | null
-  | Blob
-  | BufferSource
-  | FormData
-  | URLSearchParams
-  | string;
+type XHRSendInput = null | Blob | BufferSource | FormData | URLSearchParams | string;
 
 interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   [key: string]: unknown;
@@ -32,9 +26,7 @@ interface XhrHandlerData {
   endTimestamp?: number;
 }
 
-export function handleXhr(
-  handlerData: XhrHandlerData
-): ReplayPerformanceEntry | null {
+export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
   if (handlerData.xhr.__sentry_own_request__) {
     // Taken from sentry-javascript
     // Only capture non-sentry requests
@@ -51,11 +43,7 @@ export function handleXhr(
     return null;
   }
 
-  const {
-    method,
-    url,
-    status_code: statusCode,
-  } = handlerData.xhr.__sentry_xhr__ || {};
+  const { method, url, status_code: statusCode } = handlerData.xhr.__sentry_xhr__ || {};
 
   // Do not capture fetches to Sentry ingestion endpoint
   if (url === undefined || isIngestHost(url)) {
@@ -65,9 +53,7 @@ export function handleXhr(
   return {
     type: 'resource.xhr',
     name: url,
-    start:
-      (handlerData.xhr.__sentry_xhr__?.startTimestamp || 0) / 1000 ||
-      handlerData.endTimestamp / 1000.0,
+    start: (handlerData.xhr.__sentry_xhr__?.startTimestamp || 0) / 1000 || handlerData.endTimestamp / 1000.0,
     end: handlerData.endTimestamp / 1000.0,
     data: {
       method,

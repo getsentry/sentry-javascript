@@ -38,10 +38,7 @@ interface MemoryInfo {
 }
 
 // Map entryType -> function to normalize data for event
-const ENTRY_TYPES: Record<
-  string,
-  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry
-> = {
+const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry> = {
   resource: createResourceEntry,
   paint: createPaintEntry,
   navigation: createNavigationEntry,
@@ -49,9 +46,7 @@ const ENTRY_TYPES: Record<
 };
 
 export function createPerformanceEntries(entries: AllPerformanceEntry[]) {
-  return entries
-    .map(createPerformanceEntry)
-    .filter(Boolean) as ReplayPerformanceEntry[];
+  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry[];
 }
 
 function createPerformanceEntry(entry: AllPerformanceEntry) {
@@ -65,10 +60,7 @@ function createPerformanceEntry(entry: AllPerformanceEntry) {
 function getAbsoluteTime(time: number) {
   // browserPerformanceTimeOrigin can be undefined if `performance` or
   // `performance.now` doesn't exist, but this is already checked by this integration
-  return (
-    ((browserPerformanceTimeOrigin || window.performance.timeOrigin) + time) /
-    1000
-  );
+  return ((browserPerformanceTimeOrigin || window.performance.timeOrigin) + time) / 1000;
 }
 
 function createPaintEntry(entry: PerformancePaintTiming) {
@@ -85,15 +77,7 @@ function createPaintEntry(entry: PerformancePaintTiming) {
 
 function createNavigationEntry(entry: PerformanceNavigationTiming) {
   // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
-  const {
-    entryType,
-    name,
-    duration,
-    domComplete,
-    startTime,
-    transferSize,
-    type,
-  } = entry;
+  const { entryType, name, duration, domComplete, startTime, transferSize, type } = entry;
 
   // Ignore entries with no duration, they do not seem to be useful and cause dupes
   if (duration === 0) {
@@ -112,15 +96,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
   };
 }
 function createResourceEntry(entry: PerformanceResourceTiming) {
-  const {
-    entryType,
-    initiatorType,
-    name,
-    responseEnd,
-    startTime,
-    encodedBodySize,
-    transferSize,
-  } = entry;
+  const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
 
   // Do not capture fetches to Sentry ingestion endpoint
   if (isIngestHost(name)) {
@@ -144,9 +120,7 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
   };
 }
 
-function createLargestContentfulPaint(
-  entry: PerformanceEntry & { size: number; element: Node }
-) {
+function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
   const { duration, entryType, startTime, size } = entry;
 
   const start = getAbsoluteTime(startTime);
