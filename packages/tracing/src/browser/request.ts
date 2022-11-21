@@ -19,7 +19,7 @@ export interface RequestInstrumentationOptions {
    * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
    * trace header attachment.
    */
-  tracingOrigins?: Array<string | RegExp>;
+  tracingOrigins: Array<string | RegExp>;
 
   /**
    * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
@@ -27,7 +27,7 @@ export interface RequestInstrumentationOptions {
    *
    * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
    */
-  tracePropagationTargets?: Array<string | RegExp>;
+  tracePropagationTargets: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -105,13 +105,17 @@ type PolymorphicRequestHeaders =
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
+  // TODO (v8): Remove this property
+  tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
+  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line deprecation/deprecation
   const { traceFetch, traceXHR, tracingOrigins, tracePropagationTargets, shouldCreateSpanForRequest } = {
-    ...defaultRequestInstrumentationOptions,
+    traceFetch: defaultRequestInstrumentationOptions.traceFetch,
+    traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
   };
 
