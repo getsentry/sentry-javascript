@@ -3,6 +3,11 @@ import { WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
 export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
+// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
+// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
+// safe, since it only includes types), so we can import it here without causing madge to fail. See
+// https://github.com/pahen/madge/issues/306.
+export type { WebpackPluginInstance };
 
 /**
  * Overall Nextjs config

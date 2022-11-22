@@ -1,6 +1,6 @@
 import { NextConfig } from 'next';
 
-import { withSentryConfig } from '../../src/config';
+import { withSentryConfig } from '../../src/config/withSentryConfig';
 
 const config: NextConfig = {
   hideSourceMaps: true,

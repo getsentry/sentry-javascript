@@ -6,7 +6,9 @@ import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import {
+// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
+// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
+import type {
   BuildContext,
   EntryPropertyObject,
   NextConfigObject,
@@ -16,6 +18,7 @@ import {
   WebpackConfigObject,
   WebpackEntryProperty,
   WebpackModuleRule,
+  WebpackPluginInstance,
 } from './types';
 
 export { SentryWebpackPlugin };
@@ -99,6 +102,30 @@ export function constructWebpackConfigFunction(
             },
           ],
         });
+      }
+
+      // Prevent `@vercel/nft` (which nextjs uses to determine which files are needed when packaging up a lambda) from
+      // including any of our build-time code or dependencies. (Otherwise it'll include files like this one and even the
+      // entirety of rollup and sucrase.)
+      const nftPlugin = newConfig.plugins?.find((plugin: WebpackPluginInstance) => {
+        const proto = Object.getPrototypeOf(plugin) as WebpackPluginInstance;
+        return proto.constructor.name === 'TraceEntryPointsPlugin';
+      }) as WebpackPluginInstance & { excludeFiles: string[] };
+      if (nftPlugin) {
+        if (Array.isArray(nftPlugin.excludeFiles)) {
+          nftPlugin.excludeFiles.push(path.join(__dirname, 'withSentryConfig.js'));
+        } else {
+          __DEBUG_BUILD__ &&
+            logger.warn(
+              'Unable to exclude Sentry build-time helpers from nft files. `TraceEntryPointsPlugin.excludeFiles` is not ' +
+                'an array. This is a bug; please report this to Sentry:  https://github.com/getsentry/sentry-javascript/issues/.',
+            );
+        }
+      } else {
+        __DEBUG_BUILD__ &&
+          logger.warn(
+            'Unable to exclude Sentry build-time helpers from nft files. Could not find `TraceEntryPointsPlugin`.',
+          );
       }
     }
 
