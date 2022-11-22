@@ -113,7 +113,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracePropagationTargets, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -122,7 +122,11 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
+  // TODO(v8) Remove tracingOrigins here
+  // The only reason we're passing it in here is because this instrumentOutgoingRequests function is publicly exported
+  // and we don't want to break the API. We can remove it in v8.
+  const shouldAttachHeadersWithTargets = (url: string): boolean =>
+    shouldAttachHeaders(url, tracePropagationTargets || tracingOrigins);
 
   const spans: Record<string, Span> = {};
 
