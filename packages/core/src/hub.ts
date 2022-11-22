@@ -186,7 +186,7 @@ export class Hub implements HubInterface {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint): string {
     const syntheticException = new Error('Sentry syntheticException');
-    return (this._lastEventId =
+    this._lastEventId =
       this._withClient((client, scope) => {
         return client.captureException(
           exception,
@@ -197,7 +197,8 @@ export class Hub implements HubInterface {
           },
           scope,
         );
-      }) || NIL_EVENT_ID);
+      }) || NIL_EVENT_ID;
+    return this._lastEventId;
   }
 
   /**
@@ -210,7 +211,7 @@ export class Hub implements HubInterface {
     hint?: EventHint,
   ): string {
     const syntheticException = new Error(message);
-    return (this._lastEventId =
+    this._lastEventId =
       this._withClient((client, scope) => {
         return client.captureMessage(
           message,
@@ -222,7 +223,8 @@ export class Hub implements HubInterface {
           },
           scope,
         );
-      }) || NIL_EVENT_ID);
+      }) || NIL_EVENT_ID;
+    return this._lastEventId;
   }
 
   /**
