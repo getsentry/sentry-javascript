@@ -1,6 +1,5 @@
 import { SessionOptions } from '../types';
 import { logger } from '../util/logger';
-
 import { saveSession } from './saveSession';
 import { Session } from './Session';
 

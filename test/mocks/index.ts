@@ -1,10 +1,17 @@
 import { getCurrentHub } from '@sentry/core';
-import { BASE_TIMESTAMP } from '@test';
+import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { DomHandler, MockTransportSend } from '@test/types';
+import { Replay } from 'src';
 
 import { ReplayConfiguration } from '../../src/types';
 
-export async function resetSdkMock(options?: ReplayConfiguration) {
+export async function resetSdkMock(options?: ReplayConfiguration): Promise<{
+  domHandler: DomHandler;
+  mockRecord: RecordMock;
+  mockTransportSend: MockTransportSend;
+  replay: Replay;
+  spyCaptureException: jest.SpyInstance;
+}> {
   let domHandler: DomHandler;
 
   jest.setSystemTime(new Date(BASE_TIMESTAMP));

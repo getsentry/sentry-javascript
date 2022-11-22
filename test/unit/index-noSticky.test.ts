@@ -269,7 +269,7 @@ describe('Replay (no sticky)', () => {
             payload: {
               timestamp: breadcrumbTimestamp / 1000,
               type: 'default',
-              category: `ui.click`,
+              category: 'ui.click',
               message: '<unknown>',
               data: {},
             },

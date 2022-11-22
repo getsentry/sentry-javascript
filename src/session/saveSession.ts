@@ -1,7 +1,7 @@
 import { REPLAY_SESSION_KEY } from './constants';
 import { Session } from './Session';
 
-export function saveSession(session: Session) {
+export function saveSession(session: Session): void {
   const hasSessionStorage = 'sessionStorage' in window;
   if (!hasSessionStorage) {
     return;

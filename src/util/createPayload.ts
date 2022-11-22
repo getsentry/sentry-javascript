@@ -1,6 +1,12 @@
 import { RecordedEvents } from '../types';
 
-export function createPayload({ events, headers }: { events: RecordedEvents; headers: Record<string, any> }) {
+export function createPayload({
+  events,
+  headers,
+}: {
+  events: RecordedEvents;
+  headers: Record<string, any>;
+}): string | Uint8Array {
   let payloadWithSequence;
 
   // XXX: newline is needed to separate sequence id from events

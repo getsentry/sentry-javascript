@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/browser';
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
 
-type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
+type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
 jest.mock('@sentry/browser');
 
@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  (Sentry.getCurrentHub().captureEvent as captureEventMockType).mockReset();
+  (Sentry.getCurrentHub().captureEvent as CaptureEventMockType).mockReset();
 });
 
 it('non-sticky Session does not save to local storage', function () {

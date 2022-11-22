@@ -14,7 +14,7 @@ type RecordAdditionalProperties = {
 
 export type RecordMock = jest.MockedFunction<typeof rrweb.record> & RecordAdditionalProperties;
 
-function createCheckoutPayload(isCheckout = true) {
+function createCheckoutPayload(isCheckout: boolean = true) {
   return {
     data: { isCheckout },
     timestamp: new Date().getTime(),

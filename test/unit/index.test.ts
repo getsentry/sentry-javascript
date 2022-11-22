@@ -358,7 +358,7 @@ describe('Replay', () => {
             payload: {
               timestamp: breadcrumbTimestamp / 1000,
               type: 'default',
-              category: `ui.click`,
+              category: 'ui.click',
               message: '<unknown>',
               data: {},
             },
@@ -470,7 +470,7 @@ describe('Replay', () => {
             payload: {
               timestamp: breadcrumbTimestamp / 1000,
               type: 'default',
-              category: `ui.click`,
+              category: 'ui.click',
               message: '<unknown>',
               data: {},
             },
@@ -509,7 +509,7 @@ describe('Replay', () => {
             payload: {
               timestamp: BASE_TIMESTAMP / 1000,
               type: 'default',
-              category: `ui.click`,
+              category: 'ui.click',
               message: '<unknown>',
               data: {},
             },

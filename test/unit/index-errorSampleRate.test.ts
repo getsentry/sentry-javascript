@@ -1,8 +1,7 @@
 jest.unmock('@sentry/browser');
 
 import { captureException } from '@sentry/browser';
-import { RecordMock } from '@test';
-import { BASE_TIMESTAMP } from '@test';
+import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';

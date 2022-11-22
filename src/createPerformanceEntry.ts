@@ -1,8 +1,8 @@
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
-import { isIngestHost } from './util/isIngestHost';
 import { AllPerformanceEntry } from './types';
+import { isIngestHost } from './util/isIngestHost';
 
 export interface ReplayPerformanceEntry {
   /**
@@ -45,11 +45,11 @@ const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayP
   ['largest-contentful-paint']: createLargestContentfulPaint,
 };
 
-export function createPerformanceEntries(entries: AllPerformanceEntry[]) {
+export function createPerformanceEntries(entries: AllPerformanceEntry[]): ReplayPerformanceEntry[] {
   return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry[];
 }
 
-function createPerformanceEntry(entry: AllPerformanceEntry) {
+function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry | null {
   if (ENTRY_TYPES[entry.entryType] === undefined) {
     return null;
   }
@@ -57,12 +57,14 @@ function createPerformanceEntry(entry: AllPerformanceEntry) {
   return ENTRY_TYPES[entry.entryType](entry);
 }
 
-function getAbsoluteTime(time: number) {
+function getAbsoluteTime(time: number): number {
   // browserPerformanceTimeOrigin can be undefined if `performance` or
   // `performance.now` doesn't exist, but this is already checked by this integration
   return ((browserPerformanceTimeOrigin || window.performance.timeOrigin) + time) / 1000;
 }
 
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createPaintEntry(entry: PerformancePaintTiming) {
   const { duration, entryType, name, startTime } = entry;
 
@@ -75,6 +77,8 @@ function createPaintEntry(entry: PerformancePaintTiming) {
   };
 }
 
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createNavigationEntry(entry: PerformanceNavigationTiming) {
   // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
   const { entryType, name, duration, domComplete, startTime, transferSize, type } = entry;
@@ -95,6 +99,9 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
     },
   };
 }
+
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createResourceEntry(entry: PerformanceResourceTiming) {
   const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
 
@@ -120,6 +127,8 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
   };
 }
 
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
   const { duration, entryType, startTime, size } = entry;
 
@@ -139,6 +148,8 @@ function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; 
   };
 }
 
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createMemoryEntry(memoryEntry: MemoryInfo) {
   const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
   // we don't want to use `getAbsoluteTime` because it adds the event time to the

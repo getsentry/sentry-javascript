@@ -1,5 +1,4 @@
 import { SampleRates } from '../types';
-
 import { REPLAY_SESSION_KEY } from './constants';
 import { Session } from './Session';
 

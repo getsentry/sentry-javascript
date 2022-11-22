@@ -1,14 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+// TODO: figure out member access types and remove the line above
+
 import { captureException } from '@sentry/core';
 
+import { RecordingEvent, WorkerRequest, WorkerResponse } from './types';
 import { logger } from './util/logger';
 import workerString from './worker/worker.js';
-import { RecordingEvent, WorkerRequest, WorkerResponse } from './types';
 
 interface CreateEventBufferParams {
   useCompression: boolean;
 }
 
-export function createEventBuffer({ useCompression }: CreateEventBufferParams) {
+export function createEventBuffer({ useCompression }: CreateEventBufferParams): IEventBuffer {
   if (useCompression && window.Worker) {
     const workerBlob = new Blob([workerString]);
     const workerUrl = URL.createObjectURL(workerBlob);
@@ -45,15 +48,15 @@ class EventBufferArray implements IEventBuffer {
     this.events = [];
   }
 
-  destroy() {
+  destroy(): void {
     this.events = [];
   }
 
-  get length() {
+  get length(): number {
     return this.events.length;
   }
 
-  addEvent(event: RecordingEvent, isCheckout?: boolean) {
+  addEvent(event: RecordingEvent, isCheckout?: boolean): void {
     if (isCheckout) {
       this.events = [event];
       return;
@@ -62,7 +65,7 @@ class EventBufferArray implements IEventBuffer {
     this.events.push(event);
   }
 
-  finish() {
+  finish(): Promise<string> {
     return new Promise<string>(resolve => {
       // Make a copy of the events array reference and immediately clear the
       // events member so that we do not lose new events while uploading
@@ -77,8 +80,8 @@ class EventBufferArray implements IEventBuffer {
 // exporting for testing
 export class EventBufferCompressionWorker implements IEventBuffer {
   private worker: null | Worker;
-  private eventBufferItemLength = 0;
-  private _id = 0;
+  private eventBufferItemLength: number = 0;
+  private _id: number = 0;
 
   constructor(worker: Worker) {
     this.worker = worker;
@@ -87,7 +90,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
   /**
    * Read-only incrementing counter
    */
-  get id() {
+  get id(): number {
     return this._id++;
   }
 
@@ -96,6 +99,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
    */
   postMessage({ id, method, args }: WorkerRequest): Promise<WorkerResponse['response']> {
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
       const listener = ({ data }: MessageEvent) => {
         if (data.method !== method) {
           return;
@@ -136,12 +140,12 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     });
   }
 
-  init() {
+  init(): void {
     this.postMessage({ id: this.id, method: 'init', args: [] });
     logger.log('Initialized compression worker');
   }
 
-  destroy() {
+  destroy(): void {
     logger.log('Destroying compression worker');
     this.worker?.terminate();
     this.worker = null;
@@ -151,11 +155,11 @@ export class EventBufferCompressionWorker implements IEventBuffer {
    * Note that this may not reflect what is actually in the event buffer. This
    * is only a local count of the buffer size since `addEvent` is async.
    */
-  get length() {
+  get length(): number {
     return this.eventBufferItemLength;
   }
 
-  async addEvent(event: RecordingEvent, isCheckout?: boolean) {
+  async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<string | Uint8Array> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -169,7 +173,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     return this.sendEventToWorker(event);
   }
 
-  sendEventToWorker = (event: RecordingEvent) => {
+  sendEventToWorker: (event: RecordingEvent) => Promise<string | Uint8Array> = (event: RecordingEvent) => {
     const promise = this.postMessage({
       id: this.id,
       method: 'addEvent',
@@ -182,7 +186,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     return promise;
   };
 
-  finishRequest = async (id: number) => {
+  finishRequest: (id: number) => Promise<Uint8Array> = async (id: number) => {
     const promise = this.postMessage({ id, method: 'finish', args: [] });
 
     // XXX: See note in `get length()`
@@ -191,7 +195,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
     return promise as Promise<Uint8Array>;
   };
 
-  finish() {
+  finish(): Promise<Uint8Array> {
     return this.finishRequest(this.id);
   }
 }

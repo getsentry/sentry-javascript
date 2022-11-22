@@ -1,8 +1,9 @@
 jest.unmock('@sentry/browser');
 
 import { BrowserOptions, init } from '@sentry/browser';
-import { Transport } from '@sentry/types';
+import { Envelope, Transport } from '@sentry/types';
 
+import { Replay as ReplayClass } from '../../src';
 import { ReplayConfiguration } from '../../src/types';
 
 interface MockSdkParams {
@@ -11,7 +12,7 @@ interface MockSdkParams {
 }
 
 class MockTransport implements Transport {
-  send = jest.fn(async () => {
+  send: (request: Envelope) => PromiseLike<void> = jest.fn(async () => {
     return;
   });
   async flush() {
@@ -47,7 +48,7 @@ export async function mockSdk({
     sendClientReports: false,
     transport: () => new MockTransport(),
   },
-}: MockSdkParams = {}) {
+}: MockSdkParams = {}): Promise<{ replay: ReplayClass }> {
   const { Replay } = await import('../../src');
   const replay = new Replay(replayOptions);
 

@@ -4,7 +4,7 @@
  * 1.0 = 100% sampling
  * 0.0 = 0% sampling
  */
-export function isSampled(sampleRate?: number) {
+export function isSampled(sampleRate?: number): boolean {
   if (sampleRate === undefined) {
     return false;
   }

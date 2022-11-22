@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 
-import { Session } from './src/session/Session';
 import { Replay } from './src';
+import { Session } from './src/session/Session';
 
 // @ts-ignore TS error, this is replaced in prod builds bc of rollup
 global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
@@ -40,10 +41,8 @@ type SentReplayExpected = {
   events?: string | Uint8Array;
 };
 
-const toHaveSameSession = function (
-  received: jest.Mocked<Replay>,
-  expected: undefined | Session
-) {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const toHaveSameSession = function (received: jest.Mocked<Replay>, expected: undefined | Session) {
   const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
   const options = {
@@ -54,13 +53,7 @@ const toHaveSameSession = function (
   return {
     pass,
     message: () =>
-      this.utils.matcherHint(
-        'toHaveSameSession',
-        undefined,
-        undefined,
-        options
-      ) +
-      '\n\n' +
+      `${this.utils.matcherHint('toHaveSameSession', undefined, undefined, options)}\n\n` +
       `Expected: ${pass ? 'not ' : ''}${this.utils.printExpected(expected)}\n` +
       `Received: ${this.utils.printReceived(received.session)}`,
   };
@@ -70,23 +63,17 @@ const toHaveSameSession = function (
  * Checks the last call to `fetch` and ensures a replay was uploaded by
  * checking the `fetch()` request's body.
  */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const toHaveSentReplay = function (
   _received: jest.Mocked<Replay>,
-  expected?:
-    | SentReplayExpected
-    | { sample: SentReplayExpected; inverse: boolean }
+  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
-  const { calls } = (
-    getCurrentHub().getClient()?.getTransport()?.send as MockTransport
-  ).mock;
+  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
   const lastCall = calls[calls.length - 1]?.[0];
 
   const envelopeHeader = lastCall?.[0];
   const envelopeItems = lastCall?.[1] || [[], []];
-  const [
-    [replayEventHeader, replayEventPayload],
-    [recordingHeader, recordingPayload] = [],
-  ] = envelopeItems;
+  const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
   // @ts-ignore recordingPayload is always a string in our tests
   const [recordingPayloadHeader, events] = recordingPayload?.split('\n') || [];
@@ -100,39 +87,28 @@ const toHaveSentReplay = function (
     replayEventPayload: replayEventPayload,
     // @ts-ignore Custom envelope
     recordingHeader: recordingHeader,
-    recordingPayloadHeader:
-      recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
+    recordingPayloadHeader: recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
     events,
   };
 
-  const isObjectContaining =
-    expected && 'sample' in expected && 'inverse' in expected;
+  const isObjectContaining = expected && 'sample' in expected && 'inverse' in expected;
   const expectedObj = isObjectContaining
     ? (expected as { sample: SentReplayExpected }).sample
     : (expected as SentReplayExpected);
 
   if (isObjectContaining) {
-    console.warn(
-      '`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher'
-    );
+    console.warn('`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher');
   }
 
   const results = expected
     ? Object.entries(actualObj)
         .map(([key, val]: [keyof SentReplayExpected, any]) => {
-          return [
-            !expectedObj?.[key] || this.equals(expectedObj[key], val),
-            key,
-            expectedObj?.[key],
-            val,
-          ];
+          return [!expectedObj?.[key] || this.equals(expectedObj[key], val), key, expectedObj?.[key], val];
         })
         .filter(([passed]) => !passed)
     : [];
 
-  const payloadPassed = Boolean(
-    lastCall && (!expected || results.length === 0)
-  );
+  const payloadPassed = Boolean(lastCall && (!expected || results.length === 0));
 
   const options = {
     isNot: this.isNot,
@@ -148,22 +124,13 @@ const toHaveSentReplay = function (
         ? allPass
           ? 'Expected Replay to not have been sent, but a request was attempted'
           : 'Expected Replay to have been sent, but a request was not attempted'
-        : this.utils.matcherHint(
-            'toHaveSentReplay',
-            undefined,
-            undefined,
-            options
-          ) +
-          '\n\n' +
-          results
+        : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(
               ([, key, expected, actual]) =>
-                `Expected (key: ${key}): ${
-                  payloadPassed ? 'not ' : ''
-                }${this.utils.printExpected(expected)}\n` +
-                `Received (key: ${key}): ${this.utils.printReceived(actual)}`
+                `Expected (key: ${key}): ${payloadPassed ? 'not ' : ''}${this.utils.printExpected(expected)}\n` +
+                `Received (key: ${key}): ${this.utils.printReceived(actual)}`,
             )
-            .join('\n'),
+            .join('\n')}`,
   };
 };
 
