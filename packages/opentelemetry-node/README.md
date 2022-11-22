@@ -42,6 +42,7 @@ const {
 } = require("@sentry/opentelemetry-node");
 
 const opentelemetry = require("@opentelemetry/sdk-node");
+const otelApi = require("@opentelemetry/api");
 const {
   getNodeAutoInstrumentations,
 } = require("@opentelemetry/auto-instrumentations-node");
@@ -66,7 +67,7 @@ const sdk = new opentelemetry.NodeSDK({
   spanProcessor: new SentrySpanProcessor(),
 });
 
-opentelemetry.propagation.setGlobalPropagator(new SentryPropagator());
+otelApi.propagation.setGlobalPropagator(new SentryPropagator());
 
 sdk.start();
 ```
