@@ -34,6 +34,15 @@ jest.mock('@sentry/utils', () => {
 
 jest.mock('../../src/browser/metrics');
 
+const instrumentOutgoingRequestsMock = jest.fn();
+jest.mock('./../../src/browser/request', () => {
+  const actual = jest.requireActual('./../../src/browser/request');
+  return {
+    ...actual,
+    instrumentOutgoingRequests: (options: Partial<BrowserTracingOptions>) => instrumentOutgoingRequestsMock(options),
+  };
+});
+
 beforeAll(() => {
   const dom = new JSDOM();
   // @ts-ignore need to override global document
@@ -128,6 +137,7 @@ describe('BrowserTracing', () => {
       expect(transaction.endTimestamp).toBe(span.endTimestamp);
     });
 
+    // TODO (v8): remove these tests
     describe('tracingOrigins', () => {
       it('sets tracing origins if provided and does not warn', () => {
         const sampleTracingOrigins = ['something'];
@@ -149,6 +159,43 @@ describe('BrowserTracing', () => {
 
         // eslint-disable-next-line deprecation/deprecation
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
+      });
+    });
+
+    describe('tracePropagationTargets', () => {
+      it('sets tracePropagationTargets if provided', () => {
+        const sampleTracePropagationTargets = ['something'];
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
+      });
+
+      it('sets tracePropagationTargets to an empty array and does not warn', () => {
+        const sampleTracePropagationTargets: string[] = [];
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
+      });
+
+      it('correctly passes tracePropagationTargets to `instrumentOutgoingRequests` in `setupOnce`', () => {
+        jest.clearAllMocks();
+        const sampleTracePropagationTargets = ['something'];
+        createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
+          traceFetch: true,
+          traceXHR: true,
+          tracePropagationTargets: ['something'],
+        });
       });
     });
 

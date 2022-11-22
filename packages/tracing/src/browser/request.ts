@@ -113,7 +113,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracingOrigins, tracePropagationTargets, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -122,8 +122,11 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
+  // TODO(v8) Remove tracingOrigins here
+  // The only reason we're passing it in here is because this instrumentOutgoingRequests function is publicly exported
+  // and we don't want to break the API. We can remove it in v8.
   const shouldAttachHeadersWithTargets = (url: string): boolean =>
-    shouldAttachHeaders(url, tracingOrigins, tracePropagationTargets);
+    shouldAttachHeaders(url, tracePropagationTargets || tracingOrigins);
 
   const spans: Record<string, Span> = {};
 
@@ -144,20 +147,9 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
  * A function that determines whether to attach tracing headers to a request.
  * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
  * We only export this fuction for testing purposes.
- *
- * TODO (v8): Remove `tracingOrigins` which should drastically simplify this function.
  */
-export function shouldAttachHeaders(
-  url: string,
-  tracePropagationTargets: (string | RegExp)[] | undefined,
-  tracingOrigins: (string | RegExp)[] | undefined,
-): boolean {
-  // TODO (v8): Replace the entire code below with this one-liner:
-  // return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
-  if (tracePropagationTargets || tracingOrigins) {
-    return stringMatchesSomePattern(url, tracePropagationTargets || tracingOrigins);
-  }
-  return stringMatchesSomePattern(url, DEFAULT_TRACE_PROPAGATION_TARGETS);
+export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
+  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
 }
 
 /**

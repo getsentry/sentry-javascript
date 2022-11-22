@@ -112,7 +112,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   ): void;
 }
 
-const DEFAULT_BROWSER_TRACING_OPTIONS = {
+const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   finalTimeout: DEFAULT_FINAL_TIMEOUT,
   heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
@@ -153,6 +153,15 @@ export class BrowserTracing implements Integration {
       ..._options,
     };
 
+    // TODO (v8): remove this block after tracingOrigins is removed
+    // Set tracePropagationTargets to tracingOrigins if specified by the user
+    // In case both are specified, tracePropagationTargets takes precedence
+    // eslint-disable-next-line deprecation/deprecation
+    if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
+      // eslint-disable-next-line deprecation/deprecation
+      this.options.tracePropagationTargets = _options.tracingOrigins;
+    }
+
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
     if (this.options._experiments?.enableLongTask) {
@@ -174,8 +183,7 @@ export class BrowserTracing implements Integration {
       markBackgroundTransactions,
       traceFetch,
       traceXHR,
-      // eslint-disable-next-line deprecation/deprecation
-      tracingOrigins,
+      tracePropagationTargets,
       shouldCreateSpanForRequest,
     } = this.options;
 
@@ -189,7 +197,12 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
+    instrumentOutgoingRequests({
+      traceFetch,
+      traceXHR,
+      tracePropagationTargets,
+      shouldCreateSpanForRequest,
+    });
   }
 
   /** Create routing idle transaction. */
