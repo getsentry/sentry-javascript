@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.21.0
+
+- feat(react): Add tracing support for React Router 6.4 `createBrowserRouter`. (#6172)
+- fix(core): Add guard against scope.getAttachments (#6258)
+- fix(core): Only generate eventIds in client (#6247)
+- fix(express): Support multiple routers with common paths. (#6253)
+- fix(tracing): Pass `tracePropagationTargets` to `instrumentOutgoingRequests` (#6259)
+
 ## 7.20.1
 
 - fix(angular): Set `<unknown>` component name default in TraceDirective (#6222)
