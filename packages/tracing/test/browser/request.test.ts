@@ -391,7 +391,6 @@ describe('callbacks', () => {
   });
 });
 
-// TODO (v8): Adapt these tests once we remove `tracingOrigins`
 describe('shouldAttachHeaders', () => {
   describe('should prefer `tracePropagationTargets` over defaults', () => {
     it('should return `true` if the url matches the new tracePropagationTargets', () => {

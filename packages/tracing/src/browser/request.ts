@@ -143,8 +143,6 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
  * A function that determines whether to attach tracing headers to a request.
  * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
  * We only export this fuction for testing purposes.
- *
- * TODO (v8): Remove `tracingOrigins` which should drastically simplify this function.
  */
 export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
   return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
