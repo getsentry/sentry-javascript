@@ -35,15 +35,25 @@ Note that `@sentry/opentelemetry-node` depends on the following peer dependencie
 You need to register the `SentrySpanProcessor` and `SentryPropagator` with your OpenTelemetry installation:
 
 ```js
-import * as Sentry from '@sentry/node';
-import { SentrySpanProcessor } from '@sentry/opentelemetry-node';
-import * as otelApi from '@opentelemetry/api';
-import { getNodeAutoInstrumentations } from  '@opentelemetry/auto-instrumentations-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+const Sentry = require("@sentry/node");
+const {
+  SentrySpanProcessor,
+  SentryPropagator,
+} = require("@sentry/opentelemetry-node");
+
+const opentelemetry = require("@opentelemetry/api");
+const {
+  getNodeAutoInstrumentations,
+} = require("@opentelemetry/auto-instrumentations-node");
+const {
+  OTLPTraceExporter,
+} = require("@opentelemetry/exporter-trace-otlp-grpc");
 
 // Make sure to call `Sentry.init` BEFORE initializing the OpenTelemetry SDK
 Sentry.init({
   dsn: '__DSN__',
+  // set the instrumenter to use OpenTelemetry instead of Sentry
+  instrumenter: 'otel',
   // ...
 });
 
@@ -56,7 +66,9 @@ const sdk = new opentelemetry.NodeSDK({
   spanProcessor: new SentrySpanProcessor(),
 });
 
-otelApi.propagation.setGlobalPropagator(new SentryPropagator());
+opentelemetry.propagation.setGlobalPropagator(new SentryPropagator());
+
+sdk.start();
 ```
 
 ## Links
