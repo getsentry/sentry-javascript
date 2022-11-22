@@ -18,6 +18,9 @@ module.exports = {
         project: ['tsconfig.test.json'],
         sourceType: 'module',
       },
+      rules: {
+        '@typescript-eslint/typedef': 'off',
+      },
     },
   ],
 };
