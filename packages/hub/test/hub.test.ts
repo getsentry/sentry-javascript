@@ -226,6 +226,14 @@ describe('Hub', () => {
       expect(args[0]).toBe('a');
     });
 
+    test('should get event_id from client', () => {
+      const testClient = makeClient();
+      const hub = new Hub(testClient);
+
+      const id = hub.captureException('a');
+      expect(id).toBeDefined();
+    });
+
     test('should keep event_id from hint', () => {
       const testClient = makeClient();
       const hub = new Hub(testClient);
@@ -267,7 +275,7 @@ describe('Hub', () => {
       const hub = new Hub(testClient);
 
       const id = hub.captureMessage('a');
-      expect(id).toBeTruthy();
+      expect(id).toBeDefined();
     });
 
     test('should keep event_id from hint', () => {
@@ -316,7 +324,7 @@ describe('Hub', () => {
       const hub = new Hub(testClient);
 
       const id = hub.captureEvent(event);
-      expect(id).toBeTruthy();
+      expect(id).toBeDefined();
     });
 
     test('should keep event_id from hint', () => {
