@@ -113,7 +113,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
   // eslint-disable-next-line deprecation/deprecation
-  const { traceFetch, traceXHR, tracingOrigins, tracePropagationTargets, shouldCreateSpanForRequest } = {
+  const { traceFetch, traceXHR, tracePropagationTargets, shouldCreateSpanForRequest } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -122,8 +122,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  const shouldAttachHeadersWithTargets = (url: string): boolean =>
-    shouldAttachHeaders(url, tracingOrigins, tracePropagationTargets);
+  const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
 
@@ -147,17 +146,8 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
  *
  * TODO (v8): Remove `tracingOrigins` which should drastically simplify this function.
  */
-export function shouldAttachHeaders(
-  url: string,
-  tracePropagationTargets: (string | RegExp)[] | undefined,
-  tracingOrigins: (string | RegExp)[] | undefined,
-): boolean {
-  // TODO (v8): Replace the entire code below with this one-liner:
-  // return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
-  if (tracePropagationTargets || tracingOrigins) {
-    return stringMatchesSomePattern(url, tracePropagationTargets || tracingOrigins);
-  }
-  return stringMatchesSomePattern(url, DEFAULT_TRACE_PROPAGATION_TARGETS);
+export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
+  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
 }
 
 /**
