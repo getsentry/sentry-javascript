@@ -41,7 +41,7 @@ const {
   SentryPropagator,
 } = require("@sentry/opentelemetry-node");
 
-const opentelemetry = require("@opentelemetry/api");
+const opentelemetry = require("@opentelemetry/sdk-node");
 const {
   getNodeAutoInstrumentations,
 } = require("@opentelemetry/auto-instrumentations-node");
