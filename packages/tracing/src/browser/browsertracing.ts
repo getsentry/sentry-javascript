@@ -154,7 +154,7 @@ export class BrowserTracing implements Integration {
     };
 
     // TODO (v8): remove this block after tracingOrigins is removed
-    // Set tracePropagationTargets from tracingOrigins if specified by the user
+    // Set tracePropagationTargets to tracingOrigins if specified by the user
     // In case both are specified, tracePropagationTargets takes precedence
     // eslint-disable-next-line deprecation/deprecation
     if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
