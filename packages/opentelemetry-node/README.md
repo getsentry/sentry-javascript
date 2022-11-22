@@ -53,6 +53,7 @@ const {
 // Make sure to call `Sentry.init` BEFORE initializing the OpenTelemetry SDK
 Sentry.init({
   dsn: '__DSN__',
+  tracesSampleRate: 1.0,
   // set the instrumenter to use OpenTelemetry instead of Sentry
   instrumenter: 'otel',
   // ...
