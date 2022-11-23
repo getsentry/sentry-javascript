@@ -1,5 +1,8 @@
+import * as isBuildModule from '../../src/utils/isBuild';
 import { defaultsObject, exportedNextConfig, runtimePhase, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
+
+const isBuildSpy = jest.spyOn(isBuildModule, 'isBuild').mockReturnValue(true);
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
@@ -58,5 +61,38 @@ describe('withSentryConfig', () => {
     // We have to check using `in` because TS knows it shouldn't be there and throws a type error if we try to access it
     // directly
     expect('sentry' in finalConfig).toBe(false);
+  });
+
+  describe('conditional use of `constructWebpackConfigFunction`', () => {
+    // Note: In these tests, it would be nice to be able to spy on `constructWebpackConfigFunction` to see whether or
+    // not it's called, but that sets up a catch-22: If you import or require the module to spy on the function, it gets
+    // cached and the `require` call we care about (inside of `withSentryConfig`) doesn't actually run the module code.
+    // Alternatively, if we call `jest.resetModules()` after setting up the spy, then the module code *is* run a second
+    // time, but the spy belongs to the first instance of the module and therefore never registers a call. Thus we have
+    // to test whether or not the file is required instead.
+
+    it('imports from `webpack.ts` if `isBuild` returns true', () => {
+      jest.isolateModules(() => {
+        // In case this is still set from elsewhere, reset it
+        delete (global as any)._sentryWebpackModuleLoaded;
+
+        materializeFinalNextConfig(exportedNextConfig);
+
+        expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
+      });
+    });
+
+    it("doesn't import from `webpack.ts` if `isBuild` returns false", () => {
+      jest.isolateModules(() => {
+        isBuildSpy.mockReturnValueOnce(false);
+
+        // In case this is still set from elsewhere, reset it
+        delete (global as any)._sentryWebpackModuleLoaded;
+
+        materializeFinalNextConfig(exportedNextConfig);
+
+        expect((global as any)._sentryWebpackModuleLoaded).toBeUndefined();
+      });
+    });
   });
 });

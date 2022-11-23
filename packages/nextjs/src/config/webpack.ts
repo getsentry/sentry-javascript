@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
+import {
+  arrayify,
+  dropUndefinedKeys,
+  escapeStringForRegex,
+  GLOBAL_OBJ,
+  logger,
+  stringMatchesSomePattern,
+} from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
@@ -26,6 +33,14 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
+
+// In order to make sure that build-time code isn't getting bundled in runtime bundles (specifically, in the serverless
+// functions into which nextjs converts a user's routes), we exclude this module (and all of its dependencies) from the
+// nft file manifests nextjs generates. (See the code dealing with the `TraceEntryPointsPlugin` below.) So that we don't
+// crash people, we therefore need to make sure nothing tries to either require this file or import from it. Setting
+// this env variable allows us to test whether or not that's happened.
+const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryWebpackModuleLoaded?: true };
+_global._sentryWebpackModuleLoaded = true;
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
@@ -106,14 +121,15 @@ export function constructWebpackConfigFunction(
 
       // Prevent `@vercel/nft` (which nextjs uses to determine which files are needed when packaging up a lambda) from
       // including any of our build-time code or dependencies. (Otherwise it'll include files like this one and even the
-      // entirety of rollup and sucrase.)
+      // entirety of rollup and sucrase.) Since this file is the root of that dependency tree, it's enough to just
+      // exclude it and the rest will be excluded as well.
       const nftPlugin = newConfig.plugins?.find((plugin: WebpackPluginInstance) => {
         const proto = Object.getPrototypeOf(plugin) as WebpackPluginInstance;
         return proto.constructor.name === 'TraceEntryPointsPlugin';
       }) as WebpackPluginInstance & { excludeFiles: string[] };
       if (nftPlugin) {
         if (Array.isArray(nftPlugin.excludeFiles)) {
-          nftPlugin.excludeFiles.push(path.join(__dirname, 'withSentryConfig.js'));
+          nftPlugin.excludeFiles.push(__filename);
         } else {
           __DEBUG_BUILD__ &&
             logger.warn(
