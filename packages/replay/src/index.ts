@@ -784,7 +784,10 @@ export class Replay implements Integration {
   handlePerformanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(this.performanceEvents, list.getEntries());
+    const newPerformanceEntries = dedupePerformanceEntries(
+      this.performanceEvents,
+      list.getEntries() as AllPerformanceEntry[],
+    );
     this.performanceEvents = newPerformanceEntries;
   };
 
