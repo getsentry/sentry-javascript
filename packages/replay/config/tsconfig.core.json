@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true,
+    "declarationDir": "./types",
+    "baseUrl": "..",
+    "rootDir": "..",
+    "strictNullChecks": true,
+    "outDir": "build/npm"
+  },
+  "include": ["../src/**/*.ts"],
+  "exclude": ["../src/**/*.test.ts"]
+}

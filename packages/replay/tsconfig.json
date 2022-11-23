@@ -1,0 +1,19 @@
+{
+  "extends": "./config/tsconfig.core.json",
+  "compilerOptions": {
+    "paths": {
+      "@test": ["./test"],
+      "@test/*":
+       ["./test/*"]
+    },
+    "types": ["node", "jest"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "rollup.config.ts",
+    "jest.config.ts",
+    "jest.setup.ts"
+  ],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,16 @@
+minVersion: '0.0.1'
+github:
+  owner: getsentry
+  repo: sentry-replay
+changelogPolicy: none
+preReleaseCommand: bash scripts/craft-pre-release.sh
+targets:
+  - name: npm
+    access: public
+  - name: github
+    tagPrefix: v
+    access: public
+statusProvider:
+  name: github
+artifactProvider:
+  name: github
