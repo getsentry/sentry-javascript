@@ -49,6 +49,7 @@
     "packages/opentelemetry-node",
     "packages/react",
     "packages/remix",
+    "packages/replay",
     "packages/serverless",
     "packages/svelte",
     "packages/tracing",
