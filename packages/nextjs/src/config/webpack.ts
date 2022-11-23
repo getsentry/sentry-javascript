@@ -27,6 +27,13 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
 
+// In order to make sure that build-time code isn't getting bundled in runtime bundles (specifically, in the serverless
+// functions into which nextjs converts a user's routes), we exclude this module (and all of its dependencies) from the
+// nft file manifests nextjs generates. (See the code dealing with the `TraceEntryPointsPlugin` below.) So that we don't
+// crash people, we therefore need to make sure nothing tries to either require this file or import from it. Setting
+// this env variable allows us to test whether or not that's happened.
+process.env.SENTRY_WEBPACK_MODULE_LOADED = 'true';
+
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
  *
