@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
+import {
+  arrayify,
+  dropUndefinedKeys,
+  escapeStringForRegex,
+  GLOBAL_OBJ,
+  logger,
+  stringMatchesSomePattern,
+} from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
@@ -32,7 +39,8 @@ export { SentryWebpackPlugin };
 // nft file manifests nextjs generates. (See the code dealing with the `TraceEntryPointsPlugin` below.) So that we don't
 // crash people, we therefore need to make sure nothing tries to either require this file or import from it. Setting
 // this env variable allows us to test whether or not that's happened.
-process.env.SENTRY_WEBPACK_MODULE_LOADED = 'true';
+const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryWebpackModuleLoaded?: true };
+_global._sentryWebpackModuleLoaded = true;
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.

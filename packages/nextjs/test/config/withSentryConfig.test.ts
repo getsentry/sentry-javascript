@@ -74,11 +74,11 @@ describe('withSentryConfig', () => {
     it('imports from `webpack.ts` if `isBuild` returns true', () => {
       jest.isolateModules(() => {
         // In case this is still set from elsewhere, reset it
-        delete process.env.SENTRY_WEBPACK_MODULE_LOADED;
+        delete (global as any)._sentryWebpackModuleLoaded;
 
         materializeFinalNextConfig(exportedNextConfig);
 
-        expect(process.env.SENTRY_WEBPACK_MODULE_LOADED).toEqual('true');
+        expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
       });
     });
 
@@ -87,11 +87,11 @@ describe('withSentryConfig', () => {
         isBuildSpy.mockReturnValueOnce(false);
 
         // In case this is still set from elsewhere, reset it
-        delete process.env.SENTRY_WEBPACK_MODULE_LOADED;
+        delete (global as any)._sentryWebpackModuleLoaded;
 
         materializeFinalNextConfig(exportedNextConfig);
 
-        expect(process.env.SENTRY_WEBPACK_MODULE_LOADED).toBeUndefined();
+        expect((global as any)._sentryWebpackModuleLoaded).toBeUndefined();
       });
     });
   });
