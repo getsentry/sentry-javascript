@@ -21,7 +21,9 @@ targets:
           cacheControl: 'public, max-age=31536000'
   - name: github
     includeNames: /^sentry-.*$/
+    excludeNames: /^sentry-replay-.*$/
   - name: npm
+    excludeNames: /^sentry-replay-.*$/
   - name: registry
     sdks:
       'npm:@sentry/browser':
