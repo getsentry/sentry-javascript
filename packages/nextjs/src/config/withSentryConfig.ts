@@ -1,4 +1,10 @@
-import type { ExportedNextConfig, NextConfigFunction, NextConfigObject, SentryWebpackPluginOptions } from './types';
+import type {
+  ExportedNextConfig,
+  NextConfigFunction,
+  NextConfigObject,
+  NextConfigObjectWithSentry,
+  SentryWebpackPluginOptions,
+} from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
 /**
@@ -16,35 +22,29 @@ export function withSentryConfig(
   // `defaults` in order to pass them along to the user's function
   if (typeof exportedUserNextConfig === 'function') {
     return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-      let userNextConfigObject = exportedUserNextConfig(phase, defaults);
+      const userNextConfigObject = exportedUserNextConfig(phase, defaults);
 
-      // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`, so grab and then remove the `sentry`
-      // property there. Where we actually need it is in the webpack config function we're going to create, so pass it
-      // to `constructWebpackConfigFunction` so that it will be in the created function's closure.
-      const { sentry: userSentryOptions } = userNextConfigObject;
-      delete userNextConfigObject.sentry;
-      // Remind TS that there's now no `sentry` property
-      userNextConfigObject = userNextConfigObject as NextConfigObject;
-
-      return {
-        ...userNextConfigObject,
-        webpack: constructWebpackConfigFunction(
-          userNextConfigObject,
-          userSentryWebpackPluginOptions,
-          userSentryOptions,
-        ),
-      };
+      return getFinalConfigObject(userNextConfigObject, userSentryWebpackPluginOptions);
     };
   }
 
   // Otherwise, we can just merge their config with ours and return an object.
+  return getFinalConfigObject(exportedUserNextConfig, userSentryWebpackPluginOptions);
+}
 
-  // Prevent nextjs from getting mad about having a non-standard config property in `userNextConfig`. (See note above
-  // for a more thorough explanation of what we're doing here.)
-  const { sentry: userSentryOptions } = exportedUserNextConfig;
-  delete exportedUserNextConfig.sentry;
+// Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
+// `webpack` property
+function getFinalConfigObject(
+  incomingUserNextConfigObject: NextConfigObjectWithSentry,
+  userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
+): NextConfigObject {
+  // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`, so grab and then remove the `sentry`
+  // property there. Where we actually need it is in the webpack config function we're going to create, so pass it
+  // to `constructWebpackConfigFunction` so that it can live in the returned function's closure.
+  const { sentry: userSentryOptions } = incomingUserNextConfigObject;
+  delete incomingUserNextConfigObject.sentry;
   // Remind TS that there's now no `sentry` property
-  const userNextConfigObject = exportedUserNextConfig as NextConfigObject;
+  const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
 
   return {
     ...userNextConfigObject,
