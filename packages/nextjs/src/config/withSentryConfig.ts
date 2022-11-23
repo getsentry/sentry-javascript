@@ -1,3 +1,4 @@
+import { isBuild } from '../utils/isBuild';
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -5,7 +6,6 @@ import type {
   NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
 } from './types';
-import { constructWebpackConfigFunction } from './webpack';
 
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
@@ -46,8 +46,18 @@ function getFinalConfigObject(
   // Remind TS that there's now no `sentry` property
   const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
 
-  return {
-    ...userNextConfigObject,
-    webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
-  };
+  // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
+  // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
+  // make sure that we only require it at build time.
+  if (isBuild()) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { constructWebpackConfigFunction } = require('./webpack');
+    return {
+      ...userNextConfigObject,
+      webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
+    };
+  }
+
+  // At runtime, we just return the user's config untouched.
+  return userNextConfigObject;
 }
