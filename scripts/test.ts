@@ -17,6 +17,7 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/angular',
   '@sentry/remix',
   '@sentry/svelte', // svelte testing library requires Node >= 10
+  '@sentry/replay',
 ];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
@@ -28,7 +29,7 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'ts-jest@25.x',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
+const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix', '@sentry/replay'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
 
 const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];

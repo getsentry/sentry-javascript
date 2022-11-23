@@ -60,6 +60,9 @@
     "lodash.debounce": "^4.0.8",
     "rrweb": "^1.1.3"
   },
+  "engines": {
+    "node": ">=12"
+  },
   "size-limit": [
     {
       "path": "build/npm/index.js",

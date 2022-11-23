@@ -6,6 +6,9 @@ Note: Session Replay is currently in beta.
 
 For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.x`.
 
+
+`@sentry/replay` requires Node 12+, and browsers newer than IE11.
+
 ## Installation
 
 with npm:
@@ -87,7 +90,7 @@ A session starts when the Session Replay SDK is first loaded and initialized. Th
 
 ### Replay Captures Only on Errors
 
-Alternatively, rather than recording an entire session, you can capture a replay only when an error occurs. In this case, the integration will buffer up to one minute worth of events prior to the error being thrown. It will continue to record the session following the rules above regarding session life and activity. Read the [sampling](#Sampling) section for configuration options. 
+Alternatively, rather than recording an entire session, you can capture a replay only when an error occurs. In this case, the integration will buffer up to one minute worth of events prior to the error being thrown. It will continue to record the session following the rules above regarding session life and activity. Read the [sampling](#Sampling) section for configuration options.
 
 ## Sampling
 
