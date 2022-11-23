@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.21.1
+
+- fix(nextjs): Stop excluding `withSentryConfig` from serverless bundles (#6267)
+
 ## 7.21.0
 
 - feat(react): Add tracing support for React Router 6.4 `createBrowserRouter`. (#6172)
