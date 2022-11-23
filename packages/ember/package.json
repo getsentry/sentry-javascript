@@ -18,7 +18,6 @@
   },
   "scripts": {
     "build": "ember build --environment=production",
-    "build:extras": "yarn build",
     "build:npm": "ember ts:precompile && npm pack && ember ts:clean",
     "clean": "yarn rimraf sentry-ember-*.tgz",
     "lint": "run-p lint:js lint:hbs lint:ts",
