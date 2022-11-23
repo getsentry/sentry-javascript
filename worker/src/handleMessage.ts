@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Compressor } from './Compressor';
 
 const compressor = new Compressor();
@@ -18,7 +19,7 @@ const handlers: Record<string, (args: any[]) => void> = {
   },
 };
 
-export function handleMessage(e: MessageEvent) {
+export function handleMessage(e: MessageEvent): void {
   const method = e.data.method as string;
   const id = e.data.id as number;
   const [data] = e.data.args ? JSON.parse(e.data.args) : [];

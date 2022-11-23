@@ -5,7 +5,7 @@ export function Transaction(obj?: Partial<Event>) {
 
   return {
     contexts: {
-      //{{{
+      // {{{
       organization: {
         id: '1',
         slug: 'sentry-emerging-tech',
@@ -24,9 +24,9 @@ export function Transaction(obj?: Partial<Event>) {
         },
         trace_id: 'trace_id',
       },
-    }, //}}}
+    }, // }}}
     spans: [
-      //{{{
+      // {{{
       {
         description: '<LoadingIndicator>',
         op: 'ui.react.mount',
@@ -86,7 +86,7 @@ export function Transaction(obj?: Partial<Event>) {
         timestamp: 1668184224.5562,
         trace_id: '3e0ff8aff4dc4236a80b77a37ef66c7d',
       },
-    ], //}}}
+    ], // }}}
     start_timestamp: 1668184224.447,
     tags: {
       organization: '1',
@@ -108,7 +108,7 @@ export function Transaction(obj?: Partial<Event>) {
     transaction: '/organizations/:orgId/replays/:replaySlug/',
     type: 'transaction' as const,
     sdkProcessingMetadata: {
-      //{{{
+      // {{{
       source: 'route',
       dynamicSamplingContext: {
         environment: 'prod',
@@ -227,7 +227,7 @@ export function Transaction(obj?: Partial<Event>) {
       changes: [],
       propagations: 2,
       sampleRate: 1,
-    }, //}}}
+    }, // }}}
     transaction_info: {
       source: 'route',
       changes: [],

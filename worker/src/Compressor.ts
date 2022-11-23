@@ -4,18 +4,18 @@ export class Compressor {
   /**
    * pako deflator instance
    */
-  deflate: Deflate;
+  public deflate: Deflate;
 
   /**
    * Number of added events
    */
-  added: number;
+  public added: number;
 
-  constructor() {
+  public constructor() {
     this.init();
   }
 
-  init() {
+  public init(): void {
     this.added = 0;
     this.deflate = new Deflate();
 
@@ -25,7 +25,7 @@ export class Compressor {
     return;
   }
 
-  addEvent(data: Record<string, any>) {
+  public addEvent(data: Record<string, any>): void {
     if (!data) {
       return;
     }
@@ -41,7 +41,7 @@ export class Compressor {
     return;
   }
 
-  finish() {
+  public finish(): Uint8Array {
     // We should always have a list, it can be empty
     this.deflate.push(']', constants.Z_FINISH);
 

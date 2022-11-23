@@ -2,7 +2,6 @@ import { uuid4 } from '@sentry/utils';
 
 import { SampleRates, SessionOptions } from '../types';
 import { isSampled } from '../util/isSampled';
-
 import { saveSession } from './saveSession';
 
 type StickyOption = Required<Pick<SessionOptions, 'stickySession'>>;
@@ -34,6 +33,8 @@ interface SessionObject {
 }
 
 export class Session {
+  public readonly options: StickyOption;
+
   /**
    * Session ID
    */
@@ -64,9 +65,7 @@ export class Session {
    */
   private _sampled: Sampled;
 
-  public readonly options: StickyOption;
-
-  constructor(
+  public constructor(
     session: Partial<SessionObject> = {},
     { stickySession, sessionSampleRate, errorSampleRate }: StickyOption & SampleRates,
   ) {
@@ -83,11 +82,11 @@ export class Session {
     };
   }
 
-  get id() {
+  get id(): string {
     return this._id;
   }
 
-  get started() {
+  get started(): number {
     return this._started;
   }
 
@@ -98,7 +97,7 @@ export class Session {
     }
   }
 
-  get lastActivity() {
+  get lastActivity(): number {
     return this._lastActivity;
   }
 
@@ -109,7 +108,7 @@ export class Session {
     }
   }
 
-  get segmentId() {
+  get segmentId(): number {
     return this._segmentId;
   }
 
@@ -120,7 +119,7 @@ export class Session {
     }
   }
 
-  get previousSessionId() {
+  get previousSessionId(): string | undefined {
     return this._previousSessionId;
   }
 
@@ -128,7 +127,7 @@ export class Session {
     this._previousSessionId = id;
   }
 
-  get sampled() {
+  get sampled(): Sampled {
     return this._sampled;
   }
 
@@ -136,7 +135,7 @@ export class Session {
     throw new Error('Unable to change sampled value');
   }
 
-  toJSON() {
+  toJSON(): SessionObject {
     return {
       id: this.id,
       started: this.started,

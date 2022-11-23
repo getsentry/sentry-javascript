@@ -38,7 +38,7 @@ export function Error(obj?: Event) {
     environment: 'prod',
     release: 'frontend@22.11.0',
     sdk: {
-      //{{{
+      // {{{
       integrations: [
         'InboundFilters',
         'FunctionToString',
@@ -59,9 +59,9 @@ export function Error(obj?: Event) {
           version: '7.18.0',
         },
       ],
-    }, //}}}
+    }, // }}}
     tags: {
-      //{{{
+      // {{{
       organization: '1',
       'organization.slug': 'sentry-emerging-tech',
       plan: 'am1_business_ent_auf',
@@ -70,7 +70,7 @@ export function Error(obj?: Event) {
       'plan.total_members': '15',
       'plan.tier': 'am1',
       'timeOrigin.mode': 'navigationStart',
-    }, //}}}
+    }, // }}}
     user: {
       ip_address: '0.0.0.0',
       email: 'billy@sentry.io',

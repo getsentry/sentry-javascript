@@ -12,9 +12,9 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-type captureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
+type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
-const captureEventMock: captureEventMockType = jest.fn();
+const captureEventMock: CaptureEventMockType = jest.fn();
 
 beforeAll(() => {
   window.sessionStorage.clear();

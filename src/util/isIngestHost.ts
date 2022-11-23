@@ -5,7 +5,7 @@ import { isInternal } from './isInternal';
 /**
  * Checks is `targetHost` is a Sentry ingestion host
  */
-export function isIngestHost(targetHost: string) {
+export function isIngestHost(targetHost: string): boolean {
   const { protocol, host } = getCurrentHub().getClient()?.getDsn() || {};
 
   // XXX: Special case when this integration is used by Sentry on `sentry.io`

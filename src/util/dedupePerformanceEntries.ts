@@ -21,6 +21,8 @@ function isNavigationEntryEqual(a: PerformanceNavigationTiming) {
  *
  * Compare the values of several keys to determine if the entries are duplicates or not.
  */
+// TODO (high-prio): Figure out wth is returned here
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function dedupePerformanceEntries(currentList: PerformanceEntryList, newList: PerformanceEntryList) {
   // Partition `currentList` into 3 different lists based on entryType
   const [existingNavigationEntries, existingLcpEntries, existingEntries] = currentList.reduce(

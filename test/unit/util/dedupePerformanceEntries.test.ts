@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-unresolved
 import { PerformanceEntryLcp } from '@test/fixtures/performanceEntry/lcp';
 import { PerformanceEntryNavigation } from '@test/fixtures/performanceEntry/navigation';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
