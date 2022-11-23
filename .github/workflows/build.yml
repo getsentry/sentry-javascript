@@ -4,7 +4,15 @@ on:
     branches:
       - master
       - release/**
+    paths:
+      - '**'
+      - '!**/*.md'
+      - '!.github/workflows/build.yml'
   pull_request:
+    paths:
+      - '**'
+      - '!**/*.md'
+      - '!.github/workflows/build.yml'
   workflow_dispatch:
     inputs:
       commit:
