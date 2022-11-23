@@ -20,6 +20,7 @@ export interface NonIndexRouteObject {
   caseSensitive?: boolean;
   children?: RouteObject[];
   element?: React.ReactNode | null;
+  errorElement?: React.ReactNode | null;
   index?: any;
   path?: string;
 }
@@ -28,6 +29,7 @@ export interface IndexRouteObject {
   caseSensitive?: boolean;
   children?: undefined;
   element?: React.ReactNode | null;
+  errorElement?: React.ReactNode | null;
   index: any;
   path?: string;
 }
@@ -35,7 +37,7 @@ export interface IndexRouteObject {
 // This type was originally just `type RouteObject = IndexRouteObject`, but this was changed
 // in https://github.com/remix-run/react-router/pull/9366, which was released with `6.4.2`
 // See https://github.com/remix-run/react-router/issues/9427 for a discussion on this.
-export type RouteObject = IndexRouteObject | NonIndexRouteObject;
+export type RouteObject = (IndexRouteObject | NonIndexRouteObject) & Record<string, any>;
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
