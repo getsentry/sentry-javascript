@@ -106,14 +106,15 @@ export function constructWebpackConfigFunction(
 
       // Prevent `@vercel/nft` (which nextjs uses to determine which files are needed when packaging up a lambda) from
       // including any of our build-time code or dependencies. (Otherwise it'll include files like this one and even the
-      // entirety of rollup and sucrase.)
+      // entirety of rollup and sucrase.) Since this file is the root of that dependency tree, it's enough to just
+      // exclude it and the rest will be excluded as well.
       const nftPlugin = newConfig.plugins?.find((plugin: WebpackPluginInstance) => {
         const proto = Object.getPrototypeOf(plugin) as WebpackPluginInstance;
         return proto.constructor.name === 'TraceEntryPointsPlugin';
       }) as WebpackPluginInstance & { excludeFiles: string[] };
       if (nftPlugin) {
         if (Array.isArray(nftPlugin.excludeFiles)) {
-          nftPlugin.excludeFiles.push(path.join(__dirname, 'withSentryConfig.js'));
+          nftPlugin.excludeFiles.push(__filename);
         } else {
           __DEBUG_BUILD__ &&
             logger.warn(
