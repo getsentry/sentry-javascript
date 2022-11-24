@@ -8,7 +8,6 @@ const {
 module.exports = async ({ page, url, requests }) => {
   const requestPromise = page.waitForRequest(isTransactionRequest);
   await page.goto(`${url}/fetch`);
-  await page.click('button');
   await requestPromise;
 
   expectTransaction(requests.transactions[0], {
