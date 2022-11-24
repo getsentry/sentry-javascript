@@ -1,0 +1,5 @@
+node_modules
+/*.tgz
+.eslintcache
+dist
+build

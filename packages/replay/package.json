@@ -1,0 +1,76 @@
+{
+  "name": "@sentry/replay",
+  "version": "0.6.14",
+  "description": "User replays for Sentry",
+  "main": "build/npm/dist/index.js",
+  "module": "build/npm/dist/index.es.js",
+  "types": "build/npm/dist/src/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
+    "build": "yarn build:rollup",
+    "build:rollup": "NODE_ENV=production yarn build:all",
+    "build:dev": "NODE_ENV=development yarn build:all",
+    "build:all": "run-s clean build:worker build:core",
+    "build:core": "yarn build:actualRollup --config config/rollup.config.core.ts",
+    "build:worker": "yarn build:actualRollup --config config/rollup.config.worker.ts",
+    "build:actualRollup": "rollup",
+    "build:watch": "NODE_ENV=production yarn build:all:watch",
+    "build:dev:watch": "NODE_ENV=development yarn build:all:watch",
+    "build:all:watch": "yarn clean && run-p \"build:worker --watch\" \"build:core --watch\"",
+    "build:npm": "ts-node ./scripts/tmp-prepack.ts --bundles && npm pack ./build/npm #TODO: use JS sdk prepack script after migration",
+    "circularDepCheck": "#TODO comment in after migration: madge --circular src/index.ts",
+    "clean": "rimraf build sentry-replay-*.tgz",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test,scripts,worker}/**/*.ts\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --format stylish #TODO: we might want to use eslintcache after migration",
+    "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "start:demo": "yarn build:dev && cd demo && yarn start",
+    "build:prod": "yarn build #TODO remove, we don't need this anymore after migration",
+    "dev": "yarn build:dev:watch #TODO remove, we don't need this anymore after migration"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getsentry/sentry-replay.git"
+  },
+  "author": "Sentry",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/getsentry/sentry-replay/issues"
+  },
+  "homepage": "https://github.com/getsentry/sentry-replay#readme",
+  "devDependencies": {
+    "@babel/core": "^7.17.5",
+    "@sentry/browser": "7.21.0",
+    "@types/lodash.debounce": "^4.0.7",
+    "@types/lodash.throttle": "^4.1.7",
+    "@types/pako": "^2.0.0",
+    "jsdom-worker": "^0.2.1",
+    "pako": "^2.0.4",
+    "tslib": "^1.9.3"
+  },
+  "dependencies": {
+    "@sentry/core": "7.21.0",
+    "@sentry/types": "7.21.0",
+    "@sentry/utils": "7.21.0",
+    "lodash.debounce": "^4.0.8",
+    "rrweb": "^1.1.3"
+  },
+  "engines": {
+    "node": ">=12"
+  },
+  "size-limit": [
+    {
+      "path": "build/npm/index.js",
+      "limit": "4500ms"
+    }
+  ],
+  "volta": {
+    "node": "14.21.1",
+    "yarn": "1.22.19"
+  }
+}

@@ -1,0 +1,28 @@
+name: "size"
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  size:
+    runs-on: ubuntu-latest
+    env:
+      CI_JOB_NUMBER: 1
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: versions
+        run: |
+          echo "::set-output name=node::$(jq -r '.volta.node' package.json)"
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          cache: 'yarn'
+
+      - name: build (and run size-limit)
+        uses: andresz1/size-limit-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          build_script: build:prod
+

@@ -1,0 +1,35 @@
+name: build
+on:
+  push:
+    branches:
+      - main
+      - release/**
+  pull_request:
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: volta-cli/action@v4
+
+      - name: Install dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - run: |
+          yarn test
+
+      - run: |
+          yarn build
+
+      - run: |
+          yarn build:npm
+
+      - uses: actions/upload-artifact@v3.1.1
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/*.tgz

@@ -1,0 +1,3 @@
+# TODO after we migrated, we should revisit this file and check if we can use the monorepo's master
+# .npmigore file or if we should add custom entries here.
+# For the time being, this can stay empty.
