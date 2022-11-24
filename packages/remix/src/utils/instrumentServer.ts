@@ -93,7 +93,13 @@ async function captureRemixServerException(err: Error, name: string, request: Re
     return;
   }
 
-  const normalizedRequest = normalizeRemixRequest(request as unknown as any);
+  let normalizedRequest: Record<string, unknown> = request as unknown as any;
+
+  try {
+    normalizedRequest = normalizeRemixRequest(request as unknown as any);
+  } catch (e) {
+    __DEBUG_BUILD__ && logger.warn('Failed to normalize Remix request');
+  }
 
   captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
     const activeTransactionName = getActiveTransaction()?.name;
@@ -389,7 +395,13 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const options = hub.getClient()?.getOptions();
       const scope = hub.getScope();
 
-      const normalizedRequest = normalizeRemixRequest(request);
+      let normalizedRequest: Record<string, unknown> = request;
+
+      try {
+        normalizedRequest = normalizeRemixRequest(request);
+      } catch (e) {
+        __DEBUG_BUILD__ && logger.warn('Failed to normalize Remix request');
+      }
 
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url, pkg);
