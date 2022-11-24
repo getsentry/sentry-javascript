@@ -10,7 +10,7 @@ import {
 } from '../../src/config/types';
 import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../../src/config/webpack';
 import { withSentryConfig } from '../../src/config/withSentryConfig';
-import { defaultsObject, runtimePhase } from './fixtures';
+import { defaultRuntimePhase, defaultsObject } from './fixtures';
 
 /**
  * Derive the final values of all next config options, by first applying `withSentryConfig` and then, if it returns a
@@ -25,6 +25,7 @@ import { defaultsObject, runtimePhase } from './fixtures';
 export function materializeFinalNextConfig(
   exportedNextConfig: ExportedNextConfig,
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>,
+  runtimePhase?: string,
 ): NextConfigObject {
   const sentrifiedConfig = withSentryConfig(exportedNextConfig, userSentryWebpackPluginConfig);
   let finalConfigValues = sentrifiedConfig;
@@ -32,7 +33,7 @@ export function materializeFinalNextConfig(
   if (typeof sentrifiedConfig === 'function') {
     // for some reason TS won't recognize that `finalConfigValues` is now a NextConfigObject, which is why the cast
     // below is necessary
-    finalConfigValues = sentrifiedConfig(runtimePhase, defaultsObject);
+    finalConfigValues = sentrifiedConfig(runtimePhase ?? defaultRuntimePhase, defaultsObject);
   }
 
   return finalConfigValues as NextConfigObject;

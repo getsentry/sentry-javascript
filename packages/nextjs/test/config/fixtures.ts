@@ -31,7 +31,7 @@ process.env.SENTRY_AUTH_TOKEN = 'dogsarebadatkeepingsecrets';
 process.env.SENTRY_RELEASE = 'doGsaREgReaT';
 
 /** Mocks of the arguments passed to the result of `withSentryConfig` (when it's a function). */
-export const runtimePhase = 'ball-fetching';
+export const defaultRuntimePhase = 'ball-fetching';
 // `defaultConfig` is the defaults for all nextjs options (we don't use these at all in the tests, so for our purposes
 // here the values don't matter)
 export const defaultsObject = { defaultConfig: {} as NextConfigObject };

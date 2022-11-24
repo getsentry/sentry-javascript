@@ -1,8 +1,5 @@
-import * as isBuildModule from '../../src/utils/isBuild';
-import { defaultsObject, exportedNextConfig, runtimePhase, userNextConfig } from './fixtures';
+import { defaultRuntimePhase, defaultsObject, exportedNextConfig, userNextConfig } from './fixtures';
 import { materializeFinalNextConfig } from './testUtils';
-
-const isBuildSpy = jest.spyOn(isBuildModule, 'isBuild').mockReturnValue(true);
 
 describe('withSentryConfig', () => {
   it('includes expected properties', () => {
@@ -50,7 +47,7 @@ describe('withSentryConfig', () => {
 
     materializeFinalNextConfig(exportedNextConfigFunction);
 
-    expect(exportedNextConfigFunction).toHaveBeenCalledWith(runtimePhase, defaultsObject);
+    expect(exportedNextConfigFunction).toHaveBeenCalledWith(defaultRuntimePhase, defaultsObject);
   });
 
   it('removes `sentry` property', () => {
@@ -71,25 +68,34 @@ describe('withSentryConfig', () => {
     // time, but the spy belongs to the first instance of the module and therefore never registers a call. Thus we have
     // to test whether or not the file is required instead.
 
-    it('imports from `webpack.ts` if `isBuild` returns true', () => {
+    it('imports from `webpack.ts` if build phase is "phase-production-build"', () => {
       jest.isolateModules(() => {
         // In case this is still set from elsewhere, reset it
         delete (global as any)._sentryWebpackModuleLoaded;
 
-        materializeFinalNextConfig(exportedNextConfig);
+        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-build');
 
         expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
       });
     });
 
-    it("doesn't import from `webpack.ts` if `isBuild` returns false", () => {
+    it('imports from `webpack.ts` if build phase is "phase-development-server"', () => {
       jest.isolateModules(() => {
-        isBuildSpy.mockReturnValueOnce(false);
-
         // In case this is still set from elsewhere, reset it
         delete (global as any)._sentryWebpackModuleLoaded;
 
-        materializeFinalNextConfig(exportedNextConfig);
+        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-build');
+
+        expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
+      });
+    });
+
+    it('Doesn\'t import from `webpack.ts` if build phase is "phase-production-server"', () => {
+      jest.isolateModules(() => {
+        // In case this is still set from elsewhere, reset it
+        delete (global as any)._sentryWebpackModuleLoaded;
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-server');
 
         expect((global as any)._sentryWebpackModuleLoaded).toBeUndefined();
       });

@@ -1,4 +1,4 @@
-import { isBuild } from '../utils/isBuild';
+import { NEXT_PHASE_DEVELOPMENT_SERVER, NEXT_PHASE_PRODUCTION_BUILD } from '../utils/phases';
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -18,23 +18,20 @@ export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): NextConfigFunction | NextConfigObject {
-  // If the user has passed us a function, we need to return a function, so that we have access to `phase` and
-  // `defaults` in order to pass them along to the user's function
-  if (typeof exportedUserNextConfig === 'function') {
-    return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
+  return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
+    if (typeof exportedUserNextConfig === 'function') {
       const userNextConfigObject = exportedUserNextConfig(phase, defaults);
-
-      return getFinalConfigObject(userNextConfigObject, userSentryWebpackPluginOptions);
-    };
-  }
-
-  // Otherwise, we can just merge their config with ours and return an object.
-  return getFinalConfigObject(exportedUserNextConfig, userSentryWebpackPluginOptions);
+      return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
+    } else {
+      return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
+    }
+  };
 }
 
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
+  phase: string,
   incomingUserNextConfigObject: NextConfigObjectWithSentry,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
@@ -48,8 +45,8 @@ function getFinalConfigObject(
 
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
   // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
-  // make sure that we only require it at build time.
-  if (isBuild()) {
+  // make sure that we only require it at build time or in development mode.
+  if (phase === NEXT_PHASE_PRODUCTION_BUILD || phase === NEXT_PHASE_DEVELOPMENT_SERVER) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { constructWebpackConfigFunction } = require('./webpack');
     return {
