@@ -86,21 +86,21 @@ export class ReportingObserver implements Integration {
 
     this._getCurrentHub = getCurrentHub;
 
-    const eventProcess: EventProcessor = (event: Event) => {
+    const eventProcessor: EventProcessor = (event: Event) => {
       const hub = getCurrentHub();
       if (hub) {
         const self = hub.getIntegration(ReportingObserver);
         if (self) {
           const client = hub.getClient();
           const clientOptions = client ? client.getOptions() : {};
-          return _shouldDropEvent(event, self._options, clientOptions) ? null : event;
+          return shouldDropEvent(event, self._options, clientOptions) ? null : event;
         }
       }
       return event;
     };
 
-    eventProcess.id = this.name;
-    addGlobalEventProcessor(eventProcess);
+    eventProcessor.id = this.name;
+    addGlobalEventProcessor(eventProcessor);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const observer = new (WINDOW as any).ReportingObserver(this.handler.bind(this), {
@@ -157,68 +157,68 @@ export class ReportingObserver implements Integration {
 }
 
 /** JSDoc */
-export function _shouldDropEvent(
+export function shouldDropEvent(
   event: Event,
   internalOptions: Partial<ReportingObserverOptions>,
   filtersOptions: Partial<InboundFiltersOptions>,
 ): boolean {
-  if (internalOptions.applyIgnoreErrors && _isIgnoredError(event, filtersOptions.ignoreErrors)) {
+  if (internalOptions.applyIgnoreErrors && isIgnoredError(event, filtersOptions.ignoreErrors)) {
     __DEBUG_BUILD__ &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
-  if (internalOptions.applyDenyUrls && _isDeniedUrl(event, filtersOptions.denyUrls)) {
+  if (internalOptions.applyDenyUrls && isDeniedUrl(event, filtersOptions.denyUrls)) {
     __DEBUG_BUILD__ &&
       logger.warn(
         `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
           event,
-        )}.\nUrl: ${_getEventFilterUrl(event)}`,
+        )}.\nUrl: ${getEventFilterUrl(event)}`,
       );
     return true;
   }
-  if (internalOptions.applyAllowUrls && !_isAllowedUrl(event, filtersOptions.allowUrls)) {
+  if (internalOptions.applyAllowUrls && !isAllowedUrl(event, filtersOptions.allowUrls)) {
     __DEBUG_BUILD__ &&
       logger.warn(
         `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
           event,
-        )}.\nUrl: ${_getEventFilterUrl(event)}`,
+        )}.\nUrl: ${getEventFilterUrl(event)}`,
       );
     return true;
   }
   return false;
 }
 
-function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
+function isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
   if (!ignoreErrors || !ignoreErrors.length) {
     return false;
   }
 
-  return _getPossibleEventMessages(event).some(message =>
+  return getPossibleEventMessages(event).some(message =>
     ignoreErrors.some(pattern => isMatchingPattern(message, pattern)),
   );
 }
 
-function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
+function isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!denyUrls || !denyUrls.length) {
     return false;
   }
-  const url = _getEventFilterUrl(event);
+  const url = getEventFilterUrl(event);
   return !url ? false : denyUrls.some(pattern => isMatchingPattern(url, pattern));
 }
 
-function _isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
+function isAllowedUrl(event: Event, allowUrls?: Array<string | RegExp>): boolean {
   // TODO: Use Glob instead?
   if (!allowUrls || !allowUrls.length) {
     return true;
   }
-  const url = _getEventFilterUrl(event);
+  const url = getEventFilterUrl(event);
   return !url ? true : allowUrls.some(pattern => isMatchingPattern(url, pattern));
 }
 
-function _getPossibleEventMessages(event: Event): string[] {
+function getPossibleEventMessages(event: Event): string[] {
   if (event.message) {
     return [event.message];
   }
@@ -234,7 +234,7 @@ function _getPossibleEventMessages(event: Event): string[] {
   return [];
 }
 
-function _getLastValidUrl(frames: StackFrame[] = []): string | null {
+function getLastValidUrl(frames: StackFrame[] = []): string | null {
   for (let i = frames.length - 1; i >= 0; i--) {
     const frame = frames[i];
 
@@ -246,7 +246,7 @@ function _getLastValidUrl(frames: StackFrame[] = []): string | null {
   return null;
 }
 
-function _getEventFilterUrl(event: Event): string | null {
+function getEventFilterUrl(event: Event): string | null {
   try {
     let frames;
     try {
@@ -255,7 +255,7 @@ function _getEventFilterUrl(event: Event): string | null {
     } catch (e) {
       // ignore
     }
-    return frames ? _getLastValidUrl(frames) : null;
+    return frames ? getLastValidUrl(frames) : null;
   } catch (oO) {
     __DEBUG_BUILD__ && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
