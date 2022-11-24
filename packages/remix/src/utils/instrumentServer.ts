@@ -96,7 +96,20 @@ async function captureRemixServerException(err: Error, name: string, request: Re
   const normalizedRequest = normalizeRemixRequest(request as unknown as any);
 
   captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
-    scope.setSDKProcessingMetadata({ request: normalizedRequest });
+    const activeTransactionName = getActiveTransaction()?.name;
+
+    scope.setSDKProcessingMetadata({
+      request: {
+        ...normalizedRequest,
+        // When `route` is not defined, `RequestData` integration uses the full URL
+        route: activeTransactionName
+          ? {
+              path: activeTransactionName,
+            }
+          : undefined,
+      },
+    });
+
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
@@ -378,18 +391,23 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 
       const normalizedRequest = normalizeRemixRequest(request);
 
+      const url = new URL(request.url);
+      const [name, source] = getTransactionName(routes, url, pkg);
+
       if (scope) {
         scope.setSDKProcessingMetadata({
-          request: normalizedRequest,
+          request: {
+            ...normalizedRequest,
+            route: {
+              path: name,
+            },
+          },
         });
       }
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);
       }
-
-      const url = new URL(request.url);
-      const [name, source] = getTransactionName(routes, url, pkg);
 
       const transaction = startRequestHandlerTransaction(hub, name, source, {
         headers: {
