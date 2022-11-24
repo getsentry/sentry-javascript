@@ -1,3 +1,5 @@
+import { NEXT_PHASE_PRODUCTION_BUILD } from './phases';
+
 /**
  * Decide if the currently running process is part of the build phase or happening at runtime.
  */
@@ -18,7 +20,7 @@ export function isBuild(): boolean {
     process.env.SENTRY_BUILD_PHASE ||
     // This is set by next, but not until partway through the build process, which is why we need the above checks. That
     // said, in case this function isn't called until we're in a child process, it can serve as a good backup.
-    process.env.NEXT_PHASE === 'phase-production-build'
+    process.env.NEXT_PHASE === NEXT_PHASE_PRODUCTION_BUILD
   ) {
     process.env.SENTRY_BUILD_PHASE = 'true';
     return true;
