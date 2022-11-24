@@ -1,19 +1,20 @@
 {
   "extends": "./config/tsconfig.core.json",
   "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noEmitOnError": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["node", "jest"],
+    "target": "es5",
     "paths": {
       "@test": ["./test"],
-      "@test/*":
-       ["./test/*"]
-    },
-    "types": ["node", "jest"]
+      "@test/*": ["./test/*"]
+    }
   },
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts",
-    "rollup.config.ts",
-    "jest.config.ts",
-    "jest.setup.ts"
-  ],
+  "include": ["src/**/*.ts", "test/**/*.ts", "rollup.config.ts", "jest.config.ts", "jest.setup.ts"],
   "exclude": ["node_modules"]
 }

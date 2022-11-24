@@ -63,6 +63,7 @@ module.exports = [
     gzip: true,
     limit: '100 KB',
   },
+  // This entry is only here temporarily and will be replaced once we have proper CDN bundles
   {
     name: '@sentry/replay index.js',
     path: 'packages/replay/build/npm/dist/index.js',
@@ -81,6 +82,6 @@ module.exports = [
     path: 'packages/replay/build/npm/dist/index.js',
     import: '{ Replay }',
     gzip: false,
-    limit: '100 KB',
+    limit: '300 KB',
   },
 ];

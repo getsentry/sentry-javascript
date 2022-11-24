@@ -1,13 +1,4 @@
 {
-  "compilerOptions": {
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "noEmitOnError": false,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "target": "es5"
-  },
+  "compilerOptions": {},
   "exclude": ["node_modules"]
 }
