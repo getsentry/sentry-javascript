@@ -6,8 +6,8 @@ import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
 
-import { getBreadcrumbHandler } from './coreHandlers/getBreadcrumbHandler';
-import { getSpanHandler } from './coreHandlers/getSpanHandler';
+import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
+import { spanHandler } from './coreHandlers/spanHandler';
 import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
 import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import {
@@ -705,14 +705,14 @@ export class Replay implements Integration {
    *
    * These specific events will create span-like objects in the recording.
    */
-  handleCoreSpanListener: (type: InstrumentationTypeSpan) => (handlerData: any) => void =
-    (type: InstrumentationTypeSpan) => (handlerData: any) => {
+  handleCoreSpanListener: (type: InstrumentationTypeSpan) => (handlerData: unknown) => void =
+    (type: InstrumentationTypeSpan) =>
+    (handlerData: unknown): void => {
       if (!this.isEnabled) {
         return;
       }
 
-      const handler = getSpanHandler(type);
-      const result = handler(handlerData);
+      const result = spanHandler(type, handlerData);
 
       if (result === null) {
         return;
@@ -738,14 +738,14 @@ export class Replay implements Integration {
    *
    * These events will create breadcrumb-like objects in the recording.
    */
-  handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: any) => void =
-    (type: InstrumentationTypeBreadcrumb) => (handlerData: any) => {
+  handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
+    (type: InstrumentationTypeBreadcrumb) =>
+    (handlerData: unknown): void => {
       if (!this.isEnabled) {
         return;
       }
 
-      const handler = getBreadcrumbHandler(type);
-      const result = handler(handlerData);
+      const result = breadcrumbHandler(type, handlerData);
 
       if (result === null) {
         return;
@@ -1174,7 +1174,7 @@ export class Replay implements Integration {
    * from calling both `flush` and `debouncedFlush`. Otherwise, there could be
    * cases of mulitple flushes happening closely together.
    */
-  flushImmediate(): any {
+  flushImmediate(): Promise<void> {
     this.debouncedFlush();
     // `.flush` is provided by lodash.debounce
     return this.debouncedFlush.flush();

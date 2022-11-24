@@ -1,7 +1,7 @@
 import { logger as sentryLogger } from '@sentry/utils';
 
 function wrapLogger(logFn: typeof sentryLogger[keyof typeof sentryLogger]) {
-  return function wrappedLog(...args: any[]) {
+  return function wrappedLog(...args: unknown[]) {
     return logFn.call(sentryLogger, '[Replay]', ...args);
   };
 }

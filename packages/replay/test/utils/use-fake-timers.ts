@@ -1,4 +1,4 @@
-export function useFakeTimers() {
+export function useFakeTimers(): void {
   const _setInterval = setInterval;
   const _clearInterval = clearInterval;
   jest.useFakeTimers();

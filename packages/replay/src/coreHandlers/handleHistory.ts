@@ -1,6 +1,6 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 
-interface HistoryHandlerData {
+export interface HistoryHandlerData {
   from: string;
   to: string;
 }

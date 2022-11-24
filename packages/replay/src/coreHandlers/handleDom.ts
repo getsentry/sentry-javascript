@@ -4,15 +4,19 @@ import { record } from 'rrweb';
 
 import { createBreadcrumb } from '../util/createBreadcrumb';
 
-export function handleDom(handlerData: any): Breadcrumb | null {
+export interface DomHandlerData {
+  name: string;
+  event: Node | { target: Node };
+}
+
+export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
   let target;
   let targetNode;
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    targetNode = (handlerData.event.target as Node) || (handlerData.event as unknown as Node);
+    targetNode = getTargetNode(handlerData);
     target = htmlTreeAsString(targetNode);
   } catch (e) {
     target = '<unknown>';
@@ -23,12 +27,24 @@ export function handleDom(handlerData: any): Breadcrumb | null {
   }
 
   return createBreadcrumb({
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     category: `ui.${handlerData.name}`,
     message: target,
     data: {
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(targetNode ? { nodeId: record.mirror.getId(targetNode as any) } : {}),
     },
   });
+}
+
+function getTargetNode(handlerData: DomHandlerData): Node {
+  if (isEventWithTarget(handlerData.event)) {
+    return handlerData.event.target;
+  }
+
+  return handlerData.event;
+}
+
+function isEventWithTarget(event: unknown): event is { target: Node } {
+  return !!(event as { target?: Node }).target;
 }

@@ -143,14 +143,15 @@ function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; 
       duration,
       size,
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       nodeId: record.mirror.getId(entry.element as any),
     },
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createMemoryEntry(memoryEntry: MemoryInfo) {
+type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
+
+export function createMemoryEntry(memoryEntry: MemoryInfo): ReplayMemoryEntry {
   const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
   // we don't want to use `getAbsoluteTime` because it adds the event time to the
   // time origin, so we get the current timestamp instead

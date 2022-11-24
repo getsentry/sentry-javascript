@@ -49,7 +49,7 @@ jest.mock('rrweb', () => {
 // XXX: Intended to be after `mock('rrweb')`
 import * as rrweb from 'rrweb';
 
-export function mockRrweb() {
+export function mockRrweb(): { record: RecordMock } {
   return {
     record: rrweb.record as RecordMock,
   };
