@@ -23,7 +23,10 @@ function isNavigationEntryEqual(a: PerformanceNavigationTiming) {
  */
 // TODO (high-prio): Figure out wth is returned here
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function dedupePerformanceEntries(currentList: PerformanceEntryList, newList: PerformanceEntryList) {
+export function dedupePerformanceEntries(
+  currentList: PerformanceEntryList,
+  newList: PerformanceEntryList,
+): PerformanceEntryList {
   // Partition `currentList` into 3 different lists based on entryType
   const [existingNavigationEntries, existingLcpEntries, existingEntries] = currentList.reduce(
     (acc: [PerformanceNavigationTiming[], PerformancePaintTiming[], PerformanceEntryList], entry) => {

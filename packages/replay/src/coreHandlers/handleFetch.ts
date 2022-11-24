@@ -1,7 +1,7 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import { isIngestHost } from '../util/isIngestHost';
 
-interface FetchHandlerData {
+export interface FetchHandlerData {
   args: Parameters<typeof fetch>;
   fetchData: {
     method: string;

@@ -1,3 +1,4 @@
+import { Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
@@ -7,7 +8,12 @@ async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));
 }
 
-export function makeFakeTransport(delay: number = 2000) {
+export function makeFakeTransport(delay: number = 2000): {
+  makeTransport: () => Transport;
+  getSendCalled: () => number;
+  getSentCount: () => number;
+  delay: number;
+} {
   let sendCalled = 0;
   let sentCount = 0;
   const makeTransport = () =>

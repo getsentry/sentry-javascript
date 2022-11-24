@@ -25,7 +25,7 @@ export class Compressor {
     return;
   }
 
-  public addEvent(data: Record<string, any>): void {
+  public addEvent(data: Record<string, unknown>): void {
     if (!data) {
       return;
     }

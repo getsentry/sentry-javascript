@@ -3,13 +3,19 @@ import { Compressor } from './Compressor';
 
 const compressor = new Compressor();
 
-const handlers: Record<string, (args: any[]) => void> = {
+interface Handlers {
+  init: () => void;
+  addEvent: (data: Record<string, unknown>) => void;
+  finish: () => void;
+}
+
+const handlers: Handlers = {
   init: () => {
     compressor.init();
     return '';
   },
 
-  addEvent: (data: Record<string, any>) => {
+  addEvent: (data: Record<string, unknown>) => {
     compressor.addEvent(data);
     return '';
   },

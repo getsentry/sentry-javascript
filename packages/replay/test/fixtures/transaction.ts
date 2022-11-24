@@ -1,6 +1,6 @@
 import { Event, SeverityLevel } from '@sentry/types';
 
-export function Transaction(obj?: Partial<Event>) {
+export function Transaction(obj?: Partial<Event>): any {
   const timestamp = new Date().getTime() / 1000;
 
   return {

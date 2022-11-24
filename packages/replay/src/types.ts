@@ -30,7 +30,7 @@ export type InstrumentationType =
 export interface WorkerRequest {
   id: number;
   method: string;
-  args: any[];
+  args: unknown[];
 }
 
 declare global {

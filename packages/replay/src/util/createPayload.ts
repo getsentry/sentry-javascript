@@ -5,7 +5,7 @@ export function createPayload({
   headers,
 }: {
   events: RecordedEvents;
-  headers: Record<string, any>;
+  headers: Record<string, unknown>;
 }): string | Uint8Array {
   let payloadWithSequence;
 

@@ -19,7 +19,7 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   __sentry_own_request__?: boolean;
 }
 
-interface XhrHandlerData {
+export interface XhrHandlerData {
   args: [string, string];
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp: number;

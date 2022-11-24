@@ -35,9 +35,9 @@ type SentReplayExpected = {
     };
   };
   replayEventHeader?: { type: 'replay_event' };
-  replayEventPayload?: Record<string, any>;
+  replayEventPayload?: Record<string, unknown>;
   recordingHeader?: { type: 'replay_recording'; length: number };
-  recordingPayloadHeader?: Record<string, any>;
+  recordingPayloadHeader?: Record<string, unknown>;
   events?: string | Uint8Array;
 };
 
@@ -101,9 +101,13 @@ const toHaveSentReplay = function (
   }
 
   const results = expected
-    ? Object.entries(actualObj)
-        .map(([key, val]: [keyof SentReplayExpected, any]) => {
-          return [!expectedObj?.[key] || this.equals(expectedObj[key], val), key, expectedObj?.[key], val];
+    ? Object.keys(expectedObj)
+        .map(key => {
+          const actualVal = actualObj[key as keyof SentReplayExpected];
+          const expectedVal = expectedObj[key as keyof SentReplayExpected];
+          const matches = !expectedVal || this.equals(actualVal, expectedVal);
+
+          return [matches, key, expectedVal, actualVal];
         })
         .filter(([passed]) => !passed)
     : [];
