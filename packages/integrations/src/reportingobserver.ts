@@ -69,9 +69,9 @@ export class ReportingObserver implements Integration {
   public constructor(options?: ReportingObserverOptions) {
     this._options = {
       types: ['crash', 'deprecation', 'intervention'],
-      applyAllowUrls: true,
-      applyDenyUrls: true,
-      applyIgnoreErrors: true,
+      applyAllowUrls: false,
+      applyDenyUrls: false,
+      applyIgnoreErrors: false,
       ...options,
     };
   }
