@@ -112,7 +112,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   ): void;
 }
 
-const DEFAULT_BROWSER_TRACING_OPTIONS = {
+const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   idleTimeout: DEFAULT_IDLE_TIMEOUT,
   finalTimeout: DEFAULT_FINAL_TIMEOUT,
   heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
@@ -147,24 +147,20 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
-  private readonly _emitOptionsWarning?: boolean;
-
   public constructor(_options?: Partial<BrowserTracingOptions>) {
-    let tracingOrigins = defaultRequestInstrumentationOptions.tracingOrigins;
-    // NOTE: Logger doesn't work in constructors, as it's initialized after integrations instances
-    if (_options) {
-      if (_options.tracingOrigins && Array.isArray(_options.tracingOrigins)) {
-        tracingOrigins = _options.tracingOrigins;
-      } else {
-        __DEBUG_BUILD__ && (this._emitOptionsWarning = true);
-      }
-    }
-
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
       ..._options,
-      tracingOrigins,
     };
+
+    // TODO (v8): remove this block after tracingOrigins is removed
+    // Set tracePropagationTargets to tracingOrigins if specified by the user
+    // In case both are specified, tracePropagationTargets takes precedence
+    // eslint-disable-next-line deprecation/deprecation
+    if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
+      // eslint-disable-next-line deprecation/deprecation
+      this.options.tracePropagationTargets = _options.tracingOrigins;
+    }
 
     const { _metricOptions } = this.options;
     startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
@@ -179,17 +175,6 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
-    if (this._emitOptionsWarning) {
-      __DEBUG_BUILD__ &&
-        logger.warn(
-          '[Tracing] You need to define `tracingOrigins` in the options. Set an array of urls or patterns to trace.',
-        );
-      __DEBUG_BUILD__ &&
-        logger.warn(
-          `[Tracing] We added a reasonable default for you: ${defaultRequestInstrumentationOptions.tracingOrigins}`,
-        );
-    }
-
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
       routingInstrumentation: instrumentRouting,
@@ -198,7 +183,7 @@ export class BrowserTracing implements Integration {
       markBackgroundTransactions,
       traceFetch,
       traceXHR,
-      tracingOrigins,
+      tracePropagationTargets,
       shouldCreateSpanForRequest,
     } = this.options;
 
@@ -212,7 +197,12 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    instrumentOutgoingRequests({ traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest });
+    instrumentOutgoingRequests({
+      traceFetch,
+      traceXHR,
+      tracePropagationTargets,
+      shouldCreateSpanForRequest,
+    });
   }
 
   /** Create routing idle transaction. */

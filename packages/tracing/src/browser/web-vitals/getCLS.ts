@@ -61,6 +61,7 @@ export const onCLS = (onReport: ReportCallback, opts: ReportOpts = {}): void => 
         // entry in the current session. Otherwise, start a new session.
         if (
           sessionValue &&
+          sessionEntries.length !== 0 &&
           entry.startTime - lastSessionEntry.startTime < 1000 &&
           entry.startTime - firstSessionEntry.startTime < 5000
         ) {

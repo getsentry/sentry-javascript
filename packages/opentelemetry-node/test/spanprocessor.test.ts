@@ -4,11 +4,14 @@ import { Resource } from '@opentelemetry/resources';
 import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { Hub, makeMain } from '@sentry/core';
+import { createTransport, Hub, makeMain } from '@sentry/core';
+import { NodeClient } from '@sentry/node';
 import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
-import { Contexts, Scope } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
-import { SentrySpanProcessor } from '../src/spanprocessor';
+import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
+
+const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
 // Integration Test of SentrySpanProcessor
 
@@ -22,7 +25,13 @@ describe('SentrySpanProcessor', () => {
   let spanProcessor: SentrySpanProcessor;
 
   beforeEach(() => {
-    hub = new Hub();
+    const client = new NodeClient({
+      dsn: SENTRY_DSN,
+      integrations: [],
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+      stackParser: () => [],
+    });
+    hub = new Hub(client);
     makeMain(hub);
 
     spanProcessor = new SentrySpanProcessor();
@@ -41,32 +50,20 @@ describe('SentrySpanProcessor', () => {
   });
 
   function getSpanForOtelSpan(otelSpan: OtelSpan | OpenTelemetry.Span) {
-    return spanProcessor._map.get(otelSpan.spanContext().spanId);
+    return SENTRY_SPAN_PROCESSOR_MAP.get(otelSpan.spanContext().spanId);
   }
 
   function getContext(transaction: Transaction) {
-    const transactionWithContext = transaction as unknown as Transaction & { _contexts: Contexts };
+    const transactionWithContext = transaction as unknown as Transaction;
+    // @ts-ignore accessing private property
     return transactionWithContext._contexts;
   }
 
-  // monkey-patch finish to store the context at finish time
-  function monkeyPatchTransactionFinish(transaction: Transaction) {
-    const monkeyPatchedTransaction = transaction as Transaction & { _contexts: Contexts };
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const originalFinish = monkeyPatchedTransaction.finish;
-    monkeyPatchedTransaction._contexts = {};
-    monkeyPatchedTransaction.finish = function (endTimestamp?: number | undefined) {
-      monkeyPatchedTransaction._contexts = (
-        transaction._hub.getScope() as unknown as Scope & { _contexts: Contexts }
-      )._contexts;
-
-      return originalFinish.apply(monkeyPatchedTransaction, [endTimestamp]);
-    };
-  }
-
   it('creates a transaction', async () => {
-    const startTime = otelNumberToHrtime(new Date().valueOf());
+    const startTimestampMs = 1667381672875;
+    const endTimestampMs = 1667381672309;
+    const startTime = otelNumberToHrtime(startTimestampMs);
+    const endTime = otelNumberToHrtime(endTimestampMs);
 
     const otelSpan = provider.getTracer('default').startSpan('GET /users', { startTime }) as OtelSpan;
 
@@ -74,28 +71,30 @@ describe('SentrySpanProcessor', () => {
     expect(sentrySpanTransaction).toBeInstanceOf(Transaction);
 
     expect(sentrySpanTransaction?.name).toBe('GET /users');
-    expect(sentrySpanTransaction?.startTimestamp).toEqual(otelSpan.startTime[0]);
-    expect(sentrySpanTransaction?.startTimestamp).toEqual(startTime[0]);
+    expect(sentrySpanTransaction?.startTimestamp).toEqual(startTimestampMs / 1000);
     expect(sentrySpanTransaction?.traceId).toEqual(otelSpan.spanContext().traceId);
     expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
     expect(sentrySpanTransaction?.spanId).toEqual(otelSpan.spanContext().spanId);
 
     expect(hub.getScope()?.getSpan()).toBeUndefined();
 
-    const endTime = otelNumberToHrtime(new Date().valueOf());
     otelSpan.end(endTime);
 
-    expect(sentrySpanTransaction?.endTimestamp).toBe(endTime[0]);
-    expect(sentrySpanTransaction?.endTimestamp).toBe(otelSpan.endTime[0]);
+    expect(sentrySpanTransaction?.endTimestamp).toBe(endTimestampMs / 1000);
 
     expect(hub.getScope()?.getSpan()).toBeUndefined();
   });
 
   it('creates a child span if there is a running transaction', () => {
+    const startTimestampMs = 1667381672875;
+    const endTimestampMs = 1667381672309;
+    const startTime = otelNumberToHrtime(startTimestampMs);
+    const endTime = otelNumberToHrtime(endTimestampMs);
+
     const tracer = provider.getTracer('default');
 
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('SELECT * FROM users;', child => {
+      tracer.startActiveSpan('SELECT * FROM users;', { startTime }, child => {
         const childOtelSpan = child as OtelSpan;
 
         const sentrySpanTransaction = getSpanForOtelSpan(parentOtelSpan) as Transaction | undefined;
@@ -104,17 +103,15 @@ describe('SentrySpanProcessor', () => {
         const sentrySpan = getSpanForOtelSpan(childOtelSpan);
         expect(sentrySpan).toBeInstanceOf(SentrySpan);
         expect(sentrySpan?.description).toBe('SELECT * FROM users;');
-        expect(sentrySpan?.startTimestamp).toEqual(childOtelSpan.startTime[0]);
+        expect(sentrySpan?.startTimestamp).toEqual(startTimestampMs / 1000);
         expect(sentrySpan?.spanId).toEqual(childOtelSpan.spanContext().spanId);
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanId);
 
         expect(hub.getScope()?.getSpan()).toBeUndefined();
 
-        const endTime = otelNumberToHrtime(new Date().valueOf());
         child.end(endTime);
 
-        expect(sentrySpan?.endTimestamp).toEqual(childOtelSpan.endTime[0]);
-        expect(sentrySpan?.endTimestamp).toEqual(endTime[0]);
+        expect(sentrySpan?.endTimestamp).toEqual(endTimestampMs / 1000);
       });
 
       parentOtelSpan.end();
@@ -159,7 +156,6 @@ describe('SentrySpanProcessor', () => {
     const otelSpan = provider.getTracer('default').startSpan('GET /users');
 
     const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
-    monkeyPatchTransactionFinish(transaction);
 
     // context is only set after end
     expect(getContext(transaction)).toEqual({});
@@ -182,7 +178,6 @@ describe('SentrySpanProcessor', () => {
     const otelSpan2 = provider.getTracer('default').startSpan('GET /companies');
 
     const transaction2 = getSpanForOtelSpan(otelSpan2) as Transaction;
-    monkeyPatchTransactionFinish(transaction2);
 
     expect(getContext(transaction2)).toEqual({});
 
@@ -309,179 +304,382 @@ describe('SentrySpanProcessor', () => {
     [2, '400', '2', 'failed_precondition'],
   ];
 
-  it.each(statusTestTable)(
-    'correctly converts otel span status to sentry status with otelStatus=%i, httpCode=%s, grpcCode=%s',
-    (otelStatus, httpCode, grpcCode, expected) => {
-      const otelSpan = provider.getTracer('default').startSpan('GET /users');
-      const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
+  describe('convert otel span status', () => {
+    it.each(statusTestTable)(
+      'works with otelStatus=%i, httpCode=%s, grpcCode=%s',
+      (otelStatus, httpCode, grpcCode, expected) => {
+        const otelSpan = provider.getTracer('default').startSpan('GET /users');
+        const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
 
-      otelSpan.setStatus({ code: otelStatus });
+        otelSpan.setStatus({ code: otelStatus });
 
-      if (httpCode) {
-        otelSpan.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, httpCode);
-      }
+        if (httpCode) {
+          otelSpan.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, httpCode);
+        }
 
-      if (grpcCode) {
-        otelSpan.setAttribute(SemanticAttributes.RPC_GRPC_STATUS_CODE, grpcCode);
-      }
+        if (grpcCode) {
+          otelSpan.setAttribute(SemanticAttributes.RPC_GRPC_STATUS_CODE, grpcCode);
+        }
+
+        otelSpan.end();
+        expect(transaction?.status).toBe(expected);
+      },
+    );
+  });
+
+  describe('update op/description', () => {
+    it('updates on end', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('SELECT * FROM users;', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.updateName('new name');
+
+          expect(sentrySpan?.op).toBe(undefined);
+          expect(sentrySpan?.description).toBe('SELECT * FROM users;');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe(undefined);
+          expect(sentrySpan?.description).toBe('new name');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for HTTP_METHOD for client', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('/users/all', { kind: SpanKind.CLIENT }, child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('http.client');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for HTTP_METHOD for server', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('/users/all', { kind: SpanKind.SERVER }, child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('http.server');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates op/description based on attributes for HTTP_METHOD without HTTP_ROUTE', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('HTTP GET', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+
+          child.end();
+
+          expect(sentrySpan?.description).toBe('HTTP GET');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for HTTP_METHOD with HTTP_ROUTE', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('HTTP GET', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/{id}');
+          child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+          child.end();
+
+          expect(sentrySpan?.description).toBe('GET /my/route/{id}');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for HTTP_METHOD with HTTP_TARGET', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('HTTP GET', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+          child.end();
+
+          expect(sentrySpan?.description).toBe('GET /my/route/123');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('adds transaction source `url` for HTTP_TARGET', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', otelSpan => {
+        const sentrySpan = getSpanForOtelSpan(otelSpan);
+
+        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
+
+        otelSpan.end();
+
+        expect(sentrySpan?.transaction?.metadata.source).toBe('url');
+      });
+    });
+
+    it('adds transaction source `url` for HTTP_ROUTE', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', otelSpan => {
+        const sentrySpan = getSpanForOtelSpan(otelSpan);
+
+        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/:id');
+
+        otelSpan.end();
+
+        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+      });
+    });
+
+    it('updates based on attributes for DB_SYSTEM', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('fetch users from DB', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
+          child.setAttribute(SemanticAttributes.DB_STATEMENT, 'SELECT * FROM users');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('db');
+          expect(sentrySpan?.description).toBe('SELECT * FROM users');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for DB_SYSTEM without DB_STATEMENT', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('fetch users from DB', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('db');
+          expect(sentrySpan?.description).toBe('fetch users from DB');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for RPC_SERVICE', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('test operation', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.RPC_SERVICE, 'rpc service');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('rpc');
+          expect(sentrySpan?.description).toBe('test operation');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for MESSAGING_SYSTEM', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('test operation', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, 'messaging system');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('message');
+          expect(sentrySpan?.description).toBe('test operation');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for FAAS_TRIGGER', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('test operation', child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
+
+          child.end();
+
+          expect(sentrySpan?.op).toBe('test faas trigger');
+          expect(sentrySpan?.description).toBe('test operation');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates Sentry transaction', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('test operation', parentOtelSpan => {
+        const transaction = getSpanForOtelSpan(parentOtelSpan) as Transaction;
+
+        parentOtelSpan.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
+        parentOtelSpan.end();
+
+        expect(transaction?.op).toBe('test faas trigger');
+        expect(transaction?.name).toBe('test operation');
+      });
+    });
+  });
+
+  describe('skip sentry requests', () => {
+    it('does not finish transaction for Sentry request', async () => {
+      const otelSpan = provider.getTracer('default').startSpan('POST to sentry', {
+        attributes: {
+          [SemanticAttributes.HTTP_METHOD]: 'POST',
+          [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+        },
+      }) as OtelSpan;
+
+      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
+      expect(sentrySpanTransaction).toBeDefined();
 
       otelSpan.end();
-      expect(transaction?.status).toBe(expected);
-    },
-  );
 
-  it('updates op/description for span on end', async () => {
-    const tracer = provider.getTracer('default');
+      expect(sentrySpanTransaction?.endTimestamp).toBeUndefined();
 
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('SELECT * FROM users;', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
+      // Ensure it is still removed from map!
+      expect(getSpanForOtelSpan(otelSpan)).toBeUndefined();
+    });
 
-        child.updateName('new name');
+    it('finishes transaction for non-Sentry request', async () => {
+      const otelSpan = provider.getTracer('default').startSpan('POST to sentry', {
+        attributes: {
+          [SemanticAttributes.HTTP_METHOD]: 'POST',
+          [SemanticAttributes.HTTP_URL]: 'https://other.sentry.io/sub/route',
+        },
+      }) as OtelSpan;
 
-        expect(sentrySpan?.op).toBe(undefined);
-        expect(sentrySpan?.description).toBe('SELECT * FROM users;');
+      const sentrySpanTransaction = getSpanForOtelSpan(otelSpan) as Transaction | undefined;
+      expect(sentrySpanTransaction).toBeDefined();
 
-        child.end();
+      otelSpan.end();
 
-        expect(sentrySpan?.op).toBe(undefined);
-        expect(sentrySpan?.description).toBe('new name');
+      expect(sentrySpanTransaction?.endTimestamp).toBeDefined();
+    });
 
-        parentOtelSpan.end();
+    it('does not finish spans for Sentry request', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', () => {
+        tracer.startActiveSpan(
+          'SELECT * FROM users;',
+          {
+            attributes: {
+              [SemanticAttributes.HTTP_METHOD]: 'POST',
+              [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+            },
+          },
+          child => {
+            const childOtelSpan = child as OtelSpan;
+
+            const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+            expect(sentrySpan).toBeDefined();
+
+            childOtelSpan.end();
+
+            expect(sentrySpan?.endTimestamp).toBeUndefined();
+
+            // Ensure it is still removed from map!
+            expect(getSpanForOtelSpan(childOtelSpan)).toBeUndefined();
+          },
+        );
       });
     });
-  });
 
-  it('updates op/description based on attributes for HTTP_METHOD for client', async () => {
-    const tracer = provider.getTracer('default');
+    it('handles child spans of Sentry requests normally', async () => {
+      const tracer = provider.getTracer('default');
 
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('/users/all', { kind: SpanKind.CLIENT }, child => {
-        const sentrySpan = getSpanForOtelSpan(child);
+      tracer.startActiveSpan('GET /users', () => {
+        tracer.startActiveSpan(
+          'SELECT * FROM users;',
+          {
+            attributes: {
+              [SemanticAttributes.HTTP_METHOD]: 'POST',
+              [SemanticAttributes.HTTP_URL]: `${SENTRY_DSN}/sub/route`,
+            },
+          },
+          child => {
+            const childOtelSpan = child as OtelSpan;
 
-        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+            const grandchildSpan = tracer.startSpan('child 1');
 
-        child.end();
+            const sentrySpan = getSpanForOtelSpan(childOtelSpan);
+            expect(sentrySpan).toBeDefined();
 
-        expect(sentrySpan?.op).toBe('http.client');
-        expect(sentrySpan?.description).toBe('GET /users/all');
+            const sentryGrandchildSpan = getSpanForOtelSpan(grandchildSpan);
+            expect(sentryGrandchildSpan).toBeDefined();
 
-        parentOtelSpan.end();
-      });
-    });
-  });
+            grandchildSpan.end();
 
-  it('updates op/description based on attributes for HTTP_METHOD for server', async () => {
-    const tracer = provider.getTracer('default');
+            childOtelSpan.end();
 
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('/users/all', { kind: SpanKind.SERVER }, child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('http.server');
-        expect(sentrySpan?.description).toBe('GET /users/all');
-
-        parentOtelSpan.end();
-      });
-    });
-  });
-
-  it('updates op/description based on attributes for DB_SYSTEM', async () => {
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('fetch users from DB', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
-        child.setAttribute(SemanticAttributes.DB_STATEMENT, 'SELECT * FROM users');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('db');
-        expect(sentrySpan?.description).toBe('SELECT * FROM users');
-
-        parentOtelSpan.end();
-      });
-    });
-  });
-
-  it('updates op/description based on attributes for DB_SYSTEM without DB_STATEMENT', async () => {
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('fetch users from DB', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.DB_SYSTEM, 'MySQL');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('db');
-        expect(sentrySpan?.description).toBe('fetch users from DB');
-
-        parentOtelSpan.end();
-      });
-    });
-  });
-
-  it('updates op/description based on attributes for RPC_SERVICE', async () => {
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('test operation', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.RPC_SERVICE, 'rpc service');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('rpc');
-        expect(sentrySpan?.description).toBe('test operation');
-
-        parentOtelSpan.end();
-      });
-    });
-  });
-
-  it('updates op/description based on attributes for MESSAGING_SYSTEM', async () => {
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('test operation', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.MESSAGING_SYSTEM, 'messaging system');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('message');
-        expect(sentrySpan?.description).toBe('test operation');
-
-        parentOtelSpan.end();
-      });
-    });
-  });
-
-  it('updates op/description based on attributes for FAAS_TRIGGER', async () => {
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('test operation', child => {
-        const sentrySpan = getSpanForOtelSpan(child);
-
-        child.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
-
-        child.end();
-
-        expect(sentrySpan?.op).toBe('test faas trigger');
-        expect(sentrySpan?.description).toBe('test operation');
-
-        parentOtelSpan.end();
+            expect(sentryGrandchildSpan?.endTimestamp).toBeDefined();
+            expect(sentrySpan?.endTimestamp).toBeUndefined();
+          },
+        );
       });
     });
   });

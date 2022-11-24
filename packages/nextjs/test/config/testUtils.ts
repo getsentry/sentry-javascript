@@ -1,6 +1,5 @@
 import { WebpackPluginInstance } from 'webpack';
 
-import { withSentryConfig } from '../../src/config';
 import {
   BuildContext,
   EntryPropertyFunction,
@@ -10,6 +9,7 @@ import {
   WebpackConfigObject,
 } from '../../src/config/types';
 import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../../src/config/webpack';
+import { withSentryConfig } from '../../src/config/withSentryConfig';
 import { defaultsObject, runtimePhase } from './fixtures';
 
 /**

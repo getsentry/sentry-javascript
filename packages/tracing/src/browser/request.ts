@@ -5,22 +5,29 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
-  isMatchingPattern,
+  stringMatchesSomePattern,
 } from '@sentry/utils';
 
 import { getActiveTransaction, hasTracingEnabled } from '../utils';
 
-export const DEFAULT_TRACING_ORIGINS = ['localhost', /^\//];
+export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * List of strings / regex where the integration should create Spans out of. Additionally this will be used
-   * to define which outgoing requests the `sentry-trace` header will be attached to.
-   *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACING_ORIGINS}
+   * @deprecated Will be removed in v8.
+   * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
+   * trace header attachment.
    */
   tracingOrigins: Array<string | RegExp>;
+
+  /**
+   * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * headers attached.
+   *
+   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   */
+  tracePropagationTargets: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -40,7 +47,7 @@ export interface RequestInstrumentationOptions {
    * This function will be called before creating a span for a request with the given url.
    * Return false if you don't want a span for the given url.
    *
-   * By default it uses the `tracingOrigins` options as a url match.
+   * Default: (url: string) => true
    */
   shouldCreateSpanForRequest?(url: string): boolean;
 }
@@ -98,34 +105,51 @@ type PolymorphicRequestHeaders =
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
   traceFetch: true,
   traceXHR: true,
-  tracingOrigins: DEFAULT_TRACING_ORIGINS,
+  // TODO (v8): Remove this property
+  tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
+  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  const { traceFetch, traceXHR, tracingOrigins, shouldCreateSpanForRequest } = {
-    ...defaultRequestInstrumentationOptions,
+  // eslint-disable-next-line deprecation/deprecation
+  const { traceFetch, traceXHR, tracePropagationTargets, tracingOrigins, shouldCreateSpanForRequest } = {
+    traceFetch: defaultRequestInstrumentationOptions.traceFetch,
+    traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
   };
 
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  const shouldAttachHeaders = (url: string): boolean => tracingOrigins.some(origin => isMatchingPattern(url, origin));
+  // TODO(v8) Remove tracingOrigins here
+  // The only reason we're passing it in here is because this instrumentOutgoingRequests function is publicly exported
+  // and we don't want to break the API. We can remove it in v8.
+  const shouldAttachHeadersWithTargets = (url: string): boolean =>
+    shouldAttachHeaders(url, tracePropagationTargets || tracingOrigins);
 
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
     addInstrumentationHandler('fetch', (handlerData: FetchData) => {
-      fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeaders, spans);
+      fetchCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
     });
   }
 
   if (traceXHR) {
     addInstrumentationHandler('xhr', (handlerData: XHRData) => {
-      xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeaders, spans);
+      xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
     });
   }
+}
+
+/**
+ * A function that determines whether to attach tracing headers to a request.
+ * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
+ * We only export this fuction for testing purposes.
+ */
+export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
+  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
 }
 
 /**

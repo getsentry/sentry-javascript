@@ -3,7 +3,14 @@ import { Hub, makeMain } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
 import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
-import { fetchCallback, FetchData, instrumentOutgoingRequests, xhrCallback, XHRData } from '../../src/browser/request';
+import {
+  fetchCallback,
+  FetchData,
+  instrumentOutgoingRequests,
+  shouldAttachHeaders,
+  xhrCallback,
+  XHRData,
+} from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
@@ -380,6 +387,37 @@ describe('callbacks', () => {
 
       xhrCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
       expect(transaction.metadata.propagations).toBe(2);
+    });
+  });
+});
+
+describe('shouldAttachHeaders', () => {
+  describe('should prefer `tracePropagationTargets` over defaults', () => {
+    it('should return `true` if the url matches the new tracePropagationTargets', () => {
+      expect(shouldAttachHeaders('http://example.com', ['example.com'])).toBe(true);
+    });
+
+    it('should return `false` if tracePropagationTargets array is empty', () => {
+      expect(shouldAttachHeaders('http://localhost:3000/test', [])).toBe(false);
+    });
+
+    it("should return `false` if tracePropagationTargets array doesn't match", () => {
+      expect(shouldAttachHeaders('http://localhost:3000/test', ['example.com'])).toBe(false);
+    });
+  });
+
+  describe('should fall back to defaults if no options are specified', () => {
+    it.each([
+      '/api/test',
+      'http://localhost:3000/test',
+      'http://somewhere.com/test/localhost/123',
+      'http://somewhere.com/test?url=localhost:3000&test=123',
+    ])('return `true` for urls matching defaults (%s)', url => {
+      expect(shouldAttachHeaders(url, undefined)).toBe(true);
+    });
+
+    it.each(['notmydoman/api/test', 'example.com'])('return `false` for urls not matching defaults (%s)', url => {
+      expect(shouldAttachHeaders(url, undefined)).toBe(false);
     });
   });
 });

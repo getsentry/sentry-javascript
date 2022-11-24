@@ -108,6 +108,20 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
+    it('allows overriding keepAlive', async () => {
+      await setupTestServer({ statusCode: SUCCESS }, req => {
+        expect(req.headers).toEqual(
+          expect.objectContaining({
+            // node http module lower-cases incoming headers
+            connection: 'keep-alive',
+          }),
+        );
+      });
+
+      const transport = makeNodeTransport({ keepAlive: true, ...defaultOptions });
+      await transport.send(EVENT_ENVELOPE);
+    });
+
     it('should correctly send user-provided headers to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, req => {
         expect(req.headers).toEqual(

@@ -10,10 +10,69 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/opentelemetry-node.svg)](https://www.npmjs.com/package/@sentry/opentelemetry-node)
 
-## Links
+This package allows you to send your NodeJS OpenTelemetry trace data to Sentry via OpenTelemetry SpanProcessors.
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
+This SDK is **considered experimental and in an alpha state**. It may experience breaking changes. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+
+## Installation
+
+```bash
+npm install @sentry/node @sentry/opentelemetry-node
+
+# Or yarn
+yarn add @sentry/node @sentry/opentelemetry-node
+```
+
+Note that `@sentry/opentelemetry-node` depends on the following peer dependencies:
+
+- `@opentelemetry/api` version `1.0.0` or greater
+- `@opentelemetry/sdk-trace-base` version `1.0.0` or greater, or a package that implements that, like
+  `@opentelemetry/sdk-node`.
 
 ## Usage
 
-TODO
+You need to register the `SentrySpanProcessor` and `SentryPropagator` with your OpenTelemetry installation:
+
+```js
+const Sentry = require("@sentry/node");
+const {
+  SentrySpanProcessor,
+  SentryPropagator,
+} = require("@sentry/opentelemetry-node");
+
+const opentelemetry = require("@opentelemetry/sdk-node");
+const otelApi = require("@opentelemetry/api");
+const {
+  getNodeAutoInstrumentations,
+} = require("@opentelemetry/auto-instrumentations-node");
+const {
+  OTLPTraceExporter,
+} = require("@opentelemetry/exporter-trace-otlp-grpc");
+
+// Make sure to call `Sentry.init` BEFORE initializing the OpenTelemetry SDK
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  // set the instrumenter to use OpenTelemetry instead of Sentry
+  instrumenter: 'otel',
+  // ...
+});
+
+const sdk = new opentelemetry.NodeSDK({
+  // Existing config
+  traceExporter: new OTLPTraceExporter(),
+  instrumentations: [getNodeAutoInstrumentations()],
+
+  // Sentry config
+  spanProcessor: new SentrySpanProcessor(),
+});
+
+otelApi.propagation.setGlobalPropagator(new SentryPropagator());
+
+sdk.start();
+```
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)

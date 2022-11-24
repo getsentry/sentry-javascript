@@ -22,6 +22,7 @@ type PlainObject<T = any> = { [key: string]: T };
 // https://github.com/vercel/next.js/blob/4443d6f3d36b107e833376c2720c1e206eee720d/packages/next/server/next.ts#L32
 interface NextServer {
   server: Server;
+  getServer: () => Promise<Server>;
   createServer: (options: PlainObject) => Server;
 }
 
@@ -131,7 +132,7 @@ function makeWrappedHandlerGetter(origHandlerGetter: HandlerGetter): WrappedHand
   const wrappedHandlerGetter = async function (this: NextServer): Promise<ReqHandler> {
     if (!sdkSetupComplete) {
       // stash this in the closure so that `makeWrappedReqHandler` can use it
-      liveServer = this.server;
+      liveServer = await this.getServer();
       const serverPrototype = Object.getPrototypeOf(liveServer);
 
       // Wrap for error capturing (`logError` gets called by `next` for all server-side errors)

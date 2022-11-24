@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { Prisma } from '../../../src/integrations/node/prisma';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
 
@@ -30,7 +32,6 @@ describe('setupOnce', function () {
   let childSpan: Span;
 
   beforeAll(() => {
-    // @ts-ignore, not to export PrismaClient types from integration source
     new Prisma({ client: Client }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
@@ -57,5 +58,20 @@ describe('setupOnce', function () {
       expect(childSpan.finish).toBeCalled();
       done();
     });
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Prisma({ client: Client });
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('Prisma Integration is skipped because of instrumenter configuration.');
   });
 });

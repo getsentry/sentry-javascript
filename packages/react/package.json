@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react",
-  "version": "7.17.2",
+  "version": "7.21.1",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.17.2",
-    "@sentry/types": "7.17.2",
-    "@sentry/utils": "7.17.2",
+    "@sentry/browser": "7.21.1",
+    "@sentry/types": "7.21.1",
+    "@sentry/utils": "7.21.1",
     "hoist-non-react-statics": "^3.3.2",
     "tslib": "^1.9.3"
   },
@@ -31,6 +31,7 @@
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
     "@types/hoist-non-react-statics": "^3.3.1",
+    "@types/node-fetch": "^2.6.0",
     "@types/react": "^17.0.3",
     "@types/react-router-3": "npm:@types/react-router@3.0.24",
     "@types/react-router-4": "npm:@types/react-router@5.1.14",
@@ -39,12 +40,14 @@
     "eslint-plugin-react-hooks": "^4.0.8",
     "history-4": "npm:history@4.6.0",
     "history-5": "npm:history@4.9.0",
+    "node-fetch": "^2.6.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-3": "npm:react-router@3.2.0",
     "react-router-4": "npm:react-router@4.1.0",
     "react-router-5": "npm:react-router@5.0.0",
     "react-router-6": "npm:react-router@6.3.0",
+    "react-router-6.4": "npm:react-router@6.4.2",
     "redux": "^4.0.5"
   },
   "scripts": {

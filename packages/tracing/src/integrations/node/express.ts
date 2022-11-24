@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
-import { Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
+
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
   | 'all'
@@ -34,7 +36,7 @@ type Router = {
 };
 
 /* Extend the PolymorphicRequest type with a patched parameter to build a reconstructed route */
-type PatchedRequest = PolymorphicRequest & { _reconstructedRoute?: string };
+type PatchedRequest = PolymorphicRequest & { _reconstructedRoute?: string; _hasParameters?: boolean };
 
 /* Types used for patching the express router prototype */
 type ExpressRouter = Router & {
@@ -105,11 +107,17 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(): void {
+  public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
     if (!this._router) {
       __DEBUG_BUILD__ && logger.error('ExpressIntegration is missing an Express instance');
       return;
     }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Express Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     instrumentMiddlewares(this._router, this._methods);
     instrumentRouter(this._router as ExpressRouter);
   }
@@ -295,6 +303,10 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     // If the layer's partial route has params, is a regex or an array, the route is stored in layer.route.
     const { layerRoutePath, isRegex, isArray, numExtraSegments }: LayerRoutePathInfo = getLayerRoutePathInfo(layer);
 
+    if (layerRoutePath || isRegex || isArray) {
+      req._hasParameters = true;
+    }
+
     // Otherwise, the hardcoded path (i.e. a partial route without params) is stored in layer.path
     const partialRoute = layerRoutePath || layer.path || '';
 
@@ -321,6 +333,12 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
     const routeLength = getNumberOfUrlSegments(req._reconstructedRoute);
 
     if (urlLength === routeLength) {
+      if (!req._hasParameters) {
+        if (req._reconstructedRoute !== req.originalUrl) {
+          req._reconstructedRoute = req.originalUrl;
+        }
+      }
+
       const transaction = res.__sentry_transaction;
       if (transaction && transaction.metadata.source !== 'custom') {
         // If the request URL is '/' or empty, the reconstructed route will be empty.

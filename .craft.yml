@@ -21,9 +21,7 @@ targets:
           cacheControl: 'public, max-age=31536000'
   - name: github
     includeNames: /^sentry-.*$/
-    excludeNames: /^sentry-opentelemetry-node-.*$/
   - name: npm
-    excludeNames: /^sentry-opentelemetry-node-.*.tgz$/
   - name: registry
     sdks:
       'npm:@sentry/browser':
@@ -50,3 +48,5 @@ targets:
         onlyIfPresent: /^sentry-remix-.*\.tgz$/
       'npm:@sentry/svelte':
         onlyIfPresent: /^sentry-svelte-.*\.tgz$/
+      'npm:@sentry/opentelemetry-node':
+        onlyIfPresent: /^sentry-opentelemetry-node-.*\.tgz$/

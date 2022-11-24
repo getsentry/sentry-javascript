@@ -3,6 +3,11 @@ import { WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
 export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
+// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
+// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
+// safe, since it only includes types), so we can import it here without causing madge to fail. See
+// https://github.com/pahen/madge/issues/306.
+export type { WebpackPluginInstance };
 
 /**
  * Overall Nextjs config
@@ -59,6 +64,14 @@ export type UserSentryOptions = {
 
   // Automatically instrument Next.js data fetching methods and Next.js API routes
   autoInstrumentServerFunctions?: boolean;
+
+  // Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
+  // strings or regular expressions.
+  //
+  // NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
+  // (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
+  // exact match.
+  excludeServerRoutes?: Array<RegExp | string>;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;

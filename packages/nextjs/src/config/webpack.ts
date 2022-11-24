@@ -1,12 +1,21 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
+import {
+  arrayify,
+  dropUndefinedKeys,
+  escapeStringForRegex,
+  GLOBAL_OBJ,
+  logger,
+  stringMatchesSomePattern,
+} from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import {
+// Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
+// circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
+import type {
   BuildContext,
   EntryPropertyObject,
   NextConfigObject,
@@ -16,6 +25,7 @@ import {
   WebpackConfigObject,
   WebpackEntryProperty,
   WebpackModuleRule,
+  WebpackPluginInstance,
 } from './types';
 
 export { SentryWebpackPlugin };
@@ -23,6 +33,14 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
+
+// In order to make sure that build-time code isn't getting bundled in runtime bundles (specifically, in the serverless
+// functions into which nextjs converts a user's routes), we exclude this module (and all of its dependencies) from the
+// nft file manifests nextjs generates. (See the code dealing with the `TraceEntryPointsPlugin` below.) So that we don't
+// crash people, we therefore need to make sure nothing tries to either require this file or import from it. Setting
+// this env variable allows us to test whether or not that's happened.
+const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryWebpackModuleLoaded?: true };
+_global._sentryWebpackModuleLoaded = true;
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
@@ -91,10 +109,39 @@ export function constructWebpackConfigFunction(
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
-              options: { pagesDir, pageExtensionRegex },
+              options: {
+                pagesDir,
+                pageExtensionRegex,
+                excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+              },
             },
           ],
         });
+      }
+
+      // Prevent `@vercel/nft` (which nextjs uses to determine which files are needed when packaging up a lambda) from
+      // including any of our build-time code or dependencies. (Otherwise it'll include files like this one and even the
+      // entirety of rollup and sucrase.) Since this file is the root of that dependency tree, it's enough to just
+      // exclude it and the rest will be excluded as well.
+      const nftPlugin = newConfig.plugins?.find((plugin: WebpackPluginInstance) => {
+        const proto = Object.getPrototypeOf(plugin) as WebpackPluginInstance;
+        return proto.constructor.name === 'TraceEntryPointsPlugin';
+      }) as WebpackPluginInstance & { excludeFiles: string[] };
+      if (nftPlugin) {
+        if (Array.isArray(nftPlugin.excludeFiles)) {
+          nftPlugin.excludeFiles.push(__filename);
+        } else {
+          __DEBUG_BUILD__ &&
+            logger.warn(
+              'Unable to exclude Sentry build-time helpers from nft files. `TraceEntryPointsPlugin.excludeFiles` is not ' +
+                'an array. This is a bug; please report this to Sentry:  https://github.com/getsentry/sentry-javascript/issues/.',
+            );
+        }
+      } else {
+        __DEBUG_BUILD__ &&
+          logger.warn(
+            'Unable to exclude Sentry build-time helpers from nft files. Could not find `TraceEntryPointsPlugin`.',
+          );
       }
     }
 
@@ -135,7 +182,7 @@ export function constructWebpackConfigFunction(
     // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
     // be fixed by using `bind`, but this is way simpler.)
     const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext);
+    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userSentryOptions);
 
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     if (shouldEnableWebpackPlugin(buildContext, userSentryOptions)) {
@@ -248,6 +295,7 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 async function addSentryToEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
+  userSentryOptions: UserSentryOptions,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -268,8 +316,18 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, isServer)) {
+    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes)) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
+    } else {
+      if (
+        isServer &&
+        // If the user has asked to exclude pages, confirm for them that it's worked
+        userSentryOptions.excludeServerRoutes &&
+        // We always skip these, so it's not worth telling the user that we've done so
+        !['pages/_app', 'pages/_document'].includes(entryPointName)
+      ) {
+        __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
+      }
     }
   }
 
@@ -377,14 +435,48 @@ function checkWebpackPluginOverrides(
  *
  * @param entryPointName The name of the entry point in question
  * @param isServer Whether or not this function is being called in the context of a server build
+ * @param excludeServerRoutes A list of excluded serverside entrypoints provided by the user
  * @returns `true` if sentry code should be injected, and `false` otherwise
  */
-function shouldAddSentryToEntryPoint(entryPointName: string, isServer: boolean): boolean {
-  return (
-    entryPointName === 'pages/_app' ||
-    (entryPointName.includes('pages/api') && !entryPointName.includes('_middleware')) ||
-    (isServer && entryPointName === 'pages/_error')
-  );
+function shouldAddSentryToEntryPoint(
+  entryPointName: string,
+  isServer: boolean,
+  excludeServerRoutes: Array<string | RegExp> = [],
+): boolean {
+  // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
+  if (isServer) {
+    const entryPointRoute = entryPointName.replace(/^pages/, '');
+    if (
+      // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
+      // which don't have the `pages` prefix.)
+      stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true) ||
+      // All non-API pages contain both of these components, and we don't want to inject more than once, so as long as
+      // we're doing the individual pages, it's fine to skip these. (Note: Even if a given user doesn't have either or
+      // both of these in their `pages/` folder, they'll exist as entrypoints because nextjs will supply default
+      // versions.)
+      entryPointRoute === '/_app' ||
+      entryPointRoute === '/_document' ||
+      // While middleware was in beta, it could be anywhere (at any level) in the `pages` directory, and would be called
+      // `_middleware.js`. Until the SDK runs successfully in the lambda edge environment, we have to exclude these.
+      entryPointName.includes('_middleware') ||
+      // Newer versions of nextjs are starting to introduce things outside the `pages/` folder (middleware, an `app/`
+      // directory, etc), but until those features are stable and we know how we want to support them, the safest bet is
+      // not to inject anywhere but inside `pages/`.
+      !entryPointName.startsWith('pages/')
+    ) {
+      return false;
+    }
+
+    // We want to inject Sentry into all other pages
+    return true;
+  }
+
+  // On the client side, we only want to inject into `_app`, because that guarantees there'll be only one copy of the
+  // SDK in the eventual bundle. Since `_app` is the (effectively) the root component for every nextjs app, inclusing
+  // Sentry there means it will be available for every front end page.
+  else {
+    return entryPointName === 'pages/_app';
+  }
 }
 
 /**
@@ -403,7 +495,7 @@ export function getWebpackPluginOptions(
   const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
 
-  const distDir = userNextConfig.distDir ?? '.next'; // `.next` is the default directory
+  const distDirAbsPath = path.resolve(projectDir, userNextConfig.distDir || '.next'); // `.next` is the default directory
 
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
@@ -411,14 +503,14 @@ export function getWebpackPluginOptions(
   const urlPrefix = userNextConfig.basePath ? `~${userNextConfig.basePath}/_next` : '~/_next';
 
   const serverInclude = isServerless
-    ? [{ paths: [`${distDir}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
-    : [{ paths: [`${distDir}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
-        isWebpack5 ? [{ paths: [`${distDir}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
+    ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
+    : [{ paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
+        isWebpack5 ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
   const clientInclude = userSentryOptions.widenClientFileUpload
-    ? [{ paths: [`${distDir}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
-    : [{ paths: [`${distDir}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+    ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
+    : [{ paths: [`${distDirAbsPath}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
@@ -436,7 +528,8 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: (entryPointName: string) => shouldAddSentryToEntryPoint(entryPointName, isServer),
+    entries: (entryPointName: string) =>
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
@@ -446,22 +539,6 @@ export function getWebpackPluginOptions(
   return { ...defaultPluginOptions, ...userPluginOptions };
 }
 
-/**
- * NOTE: We're faking `require.resolve` here as a workaround for @vercel/nft detecting the binary itself as a hard
- *       dependency and always including it in the bundle, which is not what we want.
- *
- * ref: https://github.com/getsentry/sentry-javascript/issues/3865
- * ref: https://github.com/vercel/nft/issues/203
- */
-function ensureCLIBinaryExists(): boolean {
-  for (const node_modulesPath of module.paths) {
-    if (fs.existsSync(path.resolve(node_modulesPath, '@sentry/cli/sentry-cli'))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
   const { isServer, dev: isDev } = buildContext;
@@ -469,13 +546,11 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 
   /** Non-negotiable */
 
-  // TODO: this is a hack to fix https://github.com/getsentry/sentry-cli/issues/1085, which is caused by
-  // https://github.com/getsentry/sentry-cli/issues/915. Once the latter is addressed, this existence check can come
-  // out. (The check is necessary because currently, `@sentry/cli` uses a post-install script to download an
+  // This check is necessary because currently, `@sentry/cli` uses a post-install script to download an
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
-  // try to build their apps.)
-  if (!ensureCLIBinaryExists()) {
+  // try to build their apps.
+  if (!SentryWebpackPlugin.cliBinaryExists()) {
     return false;
   }
 

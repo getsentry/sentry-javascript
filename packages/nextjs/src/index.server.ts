@@ -10,7 +10,7 @@ import * as path from 'path';
 import { isBuild } from './utils/isBuild';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addOrUpdateIntegration } from './utils/userIntegrations';
+import { addOrUpdateIntegration, IntegrationWithExclusionOption } from './utils/userIntegrations';
 
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
@@ -118,10 +118,18 @@ function addServerIntegrations(options: NextjsOptions): void {
   });
   integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
+  const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
+    exitEvenIfOtherHandlersAreRegistered: false,
+  });
+  defaultOnUncaughtExceptionIntegration.allowExclusionByUser = true;
+  integrations = addOrUpdateIntegration(defaultOnUncaughtExceptionIntegration, integrations, {
+    _options: { exitEvenIfOtherHandlersAreRegistered: false },
+  });
+
   if (hasTracingEnabled(options)) {
     const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
     integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-      _tracing: true,
+      _tracing: {},
     });
   }
 
@@ -137,7 +145,7 @@ const deprecatedIsBuild = (): boolean => isBuild();
 export { deprecatedIsBuild as isBuild };
 
 export type { SentryWebpackPluginOptions } from './config/types';
-export { withSentryConfig } from './config';
+export { withSentryConfig } from './config/withSentryConfig';
 export {
   withSentryGetServerSideProps,
   withSentryGetStaticProps,

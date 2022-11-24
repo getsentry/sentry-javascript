@@ -127,8 +127,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
-
+    let eventId: string | undefined;
     this._process(
       this.eventFromException(exception, hint)
         .then(event => this._captureEvent(event, hint, scope))
@@ -150,7 +149,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
-    let eventId: string | undefined = hint && hint.event_id;
+    let eventId: string | undefined;
 
     const promisedEvent = isPrimitive(message)
       ? this.eventFromMessage(String(message), level, hint)
@@ -177,7 +176,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    let eventId: string | undefined;
 
     this._process(
       this._captureEvent(event, hint, scope).then(result => {
@@ -437,7 +436,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     // This should be the last thing called, since we want that
     // {@link Hub.addEventProcessor} gets the finished prepared event.
-    if (finalScope) {
+    //
+    // We need to check for the existence of `finalScope.getAttachments`
+    // because `getAttachments` can be undefined if users are using an older version
+    // of `@sentry/core` that does not have the `getAttachments` method.
+    // See: https://github.com/getsentry/sentry-javascript/issues/5229
+    if (finalScope && finalScope.getAttachments) {
       // Collect attachments from the hint and scope
       const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
 
@@ -613,13 +617,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
-    const { beforeSend, sampleRate } = this.getOptions();
+    const options = this.getOptions();
+    const { sampleRate } = options;
 
     if (!this._isEnabled()) {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
     }
 
     const isTransaction = event.type === 'transaction';
+    const beforeSendProcessorName = isTransaction ? 'beforeSendTransaction' : 'beforeSend';
+    const beforeSendProcessor = options[beforeSendProcessorName];
+
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
@@ -637,21 +645,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', event.type || 'error');
-          throw new SentryError('An event processor returned null, will not send event.', 'log');
+          throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-        if (isInternalException || isTransaction || !beforeSend) {
+        if (isInternalException || !beforeSendProcessor) {
           return prepared;
         }
 
-        const beforeSendResult = beforeSend(prepared, hint);
-        return _ensureBeforeSendRv(beforeSendResult);
+        const beforeSendResult = beforeSendProcessor(prepared, hint);
+        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error');
-          throw new SentryError('`beforeSend` returned `null`, will not send event.', 'log');
+          throw new SentryError(`\`${beforeSendProcessorName}\` returned \`null\`, will not send event.`, 'log');
         }
 
         const session = scope && scope.getSession();
@@ -764,24 +772,27 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 }
 
 /**
- * Verifies that return value of configured `beforeSend` is of expected type.
+ * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
-function _ensureBeforeSendRv(rv: PromiseLike<Event | null> | Event | null): PromiseLike<Event | null> | Event | null {
-  const nullErr = '`beforeSend` method has to return `null` or a valid event.';
-  if (isThenable(rv)) {
-    return rv.then(
+function _validateBeforeSendResult(
+  beforeSendResult: PromiseLike<Event | null> | Event | null,
+  beforeSendProcessorName: 'beforeSend' | 'beforeSendTransaction',
+): PromiseLike<Event | null> | Event | null {
+  const invalidValueError = `\`${beforeSendProcessorName}\` must return \`null\` or a valid event.`;
+  if (isThenable(beforeSendResult)) {
+    return beforeSendResult.then(
       event => {
-        if (!(isPlainObject(event) || event === null)) {
-          throw new SentryError(nullErr);
+        if (!isPlainObject(event) && event !== null) {
+          throw new SentryError(invalidValueError);
         }
         return event;
       },
       e => {
-        throw new SentryError(`beforeSend rejected with ${e}`);
+        throw new SentryError(`\`${beforeSendProcessorName}\` rejected with ${e}`);
       },
     );
-  } else if (!(isPlainObject(rv) || rv === null)) {
-    throw new SentryError(nullErr);
+  } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
+    throw new SentryError(invalidValueError);
   }
-  return rv;
+  return beforeSendResult;
 }

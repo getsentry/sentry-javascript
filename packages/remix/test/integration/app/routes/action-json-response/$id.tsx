@@ -17,6 +17,22 @@ export const action: ActionFunction = async ({ params: { id } }) => {
     throw redirect('/action-json-response/-1');
   }
 
+  if (id === '-3') {
+    throw json({}, { status: 500, statusText: 'Sentry Test Error' });
+  }
+
+  if (id === '-4') {
+    throw json({ data: 1234 }, { status: 500 });
+  }
+
+  if (id === '-5') {
+    throw json('Sentry Test Error [string body]', { status: 500 });
+  }
+
+  if (id === '-6') {
+    throw json({}, { status: 500 });
+  }
+
   return json({ test: 'test' });
 };
 

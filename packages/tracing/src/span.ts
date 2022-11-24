@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Instrumenter, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 /**
@@ -103,6 +103,11 @@ export class Span implements SpanInterface {
   public transaction?: Transaction;
 
   /**
+   * The instrumenter that created this span.
+   */
+  public instrumenter: Instrumenter = 'sentry';
+
+  /**
    * You should never call the constructor manually, always use `Sentry.startTransaction()`
    * or call `startChild()` on an existing span.
    * @internal
@@ -146,6 +151,9 @@ export class Span implements SpanInterface {
     }
     if (spanContext.endTimestamp) {
       this.endTimestamp = spanContext.endTimestamp;
+    }
+    if (spanContext.instrumenter) {
+      this.instrumenter = spanContext.instrumenter;
     }
   }
 

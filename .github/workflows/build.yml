@@ -18,9 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # We pin the exact version to enforce reproducable builds with node + npm.
-  DEFAULT_NODE_VERSION: '16.15.1'
-
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   CACHED_DEPENDENCY_PATHS: |
@@ -48,6 +45,8 @@ jobs:
   job_get_metadata:
     name: Get Metadata
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     steps:
       - name: Check out current commit
         uses: actions/checkout@v3
@@ -64,8 +63,60 @@ jobs:
           COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+
+      - name: Determine changed packages
+        uses: getsentry/paths-filter@v2.11.1
+        id: changed
+        with:
+          filters: |
+            shared: &shared
+              - '*.{js,ts,json,yml,lock}'
+              - 'CHANGELOG.md'
+              - '.github/**'
+              - 'jest/**'
+              - 'rollup/**'
+              - 'scripts/**'
+              - 'packages/core/**'
+              - 'packages/tracing/**'
+              - 'packages/utils/**'
+              - 'packages/types/**'
+              - 'packages/integrations/**'
+            browser:
+              - *shared
+              - 'packages/browser/**'
+            browser_integration:
+              - *shared
+              - 'packages/browser/**'
+              - 'packages/integration-tests/**'
+            ember:
+              - *shared
+              - 'packages/ember/**'
+              - 'packages/browser/**'
+            nextjs:
+              - *shared
+              - 'packages/nextjs/**'
+              - 'packages/node/**'
+              - 'packages/react/**'
+              - 'packages/browser/**'
+            remix:
+              - *shared
+              - 'packages/remix/**'
+              - 'packages/node/**'
+              - 'packages/react/**'
+              - 'packages/browser/**'
+            node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/node-integration-tests/**'
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      changed_nextjs: ${{ steps.changed.outputs.nextjs }}
+      changed_ember: ${{ steps.changed.outputs.ember }}
+      changed_remix: ${{ steps.changed.outputs.remix }}
+      changed_node: ${{ steps.changed.outputs.node }}
+      changed_browser: ${{ steps.changed.outputs.browser }}
+      changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
 
   job_install_deps:
     name: Install Dependencies
@@ -78,9 +129,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -109,10 +158,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          # ember won't build under node 16, at least not with the versions of the ember build tools we use
-          node-version: '14'
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -148,9 +194,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -184,7 +228,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     # Size Check will error out outside of the context of a PR
-    if: ${{ github.event_name == 'pull_request' }} || ${{ startsWith(github.ref, 'refs/heads/master/') }}
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -208,7 +252,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v4
+        uses: getsentry/size-limit-action@v5
         # Don't run size check on release branches - at that point, we're already committed
         if: ${{ !startsWith(github.ref, 'refs/heads/release/') }}
         with:
@@ -228,9 +272,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -255,9 +297,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -283,9 +323,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -299,7 +337,7 @@ jobs:
       - name: Pack
         run: yarn build:npm
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.1
         with:
           name: ${{ github.sha }}
           path: |
@@ -311,10 +349,10 @@ jobs:
   job_unit_test:
     name: Test (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
-    continue-on-error: true
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [8, 10, 12, 14, 16, 18]
     steps:
@@ -348,10 +386,11 @@ jobs:
   job_nextjs_integration_test:
     name: Test @sentry/nextjs on (Node ${{ matrix.node }})
     needs: [job_get_metadata, job_build]
-    continue-on-error: true
+    # Currently always runs because it is required for merging PRs
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
@@ -385,10 +424,11 @@ jobs:
   job_ember_tests:
     name: Test @sentry/ember
     needs: [job_get_metadata, job_build]
-    continue-on-error: true
+    if: needs.job_get_metadata.outputs.changed_ember == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         scenario: [ember-release, embroider-optimized, ember-4.0]
     steps:
@@ -426,6 +466,7 @@ jobs:
   job_browser_playwright_tests:
     name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -452,9 +493,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -477,10 +516,11 @@ jobs:
   job_browser_integration_tests:
     name: Old Browser Integration Tests (${{ matrix.browser }})
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         browser:
           - ChromeHeadless
@@ -492,9 +532,7 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -518,16 +556,13 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -550,10 +585,11 @@ jobs:
   job_node_integration_tests:
     name: Node SDK Integration Tests (${{ matrix.node }})
     needs: [job_get_metadata, job_build]
+    # Currently always runs because it is required for merging PRs
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18]
     steps:
@@ -585,10 +621,11 @@ jobs:
   job_remix_integration_tests:
     name: Remix SDK Integration Tests (${{ matrix.node }})
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         node: [14, 16, 18]
     steps:
@@ -620,20 +657,20 @@ jobs:
   job_e2e_tests:
     name: E2E Tests
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    if:
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+        uses: volta-cli/action@v4
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
@@ -644,11 +681,38 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get node version
+        id: versions
+        run: |
+          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
       - name: Run E2E tests
         env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ env.DEFAULT_NODE_VERSION }}
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
           E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
         run: |
           cd packages/e2e-tests
           yarn test:e2e
+
+  job_required_tests:
+    name: All required tests passed or skipped
+    needs:
+      [
+        job_build,
+        job_browser_build_tests,
+        job_unit_test,
+        job_nextjs_integration_test,
+        job_node_integration_tests,
+        job_browser_playwright_tests,
+        job_browser_integration_tests,
+        job_remix_integration_tests,
+        job_ember_tests,
+      ]
+    # Always run this, even if a dependent job failed
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

@@ -1,4 +1,4 @@
-import { escapeStringForRegex, logger } from '@sentry/utils';
+import { escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -8,6 +8,7 @@ import { LoaderThis } from './types';
 type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
+  excludeServerRoutes: Array<RegExp | string>;
 };
 
 /**
@@ -17,7 +18,11 @@ type LoaderOptions = {
  */
 export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { pagesDir, pageExtensionRegex } = 'getOptions' in this ? this.getOptions() : this.query;
+  const {
+    pagesDir,
+    pageExtensionRegex,
+    excludeServerRoutes = [],
+  } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRoute = path
@@ -34,6 +39,11 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     // homepage), sub back in the root route
     .replace(/^$/, '/');
 
+  // Skip explicitly-ignored pages
+  if (stringMatchesSomePattern(parameterizedRoute, excludeServerRoutes, true)) {
+    return userCode;
+  }
+
   // We don't want to wrap twice (or infinitely), so in the proxy we add this query string onto references to the
   // wrapped file, so that we know that it's already been processed. (Adding this query string is also necessary to
   // convince webpack that it's a different file than the one it's in the middle of loading now, so that the originals
@@ -47,12 +57,12 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     : 'pageProxyLoaderTemplate.js';
   const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
   let templateCode = fs.readFileSync(templatePath).toString();
-  // Make sure the template is included when runing `webpack watch`
+  // Make sure the template is included when running `webpack watch`
   this.addDependency(templatePath);
 
   // Inject the route and the path to the file we're wrapping into the template
-  templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute);
-  templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath);
+  templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
+  templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath.replace(/\\/g, '\\\\'));
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).

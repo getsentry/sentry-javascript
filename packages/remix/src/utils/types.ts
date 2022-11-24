@@ -3,11 +3,26 @@
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
 import type * as Express from 'express';
+import { Agent } from 'https';
 import type { ComponentType } from 'react';
+
+export type RemixRequestState = {
+  method: string;
+  redirect: RequestRedirect;
+  headers: Headers;
+  parsedURL: URL;
+  signal: AbortSignal | null;
+  size: number | null;
+};
+
+export type RemixRequest = Request &
+  Record<symbol | string, RemixRequestState> & {
+    agent: Agent | ((parsedURL: URL) => Agent) | undefined;
+  };
 
 export type AppLoadContext = any;
 export type AppData = any;
-export type RequestHandler = (request: Request, loadContext?: AppLoadContext) => Promise<Response>;
+export type RequestHandler = (request: RemixRequest, loadContext?: AppLoadContext) => Promise<Response>;
 export type CreateRequestHandlerFunction = (this: unknown, build: ServerBuild, ...args: any[]) => RequestHandler;
 export type ServerRouteManifest = RouteManifest<Omit<ServerRoute, 'children'>>;
 export type Params<Key extends string = string> = {
@@ -104,7 +119,7 @@ export interface ServerBuild {
 }
 
 export interface HandleDocumentRequestFunction {
-  (request: Request, responseStatusCode: number, responseHeaders: Headers, context: EntryContext):
+  (request: RemixRequest, responseStatusCode: number, responseHeaders: Headers, context: EntryContext):
     | Promise<Response>
     | Response;
 }
@@ -119,7 +134,7 @@ interface ServerEntryModule {
 }
 
 export interface DataFunctionArgs {
-  request: Request;
+  request: RemixRequest;
   context: AppLoadContext;
   params: Params;
 }

@@ -2,6 +2,8 @@ import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
+
 interface MysqlConnection {
   createQuery: () => void;
 }
@@ -26,6 +28,11 @@ export class Mysql implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to require `mysql` package.');
+      return;
+    }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
       return;
     }
 

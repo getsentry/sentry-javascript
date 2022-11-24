@@ -16,6 +16,7 @@ import {
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
+import { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 jest.mock('@sentry/core', () => {
@@ -75,14 +76,16 @@ describe('SentryNode', () => {
   });
 
   describe('breadcrumbs', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('record auto breadcrumbs', done => {
@@ -106,14 +109,16 @@ describe('SentryNode', () => {
   });
 
   describe('capture', () => {
-    let s: jest.SpyInstance<void, [Event, EventHint?]>;
+    let sendEventSpy: jest.SpyInstance<void, [Event, EventHint?]>;
 
     beforeEach(() => {
-      s = jest.spyOn(NodeClient.prototype, 'sendEvent').mockImplementation(async () => Promise.resolve({ code: 200 }));
+      sendEventSpy = jest
+        .spyOn(NodeClient.prototype, 'sendEvent')
+        .mockImplementation(async () => Promise.resolve({ code: 200 }));
     });
 
     afterEach(() => {
-      s.mockRestore();
+      sendEventSpy.mockRestore();
     });
 
     test('capture an exception', done => {
@@ -359,7 +364,7 @@ describe('SentryNode initialization', () => {
   });
 
   describe('SDK metadata', () => {
-    it('should set SDK data when Sentry.init() is called', () => {
+    it('should set SDK data when `Sentry.init()` is called', () => {
       init({ dsn });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,7 +440,7 @@ describe('SentryNode initialization', () => {
       });
     });
 
-    it('should ignore autoloaded integrations when defaultIntegrations:false', () => {
+    it('should ignore autoloaded integrations when `defaultIntegrations` is `false`', () => {
       withAutoloadedIntegrations([new MockIntegration('foo')], () => {
         init({
           defaultIntegrations: false,
@@ -464,6 +469,24 @@ describe('SentryNode initialization', () => {
 
       const options = (initAndBind as jest.Mock).mock.calls[0][1];
       expect(options.autoSessionTracking).toBe(undefined);
+    });
+  });
+
+  describe('instrumenter', () => {
+    it('defaults to sentry instrumenter', () => {
+      init({ dsn });
+
+      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+
+      expect(instrumenter).toEqual('sentry');
+    });
+
+    it('allows to set instrumenter', () => {
+      init({ dsn, instrumenter: 'otel' });
+
+      const instrumenter = (getCurrentHub()?.getClient()?.getOptions() as NodeClientOptions).instrumenter;
+
+      expect(instrumenter).toEqual('otel');
     });
   });
 });

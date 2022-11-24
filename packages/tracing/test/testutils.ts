@@ -1,5 +1,5 @@
 import { createTransport } from '@sentry/browser';
-import { ClientOptions } from '@sentry/types';
+import { Client, ClientOptions } from '@sentry/types';
 import { GLOBAL_OBJ, resolvedSyncPromise } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
@@ -65,4 +65,20 @@ export function getDefaultBrowserClientOptions(options: Partial<ClientOptions> =
     stackParser: () => [],
     ...options,
   };
+}
+
+export function getTestClient(options: Partial<ClientOptions>): Client {
+  class TestClient {
+    _options: Partial<ClientOptions>;
+
+    constructor(options: Partial<ClientOptions>) {
+      this._options = options;
+    }
+
+    getOptions(): Partial<ClientOptions> {
+      return this._options;
+    }
+  }
+
+  return new TestClient(options) as unknown as Client;
 }

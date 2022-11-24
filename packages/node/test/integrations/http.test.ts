@@ -2,7 +2,7 @@ import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
 import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
 import { TransactionContext } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
+import { logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -188,7 +188,29 @@ describe('tracing', () => {
     expect(transaction.metadata.propagations).toBe(2);
   });
 
-  describe('tracePropagationTargets option', () => {
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const options = getDefaultNodeClientOptions({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      integrations: [new HttpIntegration({ tracing: true })],
+      release: '1.0.0',
+      environment: 'production',
+      instrumenter: 'otel',
+    });
+    const hub = new Hub(new NodeClient(options));
+
+    const integration = new HttpIntegration();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
+  });
+
+  describe('Tracing options', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions
       // @ts-ignore TS doesn't let us assign to this but we want to
@@ -221,72 +243,201 @@ describe('tracing', () => {
       addExtensionMethods();
       const transaction = hub.startTransaction({ name: 'dogpark' });
       hub.getScope()?.setSpan(transaction);
+      return transaction;
     }
 
-    it.each([
-      ['http://dogs.are.great/api/v1/index/', [/.*/]],
-      ['http://dogs.are.great/api/v1/index/', [/\/api/]],
-      ['http://dogs.are.great/api/v1/index/', [/\/(v1|v2)/]],
-      ['http://dogs.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
-      ['http://dogs.are.great/api/v1/index/', [/http:/]],
-      ['http://dogs.are.great/api/v1/index/', ['dogs.are.great']],
-      ['http://dogs.are.great/api/v1/index/', ['/api/v1']],
-      ['http://dogs.are.great/api/v1/index/', ['http://']],
-      ['http://dogs.are.great/api/v1/index/', ['']],
-    ])(
-      'attaches trace inforation to header of outgoing requests when url matches tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
-      (url, tracePropagationTargets) => {
+    // TODO (v8): These can be removed once we remove these properties from client options
+    describe('as client options', () => {
+      it("doesn't create span if shouldCreateSpanForRequest returns false", () => {
+        const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
         const httpIntegration = new HttpIntegration({ tracing: true });
 
-        const hub = createHub({ tracePropagationTargets });
+        const hub = createHub({ shouldCreateSpanForRequest: () => false });
 
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        createTransactionAndPutOnScope(hub);
+        const transaction = createTransactionAndPutOnScope(hub);
+        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
 
-        expect(request.getHeader('sentry-trace')).toBeDefined();
-        expect(request.getHeader('baggage')).toBeDefined();
-      },
-    );
+        // There should be no http spans
+        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        expect(httpSpans.length).toBe(0);
 
-    it.each([
-      ['http://dogs.are.great/api/v1/index/', []],
-      ['http://cats.are.great/api/v1/index/', [/\/v2/]],
-      ['http://cats.are.great/api/v1/index/', [/\/(v2|v3)/]],
-      ['http://cats.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
-      ['http://cats.are.great/api/v1/index/', [/https:/]],
-      ['http://cats.are.great/api/v1/index/', ['dogs.are.great']],
-      ['http://cats.are.great/api/v1/index/', ['/api/v2']],
-      ['http://cats.are.great/api/v1/index/', ['https://']],
-    ])(
-      'doesn\'t attach trace inforation to header of outgoing requests when url doesn\'t match tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
-      (url, tracePropagationTargets) => {
+        // And headers are not attached without span creation
+        expect(request.getHeader('sentry-trace')).toBeUndefined();
+        expect(request.getHeader('baggage')).toBeUndefined();
+      });
+
+      it.each([
+        ['http://dogs.are.great/api/v1/index/', [/.*/]],
+        ['http://dogs.are.great/api/v1/index/', [/\/api/]],
+        ['http://dogs.are.great/api/v1/index/', [/\/(v1|v2)/]],
+        ['http://dogs.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+        ['http://dogs.are.great/api/v1/index/', [/http:/]],
+        ['http://dogs.are.great/api/v1/index/', ['dogs.are.great']],
+        ['http://dogs.are.great/api/v1/index/', ['/api/v1']],
+        ['http://dogs.are.great/api/v1/index/', ['http://']],
+        ['http://dogs.are.great/api/v1/index/', ['']],
+      ])(
+        'attaches trace inforation to header of outgoing requests when url matches tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+        (url, tracePropagationTargets) => {
+          nock(url).get(/.*/).reply(200);
+
+          const httpIntegration = new HttpIntegration({ tracing: true });
+
+          const hub = createHub({ tracePropagationTargets });
+
+          httpIntegration.setupOnce(
+            () => undefined,
+            () => hub,
+          );
+
+          createTransactionAndPutOnScope(hub);
+
+          const request = http.get(url);
+
+          expect(request.getHeader('sentry-trace')).toBeDefined();
+          expect(request.getHeader('baggage')).toBeDefined();
+        },
+      );
+
+      it.each([
+        ['http://dogs.are.great/api/v1/index/', []],
+        ['http://cats.are.great/api/v1/index/', [/\/v2/]],
+        ['http://cats.are.great/api/v1/index/', [/\/(v2|v3)/]],
+        ['http://cats.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+        ['http://cats.are.great/api/v1/index/', [/https:/]],
+        ['http://cats.are.great/api/v1/index/', ['dogs.are.great']],
+        ['http://cats.are.great/api/v1/index/', ['/api/v2']],
+        ['http://cats.are.great/api/v1/index/', ['https://']],
+      ])(
+        'doesn\'t attach trace inforation to header of outgoing requests when url doesn\'t match tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+        (url, tracePropagationTargets) => {
+          nock(url).get(/.*/).reply(200);
+
+          const httpIntegration = new HttpIntegration({ tracing: true });
+
+          const hub = createHub({ tracePropagationTargets });
+
+          httpIntegration.setupOnce(
+            () => undefined,
+            () => hub,
+          );
+
+          createTransactionAndPutOnScope(hub);
+
+          const request = http.get(url);
+
+          expect(request.getHeader('sentry-trace')).not.toBeDefined();
+          expect(request.getHeader('baggage')).not.toBeDefined();
+        },
+      );
+    });
+
+    describe('as Http integration constructor options', () => {
+      it("doesn't create span if shouldCreateSpanForRequest returns false", () => {
+        const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
-        const httpIntegration = new HttpIntegration({ tracing: true });
+        const httpIntegration = new HttpIntegration({
+          tracing: {
+            shouldCreateSpanForRequest: () => false,
+          },
+        });
 
-        const hub = createHub({ tracePropagationTargets });
+        const hub = createHub();
 
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        createTransactionAndPutOnScope(hub);
+        const transaction = createTransactionAndPutOnScope(hub);
+        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
         const request = http.get(url);
 
-        expect(request.getHeader('sentry-trace')).not.toBeDefined();
-        expect(request.getHeader('baggage')).not.toBeDefined();
-      },
-    );
+        // There should be no http spans
+        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        expect(httpSpans.length).toBe(0);
+
+        // And headers are not attached without span creation
+        expect(request.getHeader('sentry-trace')).toBeUndefined();
+        expect(request.getHeader('baggage')).toBeUndefined();
+      });
+
+      it.each([
+        ['http://dogs.are.great/api/v1/index/', [/.*/]],
+        ['http://dogs.are.great/api/v1/index/', [/\/api/]],
+        ['http://dogs.are.great/api/v1/index/', [/\/(v1|v2)/]],
+        ['http://dogs.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+        ['http://dogs.are.great/api/v1/index/', [/http:/]],
+        ['http://dogs.are.great/api/v1/index/', ['dogs.are.great']],
+        ['http://dogs.are.great/api/v1/index/', ['/api/v1']],
+        ['http://dogs.are.great/api/v1/index/', ['http://']],
+        ['http://dogs.are.great/api/v1/index/', ['']],
+      ])(
+        'attaches trace inforation to header of outgoing requests when url matches tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+        (url, tracePropagationTargets) => {
+          nock(url).get(/.*/).reply(200);
+
+          const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
+
+          const hub = createHub();
+
+          httpIntegration.setupOnce(
+            () => undefined,
+            () => hub,
+          );
+
+          createTransactionAndPutOnScope(hub);
+
+          const request = http.get(url);
+
+          expect(request.getHeader('sentry-trace')).toBeDefined();
+          expect(request.getHeader('baggage')).toBeDefined();
+        },
+      );
+
+      it.each([
+        ['http://dogs.are.great/api/v1/index/', []],
+        ['http://cats.are.great/api/v1/index/', [/\/v2/]],
+        ['http://cats.are.great/api/v1/index/', [/\/(v2|v3)/]],
+        ['http://cats.are.great/api/v1/index/', [/dogs\.are\.great/, /dogs\.are\.not\.great/]],
+        ['http://cats.are.great/api/v1/index/', [/https:/]],
+        ['http://cats.are.great/api/v1/index/', ['dogs.are.great']],
+        ['http://cats.are.great/api/v1/index/', ['/api/v2']],
+        ['http://cats.are.great/api/v1/index/', ['https://']],
+      ])(
+        'doesn\'t attach trace inforation to header of outgoing requests when url doesn\'t match tracePropagationTargets (url="%s", tracePropagationTargets=%p)',
+        (url, tracePropagationTargets) => {
+          nock(url).get(/.*/).reply(200);
+
+          const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
+
+          const hub = createHub();
+
+          httpIntegration.setupOnce(
+            () => undefined,
+            () => hub,
+          );
+
+          createTransactionAndPutOnScope(hub);
+
+          const request = http.get(url);
+
+          expect(request.getHeader('sentry-trace')).not.toBeDefined();
+          expect(request.getHeader('baggage')).not.toBeDefined();
+        },
+      );
+    });
   });
 });
 

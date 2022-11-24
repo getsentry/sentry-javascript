@@ -41,11 +41,12 @@ export const serverWebpackConfig: WebpackConfigObject = {
   entry: () =>
     Promise.resolve({
       'pages/_error': 'private-next-pages/_error.js',
-      'pages/_app': ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+      'pages/_app': 'private-next-pages/_app.js',
+      'pages/sniffTour': ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'],
       'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
       'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
-      'pages/api/simulator/leaderboard': {
-        import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'],
+      'pages/simulator/leaderboard': {
+        import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/simulator/leaderboard.js'],
       },
       'pages/api/tricks/[trickName]': {
         import: 'private-next-pages/api/tricks/[trickName].js',
@@ -64,6 +65,10 @@ export const clientWebpackConfig: WebpackConfigObject = {
       main: './src/index.ts',
       'pages/_app': 'next-client-pages-loader?page=%2F_app',
       'pages/_error': 'next-client-pages-loader?page=%2F_error',
+      'pages/sniffTour': ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'],
+      'pages/simulator/leaderboard': {
+        import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/simulator/leaderboard.js'],
+      },
     }),
   output: { filename: 'static/chunks/[name].js', path: '/Users/Maisey/projects/squirrelChasingSimulator/.next' },
   target: 'web',

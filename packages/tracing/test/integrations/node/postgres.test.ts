@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { Postgres } from '../../../src/integrations/node/postgres';
 import { Span } from '../../../src/span';
+import { getTestClient } from '../../testutils';
 
 class PgClient {
   // https://node-postgres.com/api/client#clientquery
@@ -93,5 +95,20 @@ describe('setupOnce', () => {
       });
       expect(childSpan.finish).toBeCalled();
     });
+  });
+
+  it("doesn't attach when using otel instrumenter", () => {
+    const loggerLogSpy = jest.spyOn(logger, 'log');
+
+    const client = getTestClient({ instrumenter: 'otel' });
+    const hub = new Hub(client);
+
+    const integration = new Postgres();
+    integration.setupOnce(
+      () => {},
+      () => hub,
+    );
+
+    expect(loggerLogSpy).toBeCalledWith('Postgres Integration is skipped because of instrumenter configuration.');
   });
 });

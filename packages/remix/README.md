@@ -10,8 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/remix.svg)](https://www.npmjs.com/package/@sentry/remix)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/remix.svg)](https://www.npmjs.com/package/@sentry/remix)
 
-This SDK is considered experimental and in an alpha state. It may experience breaking changes. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
-
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Remix.

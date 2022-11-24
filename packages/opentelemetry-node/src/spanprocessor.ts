@@ -1,25 +1,29 @@
 import { Context } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub, withScope } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
-import { Span as SentrySpan, TransactionContext } from '@sentry/types';
+import { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
+import { isSentryRequestSpan } from './utils/is-sentry-request';
 import { mapOtelStatus } from './utils/map-otel-status';
 import { parseSpanDescription } from './utils/parse-otel-span-description';
+
+export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = new Map<
+  SentrySpan['spanId'],
+  SentrySpan
+>();
 
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
-  // public only for testing
-  public readonly _map: Map<SentrySpan['spanId'], SentrySpan> = new Map<SentrySpan['spanId'], SentrySpan>();
-
   /**
    * @inheritDoc
    */
-  public onStart(otelSpan: OtelSpan, _parentContext: Context): void {
+  public onStart(otelSpan: OtelSpan, parentContext: Context): void {
     const hub = getCurrentHub();
     if (!hub) {
       __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
@@ -31,36 +35,33 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
-    // TODO: handle sentry requests
-    // if isSentryRequest(otelSpan) return;
-
     const otelSpanId = otelSpan.spanContext().spanId;
     const otelParentSpanId = otelSpan.parentSpanId;
 
     // Otel supports having multiple non-nested spans at the same time
     // so we cannot use hub.getSpan(), as we cannot rely on this being on the current span
-    const sentryParentSpan = otelParentSpanId && this._map.get(otelParentSpanId);
+    const sentryParentSpan = otelParentSpanId && SENTRY_SPAN_PROCESSOR_MAP.get(otelParentSpanId);
 
     if (sentryParentSpan) {
       const sentryChildSpan = sentryParentSpan.startChild({
         description: otelSpan.name,
-        // instrumentor: 'otel',
-        startTimestamp: otelSpan.startTime[0],
+        instrumenter: 'otel',
+        startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });
 
-      this._map.set(otelSpanId, sentryChildSpan);
+      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
     } else {
-      const traceCtx = getTraceData(otelSpan);
+      const traceCtx = getTraceData(otelSpan, parentContext);
       const transaction = hub.startTransaction({
         name: otelSpan.name,
         ...traceCtx,
-        // instrumentor: 'otel',
-        startTimestamp: otelSpan.startTime[0],
+        instrumenter: 'otel',
+        startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
       });
 
-      this._map.set(otelSpanId, transaction);
+      SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, transaction);
     }
   }
 
@@ -69,7 +70,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    */
   public onEnd(otelSpan: OtelSpan): void {
     const otelSpanId = otelSpan.spanContext().spanId;
-    const sentrySpan = this._map.get(otelSpanId);
+    const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 
     if (!sentrySpan) {
       __DEBUG_BUILD__ &&
@@ -77,15 +78,25 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       return;
     }
 
-    if (sentrySpan instanceof Transaction) {
-      updateTransactionWithOtelData(sentrySpan, otelSpan);
-      finishTransactionWithContextFromOtelData(sentrySpan, otelSpan);
-    } else {
-      updateSpanWithOtelData(sentrySpan, otelSpan);
-      sentrySpan.finish(otelSpan.endTime[0]);
+    // Auto-instrumentation often captures outgoing HTTP requests
+    // This means that Sentry HTTP requests created by this integration can, in turn, be captured by OTEL auto instrumentation,
+    // leading to an infinite loop.
+    // In this case, we do not want to finish the span, in order to avoid sending it to Sentry
+    if (isSentryRequestSpan(otelSpan)) {
+      // Make sure to remove any references, so this can be GCed
+      SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
+      return;
     }
 
-    this._map.delete(otelSpanId);
+    if (sentrySpan instanceof Transaction) {
+      updateTransactionWithOtelData(sentrySpan, otelSpan);
+    } else {
+      updateSpanWithOtelData(sentrySpan, otelSpan);
+    }
+
+    sentrySpan.finish(convertOtelTimeToSeconds(otelSpan.endTime));
+
+    SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
   }
 
   /**
@@ -107,24 +118,34 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
   }
 }
 
-function getTraceData(otelSpan: OtelSpan): Partial<TransactionContext> {
+function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<TransactionContext> {
   const spanContext = otelSpan.spanContext();
   const traceId = spanContext.traceId;
   const spanId = spanContext.spanId;
 
   const parentSpanId = otelSpan.parentSpanId;
-  return { spanId, traceId, parentSpanId };
-}
+  const traceparentData = parentContext.getValue(SENTRY_TRACE_PARENT_CONTEXT_KEY) as TraceparentData | undefined;
+  const dynamicSamplingContext = parentContext.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY) as
+    | Partial<DynamicSamplingContext>
+    | undefined;
 
-function finishTransactionWithContextFromOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
-  withScope(scope => {
-    scope.setContext('otel', {
-      attributes: otelSpan.attributes,
-      resource: otelSpan.resource.attributes,
-    });
+  const context: Partial<TransactionContext> = {
+    spanId,
+    traceId,
+    parentSpanId,
+    metadata: {
+      // only set dynamic sampling context if sentry-trace header was set
+      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      source: 'custom',
+    },
+  };
 
-    transaction.finish(otelSpan.endTime[0]);
-  });
+  // Only inherit sample rate if `traceId` is the same
+  if (traceparentData && traceId === traceparentData.traceId) {
+    context.parentSampled = traceparentData.parentSampled;
+  }
+
+  return context;
 }
 
 function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): void {
@@ -144,5 +165,18 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
 }
 
 function updateTransactionWithOtelData(transaction: Transaction, otelSpan: OtelSpan): void {
+  transaction.setContext('otel', {
+    attributes: otelSpan.attributes,
+    resource: otelSpan.resource.attributes,
+  });
+
   transaction.setStatus(mapOtelStatus(otelSpan));
+
+  const { op, description, source } = parseSpanDescription(otelSpan);
+  transaction.op = op;
+  transaction.setName(description, source);
+}
+
+function convertOtelTimeToSeconds([seconds, nano]: [number, number]): number {
+  return seconds + nano / 1_000_000_000;
 }

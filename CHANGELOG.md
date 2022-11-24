@@ -4,6 +4,75 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.21.1
+
+- fix(nextjs): Stop excluding `withSentryConfig` from serverless bundles (#6267)
+
+## 7.21.0
+
+- feat(react): Add tracing support for React Router 6.4 `createBrowserRouter`. (#6172)
+- fix(core): Add guard against scope.getAttachments (#6258)
+- fix(core): Only generate eventIds in client (#6247)
+- fix(express): Support multiple routers with common paths. (#6253)
+- fix(tracing): Pass `tracePropagationTargets` to `instrumentOutgoingRequests` (#6259)
+
+## 7.20.1
+
+- fix(angular): Set `<unknown>` component name default in TraceDirective (#6222)
+- fix(core): Include `_sdkProcessingMetadata` when cloning scope (#6218)
+- fix(tracing): Make `shouldAttachHeaders` not fall back to default values (#6238)
+- ref(vue): Check if SDK is initialized before app is mounted (#6227)
+
+## 7.20.0
+
+- feat(angular): Add Angular 15 Peer Dependencies (#6220)
+- feat(nextjs): Add `excludeServerRoutes` config option (#6207)
+- feat(node): Move tracing options to `Http` integration (#6191)
+- fix(nextjs): Use absolute path for `distDir` in webpack plugin options (#6214)
+- fix(remix): Resolve Remix Request API compatibility issues. (#6215)
+- ref(nextjs): Invert serverside injection criteria (#6206)
+
+## 7.19.0
+
+This release adds a new SDK, [@sentry/opentelemetry-node](./packages/opentelemetry-node/),
+which is available as an alpha release to integrate OpenTelemetry performance tracing with Sentry.
+Give it a try and let us know if you have any feedback or problems with using it. (#6000)
+
+This release also deprecates the `tracingOrigins` option in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+ See [#6176](https://github.com/getsentry/sentry-javascript/pull/6176) for details.
+
+- feat(node): Allow keepAlive override (#6161)
+- feat(tracing): Add `transaction.setContext` method (#6154)
+- feat(tracing): Allow to set `instrumenter` on Span & Transaction (#6136)
+- fix(integrations): Remove erroneous WINDOW exports (#6185)
+- fix(react): Guard against non-error obj in ErrorBoundary (#6181)
+- perf(core): Prevent creation of new contexts object on scope (#6156)
+- ref(tracing): Deprecate `tracingOrigins` (#6176)
+
+## 7.18.0
+
+This release adds the `beforeSendTransaction` callback to all JS SDKs, letting you make changes to or drop transactions before they're sent to Sentry. This callback works identically to `beforeSend`, just for transactions.
+
+- feat(core): Add `beforeSendTransaction` (#6121)
+- feat(node): Add option to `OnUncaughtException` integration that allows mimicking native uncaught error exit behaviour (#6137)
+- feat(tracing): Add `tracePropagationTargets` option to browser routing instrumentation (#6080)
+- fix(nextjs): Allow `onUncaughtException` integration to remain excluded (#6148)
+- fix(nextjs): Do not exit process when errors bubble up while additional `uncaughtException`-handlers are registered (#6138)
+- fix(remix): Prevent capturing pending promises as exceptions. (#6129)
+
+## 7.17.4
+
+- fix(aws): Move relay to port 5333 to avoid collisions (#6093)
+- fix(nextjs): Await Next.js server in patched `getServerRequestHandler` (#6072)
+- fix(nextjs): CLI binary not found on Windows (#6096)
+- fix(nextjs): Escape Windows paths when writing wrapper templates (#6101)
+
+## 7.17.3
+
+- chore(ember): Show warning when using invalid config (#6032)
+- fix(nextjs): Log false positive warning only if request is unfinished. (#6070)
+- fix(tracing): Add an extra conditional check to web vitals `onCLS()` (#6091)
+
 ## 7.17.2
 
 - fix(tracing): Fix `tracingOrigins` not applying (#6079)

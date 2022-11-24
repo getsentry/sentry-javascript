@@ -7,8 +7,9 @@ const {
 const assert = require('assert').strict;
 
 module.exports = async ({ page, url, requests }) => {
+  const requestPromise = page.waitForRequest(isTransactionRequest);
   await page.goto(`${url}/42/withInitialProps`);
-  await page.waitForRequest(isTransactionRequest);
+  await requestPromise;
 
   const transactionEnvelope = extractEnvelopeFromRequest(requests.transactions[0]);
 

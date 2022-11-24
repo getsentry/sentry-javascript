@@ -20,7 +20,7 @@ export default function prefixLoader(this: LoaderThis<LoaderOptions>, userCode: 
 
   // Fill in the placeholder
   let templateCode = fs.readFileSync(templatePath).toString();
-  templateCode = templateCode.replace('__DIST_DIR__', distDir);
+  templateCode = templateCode.replace('__DIST_DIR__', distDir.replace(/\\/g, '\\\\'));
 
   return `${templateCode}\n${userCode}`;
 }

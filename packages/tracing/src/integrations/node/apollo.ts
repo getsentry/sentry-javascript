@@ -2,6 +2,8 @@ import { Hub } from '@sentry/core';
 import { EventProcessor, Integration } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import { shouldDisableAutoInstrumentation } from './utils/node-utils';
+
 type ApolloResolverGroup = {
   [key: string]: () => unknown;
 };
@@ -36,6 +38,11 @@ export class Apollo implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
+      return;
+    }
+
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
       return;
     }
 

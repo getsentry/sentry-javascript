@@ -21,12 +21,14 @@ import {
   DataFunctionArgs,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
+  RemixRequest,
   RequestHandler,
   RouteMatch,
   ServerBuild,
   ServerRoute,
   ServerRouteManifest,
 } from './types';
+import { normalizeRemixRequest } from './web-fetch';
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
@@ -57,7 +59,7 @@ function isCatchResponse(response: Response): boolean {
 
 // Based on Remix Implementation
 // https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/data.ts#L131-L145
-function extractData(response: Response): Promise<unknown> {
+async function extractData(response: Response): Promise<unknown> {
   const contentType = response.headers.get('Content-Type');
 
   // Cloning the response to avoid consuming the original body stream
@@ -70,15 +72,31 @@ function extractData(response: Response): Promise<unknown> {
   return responseClone.text();
 }
 
-function captureRemixServerException(err: Error, name: string, request: Request): void {
+async function extractResponseError(response: Response): Promise<unknown> {
+  const responseData = await extractData(response);
+
+  if (typeof responseData === 'string') {
+    return responseData;
+  }
+
+  if (response.statusText) {
+    return response.statusText;
+  }
+
+  return responseData;
+}
+
+async function captureRemixServerException(err: Error, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
     return;
   }
 
-  captureException(isResponse(err) ? extractData(err) : err, scope => {
-    scope.setSDKProcessingMetadata({ request });
+  const normalizedRequest = normalizeRemixRequest(request as unknown as any);
+
+  captureException(isResponse(err) ? await extractResponseError(err) : err, scope => {
+    scope.setSDKProcessingMetadata({ request: normalizedRequest });
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
         type: 'instrument',
@@ -128,7 +146,7 @@ function makeWrappedDocumentRequestFunction(
 
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, 'documentRequest', request);
+      await captureRemixServerException(err, 'documentRequest', request);
       throw err;
     }
 
@@ -165,7 +183,7 @@ function makeWrappedDataFunction(origFn: DataFunction, id: string, name: 'action
       currentScope.setSpan(activeTransaction);
       span?.finish();
     } catch (err) {
-      captureRemixServerException(err, name, args.request);
+      await captureRemixServerException(err, name, args.request);
       throw err;
     }
 
@@ -238,6 +256,7 @@ function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
     // Note: `redirect` and `catch` responses do not have bodies to extract
     if (isResponse(res) && !isRedirectResponse(res) && !isCatchResponse(res)) {
       const data = await extractData(res);
+
       if (typeof data === 'object') {
         return json(
           { ...data, ...traceAndBaggage },
@@ -349,15 +368,20 @@ export function getTransactionName(
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
-  return async function (this: unknown, request: Request, loadContext?: unknown): Promise<Response> {
+
+  return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
     return local.bind(async () => {
       const hub = getCurrentHub();
       const options = hub.getClient()?.getOptions();
       const scope = hub.getScope();
 
+      const normalizedRequest = normalizeRemixRequest(request);
+
       if (scope) {
-        scope.setSDKProcessingMetadata({ request });
+        scope.setSDKProcessingMetadata({
+          request: normalizedRequest,
+        });
       }
 
       if (!options || !hasTracingEnabled(options)) {

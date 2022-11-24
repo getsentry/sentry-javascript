@@ -1,7 +1,7 @@
 import { Event, EventProcessor, Hub, InboundFiltersOptions, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, GLOBAL_OBJ, isMatchingPattern, logger, supportsReportingObserver } from '@sentry/utils';
 
-export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 /** Options for the ReportingObserver integration */
 export interface ReportingObserverOptions {

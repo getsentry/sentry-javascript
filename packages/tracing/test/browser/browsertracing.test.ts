@@ -34,8 +34,14 @@ jest.mock('@sentry/utils', () => {
 
 jest.mock('../../src/browser/metrics');
 
-const { logger } = jest.requireActual('@sentry/utils');
-const warnSpy = jest.spyOn(logger, 'warn');
+const instrumentOutgoingRequestsMock = jest.fn();
+jest.mock('./../../src/browser/request', () => {
+  const actual = jest.requireActual('./../../src/browser/request');
+  return {
+    ...actual,
+    instrumentOutgoingRequests: (options: Partial<BrowserTracingOptions>) => instrumentOutgoingRequestsMock(options),
+  };
+});
 
 beforeAll(() => {
   const dom = new JSDOM();
@@ -55,8 +61,6 @@ describe('BrowserTracing', () => {
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
     document.head.innerHTML = '';
-
-    warnSpy.mockClear();
   });
 
   afterEach(() => {
@@ -133,26 +137,8 @@ describe('BrowserTracing', () => {
       expect(transaction.endTimestamp).toBe(span.endTimestamp);
     });
 
+    // TODO (v8): remove these tests
     describe('tracingOrigins', () => {
-      it('warns and uses default tracing origins if none are provided', () => {
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-        });
-
-        expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
-      });
-
-      it('warns and uses default tracing origins if tracing origins are not defined', () => {
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: undefined,
-        });
-
-        expect(warnSpy).toHaveBeenCalledTimes(2);
-        expect(inst.options.tracingOrigins).toEqual(defaultRequestInstrumentationOptions.tracingOrigins);
-      });
-
       it('sets tracing origins if provided and does not warn', () => {
         const sampleTracingOrigins = ['something'];
         const inst = createBrowserTracing(true, {
@@ -160,7 +146,7 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
-        expect(warnSpy).toHaveBeenCalledTimes(0);
+        // eslint-disable-next-line deprecation/deprecation
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
       });
 
@@ -171,8 +157,45 @@ describe('BrowserTracing', () => {
           tracingOrigins: sampleTracingOrigins,
         });
 
-        expect(warnSpy).toHaveBeenCalledTimes(0);
+        // eslint-disable-next-line deprecation/deprecation
         expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
+      });
+    });
+
+    describe('tracePropagationTargets', () => {
+      it('sets tracePropagationTargets if provided', () => {
+        const sampleTracePropagationTargets = ['something'];
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
+      });
+
+      it('sets tracePropagationTargets to an empty array and does not warn', () => {
+        const sampleTracePropagationTargets: string[] = [];
+        const inst = createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
+      });
+
+      it('correctly passes tracePropagationTargets to `instrumentOutgoingRequests` in `setupOnce`', () => {
+        jest.clearAllMocks();
+        const sampleTracePropagationTargets = ['something'];
+        createBrowserTracing(true, {
+          routingInstrumentation: customInstrumentRouting,
+          tracePropagationTargets: sampleTracePropagationTargets,
+        });
+
+        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
+          traceFetch: true,
+          traceXHR: true,
+          tracePropagationTargets: ['something'],
+        });
       });
     });
 

@@ -102,8 +102,12 @@ describe('constructWebpackConfigFunction()', () => {
           'pages/_error': [serverConfigFilePath, 'private-next-pages/_error.js'],
 
           // original entrypoint value is a string array
-          // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/_app.js'])
-          'pages/_app': [serverConfigFilePath, './node_modules/smellOVision/index.js', 'private-next-pages/_app.js'],
+          // (was ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'])
+          'pages/sniffTour': [
+            serverConfigFilePath,
+            './node_modules/smellOVision/index.js',
+            'private-next-pages/sniffTour.js',
+          ],
 
           // original entrypoint value is an object containing a string `import` value
           // (was { import: 'private-next-pages/api/simulator/dogStats/[name].js' })
@@ -112,12 +116,12 @@ describe('constructWebpackConfigFunction()', () => {
           },
 
           // original entrypoint value is an object containing a string array `import` value
-          // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/api/simulator/leaderboard.js'] })
-          'pages/api/simulator/leaderboard': {
+          // (was { import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/simulator/leaderboard.js'] })
+          'pages/simulator/leaderboard': {
             import: [
               serverConfigFilePath,
               './node_modules/dogPoints/converter.js',
-              'private-next-pages/api/simulator/leaderboard.js',
+              'private-next-pages/simulator/leaderboard.js',
             ],
           },
 
@@ -131,7 +135,7 @@ describe('constructWebpackConfigFunction()', () => {
       );
     });
 
-    it('injects user config file into `_app` in both server and client bundles', async () => {
+    it('injects user config file into `_app` in client bundle but not in server bundle', async () => {
       const finalServerWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -145,7 +149,7 @@ describe('constructWebpackConfigFunction()', () => {
 
       expect(finalServerWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          'pages/_app': expect.arrayContaining([serverConfigFilePath]),
+          'pages/_app': expect.not.arrayContaining([serverConfigFilePath]),
         }),
       );
       expect(finalClientWebpackConfig.entry).toEqual(
@@ -179,7 +183,7 @@ describe('constructWebpackConfigFunction()', () => {
       );
     });
 
-    it('injects user config file into API routes', async () => {
+    it('injects user config file into both API routes and non-API routes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -192,13 +196,13 @@ describe('constructWebpackConfigFunction()', () => {
             import: expect.arrayContaining([serverConfigFilePath]),
           },
 
-          'pages/api/simulator/leaderboard': {
-            import: expect.arrayContaining([serverConfigFilePath]),
-          },
-
           'pages/api/tricks/[trickName]': expect.objectContaining({
             import: expect.arrayContaining([serverConfigFilePath]),
           }),
+
+          'pages/simulator/leaderboard': {
+            import: expect.arrayContaining([serverConfigFilePath]),
+          },
         }),
       );
     });
@@ -218,17 +222,47 @@ describe('constructWebpackConfigFunction()', () => {
       );
     });
 
-    it('does not inject anything into non-_app, non-_error, non-API routes', async () => {
+    it('does not inject anything into non-_app pages during client build', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
 
+      expect(finalWebpackConfig.entry).toEqual({
+        main: './src/index.ts',
+        // only _app has config file injected
+        'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
+        'pages/_error': 'next-client-pages-loader?page=%2F_error',
+        'pages/sniffTour': ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'],
+        'pages/simulator/leaderboard': {
+          import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/simulator/leaderboard.js'],
+        },
+        simulatorBundle: './src/simulator/index.ts',
+      });
+    });
+
+    it('does not inject into routes included in `excludeServerRoutes`', async () => {
+      const nextConfigWithExcludedRoutes = {
+        ...exportedNextConfig,
+        sentry: {
+          excludeServerRoutes: [/simulator/],
+        },
+      };
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig: nextConfigWithExcludedRoutes,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          // no injected file
-          main: './src/index.ts',
+          'pages/simulator/leaderboard': {
+            import: expect.not.arrayContaining([serverConfigFilePath]),
+          },
+          'pages/api/simulator/dogStats/[name]': {
+            import: expect.not.arrayContaining([serverConfigFilePath]),
+          },
         }),
       );
     });
