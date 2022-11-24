@@ -7,7 +7,7 @@
     "baseUrl": "..",
     "rootDir": "..",
     "strictNullChecks": true,
-    "outDir": "build/npm"
+    "outDir": "./build/npm/dist"
   },
   "include": ["../src/**/*.ts"],
   "exclude": ["../src/**/*.test.ts"]
