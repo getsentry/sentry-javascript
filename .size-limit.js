@@ -63,4 +63,10 @@ module.exports = [
     gzip: true,
     limit: '100 KB',
   },
+  {
+    name: '@sentry/replay index.js',
+    path: 'packages/replay/build/index.js',
+    gzip: true,
+    limit: '4500ms',
+  },
 ];
