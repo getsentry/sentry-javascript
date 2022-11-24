@@ -30,29 +30,29 @@ import { isIP } from 'net';
 export function getClientIPAddress(headers: Headers): string | null {
   // The headers to check, in priority order
   const headerNames = [
-    "X-Client-IP",
-    "X-Forwarded-For",
-    "Fly-Client-IP",
-    "CF-Connecting-IP",
-    "Fastly-Client-Ip",
-    "True-Client-Ip",
-    "X-Real-IP",
-    "X-Cluster-Client-IP",
-    "X-Forwarded",
-    "Forwarded-For",
-    "Forwarded",
+    'X-Client-IP',
+    'X-Forwarded-For',
+    'Fly-Client-IP',
+    'CF-Connecting-IP',
+    'Fastly-Client-Ip',
+    'True-Client-Ip',
+    'X-Real-IP',
+    'X-Cluster-Client-IP',
+    'X-Forwarded',
+    'Forwarded-For',
+    'Forwarded',
   ];
 
   // This will end up being Array<string | string[] | undefined | null> because of the various possible values a header
   // can take
   const headerValues = headerNames.map((headerName: string) => {
     const value = headers.get(headerName);
-    
-    if (headerName === "Forwarded") {
+
+    if (headerName === 'Forwarded') {
       return parseForwardedHeader(value);
     }
-    
-    return value?.split(", ");
+
+    return value?.split(', ');
   });
 
   // Flatten the array and filter out any falsy entries
@@ -65,7 +65,7 @@ export function getClientIPAddress(headers: Headers): string | null {
   }, []);
 
   // Find the first value which is a valid IP address, if any
-  const ipAddress = flattenedHeaderValues.find((ip) => ip !== null && isIP(ip));
+  const ipAddress = flattenedHeaderValues.find(ip => ip !== null && isIP(ip));
 
   return ipAddress || null;
 }
@@ -75,8 +75,8 @@ function parseForwardedHeader(value: string | null): string | null {
     return null;
   }
 
-  for (const part of value.split(";")) {
-    if (part.startsWith("for=")) {
+  for (const part of value.split(';')) {
+    if (part.startsWith('for=')) {
       return part.slice(4);
     }
   }
