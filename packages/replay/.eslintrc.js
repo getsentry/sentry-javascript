@@ -70,18 +70,17 @@ module.exports = {
       },
     },
     {
-      files: ['jest.setup.ts'],
+      files: ['jest.setup.ts', 'jest.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
+      },
       rules: {
         'no-console': 'off',
       },
     },
     {
       files: ['test/**/*.ts'],
-      parserOptions: {
-        // TODO: remove this parserOptions object after we added a tsconfig.test.json
-        // Replay previously didn't have a tsconfig.test.json, so for now we just the regular one.
-        project: ['tsconfig.json'],
-      },
+
       rules: {
         // TODO: decide if we want to keep our '@test' import paths
         'import/no-unresolved': 'off',
