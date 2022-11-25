@@ -5,7 +5,7 @@ import { isInternal } from './isInternal';
 /**
  * Captures exceptions to Sentry only when it occurs on sentry.io
  */
-export function captureInternalException(err: Error): string | undefined {
+export function captureInternalException(err: Error): void {
   if (!isInternal()) {
     return;
   }
