@@ -22,7 +22,7 @@ const config = defineConfig({
   external: [...Object.keys(pkg.dependencies || {})],
   plugins: [
     typescript({
-      tsconfig: IS_PRODUCTION ? './config/tsconfig.core.json' : './tsconfig.json',
+      tsconfig: './tsconfig.json',
     }),
     replace({
       // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
