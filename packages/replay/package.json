@@ -64,7 +64,6 @@
     "node": ">=12"
   },
   "volta": {
-    "node": "14.21.1",
-    "yarn": "1.22.19"
+    "extends": "../../package.json"
   }
 }
