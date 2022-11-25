@@ -1,19 +1,10 @@
-// TODO: Remove this file after migration!
-// TODO: Remove Sentry ESLint config package from package.json
 // Note: All paths are relative to the directory in which eslint is being run, rather than the directory where this file
 // lives
 
 // ESLint config docs: https://eslint.org/docs/user-guide/configuring/
 
 module.exports = {
-  root: true,
-  env: {
-    es6: true,
-  },
-  parserOptions: {
-    ecmaVersion: 2018,
-  },
-  extends: ['@sentry-internal/sdk'],
+  extends: ['../../.eslintrc.js'],
   ignorePatterns: [
     'coverage/**',
     'build/**',
@@ -31,16 +22,16 @@ module.exports = {
   ],
   overrides: [
     {
-      files: ['*.ts', '*.tsx', '*.d.ts'],
-      parserOptions: {
-        project: ['tsconfig.json'],
-      },
-    },
-    // TODO: Extract this to package-specific config after mgiration
-    {
       files: ['worker/**/*.ts'],
       parserOptions: {
-        project: ['./config/tsconfig.worker.json'],
+        // TODO: figure out if we need a worker-specific tsconfig
+        project: ['config/tsconfig.worker.json'],
+      },
+    },
+    {
+      files: ['src/worker/**/*.js'],
+      parserOptions: {
+        sourceType: 'module',
       },
     },
     {
@@ -86,6 +77,11 @@ module.exports = {
     },
     {
       files: ['test/**/*.ts'],
+      parserOptions: {
+        // TODO: remove this parserOptions object after we added a tsconfig.test.json
+        // Replay previously didn't have a tsconfig.test.json, so for now we just the regular one.
+        project: ['tsconfig.json'],
+      },
       rules: {
         // TODO: decide if we want to keep our '@test' import paths
         'import/no-unresolved': 'off',
@@ -94,30 +90,6 @@ module.exports = {
         // TODO: decide if we want to enable this again after the migration
         // We can take the freedom to be a bit more lenient with tests
         '@typescript-eslint/no-floating-promises': 'off',
-      },
-    },
-    {
-      files: ['src/worker/**/*.js'],
-      parserOptions: {
-        sourceType: 'module',
-      },
-    },
-    // ----------------
-    {
-      files: ['*.tsx'],
-      rules: {
-        // Turn off jsdoc on tsx files until jsdoc is fixed for tsx files
-        // See: https://github.com/getsentry/sentry-javascript/issues/3871
-        'jsdoc/require-jsdoc': 'off',
-      },
-    },
-    {
-      files: ['scenarios/**', 'rollup/**'],
-      parserOptions: {
-        sourceType: 'module',
-      },
-      rules: {
-        'no-console': 'off',
       },
     },
   ],
