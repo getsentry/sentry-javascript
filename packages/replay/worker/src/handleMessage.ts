@@ -30,8 +30,10 @@ export function handleMessage(e: MessageEvent): void {
   const id = e.data.id as number;
   const [data] = e.data.args ? JSON.parse(e.data.args) : [];
 
+  // @ts-ignore this syntax is actually fine
   if (method in handlers && typeof handlers[method] === 'function') {
     try {
+      // @ts-ignore this syntax is actually fine
       const response = handlers[method](data);
       // @ts-ignore this syntax is actually fine
       postMessage({

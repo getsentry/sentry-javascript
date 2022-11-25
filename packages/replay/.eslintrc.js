@@ -40,7 +40,7 @@ module.exports = {
     {
       files: ['worker/**/*.ts'],
       parserOptions: {
-        project: ['config/tsconfig.worker.json'],
+        project: ['./config/tsconfig.worker.json'],
       },
     },
     {
