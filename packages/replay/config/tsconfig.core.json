@@ -1,6 +1,13 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noEmitOnError": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "es5",
     "allowJs": true,
     "declaration": true,
     "declarationDir": "./types",
@@ -10,5 +17,5 @@
     "outDir": "./build/npm/dist"
   },
   "include": ["../src/**/*.ts"],
-  "exclude": ["../src/**/*.test.ts"]
+  "exclude": ["../src/**/*.test.ts", "node_modules"]
 }
