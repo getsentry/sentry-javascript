@@ -1,5 +1,6 @@
+import { logger } from '@sentry/utils';
+
 import { SessionOptions } from '../types';
-import { logger } from '../util/logger';
 import { saveSession } from './saveSession';
 import { Session } from './Session';
 
@@ -15,7 +16,7 @@ export function createSession({ sessionSampleRate, errorSampleRate, stickySessio
     sessionSampleRate,
   });
 
-  logger.log(`Creating new session: ${session.id}`);
+  __DEBUG_BUILD__ && logger.log(`[Replay] Creating new session: ${session.id}`);
 
   if (stickySession) {
     saveSession(session);
