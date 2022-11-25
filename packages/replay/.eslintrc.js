@@ -25,7 +25,7 @@ module.exports = {
       files: ['worker/**/*.ts'],
       parserOptions: {
         // TODO: figure out if we need a worker-specific tsconfig
-        project: ['config/tsconfig.worker.json'],
+        project: ['tsconfig.worker.json'],
       },
     },
     {
