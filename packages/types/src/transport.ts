@@ -1,5 +1,4 @@
-import { EventDropReason } from './clientreport';
-import { DataCategory } from './datacategory';
+import { Client } from './client';
 import { Envelope } from './envelope';
 import { TextEncoderInternal } from './textencoder';
 
@@ -18,7 +17,7 @@ export type TransportMakeRequestResponse = {
 
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
-  recordDroppedEvent: (reason: EventDropReason, dataCategory: DataCategory) => void;
+  recordDroppedEvent: Client['recordDroppedEvent'];
   textEncoder?: TextEncoderInternal;
 }
 

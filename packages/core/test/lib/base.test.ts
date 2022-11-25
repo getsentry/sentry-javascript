@@ -1237,7 +1237,9 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'hello' }, {});
 
       expect(beforeSend).toHaveBeenCalled();
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'error', {
+        message: 'hello',
+      });
     });
 
     test('`beforeSendTransaction` records dropped events', () => {
@@ -1257,7 +1259,10 @@ describe('BaseClient', () => {
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
       expect(beforeSendTransaction).toHaveBeenCalled();
-      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('before_send', 'transaction', {
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+      });
     });
 
     test('event processor drops error event when it returns `null`', () => {
@@ -1309,7 +1314,9 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'error', {
+        message: 'hello',
+      });
     });
 
     test('event processor records dropped transaction events', () => {
@@ -1325,7 +1332,10 @@ describe('BaseClient', () => {
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' }, {}, scope);
 
-      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('event_processor', 'transaction', {
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+      });
     });
 
     test('mutating transaction name with event processors sets transaction-name-change metadata', () => {
@@ -1434,7 +1444,9 @@ describe('BaseClient', () => {
       const recordLostEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
       client.captureEvent({ message: 'hello' }, {});
-      expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error');
+      expect(recordLostEventSpy).toHaveBeenCalledWith('sample_rate', 'error', {
+        message: 'hello',
+      });
     });
   });
 

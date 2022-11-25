@@ -1,7 +1,10 @@
 import {
   Envelope,
   EnvelopeItem,
+  EnvelopeItemType,
+  Event,
   EventDropReason,
+  EventItem,
   InternalBaseTransportOptions,
   Transport,
   TransportRequestExecutor,
@@ -45,7 +48,8 @@ export function createTransport(
     forEachEnvelopeItem(envelope, (item, type) => {
       const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
-        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory);
+        const event: Event | undefined = getEventForEnvelopeItem(item, type);
+        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory, event);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -61,8 +65,9 @@ export function createTransport(
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
-      forEachEnvelopeItem(filteredEnvelope, (_, type) => {
-        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
+      forEachEnvelopeItem(filteredEnvelope, (item, type) => {
+        const event: Event | undefined = getEventForEnvelopeItem(item, type);
+        options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type), event);
       });
     };
 
@@ -100,4 +105,12 @@ export function createTransport(
     send,
     flush,
   };
+}
+
+function getEventForEnvelopeItem(item: Envelope[1][number], type: EnvelopeItemType): Event | undefined {
+  if (type !== 'event' && type !== 'transaction') {
+    return undefined;
+  }
+
+  return Array.isArray(item) ? (item as EventItem)[1] : undefined;
 }

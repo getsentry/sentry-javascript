@@ -126,6 +126,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @param reason The reason why the event got dropped.
    * @param category The data category of the dropped event.
+   * @param event The dropped event.
    */
-  recordDroppedEvent(reason: EventDropReason, category: DataCategory): void;
+  recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 }
