@@ -63,12 +63,6 @@
   "engines": {
     "node": ">=12"
   },
-  "size-limit": [
-    {
-      "path": "build/npm/index.js",
-      "limit": "4500ms"
-    }
-  ],
   "volta": {
     "node": "14.21.1",
     "yarn": "1.22.19"
