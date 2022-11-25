@@ -13,7 +13,6 @@
     "noEmitOnError": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "target": "es5",
     "allowJs": true,
     "declaration": true,
     "declarationMap": true,
