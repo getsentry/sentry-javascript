@@ -67,7 +67,7 @@ export class Replay implements Integration {
    */
   public name: string = Replay.id;
 
-  public eventBuffer: IEventBuffer | null;
+  public eventBuffer: IEventBuffer | null = null;
 
   /**
    * List of PerformanceEntry from PerformanceObserver
