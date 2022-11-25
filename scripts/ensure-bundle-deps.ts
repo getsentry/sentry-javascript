@@ -114,7 +114,9 @@ function checkForBundleDeps(packagesDir: string, dependencyDirs: string[]): bool
     if (
       !(
         (fs.existsSync(`${depBuildDir}/cjs`) && fs.existsSync(`${depBuildDir}/esm`)) ||
-        (fs.existsSync(`${depBuildDir}/npm/cjs`) && fs.existsSync(`${depBuildDir}/npm/esm`))
+        (fs.existsSync(`${depBuildDir}/npm/cjs`) && fs.existsSync(`${depBuildDir}/npm/esm`)) ||
+        // Special case for replay for now
+        fs.existsSync(`${depBuildDir}/npm/dist/src`)
       )
     ) {
       // Fail fast

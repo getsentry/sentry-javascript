@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/core';
 import { Error } from '@test/fixtures/error';
 import { Transaction } from '@test/fixtures/transaction';
 import { resetSdkMock } from '@test/mocks';
@@ -81,6 +82,27 @@ it('only tags errors with replay id, adds trace and error id to context for erro
   // Turns off `waitForError` mode
   // @ts-ignore private
   expect(replay.waitForError).toBe(false);
+});
+
+it('strips out dropped events from errorIds', async () => {
+  const error1 = Error({ event_id: 'err1' });
+  const error2 = Error({ event_id: 'err2' });
+  const error3 = Error({ event_id: 'err3' });
+
+  replay._overwriteRecordDroppedEvent();
+
+  const client = getCurrentHub().getClient()!;
+
+  replay.handleGlobalEvent(error1);
+  replay.handleGlobalEvent(error2);
+  replay.handleGlobalEvent(error3);
+
+  client.recordDroppedEvent('before_send', 'error', { event_id: 'err2' });
+
+  // @ts-ignore private
+  expect(Array.from(replay.context.errorIds)).toEqual(['err1', 'err3']);
+
+  replay._restoreRecordDroppedEvent();
 });
 
 it('tags errors and transactions with replay id for session samples', async () => {

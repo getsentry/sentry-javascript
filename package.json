@@ -2,7 +2,7 @@
   "private": true,
   "scripts": {
     "build": "node ./scripts/verify-packages-versions.js && yarn run-p build:rollup build:types build:bundle && yarn build:extras",
-    "build:bundle": "yarn ts-node scripts/ensure-bundle-deps.ts && yarn lerna run --parallel build:bundle",
+    "build:bundle": "yarn lerna run --parallel build:bundle",
     "build:dev": "run-p build:types build:rollup",
     "build:dev:filter": "lerna run --stream --concurrency 1 --sort build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
     "build:extras": "lerna run --parallel build:extras",
