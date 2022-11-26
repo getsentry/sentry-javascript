@@ -97,6 +97,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracesSampleRate?: number;
 
   /**
+   * Sample rate to determine profile sampling.
+   *
+   * 0.0 = 0% chance of a given profile being sent (send no profile) 1.0 = 100% chance of a given profile being sent (send
+   * all profile)
+   *
+   * profilesSampleRate requires either profilesSampleRate or tracesSampler to be defined.
+   */
+  profilesSampleRate?: number;
+
+  /**
    * Initial data to populate scope.
    */
   initialScope?: CaptureContext;
