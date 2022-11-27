@@ -44,7 +44,7 @@ describe('htmlTreeAsString', () => {
     </li>`;
     document.body.appendChild(el);
 
-    expect(htmlTreeAsString(document.getElementById('cat-2'), ['test-id'])).toBe(
+    expect(htmlTreeAsString(document.getElementById('cat-2'), { keyAttrs: ['test-id'] })).toBe(
       'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
     );
   });
@@ -61,7 +61,7 @@ describe('htmlTreeAsString', () => {
     expect(htmlTreeAsString(document.querySelector('button'))).toBe(
       'button.bg-blue-500.hover:bg-blue-700.text-white.hover:text-blue-100',
     );
-    expect(htmlTreeAsString(document.querySelector('button'), undefined, 100)).toBe(
+    expect(htmlTreeAsString(document.querySelector('button'), { maxStringLength: 100 })).toBe(
       'div#main-cta > div.container > button.bg-blue-500.hover:bg-blue-700.text-white.hover:text-blue-100',
     );
   });

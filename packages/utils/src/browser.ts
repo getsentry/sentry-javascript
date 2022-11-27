@@ -12,7 +12,10 @@ const DEFAULT_MAX_STRING_LENGTH = 80;
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-export function htmlTreeAsString(elem: unknown, keyAttrs?: string[], customMaxStringLength?: number): string {
+export function htmlTreeAsString(
+  elem: unknown,
+  options: { keyAttrs?: string[]; maxStringLength?: number } = {},
+): string {
   type SimpleNode = {
     parentNode: SimpleNode;
   } | null;
@@ -24,13 +27,13 @@ export function htmlTreeAsString(elem: unknown, keyAttrs?: string[], customMaxSt
   try {
     let currentElem = elem as SimpleNode;
     const MAX_TRAVERSE_HEIGHT = 5;
-    const maxStringLength = customMaxStringLength || DEFAULT_MAX_STRING_LENGTH;
     const out = [];
     let height = 0;
     let len = 0;
     const separator = ' > ';
     const sepLength = separator.length;
     let nextStr;
+    const { keyAttrs, maxStringLength = DEFAULT_MAX_STRING_LENGTH } = options;
 
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
       nextStr = _htmlElementAsString(currentElem, keyAttrs);

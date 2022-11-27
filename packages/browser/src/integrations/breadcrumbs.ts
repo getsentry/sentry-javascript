@@ -123,7 +123,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
   function _innerDomBreadcrumb(handlerData: { [key: string]: any }): void {
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
-    const customMaxStringLength =
+    const maxStringLength =
       typeof dom === 'object' && typeof dom.maxStringLength === 'number'
         ? Math.min(dom.maxStringLength, 1024)
         : undefined;
@@ -135,8 +135,8 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       target = handlerData.event.target
-        ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs, customMaxStringLength)
-        : htmlTreeAsString(handlerData.event as unknown as Node, keyAttrs, customMaxStringLength);
+        ? htmlTreeAsString(handlerData.event.target as Node, { keyAttrs, maxStringLength })
+        : htmlTreeAsString(handlerData.event as unknown as Node, { keyAttrs, maxStringLength });
     } catch (e) {
       target = '<unknown>';
     }
