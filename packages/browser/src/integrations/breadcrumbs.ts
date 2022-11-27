@@ -16,7 +16,13 @@ import { WINDOW } from '../helpers';
 /** JSDoc */
 interface BreadcrumbsOptions {
   console: boolean;
-  dom: boolean | { serializeAttribute: string | string[] };
+  dom:
+    | boolean
+    | {
+        serializeAttribute?: string | string[];
+        /** maxStringLength gets capped at 1024 to prevent 100 breadcrumbs exceeding 1MB event payload size */
+        maxStringLength?: number;
+      };
   fetch: boolean;
   history: boolean;
   sentry: boolean;
@@ -117,6 +123,10 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
   function _innerDomBreadcrumb(handlerData: { [key: string]: any }): void {
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
+    const customMaxStringLength =
+      typeof dom === 'object' && typeof dom.maxStringLength === 'number'
+        ? Math.min(dom.maxStringLength, 1024)
+        : undefined;
 
     if (typeof keyAttrs === 'string') {
       keyAttrs = [keyAttrs];
@@ -125,8 +135,8 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       target = handlerData.event.target
-        ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs)
-        : htmlTreeAsString(handlerData.event as unknown as Node, keyAttrs);
+        ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs, customMaxStringLength)
+        : htmlTreeAsString(handlerData.event as unknown as Node, keyAttrs, customMaxStringLength);
     } catch (e) {
       target = '<unknown>';
     }

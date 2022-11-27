@@ -4,13 +4,15 @@ import { getGlobalObject } from './worldwide';
 // eslint-disable-next-line deprecation/deprecation
 const WINDOW = getGlobalObject<Window>();
 
+const DEFAULT_MAX_STRING_LENGTH = 80;
+
 /**
  * Given a child DOM element, returns a query-selector statement describing that
  * and its ancestors
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
  * @returns generated DOM path
  */
-export function htmlTreeAsString(elem: unknown, keyAttrs?: string[]): string {
+export function htmlTreeAsString(elem: unknown, keyAttrs?: string[], customMaxStringLength?: number): string {
   type SimpleNode = {
     parentNode: SimpleNode;
   } | null;
@@ -22,7 +24,7 @@ export function htmlTreeAsString(elem: unknown, keyAttrs?: string[]): string {
   try {
     let currentElem = elem as SimpleNode;
     const MAX_TRAVERSE_HEIGHT = 5;
-    const MAX_OUTPUT_LEN = 80;
+    const maxStringLength = customMaxStringLength || DEFAULT_MAX_STRING_LENGTH;
     const out = [];
     let height = 0;
     let len = 0;
@@ -34,9 +36,9 @@ export function htmlTreeAsString(elem: unknown, keyAttrs?: string[]): string {
       nextStr = _htmlElementAsString(currentElem, keyAttrs);
       // bail out if
       // - nextStr is the 'html' element
-      // - the length of the string that would be created exceeds MAX_OUTPUT_LEN
+      // - the length of the string that would be created exceeds maxStringLength
       //   (ignore this limit if we are on the first iteration)
-      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= MAX_OUTPUT_LEN)) {
+      if (nextStr === 'html' || (height > 1 && len + out.length * sepLength + nextStr.length >= maxStringLength)) {
         break;
       }
 
