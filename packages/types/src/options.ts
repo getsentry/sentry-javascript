@@ -141,6 +141,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   normalizeMaxBreadth?: number;
 
   /**
+   * Sample rate to determine profile sampling.
+   *
+   * 0.0 = 0% chance of a given profile being sent (send no profiles) 1.0 = 100% chance of a given profile being sent (send
+   * all profiles)
+   */
+  profilesSampleRate?: number;
+
+  /**
    * Controls how many milliseconds to wait before shutting down. The default is
    * SDK-specific but typically around 2 seconds. Setting this too low can cause
    * problems for sending events from command line applications. Setting it too
