@@ -1,6 +1,7 @@
 jest.mock('./../../src/util/isInternal', () => ({
   isInternal: jest.fn(() => true),
 }));
+import { WINDOW } from '@sentry/browser';
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
@@ -23,7 +24,7 @@ describe('Replay', () => {
   let mockTransportSend: MockTransportSend;
   let domHandler: DomHandler;
   let spyCaptureException: jest.MockedFunction<any>;
-  const prevLocation = window.location;
+  const prevLocation = WINDOW.location;
 
   type MockSendReplayRequest = jest.MockedFunction<typeof replay.sendReplayRequest>;
   let mockSendReplayRequest: MockSendReplayRequest;
@@ -56,9 +57,7 @@ describe('Replay', () => {
   afterEach(async () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
-    delete window.location;
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
     });
@@ -97,7 +96,7 @@ describe('Replay', () => {
 
   it('clears session', () => {
     replay.clearSession();
-    expect(window.sessionStorage.getItem(REPLAY_SESSION_KEY)).toBe(null);
+    expect(WINDOW.sessionStorage.getItem(REPLAY_SESSION_KEY)).toBe(null);
     expect(replay.session).toBe(undefined);
   });
 
@@ -133,7 +132,7 @@ describe('Replay', () => {
 
     jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
 
-    window.dispatchEvent(new Event('focus'));
+    WINDOW.dispatchEvent(new Event('focus'));
 
     expect(mockRecord.takeFullSnapshot).toHaveBeenLastCalledWith(true);
 
@@ -169,7 +168,7 @@ describe('Replay', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('uploads a replay event when window is blurred', async () => {
+  it('uploads a replay event when WINDOW is blurred', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -196,7 +195,7 @@ describe('Replay', () => {
     };
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSentReplay({
@@ -303,7 +302,7 @@ describe('Replay', () => {
     );
 
     const url = 'http://dummy/';
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(WINDOW, 'location', {
       value: new URL(url),
     });
 
@@ -391,7 +390,7 @@ describe('Replay', () => {
     );
 
     const url = 'http://dummy/';
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(WINDOW, 'location', {
       value: new URL(url),
     });
 
@@ -419,7 +418,7 @@ describe('Replay', () => {
       return true;
     });
 
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -639,7 +638,7 @@ describe('Replay', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -647,7 +646,7 @@ describe('Replay', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay.session?.segmentId).toBe(2);
@@ -679,7 +678,7 @@ describe('Replay', () => {
     };
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
@@ -773,7 +772,7 @@ describe('Replay', () => {
       type: 5,
     });
 
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay).toHaveSentReplay({
       replayEventPayload: expect.objectContaining({
@@ -816,7 +815,7 @@ describe('Replay', () => {
 
     replay.addEvent(TEST_EVENT);
     // This event will trigger a flush
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
 

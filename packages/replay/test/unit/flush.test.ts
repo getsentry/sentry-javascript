@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
@@ -20,7 +21,7 @@ type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof Replay.prototype
 type MockFlush = jest.MockedFunction<typeof Replay.prototype.flush>;
 type MockRunFlush = jest.MockedFunction<typeof Replay.prototype.runFlush>;
 
-const prevLocation = window.location;
+const prevLocation = WINDOW.location;
 let domHandler: (args: any) => any;
 
 const { record: mockRecord } = mockRrweb();
@@ -91,9 +92,7 @@ afterEach(async () => {
   replay.clearSession();
   replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   mockRecord.takeFullSnapshot.mockClear();
-  // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
-  delete window.location;
-  Object.defineProperty(window, 'location', {
+  Object.defineProperty(WINDOW, 'location', {
     value: prevLocation,
     writable: true,
   });
@@ -109,10 +108,10 @@ it('flushes twice after multiple flush() calls)', async () => {
   // the following blur events will all call a debounced flush function, which
   // should end up queueing a second flush
 
-  window.dispatchEvent(new Event('blur'));
-  window.dispatchEvent(new Event('blur'));
-  window.dispatchEvent(new Event('blur'));
-  window.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
 
   expect(replay.flush).toHaveBeenCalledTimes(4);
 
@@ -138,7 +137,7 @@ it('long first flush enqueues following events', async () => {
   expect(mockAddPerformanceEntries).not.toHaveBeenCalled();
 
   // flush #1 @ t=0s - due to blur
-  window.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
   expect(replay.flush).toHaveBeenCalledTimes(1);
   expect(replay.runFlush).toHaveBeenCalledTimes(1);
 
@@ -152,7 +151,7 @@ it('long first flush enqueues following events', async () => {
 
   await advanceTimers(1000);
   // flush #3 @ t=6s - due to blur
-  window.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
   expect(replay.flush).toHaveBeenCalledTimes(3);
 
   // NOTE: Blur also adds a breadcrumb which calls `addUpdate`, meaning it will
@@ -161,7 +160,7 @@ it('long first flush enqueues following events', async () => {
   expect(replay.flush).toHaveBeenCalledTimes(3);
 
   // flush #4 @ t=14s - due to blur
-  window.dispatchEvent(new Event('blur'));
+  WINDOW.dispatchEvent(new Event('blur'));
   expect(replay.flush).toHaveBeenCalledTimes(4);
 
   expect(replay.runFlush).toHaveBeenCalledTimes(1);

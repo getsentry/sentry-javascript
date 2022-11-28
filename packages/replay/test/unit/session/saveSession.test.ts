@@ -1,13 +1,15 @@
+import { WINDOW } from '@sentry/browser';
+
 import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
 
 beforeAll(() => {
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
 });
 
 afterEach(() => {
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
 });
 
 it('saves a valid session', function () {
@@ -23,5 +25,5 @@ it('saves a valid session', function () {
   );
   saveSession(session);
 
-  expect(window.sessionStorage.getItem(REPLAY_SESSION_KEY)).toEqual(JSON.stringify(session));
+  expect(WINDOW.sessionStorage.getItem(REPLAY_SESSION_KEY)).toEqual(JSON.stringify(session));
 });

@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import * as Sentry from '@sentry/core';
 
 import { createSession } from '../../../src/session/createSession';
@@ -17,7 +18,7 @@ type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 const captureEventMock: CaptureEventMockType = jest.fn();
 
 beforeAll(() => {
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
   jest.spyOn(Sentry, 'getCurrentHub');
   (Sentry.getCurrentHub as jest.Mock).mockImplementation(() => ({
     captureEvent: captureEventMock,
