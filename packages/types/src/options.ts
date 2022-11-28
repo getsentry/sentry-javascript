@@ -191,6 +191,24 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   };
 
   /**
+   * A pattern for error URLs which should exclusively be sent to Sentry.
+   * This is the opposite of {@link Options.denyUrls}.
+   * By default, all errors will be sent.
+   *
+   * Requires the use of the `InboundFilters` integration.
+   */
+  allowUrls?: Array<string | RegExp>;
+
+  /**
+   * A pattern for error URLs which should not be sent to Sentry.
+   * To allow certain errors instead, use {@link Options.allowUrls}.
+   * By default, all errors will be sent.
+   *
+   * Requires the use of the `InboundFilters` integration.
+   */
+  denyUrls?: Array<string | RegExp>;
+
+  /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
    *
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is
