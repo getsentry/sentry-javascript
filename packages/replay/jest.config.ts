@@ -13,5 +13,11 @@ export default async (): Promise<Config.InitialOptions> => {
     setupFilesAfterEnv: ['./jest.setup.ts'],
     testEnvironment: 'jsdom',
     testMatch: ['<rootDir>/test/**/*(*.)@(spec|test).ts'],
+    globals: {
+      'ts-jest': {
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+      __DEBUG_BUILD__: true,
+    },
   };
 };
