@@ -1,3 +1,5 @@
+import type { record as rrwebRecord } from 'rrweb';
+
 import { RecordingEvent } from '../../src/types';
 
 type RecordAdditionalProperties = {
@@ -12,7 +14,7 @@ type RecordAdditionalProperties = {
   _emitter: (event: RecordingEvent, ...args: any[]) => void;
 };
 
-export type RecordMock = jest.MockedFunction<typeof rrweb.record> & RecordAdditionalProperties;
+export type RecordMock = jest.MockedFunction<typeof rrwebRecord> & RecordAdditionalProperties;
 
 function createCheckoutPayload(isCheckout: boolean = true) {
   return {
@@ -22,8 +24,7 @@ function createCheckoutPayload(isCheckout: boolean = true) {
   };
 }
 
-jest.mock('rrweb', () => {
-  const ActualRrweb = jest.requireActual('rrweb');
+export function mockRrweb(): { record: RecordMock } {
   const mockRecordFn: jest.Mock & Partial<RecordAdditionalProperties> = jest.fn(({ emit }) => {
     mockRecordFn._emitter = emit;
 
@@ -40,17 +41,16 @@ jest.mock('rrweb', () => {
     mockRecordFn._emitter(createCheckoutPayload(isCheckout), isCheckout);
   });
 
-  return {
-    ...ActualRrweb,
-    record: mockRecordFn,
-  };
-});
+  jest.mock('rrweb', () => {
+    const ActualRrweb = jest.requireActual('rrweb');
 
-// XXX: Intended to be after `mock('rrweb')`
-import * as rrweb from 'rrweb';
+    return {
+      ...ActualRrweb,
+      record: mockRecordFn,
+    };
+  });
 
-export function mockRrweb(): { record: RecordMock } {
   return {
-    record: rrweb.record as RecordMock,
+    record: mockRecordFn as RecordMock,
   };
 }
