@@ -1,6 +1,7 @@
+import { logger } from '@sentry/utils';
+
 import { SessionOptions } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
-import { logger } from '../util/logger';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { Session } from './Session';
@@ -39,7 +40,7 @@ export function getSession({
     if (!isExpired) {
       return { type: 'saved', session };
     } else {
-      logger.log('Session has expired');
+      __DEBUG_BUILD__ && logger.log('[Replay] Session has expired');
     }
     // Otherwise continue to create a new session
   }

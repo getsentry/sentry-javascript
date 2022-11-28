@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
-import { addInstrumentationHandler, createEnvelope } from '@sentry/utils';
+import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
@@ -40,7 +40,6 @@ import { createPayload } from './util/createPayload';
 import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { logger } from './util/logger';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -300,7 +299,7 @@ export class Replay implements Integration {
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
   }
@@ -315,14 +314,14 @@ export class Replay implements Integration {
     }
 
     try {
-      logger.log('Stopping Replays');
+      __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
       this.isEnabled = false;
       this.removeListeners();
       this.stopRecording?.();
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
   }
@@ -340,7 +339,7 @@ export class Replay implements Integration {
         this.stopRecording = undefined;
       }
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
   }
@@ -361,7 +360,7 @@ export class Replay implements Integration {
       deleteSession();
       this.session = undefined;
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
   }
@@ -437,7 +436,7 @@ export class Replay implements Integration {
         this.hasInitializedCoreListeners = true;
       }
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
 
@@ -487,7 +486,7 @@ export class Replay implements Integration {
         this.performanceObserver = null;
       }
     } catch (err) {
-      logger.error(err);
+      __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
   }
@@ -599,7 +598,7 @@ export class Replay implements Integration {
   ) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!this.checkAndHandleExpiredSession()) {
-      logger.error(new Error('Received replay event after session expired.'));
+      __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
 
       return;
     }
@@ -827,7 +826,7 @@ export class Replay implements Integration {
       // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
       // ms, we will re-use the existing session, otherwise create a new
       // session
-      logger.log('Document has become active, but session has expired');
+      __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');
       return;
     }
 
@@ -841,7 +840,7 @@ export class Replay implements Integration {
    * create a new Replay event.
    */
   triggerFullSnapshot(): void {
-    logger.log('Taking full rrweb snapshot');
+    __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
     record.takeFullSnapshot(true);
   }
 
@@ -1131,12 +1130,12 @@ export class Replay implements Integration {
     }
 
     if (!this.checkAndHandleExpiredSession()) {
-      logger.error(new Error('Attempting to finish replay event after session expired.'));
+      __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
       return;
     }
 
     if (!this.session?.id) {
-      console.error(new Error('[Sentry]: No transaction, no replay'));
+      console.error('[Replay]: No transaction, no replay');
       return;
     }
 

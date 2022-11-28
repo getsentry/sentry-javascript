@@ -2,9 +2,9 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
+import { logger } from '@sentry/utils';
 
 import { RecordingEvent, WorkerRequest, WorkerResponse } from './types';
-import { logger } from './util/logger';
 import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
@@ -17,7 +17,7 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
     const workerUrl = URL.createObjectURL(workerBlob);
 
     try {
-      logger.log('Using compression worker');
+      __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
       const worker = new Worker(workerUrl);
       if (worker) {
         return new EventBufferCompressionWorker(worker);
@@ -27,10 +27,10 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
     } catch {
       // catch and ignore, fallback to simple event buffer
     }
-    logger.log('Falling back to simple event buffer');
+    __DEBUG_BUILD__ && logger.log('[Replay] Falling back to simple event buffer');
   }
 
-  logger.log('Using simple buffer');
+  __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
   return new EventBufferArray();
 }
 
@@ -116,7 +116,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
 
         if (!data.success) {
           // TODO: Do some error handling, not sure what
-          logger.error(data.response);
+          __DEBUG_BUILD__ && logger.error('[Replay]', data.response);
 
           reject(new Error('Error in compression worker'));
           return;
@@ -142,11 +142,11 @@ export class EventBufferCompressionWorker implements IEventBuffer {
 
   init(): void {
     this.postMessage({ id: this.id, method: 'init', args: [] });
-    logger.log('Initialized compression worker');
+    __DEBUG_BUILD__ && logger.log('[Replay] Initialized compression worker');
   }
 
   destroy(): void {
-    logger.log('Destroying compression worker');
+    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
     this.worker?.terminate();
     this.worker = null;
   }
