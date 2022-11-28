@@ -6,6 +6,7 @@ import {
   addInstrumentationHandler,
   getEventDescription,
   htmlTreeAsString,
+  logger,
   parseUrl,
   safeJoin,
   severityLevelFromString,
@@ -20,7 +21,6 @@ interface BreadcrumbsOptions {
     | boolean
     | {
         serializeAttribute?: string | string[];
-        /** maxStringLength gets capped at 1024 to prevent 100 breadcrumbs exceeding 1MB event payload size */
         maxStringLength?: number;
       };
   fetch: boolean;
@@ -28,6 +28,9 @@ interface BreadcrumbsOptions {
   sentry: boolean;
   xhr: boolean;
 }
+
+/** maxStringLength gets capped to prevent 100 breadcrumbs exceeding 1MB event payload size */
+const MAX_ALLOWED_STRING_LENGTH = 1024;
 
 export const BREADCRUMB_INTEGRATION_ID = 'Breadcrumbs';
 
@@ -123,10 +126,17 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
   function _innerDomBreadcrumb(handlerData: { [key: string]: any }): void {
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
-    const maxStringLength =
-      typeof dom === 'object' && typeof dom.maxStringLength === 'number'
-        ? Math.min(dom.maxStringLength, 1024)
-        : undefined;
+
+    let maxStringLength =
+      typeof dom === 'object' && typeof dom.maxStringLength === 'number' ? dom.maxStringLength : undefined;
+    if (maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH) {
+      if (__DEBUG_BUILD__) {
+        logger.warn(
+          `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`,
+        );
+      }
+      maxStringLength = MAX_ALLOWED_STRING_LENGTH;
+    }
 
     if (typeof keyAttrs === 'string') {
       keyAttrs = [keyAttrs];
