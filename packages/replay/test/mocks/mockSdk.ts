@@ -1,5 +1,3 @@
-jest.unmock('@sentry/browser');
-
 import { BrowserOptions, init } from '@sentry/browser';
 import { Envelope, Transport } from '@sentry/types';
 
