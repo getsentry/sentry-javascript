@@ -1,5 +1,16 @@
 jest.mock('./../../../src/session/saveSession');
 
+jest.mock('@sentry/browser', () => {
+  return {
+    getCurrentHub: jest.fn(() => {
+      return {
+        captureEvent: jest.fn(),
+        getClient: jest.fn(() => ({ getDsn: jest.fn() })),
+      };
+    }),
+  };
+});
+
 import * as Sentry from '@sentry/browser';
 
 import { saveSession } from '../../../src/session/saveSession';

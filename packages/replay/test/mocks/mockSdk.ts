@@ -1,6 +1,4 @@
-jest.unmock('@sentry/browser');
-
-import { BrowserOptions, init } from '@sentry/browser';
+import type { BrowserOptions } from '@sentry/browser';
 import { Envelope, Transport } from '@sentry/types';
 
 import { Replay as ReplayClass } from '../../src';
@@ -49,6 +47,8 @@ export async function mockSdk({
     transport: () => new MockTransport(),
   },
 }: MockSdkParams = {}): Promise<{ replay: ReplayClass }> {
+  const { init } = jest.requireActual('@sentry/browser');
+
   const { Replay } = await import('../../src');
   const replay = new Replay(replayOptions);
 
