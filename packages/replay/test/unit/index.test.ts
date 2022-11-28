@@ -6,9 +6,11 @@ import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
+import { EventType } from 'rrweb';
 
 import { Replay } from '../../src';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT } from '../../src/session/constants';
+import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -17,6 +19,77 @@ async function advanceTimers(time: number) {
   jest.advanceTimersByTime(time);
   await new Promise(process.nextTick);
 }
+
+describe('Replay with custom mock', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('calls rrweb.record with custom options', async () => {
+    const { mockRecord } = await resetSdkMock({
+      ignoreClass: 'sentry-test-ignore',
+      stickySession: false,
+      sessionSampleRate: 1.0,
+      errorSampleRate: 0.0,
+    });
+    expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
+      Object {
+        "blockClass": "sentry-block",
+        "blockSelector": "[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
+        "emit": [Function],
+        "ignoreClass": "sentry-test-ignore",
+        "maskAllInputs": true,
+        "maskTextClass": "sentry-mask",
+        "maskTextSelector": "*",
+      }
+    `);
+  });
+
+  describe('auto save session', () => {
+    test.each([
+      ['with stickySession=true', true, 1],
+      ['with stickySession=false', false, 0],
+    ])('%s', async (_: string, stickySession: boolean, addSummand: number) => {
+      let saveSessionSpy;
+
+      jest.mock('../../src/session/saveSession', () => {
+        saveSessionSpy = jest.fn();
+
+        return {
+          saveSession: saveSessionSpy,
+        };
+      });
+
+      const { replay } = await resetSdkMock({
+        stickySession,
+        sessionSampleRate: 1.0,
+        errorSampleRate: 0.0,
+      });
+
+      // Initially called up to three times: once for start, then once for replay.updateSessionActivity & once for segmentId increase
+      expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 3);
+
+      replay.updateSessionActivity();
+
+      expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 4);
+
+      // In order for runFlush to actually do something, we need to add an event
+      const event = {
+        type: EventType.Custom,
+        data: {
+          tag: 'test custom',
+        },
+        timestamp: new Date().valueOf(),
+      } as RecordingEvent;
+
+      replay.addEvent(event);
+
+      await replay.runFlush();
+
+      expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 5);
+    });
+  });
+});
 
 describe('Replay', () => {
   let replay: Replay;
@@ -38,7 +111,7 @@ describe('Replay', () => {
     ({ mockRecord, mockTransportSend, domHandler, replay, spyCaptureException } = await resetSdkMock({
       sessionSampleRate: 1.0,
       errorSampleRate: 0.0,
-      stickySession: true,
+      stickySession: false,
     }));
 
     jest.spyOn(replay, 'flush');
@@ -66,23 +139,6 @@ describe('Replay', () => {
     mockSendReplayRequest.mockRestore();
     mockRecord.takeFullSnapshot.mockClear();
     replay.stop();
-  });
-
-  it('calls rrweb.record with custom options', async () => {
-    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
-      ignoreClass: 'sentry-test-ignore',
-    }));
-    expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
-      Object {
-        "blockClass": "sentry-block",
-        "blockSelector": "[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
-        "emit": [Function],
-        "ignoreClass": "sentry-test-ignore",
-        "maskAllInputs": true,
-        "maskTextClass": "sentry-mask",
-        "maskTextSelector": "*",
-      }
-    `);
   });
 
   it('should have a session after setup', () => {

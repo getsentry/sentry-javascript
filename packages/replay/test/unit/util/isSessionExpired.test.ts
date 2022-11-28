@@ -9,7 +9,7 @@ function createSession(extra?: Record<string, any>) {
       segmentId: 0,
       ...extra,
     },
-    { stickySession: false, sessionSampleRate: 1.0, errorSampleRate: 0 },
+    { sessionSampleRate: 1.0, errorSampleRate: 0 },
   );
 }
 

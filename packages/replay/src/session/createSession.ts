@@ -11,7 +11,6 @@ import { Session } from './Session';
  */
 export function createSession({ sessionSampleRate, errorSampleRate, stickySession = false }: SessionOptions): Session {
   const session = new Session(undefined, {
-    stickySession,
     errorSampleRate,
     sessionSampleRate,
   });

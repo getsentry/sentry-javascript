@@ -1,10 +1,7 @@
 import { uuid4 } from '@sentry/utils';
 
-import { SampleRates, SessionOptions } from '../types';
+import { SampleRates } from '../types';
 import { isSampled } from '../util/isSampled';
-import { saveSession } from './saveSession';
-
-type StickyOption = Required<Pick<SessionOptions, 'stickySession'>>;
 
 type Sampled = false | 'session' | 'error';
 
@@ -33,106 +30,44 @@ interface SessionObject {
 }
 
 export class Session {
-  public readonly options: StickyOption;
-
   /**
    * Session ID
    */
-  private _id: string;
+  public readonly id: string;
 
   /**
    * Start time of current session
    */
-  private _started: number;
+  public started: number;
 
   /**
    * Last known activity of the session
    */
-  private _lastActivity: number;
+  public lastActivity: number;
 
   /**
    * Sequence ID specific to replay updates
    */
-  private _segmentId: number;
+  public segmentId: number;
 
   /**
    * Previous session ID
    */
-  private _previousSessionId: string | undefined;
+  public previousSessionId: string | undefined;
 
   /**
    * Is the Session sampled?
    */
-  private _sampled: Sampled;
+  public readonly sampled: Sampled;
 
-  public constructor(
-    session: Partial<SessionObject> = {},
-    { stickySession, sessionSampleRate, errorSampleRate }: StickyOption & SampleRates,
-  ) {
+  public constructor(session: Partial<SessionObject> = {}, { sessionSampleRate, errorSampleRate }: SampleRates) {
     const now = new Date().getTime();
-    this._id = session.id || uuid4();
-    this._started = session.started ?? now;
-    this._lastActivity = session.lastActivity ?? now;
-    this._segmentId = session.segmentId ?? 0;
-    this._sampled =
+    this.id = session.id || uuid4();
+    this.started = session.started ?? now;
+    this.lastActivity = session.lastActivity ?? now;
+    this.segmentId = session.segmentId ?? 0;
+    this.sampled =
       session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
-
-    this.options = {
-      stickySession,
-    };
-  }
-
-  get id(): string {
-    return this._id;
-  }
-
-  get started(): number {
-    return this._started;
-  }
-
-  set started(newDate: number) {
-    this._started = newDate;
-    if (this.options.stickySession) {
-      saveSession(this);
-    }
-  }
-
-  get lastActivity(): number {
-    return this._lastActivity;
-  }
-
-  set lastActivity(newDate: number) {
-    this._lastActivity = newDate;
-    if (this.options.stickySession) {
-      saveSession(this);
-    }
-  }
-
-  get segmentId(): number {
-    return this._segmentId;
-  }
-
-  set segmentId(id: number) {
-    this._segmentId = id;
-    if (this.options.stickySession) {
-      saveSession(this);
-    }
-  }
-
-  get previousSessionId(): string | undefined {
-    return this._previousSessionId;
-  }
-
-  set previousSessionId(id: string | undefined) {
-    this._previousSessionId = id;
-  }
-
-  get sampled(): Sampled {
-    return this._sampled;
-  }
-
-  set sampled(_isSampled: Sampled) {
-    throw new Error('Unable to change sampled value');
   }
 
   toJSON(): SessionObject {
@@ -140,8 +75,8 @@ export class Session {
       id: this.id,
       started: this.started,
       lastActivity: this.lastActivity,
-      segmentId: this._segmentId,
-      sampled: this._sampled,
+      segmentId: this.segmentId,
+      sampled: this.sampled,
     } as SessionObject;
   }
 }
