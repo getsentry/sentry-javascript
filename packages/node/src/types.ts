@@ -56,4 +56,6 @@ export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOpti
  * Configuration options for the Sentry Node SDK Client class
  * @see NodeClient for more information.
  */
-export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {}
+export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {
+  profilesSampleRate?: number;
+}
