@@ -69,6 +69,7 @@ module.exports = [
     path: 'packages/replay/build/npm/dist/index.js',
     gzip: true,
     limit: '100 KB',
+    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
   },
   {
     name: '@sentry/replay - Webpack (gzipped + minified)',
@@ -76,6 +77,7 @@ module.exports = [
     import: '{ Replay }',
     gzip: true,
     limit: '100 KB',
+    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
   },
   {
     name: '@sentry/replay - Webpack (minified)',
@@ -83,5 +85,6 @@ module.exports = [
     import: '{ Replay }',
     gzip: false,
     limit: '300 KB',
+    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
   },
 ];
