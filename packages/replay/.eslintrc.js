@@ -68,7 +68,7 @@ module.exports = {
       },
     },
     {
-      files: ['jest.setup.ts', 'jest.config.ts'],
+      files: ['jest.setup.ts', 'jest.config.js'],
       parserOptions: {
         project: ['tsconfig.test.json'],
       },

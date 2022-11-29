@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
+  "include": ["test/**/*.ts", "jest.config.js", "jest.setup.ts"],
 
   "compilerOptions": {
     "paths": {
