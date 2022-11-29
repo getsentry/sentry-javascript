@@ -12,7 +12,7 @@ const config = defineConfig({
     format: 'esm',
   },
   plugins: [
-    typescript({ tsconfig: './config/tsconfig.worker.json' }),
+    typescript({ tsconfig: './tsconfig.worker.json' }),
     resolve(),
     terser({
       mangle: {

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
+
+  "compilerOptions": {
+    "paths": {
+      "@test": ["./test"],
+      "@test/*": ["./test/*"]
+    },
+    "baseUrl": ".",
+    "rootDir": ".",
+    "types": ["node", "jest"],
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictPropertyInitialization": false,
+    "resolveJsonModule": true,
+    "allowJs": true
+  }
+}
