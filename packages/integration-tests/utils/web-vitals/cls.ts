@@ -25,7 +25,7 @@ async function moveBy(elem: HTMLParagraphElement, percent: number): Promise<void
   if (elem.getAttribute('id') === 'partial') {
     const max = Number(elem.getAttribute('max-steps'));
     let current = Number(elem.getAttribute('steps'));
-    current += 1;
+    current++;
     if (current > max) {
       return;
     }
@@ -52,7 +52,7 @@ function howMany(desiredCls: number): { extraSteps: number; createParagraphs: nu
   const extraSteps = Math.round((desiredCls - fullRuns * 0.095) / 0.005);
   let create = fullRuns;
   if (extraSteps > 0) {
-    create += 1;
+    create++;
   }
 
   return { extraSteps: extraSteps, createParagraphs: create };

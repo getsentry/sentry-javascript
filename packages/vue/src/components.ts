@@ -61,7 +61,7 @@ export const generateComponentTrace = (vm?: ViewModel): string => {
         const last = tree[tree.length - 1] as any;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (last.constructor === vm.constructor) {
-          currentRecursiveSequence += 1;
+          currentRecursiveSequence++;
           vm = vm.$parent; // eslint-disable-line no-param-reassign
           continue;
         } else if (currentRecursiveSequence > 0) {

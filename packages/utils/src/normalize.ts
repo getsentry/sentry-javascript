@@ -147,7 +147,7 @@ function visit(
     const visitValue = visitable[visitKey];
     normalized[visitKey] = visit(visitKey, visitValue, depth - 1, maxProperties, memo);
 
-    numAdded += 1;
+    numAdded++;
   }
 
   // Once we've visited all the branches, remove the parent from memo storage

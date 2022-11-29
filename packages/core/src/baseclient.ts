@@ -714,14 +714,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Occupies the client with processing and event
    */
   protected _process<T>(promise: PromiseLike<T>): void {
-    this._numProcessing += 1;
+    this._numProcessing++;
     void promise.then(
       value => {
-        this._numProcessing -= 1;
+        this._numProcessing--;
         return value;
       },
       reason => {
-        this._numProcessing -= 1;
+        this._numProcessing--;
         return reason;
       },
     );

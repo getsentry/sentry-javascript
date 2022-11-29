@@ -247,7 +247,7 @@ function _createWrappedRequestMethodFactory(
 
           const transaction = parentSpan.transaction;
           if (transaction) {
-            transaction.metadata.propagations += 1;
+            transaction.metadata.propagations++;
           }
         }
       }
