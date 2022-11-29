@@ -142,17 +142,3 @@ expect.extend({
   toHaveSameSession,
   toHaveSentReplay,
 });
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace jest {
-    interface AsymmetricMatchers {
-      toHaveSentReplay(expected?: SentReplayExpected): void;
-      toHaveSameSession(expected: undefined | Session): void;
-    }
-    interface Matchers<R> {
-      toHaveSentReplay(expected?: SentReplayExpected): R;
-      toHaveSameSession(expected: undefined | Session): R;
-    }
-  }
-}
