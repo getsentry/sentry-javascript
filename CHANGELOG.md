@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.22.0
+
+- feat(core): Pass `event` as third argument to `recordDroppedEvent` (#6289)
+- fix(nextjs): Apply Webpack configuration in dev mode (#6291)
+- fix(react): Relax React Router 6 `RouteObject` typing. (#6274)
+- fix(remix): Prevent crashes from failed `normalizeRemixRequest` calls. (#6296)
+- fix(remix): Attempt to extract user IP from request headers. (#6263)
+- fix(remix): Pass transaction name as route to `RequestData`. (#6276)
+
 ## 7.21.1
 
 - fix(nextjs): Stop excluding `withSentryConfig` from serverless bundles (#6267)
