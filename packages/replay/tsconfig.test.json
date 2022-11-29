@@ -13,6 +13,8 @@
     "types": ["node", "jest"],
     "noImplicitAny": false,
     "noImplicitThis": false,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "resolveJsonModule": true,
+    "allowJs": true
   }
 }

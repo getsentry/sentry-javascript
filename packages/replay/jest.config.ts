@@ -3,10 +3,14 @@ import { pathsToModuleNameMapper } from 'ts-jest';
 
 import { compilerOptions } from './tsconfig.test.json';
 
+import { jsWithTs as jsWithTsPreset } from 'ts-jest/presets';
+
 export default async (): Promise<Config.InitialOptions> => {
+  console.log(jsWithTsPreset);
+
   return {
+    ...jsWithTsPreset,
     verbose: true,
-    preset: 'ts-jest/presets/js-with-ts', // needed when import worker.js
     globals: {
       'ts-jest': {
         tsconfig: '<rootDir>/tsconfig.test.json',
