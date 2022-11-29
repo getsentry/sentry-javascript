@@ -10,6 +10,12 @@ global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
+jest.mock('./src/util/isBrowser', () => {
+  return {
+    isBrowser: () => true,
+  };
+});
+
 afterEach(() => {
   const hub = getCurrentHub();
   if (typeof hub?.getClient !== 'function') {
