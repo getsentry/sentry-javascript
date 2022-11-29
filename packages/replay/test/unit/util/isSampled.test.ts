@@ -1,7 +1,7 @@
 import { isSampled } from '../../../src/util/isSampled';
 
 // Note Math.random generates a value from 0 (inclusive) to <1 (1 exclusive).
-const cases = [
+const cases: [number, number, boolean][] = [
   [1.0, 0.9999, true],
   [1.0, 0.0, true],
   [1.0, 0.5, true],
