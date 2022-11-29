@@ -9,7 +9,7 @@ export class Compressor {
   /**
    * Number of added events
    */
-  public added: number;
+  public added: number = 0;
 
   public constructor() {
     this.init();
