@@ -65,8 +65,6 @@ module.exports = {
         '@typescript-eslint/no-floating-promises': 'off',
         // TODO (medium-prio): Re-enable this after migration
         'jsdoc/require-jsdoc': 'off',
-        // TODO: Do we even want to turn this on? Why not enable ++?
-        'no-plusplus': 'off',
       },
     },
     {

@@ -69,7 +69,7 @@ async function getMultipleRequests(
     function requestHandler(request: Request): void {
       if (urlRgx.test(request.url())) {
         try {
-          reqCount -= 1;
+          reqCount--;
           requestData.push(requestParser(request));
 
           if (reqCount === 0) {

@@ -22,7 +22,7 @@ describe('useEffect', () => {
     onClientEntry(undefined, {
       beforeSend: (event: any) => {
         expect(event).not.toBeUndefined();
-        calls += 1;
+        calls++;
 
         return null;
       },

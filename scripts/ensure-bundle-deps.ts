@@ -74,7 +74,7 @@ export async function ensureBundleBuildPrereqs(options: {
 
     while (retries < maxRetries && !checkForBundleDeps(packagesDir, dependencyDirs)) {
       console.log('Bundle dependencies not found. Trying again in 5 seconds.');
-      retries += 1;
+      retries++;
       await sleep(5000);
     }
 

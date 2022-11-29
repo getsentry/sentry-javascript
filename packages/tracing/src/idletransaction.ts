@@ -265,7 +265,7 @@ export class IdleTransaction extends Transaction {
     const heartbeatString = Object.keys(this.activities).join('');
 
     if (heartbeatString === this._prevHeartbeatString) {
-      this._heartbeatCounter += 1;
+      this._heartbeatCounter++;
     } else {
       this._heartbeatCounter = 1;
     }

@@ -25,9 +25,9 @@ export function shouldIgnoreOnError(): boolean {
  */
 export function ignoreNextOnError(): void {
   // onerror should trigger before setTimeout
-  ignoreOnError += 1;
+  ignoreOnError++;
   setTimeout(() => {
-    ignoreOnError -= 1;
+    ignoreOnError--;
   });
 }
 
