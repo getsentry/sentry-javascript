@@ -98,13 +98,14 @@ export function init(options: BrowserOptions = {}): void {
     options.defaultIntegrations = defaultIntegrations;
   }
   if (options.release === undefined) {
+    // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+    if (typeof __SENTRY_RELEASE__ === 'string') {
+      options.release = __SENTRY_RELEASE__;
+    }
+
     // This supports the variable that sentry-webpack-plugin injects
     if (WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id) {
       options.release = WINDOW.SENTRY_RELEASE.id;
-    }
-
-    if (typeof __SENTRY_RELEASE__ === 'string') {
-      options.release = __SENTRY_RELEASE__;
     }
   }
   if (options.autoSessionTracking === undefined) {
