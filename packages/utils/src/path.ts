@@ -11,18 +11,15 @@ function normalizeArray(parts: string[], allowAboveRoot?: boolean): string[] {
       parts.splice(i, 1);
     } else if (last === '..') {
       parts.splice(i, 1);
-      // eslint-disable-next-line no-plusplus
       up++;
     } else if (up) {
       parts.splice(i, 1);
-      // eslint-disable-next-line no-plusplus
       up--;
     }
   }
 
   // if the path is allowed to go above the root, restore leading ..s
   if (allowAboveRoot) {
-    // eslint-disable-next-line no-plusplus
     for (; up--; up) {
       parts.unshift('..');
     }

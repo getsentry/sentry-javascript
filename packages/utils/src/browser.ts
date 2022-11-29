@@ -30,7 +30,6 @@ export function htmlTreeAsString(elem: unknown, keyAttrs?: string[]): string {
     const sepLength = separator.length;
     let nextStr;
 
-    // eslint-disable-next-line no-plusplus
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
       nextStr = _htmlElementAsString(currentElem, keyAttrs);
       // bail out if

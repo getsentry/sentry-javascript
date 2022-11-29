@@ -196,9 +196,6 @@ module.exports = {
   ],
 
   rules: {
-    // We want to prevent usage of unary operators outside of for loops
-    'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
-
     // Disallow usage of console and alert
     'no-console': 'error',
     'no-alert': 'error',

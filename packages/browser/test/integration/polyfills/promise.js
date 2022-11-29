@@ -102,7 +102,6 @@
     observer.observe(node, { characterData: true });
 
     return function () {
-      // eslint-disable-next-line no-plusplus
       node.data = iterations = ++iterations % 2;
     };
   }
