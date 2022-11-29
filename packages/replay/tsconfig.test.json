@@ -4,6 +4,17 @@
   "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
 
   "compilerOptions": {
-    "types": ["node", "jest"]
+    "paths": {
+      "@test": ["./test"],
+      "@test/*": ["./test/*"]
+    },
+    "baseUrl": ".",
+    "rootDir": ".",
+    "types": ["node", "jest"],
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictPropertyInitialization": false,
+    "resolveJsonModule": true,
+    "allowJs": true
   }
 }
