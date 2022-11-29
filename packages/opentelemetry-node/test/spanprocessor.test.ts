@@ -458,6 +458,21 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
+    it('adds transaction source `route` for root path HTTP_TARGET', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /', otelSpan => {
+        const sentrySpan = getSpanForOtelSpan(otelSpan);
+
+        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute(SemanticAttributes.HTTP_TARGET, '/');
+
+        otelSpan.end();
+
+        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+      });
+    });
+
     it('adds transaction source `url` for HTTP_ROUTE', async () => {
       const tracer = provider.getTracer('default');
 
