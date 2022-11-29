@@ -32,6 +32,11 @@ export const defaultIntegrations = [
 ];
 
 /**
+ * A magic string that build tooling can leverage in order to inject a release value into the SDK.
+ */
+declare const __SENTRY_RELEASE__: string | undefined;
+
+/**
  * The Sentry Browser SDK Client.
  *
  * To use this SDK, call the {@link init} function as early as possible when
@@ -96,6 +101,10 @@ export function init(options: BrowserOptions = {}): void {
     // This supports the variable that sentry-webpack-plugin injects
     if (WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id) {
       options.release = WINDOW.SENTRY_RELEASE.id;
+    }
+
+    if (typeof __SENTRY_RELEASE__ === 'string') {
+      options.release = __SENTRY_RELEASE__;
     }
   }
   if (options.autoSessionTracking === undefined) {

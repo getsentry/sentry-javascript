@@ -26,8 +26,6 @@ exports.onClientEntry = function (_, pluginParams) {
 
   Sentry.init({
     // eslint-disable-next-line no-undef
-    release: __SENTRY_RELEASE__,
-    // eslint-disable-next-line no-undef
     dsn: __SENTRY_DSN__,
     ...pluginParams,
   });
