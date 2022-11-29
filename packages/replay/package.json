@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "0.6.14",
+  "version": "7.22.0",
   "description": "User replays for Sentry",
   "main": "build/npm/dist/index.js",
   "module": "build/npm/dist/index.es.js",
@@ -45,7 +45,7 @@
   "homepage": "https://github.com/getsentry/sentry-replay#readme",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry/browser": "7.21.1",
+    "@sentry/browser": "7.22.0",
     "@types/lodash.debounce": "^4.0.7",
     "@types/lodash.throttle": "^4.1.7",
     "@types/pako": "^2.0.0",
@@ -54,9 +54,9 @@
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@sentry/core": "7.21.1",
-    "@sentry/types": "7.21.1",
-    "@sentry/utils": "7.21.1",
+    "@sentry/core": "7.22.0",
+    "@sentry/types": "7.22.0",
+    "@sentry/utils": "7.22.0",
     "lodash.debounce": "^4.0.8",
     "rrweb": "^1.1.3"
   },
