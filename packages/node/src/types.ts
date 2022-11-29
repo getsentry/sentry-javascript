@@ -57,5 +57,8 @@ export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOpti
  * @see NodeClient for more information.
  */
 export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {
+  /**
+   * Sets profiling sample rate when @sentry/profiling-node is installed
+   */
   profilesSampleRate?: number;
 }
