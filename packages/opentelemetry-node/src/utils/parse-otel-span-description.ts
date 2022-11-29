@@ -98,7 +98,9 @@ function descriptionForHttpMethod(otelSpan: OtelSpan, httpMethod: AttributeValue
 
   // Ex. description="GET /api/users".
   const description = `${httpMethod} ${httpPath}`;
-  const source: TransactionSource = httpRoute ? 'route' : 'url';
+
+  // If `httpPath` is a root path, then we can categorize the transaction source as route.
+  const source: TransactionSource = httpRoute || httpPath === '/' ? 'route' : 'url';
 
   return { op: opParts.join('.'), description, source };
 }
