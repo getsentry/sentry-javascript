@@ -38,7 +38,7 @@ describe('onClientEntry', () => {
 
   it.each([
     [{}, ['dsn', 'release']],
-    [{ key: 'value' }, ['dsn', 'release', 'key']],
+    [{ key: 'value' }, ['dsn', 'key']],
   ])('inits Sentry by default', (pluginParams, expectedKeys) => {
     onClientEntry(undefined, pluginParams);
     expect(sentryInit).toHaveBeenCalledTimes(1);
