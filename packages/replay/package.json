@@ -60,6 +60,9 @@
     "lodash.debounce": "^4.0.8",
     "rrweb": "^1.1.3"
   },
+  "peerDependencies": {
+    "@sentry/browser": "7.22.0"
+  },
   "engines": {
     "node": ">=12"
   },

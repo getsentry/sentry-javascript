@@ -1,3 +1,5 @@
+import { WINDOW } from '@sentry/browser';
+
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
@@ -32,11 +34,11 @@ function createMockSession(when: number = new Date().getTime()) {
 beforeAll(() => {
   jest.spyOn(CreateSession, 'createSession');
   jest.spyOn(FetchSession, 'fetchSession');
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
 });
 
 afterEach(() => {
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
   (CreateSession.createSession as jest.MockedFunction<typeof CreateSession.createSession>).mockClear();
   (FetchSession.fetchSession as jest.MockedFunction<typeof FetchSession.fetchSession>).mockClear();
 });

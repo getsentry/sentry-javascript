@@ -12,6 +12,7 @@ interface CreateEventBufferParams {
 }
 
 export function createEventBuffer({ useCompression }: CreateEventBufferParams): IEventBuffer {
+  // eslint-disable-next-line no-restricted-globals
   if (useCompression && window.Worker) {
     const workerBlob = new Blob([workerString]);
     const workerUrl = URL.createObjectURL(workerBlob);

@@ -19,7 +19,7 @@ const config = defineConfig({
       format: 'esm',
     },
   ],
-  external: [...Object.keys(pkg.dependencies || {})],
+  external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
   plugins: [
     typescript({
       tsconfig: IS_PRODUCTION ? './config/tsconfig.core.json' : './tsconfig.json',

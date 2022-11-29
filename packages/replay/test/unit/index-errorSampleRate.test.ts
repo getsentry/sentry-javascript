@@ -1,6 +1,6 @@
 jest.unmock('@sentry/browser');
 
-import { captureException } from '@sentry/browser';
+import { captureException, WINDOW } from '@sentry/browser';
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
@@ -317,7 +317,7 @@ describe('Replay (errorSampleRate)', () => {
    */
   it('sends a replay after loading the session multiple times', async () => {
     // Pretend that a session is already saved before loading replay
-    window.sessionStorage.setItem(
+    WINDOW.sessionStorage.setItem(
       REPLAY_SESSION_KEY,
       `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
     );

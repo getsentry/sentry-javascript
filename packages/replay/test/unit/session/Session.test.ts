@@ -1,7 +1,10 @@
 jest.mock('./../../../src/session/saveSession');
 
 jest.mock('@sentry/browser', () => {
+  const originalModule = jest.requireActual('@sentry/browser');
+
   return {
+    ...originalModule,
     getCurrentHub: jest.fn(() => {
       return {
         captureEvent: jest.fn(),
@@ -11,24 +14,25 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
+jest.mock('@sentry/utils', () => {
+  const originalModule = jest.requireActual('@sentry/utils');
+
+  return {
+    ...originalModule,
+    uuid4: jest.fn(() => 'test_session_id'),
+  };
+});
+
 import * as Sentry from '@sentry/browser';
+import { WINDOW } from '@sentry/browser';
 
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
 
 type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
-jest.mock('@sentry/browser');
-
-jest.mock('@sentry/utils', () => {
-  return {
-    ...(jest.requireActual('@sentry/utils') as { string: unknown }),
-    uuid4: jest.fn(() => 'test_session_id'),
-  };
-});
-
 beforeEach(() => {
-  window.sessionStorage.clear();
+  WINDOW.sessionStorage.clear();
 });
 
 afterEach(() => {

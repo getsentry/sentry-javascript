@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import * as SentryUtils from '@sentry/utils';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
@@ -10,7 +11,7 @@ useFakeTimers();
 
 describe('Replay - stop', () => {
   let replay: Replay;
-  const prevLocation = window.location;
+  const prevLocation = WINDOW.location;
 
   type MockAddInstrumentationHandler = jest.MockedFunction<typeof SentryUtils.addInstrumentationHandler>;
   const { record: mockRecord } = mockRrweb();
@@ -43,9 +44,7 @@ describe('Replay - stop', () => {
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
-    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
-    delete window.location;
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
     });
@@ -74,7 +73,7 @@ describe('Replay - stop', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveSentReplay();
@@ -104,7 +103,7 @@ describe('Replay - stop', () => {
     };
 
     replay.addEvent(TEST_EVENT);
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).toHaveSentReplay({
@@ -125,7 +124,7 @@ describe('Replay - stop', () => {
   });
 
   it('does not buffer events when stopped', async function () {
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     expect(replay.eventBuffer?.length).toBe(1);
 
     // stop replays
@@ -133,7 +132,7 @@ describe('Replay - stop', () => {
 
     expect(replay.eventBuffer?.length).toBe(undefined);
 
-    window.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
     expect(replay.eventBuffer?.length).toBe(undefined);

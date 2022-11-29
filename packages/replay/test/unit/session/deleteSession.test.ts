@@ -1,7 +1,9 @@
+import { WINDOW } from '@sentry/browser';
+
 import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
 import { deleteSession } from '../../../src/session/deleteSession';
 
-const storageEngine = window.sessionStorage;
+const storageEngine = WINDOW.sessionStorage;
 
 it('deletes a session', function () {
   storageEngine.setItem(

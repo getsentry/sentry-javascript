@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
+import { WINDOW } from '@sentry/browser';
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
@@ -232,7 +233,7 @@ export class Replay implements Integration {
       return;
     }
     // XXX: See method comments above
-    window.setTimeout(() => this.start());
+    setTimeout(() => this.start());
   }
 
   /**
@@ -396,8 +397,8 @@ export class Replay implements Integration {
    * first flush.
    */
   setInitialState(): void {
-    const urlPath = `${window.location.pathname}${window.location.hash}${window.location.search}`;
-    const url = `${window.location.origin}${urlPath}`;
+    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
+    const url = `${WINDOW.location.origin}${urlPath}`;
 
     this.performanceEvents = [];
 
@@ -414,9 +415,9 @@ export class Replay implements Integration {
    */
   addListeners(): void {
     try {
-      document.addEventListener('visibilitychange', this.handleVisibilityChange);
-      window.addEventListener('blur', this.handleWindowBlur);
-      window.addEventListener('focus', this.handleWindowFocus);
+      WINDOW.document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      WINDOW.addEventListener('blur', this.handleWindowBlur);
+      WINDOW.addEventListener('focus', this.handleWindowFocus);
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this.hasInitializedCoreListeners) {
@@ -440,7 +441,7 @@ export class Replay implements Integration {
     }
 
     // PerformanceObserver //
-    if (!('PerformanceObserver' in window)) {
+    if (!('PerformanceObserver' in WINDOW)) {
       return;
     }
 
@@ -475,10 +476,10 @@ export class Replay implements Integration {
    */
   removeListeners(): void {
     try {
-      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      WINDOW.document.removeEventListener('visibilitychange', this.handleVisibilityChange);
 
-      window.removeEventListener('blur', this.handleWindowBlur);
-      window.removeEventListener('focus', this.handleWindowFocus);
+      WINDOW.removeEventListener('blur', this.handleWindowBlur);
+      WINDOW.removeEventListener('focus', this.handleWindowFocus);
 
       if (this.performanceObserver) {
         this.performanceObserver.disconnect();
@@ -665,7 +666,7 @@ export class Replay implements Integration {
    * page will also trigger a change to a hidden state.
    */
   handleVisibilityChange: () => void = () => {
-    if (document.visibilityState === 'visible') {
+    if (WINDOW.document.visibilityState === 'visible') {
       this.doChangeToForegroundTasks();
     } else {
       this.doChangeToBackgroundTasks();
@@ -980,13 +981,13 @@ export class Replay implements Integration {
   addMemoryEntry(): Promise<void[]> | undefined {
     // window.performance.memory is a non-standard API and doesn't work on all browsers
     // so we check before creating the event.
-    if (!('memory' in window.performance)) {
+    if (!('memory' in WINDOW.performance)) {
       return;
     }
 
     return this.createPerformanceSpans([
       // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
-      createMemoryEntry(window.performance.memory),
+      createMemoryEntry(WINDOW.performance.memory),
     ]);
   }
 
