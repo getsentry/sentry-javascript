@@ -37,7 +37,7 @@ describe('onClientEntry', () => {
   });
 
   it.each([
-    [{}, ['dsn', 'release']],
+    [{}, ['dsn']],
     [{ key: 'value' }, ['dsn', 'key']],
   ])('inits Sentry by default', (pluginParams, expectedKeys) => {
     onClientEntry(undefined, pluginParams);
