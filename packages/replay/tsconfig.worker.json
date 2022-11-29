@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "target": "es5",
+    "target": "es6",
     "declaration": false,
     "lib": ["webworker", "scripthost"],
     "baseUrl": "worker/src",
