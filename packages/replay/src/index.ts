@@ -38,6 +38,7 @@ import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
+import { isBrowser } from './util/isBrowser';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 
@@ -52,8 +53,6 @@ const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
 
 let _initialized = false;
-
-const isBrowser = typeof window !== 'undefined';
 
 export class Replay implements Integration {
   /**
@@ -210,7 +209,7 @@ export class Replay implements Integration {
       maxWait: this.options.flushMaxDelay,
     });
 
-    if (isBrowser && _initialized) {
+    if (isBrowser() && _initialized) {
       const error = new Error('Multiple Sentry Session Replay instances are not supported');
       captureInternalException(error);
       throw error;
@@ -229,7 +228,7 @@ export class Replay implements Integration {
    * here to avoid any future issues.
    */
   setupOnce(): void {
-    if (!isBrowser) {
+    if (!isBrowser()) {
       return;
     }
     // XXX: See method comments above
@@ -243,7 +242,7 @@ export class Replay implements Integration {
    * PerformanceObserver, Recording, Sentry SDK, etc)
    */
   start(): void {
-    if (!isBrowser) {
+    if (!isBrowser()) {
       return;
     }
 
@@ -309,7 +308,7 @@ export class Replay implements Integration {
    * does not support a teardown
    */
   stop(): void {
-    if (!isBrowser) {
+    if (!isBrowser()) {
       return;
     }
 
