@@ -36,6 +36,8 @@ async function run(): Promise<void> {
     await collection.findOne({ title: 'Back to the Future' });
     await collection.updateOne({ title: 'Back to the Future' }, { $set: { title: 'South Park' } });
     await collection.findOne({ title: 'South Park' });
+
+    await collection.find({ title: 'South Park' }).toArray();
   } finally {
     if (transaction) transaction.finish();
     await client.close();
