@@ -39,8 +39,6 @@ module.exports = {
       rules: {
         // TODO (high-prio): Go through console logs and figure out which ones should be replaced with the SDK logger
         'no-console': 'off',
-        // TODO (high-pio): Re-enable this after migration
-        'no-restricted-globals': 'off',
         // TODO (high-prio): Re-enable this after migration
         '@typescript-eslint/explicit-member-accessibility': 'off',
         // TODO (high-prio): Remove this exception from naming convention after migration

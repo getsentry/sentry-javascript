@@ -1,3 +1,5 @@
+import { WINDOW } from '@sentry/browser';
+
 import { isBrowser } from './isBrowser';
 
 /**
@@ -5,5 +7,5 @@ import { isBrowser } from './isBrowser';
  * (e.g. on https://sentry.io )
  */
 export function isInternal(): boolean {
-  return isBrowser() && ['sentry.io', 'dev.getsentry.net'].includes(window.location.host);
+  return isBrowser() && ['sentry.io', 'dev.getsentry.net'].includes(WINDOW.location.host);
 }

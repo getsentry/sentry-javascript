@@ -1,3 +1,4 @@
+import { WINDOW } from '@sentry/browser';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
@@ -60,7 +61,7 @@ function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEn
 function getAbsoluteTime(time: number): number {
   // browserPerformanceTimeOrigin can be undefined if `performance` or
   // `performance.now` doesn't exist, but this is already checked by this integration
-  return ((browserPerformanceTimeOrigin || window.performance.timeOrigin) + time) / 1000;
+  return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
 // TODO: type definition!
