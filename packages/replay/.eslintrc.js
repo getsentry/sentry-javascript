@@ -17,7 +17,7 @@ module.exports = {
     // TODO: Remove these after migration
     'scripts/**',
     '__mocks__/**',
-    'rollup.config*.ts',
+    'rollup.config.worker.js',
   ],
   overrides: [
     {

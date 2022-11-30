@@ -10,15 +10,10 @@ export default makeNPMConfigVariants(
     packageSpecificConfig: {
       external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
       plugins: [
+        // TODO: Remove this - replay version will be in sync w/ SDK version
         replace({
-          // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
-          preventAssignment: false,
           values: {
             __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
-            // // @ts-ignore not gonna deal with types here
-            // __SENTRY_DEBUG__: true,
-            // // @ts-ignore not gonna deal with types here
-            // __DEBUG_BUILD__: true,
           },
         }),
       ],

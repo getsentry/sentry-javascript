@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
-    "build": "yarn build:extras",
+    "build": "yarn build:worker && run-p build:core build:types",
     "build:extras": "NODE_ENV=production yarn build:all",
     "build:dev": "NODE_ENV=development yarn build:all",
     "build:all": "run-s clean build:worker build:core",
