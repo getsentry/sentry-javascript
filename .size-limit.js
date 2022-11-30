@@ -66,14 +66,14 @@ module.exports = [
   // This entry is only here temporarily and will be replaced once we have proper CDN bundles
   {
     name: '@sentry/replay index.js',
-    path: 'packages/replay/build/npm/dist/index.js',
+    path: 'packages/replay/build/npm/esm/index.js',
     gzip: true,
     limit: '100 KB',
     ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
   },
   {
     name: '@sentry/replay - Webpack (gzipped + minified)',
-    path: 'packages/replay/build/npm/dist/index.js',
+    path: 'packages/replay/build/npm/esm/index.js',
     import: '{ Replay }',
     gzip: true,
     limit: '100 KB',
@@ -81,7 +81,7 @@ module.exports = [
   },
   {
     name: '@sentry/replay - Webpack (minified)',
-    path: 'packages/replay/build/npm/dist/index.js',
+    path: 'packages/replay/build/npm/esm/index.js',
     import: '{ Replay }',
     gzip: false,
     limit: '300 KB',
