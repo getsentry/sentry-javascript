@@ -4,7 +4,7 @@
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
-  "types": "build/npm/types/src/index.d.ts",
+  "types": "build/npm/types/index.d.ts",
   "sideEffects": false,
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
