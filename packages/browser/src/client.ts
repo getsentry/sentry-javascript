@@ -1,6 +1,6 @@
-import { BaseClient, getCurrentHub, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
+import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
 import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, getEventDescription, logger, serializeEnvelope } from '@sentry/utils';
+import { createClientReportEnvelope, dsnToString, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -101,27 +101,10 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     // bundles, if it is not used by the SDK.
     // This all sadly is a bit ugly, but we currently don't have a "pre-send" hook on the integrations so we do it this
     // way for now.
-    const breadcrumbIntegration = this.getIntegrationById(BREADCRUMB_INTEGRATION_ID) as Breadcrumbs | null;
-    if (
-      breadcrumbIntegration &&
-      // We check for definedness of `options`, even though it is not strictly necessary, because that access to
-      // `.sentry` below does not throw, in case users provided their own integration with id "Breadcrumbs" that does
-      // not have an`options` field
-      breadcrumbIntegration.options &&
-      breadcrumbIntegration.options.sentry
-    ) {
-      getCurrentHub().addBreadcrumb(
-        {
-          category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
-          event_id: event.event_id,
-          level: event.level,
-          message: getEventDescription(event),
-        },
-        {
-          event,
-        },
-      );
-    }
+    const breadcrumbIntegration = this.getIntegrationById(BREADCRUMB_INTEGRATION_ID) as Breadcrumbs | undefined;
+    // We check for definedness of `addSentryBreadcrumb` in case users provided their own integration with id
+    // "Breadcrumbs" that does not have this function.
+    breadcrumbIntegration?.addSentryBreadcrumb?.(event);
 
     super.sendEvent(event, hint);
   }

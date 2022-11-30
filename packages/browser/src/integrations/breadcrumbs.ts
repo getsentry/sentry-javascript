@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
+  getEventDescription,
   htmlTreeAsString,
   parseUrl,
   safeJoin,
@@ -83,6 +84,25 @@ export class Breadcrumbs implements Integration {
     }
     if (this.options.history) {
       addInstrumentationHandler('history', _historyBreadcrumb);
+    }
+  }
+
+  /**
+   * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
+   */
+  public addSentryBreadcrumb(event: Event): void {
+    if (this.options.sentry) {
+      getCurrentHub().addBreadcrumb(
+        {
+          category: `sentry.${event.type === 'transaction' ? 'transaction' : 'event'}`,
+          event_id: event.event_id,
+          level: event.level,
+          message: getEventDescription(event),
+        },
+        {
+          event,
+        },
+      );
     }
   }
 }
