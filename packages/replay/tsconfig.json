@@ -16,7 +16,6 @@
     "allowJs": true,
     "declaration": true,
     "declarationMap": true,
-    "declarationDir": "./types",
     "strictNullChecks": true,
     "outDir": "./build/npm/dist"
   },

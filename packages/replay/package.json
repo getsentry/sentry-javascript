@@ -18,6 +18,7 @@
     "build:watch": "NODE_ENV=production yarn build:all:watch",
     "build:dev:watch": "NODE_ENV=development yarn build:all:watch",
     "build:all:watch": "yarn clean && run-p \"build:worker --watch\" \"build:core --watch\"",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
     "circularDepCheck": "#TODO comment in after migration: madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
