@@ -4,8 +4,6 @@ import { defineConfig } from 'rollup';
 
 import pkg from './package.json';
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-
 const config = defineConfig({
   input: './src/index.ts',
   output: [
@@ -30,9 +28,8 @@ const config = defineConfig({
       values: {
         __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
         // @ts-ignore not gonna deal with types here
-        __SENTRY_DEBUG__: !IS_PRODUCTION,
-        // @ts-ignore __DEBUG_BUILD__ variable isn't yet replaced correctly at build time so
-        // we need to set this as true.
+        __SENTRY_DEBUG__: true,
+        // @ts-ignore not gonna deal with types here
         __DEBUG_BUILD__: true,
       },
     }),

@@ -12,7 +12,7 @@
     "build:extras": "NODE_ENV=production yarn build:all",
     "build:dev": "NODE_ENV=development yarn build:all",
     "build:all": "run-s clean build:worker build:core",
-    "build:core": "yarn build:actualRollup --config rollup.config.core.js",
+    "build:core": "yarn build:actualRollup --config rollup.npm.config.js",
     "build:worker": "yarn build:actualRollup --config rollup.config.worker.js",
     "build:actualRollup": "rollup",
     "build:watch": "NODE_ENV=production yarn build:all:watch",
