@@ -51,6 +51,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       });
 
       SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
+      scope.setSpan(sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan, parentContext);
       const transaction = hub.startTransaction({
@@ -62,6 +63,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       });
 
       SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, transaction);
+      scope.setSpan(transaction);
     }
   }
 
