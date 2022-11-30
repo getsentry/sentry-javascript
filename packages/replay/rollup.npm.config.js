@@ -12,6 +12,7 @@ export default makeNPMConfigVariants(
       plugins: [
         // TODO: Remove this - replay version will be in sync w/ SDK version
         replace({
+          preventAssignment: true,
           values: {
             __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
           },
