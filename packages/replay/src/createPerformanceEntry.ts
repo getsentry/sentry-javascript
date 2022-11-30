@@ -2,7 +2,7 @@ import { WINDOW } from '@sentry/browser';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
-import { AllPerformanceEntry } from './types';
+import { AllPerformanceEntry, PerformancePaintTiming } from './types';
 import { isIngestHost } from './util/isIngestHost';
 
 export interface ReplayPerformanceEntry {
