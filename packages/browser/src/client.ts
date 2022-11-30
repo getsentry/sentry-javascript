@@ -8,33 +8,17 @@ import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
 
-export interface BaseBrowserOptions {
-  /**
-   * A pattern for error URLs which should exclusively be sent to Sentry.
-   * This is the opposite of {@link Options.denyUrls}.
-   * By default, all errors will be sent.
-   */
-  allowUrls?: Array<string | RegExp>;
-
-  /**
-   * A pattern for error URLs which should not be sent to Sentry.
-   * To allow certain errors instead, use {@link Options.allowUrls}.
-   * By default, all errors will be sent.
-   */
-  denyUrls?: Array<string | RegExp>;
-}
-
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
  */
-export interface BrowserOptions extends Options<BrowserTransportOptions>, BaseBrowserOptions {}
+export type BrowserOptions = Options<BrowserTransportOptions>;
 
 /**
  * Configuration options for the Sentry Browser SDK Client class
  * @see BrowserClient for more information.
  */
-export interface BrowserClientOptions extends ClientOptions<BrowserTransportOptions>, BaseBrowserOptions {}
+export type BrowserClientOptions = ClientOptions<BrowserTransportOptions>;
 
 /**
  * The Sentry Browser SDK Client.
