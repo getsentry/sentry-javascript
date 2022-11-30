@@ -2,7 +2,7 @@ import replace from '@rollup/plugin-replace';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
 
-import pkg from '../package.json';
+import pkg from './package.json';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
