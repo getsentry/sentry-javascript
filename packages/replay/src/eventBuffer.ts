@@ -142,7 +142,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
   }
 
   init(): void {
-    this.postMessage({ id: this.id, method: 'init', args: [] });
+    void this.postMessage({ id: this.id, method: 'init', args: [] });
     __DEBUG_BUILD__ && logger.log('[Replay] Initialized compression worker');
   }
 
