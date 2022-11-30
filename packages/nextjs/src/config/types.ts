@@ -33,6 +33,8 @@ export type NextConfigObject = {
   target?: 'server' | 'experimental-serverless-trace';
   // The output directory for the built app (defaults to ".next")
   distDir?: string;
+  // URL location of `_next/static` directory when hosted on a CDN
+  assetPrefix?: string;
   // The root at which the nextjs app will be served (defaults to "/")
   basePath?: string;
   // Config which will be available at runtime
