@@ -1,5 +1,6 @@
-import { BrowserClient, Breadcrumbs, Hub, flush } from '../../../src';
 import { getCurrentHub } from '@sentry/core';
+
+import { Breadcrumbs, BrowserClient, flush, Hub } from '../../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 const hub = new Hub();
