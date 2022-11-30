@@ -21,6 +21,7 @@ import {
 } from './session/constants';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
+import { saveSession } from './session/saveSession';
 import { Session } from './session/Session';
 import type {
   AllPerformanceEntry,
@@ -637,6 +638,7 @@ export class Replay implements Integration {
       // checkout.
       if (this.waitForError && this.session && this.context.earliestEvent) {
         this.session.started = this.context.earliestEvent;
+        this._maybeSaveSession();
       }
 
       // If the full snapshot is due to an initial load, we will not have
@@ -893,6 +895,7 @@ export class Replay implements Integration {
   updateSessionActivity(lastActivity: number = new Date().getTime()): void {
     if (this.session) {
       this.session.lastActivity = lastActivity;
+      this._maybeSaveSession();
     }
   }
 
@@ -1104,6 +1107,7 @@ export class Replay implements Integration {
       const eventContext = this.popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
+      this._maybeSaveSession();
 
       await this.sendReplay({
         replayId,
@@ -1340,6 +1344,13 @@ export class Replay implements Integration {
           }
         }, this.retryInterval);
       });
+    }
+  }
+
+  /** Save the session, if it is sticky */
+  private _maybeSaveSession(): void {
+    if (this.session && this.options.stickySession) {
+      saveSession(this.session);
     }
   }
 }
