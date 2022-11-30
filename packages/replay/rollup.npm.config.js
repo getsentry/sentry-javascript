@@ -15,10 +15,10 @@ export default makeNPMConfigVariants(
           preventAssignment: false,
           values: {
             __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
-            // @ts-ignore not gonna deal with types here
-            __SENTRY_DEBUG__: true,
-            // @ts-ignore not gonna deal with types here
-            __DEBUG_BUILD__: true,
+            // // @ts-ignore not gonna deal with types here
+            // __SENTRY_DEBUG__: true,
+            // // @ts-ignore not gonna deal with types here
+            // __DEBUG_BUILD__: true,
           },
         }),
       ],
