@@ -130,7 +130,7 @@ export class EventBufferCompressionWorker implements IEventBuffer {
       try {
         stringifiedArgs = JSON.stringify(args);
       } catch (err) {
-        console.error(err);
+        __DEBUG_BUILD__ && logger.error('[Replay] Error when trying to stringify args', err);
         stringifiedArgs = '[]';
       }
 

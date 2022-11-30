@@ -37,8 +37,6 @@ module.exports = {
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
       rules: {
-        // TODO (high-prio): Go through console logs and figure out which ones should be replaced with the SDK logger
-        'no-console': 'off',
         // TODO (high-prio): Re-enable this after migration
         '@typescript-eslint/explicit-member-accessibility': 'off',
         // TODO (high-prio): Remove this exception from naming convention after migration

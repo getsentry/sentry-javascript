@@ -525,8 +525,7 @@ describe('Replay', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
     // Suppress console.errors
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const mockConsole = console.error as jest.MockedFunction<typeof console.error>;
+    const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     // fail the first and second requests and pass the third one
     mockTransportSend.mockImplementationOnce(() => {
@@ -576,8 +575,7 @@ describe('Replay', () => {
     jest.spyOn(replay, 'sendReplay');
 
     // Suppress console.errors
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const mockConsole = console.error as jest.MockedFunction<typeof console.error>;
+    const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     expect(replay.session?.segmentId).toBe(0);
 
@@ -693,8 +691,7 @@ describe('Replay', () => {
   it('does not create replay event if recording upload completely fails', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     // Suppress console.errors
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    const mockConsole = console.error as jest.MockedFunction<typeof console.error>;
+    const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
     // fail the first and second requests and pass the third one
     mockSendReplayRequest.mockImplementationOnce(() => {
       throw new Error('Something bad happened');

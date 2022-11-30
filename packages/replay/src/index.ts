@@ -180,12 +180,14 @@ export class Replay implements Integration {
 
     // TODO(deprecated): Maintain backwards compatibility for alpha users
     if (usingDeprecatedCaptureOnlyOnError) {
+      // eslint-disable-next-line no-console
       console.warn(
         '[@sentry/replay]: The `captureOnlyOnError` option is deprecated! Please configure `errorSampleRate` instead.',
       );
     }
 
     if (usingDeprecatedReplaysSamplingRate) {
+      // eslint-disable-next-line no-console
       console.warn(
         '[@sentry/replay]: The `replaysSamplingRate` option is deprecated! Please configure `sessionSampleRate` instead.',
       );
@@ -1081,7 +1083,7 @@ export class Replay implements Integration {
    */
   async runFlush(): Promise<void> {
     if (!this.session) {
-      console.error(new Error('[Sentry]: No transaction, no replay'));
+      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
       return;
     }
 
@@ -1113,8 +1115,8 @@ export class Replay implements Integration {
         eventContext,
       });
     } catch (err) {
+      __DEBUG_BUILD__ && logger.error(err);
       captureInternalException(err);
-      console.error(err);
     }
   }
 
@@ -1135,7 +1137,7 @@ export class Replay implements Integration {
     }
 
     if (!this.session?.id) {
-      console.error('[Replay]: No transaction, no replay');
+      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
       return;
     }
 
@@ -1161,7 +1163,7 @@ export class Replay implements Integration {
     try {
       await this.flushLock;
     } catch (err) {
-      console.error(err);
+      __DEBUG_BUILD__ && logger.error(err);
     } finally {
       this.debouncedFlush();
     }
@@ -1306,13 +1308,13 @@ export class Replay implements Integration {
       });
       this.resetRetries();
       return true;
-    } catch (ex) {
-      console.error(ex);
+    } catch (err) {
+      __DEBUG_BUILD__ && logger.error(err);
       // Capture error for every failed replay
       setContext('Replays', {
         retryCount: this.retryCount,
       });
-      captureInternalException(ex);
+      captureInternalException(err);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
