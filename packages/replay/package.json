@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
-    "build:extras": "yarn build #TODO rename to build:rollup once we're running in parallel",
+    "build:rollup": "run-s build:worker build:core",
     "build": "run-s build:worker && run-p build:core build:types",
     "build:dev": "run-s build #TODO adjust after adding CDN bundles",
     "build:worker": "rollup -c rollup.config.worker.js",
