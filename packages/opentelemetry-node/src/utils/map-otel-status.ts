@@ -59,8 +59,9 @@ export function mapOtelStatus(otelSpan: OtelSpan): SentryStatus {
   const httpCode = attributes[SemanticAttributes.HTTP_STATUS_CODE];
   const grpcCode = attributes[SemanticAttributes.RPC_GRPC_STATUS_CODE];
 
-  if (typeof httpCode === 'string') {
-    const sentryStatus = canonicalCodesHTTPMap[httpCode];
+  const code = typeof httpCode === 'string' ? httpCode : typeof httpCode === 'number' ? httpCode.toString() : undefined;
+  if (code) {
+    const sentryStatus = canonicalCodesHTTPMap[code];
     if (sentryStatus) {
       return sentryStatus;
     }

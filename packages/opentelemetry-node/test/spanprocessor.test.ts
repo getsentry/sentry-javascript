@@ -260,7 +260,7 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  const statusTestTable: [number, undefined | string, undefined | string, SpanStatusType][] = [
+  const statusTestTable: [number, undefined | number | string, undefined | string, SpanStatusType][] = [
     [-1, undefined, undefined, 'unknown_error'],
     [3, undefined, undefined, 'unknown_error'],
     [0, undefined, undefined, 'ok'],
@@ -268,6 +268,19 @@ describe('SentrySpanProcessor', () => {
     [2, undefined, undefined, 'unknown_error'],
 
     // http codes
+    [2, 400, undefined, 'failed_precondition'],
+    [2, 401, undefined, 'unauthenticated'],
+    [2, 403, undefined, 'permission_denied'],
+    [2, 404, undefined, 'not_found'],
+    [2, 409, undefined, 'aborted'],
+    [2, 429, undefined, 'resource_exhausted'],
+    [2, 499, undefined, 'cancelled'],
+    [2, 500, undefined, 'internal_error'],
+    [2, 501, undefined, 'unimplemented'],
+    [2, 503, undefined, 'unavailable'],
+    [2, 504, undefined, 'deadline_exceeded'],
+    [2, 999, undefined, 'unknown_error'],
+
     [2, '400', undefined, 'failed_precondition'],
     [2, '401', undefined, 'unauthenticated'],
     [2, '403', undefined, 'permission_denied'],
