@@ -31,6 +31,8 @@ const config = defineConfig({
         __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
         // @ts-ignore not gonna deal with types here
         __SENTRY_DEBUG__: !IS_PRODUCTION,
+        // @ts-ignore not gonna deal with types here
+        __DEBUG_BUILD__: true,
       },
     }),
   ],
