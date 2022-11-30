@@ -71,8 +71,10 @@ export function createTransport(
       });
     };
 
+    const _serializeEnvelope = options.serializeEnvelope || serializeEnvelope;
+
     const requestTask = (): PromiseLike<void> =>
-      makeRequest({ body: serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
+      makeRequest({ body: _serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
           if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {

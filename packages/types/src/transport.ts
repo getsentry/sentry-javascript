@@ -19,6 +19,7 @@ export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: Client['recordDroppedEvent'];
   textEncoder?: TextEncoderInternal;
+  serializeEnvelope?: (envelope: Envelope, textEncoder?: TextEncoderInternal) => string | Uint8Array;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
