@@ -50,6 +50,8 @@ export function handleMessage(e: MessageEvent): void {
         success: false,
         response: err,
       });
+
+      // eslint-disable-next-line no-console
       console.error(err);
     }
   }
