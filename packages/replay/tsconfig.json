@@ -16,8 +16,7 @@
     "allowJs": true,
     "declaration": true,
     "declarationMap": true,
-    "strictNullChecks": true,
-    "outDir": "./build/npm/dist"
+    "strictNullChecks": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
