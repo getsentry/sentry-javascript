@@ -724,7 +724,7 @@ export class Replay implements Integration {
       }
 
       this.addUpdate(() => {
-        this.createPerformanceSpans([result as ReplayPerformanceEntry]);
+        void this.createPerformanceSpans([result as ReplayPerformanceEntry]);
         // Returning true will cause `addUpdate` to not flush
         // We do not want network requests to cause a flush. This will prevent
         // recurring/polling requests from keeping the replay session alive.
@@ -901,7 +901,7 @@ export class Replay implements Integration {
    * called in an event handler for a user action that we consider as the user
    * being "active" (e.g. a mouse click).
    */
-  async triggerUserActivity(): Promise<void> {
+  triggerUserActivity(): void {
     this.updateUserActivity();
 
     // This case means that recording was once stopped due to inactivity.
@@ -1036,7 +1036,7 @@ export class Replay implements Integration {
       return;
     }
 
-    this.flushImmediate();
+    void this.flushImmediate();
   }
 
   /**

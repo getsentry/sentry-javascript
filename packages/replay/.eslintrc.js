@@ -59,8 +59,6 @@ module.exports = {
         ],
         // TODO (high-prio): Re-enable this after migration
         '@sentry-internal/sdk/no-async-await': 'off',
-        // TODO (high-prio): Re-enable this after migration
-        '@typescript-eslint/no-floating-promises': 'off',
         // TODO (medium-prio): Re-enable this after migration
         'jsdoc/require-jsdoc': 'off',
       },
