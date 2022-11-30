@@ -35,14 +35,16 @@ export interface WorkerRequest {
 
 declare global {
   const __SENTRY_REPLAY_VERSION__: string;
-
-  // PerformancePaintTiming is only available since TS 4.4, so for now we just define this here
-  // see: https://github.com/microsoft/TypeScript/blob/main/lib/lib.dom.d.ts#L10564
-  type PerformancePaintTiming = PerformanceEntry;
-  // @ts-ignore declare again, this _should_ be there but somehow is not available in worker context
-  type PerformanceNavigationTiming = PerformanceEntry;
 }
 
+// PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
+// Therefore, we're exporting them here to make them available in older TS versions
+export type PerformancePaintTiming = PerformanceEntry;
+export type PerformanceNavigationTiming = PerformanceEntry & {
+  type: string;
+  transferSize: number;
+  domComplete: number;
+};
 /**
  * The response from the worker
  */

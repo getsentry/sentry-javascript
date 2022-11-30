@@ -5,21 +5,7 @@
 
 module.exports = {
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: [
-    'coverage/**',
-    'build/**',
-    'dist/**',
-    'cjs/**',
-    'esm/**',
-    'examples/**',
-    'test/manual/**',
-    'types/**',
-    // TODO: Remove these after migration
-    'scripts/**',
-    'config/**',
-    'config/**',
-    '__mocks__/**',
-  ],
+  ignorePatterns: ['rollup.config.worker.js'],
   overrides: [
     {
       files: ['worker/**/*.ts'],

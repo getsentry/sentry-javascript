@@ -1,3 +1,5 @@
+import { PerformancePaintTiming } from '../../../src/types';
+
 export function PerformanceEntryLcp(obj?: Partial<PerformancePaintTiming>): PerformancePaintTiming {
   const entry = {
     name: '',
