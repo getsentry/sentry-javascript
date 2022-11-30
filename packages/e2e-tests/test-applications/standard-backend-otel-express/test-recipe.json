@@ -1,0 +1,6 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "standard-backend-otel-express",
+  "buildCommand": "yarn install --pure-lockfile && yarn build",
+  "tests": []
+}

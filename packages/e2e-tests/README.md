@@ -103,8 +103,7 @@ test apps enables us to reuse the same test suite over a number of different fra
 
 A standardized frontend test application has the following features:
 
-- Just for the sake of consistency we prefix the standardized frontend tests with `standard-frontend-`. For example
-  `standard-frontend-nextjs`.
+- We prefix the standardized frontend tests with `standard-frontend-`. For example `standard-frontend-nextjs`.
 - A page at path `/`
   - Having a `<input type="button" id="exception-button">` that captures an Exception when clicked. The returned
     `eventId` from the `Sentry.captureException()` call must be written to `window.capturedExceptionId`. It doesn not
@@ -133,4 +132,16 @@ A standardized frontend test application has the following features:
 
 ### Standardized Backend Test Apps
 
-TBD
+A standardized backend test application has the following features:
+
+- We prefix the standardized backend tests with `standard-backend-`. For example `standard-backend-express`.
+- Hosts a server at port `3000` so that the test application can be reached at `http://localhost:3000`.
+
+- The following routes:
+
+1. A `GET` route at `/` that sends a 200 response with a response body of `GET request to /`.
+2. A `POST` route at `/item` that sends a 200 response with a empty response body of `POST request to /`.
+3. A paramaterized `GET` route at `/users/:id` that sends a 200 response with a response body of
+   `GET request with id of __ID__ to /users/:id` where `__ID__` is the id paramater in the route.
+4. A `GET` route that creates an error at `/error` and sends a 500 response with a response body of
+   `GET request with error to /error`.
