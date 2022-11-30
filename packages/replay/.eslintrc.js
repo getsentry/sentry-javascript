@@ -16,9 +16,8 @@ module.exports = {
     'types/**',
     // TODO: Remove these after migration
     'scripts/**',
-    'config/**',
-    'config/**',
     '__mocks__/**',
+    'rollup.config*.ts',
   ],
   overrides: [
     {
