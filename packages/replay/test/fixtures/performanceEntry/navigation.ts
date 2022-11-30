@@ -1,3 +1,5 @@
+import type { PerformanceNavigationTiming } from '../../../src/types';
+
 export function PerformanceEntryNavigation(obj?: Partial<PerformanceNavigationTiming>): PerformanceNavigationTiming {
   const entry = {
     name: 'https://sentry.io/organizations/sentry/discover/',
