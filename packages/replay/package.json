@@ -2,9 +2,9 @@
   "name": "@sentry/replay",
   "version": "7.22.0",
   "description": "User replays for Sentry",
-  "main": "build/npm/dist/index.js",
-  "module": "build/npm/dist/index.es.js",
-  "types": "build/npm/dist/src/index.d.ts",
+  "main": "build/npm/cjs/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/src/index.d.ts",
   "sideEffects": false,
   "scripts": {
     "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",

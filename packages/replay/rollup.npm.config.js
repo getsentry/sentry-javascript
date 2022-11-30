@@ -1,39 +1,32 @@
 import replace from '@rollup/plugin-replace';
-import typescript from '@rollup/plugin-typescript';
-import { defineConfig } from 'rollup';
+
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index';
 
 import pkg from './package.json';
 
-const config = defineConfig({
-  input: './src/index.ts',
-  output: [
-    {
-      file: pkg.main,
-      format: 'cjs',
-      sourcemap: true,
-    },
-    {
-      file: pkg.module,
-      format: 'esm',
-    },
-  ],
-  external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
-  plugins: [
-    typescript({
-      tsconfig: './tsconfig.json',
-    }),
-    replace({
-      // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
-      preventAssignment: false,
-      values: {
-        __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
-        // @ts-ignore not gonna deal with types here
-        __SENTRY_DEBUG__: true,
-        // @ts-ignore not gonna deal with types here
-        __DEBUG_BUILD__: true,
+export default makeNPMConfigVariants(
+  makeBaseNPMConfig({
+    hasBundles: true,
+    packageSpecificConfig: {
+      external: [...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.peerDependencies || {})],
+      plugins: [
+        replace({
+          // __SENTRY_DEBUG__ should be save to replace in any case, so no checks for assignments necessary
+          preventAssignment: false,
+          values: {
+            __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
+            // @ts-ignore not gonna deal with types here
+            __SENTRY_DEBUG__: true,
+            // @ts-ignore not gonna deal with types here
+            __DEBUG_BUILD__: true,
+          },
+        }),
+      ],
+      output: {
+        // set exports to 'named' or 'auto' so that rollup doesn't warn about
+        // the default export in `worker/worker.js`
+        exports: 'named',
       },
-    }),
-  ],
-});
-
-export default config;
+    },
+  }),
+);
