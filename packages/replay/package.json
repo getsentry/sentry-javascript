@@ -7,7 +7,6 @@
   "types": "build/npm/types/src/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "bootstrap": "yarn && cd demo && yarn #TODO: change after migration",
     "build:rollup": "run-s build:worker build:core",
     "build": "run-s build:worker && run-p build:core build:types",
     "build:dev": "run-s build #TODO adjust after adding CDN bundles",
@@ -18,19 +17,18 @@
     "build:dev:watch": "yarn build:watch #TODO adjust after adding CDN bundles",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
-    "circularDepCheck": "#TODO comment in after migration: madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts,worker}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --format stylish #TODO: we might want to use eslintcache after migration",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "start:demo": "yarn build:dev && cd demo && yarn start",
-    "build:prod": "yarn build #TODO remove, we don't need this anymore after migration",
-    "dev": "yarn build:dev:watch #TODO remove, we don't need this anymore after migration"
+    "bootstrap:demo": "cd demo && yarn",
+    "start:demo": "yarn build:dev && cd demo && yarn start"
   },
   "repository": {
     "type": "git",
