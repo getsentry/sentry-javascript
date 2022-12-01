@@ -10,39 +10,74 @@ import {
 } from './fixtures';
 import { materializeFinalWebpackConfig } from './testUtils';
 
-describe('webpack loaders', () => {
-  it('adds loader to server config', async () => {
-    const finalWebpackConfig = await materializeFinalWebpackConfig({
-      exportedNextConfig,
-      incomingWebpackConfig: serverWebpackConfig,
-      incomingWebpackBuildContext: serverBuildContext,
-    });
+type MatcherResult = { pass: boolean; message: () => string };
 
-    expect(finalWebpackConfig.module!.rules).toEqual(
-      expect.arrayContaining([
-        {
-          test: expect.any(RegExp),
-          use: [
-            {
-              loader: expect.any(String),
-              // Having no criteria for what the object contains is better than using `expect.any(Object)`, because that
-              // could be anything
-              options: expect.objectContaining({}),
-            },
-          ],
-        },
-      ]),
-    );
+expect.extend({
+  stringEndingWith(received: string, expectedEnding: string): MatcherResult {
+    const failsTest = !received.endsWith(expectedEnding);
+    const generateErrorMessage = () =>
+      failsTest
+        ? // Regular error message for match failing
+          `expected string ending with '${expectedEnding}', but got '${received}'`
+        : // Error message for the match passing if someone has called it with `expect.not`
+          `expected string not ending with '${expectedEnding}', but got '${received}'`;
+
+    return {
+      pass: !failsTest,
+      message: generateErrorMessage,
+    };
+  },
+});
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace jest {
+    interface Expect {
+      stringEndingWith: (expectedEnding: string) => MatcherResult;
+    }
+  }
+}
+
+describe('webpack loaders', () => {
+  describe('server loaders', () => {
+    it('adds server `RewriteFrames` loader to server config', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+      });
+
+      expect(finalWebpackConfig.module.rules).toContainEqual({
+        test: /sentry\.server\.config\.(jsx?|tsx?)/,
+        use: [
+          {
+            loader: expect.stringEndingWith('prefixLoader.js'),
+            options: expect.objectContaining({ templatePrefix: 'serverRewriteFrames' }),
+          },
+        ],
+      });
+    });
   });
 
-  it("doesn't add loader to client config", async () => {
-    const finalWebpackConfig = await materializeFinalWebpackConfig({
-      exportedNextConfig,
-      incomingWebpackConfig: clientWebpackConfig,
-      incomingWebpackBuildContext: clientBuildContext,
-    });
+  describe('client loaders', () => {
+    it("doesn't add `RewriteFrames` loader to client config", async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+      });
 
-    expect(finalWebpackConfig.module).toBeUndefined();
+      expect(finalWebpackConfig.module.rules).not.toContainEqual(
+        expect.objectContaining({
+          use: [
+            {
+              loader: expect.stringEndingWith('prefixLoader.js'),
+              options: expect.objectContaining({ templatePrefix: expect.stringContaining('RewriteFrames') }),
+            },
+          ],
+        }),
+      );
+    });
   });
 });
 
