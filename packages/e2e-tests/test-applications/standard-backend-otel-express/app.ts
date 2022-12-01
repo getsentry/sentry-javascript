@@ -1,9 +1,14 @@
 import express from 'express';
 import * as Sentry from '@sentry/node';
 
+Sentry.init({ dsn: process.env.E2E_TEST_DSN, instrumenter: 'otel' });
+
 const app = express();
 
 const port = 4000;
+
+// The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
 
 app.get('/', (_req, res) => {
   res.send('GET request to /');
@@ -23,6 +28,9 @@ app.get('/error', (_req, res) => {
   res.status(500).send('GET request with error to /error');
 });
 
-app.listen(port, function () {
-  console.log(`App is listening on port ${port} !`);
+// The error handler must be before any other error middleware and after all controllers
+app.use(Sentry.Handlers.errorHandler());
+
+app.listen(port, () => {
+  console.log(`App is listening on port ${port}`);
 });

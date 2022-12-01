@@ -7,8 +7,9 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@sentry/node": "*",
-    "@sentry/sentry-opentelemetry-node": "*",
+    "@opentelemetry/api": "^1.3.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.35.0",
+    "@opentelemetry/sdk-node": "^0.34.0",
     "express": "^4.18.2"
   },
   "devDependencies": {
