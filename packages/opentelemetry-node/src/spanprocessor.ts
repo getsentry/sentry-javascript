@@ -1,6 +1,6 @@
-import { Context } from '@opentelemetry/api';
+import { Context, trace } from '@opentelemetry/api';
 import { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub } from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -20,6 +20,32 @@ export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = 
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
+  public constructor() {
+    addGlobalEventProcessor(event => {
+      const otelSpan = trace.getActiveSpan();
+      if (!otelSpan) {
+        return event;
+      }
+
+      const otelSpanId = otelSpan.spanContext().spanId;
+      const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
+
+      if (!sentrySpan) {
+        return event;
+      }
+
+      // If event has already set `trace` context, use that one.
+      // This happens in the case of transaction events.
+      event.contexts = { trace: sentrySpan.getTraceContext(), ...event.contexts };
+      const transactionName = sentrySpan.transaction && sentrySpan.transaction.name;
+      if (transactionName) {
+        event.tags = { transaction: transactionName, ...event.tags };
+      }
+
+      return event;
+    });
+  }
+
   /**
    * @inheritDoc
    */

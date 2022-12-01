@@ -13,6 +13,13 @@ import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanproce
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
+const DEFAULT_NODE_CLIENT_OPTIONS = {
+  dsn: SENTRY_DSN,
+  integrations: [],
+  transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+  stackParser: () => [],
+};
+
 // Integration Test of SentrySpanProcessor
 
 beforeAll(() => {
@@ -21,16 +28,12 @@ beforeAll(() => {
 
 describe('SentrySpanProcessor', () => {
   let hub: Hub;
+  let client: NodeClient;
   let provider: NodeTracerProvider;
   let spanProcessor: SentrySpanProcessor;
 
   beforeEach(() => {
-    const client = new NodeClient({
-      dsn: SENTRY_DSN,
-      integrations: [],
-      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
-      stackParser: () => [],
-    });
+    client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
     hub = new Hub(client);
     makeMain(hub);
 
@@ -709,6 +712,42 @@ describe('SentrySpanProcessor', () => {
           },
         );
       });
+    });
+  });
+
+  it.only('associates an error to a transaction', () => {
+    let sentryEvent: any;
+    let otelSpan: any;
+
+    client = new NodeClient({
+      ...DEFAULT_NODE_CLIENT_OPTIONS,
+      beforeSend: event => {
+        sentryEvent = event;
+        return null;
+      },
+    });
+    hub = new Hub(client);
+    makeMain(hub);
+
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        hub.captureException(new Error('oh nooooo!'));
+        otelSpan = child as OtelSpan;
+        child.end();
+      });
+
+      parentOtelSpan.end();
+    });
+
+    expect(sentryEvent).toBeDefined();
+    expect(sentryEvent.exception).toBeDefined();
+    expect(sentryEvent.contexts.trace).toEqual({
+      description: otelSpan.name,
+      parent_span_id: otelSpan.parentSpanId,
+      span_id: otelSpan.spanContext().spanId,
+      trace_id: otelSpan.spanContext().traceId,
     });
   });
 });
