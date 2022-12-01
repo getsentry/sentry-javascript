@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { WINDOW } from '@sentry/browser';
-import { addGlobalEventProcessor, getCurrentHub, Scope, SDK_VERSION, setContext } from '@sentry/core';
+import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
@@ -1208,7 +1208,7 @@ export class Replay implements Integration {
 
     const sdkInfo = {
       name: 'sentry.javascript.integration.replay',
-      version: SDK_VERSION,
+      version: __SENTRY_REPLAY_VERSION__,
     };
 
     const replayEvent = await new Promise(resolve => {
