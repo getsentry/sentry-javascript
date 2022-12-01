@@ -715,7 +715,7 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  it.only('associates an error to a transaction', () => {
+  it('associates an error to a transaction', () => {
     let sentryEvent: any;
     let otelSpan: any;
 
