@@ -100,6 +100,9 @@ export type WebpackConfigObject = {
   [key: string]: unknown;
 };
 
+// A convenience type to save us from having to assert the existence of `module.rules` over and over
+export type WebpackConfigObjectWithModuleRules = WebpackConfigObject & Required<Pick<WebpackConfigObject, 'module'>>;
+
 // Information about the current build environment
 export type BuildContext = {
   dev: boolean;
