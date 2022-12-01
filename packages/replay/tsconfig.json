@@ -1,13 +1,6 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "paths": {
-      "@test": ["./test"],
-      "@test/*": ["./test/*"]
-    },
-    "baseUrl": ".",
-    "rootDir": ".",
-    "types": ["node", "jest"],
     "module": "esnext",
     "noImplicitAny": true,
     "noEmitOnError": false,
