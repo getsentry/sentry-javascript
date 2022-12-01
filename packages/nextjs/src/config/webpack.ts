@@ -303,7 +303,7 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir } = buildContext;
+  const { isServer, dir: projectDir, dev: isDev } = buildContext;
 
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
@@ -316,7 +316,7 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes)) {
+    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev)) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     } else {
       if (
@@ -442,14 +442,25 @@ function shouldAddSentryToEntryPoint(
   entryPointName: string,
   isServer: boolean,
   excludeServerRoutes: Array<string | RegExp> = [],
+  isDev: boolean,
 ): boolean {
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
   if (isServer) {
     const entryPointRoute = entryPointName.replace(/^pages/, '');
+
+    // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
+    // which don't have the `pages` prefix.)
+    if (stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true)) {
+      return false;
+    }
+
+    // In dev mode, page routes aren't considered entrypoints so we inject the init call in the `/_app` entrypoint which
+    // always exists, even if the user didn't add a `_app` page themselves
+    if (isDev) {
+      return entryPointRoute === '/_app';
+    }
+
     if (
-      // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
-      // which don't have the `pages` prefix.)
-      stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true) ||
       // All non-API pages contain both of these components, and we don't want to inject more than once, so as long as
       // we're doing the individual pages, it's fine to skip these. (Note: Even if a given user doesn't have either or
       // both of these in their `pages/` folder, they'll exist as entrypoints because nextjs will supply default
@@ -529,7 +540,7 @@ export function getWebpackPluginOptions(
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
     entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes),
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
