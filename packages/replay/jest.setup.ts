@@ -5,6 +5,9 @@ import { Transport } from '@sentry/types';
 import { Replay } from './src';
 import { Session } from './src/session/Session';
 
+// @ts-ignore TS error, this is replaced in prod builds bc of rollup
+global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
+
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
 jest.mock('./src/util/isBrowser', () => {
