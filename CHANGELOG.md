@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
 ## 7.23.0
 
 - feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)
