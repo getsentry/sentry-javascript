@@ -6,9 +6,9 @@
 
 - feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)
 - fix(node): Add `profilesSampleRate` (#6318)
-- fix(otel): Set root transaction name to be route (#6334)
 - fix(otel): Account for number status code (#6345)
--  fix(otel): Add trace info to error events (#6364)
+- fix(otel): Add trace info to error events (#6364)
+- fix(otel): Set root transaction name to be route (#6334)
 - ref(core): Move sentry breadcrumb logic into integration (#6195)
 - ref(tracing): Remove `sentry_reportAllChanges` tag (#6360)
 
