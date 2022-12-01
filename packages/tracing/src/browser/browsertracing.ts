@@ -269,10 +269,6 @@ export class BrowserTracing implements Integration {
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
       addPerformanceEntries(transaction);
-      transaction.setTag(
-        'sentry_reportAllChanges',
-        Boolean(this.options._metricOptions && this.options._metricOptions._reportAllChanges),
-      );
     });
 
     return idleTransaction as Transaction;
