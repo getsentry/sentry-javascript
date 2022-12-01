@@ -1,7 +1,7 @@
 import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { fill, isInstanceOf, isThenable, loadModule, logger } from '@sentry/utils';
-import { EventEmitter } from 'stream';
+import { EventEmitter } from 'events';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
