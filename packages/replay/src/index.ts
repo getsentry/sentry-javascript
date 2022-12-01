@@ -149,10 +149,6 @@ export class Replay implements Integration {
     ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
     blockSelector = '[data-sentry-block]',
-    // eslint-disable-next-line deprecation/deprecation
-    replaysSamplingRate,
-    // eslint-disable-next-line deprecation/deprecation
-    captureOnlyOnError,
     ...recordingOptions
   }: ReplayConfiguration = {}) {
     this.recordingOptions = {
@@ -164,35 +160,17 @@ export class Replay implements Integration {
       ...recordingOptions,
     };
 
-    const usingDeprecatedReplaysSamplingRate = replaysSamplingRate !== undefined;
-    const usingDeprecatedCaptureOnlyOnError = captureOnlyOnError !== undefined;
-
     this.options = {
       flushMinDelay,
       flushMaxDelay,
       stickySession,
       initialFlushDelay,
-      sessionSampleRate: usingDeprecatedReplaysSamplingRate ? (replaysSamplingRate as number) : sessionSampleRate,
-      errorSampleRate: usingDeprecatedCaptureOnlyOnError ? 1.0 : errorSampleRate,
+      sessionSampleRate,
+      errorSampleRate,
       useCompression,
       maskAllText,
       blockAllMedia,
     };
-
-    // TODO(deprecated): Maintain backwards compatibility for alpha users
-    if (usingDeprecatedCaptureOnlyOnError) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[@sentry/replay]: The `captureOnlyOnError` option is deprecated! Please configure `errorSampleRate` instead.',
-      );
-    }
-
-    if (usingDeprecatedReplaysSamplingRate) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[@sentry/replay]: The `replaysSamplingRate` option is deprecated! Please configure `sessionSampleRate` instead.',
-      );
-    }
 
     if (this.options.maskAllText) {
       // `maskAllText` is a more user friendly option to configure
