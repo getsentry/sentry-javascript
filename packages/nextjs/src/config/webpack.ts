@@ -23,6 +23,7 @@ import type {
   UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
+  WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
   WebpackModuleRule,
   WebpackPluginInstance,
@@ -67,35 +68,33 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
-    let newConfig = { ...incomingConfig };
+    let rawNewConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
     // work with
     if ('webpack' in userNextConfig && typeof userNextConfig.webpack === 'function') {
-      newConfig = userNextConfig.webpack(newConfig, buildContext);
+      rawNewConfig = userNextConfig.webpack(rawNewConfig, buildContext);
     }
 
+    // This mutates `rawNewConfig` in place, but also returns it in order to switch its type to one in which
+    // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
+    const newConfig = setUpModuleRules(rawNewConfig);
+
     if (isServer) {
-      newConfig.module = {
-        ...newConfig.module,
-        rules: [
-          ...(newConfig.module?.rules || []),
+      newConfig.module.rules.push({
+        test: /sentry\.server\.config\.(jsx?|tsx?)/,
+        use: [
           {
-            test: /sentry\.server\.config\.(jsx?|tsx?)/,
-            use: [
-              {
-                // Support non-default output directories by making the output path (easy to get here at build-time)
-                // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
-                // injecting code to attach it to `global`.
-                loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-                options: {
-                  distDir: userNextConfig.distDir || '.next',
-                },
-              },
-            ],
+            // Support non-default output directories by making the output path (easy to get here at build-time)
+            // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
+            // injecting code to attach it to `global`.
+            loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
+            options: {
+              distDir: userNextConfig.distDir || '.next',
+            },
           },
         ],
-      };
+      });
 
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
@@ -627,4 +626,21 @@ function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions
   //         'information.\n',
   //     );
   //   }
+}
+
+/**
+ * Ensure that `newConfig.module.rules` exists. Modifies the given config in place but also returns it in order to
+ * change its type.
+ *
+ * @param newConfig A webpack config object which may or may not contain `module` and `module.rules`
+ * @returns The same object, with an empty `module.rules` array added if necessary
+ */
+function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWithModuleRules {
+  newConfig.module = {
+    ...newConfig.module,
+    rules: [...(newConfig.module?.rules || [])],
+  };
+  // Surprising that we have to assert the type here, since we've demonstrably guaranteed the existence of
+  // `newConfig.module.rules` just above, but ¯\_(ツ)_/¯
+  return newConfig as WebpackConfigObjectWithModuleRules;
 }
