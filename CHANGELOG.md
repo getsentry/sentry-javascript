@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+## 7.23.0
+
+- feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)
+- fix(node): Add `profilesSampleRate` (#6318)
+- fix(otel): Set root transaction name to be route (#6334)
+- fix(otel): Account for number status code (#6345)
+-  fix(otel): Add trace info to error events (#6364)
+- ref(core): Move sentry breadcrumb logic into integration (#6195)
+- ref(tracing): Remove `sentry_reportAllChanges` tag (#6360)
+
+Work in this release contributed by @zhiyan114. Thank you for your contributions!
 
 ## 7.22.0
 
