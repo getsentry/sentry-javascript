@@ -81,20 +81,8 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     if (isServer) {
-      newConfig.module.rules.push({
-        test: /sentry\.server\.config\.(jsx?|tsx?)/,
-        use: [
-          {
-            // Support non-default output directories by making the output path (easy to get here at build-time)
-            // available to the server SDK's default `RewriteFrames` instance (which needs it at runtime), by
-            // injecting code to attach it to `global`.
-            loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-            options: {
-              distDir: userNextConfig.distDir || '.next',
-            },
-          },
-        ],
-      });
+      // This loader will inject code setting global values for use by `RewriteFrames`
+      addRewriteFramesLoader(newConfig, 'server', userNextConfig);
 
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
@@ -643,4 +631,43 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
   // Surprising that we have to assert the type here, since we've demonstrably guaranteed the existence of
   // `newConfig.module.rules` just above, but ¯\_(ツ)_/¯
   return newConfig as WebpackConfigObjectWithModuleRules;
+}
+
+/**
+ * Support the `distDir` option by making its value (easy to get here at build-time) available to the server SDK's
+ * default `RewriteFrames` instance (which needs it at runtime), by injecting code to attach it to `global`.
+ *
+ * @param newConfig The webpack config object being constructed
+ * @param target Either 'server' or 'client'
+ * @param userNextConfig The user's nextjs config options
+ */
+function addRewriteFramesLoader(
+  newConfig: WebpackConfigObjectWithModuleRules,
+  target: 'server' | 'client',
+  userNextConfig: NextConfigObject,
+): void {
+  const replacements = {
+    server: [
+      [
+        '__DIST_DIR__',
+        // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+        // characters)
+        userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+      ],
+    ],
+  };
+
+  newConfig.module.rules.push({
+    test: new RegExp(`sentry\\.${target}\\.config\\.(jsx?|tsx?)`),
+    use: [
+      {
+        loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
+        options: {
+          templatePrefix: `${target}RewriteFrames`,
+          // This weird cast will go away as soon as we add the client half of this function in
+          replacements: replacements[target as 'server'],
+        },
+      },
+    ],
+  });
 }
