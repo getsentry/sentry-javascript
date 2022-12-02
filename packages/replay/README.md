@@ -34,27 +34,21 @@ import { Replay } from '@sentry/replay';
 
 Sentry.init({
   dsn: '__DSN__',
+
+  // This sets the sample rate to be 10%. You may want this to be 100% while
+  // in development and sample at a lower rate in production
+  replaysSampleRate: 0.5,
+
+  // If the entire session is not sampled, use the below sample rate to sample
+  // sessions when an error occurs.
+  replaysOnErrorSampleRate: 1.0,
+
   integrations: [
     new Replay({
-      // This sets the sample rate to be 10%. You may want this to be 100% while
-      // in development and sample at a lower rate in production
-      sessionSampleRate: 0.1,
-
-      // If the entire session is not sampled, use the below sample rate to sample
-      // sessions when an error occurs.
-      errorSampleRate: 1.0,
-
-      // Mask all text content with asterisks (*). Passes text
-      // content through to `maskTextFn` before sending to server.
-      //
-      // Defaults to true, uncomment to change
-      // maskAllText: true,
-
-      // Block all media elements (img, svg, video, object,
-      // picture, embed, map, audio)
-      //
-      // Defaults to true, uncomment to change
-      // blockAllMedia: true,
+      // Additional SDK configuration goes in here, for example:
+      maskAllText: true,
+      blockAllMedia: true
+      // See below for all available options
     })
   ],
   // ...
@@ -104,15 +98,28 @@ Sampling occurs when the session is first started. `sessionSampleRate` is evalua
 
 ## Configuration
 
-### General Configuration
+### SDK Configuration
+
+The following options can be configured on the root level of your browser-based Sentry SDK, in `init({})`:
+
 
 | key                 | type    | default | description                                                                                                                                                                                                                     |
 | ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
-| sessionSampleRate   | number  | `0.1`   | The sample rate for all sessions, which will capture the entirety from when a user begins a session until the session ends. (1.0 will collect all replays, 0 will collect no replays)                                           |
-| errorSampleRate     | number  | `1.0`   | If a session isn't already being recorded via `sessionSampleRate`, based on `errorSampleRate` the SDK will send the captured replay when an error occurs. (1.0 capturing all sessions with an error, and 0 capturing none).     |
+| replaysSampleRate   | number  | `0.1`   | The sample rate for all sessions, which will capture the entirety from when a user begins a session until the session ends. (1.0 will collect all replays, 0 will collect no replays)                                           |
+| replaysOnErrorSampleRate     | number  | `1.0`   | If a session isn't already being recorded via `replaysSampleRate`, based on `replaysOnErrorSampleRate` the SDK will send the captured replay when an error occurs. (1.0 capturing all sessions with an error, and 0 capturing none).
+
+### General Integration Configuration
+
+The following options can be configured as options to the integration, in `new Replay({})`:
+
+| key                 | type    | default | description                                                                                                                                                                                                                     |
+| ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
 | stickySession       | boolean | `true`  | Keep track of the user across page loads. Note a single user using multiple tabs will result in multiple sessions. Closing a tab will result in the session being closed as well.                                               |
 
+
 ### Privacy Configuration
+
+The following options can be configured as options to the integration, in `new Replay({})`:
 
 | key              | type                     | default                             | description                                                                                                                                                                                         |
 | ---------------- | ------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -126,8 +133,11 @@ Sampling occurs when the session is first started. `sessionSampleRate` is evalua
 | blockSelector    | string                   | `'[data-sentry-block]'`               | Redact all elements that match the DOM selector. See [privacy](#blocking) section for an example.                                                                                                                                                     |
 | ignoreClass      | string \| RegExp         | `'sentry-ignore'`                   | Ignores all events on the matching input field. See [privacy](#ignoring) section for an example.                                                                                                                                                     |
 | maskTextClass    | string \| RegExp         | `'sentry-mask'`                     | Mask all elements that match the class name. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| maskTextSelector    | string         | `undefined`                     | Mask all elements that match the given DOM selector. See [privacy](#masking) section for an example.                                                                                                                                                        |
 
 ### Optimization Configuration
+
+The following options can be configured as options to the integration, in `new Replay({})`:
 
 | key              | type                    | default | description                                                                                                                                                                                                                  |
 | ---------------- | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -135,7 +145,19 @@ Sampling occurs when the session is first started. `sessionSampleRate` is evalua
 | inlineImages     | boolean                 | `false` | Should inline `<image>` content                                                                                                                                                                                              |
 | inlineStylesheet | boolean                 | `true`  | Should inline stylesheets used in the recording                                                                                                                                                                              |
 | recordCanvas     | boolean                 | `false` | Should record `<canvas>` elements                                                                                                                                                                                            |
-| slimDOMOptions   | Record<string, boolean> | `{}`    | Remove unnecessary parts of the DOM <br /> Available keys: `script, comment, headFavicon, headWhitespace, headMetaDescKeywords, headMetaSocial, headMetaRobots, headMetaHttpEquiv, headMetaAuthorship, headMetaVerification` |
+
+
+### rrweb Configuration
+
+In addition to the options described above, you can also directly pass configuration to [rrweb](https://github.com/rrweb-io/rrweb/blob/rrweb%401.1.3/guide.md), which is the underlying library used to make the recordings:
+
+```js
+new Replay({
+
+  // any further configuration here is passed directly to rrweb
+});
+```
+
 
 ## Privacy
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all media elements (`img, svg, video, object, picture, embed, map, audio`). This can be disabled by setting `maskAllText` to `false`. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: `sentry-block`, `sentry-ignore`, and `sentry-mask`. The following sections will show examples of how content is handled by the differing methods.
