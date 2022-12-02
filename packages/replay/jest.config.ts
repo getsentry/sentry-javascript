@@ -4,7 +4,6 @@ import { jsWithTs as jsWithTsPreset } from 'ts-jest/presets';
 export default async (): Promise<Config.InitialOptions> => {
   return {
     ...jsWithTsPreset,
-    verbose: true,
     globals: {
       'ts-jest': {
         tsconfig: '<rootDir>/tsconfig.test.json',
