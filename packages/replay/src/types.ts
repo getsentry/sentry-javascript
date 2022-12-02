@@ -1,4 +1,10 @@
+import { GLOBAL_OBJ } from '@sentry/utils';
 import type { eventWithTime, recordOptions } from 'rrweb/typings/types';
+
+// exporting WINDOW from within this package instead of importing it from @sentry/browser
+// this avoids the Browser package being bundled into the CDN bundle as well as a
+// circular dependency between the Browser and Replay packages in the future
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions<eventWithTime>;

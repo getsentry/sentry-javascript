@@ -1,6 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
-import { SampleRates } from '../types';
+import { SampleRates, WINDOW } from '../types';
 import { REPLAY_SESSION_KEY } from './constants';
 import { Session } from './Session';
 

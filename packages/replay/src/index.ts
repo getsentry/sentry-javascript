@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { WINDOW } from '@sentry/browser';
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
@@ -23,7 +22,7 @@ import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import { Session } from './session/Session';
-import type {
+import {
   AllPerformanceEntry,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
@@ -34,6 +33,7 @@ import type {
   ReplayConfiguration,
   ReplayPluginOptions,
   SendReplay,
+  WINDOW,
 } from './types';
 import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
 import { captureInternalException } from './util/captureInternalException';

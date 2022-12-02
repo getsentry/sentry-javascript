@@ -1,5 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
+import { WINDOW } from '../types';
 import { isBrowser } from './isBrowser';
 
 /**

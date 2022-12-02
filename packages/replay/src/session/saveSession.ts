@@ -1,5 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
+import { WINDOW } from '../types';
 import { REPLAY_SESSION_KEY } from './constants';
 import { Session } from './Session';
 

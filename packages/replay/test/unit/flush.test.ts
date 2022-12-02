@@ -1,7 +1,7 @@
-import { WINDOW } from '@sentry/browser';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { WINDOW } from '../../src/types';
 import { Replay } from './../../src';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
 import { SESSION_IDLE_DURATION } from './../../src/session/constants';

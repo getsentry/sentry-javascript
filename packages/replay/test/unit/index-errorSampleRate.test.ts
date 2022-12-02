@@ -1,11 +1,12 @@
 jest.unmock('@sentry/browser');
 
-import { captureException, WINDOW } from '@sentry/browser';
+import { captureException } from '@sentry/browser';
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
 import { DomHandler, MockTransportSend } from '@test/types';
 
+import { WINDOW } from '../../src/types';
 import { Replay } from './../../src';
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT } from './../../src/session/constants';
 import { useFakeTimers } from './../utils/use-fake-timers';

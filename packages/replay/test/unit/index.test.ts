@@ -1,7 +1,6 @@
 jest.mock('./../../src/util/isInternal', () => ({
   isInternal: jest.fn(() => true),
 }));
-import { WINDOW } from '@sentry/browser';
 import { BASE_TIMESTAMP, RecordMock } from '@test';
 import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
 import { resetSdkMock } from '@test/mocks';
@@ -10,7 +9,7 @@ import { EventType } from 'rrweb';
 
 import { Replay } from '../../src';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT } from '../../src/session/constants';
-import { RecordingEvent } from '../../src/types';
+import { RecordingEvent, WINDOW } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();

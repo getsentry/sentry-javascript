@@ -1,7 +1,6 @@
-import { WINDOW } from '@sentry/browser';
-
 import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
 import { fetchSession } from '../../../src/session/fetchSession';
+import { WINDOW } from '../../../src/types';
 
 const oldSessionStorage = WINDOW.sessionStorage;
 
