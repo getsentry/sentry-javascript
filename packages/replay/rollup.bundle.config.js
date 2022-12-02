@@ -12,8 +12,6 @@ const baseBundleConfig = makeBaseBundleConfig({
   licenseTitle: '@sentry/replay',
   outputFileBase: () => 'bundles/replay',
   packageSpecificConfig: {
-    // We don't add @sentry/browser to the bundle, hence we mark peerDeps as external
-    external: [...Object.keys(pkg.peerDependencies || {})],
     plugins: [
       replace({
         preventAssignment: true,
