@@ -1,7 +1,7 @@
-import { WINDOW } from '@sentry/browser';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
+import { WINDOW } from './constants';
 import { AllPerformanceEntry, PerformanceNavigationTiming, PerformancePaintTiming } from './types';
 import { isIngestHost } from './util/isIngestHost';
 

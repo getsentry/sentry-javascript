@@ -1,5 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
+import { WINDOW } from '../../../src/constants';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';

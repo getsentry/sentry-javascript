@@ -1,6 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
-import { REPLAY_SESSION_KEY } from './constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 
 /**
  * Deletes a session from storage

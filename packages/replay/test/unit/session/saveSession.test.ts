@@ -1,6 +1,4 @@
-import { WINDOW } from '@sentry/browser';
-
-import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
 

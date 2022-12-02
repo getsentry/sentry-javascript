@@ -1,10 +1,9 @@
-import { WINDOW } from '@sentry/browser';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { Replay } from './../../src';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
-import { SESSION_IDLE_DURATION } from './../../src/session/constants';
 import { useFakeTimers } from './../../test/utils/use-fake-timers';
 
 useFakeTimers();

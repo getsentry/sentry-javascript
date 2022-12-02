@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { WINDOW } from '@sentry/browser';
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
@@ -7,10 +6,6 @@ import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
 
-import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
-import { spanHandler } from './coreHandlers/spanHandler';
-import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
-import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import {
   DEFAULT_ERROR_SAMPLE_RATE,
   DEFAULT_SESSION_SAMPLE_RATE,
@@ -18,12 +13,17 @@ import {
   REPLAY_EVENT_NAME,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
-} from './session/constants';
+  WINDOW,
+} from './constants';
+import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
+import { spanHandler } from './coreHandlers/spanHandler';
+import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
+import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import { Session } from './session/Session';
-import type {
+import {
   AllPerformanceEntry,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
