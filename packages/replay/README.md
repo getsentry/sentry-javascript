@@ -154,7 +154,6 @@ In addition to the options described above, you can also directly pass configura
 
 ```js
 new Replay({
-
   // any further configuration here is passed directly to rrweb
 });
 ```
