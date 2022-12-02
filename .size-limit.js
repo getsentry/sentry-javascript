@@ -78,12 +78,4 @@ module.exports = [
     limit: '100 KB',
     ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
   },
-  {
-    name: '@sentry/replay - Webpack (minified)',
-    path: 'packages/replay/build/npm/esm/index.js',
-    import: '{ Replay }',
-    gzip: false,
-    limit: '300 KB',
-    ignore: ['@sentry/browser', '@sentry/utils', '@sentry/core', '@sentry/types'],
-  },
 ];
