@@ -1,4 +1,4 @@
-import { WINDOW } from '../types';
+import { WINDOW } from '../constants';
 import { isBrowser } from './isBrowser';
 
 /**

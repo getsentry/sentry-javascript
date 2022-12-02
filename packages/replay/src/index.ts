@@ -6,10 +6,6 @@ import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
 
-import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
-import { spanHandler } from './coreHandlers/spanHandler';
-import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
-import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import {
   DEFAULT_ERROR_SAMPLE_RATE,
   DEFAULT_SESSION_SAMPLE_RATE,
@@ -17,7 +13,12 @@ import {
   REPLAY_EVENT_NAME,
   SESSION_IDLE_DURATION,
   VISIBILITY_CHANGE_TIMEOUT,
-} from './session/constants';
+  WINDOW,
+} from './constants';
+import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
+import { spanHandler } from './coreHandlers/spanHandler';
+import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
+import { createEventBuffer, IEventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
@@ -33,7 +34,6 @@ import {
   ReplayConfiguration,
   ReplayPluginOptions,
   SendReplay,
-  WINDOW,
 } from './types';
 import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
 import { captureInternalException } from './util/captureInternalException';

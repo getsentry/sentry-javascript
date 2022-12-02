@@ -1,9 +1,9 @@
+import { WINDOW } from '../../../src/constants';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
-import { WINDOW } from '../../../src/types';
 
 jest.mock('@sentry/utils', () => {
   return {

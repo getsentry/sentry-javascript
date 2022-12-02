@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/core';
 
+import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';
-import { WINDOW } from '../../../src/types';
 
 jest.mock('./../../../src/session/saveSession');
 

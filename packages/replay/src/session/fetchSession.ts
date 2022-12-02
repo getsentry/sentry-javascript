@@ -1,5 +1,5 @@
-import { SampleRates, WINDOW } from '../types';
-import { REPLAY_SESSION_KEY } from './constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
+import { SampleRates } from '../types';
 import { Session } from './Session';
 
 /**

@@ -1,5 +1,4 @@
-import { WINDOW } from '../types';
-import { REPLAY_SESSION_KEY } from './constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 
 /**
  * Deletes a session from storage

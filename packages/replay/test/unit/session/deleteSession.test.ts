@@ -1,6 +1,5 @@
-import { REPLAY_SESSION_KEY } from '../../../src/session/constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
 import { deleteSession } from '../../../src/session/deleteSession';
-import { WINDOW } from '../../../src/types';
 
 const storageEngine = WINDOW.sessionStorage;
 

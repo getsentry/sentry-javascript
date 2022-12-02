@@ -25,8 +25,8 @@ jest.mock('@sentry/utils', () => {
 
 import * as Sentry from '@sentry/browser';
 
+import { WINDOW } from '../../../src/constants';
 import { Session } from '../../../src/session/Session';
-import { WINDOW } from '../../../src/types';
 
 type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 

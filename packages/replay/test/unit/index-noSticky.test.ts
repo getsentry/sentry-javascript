@@ -3,8 +3,8 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
+import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
 import { Replay } from './../../src';
-import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from './../../src/session/constants';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();

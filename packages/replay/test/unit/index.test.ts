@@ -8,8 +8,8 @@ import { DomHandler, MockTransportSend } from '@test/types';
 import { EventType } from 'rrweb';
 
 import { Replay } from '../../src';
-import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT } from '../../src/session/constants';
-import { RecordingEvent, WINDOW } from '../../src/types';
+import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
