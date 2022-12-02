@@ -19,13 +19,9 @@ const baseBundleConfig = makeBaseBundleConfig({
           __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
         },
       }),
+      // lodash.debounce is a CJS module, so we need to convert it to ESM first
       commonjs(),
     ],
-    output: {
-      // set exports to 'named' or 'auto' so that rollup doesn't warn about
-      // the default export in `worker/worker.js`
-      exports: 'auto',
-    },
   },
 });
 
