@@ -8,11 +8,26 @@ import { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import { BrowserTransportOptions } from './transports/types';
 
+type BrowserClientReplayOptions = {
+  /**
+   * The sample rate for session-long replays.
+   * 1.0 will record all sessions and 0 will record none.
+   */
+  replaysSampleRate?: number;
+
+  /**
+   * The sample rate for sessions that has had an error occur.
+   * This is independent of `sessionSampleRate`.
+   * 1.0 will record all sessions and 0 will record none.
+   */
+  replaysOnErrorSampleRate?: number;
+};
+
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
  */
-export type BrowserOptions = Options<BrowserTransportOptions>;
+export type BrowserOptions = Options<BrowserTransportOptions> & BrowserClientReplayOptions;
 
 /**
  * Configuration options for the Sentry Browser SDK Client class
