@@ -27,12 +27,11 @@ import {
   GLOBAL_OBJ,
   isNodeEnv,
   logger,
+  uuid4,
 } from '@sentry/utils';
 
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
-
-const NIL_EVENT_ID = '00000000000000000000000000000000';
 
 /**
  * API compatibility version of this hub.
@@ -185,20 +184,21 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint): string {
+    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
-    this._lastEventId =
-      this._withClient((client, scope) => {
-        return client.captureException(
-          exception,
-          {
-            originalException: exception,
-            syntheticException,
-            ...hint,
-          },
-          scope,
-        );
-      }) || NIL_EVENT_ID;
-    return this._lastEventId;
+    this._withClient((client, scope) => {
+      client.captureException(
+        exception,
+        {
+          originalException: exception,
+          syntheticException,
+          ...hint,
+          event_id: eventId,
+        },
+        scope,
+      );
+    });
+    return eventId;
   }
 
   /**
@@ -210,37 +210,37 @@ export class Hub implements HubInterface {
     level?: Severity | SeverityLevel,
     hint?: EventHint,
   ): string {
+    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
-    this._lastEventId =
-      this._withClient((client, scope) => {
-        return client.captureMessage(
-          message,
-          level,
-          {
-            originalException: message,
-            syntheticException,
-            ...hint,
-          },
-          scope,
-        );
-      }) || NIL_EVENT_ID;
-    return this._lastEventId;
+    this._withClient((client, scope) => {
+      client.captureMessage(
+        message,
+        level,
+        {
+          originalException: message,
+          syntheticException,
+          ...hint,
+          event_id: eventId,
+        },
+        scope,
+      );
+    });
+    return eventId;
   }
 
   /**
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
-    const clientId =
-      this._withClient((client, scope) => {
-        return client.captureEvent(event, { ...hint }, scope);
-      }) || NIL_EVENT_ID;
-
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     if (event.type !== 'transaction') {
-      this._lastEventId = clientId;
+      this._lastEventId = eventId;
     }
 
-    return clientId;
+    this._withClient((client, scope) => {
+      client.captureEvent(event, { ...hint, event_id: eventId }, scope);
+    });
+    return eventId;
   }
 
   /**
@@ -469,9 +469,11 @@ export class Hub implements HubInterface {
    * @param method The method to call on the client.
    * @param args Arguments to pass to the client function.
    */
-  private _withClient<T>(callback: (client: Client, scope: Scope | undefined) => T): T | undefined {
+  private _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
     const { scope, client } = this.getStackTop();
-    return client && callback(client, scope);
+    if (client) {
+      callback(client, scope);
+    }
   }
 
   /**
