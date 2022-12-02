@@ -23,7 +23,7 @@ import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import { Session } from './session/Session';
-import {
+import type {
   AllPerformanceEntry,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
