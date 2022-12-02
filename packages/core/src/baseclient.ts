@@ -127,7 +127,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return;
     }
 
-    let eventId: string | undefined;
+    let eventId: string | undefined = hint && hint.event_id;
+
     this._process(
       this.eventFromException(exception, hint)
         .then(event => this._captureEvent(event, hint, scope))
@@ -149,7 +150,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
-    let eventId: string | undefined;
+    let eventId: string | undefined = hint && hint.event_id;
 
     const promisedEvent = isPrimitive(message)
       ? this.eventFromMessage(String(message), level, hint)
@@ -176,7 +177,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return;
     }
 
-    let eventId: string | undefined;
+    let eventId: string | undefined = hint && hint.event_id;
 
     this._process(
       this._captureEvent(event, hint, scope).then(result => {
