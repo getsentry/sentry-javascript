@@ -4,13 +4,12 @@
   "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
 
   "compilerOptions": {
-    "baseUrl": ".",
-    "rootDir": ".",
     "types": ["node", "jest"],
-    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "noImplicitAny": true,
     "noImplicitThis": false,
-    "strictPropertyInitialization": false,
-    "resolveJsonModule": true,
-    "allowJs": true
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false
   }
 }
