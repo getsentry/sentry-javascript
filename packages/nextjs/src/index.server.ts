@@ -33,6 +33,12 @@ const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NextjsOptions): void {
+  if (IS_BUILD) {
+    // Next.js runs some of the user code (data fetching methods) during build and our init code is being run alongside
+    // the user code.Because it is a bit unnecessary to have the SDK running during the build we just noop.
+    return;
+  }
+
   if (__DEBUG_BUILD__ && options.debug) {
     logger.enable();
   }
