@@ -1,11 +1,12 @@
-# @sentry/replay
+# Sentry Session Replay
 
 Note: Session Replay is currently in beta.
 
 ## Pre-requisites
 
-For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.x`.
+For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.23.0`.
 
+Make sure to use the exact same version of `@sentry/replay` as your other Sentry package(s) are, e.g. `@sentry/browser` or `@sentry/react`.
 
 `@sentry/replay` requires Node 12+, and browsers newer than IE11.
 
