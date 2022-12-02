@@ -18,20 +18,22 @@ export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
 ): NextConfigFunction | NextConfigObject {
-  return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    if (typeof exportedUserNextConfig === 'function') {
+
+  if (typeof exportedUserNextConfig === 'function') {
+    return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
       const userNextConfigObject = exportedUserNextConfig(phase, defaults);
       return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
-    } else {
-      return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
-    }
-  };
+    };
+  } else {
+    return getFinalConfigObject(undefined, exportedUserNextConfig, userSentryWebpackPluginOptions);
+  }
+
 }
 
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
-  phase: string,
+  phase: string | undefined,
   incomingUserNextConfigObject: NextConfigObjectWithSentry,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
