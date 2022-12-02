@@ -60,23 +60,22 @@ describe('webpack loaders', () => {
   });
 
   describe('client loaders', () => {
-    it("doesn't add `RewriteFrames` loader to client config", async () => {
+    it('adds `RewriteFrames` loader to client config', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: clientBuildContext,
       });
 
-      expect(finalWebpackConfig.module.rules).not.toContainEqual(
-        expect.objectContaining({
-          use: [
-            {
-              loader: expect.stringEndingWith('prefixLoader.js'),
-              options: expect.objectContaining({ templatePrefix: expect.stringContaining('RewriteFrames') }),
-            },
-          ],
-        }),
-      );
+      expect(finalWebpackConfig.module.rules).toContainEqual({
+        test: /sentry\.client\.config\.(jsx?|tsx?)/,
+        use: [
+          {
+            loader: expect.stringEndingWith('prefixLoader.js'),
+            options: expect.objectContaining({ templatePrefix: 'clientRewriteFrames' }),
+          },
+        ],
+      });
     });
   });
 });

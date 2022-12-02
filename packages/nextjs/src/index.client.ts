@@ -1,3 +1,4 @@
+import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
@@ -28,6 +29,8 @@ export { BrowserTracing };
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
+type GlobalWithAssetPrefixPath = typeof global & { __rewriteFramesAssetPrefixPath__: string };
+
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
   buildMetadata(options, ['nextjs', 'react']);
@@ -47,6 +50,25 @@ export function init(options: NextjsOptions): void {
 
 function addClientIntegrations(options: NextjsOptions): void {
   let integrations = options.integrations || [];
+
+  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // is set there, we set it here as well, just in case something has gone wrong with the injection.
+  const assetPrefixPath = (global as GlobalWithAssetPrefixPath).__rewriteFramesAssetPrefixPath__ || '';
+
+  const defaultRewriteFramesIntegration = new RewriteFrames({
+    // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
+    iteratee: frame => {
+      try {
+        const { origin } = new URL(frame.filename as string);
+        frame.filename = frame.filename?.replace(origin, 'app://').replace(assetPrefixPath, '');
+      } catch (err) {
+        // Filename wasn't a properly formed URL, so there's nothing we can do
+      }
+
+      return frame;
+    },
+  });
+  integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
 
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
   // will get treeshaken away

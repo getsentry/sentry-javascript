@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import {
@@ -80,10 +81,10 @@ export function constructWebpackConfigFunction(
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    if (isServer) {
-      // This loader will inject code setting global values for use by `RewriteFrames`
-      addRewriteFramesLoader(newConfig, 'server', userNextConfig);
+    // Add a loader which will inject code that sets global values for use by `RewriteFrames`
+    addRewriteFramesLoader(newConfig, isServer ? 'server' : 'client', userNextConfig);
 
+    if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
 
@@ -498,7 +499,7 @@ export function getWebpackPluginOptions(
   const isWebpack5 = webpack.version.startsWith('5');
   const isServerless = userNextConfig.target === 'experimental-serverless-trace';
   const hasSentryProperties = fs.existsSync(path.resolve(projectDir, 'sentry.properties'));
-  const urlPrefix = userNextConfig.basePath ? `~${userNextConfig.basePath}/_next` : '~/_next';
+  const urlPrefix = '~/_next';
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
@@ -645,8 +646,8 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 }
 
 /**
- * Support the `distDir` option by making its value (easy to get here at build-time) available to the server SDK's
- * default `RewriteFrames` instance (which needs it at runtime), by injecting code to attach it to `global`.
+ * Support the `distDir` and `assetPrefix` options by making their values (easy to get here at build-time) available at
+ * runtime (for use by `RewriteFrames`), by injecting code to attach their values to `global` or `window`.
  *
  * @param newConfig The webpack config object being constructed
  * @param target Either 'server' or 'client'
@@ -666,6 +667,16 @@ function addRewriteFramesLoader(
         userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
       ],
     ],
+    client: [
+      [
+        '__ASSET_PREFIX_PATH__',
+        // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+        // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+        userNextConfig.assetPrefix
+          ? new URL(userNextConfig.assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+          : '',
+      ],
+    ],
   };
 
   newConfig.module.rules.push({
@@ -675,8 +686,7 @@ function addRewriteFramesLoader(
         loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
         options: {
           templatePrefix: `${target}RewriteFrames`,
-          // This weird cast will go away as soon as we add the client half of this function in
-          replacements: replacements[target as 'server'],
+          replacements: replacements[target],
         },
       },
     ],
