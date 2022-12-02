@@ -63,7 +63,11 @@ describe('Client init()', () => {
           },
         },
         environment: 'test',
-        integrations: [],
+        integrations: expect.arrayContaining([
+          expect.objectContaining({
+            name: 'RewriteFrames',
+          }),
+        ]),
       }),
     );
   });
