@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
+import type { BrowserClient, BrowserOptions } from '@sentry/browser';
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
@@ -213,6 +214,10 @@ export class Replay implements Integration {
     if (!isBrowser()) {
       return;
     }
+
+    // Client is not available in constructor, so we need to wait until setupOnce
+    this._loadReplayOptionsFromClient();
+
     // XXX: See method comments above
     setTimeout(() => this.start());
   }
@@ -1331,6 +1336,20 @@ export class Replay implements Integration {
   private _maybeSaveSession(): void {
     if (this.session && this.options.stickySession) {
       saveSession(this.session);
+    }
+  }
+
+  /** Parse Replay-related options from SDK options */
+  private _loadReplayOptionsFromClient(): void {
+    const client = getCurrentHub().getClient() as BrowserClient | undefined;
+    const opt = client && (client.getOptions() as BrowserOptions | undefined);
+
+    if (opt && opt.replaysSampleRate) {
+      this.options.sessionSampleRate = opt.replaysSampleRate;
+    }
+
+    if (opt && opt.replaysOnErrorSampleRate) {
+      this.options.errorSampleRate = opt.replaysOnErrorSampleRate;
     }
   }
 }
