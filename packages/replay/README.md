@@ -175,3 +175,11 @@ Ignoring only applies to form inputs. Events will be ignored on the input elemen
 
 https://user-images.githubusercontent.com/79684/192815134-a6451c3f-d3cb-455f-a699-7c3fe04d0a2e.mov
 
+## Error linking
+
+Currently, errors that happen on the page while a replay is running are linked to the replay,
+making it as easy as possible to jump between related issues/replays.
+However, please note that it is _possible_ that the error count reported on the replay detail page
+does not match the actual errors that have been captured perfectly.
+The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
+This should not happen to often, but be aware that it is theoretically possible.
