@@ -7,6 +7,7 @@ import {
   NextConfigObject,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
+  WebpackConfigObjectWithModuleRules,
 } from '../../src/config/types';
 import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../../src/config/webpack';
 import { withSentryConfig } from '../../src/config/withSentryConfig';
@@ -57,7 +58,7 @@ export async function materializeFinalWebpackConfig(options: {
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
-}): Promise<WebpackConfigObject> {
+}): Promise<WebpackConfigObjectWithModuleRules> {
   const { exportedNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } =
     options;
 
@@ -83,7 +84,7 @@ export async function materializeFinalWebpackConfig(options: {
   const webpackEntryProperty = finalWebpackConfigValue.entry as EntryPropertyFunction;
   finalWebpackConfigValue.entry = await webpackEntryProperty();
 
-  return finalWebpackConfigValue;
+  return finalWebpackConfigValue as WebpackConfigObjectWithModuleRules;
 }
 
 // helper function to make sure we're checking the correct plugin's data

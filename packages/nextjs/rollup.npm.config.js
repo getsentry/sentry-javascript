@@ -20,7 +20,7 @@ export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: [
-        'src/config/templates/prefixLoaderTemplate.ts',
+        'src/config/templates/serverRewriteFramesPrefixLoaderTemplate.ts',
         'src/config/templates/pageProxyLoaderTemplate.ts',
         'src/config/templates/apiProxyLoaderTemplate.ts',
       ],
