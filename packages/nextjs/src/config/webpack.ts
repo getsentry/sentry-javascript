@@ -80,10 +80,10 @@ export function constructWebpackConfigFunction(
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    if (isServer) {
-      // This loader will inject code setting global values for use by `RewriteFrames`
-      addRewriteFramesLoader(newConfig, 'server', userNextConfig);
+    // Add a loader which will inject code that sets global values for use by `RewriteFrames`
+    addRewriteFramesLoader(newConfig, isServer ? 'server' : 'client', userNextConfig);
 
+    if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
 
