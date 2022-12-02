@@ -38,7 +38,7 @@ Sentry.init({
 
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
-  replaysSampleRate: 0.5,
+  replaysSampleRate: 0.1,
 
   // If the entire session is not sampled, use the below sample rate to sample
   // sessions when an error occurs.
@@ -106,8 +106,8 @@ The following options can be configured on the root level of your browser-based 
 
 | key                 | type    | default | description                                                                                                                                                                                                                     |
 | ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
-| replaysSampleRate   | number  | `0.1`   | The sample rate for all sessions, which will capture the entirety from when a user begins a session until the session ends. (1.0 will collect all replays, 0 will collect no replays)                                           |
-| replaysOnErrorSampleRate     | number  | `1.0`   | If a session isn't already being recorded via `replaysSampleRate`, based on `replaysOnErrorSampleRate` the SDK will send the captured replay when an error occurs. (1.0 capturing all sessions with an error, and 0 capturing none).
+| replaysSampleRate   | number  | `0.1`   | The sample rate for replays that begin recording immediately and last the entirety of the user's session. 1.0 will collect all replays, 0 will collect no replays.                                           |
+| replaysOnErrorSampleRate     | number  | `1.0`   |The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends. 1.0 capturing all sessions with an error, and 0 capturing none.
 
 ### General Integration Configuration
 
@@ -176,11 +176,11 @@ Ignoring only applies to form inputs. Events will be ignored on the input elemen
 
 https://user-images.githubusercontent.com/79684/192815134-a6451c3f-d3cb-455f-a699-7c3fe04d0a2e.mov
 
-## Error linking
+## Error Linking
 
-Currently, errors that happen on the page while a replay is running are linked to the replay,
+Currently, errors that happen on the page while a replay is running are linked to the Replay,
 making it as easy as possible to jump between related issues/replays.
-However, please note that it is _possible_ that the error count reported on the replay detail page
-does not match the actual errors that have been captured perfectly.
+However, please note that it is _possible_ that the error count reported on the Replay Detail page
+does not match the actual errors that have been captured.
 The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
 This should not happen to often, but be aware that it is theoretically possible.
