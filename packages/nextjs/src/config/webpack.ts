@@ -646,8 +646,8 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 }
 
 /**
- * Support the `distDir` option by making its value (easy to get here at build-time) available to the server SDK's
- * default `RewriteFrames` instance (which needs it at runtime), by injecting code to attach it to `global`.
+ * Support the `distDir` and `assetPrefix` options by making their values (easy to get here at build-time) available at
+ * runtime (for use by `RewriteFrames`), by injecting code to attach their values to `global` or `window`.
  *
  * @param newConfig The webpack config object being constructed
  * @param target Either 'server' or 'client'
@@ -667,6 +667,16 @@ function addRewriteFramesLoader(
         userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
       ],
     ],
+    client: [
+      [
+        '__ASSET_PREFIX_PATH__',
+        // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+        // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+        userNextConfig.assetPrefix
+          ? new URL(userNextConfig.assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+          : '',
+      ],
+    ],
   };
 
   newConfig.module.rules.push({
@@ -676,8 +686,7 @@ function addRewriteFramesLoader(
         loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
         options: {
           templatePrefix: `${target}RewriteFrames`,
-          // This weird cast will go away as soon as we add the client half of this function in
-          replacements: replacements[target as 'server'],
+          replacements: replacements[target],
         },
       },
     ],
