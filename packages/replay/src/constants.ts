@@ -1,8 +1,9 @@
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-// exporting WINDOW from within the @sentry/replay instead of importing it from @sentry/browser
-// this avoids the Browser package being bundled into the CDN bundle as well as a
-// circular dependency between the Browser and Replay packages in the future
+// exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
+// prevents the browser package from being bundled in the CDN bundle, and avoids a
+// circular dependency between the browser and replay packages should `@sentry/browser` import
+// from `@sentry/replay` in the future
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 export const REPLAY_SESSION_KEY = 'sentryReplaySession';
