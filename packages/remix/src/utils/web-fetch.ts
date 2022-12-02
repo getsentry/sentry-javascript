@@ -1,6 +1,8 @@
 // Based on Remix's implementation of Fetch API
 // https://github.com/remix-run/web-std-io/tree/main/packages/fetch
 
+import { logger } from '@sentry/utils';
+
 import { getClientIPAddress } from './getIpAddress';
 import { RemixRequest } from './types';
 
@@ -95,11 +97,11 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
 
   let ip;
 
-  // Using a try block here just to stay on the safe side
+  // Using a try block here not to break the whole request if we can't get the IP address
   try {
     ip = getClientIPAddress(headers);
   } catch (e) {
-    // ignore
+    __DEBUG_BUILD__ && logger.warn('Could not get client IP address', e);
   }
 
   // HTTP-network fetch step 4.2
