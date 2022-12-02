@@ -1,16 +1,5 @@
 {
   "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "module": "esnext",
-    "noImplicitAny": true,
-    "noEmitOnError": false,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "declaration": true,
-    "declarationMap": true,
-    "strictNullChecks": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  "compilerOptions": {},
+  "include": ["src/**/*.ts"]
 }
