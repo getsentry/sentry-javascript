@@ -1,4 +1,4 @@
-# sentry-replay
+# @sentry/replay
 
 Note: Session Replay is currently in beta.
 
