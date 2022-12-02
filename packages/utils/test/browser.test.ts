@@ -44,6 +44,10 @@ describe('htmlTreeAsString', () => {
     </li>`;
     document.body.appendChild(el);
 
+    // Two formats for specifying keyAttrs
+    expect(htmlTreeAsString(document.getElementById('cat-2'), ['test-id'])).toBe(
+      'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
+    );
     expect(htmlTreeAsString(document.getElementById('cat-2'), { keyAttrs: ['test-id'] })).toBe(
       'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
     );

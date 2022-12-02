@@ -14,7 +14,7 @@ const DEFAULT_MAX_STRING_LENGTH = 80;
  */
 export function htmlTreeAsString(
   elem: unknown,
-  options: { keyAttrs?: string[]; maxStringLength?: number } = {},
+  options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
   type SimpleNode = {
     parentNode: SimpleNode;
@@ -33,7 +33,8 @@ export function htmlTreeAsString(
     const separator = ' > ';
     const sepLength = separator.length;
     let nextStr;
-    const { keyAttrs, maxStringLength = DEFAULT_MAX_STRING_LENGTH } = options;
+    const keyAttrs = Array.isArray(options) ? options : options.keyAttrs;
+    const maxStringLength = (!Array.isArray(options) && options.maxStringLength) || DEFAULT_MAX_STRING_LENGTH;
 
     while (currentElem && height++ < MAX_TRAVERSE_HEIGHT) {
       nextStr = _htmlElementAsString(currentElem, keyAttrs);
