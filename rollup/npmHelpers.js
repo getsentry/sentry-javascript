@@ -93,7 +93,6 @@ export function makeBaseNPMConfig(options = {}) {
     external: [
       ...builtinModules,
       ...Object.keys(packageDotJSON.dependencies || {}),
-      ...Object.keys(packageDotJSON.devDependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
     ],
 
