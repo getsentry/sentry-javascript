@@ -1,6 +1,5 @@
-import { mockSdk } from '@test';
-
 import { createPerformanceEntries } from '../../src/createPerformanceEntry';
+import { mockSdk } from './..';
 
 jest.unmock('@sentry/browser');
 

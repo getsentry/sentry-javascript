@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
-import { mockSdk } from '@test';
 
 import * as HandleScope from '../../../src/coreHandlers/handleScope';
+import { mockSdk } from './../..';
 
 let mockHandleScope: jest.MockedFunction<typeof HandleScope.handleScope>;
 

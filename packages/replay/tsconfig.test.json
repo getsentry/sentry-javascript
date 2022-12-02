@@ -4,10 +4,6 @@
   "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
 
   "compilerOptions": {
-    "paths": {
-      "@test": ["./test"],
-      "@test/*": ["./test/*"]
-    },
     "baseUrl": ".",
     "rootDir": ".",
     "types": ["node", "jest"],

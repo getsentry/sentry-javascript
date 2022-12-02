@@ -1,9 +1,8 @@
 // eslint-disable-next-line import/no-unresolved
-import { PerformanceEntryLcp } from '@test/fixtures/performanceEntry/lcp';
-import { PerformanceEntryNavigation } from '@test/fixtures/performanceEntry/navigation';
-import { PerformanceEntryResource } from '@test/fixtures/performanceEntry/resource';
-
 import { dedupePerformanceEntries } from '../../../src/util/dedupePerformanceEntries';
+import { PerformanceEntryLcp } from './../../fixtures/performanceEntry/lcp';
+import { PerformanceEntryNavigation } from './../../fixtures/performanceEntry/navigation';
+import { PerformanceEntryResource } from './../../fixtures/performanceEntry/resource';
 
 it('does nothing with a single entry', function () {
   const entries = [PerformanceEntryNavigation()];
