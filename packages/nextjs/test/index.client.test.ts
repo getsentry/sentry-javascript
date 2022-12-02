@@ -63,7 +63,7 @@ describe('Client init()', () => {
           },
         },
         environment: 'test',
-        integrations: undefined,
+        integrations: [],
       }),
     );
   });

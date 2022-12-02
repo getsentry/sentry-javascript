@@ -1,11 +1,11 @@
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
-import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
+import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
-import { addOrUpdateIntegration, UserIntegrations } from './utils/userIntegrations';
+import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/react';
 export { nextRouterInstrumentation } from './performance/client';
@@ -32,21 +32,9 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: NextjsOptions): void {
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
+  addClientIntegrations(options);
 
-  let integrations = options.integrations;
-
-  // Guard below evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false"
-  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    // Only add BrowserTracing if a tracesSampleRate or tracesSampler is set
-    if (options.tracesSampleRate !== undefined || options.tracesSampler !== undefined) {
-      integrations = createClientIntegrations(options.integrations);
-    }
-  }
-
-  reactInit({
-    ...options,
-    integrations,
-  });
+  reactInit(options);
 
   configureScope(scope => {
     scope.setTag('runtime', 'browser');
@@ -57,14 +45,24 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-function createClientIntegrations(userIntegrations: UserIntegrations = []): UserIntegrations {
-  const defaultBrowserTracingIntegration = new BrowserTracing({
-    // eslint-disable-next-line deprecation/deprecation
-    tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
-    routingInstrumentation: nextRouterInstrumentation,
-  });
+function addClientIntegrations(options: NextjsOptions): void {
+  let integrations = options.integrations || [];
 
-  return addOrUpdateIntegration(defaultBrowserTracingIntegration, userIntegrations, {
-    'options.routingInstrumentation': nextRouterInstrumentation,
-  });
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
+  // will get treeshaken away
+  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+    if (hasTracingEnabled(options)) {
+      const defaultBrowserTracingIntegration = new BrowserTracing({
+        // eslint-disable-next-line deprecation/deprecation
+        tracingOrigins: [...defaultRequestInstrumentationOptions.tracingOrigins, /^(api\/)/],
+        routingInstrumentation: nextRouterInstrumentation,
+      });
+
+      integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations, {
+        'options.routingInstrumentation': nextRouterInstrumentation,
+      });
+    }
+  }
+
+  options.integrations = integrations;
 }
