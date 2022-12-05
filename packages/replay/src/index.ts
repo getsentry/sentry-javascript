@@ -146,8 +146,8 @@ export class Replay implements Integration {
     initialFlushDelay = 5000,
     stickySession = true,
     useCompression = true,
-    sessionSampleRate = DEFAULT_SESSION_SAMPLE_RATE,
-    errorSampleRate = DEFAULT_ERROR_SAMPLE_RATE,
+    sessionSampleRate,
+    errorSampleRate,
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
@@ -171,12 +171,36 @@ export class Replay implements Integration {
       flushMaxDelay,
       stickySession,
       initialFlushDelay,
-      sessionSampleRate,
-      errorSampleRate,
+      sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
+      errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
       useCompression,
       maskAllText,
       blockAllMedia,
     };
+
+    if (typeof sessionSampleRate === 'number') {
+      // eslint-disable-next-line
+      console.warn(
+        `[Replay] You are passing \`sessionSampleRate\` to the Replay integration.
+This option is deprecated and will be removed soon.
+Instead, configure \`replaysSessionSampleRate\` directly in the SDK init options, e.g.:
+Sentry.init({ replaysSessionSampleRate: ${sessionSampleRate} })`,
+      );
+
+      this.options.sessionSampleRate = sessionSampleRate;
+    }
+
+    if (typeof errorSampleRate === 'number') {
+      // eslint-disable-next-line
+      console.warn(
+        `[Replay] You are passing \`errorSampleRate\` to the Replay integration.
+This option is deprecated and will be removed soon.
+Instead, configure \`replaysOnErrorSampleRate\` directly in the SDK init options, e.g.:
+Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
+      );
+
+      this.options.errorSampleRate = errorSampleRate;
+    }
 
     if (this.options.maskAllText) {
       // `maskAllText` is a more user friendly option to configure
@@ -1354,11 +1378,11 @@ export class Replay implements Integration {
     const client = getCurrentHub().getClient() as BrowserClient | undefined;
     const opt = client && (client.getOptions() as BrowserOptions | undefined);
 
-    if (opt && opt.replaysSessionSampleRate) {
+    if (opt && typeof opt.replaysSessionSampleRate === 'number') {
       this.options.sessionSampleRate = opt.replaysSessionSampleRate;
     }
 
-    if (opt && opt.replaysOnErrorSampleRate) {
+    if (opt && typeof opt.replaysOnErrorSampleRate === 'number') {
       this.options.errorSampleRate = opt.replaysOnErrorSampleRate;
     }
   }
