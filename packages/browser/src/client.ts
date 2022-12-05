@@ -13,7 +13,7 @@ type BrowserClientReplayOptions = {
    * The sample rate for session-long replays.
    * 1.0 will record all sessions and 0 will record none.
    */
-  replaysSampleRate?: number;
+  replaysSessionSampleRate?: number;
 
   /**
    * The sample rate for sessions that has had an error occur.

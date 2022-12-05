@@ -24,7 +24,7 @@ They are now defined on the top level of the SDK:
 ```js
 Sentry.init({
   dsn: '__DSN__',
-  replaysSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
   integrations: [
     new Replay({

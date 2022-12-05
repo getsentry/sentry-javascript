@@ -48,7 +48,7 @@ Sentry.init({
 
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
-  replaysSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
 
   // If the entire session is not sampled, use the below sample rate to sample
   // sessions when an error occurs.
@@ -101,10 +101,10 @@ Alternatively, rather than recording an entire session, you can capture a replay
 
 Sampling allows you to control how much of your website's traffic will result in a Session Replay. There are two sample rates you can adjust to get the replays more relevant to your interests:
 
-- `replaysSampleRate` - The sample rate for replays that begin recording immediately and last the entirety of the user's session.
+- `replaysSessionSampleRate` - The sample rate for replays that begin recording immediately and last the entirety of the user's session.
 - `replaysOnErrorSampleRate` - The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends.
 
-Sampling occurs when the session is first started. `replaysSampleRate` is evaluated first. If it is sampled, then the replay recording begins. Otherwise, `replaysOnErrorSampleRate` is evaluated and if it is sampled, the integration will begin buffering the replay and will only upload a replay to Sentry when an error occurs. The remainder of the replay will behave similarly to a whole-session replay.
+Sampling occurs when the session is first started. `replaysSessionSampleRate` is evaluated first. If it is sampled, then the replay recording begins. Otherwise, `replaysOnErrorSampleRate` is evaluated and if it is sampled, the integration will begin buffering the replay and will only upload a replay to Sentry when an error occurs. The remainder of the replay will behave similarly to a whole-session replay.
 
 
 ## Configuration
@@ -116,7 +116,7 @@ The following options can be configured on the root level of your browser-based 
 
 | key                 | type    | default | description                                                                                                                                                                                                                     |
 | ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
-| replaysSampleRate   | number  | `0.1`   | The sample rate for replays that begin recording immediately and last the entirety of the user's session. 1.0 will collect all replays, 0 will collect no replays.                                           |
+| replaysSessionSampleRate   | number  | `0.1`   | The sample rate for replays that begin recording immediately and last the entirety of the user's session. 1.0 will collect all replays, 0 will collect no replays.                                           |
 | replaysOnErrorSampleRate     | number  | `1.0`   |The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends. 1.0 capturing all sessions with an error, and 0 capturing none.
 
 ### General Integration Configuration

@@ -1354,8 +1354,8 @@ export class Replay implements Integration {
     const client = getCurrentHub().getClient() as BrowserClient | undefined;
     const opt = client && (client.getOptions() as BrowserOptions | undefined);
 
-    if (opt && opt.replaysSampleRate) {
-      this.options.sessionSampleRate = opt.replaysSampleRate;
+    if (opt && opt.replaysSessionSampleRate) {
+      this.options.sessionSampleRate = opt.replaysSessionSampleRate;
     }
 
     if (opt && opt.replaysOnErrorSampleRate) {
