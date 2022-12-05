@@ -23,7 +23,7 @@ type NextApiModule = (
     }
   // CJS export
   | NextApiHandler
-) & { config?: PageConfig };
+) & { config?: PageConfig & { runtime?: string } };
 
 const userApiModule = origModule as NextApiModule;
 
@@ -53,7 +53,13 @@ export const config = {
   },
 };
 
-export default userProvidedHandler ? Sentry.withSentryAPI(userProvidedHandler, '__ROUTE__') : undefined;
+const isEdgeRuntime = origConfig.runtime === 'experimental-edge';
+
+export default userProvidedHandler
+  ? isEdgeRuntime
+    ? userProvidedHandler
+    : Sentry.withSentryAPI(userProvidedHandler, '__ROUTE__')
+  : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
