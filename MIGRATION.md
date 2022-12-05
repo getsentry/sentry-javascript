@@ -16,6 +16,10 @@ This is no longer used.
 
 This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
 
+# Upgrading replay (beta)
+
+For details on upgrading Replay in its beta phase, please view the [dedicated Replay MIGRATION docs](./packages/replay/MIGRATION.md).
+
 # Upgrading from 6.x to 7.x
 
 The main goal of version 7 is to reduce bundle size. This version is breaking because we removed deprecated APIs, upgraded our build tooling, and restructured npm package contents.

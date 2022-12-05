@@ -1,10 +1,20 @@
+<p align="center">
+  <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
+  </a>
+</p>
+
 # Sentry Session Replay
 
-Note: Session Replay is currently in beta.
+[![npm version](https://img.shields.io/npm/v/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+
+**Note: Session Replay is currently in beta.** Functionality may change outside of major version bumps - while we try our best to avoid any breaking changes, semver cannot be guaranteed before Replay is out of beta. You can find more information about upgrading in [MIGRATION.md](./MIGRATION.md).
 
 ## Pre-requisites
 
-For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.23.0`.
+For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.24.0`.
 
 Make sure to use the exact same version of `@sentry/replay` as your other Sentry package(s), e.g. `@sentry/browser` or `@sentry/react`.
 
