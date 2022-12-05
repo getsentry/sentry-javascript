@@ -33,8 +33,6 @@ describe('Replay (no sticky)', () => {
     ({ replay } = await mockSdk({
       replayOptions: {
         stickySession: false,
-        sessionSampleRate: 1.0,
-        errorSampleRate: 0,
       },
     }));
     jest.runAllTimers();

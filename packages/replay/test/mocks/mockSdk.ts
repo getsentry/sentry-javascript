@@ -4,7 +4,7 @@ import { Envelope, Transport } from '@sentry/types';
 import { Replay as ReplayClass } from '../../src';
 import { ReplayConfiguration } from '../../src/types';
 
-interface MockSdkParams {
+export interface MockSdkParams {
   replayOptions?: ReplayConfiguration;
   sentryOptions?: BrowserOptions;
 }
@@ -34,25 +34,25 @@ class MockTransport implements Transport {
   }
 }
 
-export async function mockSdk({
-  replayOptions = {
+export async function mockSdk({ replayOptions, sentryOptions }: MockSdkParams = {}): Promise<{ replay: ReplayClass }> {
+  const { init } = jest.requireActual('@sentry/browser');
+
+  const { Replay } = await import('../../src');
+  const replay = new Replay({
     stickySession: false,
-    sessionSampleRate: 1.0,
-    errorSampleRate: 0.0,
-  },
-  sentryOptions = {
+    ...replayOptions,
+  });
+
+  init({
     dsn: 'https://dsn@ingest.f00.f00/1',
     autoSessionTracking: false,
     sendClientReports: false,
     transport: () => new MockTransport(),
-  },
-}: MockSdkParams = {}): Promise<{ replay: ReplayClass }> {
-  const { init } = jest.requireActual('@sentry/browser');
-
-  const { Replay } = await import('../../src');
-  const replay = new Replay(replayOptions);
-
-  init({ ...sentryOptions, integrations: [replay] });
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 0.0,
+    ...sentryOptions,
+    integrations: [replay],
+  });
 
   // setupOnce is only called the first time, so we ensure to re-parse the options every time
   replay['_loadReplayOptionsFromClient']();

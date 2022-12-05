@@ -12,9 +12,13 @@ let replay: Replay;
 
 beforeEach(async () => {
   ({ replay } = await resetSdkMock({
-    errorSampleRate: 1.0,
-    sessionSampleRate: 0.0,
-    stickySession: false,
+    replayOptions: {
+      stickySession: false,
+    },
+    sentryOptions: {
+      replaysSessionSampleRate: 0.0,
+      replaysOnErrorSampleRate: 1.0,
+    },
   }));
 });
 
@@ -106,10 +110,7 @@ it('strips out dropped events from errorIds', async () => {
 });
 
 it('tags errors and transactions with replay id for session samples', async () => {
-  ({ replay } = await resetSdkMock({
-    sessionSampleRate: 1.0,
-    errorSampleRate: 0,
-  }));
+  ({ replay } = await resetSdkMock({}));
   replay.start();
   const transaction = Transaction();
   const error = Error();

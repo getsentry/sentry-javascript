@@ -25,11 +25,14 @@ describe('Replay (errorSampleRate)', () => {
 
   beforeEach(async () => {
     ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
-      errorSampleRate: 1.0,
-      sessionSampleRate: 0.0,
-      stickySession: true,
+      replayOptions: {
+        stickySession: true,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 1.0,
+      },
     }));
-    // jest.advanceTimersToNextTimer();
   });
 
   afterEach(async () => {
@@ -322,7 +325,9 @@ describe('Replay (errorSampleRate)', () => {
       `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
     );
     ({ mockRecord, mockTransportSend, replay } = await resetSdkMock({
-      stickySession: true,
+      replayOptions: {
+        stickySession: true,
+      },
     }));
     replay.start();
 
