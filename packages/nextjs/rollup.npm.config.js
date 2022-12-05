@@ -22,6 +22,7 @@ export default [
       entrypoints: [
         'src/config/templates/serverRewriteFramesPrefixLoaderTemplate.ts',
         'src/config/templates/clientRewriteFramesPrefixLoaderTemplate.ts',
+        'src/config/templates/releasePrefixLoaderTemplate.ts',
         'src/config/templates/pageProxyLoaderTemplate.ts',
         'src/config/templates/apiProxyLoaderTemplate.ts',
       ],
