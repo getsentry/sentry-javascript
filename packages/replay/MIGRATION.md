@@ -44,7 +44,7 @@ Two options, which have been deprecated for some time, have been removed:
 * `captureOnlyOnError` - instead use `errorSampleRate`
 ## New NPM package structure (https://github.com/getsentry/sentry-javascript/issues/6280)
 
-The internal structure of the npm bundle has changed. This is unlikely to affect you, unless you have imported something from e.g.:
+The internal structure of the npm package has changed. This is unlikely to affect you, unless you have imported something from e.g.:
 
 ```js
 import something from '@sentry/replay/submodule';
