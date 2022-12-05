@@ -34,7 +34,7 @@ Sentry.init({
 });
 ```
 
-Note that the definition inside of `new Replay({})` has been deprecated and will be removed in a future update.
+Note that the sample rate options inside of `new Replay({})` have been deprecated and will be removed in a future update.
 
 ## Removed deprecated options (https://github.com/getsentry/sentry-javascript/pull/6370)
 
