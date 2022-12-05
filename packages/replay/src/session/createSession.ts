@@ -2,7 +2,7 @@ import { logger } from '@sentry/utils';
 
 import { SessionOptions } from '../types';
 import { saveSession } from './saveSession';
-import { Session } from './Session';
+import { makeSession, Session } from './Session';
 
 /**
  * Create a new session, which in its current implementation is a Sentry event
@@ -10,10 +10,13 @@ import { Session } from './Session';
  * one of these Sentry events per "replay session".
  */
 export function createSession({ sessionSampleRate, errorSampleRate, stickySession = false }: SessionOptions): Session {
-  const session = new Session(undefined, {
-    errorSampleRate,
-    sessionSampleRate,
-  });
+  const session = makeSession(
+    {},
+    {
+      errorSampleRate,
+      sessionSampleRate,
+    },
+  );
 
   __DEBUG_BUILD__ && logger.log(`[Replay] Creating new session: ${session.id}`);
 

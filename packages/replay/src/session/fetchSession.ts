@@ -1,6 +1,6 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
 import { SampleRates } from '../types';
-import { Session } from './Session';
+import { makeSession, Session } from './Session';
 
 /**
  * Fetches a session from storage
@@ -22,7 +22,7 @@ export function fetchSession({ sessionSampleRate, errorSampleRate }: SampleRates
 
     const sessionObj = JSON.parse(sessionStringFromStorage);
 
-    return new Session(sessionObj, { sessionSampleRate, errorSampleRate });
+    return makeSession(sessionObj, { sessionSampleRate, errorSampleRate });
   } catch {
     return null;
   }

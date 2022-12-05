@@ -5,7 +5,7 @@ import { isSampled } from '../util/isSampled';
 
 type Sampled = false | 'session' | 'error';
 
-export interface SessionObject {
+export interface Session {
   id: string;
 
   /**
@@ -24,52 +24,34 @@ export interface SessionObject {
   segmentId: number;
 
   /**
-   * Is the session sampled? `null` if the sampled, otherwise, `session` or `error`
+   * The ID of the previous session.
+   * If this is empty, there was no previous session.
+   */
+  previousSessionId?: string;
+
+  /**
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
    */
   sampled: Sampled;
 }
 
 /**
- * A wrapper for the session object that handles sampling.
+ * Get a session with defaults & applied sampling.
  */
-export class Session {
-  /**
-   * Session ID
-   */
-  public readonly id: string;
+export function makeSession(session: Partial<Session>, { sessionSampleRate, errorSampleRate }: SampleRates): Session {
+  const now = new Date().getTime();
+  const id = session.id || uuid4();
+  const started = session.started ?? now;
+  const lastActivity = session.lastActivity ?? now;
+  const segmentId = session.segmentId ?? 0;
+  const sampled =
+    session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
 
-  /**
-   * Start time of current session
-   */
-  public started: number;
-
-  /**
-   * Last known activity of the session
-   */
-  public lastActivity: number;
-
-  /**
-   * Sequence ID specific to replay updates
-   */
-  public segmentId: number;
-
-  /**
-   * Previous session ID
-   */
-  public previousSessionId: string | undefined;
-
-  /**
-   * Is the Session sampled?
-   */
-  public readonly sampled: Sampled;
-
-  public constructor(session: Partial<SessionObject> = {}, { sessionSampleRate, errorSampleRate }: SampleRates) {
-    const now = new Date().getTime();
-    this.id = session.id || uuid4();
-    this.started = session.started ?? now;
-    this.lastActivity = session.lastActivity ?? now;
-    this.segmentId = session.segmentId ?? 0;
-    this.sampled =
-      session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
-  }
+  return {
+    id,
+    started,
+    lastActivity,
+    segmentId,
+    sampled,
+  };
 }

@@ -1,6 +1,6 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
 import { saveSession } from '../../../src/session/saveSession';
-import { Session } from '../../../src/session/Session';
+import { makeSession } from '../../../src/session/Session';
 
 beforeAll(() => {
   WINDOW.sessionStorage.clear();
@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 it('saves a valid session', function () {
-  const session = new Session(
+  const session = makeSession(
     {
       id: 'fd09adfc4117477abc8de643e5a5798a',
       segmentId: 0,

@@ -1,8 +1,8 @@
-import { Session } from '../../../src/session/Session';
+import { makeSession } from '../../../src/session/Session';
 import { isSessionExpired } from '../../../src/util/isSessionExpired';
 
 function createSession(extra?: Record<string, any>) {
-  return new Session(
+  return makeSession(
     {
       started: 0,
       lastActivity: 0,
