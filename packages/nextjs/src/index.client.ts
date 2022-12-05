@@ -2,6 +2,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
@@ -42,6 +43,7 @@ export function init(options: NextjsOptions): void {
     // If the SDK is imported when using the Vercel Edge Runtime, it will import the browser SDK, even though it is
     // running the server part of a Next.js application. We can use the `EdgeRuntime` to check for that case and make
     // the init call a no-op. This will prevent the SDK from crashing on the Edge Runtime.
+    __DEBUG_BUILD__ && logger.log('Vercel Edge Runtime detected. Will not initialize SDK.');
     return;
   }
 
