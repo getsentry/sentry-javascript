@@ -7,6 +7,7 @@ import {
   exportedNextConfig,
   serverBuildContext,
   serverWebpackConfig,
+  userSentryWebpackPluginConfig,
 } from './fixtures';
 import { materializeFinalWebpackConfig } from './testUtils';
 
@@ -57,6 +58,32 @@ describe('webpack loaders', () => {
         ],
       });
     });
+
+    it('adds release prefix loader to server config', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverBuildContext,
+        userSentryWebpackPluginConfig: userSentryWebpackPluginConfig,
+      });
+
+      expect(finalWebpackConfig.module.rules).toContainEqual({
+        test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
+        use: [
+          {
+            loader: expect.stringEndingWith('prefixLoader.js'),
+            options: {
+              templatePrefix: 'release',
+              replacements: [
+                ['__RELEASE__', 'doGsaREgReaT'],
+                ['__ORG__', 'squirrelChasers'],
+                ['__PROJECT__', 'simulator'],
+              ],
+            },
+          },
+        ],
+      });
+    });
   });
 
   describe('client loaders', () => {
@@ -73,6 +100,32 @@ describe('webpack loaders', () => {
           {
             loader: expect.stringEndingWith('prefixLoader.js'),
             options: expect.objectContaining({ templatePrefix: 'clientRewriteFrames' }),
+          },
+        ],
+      });
+    });
+
+    it('adds release prefix loader to client config', async () => {
+      const finalWebpackConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientBuildContext,
+        userSentryWebpackPluginConfig: userSentryWebpackPluginConfig,
+      });
+
+      expect(finalWebpackConfig.module.rules).toContainEqual({
+        test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
+        use: [
+          {
+            loader: expect.stringEndingWith('prefixLoader.js'),
+            options: {
+              templatePrefix: 'release',
+              replacements: [
+                ['__RELEASE__', 'doGsaREgReaT'],
+                ['__ORG__', 'squirrelChasers'],
+                ['__PROJECT__', 'simulator'],
+              ],
+            },
           },
         ],
       });

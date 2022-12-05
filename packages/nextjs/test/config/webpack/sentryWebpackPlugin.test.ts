@@ -36,7 +36,7 @@ describe('Sentry webpack plugin config', () => {
         authToken: 'dogsarebadatkeepingsecrets', // picked up from env
         stripPrefix: ['webpack://_N_E/'], // default
         urlPrefix: '~/_next', // default
-        entries: expect.any(Function), // default, tested separately elsewhere
+        entries: [], // default, tested separately elsewhere
         release: 'doGsaREgReaT', // picked up from env
         dryRun: false, // based on buildContext.dev being false
       }),
