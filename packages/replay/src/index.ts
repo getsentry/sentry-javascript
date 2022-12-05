@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
+import type { BrowserClient, BrowserOptions } from '@sentry/browser';
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
-import { Breadcrumb, Client, Event, Integration } from '@sentry/types';
+import { Breadcrumb, Client, DataCategory, Event, EventDropReason, Integration } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
@@ -23,7 +24,7 @@ import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import { Session } from './session/Session';
-import {
+import type {
   AllPerformanceEntry,
   InstrumentationTypeBreadcrumb,
   InstrumentationTypeSpan,
@@ -125,6 +126,11 @@ export class Replay implements Integration {
    */
   private stopRecording: ReturnType<typeof record> | null = null;
 
+  /**
+   * We overwrite `client.recordDroppedEvent`, but store the original method here so we can restore it.
+   */
+  private _originalRecordDroppedEvent?: Client['recordDroppedEvent'];
+
   private context: InternalEventContext = {
     errorIds: new Set(),
     traceIds: new Set(),
@@ -213,6 +219,10 @@ export class Replay implements Integration {
     if (!isBrowser()) {
       return;
     }
+
+    // Client is not available in constructor, so we need to wait until setupOnce
+    this._loadReplayOptionsFromClient();
+
     // XXX: See method comments above
     setTimeout(() => this.start());
   }
@@ -400,6 +410,9 @@ export class Replay implements Integration {
       WINDOW.addEventListener('blur', this.handleWindowBlur);
       WINDOW.addEventListener('focus', this.handleWindowFocus);
 
+      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
+      this._overwriteRecordDroppedEvent();
+
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this.hasInitializedCoreListeners) {
         // Listeners from core SDK //
@@ -461,6 +474,8 @@ export class Replay implements Integration {
 
       WINDOW.removeEventListener('blur', this.handleWindowBlur);
       WINDOW.removeEventListener('focus', this.handleWindowFocus);
+
+      this._restoreRecordDroppedEvent();
 
       if (this.performanceObserver) {
         this.performanceObserver.disconnect();
@@ -1332,5 +1347,54 @@ export class Replay implements Integration {
     if (this.session && this.options.stickySession) {
       saveSession(this.session);
     }
+  }
+
+  /** Parse Replay-related options from SDK options */
+  private _loadReplayOptionsFromClient(): void {
+    const client = getCurrentHub().getClient() as BrowserClient | undefined;
+    const opt = client && (client.getOptions() as BrowserOptions | undefined);
+
+    if (opt && opt.replaysSampleRate) {
+      this.options.sessionSampleRate = opt.replaysSampleRate;
+    }
+
+    if (opt && opt.replaysOnErrorSampleRate) {
+      this.options.errorSampleRate = opt.replaysOnErrorSampleRate;
+    }
+  }
+
+  private _overwriteRecordDroppedEvent(): void {
+    const client = getCurrentHub().getClient();
+
+    if (!client) {
+      return;
+    }
+
+    const _originalCallback = client.recordDroppedEvent.bind(client);
+
+    const recordDroppedEvent: Client['recordDroppedEvent'] = (
+      reason: EventDropReason,
+      category: DataCategory,
+      event?: Event,
+    ): void => {
+      if (event && event.event_id) {
+        this.context.errorIds.delete(event.event_id);
+      }
+
+      return _originalCallback(reason, category, event);
+    };
+
+    client.recordDroppedEvent = recordDroppedEvent;
+    this._originalRecordDroppedEvent = _originalCallback;
+  }
+
+  private _restoreRecordDroppedEvent(): void {
+    const client = getCurrentHub().getClient();
+
+    if (!client || !this._originalRecordDroppedEvent) {
+      return;
+    }
+
+    client.recordDroppedEvent = this._originalRecordDroppedEvent;
   }
 }

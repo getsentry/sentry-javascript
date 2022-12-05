@@ -54,5 +54,12 @@ export async function mockSdk({
 
   init({ ...sentryOptions, integrations: [replay] });
 
+  // setupOnce is only called the first time, so we ensure to re-parse the options every time
+  replay['_loadReplayOptionsFromClient']();
+
+  // The first time the integration is used, `start()` is called (in setupOnce)
+  // For consistency, we want to stop that
+  replay.stop();
+
   return { replay };
 }

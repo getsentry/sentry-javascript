@@ -24,7 +24,13 @@ afterEach(() => {
   }
 
   const client = hub?.getClient();
-  if (typeof client?.getTransport !== 'function') {
+  // This can be weirded up by mocks/tests
+  if (
+    !client ||
+    !client.getTransport ||
+    typeof client.getTransport !== 'function' ||
+    typeof client.getTransport()?.send !== 'function'
+  ) {
     return;
   }
 
