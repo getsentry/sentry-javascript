@@ -1,6 +1,6 @@
 # Upgrading Replay from 0.6.x to 7.24.0
 
-The Sentry Replay integration was moved to the Sentry JavaScript SDK monorepo. Hence we're jumping from version 0.x to the monorepo's 7.x version which is shared across all JS SDK packages.  
+The Sentry Replay integration was moved to the Sentry JavaScript SDK monorepo. Hence we're jumping from version 0.x to the monorepo's 7.x version which is shared across all JS SDK packages.
 
 ## Replay sample rates are defined on top level (https://github.com/getsentry/sentry-javascript/issues/6351)
 
@@ -42,6 +42,7 @@ Two options, which have been deprecated for some time, have been removed:
 
 * `replaysSamplingRate` - instead use `sessionSampleRate`
 * `captureOnlyOnError` - instead use `errorSampleRate`
+
 ## New NPM package structure (https://github.com/getsentry/sentry-javascript/issues/6280)
 
 The internal structure of the npm package has changed. This is unlikely to affect you, unless you have imported something from e.g.:
