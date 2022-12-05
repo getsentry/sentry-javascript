@@ -4,6 +4,7 @@ import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
 import { saveSession } from '../../../src/session/saveSession';
 import { Session } from '../../../src/session/Session';
+import { sessionToJSON } from '../../utils/sessionToJson';
 
 jest.mock('@sentry/utils', () => {
   return {
@@ -52,7 +53,7 @@ it('creates a non-sticky session when one does not exist', function () {
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();
   expect(CreateSession.createSession).toHaveBeenCalled();
 
-  expect(session.toJSON()).toEqual({
+  expect(sessionToJSON(session)).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
@@ -115,7 +116,7 @@ it('creates a sticky session when one does not exist', function () {
   expect(FetchSession.fetchSession).toHaveBeenCalled();
   expect(CreateSession.createSession).toHaveBeenCalled();
 
-  expect(session.toJSON()).toEqual({
+  expect(sessionToJSON(session)).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
@@ -124,7 +125,7 @@ it('creates a sticky session when one does not exist', function () {
   });
 
   // Should not have anything in storage
-  expect(FetchSession.fetchSession(SAMPLE_RATES)?.toJSON()).toEqual({
+  expect(sessionToJSON(FetchSession.fetchSession(SAMPLE_RATES)!)).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),
@@ -147,7 +148,7 @@ it('fetches an existing sticky session', function () {
   expect(FetchSession.fetchSession).toHaveBeenCalled();
   expect(CreateSession.createSession).not.toHaveBeenCalled();
 
-  expect(session.toJSON()).toEqual({
+  expect(sessionToJSON(session)).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: now,

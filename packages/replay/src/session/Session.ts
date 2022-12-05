@@ -5,7 +5,7 @@ import { isSampled } from '../util/isSampled';
 
 type Sampled = false | 'session' | 'error';
 
-interface SessionObject {
+export interface SessionObject {
   id: string;
 
   /**
@@ -29,6 +29,9 @@ interface SessionObject {
   sampled: Sampled;
 }
 
+/**
+ * A wrapper for the session object that handles sampling.
+ */
 export class Session {
   /**
    * Session ID
@@ -68,15 +71,5 @@ export class Session {
     this.segmentId = session.segmentId ?? 0;
     this.sampled =
       session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
-  }
-
-  toJSON(): SessionObject {
-    return {
-      id: this.id,
-      started: this.started,
-      lastActivity: this.lastActivity,
-      segmentId: this.segmentId,
-      sampled: this.sampled,
-    } as SessionObject;
   }
 }
