@@ -1,10 +1,10 @@
 import { getCurrentHub } from '@sentry/core';
-import { Error } from '@test/fixtures/error';
-import { Transaction } from '@test/fixtures/transaction';
-import { resetSdkMock } from '@test/mocks';
 
 import { REPLAY_EVENT_NAME } from '../../src/constants';
 import { Replay } from './../../src';
+import { Error } from './../fixtures/error';
+import { Transaction } from './../fixtures/transaction';
+import { resetSdkMock } from './../mocks';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();

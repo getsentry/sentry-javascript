@@ -10,7 +10,9 @@
   "search.exclude": {
     "**/node_modules/": true,
     "**/build/": true,
-    "**/dist/": true
+    "**/dist/": true,
+    "**/coverage/": true,
+    "**/yarn-error.log": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "[json]": {

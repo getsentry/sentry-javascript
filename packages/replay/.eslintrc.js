@@ -60,8 +60,6 @@ module.exports = {
       files: ['test/**/*.ts'],
 
       rules: {
-        // TODO: decide if we want to keep our '@test' import paths
-        'import/no-unresolved': 'off',
         // most of these errors come from `new Promise(process.nextTick)`
         '@typescript-eslint/unbound-method': 'off',
         // TODO: decide if we want to enable this again after the migration

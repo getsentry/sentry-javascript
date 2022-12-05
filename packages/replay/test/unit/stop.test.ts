@@ -1,9 +1,9 @@
 import * as SentryUtils from '@sentry/utils';
-// mock functions need to be imported first
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '@test';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { Replay } from './../../src';
+// mock functions need to be imported first
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();

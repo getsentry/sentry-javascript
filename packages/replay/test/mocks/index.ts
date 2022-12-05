@@ -1,9 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { BASE_TIMESTAMP, RecordMock } from '@test';
-import { DomHandler, MockTransportSend } from '@test/types';
-import { Replay } from 'src';
 
 import { ReplayConfiguration } from '../../src/types';
+import { Replay } from './../../src';
+import { BASE_TIMESTAMP, RecordMock } from './../index';
+import { DomHandler, MockTransportSend } from './../types';
 
 export async function resetSdkMock(options?: ReplayConfiguration): Promise<{
   domHandler: DomHandler;
