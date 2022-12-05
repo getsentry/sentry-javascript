@@ -1,8 +1,8 @@
 import { getCurrentHub } from '@sentry/core';
 
 import { ReplayConfiguration } from '../../src/types';
-import { BASE_TIMESTAMP, RecordMock } from './..';
 import { Replay } from './../../src';
+import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { DomHandler, MockTransportSend } from './../types';
 
 export async function resetSdkMock(options?: ReplayConfiguration): Promise<{

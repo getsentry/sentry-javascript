@@ -1,5 +1,5 @@
 import { Replay } from '../../src';
-import { mockSdk } from './..';
+import { mockSdk } from './../index';
 
 let replay: Replay;
 

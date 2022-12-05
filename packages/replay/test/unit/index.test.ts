@@ -7,8 +7,8 @@ import { Replay } from '../../src';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { BASE_TIMESTAMP, RecordMock } from './..';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
+import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { resetSdkMock } from './../mocks';
 import { DomHandler, MockTransportSend } from './../types';
 
