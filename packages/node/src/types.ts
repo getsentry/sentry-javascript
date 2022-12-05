@@ -3,6 +3,11 @@ import { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 import { NodeTransportOptions } from './transports';
 
 export interface BaseNodeOptions {
+  /**
+   * Sets profiling sample rate when @sentry/profiling-node is installed
+   */
+  profilesSampleRate?: number;
+
   /** Sets an optional server name (device name) */
   serverName?: string;
 
@@ -56,9 +61,4 @@ export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOpti
  * Configuration options for the Sentry Node SDK Client class
  * @see NodeClient for more information.
  */
-export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {
-  /**
-   * Sets profiling sample rate when @sentry/profiling-node is installed
-   */
-  profilesSampleRate?: number;
-}
+export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {}
