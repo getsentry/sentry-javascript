@@ -52,3 +52,8 @@ import something from '@sentry/replay/submodule';
 ```
 
 If you only imported from `@sentry/replay`, this will not affect you.
+
+## Changed type name from `IEventBuffer` to `EventBuffer` (https://github.com/getsentry/sentry-javascript/pull/6416)
+
+It is highly unlikely to affect anybody, but the type `IEventBuffer` was renamed to `EventBuffer` for consistency.
+Unless you manually imported this and used it somewhere in your codebase, this will not affect you.
