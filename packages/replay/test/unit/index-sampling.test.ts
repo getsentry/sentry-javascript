@@ -25,7 +25,7 @@ describe('Replay (sampling)', () => {
 
     expect(replay.session?.sampled).toBe(false);
     // @ts-ignore private
-    expect(replay.context).toEqual(
+    expect(replay._context).toEqual(
       expect.objectContaining({
         initialTimestamp: expect.any(Number),
         initialUrl: 'http://localhost/',
