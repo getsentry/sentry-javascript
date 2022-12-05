@@ -42,7 +42,7 @@ Two options, which have been deprecated for some time, have been removed:
 
 * `replaysSamplingRate` - instead use `sessionSampleRate`
 * `captureOnlyOnError` - instead use `errorSampleRate`
-## New bundle structure (https://github.com/getsentry/sentry-javascript/issues/6280)
+## New NPM package structure (https://github.com/getsentry/sentry-javascript/issues/6280)
 
 The internal structure of the npm bundle has changed. This is unlikely to affect you, unless you have imported something from e.g.:
 
