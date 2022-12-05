@@ -69,6 +69,12 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
+    const webpackPluginOptions = getWebpackPluginOptions(
+      buildContext,
+      userSentryWebpackPluginOptions,
+      userSentryOptions,
+    );
+
     let rawNewConfig = { ...incomingConfig };
 
     // if user has custom webpack config (which always takes the form of a function), run it so we have actual values to
@@ -83,6 +89,24 @@ export function constructWebpackConfigFunction(
 
     // Add a loader which will inject code that sets global values for use by `RewriteFrames`
     addRewriteFramesLoader(newConfig, isServer ? 'server' : 'client', userNextConfig);
+
+    newConfig.module.rules.push({
+      test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          // Inject the release value the same way the webpack plugin does.
+          loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
+          options: {
+            templatePrefix: 'release',
+            replacements: [
+              ['__RELEASE__', webpackPluginOptions.release || process.env.SENTRY_RELEASE],
+              ['__ORG__', webpackPluginOptions.org || process.env.SENTRY_ORG],
+              ['__PROJECT__', webpackPluginOptions.project || process.env.SENTRY_PROJECT || ''],
+            ],
+          },
+        },
+      ],
+    });
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -194,11 +218,7 @@ export function constructWebpackConfigFunction(
       }
 
       newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(
-        new SentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
-        ),
-      );
+      newConfig.plugins.push(new SentryWebpackPlugin(webpackPluginOptions));
     }
 
     return newConfig;
@@ -527,8 +547,9 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
+    // We don't want to inject the release using the webpack plugin because we're instead doing it via the prefix loader
+    // combined with the release prefix loader template.
+    entries: [],
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
