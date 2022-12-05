@@ -16,7 +16,7 @@ This is no longer used.
 
 This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
 
-# Upgrading replay (beta)
+# Upgrading Sentry Replay (beta, 7.24.0)
 
 For details on upgrading Replay in its beta phase, please view the [dedicated Replay MIGRATION docs](./packages/replay/MIGRATION.md).
 
