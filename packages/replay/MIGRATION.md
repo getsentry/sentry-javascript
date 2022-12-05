@@ -62,3 +62,14 @@ Unless you manually imported this and used it somewhere in your codebase, this w
 
 The `Session` object exported from Replay is now a plain object, instead of a class.
 This should not affect you unless you specifically accessed this class & did custom things with it.
+
+## Reduce public API of Replay integration (https://github.com/getsentry/sentry-javascript/pull/6407)
+
+The result of `new Replay()` now has a much more limited public API. Only the following methods are exposed:
+
+```js
+const replay = new Replay();
+
+replay.start();
+replay.stop();
+```
