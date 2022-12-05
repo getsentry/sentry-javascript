@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
-    "@playwright/test": "^1.17.0",
+    "@playwright/test": "1.28.1",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "playwright": "^1.17.1",

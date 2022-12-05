@@ -43,7 +43,7 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "1.26.1",
+    "@playwright/test": "1.28.1",
     "axios": "1.1.2",
     "serve": "14.0.1"
   }
