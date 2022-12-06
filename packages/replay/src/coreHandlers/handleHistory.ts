@@ -24,8 +24,7 @@ function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry 
 
 export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HistoryHandlerData) => void {
   return (handlerData: HistoryHandlerData) => {
-    // @ts-ignore private
-    if (!replay._isEnabled) {
+    if (!replay.isEnabled()) {
       return;
     }
 
@@ -36,8 +35,7 @@ export function handleHistorySpanListener(replay: ReplayContainer): (handlerData
     }
 
     // Need to collect visited URLs
-    // @ts-ignore private
-    replay._context.urls.push(result.name);
+    replay.getContext().urls.push(result.name);
     replay.triggerUserActivity();
 
     replay.addUpdate(() => {

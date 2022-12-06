@@ -26,14 +26,12 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
     // Collect traceIds in _context regardless of `_waitForError` - if it's true,
     // _context gets cleared on every checkout
     if (event.type === 'transaction') {
-      // @ts-ignore private
-      replay._context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
+      replay.getContext().traceIds.add(String(event.contexts?.trace?.trace_id || ''));
       return event;
     }
 
     // XXX: Is it safe to assume that all other events are error events?
-    // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
-    replay._context.errorIds.add(event.event_id);
+    replay.getContext().errorIds.add(event.event_id as string);
 
     const exc = event.exception?.values?.[0];
     addInternalBreadcrumb({
@@ -56,10 +54,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
         // than the session replay.
         await replay.flushImmediate();
 
-        // @ts-ignore private
-        if (replay._stopRecording) {
-          // @ts-ignore private
-          replay._stopRecording();
+        if (replay.stopRecording()) {
           // Reset all "capture on error" configuration before
           // starting a new recording
           // @ts-ignore private

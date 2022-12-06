@@ -65,8 +65,7 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
 
 export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: XhrHandlerData) => void {
   return (handlerData: XhrHandlerData) => {
-    // @ts-ignore private
-    if (!replay._isEnabled) {
+    if (!replay.isEnabled()) {
       return;
     }
 

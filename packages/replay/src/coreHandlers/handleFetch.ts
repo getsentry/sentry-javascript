@@ -46,8 +46,7 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
 
 export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: FetchHandlerData) => void {
   return (handlerData: FetchHandlerData) => {
-    // @ts-ignore private
-    if (!replay._isEnabled) {
+    if (!replay.isEnabled()) {
       return;
     }
 

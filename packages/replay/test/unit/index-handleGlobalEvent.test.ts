@@ -77,10 +77,8 @@ it('only tags errors with replay id, adds trace and error id to context for erro
     }),
   );
 
-  // @ts-ignore private
-  expect(replay._context.traceIds).toContain('trace_id');
-  // @ts-ignore private
-  expect(replay._context.errorIds).toContain('event_id');
+  expect(replay.getContext().traceIds).toContain('trace_id');
+  expect(replay.getContext().errorIds).toContain('event_id');
 
   jest.runAllTimers();
   await new Promise(process.nextTick); // wait for flush
@@ -96,7 +94,7 @@ it('strips out dropped events from errorIds', async () => {
   const error3 = Error({ event_id: 'err3' });
 
   // @ts-ignore private
-  overwriteRecordDroppedEvent(replay._context.errorIds);
+  overwriteRecordDroppedEvent(replay.getContext().errorIds);
 
   const client = getCurrentHub().getClient()!;
 
@@ -107,7 +105,7 @@ it('strips out dropped events from errorIds', async () => {
   client.recordDroppedEvent('before_send', 'error', { event_id: 'err2' });
 
   // @ts-ignore private
-  expect(Array.from(replay._context.errorIds)).toEqual(['err1', 'err3']);
+  expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err3']);
 
   restoreRecordDroppedEvent();
 });

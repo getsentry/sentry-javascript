@@ -127,6 +127,16 @@ export class ReplayContainer {
     });
   }
 
+  /** Get the event context. */
+  public getContext(): InternalEventContext {
+    return this._context;
+  }
+
+  /** If recording is currently enabled. */
+  public isEnabled(): boolean {
+    return this._isEnabled;
+  }
+
   /**
    * Initializes the plugin.
    *
@@ -191,6 +201,19 @@ export class ReplayContainer {
       __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
+  }
+
+  /**
+   * Stops the recording, if it was running.
+   * Returns true if it was stopped, else false.
+   */
+  public stopRecording(): boolean {
+    if (this._stopRecording) {
+      this._stopRecording();
+      return true;
+    }
+
+    return false;
   }
 
   /**
