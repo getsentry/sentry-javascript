@@ -1,6 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
 import { ReplayContainer } from './../../src/replay';
@@ -16,7 +17,7 @@ async function advanceTimers(time: number) {
 
 type MockSendReplay = jest.MockedFunction<typeof ReplayContainer.prototype.sendReplay>;
 type MockAddPerformanceEntries = jest.MockedFunction<typeof ReplayContainer.prototype.addPerformanceEntries>;
-type MockAddMemoryEntry = jest.MockedFunction<typeof ReplayContainer.prototype.addMemoryEntry>;
+type MockAddMemoryEntry = jest.SpyInstance;
 type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof ReplayContainer.prototype.eventBuffer, null>['finish']>;
 type MockFlush = jest.MockedFunction<typeof ReplayContainer.prototype.flush>;
 type MockRunFlush = jest.MockedFunction<typeof ReplayContainer.prototype.runFlush>;
@@ -63,8 +64,7 @@ beforeAll(async () => {
     return [];
   });
 
-  jest.spyOn(replay, 'addMemoryEntry');
-  mockAddMemoryEntry = replay.addMemoryEntry as MockAddMemoryEntry;
+  mockAddMemoryEntry = jest.spyOn(AddMemoryEntry, 'addMemoryEntry');
 });
 
 beforeEach(() => {

@@ -19,7 +19,7 @@ import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
-import { createMemoryEntry, createPerformanceEntries } from './createPerformanceEntry';
+import { createPerformanceEntries } from './createPerformanceEntry';
 import { createEventBuffer, EventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
@@ -36,6 +36,7 @@ import type {
   SendReplay,
 } from './types';
 import { addEvent } from './util/addEvent';
+import { addMemoryEntry } from './util/addMemoryEntry';
 import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
@@ -702,23 +703,6 @@ export class ReplayContainer {
   }
 
   /**
-   * Create a "span" for the total amount of memory being used by JS objects
-   * (including v8 internal objects).
-   */
-  addMemoryEntry(): Promise<void[]> | undefined {
-    // window.performance.memory is a non-standard API and doesn't work on all browsers
-    // so we check before creating the event.
-    if (!('memory' in WINDOW.performance)) {
-      return;
-    }
-
-    return createPerformanceSpans(this, [
-      // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
-      createMemoryEntry(WINDOW.performance.memory),
-    ]);
-  }
-
-  /**
    * Checks if recording should be stopped due to user inactivity. Otherwise
    * check if session is expired and create a new session if so. Triggers a new
    * full snapshot on new session.
@@ -819,7 +803,7 @@ export class ReplayContainer {
     }
 
     // Only attach memory event if eventBuffer is not empty
-    await this.addMemoryEntry();
+    await addMemoryEntry(this);
 
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
