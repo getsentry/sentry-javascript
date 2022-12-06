@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.24.0
+
+This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.24.0.
+Along with this version bump, we're introducing a few breaking changes.
+Take a look at the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
+Furthermore, we're now also publishing CDN bundles for the Replay integration.
+The Replay version bump is the result of moving the package into the Sentry JavaScript SDK monorepo which aligns the version with our other JS SDK packages.
+
+- feat(browser): Support dom.maxStringLength configuration (#6311)
+- feat(nextjs): Don't init SDK on Vercel Edge Runtime (#6408)
+- feat(nextjs): Parameterize prefix loader values (#6377)
+- feat(nextjs): Support `assetPrefix` option (#6388)
+- fix(nextjs): Inject SDK in dev mode (#6368)
+- fix(nextjs): Use `basePath` for `assetPrefix` if needed (#6424)
+- fix(node): Move `profilesSampleRate` into `BaseNodeOptions` (#6409)
+- ref(nextjs): Clean up client-side integrations code (#6382)
+- ref(nextjs): Use loader for rather than webpack plugin for injecting release (#6404)
+- ref(remix): Do not fail silently if `getClientIpAddress` throws error. (#6400)
+
+Work in this release contributed by @tomgrossman and @ZachGawlik. Thank you for your contributions!
+
 ## 7.23.0
 
 - feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)
