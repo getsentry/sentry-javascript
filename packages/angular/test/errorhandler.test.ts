@@ -36,6 +36,10 @@ class ErrorLikeShapedClass implements Partial<Error> {
   constructor(public message: string) {}
 }
 
+function createErrorEvent(message: string, innerError: any): ErrorEvent {
+  return new ErrorEvent('something', { message, error: innerError });
+}
+
 class NonErrorShapedClass {}
 
 describe('SentryErrorHandler', () => {
@@ -207,11 +211,7 @@ describe('SentryErrorHandler', () => {
   });
 
   it('handleError method extracts ErrorEvent which has a string as an error', () => {
-    const innerErr = 'something happened';
-    const err: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErr,
-    };
+    const err = createErrorEvent('something happened', 'event failed');
 
     createErrorHandler().handleError(err);
 
@@ -220,11 +220,7 @@ describe('SentryErrorHandler', () => {
   });
 
   it('handleError method extracts ErrorEvent which has an error has an error', () => {
-    const innerErr = new Error('something happened');
-    const err: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErr,
-    };
+    const err = createErrorEvent('something happened', new Error('event failed'));
 
     createErrorHandler().handleError(err);
 
@@ -235,12 +231,9 @@ describe('SentryErrorHandler', () => {
   it('handleError method extracts ErrorEvent which has an error-like object has an error', () => {
     const innerErr: Error = {
       name: 'sentry-error',
-      message: 'something happened',
+      message: 'event failed',
     };
-    const err: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErr,
-    };
+    const err = createErrorEvent('something happened', innerErr);
 
     createErrorHandler().handleError(err);
 
@@ -249,11 +242,7 @@ describe('SentryErrorHandler', () => {
   });
 
   it('handleError method extracts ErrorEvent which has an non-error-like object has an error', () => {
-    const innerErr = true;
-    const err: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErr,
-    };
+    const err = createErrorEvent('something happened', true);
 
     createErrorHandler().handleError(err);
 
@@ -505,37 +494,23 @@ describe('SentryErrorHandler', () => {
   });
 
   it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has a string as an error', () => {
-    const innerErrorEventErr = 'something happened';
-    const innerErr: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErrorEventErr,
-    };
+    const innerErr = createErrorEvent('something happened', 'event failed');
     const err = new HttpErrorResponse({ error: innerErr });
 
     createErrorHandler().handleError(err);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(
-      'Http failure response for (unknown url): undefined undefined',
-      expect.any(Function),
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
   });
 
   it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has an error has an error', () => {
-    const innerErrorEventErr = new Error('something happened');
-    const innerErr: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErrorEventErr,
-    };
+    const innerErr = createErrorEvent('something happened', new Error('event failed'));
     const err = new HttpErrorResponse({ error: innerErr });
 
     createErrorHandler().handleError(err);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(
-      'Http failure response for (unknown url): undefined undefined',
-      expect.any(Function),
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
   });
 
   it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has an error-like object has an error', () => {
@@ -543,36 +518,23 @@ describe('SentryErrorHandler', () => {
       name: 'sentry-error',
       message: 'something happened',
     };
-    const innerErr: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErrorEventErr,
-    };
+    const innerErr = createErrorEvent('something happened', innerErrorEventErr);
     const err = new HttpErrorResponse({ error: innerErr });
 
     createErrorHandler().handleError(err);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(
-      'Http failure response for (unknown url): undefined undefined',
-      expect.any(Function),
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
   });
 
   it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has an non-error-like object has an error', () => {
-    const innerErrorEventErr = true;
-    const innerErr: ErrorEvent = {
-      ...({} as ErrorEvent),
-      error: innerErrorEventErr,
-    };
+    const innerErr = createErrorEvent('something happened', true);
     const err = new HttpErrorResponse({ error: innerErr });
 
     createErrorHandler().handleError(err);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(
-      'Http failure response for (unknown url): undefined undefined',
-      expect.any(Function),
-    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
   });
 
   it('handleError method shows report dialog', () => {
