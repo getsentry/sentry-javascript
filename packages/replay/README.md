@@ -89,9 +89,9 @@ replay.start(); // Start recording
 replay.stop(); // Stop recording
 ```
 
-## Loading Replay as a CDN bundle
+## Loading Replay as a CDN Bundle
 
-As an alternative to the NPM package, you can load the Replay Integration bundle from our CDN.
+As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
 Note that the Replay bundle **only contains the Replay integration** and not the entire Sentry SDK.
 You have to add it in addition to the Sentry Browser SDK bundle:
 
@@ -112,7 +112,7 @@ You have to add it in addition to the Sentry Browser SDK bundle:
 Sentry.init({
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
-  replaysSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
 
   // If the entire session is not sampled, use the below sample rate to sample
   // sessions when an error occurs.
