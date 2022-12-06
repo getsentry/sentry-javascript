@@ -4,16 +4,6 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.24.0
-
-- feat(nextjs): Don't init SDK on Vercel Edge Runtime (#6408)
-- feat(nextjs): Support assetPrefix option (#6388)
-- fix(nextjs): Inject SDK in dev mode (#6368)
-- fix(node): Move profilesSampleRate into BaseNodeOptions (#6409)
-- Revert "fix(core): Only generate eventIds in client (#6247)" (#6392)
-
-Work in this release contributed by @tomgrossman. Thank you for your contributions!
-
 ## 7.23.0
 
 - feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)

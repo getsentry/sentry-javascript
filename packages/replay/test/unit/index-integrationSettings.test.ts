@@ -33,7 +33,7 @@ describe('blockAllMedia', () => {
   });
 });
 
-describe('replaysSampleRate', () => {
+describe('replaysSessionSampleRate', () => {
   it('works with defining settings in integration', async () => {
     ({ replay } = await mockSdk({ replayOptions: { sessionSampleRate: 0.5 } }));
 
@@ -41,14 +41,14 @@ describe('replaysSampleRate', () => {
   });
 
   it('works with defining settings in SDK', async () => {
-    ({ replay } = await mockSdk({ sentryOptions: { replaysSampleRate: 0.5 } }));
+    ({ replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0.5 } }));
 
     expect(replay.options.sessionSampleRate).toBe(0.5);
   });
 
   it('SDK option takes precedence', async () => {
     ({ replay } = await mockSdk({
-      sentryOptions: { replaysSampleRate: 0.5 },
+      sentryOptions: { replaysSessionSampleRate: 0.5 },
       replayOptions: { sessionSampleRate: 0.1 },
     }));
 

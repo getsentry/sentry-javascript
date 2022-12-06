@@ -19,7 +19,7 @@ permissions:
 jobs:
   job_canary_test:
     name: Run Canary Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 30
     steps:
       - name: 'Check out current commit'

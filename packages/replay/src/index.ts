@@ -19,7 +19,7 @@ import {
 import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
 import { spanHandler } from './coreHandlers/spanHandler';
 import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
-import { createEventBuffer, IEventBuffer } from './eventBuffer';
+import { createEventBuffer, EventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
@@ -68,7 +68,7 @@ export class Replay implements Integration {
    */
   public name: string = Replay.id;
 
-  public eventBuffer: IEventBuffer | null = null;
+  public eventBuffer: EventBuffer | null = null;
 
   /**
    * List of PerformanceEntry from PerformanceObserver
@@ -1354,8 +1354,8 @@ export class Replay implements Integration {
     const client = getCurrentHub().getClient() as BrowserClient | undefined;
     const opt = client && (client.getOptions() as BrowserOptions | undefined);
 
-    if (opt && opt.replaysSampleRate) {
-      this.options.sessionSampleRate = opt.replaysSampleRate;
+    if (opt && opt.replaysSessionSampleRate) {
+      this.options.sessionSampleRate = opt.replaysSessionSampleRate;
     }
 
     if (opt && opt.replaysOnErrorSampleRate) {
