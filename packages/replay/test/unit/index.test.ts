@@ -10,7 +10,7 @@ import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
-import { resetSdkMock } from './../mocks';
+import { resetSdkMock } from './../mocks/resetSdkMock';
 import { DomHandler, MockTransportSend } from './../types';
 
 useFakeTimers();
