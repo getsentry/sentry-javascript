@@ -83,7 +83,7 @@ it('only tags errors with replay id, adds trace and error id to context for erro
   jest.runAllTimers();
   await new Promise(process.nextTick); // wait for flush
 
-  // Turns off `waitForError` mode
+  // Turns off `_waitForError` mode
   // @ts-ignore private
   expect(replay._waitForError).toBe(false);
 });

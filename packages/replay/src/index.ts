@@ -33,7 +33,7 @@ export class Replay implements Integration {
   /** In tests, this is only called the first time */
   protected _hasCalledSetupOnce: boolean = false;
 
-  private replay?: ReplayContainer;
+  private _replay?: ReplayContainer;
 
   constructor({
     flushMinDelay = 5000,
@@ -150,11 +150,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * PerformanceObserver, Recording, Sentry SDK, etc)
    */
   start(): void {
-    if (!this.replay) {
+    if (!this._replay) {
       return;
     }
 
-    this.replay.start();
+    this._replay.start();
   }
 
   /**
@@ -162,18 +162,18 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * does not support a teardown
    */
   stop(): void {
-    if (!this.replay) {
+    if (!this._replay) {
       return;
     }
 
-    this.replay.stop();
+    this._replay.stop();
   }
 
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce
     this._loadReplayOptionsFromClient();
 
-    this.replay = new ReplayContainer({
+    this._replay = new ReplayContainer({
       options: this.options,
       recordingOptions: this.recordingOptions,
     });

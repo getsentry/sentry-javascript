@@ -66,54 +66,54 @@ export class ReplayContainer {
 
   readonly options: ReplayPluginOptions;
 
-  private performanceObserver: PerformanceObserver | null = null;
+  private _performanceObserver: PerformanceObserver | null = null;
 
-  private retryCount: number = 0;
-  private retryInterval: number = BASE_RETRY_INTERVAL;
+  private _retryCount: number = 0;
+  private _retryInterval: number = BASE_RETRY_INTERVAL;
 
-  private debouncedFlush: ReturnType<typeof debounce>;
-  private flushLock: Promise<unknown> | null = null;
+  private _debouncedFlush: ReturnType<typeof debounce>;
+  private _flushLock: Promise<unknown> | null = null;
 
   /**
    * Timestamp of the last user activity. This lives across sessions.
    */
-  private lastActivity: number = new Date().getTime();
+  private _lastActivity: number = new Date().getTime();
 
   /**
    * Is the integration currently active?
    */
-  private isEnabled: boolean = false;
+  private _isEnabled: boolean = false;
 
   /**
    * Paused is a state where:
    * - DOM Recording is not listening at all
    * - Nothing will be added to event buffer (e.g. core SDK events)
    */
-  private isPaused: boolean = false;
+  private _isPaused: boolean = false;
 
   /**
    * Integration will wait until an error occurs before creating and sending a
    * replay.
    */
-  private waitForError: boolean = false;
+  private _waitForError: boolean = false;
 
   /**
    * Have we attached listeners to the core SDK?
    * Note we have to track this as there is no way to remove instrumentation handlers.
    */
-  private hasInitializedCoreListeners: boolean = false;
+  private _hasInitializedCoreListeners: boolean = false;
 
   /**
    * Function to stop recording
    */
-  private stopRecording: ReturnType<typeof record> | null = null;
+  private _stopRecording: ReturnType<typeof record> | null = null;
 
   /**
    * We overwrite `client.recordDroppedEvent`, but store the original method here so we can restore it.
    */
   private _originalRecordDroppedEvent?: Client['recordDroppedEvent'];
 
-  private context: InternalEventContext = {
+  private _context: InternalEventContext = {
     errorIds: new Set(),
     traceIds: new Set(),
     urls: [],
@@ -126,7 +126,7 @@ export class ReplayContainer {
     this.recordingOptions = recordingOptions;
     this.options = options;
 
-    this.debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
+    this._debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
       maxWait: this.options.flushMaxDelay,
     });
   }
@@ -135,7 +135,7 @@ export class ReplayContainer {
    * Initializes the plugin.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
-   * PerformanceObserver, Recording, Sentry SDK, etc)
+   * _performanceObserver, Recording, Sentry SDK, etc)
    */
   start(): void {
     this.setInitialState();
@@ -160,7 +160,7 @@ export class ReplayContainer {
     if (this.session.sampled === 'error') {
       // Checkout every minute, meaning we only get up-to one minute of events before the error happens
       this.recordingOptions.checkoutEveryNms = 60000;
-      this.waitForError = true;
+      this._waitForError = true;
     }
 
     // setup() is generally called on page load or manually - in both cases we
@@ -175,7 +175,7 @@ export class ReplayContainer {
 
     this.startRecording();
 
-    this.isEnabled = true;
+    this._isEnabled = true;
   }
 
   /**
@@ -185,7 +185,7 @@ export class ReplayContainer {
    */
   startRecording(): void {
     try {
-      this.stopRecording = record({
+      this._stopRecording = record({
         ...this.recordingOptions,
         emit: this.handleRecordingEmit,
       });
@@ -202,9 +202,9 @@ export class ReplayContainer {
   stop(): void {
     try {
       __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
-      this.isEnabled = false;
+      this._isEnabled = false;
       this.removeListeners();
-      this.stopRecording?.();
+      this._stopRecording?.();
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
     } catch (err) {
@@ -214,16 +214,16 @@ export class ReplayContainer {
   }
 
   /**
-   * Pause some replay functionality. See comments for `isPaused`.
+   * Pause some replay functionality. See comments for `_isPaused`.
    * This differs from stop as this only stops DOM recording, it is
    * not as thorough of a shutdown as `stop()`.
    */
   pause(): void {
-    this.isPaused = true;
+    this._isPaused = true;
     try {
-      if (this.stopRecording) {
-        this.stopRecording();
-        this.stopRecording = undefined;
+      if (this._stopRecording) {
+        this._stopRecording();
+        this._stopRecording = undefined;
       }
     } catch (err) {
       __DEBUG_BUILD__ && logger.error('[Replay]', err);
@@ -238,7 +238,7 @@ export class ReplayContainer {
    * new DOM checkout.`
    */
   resume(): void {
-    this.isPaused = false;
+    this._isPaused = false;
     this.startRecording();
   }
 
@@ -290,12 +290,12 @@ export class ReplayContainer {
 
     this.performanceEvents = [];
 
-    // Reset context as well
+    // Reset _context as well
     this.clearContext();
 
-    this.context.initialUrl = url;
-    this.context.initialTimestamp = new Date().getTime();
-    this.context.urls.push(url);
+    this._context.initialUrl = url;
+    this._context.initialTimestamp = new Date().getTime();
+    this._context.urls.push(url);
   }
 
   /**
@@ -311,7 +311,7 @@ export class ReplayContainer {
       this._overwriteRecordDroppedEvent();
 
       // There is no way to remove these listeners, so ensure they are only added once
-      if (!this.hasInitializedCoreListeners) {
+      if (!this._hasInitializedCoreListeners) {
         // Listeners from core SDK //
         const scope = getCurrentHub().getScope();
         scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
@@ -324,19 +324,19 @@ export class ReplayContainer {
         // replay ID so that we can reference them later in the UI
         addGlobalEventProcessor(this.handleGlobalEvent);
 
-        this.hasInitializedCoreListeners = true;
+        this._hasInitializedCoreListeners = true;
       }
     } catch (err) {
       __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
 
-    // PerformanceObserver //
-    if (!('PerformanceObserver' in WINDOW)) {
+    // _performanceObserver //
+    if (!('_performanceObserver' in WINDOW)) {
       return;
     }
 
-    this.performanceObserver = new PerformanceObserver(this.handlePerformanceObserver);
+    this._performanceObserver = new PerformanceObserver(this.handle_performanceObserver);
 
     // Observe almost everything for now (no mark/measure)
     [
@@ -351,7 +351,7 @@ export class ReplayContainer {
       'resource',
     ].forEach(type => {
       try {
-        this.performanceObserver?.observe({
+        this._performanceObserver?.observe({
           type,
           buffered: true,
         });
@@ -374,9 +374,9 @@ export class ReplayContainer {
 
       this._restoreRecordDroppedEvent();
 
-      if (this.performanceObserver) {
-        this.performanceObserver.disconnect();
-        this.performanceObserver = null;
+      if (this._performanceObserver) {
+        this._performanceObserver.disconnect();
+        this._performanceObserver = null;
       }
     } catch (err) {
       __DEBUG_BUILD__ && logger.error('[Replay]', err);
@@ -393,12 +393,12 @@ export class ReplayContainer {
    * processing and hand back control to caller.
    */
   addUpdate(cb?: AddUpdateCallback): void {
-    // We need to always run `cb` (e.g. in the case of `this.waitForError == true`)
+    // We need to always run `cb` (e.g. in the case of `this._waitForError == true`)
     const cbResult = cb?.();
 
     // If this option is turned on then we will only want to call `flush`
     // explicitly
-    if (this.waitForError) {
+    if (this._waitForError) {
       return;
     }
 
@@ -408,9 +408,9 @@ export class ReplayContainer {
       return;
     }
 
-    // addUpdate is called quite frequently - use debouncedFlush so that it
+    // addUpdate is called quite frequently - use _debouncedFlush so that it
     // respects the flush delays and does not flush immediately
-    this.debouncedFlush();
+    this._debouncedFlush();
   }
 
   /**
@@ -431,20 +431,20 @@ export class ReplayContainer {
     }
 
     // Only tag transactions with replayId if not waiting for an error
-    if (event.type !== 'transaction' || !this.waitForError) {
+    if (event.type !== 'transaction' || !this._waitForError) {
       event.tags = { ...event.tags, replayId: this.session?.id };
     }
 
-    // Collect traceIds in context regardless of `waitForError` - if it's true,
-    // context gets cleared on every checkout
+    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
+    // _context gets cleared on every checkout
     if (event.type === 'transaction') {
-      this.context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
+      this._context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
       return event;
     }
 
     // XXX: Is it safe to assume that all other events are error events?
     // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
-    this.context.errorIds.add(event.event_id);
+    this._context.errorIds.add(event.event_id);
 
     const exc = event.exception?.values?.[0];
     addInternalBreadcrumb({
@@ -455,7 +455,7 @@ export class ReplayContainer {
 
     // Need to be very careful that this does not cause an infinite loop
     if (
-      this.waitForError &&
+      this._waitForError &&
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
@@ -466,12 +466,12 @@ export class ReplayContainer {
         // than the session replay.
         await this.flushImmediate();
 
-        if (this.stopRecording) {
-          this.stopRecording();
+        if (this._stopRecording) {
+          this._stopRecording();
           // Reset all "capture on error" configuration before
           // starting a new recording
           delete this.recordingOptions.checkoutEveryNms;
-          this.waitForError = false;
+          this._waitForError = false;
           this.startRecording();
         }
       });
@@ -502,7 +502,7 @@ export class ReplayContainer {
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (this.waitForError && event.type === 2) {
+      if (this._waitForError && event.type === 2) {
         this.setInitialState();
       }
 
@@ -528,8 +528,8 @@ export class ReplayContainer {
 
       // See note above re: session start needs to reflect the most recent
       // checkout.
-      if (this.waitForError && this.session && this.context.earliestEvent) {
-        this.session.started = this.context.earliestEvent;
+      if (this._waitForError && this.session && this._context.earliestEvent) {
+        this.session.started = this._context.earliestEvent;
         this._maybeSaveSession();
       }
 
@@ -547,7 +547,7 @@ export class ReplayContainer {
       // This can happen because there's no guarantee that a recording event
       // happens first. e.g. a mouse click can happen and trigger a debounced
       // flush before the checkout.
-      this.debouncedFlush?.cancel();
+      this._debouncedFlush?.cancel();
 
       return true;
     });
@@ -601,7 +601,7 @@ export class ReplayContainer {
   handleCoreSpanListener: (type: InstrumentationTypeSpan) => (handlerData: unknown) => void =
     (type: InstrumentationTypeSpan) =>
     (handlerData: unknown): void => {
-      if (!this.isEnabled) {
+      if (!this._isEnabled) {
         return;
       }
 
@@ -613,7 +613,7 @@ export class ReplayContainer {
 
       if (type === 'history') {
         // Need to collect visited URLs
-        this.context.urls.push(result.name);
+        this._context.urls.push(result.name);
         this.triggerUserActivity();
       }
 
@@ -634,7 +634,7 @@ export class ReplayContainer {
   handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
     (type: InstrumentationTypeBreadcrumb) =>
     (handlerData: unknown): void => {
-      if (!this.isEnabled) {
+      if (!this._isEnabled) {
         return;
       }
 
@@ -674,7 +674,7 @@ export class ReplayContainer {
   /**
    * Keep a list of performance entries that will be sent with a replay
    */
-  handlePerformanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
+  handle_performanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
     const newPerformanceEntries = dedupePerformanceEntries(
@@ -743,11 +743,11 @@ export class ReplayContainer {
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): void {
     if (!this.eventBuffer) {
-      // This implies that `isEnabled` is false
+      // This implies that `_isEnabled` is false
       return;
     }
 
-    if (this.isPaused) {
+    if (this._isPaused) {
       // Do not add to event buffer when recording is paused
       return;
     }
@@ -767,8 +767,11 @@ export class ReplayContainer {
 
     // Only record earliest event if a new session was created, otherwise it
     // shouldn't be relevant
-    if (this.session?.segmentId === 0 && (!this.context.earliestEvent || timestampInMs < this.context.earliestEvent)) {
-      this.context.earliestEvent = timestampInMs;
+    if (
+      this.session?.segmentId === 0 &&
+      (!this._context.earliestEvent || timestampInMs < this._context.earliestEvent)
+    ) {
+      this._context.earliestEvent = timestampInMs;
     }
 
     this.eventBuffer.addEvent(event, isCheckout);
@@ -777,16 +780,16 @@ export class ReplayContainer {
   /**
    * Update user activity (across session lifespans)
    */
-  updateUserActivity(lastActivity: number = new Date().getTime()): void {
-    this.lastActivity = lastActivity;
+  updateUserActivity(_lastActivity: number = new Date().getTime()): void {
+    this._lastActivity = _lastActivity;
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  updateSessionActivity(lastActivity: number = new Date().getTime()): void {
+  updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
     if (this.session) {
-      this.session.lastActivity = lastActivity;
+      this.session.lastActivity = _lastActivity;
       this._maybeSaveSession();
     }
   }
@@ -801,7 +804,7 @@ export class ReplayContainer {
 
     // This case means that recording was once stopped due to inactivity.
     // Ensure that recording is resumed.
-    if (!this.stopRecording) {
+    if (!this._stopRecording) {
       // Create a new session, otherwise when the user action is flushed, it
       // will get rejected due to an expired session.
       this.loadSession({ expiry: SESSION_IDLE_DURATION });
@@ -900,7 +903,7 @@ export class ReplayContainer {
     // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this.lastActivity && isExpired(this.lastActivity, MAX_SESSION_LIFE)) {
+    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
       // Pause recording
       this.pause();
       return;
@@ -924,10 +927,10 @@ export class ReplayContainer {
   }
 
   /**
-   * Only flush if `this.waitForError` is false.
+   * Only flush if `this._waitForError` is false.
    */
   conditionalFlush(): void {
-    if (this.waitForError) {
+    if (this._waitForError) {
       return;
     }
 
@@ -935,35 +938,35 @@ export class ReplayContainer {
   }
 
   /**
-   * Clear context
+   * Clear _context
    */
   clearContext(): void {
     // XXX: `initialTimestamp` and `initialUrl` do not get cleared
-    this.context.errorIds.clear();
-    this.context.traceIds.clear();
-    this.context.urls = [];
-    this.context.earliestEvent = null;
+    this._context.errorIds.clear();
+    this._context.traceIds.clear();
+    this._context.urls = [];
+    this._context.earliestEvent = null;
   }
 
   /**
-   * Return and clear context
+   * Return and clear _context
    */
   popEventContext(): PopEventContext {
-    if (this.context.earliestEvent && this.context.earliestEvent < this.context.initialTimestamp) {
-      this.context.initialTimestamp = this.context.earliestEvent;
+    if (this._context.earliestEvent && this._context.earliestEvent < this._context.initialTimestamp) {
+      this._context.initialTimestamp = this._context.earliestEvent;
     }
 
-    const context = {
-      initialTimestamp: this.context.initialTimestamp,
-      initialUrl: this.context.initialUrl,
-      errorIds: Array.from(this.context.errorIds).filter(Boolean),
-      traceIds: Array.from(this.context.traceIds).filter(Boolean),
-      urls: this.context.urls,
+    const _context = {
+      initialTimestamp: this._context.initialTimestamp,
+      initialUrl: this._context.initialUrl,
+      errorIds: Array.from(this._context.errorIds).filter(Boolean),
+      traceIds: Array.from(this._context.traceIds).filter(Boolean),
+      urls: this._context.urls,
     };
 
     this.clearContext();
 
-    return context;
+    return _context;
   }
 
   /**
@@ -1019,7 +1022,7 @@ export class ReplayContainer {
    * can be active at a time. Do not call this directly.
    */
   flush: () => Promise<void> = async () => {
-    if (!this.isEnabled) {
+    if (!this._isEnabled) {
       // This is just a precaution, there should be no listeners that would
       // cause a flush.
       return;
@@ -1036,15 +1039,15 @@ export class ReplayContainer {
     }
 
     // A flush is about to happen, cancel any queued flushes
-    this.debouncedFlush?.cancel();
+    this._debouncedFlush?.cancel();
 
     // No existing flush in progress, proceed with flushing.
-    // this.flushLock acts as a lock so that future calls to `flush()`
+    // this._flushLock acts as a lock so that future calls to `flush()`
     // will be blocked until this promise resolves
-    if (!this.flushLock) {
-      this.flushLock = this.runFlush();
-      await this.flushLock;
-      this.flushLock = null;
+    if (!this._flushLock) {
+      this._flushLock = this.runFlush();
+      await this._flushLock;
+      this._flushLock = null;
       return;
     }
 
@@ -1055,24 +1058,24 @@ export class ReplayContainer {
     // completing) into a single flush.
 
     try {
-      await this.flushLock;
+      await this._flushLock;
     } catch (err) {
       __DEBUG_BUILD__ && logger.error(err);
     } finally {
-      this.debouncedFlush();
+      this._debouncedFlush();
     }
   };
 
   /**
    *
-   * Always flush via `debouncedFlush` so that we do not have flushes triggered
-   * from calling both `flush` and `debouncedFlush`. Otherwise, there could be
+   * Always flush via `_debouncedFlush` so that we do not have flushes triggered
+   * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
    * cases of mulitple flushes happening closely together.
    */
   flushImmediate(): Promise<void> {
-    this.debouncedFlush();
+    this._debouncedFlush();
     // `.flush` is provided by lodash.debounce
-    return this.debouncedFlush.flush();
+    return this._debouncedFlush.flush();
   }
 
   /**
@@ -1173,8 +1176,8 @@ export class ReplayContainer {
   }
 
   resetRetries(): void {
-    this.retryCount = 0;
-    this.retryInterval = BASE_RETRY_INTERVAL;
+    this._retryCount = 0;
+    this._retryInterval = BASE_RETRY_INTERVAL;
   }
 
   /**
@@ -1206,19 +1209,19 @@ export class ReplayContainer {
       __DEBUG_BUILD__ && logger.error(err);
       // Capture error for every failed replay
       setContext('Replays', {
-        retryCount: this.retryCount,
+        _retryCount: this._retryCount,
       });
       captureInternalException(err);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
-      if (this.retryCount >= MAX_RETRY_COUNT) {
+      if (this._retryCount >= MAX_RETRY_COUNT) {
         throw new Error(`${UNABLE_TO_SEND_REPLAY} - max retries exceeded`);
       }
 
-      this.retryCount = this.retryCount + 1;
+      this._retryCount = this._retryCount + 1;
       // will retry in intervals of 5, 10, 30
-      this.retryInterval = this.retryCount * this.retryInterval;
+      this._retryInterval = this._retryCount * this._retryInterval;
 
       return await new Promise((resolve, reject) => {
         setTimeout(async () => {
@@ -1234,7 +1237,7 @@ export class ReplayContainer {
           } catch (err) {
             reject(err);
           }
-        }, this.retryInterval);
+        }, this._retryInterval);
       });
     }
   }
@@ -1261,7 +1264,7 @@ export class ReplayContainer {
       event?: Event,
     ): void => {
       if (event && event.event_id) {
-        this.context.errorIds.delete(event.event_id);
+        this._context.errorIds.delete(event.event_id);
       }
 
       return _originalCallback(reason, category, event);

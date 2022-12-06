@@ -422,7 +422,7 @@ describe('Replay', () => {
       ]),
     });
 
-    // `context` should be reset when a new session is created
+    // `_context` should be reset when a new session is created
     // @ts-ignore private member
     expect(replay._context).toEqual(
       expect.objectContaining({
@@ -483,7 +483,7 @@ describe('Replay', () => {
     expect(replay).toHaveSameSession(initialSession);
 
     // @ts-ignore private
-    expect(replay.stopRecording).toBeUndefined();
+    expect(replay._stopRecording).toBeUndefined();
 
     // Now do a click
     domHandler({
@@ -535,7 +535,7 @@ describe('Replay', () => {
       ]),
     });
 
-    // `context` should be reset when a new session is created
+    // `_context` should be reset when a new session is created
     // @ts-ignore private member
     expect(replay._context).toEqual(
       expect.objectContaining({

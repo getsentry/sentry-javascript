@@ -67,7 +67,7 @@ export async function mockSdk({ replayOptions, sentryOptions }: MockSdkParams = 
     replayIntegration['_setup']();
   }
 
-  const replay = replayIntegration['replay']!;
+  const replay = replayIntegration['_replay']!;
 
   return { replay, integration: replayIntegration };
 }
