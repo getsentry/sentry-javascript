@@ -19,6 +19,7 @@ The Replay version bump is the result of moving the package into the Sentry Java
 - feat(nextjs): Support `assetPrefix` option (#6388)
 - feat(replay): Allow to define sample rates on SDK level (#6387)
 - feat(replay): Deprecate old replay sample rate configs (#6414)
+- feat(tracing): Add interaction transaction as an experiment (#6210)
 - fix(nextjs): Inject SDK in dev mode (#6368)
 - fix(nextjs): Use `basePath` for `assetPrefix` if needed (#6424)
 - fix(node): Move `profilesSampleRate` into `BaseNodeOptions` (#6409)
