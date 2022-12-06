@@ -98,7 +98,7 @@ You have to add it in addition to the Sentry Browser SDK bundle:
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.0/bundle.min.js"
+  src="https://browser.sentry-cdn.com/7.24.0/bundle.tracing.min.js"
   crossorigin="anonymous"
 ></script>
 
