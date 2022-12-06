@@ -110,7 +110,8 @@
   },
   "resolutions": {
     "**/agent-base": "5",
-    "@types/express-serve-static-core": "4.17.30"
+    "@types/express-serve-static-core": "4.17.30",
+    "@types/bluebird": "3.5.36"
   },
   "version": "0.0.0",
   "dependencies": {}
