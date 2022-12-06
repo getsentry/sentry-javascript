@@ -3,7 +3,7 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
-import { Replay } from './../../src';
+import { ReplayContainer } from './../../src/replay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
@@ -17,7 +17,7 @@ async function advanceTimers(time: number) {
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
 describe('Replay (no sticky)', () => {
-  let replay: Replay;
+  let replay: ReplayContainer;
   let mockTransport: MockTransport;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();

@@ -2,7 +2,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 
-import { Replay } from './src';
+import { ReplayContainer } from './src/replay';
 import { Session } from './src/session/Session';
 
 // @ts-ignore TS error, this is replaced in prod builds bc of rollup
@@ -54,7 +54,7 @@ type SentReplayExpected = {
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const toHaveSameSession = function (received: jest.Mocked<Replay>, expected: undefined | Session) {
+const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expected: undefined | Session) {
   const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
   const options = {
@@ -77,7 +77,7 @@ const toHaveSameSession = function (received: jest.Mocked<Replay>, expected: und
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const toHaveSentReplay = function (
-  _received: jest.Mocked<Replay>,
+  _received: jest.Mocked<ReplayContainer>,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
   const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;

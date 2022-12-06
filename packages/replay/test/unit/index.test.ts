@@ -1,10 +1,11 @@
 jest.mock('./../../src/util/isInternal', () => ({
   isInternal: jest.fn(() => true),
 }));
+
 import { EventType } from 'rrweb';
 
-import { Replay } from '../../src';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { ReplayContainer } from '../../src/replay';
 import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
@@ -91,7 +92,7 @@ describe('Replay with custom mock', () => {
 });
 
 describe('Replay', () => {
-  let replay: Replay;
+  let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let mockTransportSend: MockTransportSend;
   let domHandler: DomHandler;

@@ -1,6 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { ReplayContainer } from '../../src/replay';
 import { Replay } from './../../src';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
@@ -9,7 +10,8 @@ import { useFakeTimers } from './../utils/use-fake-timers';
 useFakeTimers();
 
 describe('Replay - stop', () => {
-  let replay: Replay;
+  let replay: ReplayContainer;
+  let integration: Replay;
   const prevLocation = WINDOW.location;
 
   type MockAddInstrumentationHandler = jest.MockedFunction<typeof SentryUtils.addInstrumentationHandler>;
@@ -24,7 +26,7 @@ describe('Replay - stop', () => {
       'addInstrumentationHandler',
     ) as MockAddInstrumentationHandler;
 
-    ({ replay } = await mockSdk());
+    ({ replay, integration } = await mockSdk());
     jest.runAllTimers();
   });
 
@@ -50,7 +52,7 @@ describe('Replay - stop', () => {
   });
 
   afterAll(() => {
-    replay && replay.stop();
+    integration && integration.stop();
   });
 
   it('does not upload replay if it was stopped and can resume replays afterwards', async () => {
@@ -66,7 +68,7 @@ describe('Replay - stop', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
     // stop replays
-    replay.stop();
+    integration.stop();
 
     // Pretend 5 seconds have passed
     jest.advanceTimersByTime(ELAPSED);
@@ -82,7 +84,7 @@ describe('Replay - stop', () => {
     expect(replay.eventBuffer).toBe(null);
 
     // re-enable replay
-    replay.start();
+    integration.start();
 
     jest.advanceTimersByTime(ELAPSED);
 
@@ -127,7 +129,7 @@ describe('Replay - stop', () => {
     expect(replay.eventBuffer?.length).toBe(1);
 
     // stop replays
-    replay.stop();
+    integration.stop();
 
     expect(replay.eventBuffer?.length).toBe(undefined);
 
@@ -140,10 +142,10 @@ describe('Replay - stop', () => {
 
   it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {
     // NOTE: We clear addInstrumentationHandler mock after every test
-    replay.stop();
-    replay.start();
-    replay.stop();
-    replay.start();
+    integration.stop();
+    integration.start();
+    integration.stop();
+    integration.start();
 
     expect(mockAddInstrumentationHandler).not.toHaveBeenCalled();
   });

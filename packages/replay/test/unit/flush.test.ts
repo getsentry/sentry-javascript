@@ -1,8 +1,8 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
-import { Replay } from './../../src';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
+import { ReplayContainer } from './../../src/replay';
 import { useFakeTimers } from './../../test/utils/use-fake-timers';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 
@@ -13,19 +13,19 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockSendReplay = jest.MockedFunction<typeof Replay.prototype.sendReplay>;
-type MockAddPerformanceEntries = jest.MockedFunction<typeof Replay.prototype.addPerformanceEntries>;
-type MockAddMemoryEntry = jest.MockedFunction<typeof Replay.prototype.addMemoryEntry>;
-type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof Replay.prototype.eventBuffer, null>['finish']>;
-type MockFlush = jest.MockedFunction<typeof Replay.prototype.flush>;
-type MockRunFlush = jest.MockedFunction<typeof Replay.prototype.runFlush>;
+type MockSendReplay = jest.MockedFunction<typeof ReplayContainer.prototype.sendReplay>;
+type MockAddPerformanceEntries = jest.MockedFunction<typeof ReplayContainer.prototype.addPerformanceEntries>;
+type MockAddMemoryEntry = jest.MockedFunction<typeof ReplayContainer.prototype.addMemoryEntry>;
+type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof ReplayContainer.prototype.eventBuffer, null>['finish']>;
+type MockFlush = jest.MockedFunction<typeof ReplayContainer.prototype.flush>;
+type MockRunFlush = jest.MockedFunction<typeof ReplayContainer.prototype.runFlush>;
 
 const prevLocation = WINDOW.location;
 let domHandler: (args: any) => any;
 
 const { record: mockRecord } = mockRrweb();
 
-let replay: Replay;
+let replay: ReplayContainer;
 let mockSendReplay: MockSendReplay;
 let mockFlush: MockFlush;
 let mockRunFlush: MockRunFlush;
