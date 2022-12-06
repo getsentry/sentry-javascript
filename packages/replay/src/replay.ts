@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
-import { Breadcrumb, Client, DataCategory, Event, EventDropReason } from '@sentry/types';
+import { Breadcrumb, Client, Event } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { PerformanceObserverEntryList } from 'perf_hooks';
@@ -39,6 +39,7 @@ import { createPayload } from './util/createPayload';
 import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -107,11 +108,6 @@ export class ReplayContainer {
    * Function to stop recording
    */
   private _stopRecording: ReturnType<typeof record> | null = null;
-
-  /**
-   * We overwrite `client.recordDroppedEvent`, but store the original method here so we can restore it.
-   */
-  private _originalRecordDroppedEvent?: Client['recordDroppedEvent'];
 
   private _context: InternalEventContext = {
     errorIds: new Set(),
@@ -310,7 +306,7 @@ export class ReplayContainer {
       WINDOW.addEventListener('focus', this.handleWindowFocus);
 
       // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      this._overwriteRecordDroppedEvent();
+      overwriteRecordDroppedEvent(this._context.errorIds);
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
@@ -374,7 +370,7 @@ export class ReplayContainer {
       WINDOW.removeEventListener('blur', this.handleWindowBlur);
       WINDOW.removeEventListener('focus', this.handleWindowFocus);
 
-      this._restoreRecordDroppedEvent();
+      restoreRecordDroppedEvent();
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
@@ -1248,40 +1244,5 @@ export class ReplayContainer {
     if (this.session && this.options.stickySession) {
       saveSession(this.session);
     }
-  }
-
-  private _overwriteRecordDroppedEvent(): void {
-    const client = getCurrentHub().getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const _originalCallback = client.recordDroppedEvent.bind(client);
-
-    const recordDroppedEvent: Client['recordDroppedEvent'] = (
-      reason: EventDropReason,
-      category: DataCategory,
-      event?: Event,
-    ): void => {
-      if (event && event.event_id) {
-        this._context.errorIds.delete(event.event_id);
-      }
-
-      return _originalCallback(reason, category, event);
-    };
-
-    client.recordDroppedEvent = recordDroppedEvent;
-    this._originalRecordDroppedEvent = _originalCallback;
-  }
-
-  private _restoreRecordDroppedEvent(): void {
-    const client = getCurrentHub().getClient();
-
-    if (!client || !this._originalRecordDroppedEvent) {
-      return;
-    }
-
-    client.recordDroppedEvent = this._originalRecordDroppedEvent;
   }
 }

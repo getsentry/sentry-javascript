@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME } from '../../src/constants';
+import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from '../../src/util/monkeyPatchRecordDroppedEvent';
 import { ReplayContainer } from './../../src/replay';
 import { Error } from './../fixtures/error';
 import { Transaction } from './../fixtures/transaction';
@@ -93,7 +94,8 @@ it('strips out dropped events from errorIds', async () => {
   const error2 = Error({ event_id: 'err2' });
   const error3 = Error({ event_id: 'err3' });
 
-  replay['_overwriteRecordDroppedEvent']();
+  // @ts-ignore private
+  overwriteRecordDroppedEvent(replay._context.errorIds);
 
   const client = getCurrentHub().getClient()!;
 
@@ -106,7 +108,7 @@ it('strips out dropped events from errorIds', async () => {
   // @ts-ignore private
   expect(Array.from(replay._context.errorIds)).toEqual(['err1', 'err3']);
 
-  replay['_restoreRecordDroppedEvent']();
+  restoreRecordDroppedEvent();
 });
 
 it('tags errors and transactions with replay id for session samples', async () => {
