@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME } from '../../src/constants';
+import { handleGlobalEventListener } from '../../src/coreHandlers/handleGlobalEvent';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from '../../src/util/monkeyPatchRecordDroppedEvent';
 import { ReplayContainer } from './../../src/replay';
 import { Error } from './../fixtures/error';
@@ -34,14 +35,14 @@ it('deletes breadcrumbs from replay events', () => {
   };
 
   // @ts-ignore replay event type
-  expect(replay.handleGlobalEvent(replayEvent)).toEqual({
+  expect(handleGlobalEventListener(replay)(replayEvent)).toEqual({
     type: REPLAY_EVENT_NAME,
   });
 });
 
 it('does not delete breadcrumbs from error and transaction events', () => {
   expect(
-    replay.handleGlobalEvent({
+    handleGlobalEventListener(replay)({
       breadcrumbs: [{ type: 'fakecrumb' }],
     }),
   ).toEqual(
@@ -50,7 +51,7 @@ it('does not delete breadcrumbs from error and transaction events', () => {
     }),
   );
   expect(
-    replay.handleGlobalEvent({
+    handleGlobalEventListener(replay)({
       type: 'transaction',
       breadcrumbs: [{ type: 'fakecrumb' }],
     }),
@@ -65,12 +66,12 @@ it('only tags errors with replay id, adds trace and error id to context for erro
   const transaction = Transaction();
   const error = Error();
   // @ts-ignore idc
-  expect(replay.handleGlobalEvent(transaction)).toEqual(
+  expect(handleGlobalEventListener(replay)(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.not.objectContaining({ replayId: expect.anything() }),
     }),
   );
-  expect(replay.handleGlobalEvent(error)).toEqual(
+  expect(handleGlobalEventListener(replay)(error)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
     }),
@@ -99,9 +100,9 @@ it('strips out dropped events from errorIds', async () => {
 
   const client = getCurrentHub().getClient()!;
 
-  replay.handleGlobalEvent(error1);
-  replay.handleGlobalEvent(error2);
-  replay.handleGlobalEvent(error3);
+  handleGlobalEventListener(replay)(error1);
+  handleGlobalEventListener(replay)(error2);
+  handleGlobalEventListener(replay)(error3);
 
   client.recordDroppedEvent('before_send', 'error', { event_id: 'err2' });
 
@@ -117,12 +118,12 @@ it('tags errors and transactions with replay id for session samples', async () =
   const transaction = Transaction();
   const error = Error();
   // @ts-ignore idc
-  expect(replay.handleGlobalEvent(transaction)).toEqual(
+  expect(handleGlobalEventListener(replay)(transaction)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
     }),
   );
-  expect(replay.handleGlobalEvent(error)).toEqual(
+  expect(handleGlobalEventListener(replay)(error)).toEqual(
     expect.objectContaining({
       tags: expect.objectContaining({ replayId: expect.any(String) }),
     }),

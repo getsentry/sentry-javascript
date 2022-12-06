@@ -10,11 +10,13 @@ import {
   MAX_SESSION_LIFE,
   REPLAY_EVENT_NAME,
   SESSION_IDLE_DURATION,
+  UNABLE_TO_SEND_REPLAY,
   VISIBILITY_CHANGE_TIMEOUT,
   WINDOW,
 } from './constants';
 import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
 import { handleFetchSpanListener } from './coreHandlers/handleFetch';
+import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
@@ -33,7 +35,6 @@ import type {
   ReplayPluginOptions,
   SendReplay,
 } from './types';
-import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
 import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
@@ -49,7 +50,6 @@ type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
-const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
 export class ReplayContainer {
   public eventBuffer: EventBuffer | null = null;
@@ -321,7 +321,7 @@ export class ReplayContainer {
 
         // Tag all (non replay) events that get sent to Sentry with the current
         // replay ID so that we can reference them later in the UI
-        addGlobalEventProcessor(this.handleGlobalEvent);
+        addGlobalEventProcessor(handleGlobalEventListener(this));
 
         this._hasInitializedCoreListeners = true;
       }
@@ -411,72 +411,6 @@ export class ReplayContainer {
     // respects the flush delays and does not flush immediately
     this._debouncedFlush();
   }
-
-  /**
-   * Core Sentry SDK global event handler. Attaches `replayId` to all [non-replay]
-   * events as a tag. Also handles the case where we only want to capture a reply
-   * when an error occurs.
-   **/
-  handleGlobalEvent: (event: Event) => Event = (event: Event) => {
-    // Do not apply replayId to the root event
-    if (
-      // @ts-ignore new event type
-      event.type === REPLAY_EVENT_NAME
-    ) {
-      // Replays have separate set of breadcrumbs, do not include breadcrumbs
-      // from core SDK
-      delete event.breadcrumbs;
-      return event;
-    }
-
-    // Only tag transactions with replayId if not waiting for an error
-    if (event.type !== 'transaction' || !this._waitForError) {
-      event.tags = { ...event.tags, replayId: this.session?.id };
-    }
-
-    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
-    // _context gets cleared on every checkout
-    if (event.type === 'transaction') {
-      this._context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
-      return event;
-    }
-
-    // XXX: Is it safe to assume that all other events are error events?
-    // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
-    this._context.errorIds.add(event.event_id);
-
-    const exc = event.exception?.values?.[0];
-    addInternalBreadcrumb({
-      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
-        exc?.value || 'n/a'
-      }`,
-    });
-
-    // Need to be very careful that this does not cause an infinite loop
-    if (
-      this._waitForError &&
-      event.exception &&
-      event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
-    ) {
-      setTimeout(async () => {
-        // Allow flush to complete before resuming as a session recording, otherwise
-        // the checkout from `startRecording` may be included in the payload.
-        // Prefer to keep the error replay as a separate (and smaller) segment
-        // than the session replay.
-        await this.flushImmediate();
-
-        if (this._stopRecording) {
-          this._stopRecording();
-          // Reset all "capture on error" configuration before
-          // starting a new recording
-          this._waitForError = false;
-          this.startRecording();
-        }
-      });
-    }
-
-    return event;
-  };
 
   /**
    * Handler for recording events.

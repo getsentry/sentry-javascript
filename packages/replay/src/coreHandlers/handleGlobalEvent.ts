@@ -1,0 +1,74 @@
+import { Event } from '@sentry/types';
+
+import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
+import { ReplayContainer } from '../replay';
+import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
+
+export function handleGlobalEventListener(replay: ReplayContainer): (event: Event) => Event {
+  return (event: Event) => {
+    // Do not apply replayId to the root event
+    if (
+      // @ts-ignore new event type
+      event.type === REPLAY_EVENT_NAME
+    ) {
+      // Replays have separate set of breadcrumbs, do not include breadcrumbs
+      // from core SDK
+      delete event.breadcrumbs;
+      return event;
+    }
+
+    // Only tag transactions with replayId if not waiting for an error
+    // @ts-ignore private
+    if (event.type !== 'transaction' || !replay._waitForError) {
+      event.tags = { ...event.tags, replayId: replay.session?.id };
+    }
+
+    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
+    // _context gets cleared on every checkout
+    if (event.type === 'transaction') {
+      // @ts-ignore private
+      replay._context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
+      return event;
+    }
+
+    // XXX: Is it safe to assume that all other events are error events?
+    // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
+    replay._context.errorIds.add(event.event_id);
+
+    const exc = event.exception?.values?.[0];
+    addInternalBreadcrumb({
+      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
+        exc?.value || 'n/a'
+      }`,
+    });
+
+    // Need to be very careful that this does not cause an infinite loop
+    if (
+      // @ts-ignore private
+      replay._waitForError &&
+      event.exception &&
+      event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
+    ) {
+      setTimeout(async () => {
+        // Allow flush to complete before resuming as a session recording, otherwise
+        // the checkout from `startRecording` may be included in the payload.
+        // Prefer to keep the error replay as a separate (and smaller) segment
+        // than the session replay.
+        await replay.flushImmediate();
+
+        // @ts-ignore private
+        if (replay._stopRecording) {
+          // @ts-ignore private
+          replay._stopRecording();
+          // Reset all "capture on error" configuration before
+          // starting a new recording
+          // @ts-ignore private
+          replay._waitForError = false;
+          replay.startRecording();
+        }
+      });
+    }
+
+    return event;
+  };
+}
