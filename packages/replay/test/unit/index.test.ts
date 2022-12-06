@@ -349,7 +349,7 @@ describe('Replay', () => {
 
     expect(initialSession?.id).toBeDefined();
     // @ts-ignore private member
-    expect(replay.context).toEqual(
+    expect(replay._context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
         initialTimestamp: BASE_TIMESTAMP,
@@ -423,7 +423,7 @@ describe('Replay', () => {
 
     // `context` should be reset when a new session is created
     // @ts-ignore private member
-    expect(replay.context).toEqual(
+    expect(replay._context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
         initialTimestamp: newTimestamp,
@@ -437,7 +437,7 @@ describe('Replay', () => {
 
     expect(initialSession?.id).toBeDefined();
     // @ts-ignore private member
-    expect(replay.context).toEqual(
+    expect(replay._context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
         initialTimestamp: BASE_TIMESTAMP,
@@ -536,7 +536,7 @@ describe('Replay', () => {
 
     // `context` should be reset when a new session is created
     // @ts-ignore private member
-    expect(replay.context).toEqual(
+    expect(replay._context).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
         initialTimestamp: newTimestamp,
@@ -855,7 +855,7 @@ describe('Replay', () => {
 
     // This should be null because `addEvent` has not been called yet
     // @ts-ignore private member
-    expect(replay.context.earliestEvent).toBe(null);
+    expect(replay._context.earliestEvent).toBe(null);
     expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
@@ -896,7 +896,7 @@ describe('Replay', () => {
 
     // This gets reset after sending replay
     // @ts-ignore private member
-    expect(replay.context.earliestEvent).toBe(null);
+    expect(replay._context.earliestEvent).toBe(null);
   });
 
   it('has single flush when checkout flush and debounce flush happen near simultaneously', async () => {

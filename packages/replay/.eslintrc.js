@@ -25,22 +25,6 @@ module.exports = {
       rules: {
         // TODO (high-prio): Re-enable this after migration
         '@typescript-eslint/explicit-member-accessibility': 'off',
-        // TODO (high-prio): Remove this exception from naming convention after migration
-        '@typescript-eslint/naming-convention': [
-          'error',
-          {
-            selector: 'memberLike',
-            modifiers: ['private'],
-            format: ['camelCase'],
-            leadingUnderscore: 'allow',
-          },
-          {
-            selector: 'memberLike',
-            modifiers: ['protected'],
-            format: ['camelCase'],
-            leadingUnderscore: 'allow',
-          },
-        ],
         // TODO (high-prio): Re-enable this after migration
         '@sentry-internal/sdk/no-async-await': 'off',
         // TODO (medium-prio): Re-enable this after migration

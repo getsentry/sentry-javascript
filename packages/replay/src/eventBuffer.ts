@@ -43,27 +43,27 @@ export interface EventBuffer {
 }
 
 class EventBufferArray implements EventBuffer {
-  private events: RecordingEvent[];
+  private _events: RecordingEvent[];
 
   public constructor() {
-    this.events = [];
+    this._events = [];
   }
 
   public destroy(): void {
-    this.events = [];
+    this._events = [];
   }
 
   public get length(): number {
-    return this.events.length;
+    return this._events.length;
   }
 
   public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
     if (isCheckout) {
-      this.events = [event];
+      this._events = [event];
       return;
     }
 
-    this.events.push(event);
+    this._events.push(event);
   }
 
   public finish(): Promise<string> {
@@ -71,8 +71,8 @@ class EventBufferArray implements EventBuffer {
       // Make a copy of the events array reference and immediately clear the
       // events member so that we do not lose new events while uploading
       // attachment.
-      const eventsRet = this.events;
-      this.events = [];
+      const eventsRet = this._events;
+      this._events = [];
       resolve(JSON.stringify(eventsRet));
     });
   }
@@ -80,18 +80,18 @@ class EventBufferArray implements EventBuffer {
 
 // exporting for testing
 export class EventBufferCompressionWorker implements EventBuffer {
-  private worker: null | Worker;
-  private eventBufferItemLength: number = 0;
-  private id: number = 0;
+  private _worker: null | Worker;
+  private _eventBufferItemLength: number = 0;
+  private _id: number = 0;
 
   public constructor(worker: Worker) {
-    this.worker = worker;
+    this._worker = worker;
   }
 
   public destroy(): void {
     __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
-    this.worker?.terminate();
-    this.worker = null;
+    this._worker?.terminate();
+    this._worker = null;
   }
 
   /**
@@ -99,7 +99,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * is only a local count of the buffer size since `addEvent` is async.
    */
   public get length(): number {
-    return this.eventBufferItemLength;
+    return this._eventBufferItemLength;
   }
 
   public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<string | Uint8Array> {
@@ -138,7 +138,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
         }
 
         // At this point, we'll always want to remove listener regardless of result status
-        this.worker?.removeEventListener('message', listener);
+        this._worker?.removeEventListener('message', listener);
 
         if (!data.success) {
           // TODO: Do some error handling, not sure what
@@ -161,8 +161,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
       // Note: we can't use `once` option because it's possible it needs to
       // listen to multiple messages
-      this.worker?.addEventListener('message', listener);
-      this.worker?.postMessage({ id, method, args: stringifiedArgs });
+      this._worker?.addEventListener('message', listener);
+      this._worker?.postMessage({ id, method, args: stringifiedArgs });
     });
   }
 
@@ -174,7 +174,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     });
 
     // XXX: See note in `get length()`
-    this.eventBufferItemLength++;
+    this._eventBufferItemLength++;
 
     return promise;
   }
@@ -183,12 +183,12 @@ export class EventBufferCompressionWorker implements EventBuffer {
     const promise = this._postMessage({ id, method: 'finish', args: [] });
 
     // XXX: See note in `get length()`
-    this.eventBufferItemLength = 0;
+    this._eventBufferItemLength = 0;
 
     return promise as Promise<Uint8Array>;
   }
 
   private _getAndIncrementId(): number {
-    return this.id++;
+    return this._id++;
   }
 }
