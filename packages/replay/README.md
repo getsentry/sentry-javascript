@@ -22,6 +22,8 @@ Make sure to use the exact same version of `@sentry/replay` as your other Sentry
 
 ## Installation
 
+Install the Replay package with NPM or your favourite package manager. Alternatively, you can load the Replay integration via a [CDN bundle](#loading-replay-as-a-CDN-bundle).
+
 with npm:
 
 ```shell
@@ -86,6 +88,46 @@ replay.start(); // Start recording
 
 replay.stop(); // Stop recording
 ```
+
+## Loading Replay as a CDN bundle
+
+As an alternative to the NPM package, you can load the Replay Integration bundle from our CDN.
+Note that the Replay bundle **only contains the Replay integration** and not the entire Sentry SDK.
+You have to add it in addition to the Sentry Browser SDK bundle:
+
+```js
+// Browser SDK bundle
+<script
+  src="https://browser.sentry-cdn.com/7.24.0/bundle.min.js"
+  crossorigin="anonymous"
+></script>
+
+// Replay integration bundle
+<script
+  src="https://browser.sentry-cdn.com/7.24.0/replay.min.js"
+  crossorigin="anonymous"
+></script>
+
+// Add Sentry.Integrations.Replay to your Sentry.init call
+Sentry.init({
+  // This sets the sample rate to be 10%. You may want this to be 100% while
+  // in development and sample at a lower rate in production
+  replaysSampleRate: 0.1,
+
+  // If the entire session is not sampled, use the below sample rate to sample
+  // sessions when an error occurs.
+  replaysOnErrorSampleRate: 1.0,
+
+  dsn: '__DSN__',
+  integrations: [new Sentry.Integrations.Replay()],
+});
+```
+
+The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
+
+
+Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
+Note that the two bundle versions always have to match.
 
 ## Sessions
 
