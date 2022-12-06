@@ -79,6 +79,61 @@ describe('SentryErrorHandler', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(err, expect.any(Function));
   });
 
+  it('handleError method extracts a non-empty Error', () => {
+    const err = new Error('sentry-test');
+    createErrorHandler().handleError(err);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(err, expect.any(Function));
+  });
+
+  it('handleError method extracts an error-like object without stack', () => {
+    const errorLikeWithoutStack: Error = {
+      name: 'sentry-http-test',
+      message: 'something failed.',
+    };
+    createErrorHandler().handleError(errorLikeWithoutStack);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
+    expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+  });
+
+  it('handleError method extracts an error-like object with a stack', () => {
+    const errorLikeWithStack: Error = {
+      name: 'sentry-http-test',
+      message: 'something failed.',
+      stack: new Error().stack,
+    };
+    createErrorHandler().handleError(errorLikeWithStack);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
+    expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+  });
+
+  it('handleError method extracts an object that could look like an error but is not (does not have a message)', () => {
+    const notErr: Partial<Error> = {
+      name: 'sentry-http-test',
+      // missing message
+    };
+    createErrorHandler().handleError(notErr);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+  });
+
+  it('handleError method extracts an object that could look like an error but is not (does not have a name)', () => {
+    const notErr: Partial<Error> = {
+      // missing name
+      message: 'something failed.',
+    };
+    createErrorHandler().handleError(notErr);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+  });
+
   it('handleError method extracts an Error with `ngOriginalError`', () => {
     const ngErr = new Error('sentry-ng-test');
     const err = {
@@ -118,6 +173,69 @@ describe('SentryErrorHandler', () => {
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
     expect(captureExceptionSpy).toHaveBeenCalledWith(
       'Server returned code 0 with body "sentry-http-test"',
+      expect.any(Function),
+    );
+  });
+
+  it('handleError method extracts an `HttpErrorResponse` with error-like object without stack', () => {
+    const errorLikeWithoutStack: Error = {
+      name: 'sentry-http-test',
+      message: 'something failed.',
+    };
+    const err = new HttpErrorResponse({ error: errorLikeWithoutStack });
+    createErrorHandler().handleError(err);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
+    expect(captureExceptionSpy).toHaveBeenCalledWith(
+      'Http failure response for (unknown url): undefined undefined',
+      expect.any(Function),
+    );
+  });
+
+  it('handleError method extracts an `HttpErrorResponse` with error-like object with a stack', () => {
+    const errorLikeWithStack: Error = {
+      name: 'sentry-http-test',
+      message: 'something failed.',
+      stack: new Error().stack,
+    };
+    const err = new HttpErrorResponse({ error: errorLikeWithStack });
+    createErrorHandler().handleError(err);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
+    expect(captureExceptionSpy).toHaveBeenCalledWith(
+      'Http failure response for (unknown url): undefined undefined',
+      expect.any(Function),
+    );
+  });
+
+  it('handleError method extracts an `HttpErrorResponse` with an object that could look like an error but is not (does not have a message)', () => {
+    const notErr: Partial<Error> = {
+      name: 'sentry-http-test',
+      // missing message
+    };
+    const err = new HttpErrorResponse({ error: notErr });
+    createErrorHandler().handleError(err);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(
+      'Http failure response for (unknown url): undefined undefined',
+      expect.any(Function),
+    );
+  });
+
+  it('handleError method extracts an `HttpErrorResponse` with an object that could look like an error but is not (does not have a name)', () => {
+    const notErr: Partial<Error> = {
+      // missing name
+      message: 'something failed.',
+    };
+    const err = new HttpErrorResponse({ error: notErr });
+    createErrorHandler().handleError(err);
+
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(
+      'Http failure response for (unknown url): undefined undefined',
       expect.any(Function),
     );
   });
