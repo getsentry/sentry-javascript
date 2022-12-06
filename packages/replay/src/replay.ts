@@ -3,7 +3,6 @@ import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sent
 import { Breadcrumb, Client, Event } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
-import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -19,6 +18,7 @@ import { handleFetchSpanListener } from './coreHandlers/handleFetch';
 import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
+import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
 import { createEventBuffer, EventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
@@ -38,7 +38,6 @@ import type {
 import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
-import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -335,30 +334,7 @@ export class ReplayContainer {
       return;
     }
 
-    this._performanceObserver = new PerformanceObserver(this.handlePerformanceObserver);
-
-    // Observe almost everything for now (no mark/measure)
-    [
-      'element',
-      'event',
-      'first-input',
-      'largest-contentful-paint',
-      'layout-shift',
-      'longtask',
-      'navigation',
-      'paint',
-      'resource',
-    ].forEach(type => {
-      try {
-        this._performanceObserver?.observe({
-          type,
-          buffered: true,
-        });
-      } catch {
-        // This can throw if an entry type is not supported in the browser.
-        // Ignore these errors.
-      }
-    });
+    this._performanceObserver = setupPerformanceObserver(this);
   }
 
   /**
@@ -569,19 +545,6 @@ export class ReplayContainer {
         return result.category === 'console';
       });
     };
-
-  /**
-   * Keep a list of performance entries that will be sent with a replay
-   */
-  handlePerformanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
-    // For whatever reason the observer was returning duplicate navigation
-    // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(
-      this.performanceEvents,
-      list.getEntries() as AllPerformanceEntry[],
-    );
-    this.performanceEvents = newPerformanceEntries;
-  };
 
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
