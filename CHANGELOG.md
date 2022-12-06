@@ -12,11 +12,10 @@ Take a look at the [Replay migration guide](https://github.com/getsentry/sentry-
 Furthermore, we're now also publishing CDN bundles for the Replay integration.
 The Replay version bump is the result of moving the package into the Sentry JavaScript SDK monorepo which aligns the version with our other JS SDK packages.
 
-- feat(browser): Support dom.maxStringLength configuration (#6175) (#6311)
+- feat(browser): Support dom.maxStringLength configuration (#6311)
 - feat(nextjs): Don't init SDK on Vercel Edge Runtime (#6408)
 - feat(nextjs): Parameterize prefix loader values (#6377)
 - feat(nextjs): Support `assetPrefix` option (#6388)
-- feat(tracing): Add interaction transaction as an experiment (#6210)
 - fix(nextjs): Inject SDK in dev mode (#6368)
 - fix(nextjs): Use `basePath` for `assetPrefix` if needed (#6424)
 - fix(node): Move `profilesSampleRate` into `BaseNodeOptions` (#6409)
