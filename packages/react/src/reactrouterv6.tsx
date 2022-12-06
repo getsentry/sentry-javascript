@@ -161,6 +161,7 @@ function handleNavigation(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
   if (
     !_useEffect ||
@@ -225,6 +226,7 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
 
   let isBaseLocation: boolean = false;
 
+  // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
     const SentryRoutes: React.FC<unknown> = (props: unknown) => {
       const Routes = origUseRoutes(routes, location);
