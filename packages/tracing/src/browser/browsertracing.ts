@@ -92,7 +92,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _experiments?: Partial<{ enableLongTask: boolean; interactionSampleRate: number }>;
+  _experiments?: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -125,7 +125,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
-  _experiments: { enableLongTask: true, interactionSampleRate: 0.0 },
+  _experiments: { enableLongTask: true, enableInteractions: false },
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -206,8 +206,8 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    if (_experiments?.interactionSampleRate ?? 0 > 0) {
-      this._registerInteractionListener(_experiments?.interactionSampleRate ?? 0);
+    if (_experiments?.enableInteractions) {
+      this._registerInteractionListener();
     }
 
     instrumentOutgoingRequests({
@@ -291,13 +291,10 @@ export class BrowserTracing implements Integration {
   }
 
   /** Start listener for interaction transactions */
-  private _registerInteractionListener(interactionSampleRate: number): void {
+  private _registerInteractionListener(): void {
     let inflightInteractionTransaction: IdleTransaction | undefined;
     const registerInteractionTransaction = (): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
-      if (Math.random() > interactionSampleRate) {
-        return;
-      }
 
       const op = 'ui.action.click';
       if (inflightInteractionTransaction) {
