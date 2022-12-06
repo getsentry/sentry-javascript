@@ -679,6 +679,8 @@ function addRewriteFramesLoader(
   target: 'server' | 'client',
   userNextConfig: NextConfigObject,
 ): void {
+  // Nextjs will use `basePath` in place of `assetPrefix` if it's defined but `assetPrefix` is not
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
   const replacements = {
     server: [
       [
@@ -693,9 +695,7 @@ function addRewriteFramesLoader(
         '__ASSET_PREFIX_PATH__',
         // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
         // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-        userNextConfig.assetPrefix
-          ? new URL(userNextConfig.assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
-          : '',
+        assetPrefix ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '') : '',
       ],
     ],
   };
