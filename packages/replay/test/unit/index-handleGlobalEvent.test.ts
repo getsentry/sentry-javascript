@@ -1,14 +1,14 @@
 import { getCurrentHub } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME } from '../../src/constants';
-import { Replay } from './../../src';
+import { ReplayContainer } from './../../src/replay';
 import { Error } from './../fixtures/error';
 import { Transaction } from './../fixtures/transaction';
 import { resetSdkMock } from './../mocks';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
-let replay: Replay;
+let replay: ReplayContainer;
 
 beforeEach(async () => {
   ({ replay } = await resetSdkMock({
@@ -83,7 +83,7 @@ it('only tags errors with replay id, adds trace and error id to context for erro
   jest.runAllTimers();
   await new Promise(process.nextTick); // wait for flush
 
-  // Turns off `waitForError` mode
+  // Turns off `_waitForError` mode
   // @ts-ignore private
   expect(replay._waitForError).toBe(false);
 });

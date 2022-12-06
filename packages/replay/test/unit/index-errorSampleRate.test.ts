@@ -3,7 +3,7 @@ jest.unmock('@sentry/browser');
 import { captureException } from '@sentry/browser';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
-import { Replay } from './../../src';
+import { ReplayContainer } from './../../src/replay';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { resetSdkMock } from './../mocks';
@@ -18,7 +18,7 @@ async function advanceTimers(time: number) {
 }
 
 describe('Replay (errorSampleRate)', () => {
-  let replay: Replay;
+  let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let mockTransportSend: MockTransportSend;
   let domHandler: DomHandler;

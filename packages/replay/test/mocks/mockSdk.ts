@@ -1,7 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { Envelope, Transport } from '@sentry/types';
 
-import { Replay as ReplayClass } from '../../src';
+import { Replay as ReplayIntegration } from '../../src';
+import { ReplayContainer } from '../../src/replay';
 import { ReplayConfiguration } from '../../src/types';
 
 export interface MockSdkParams {
@@ -34,11 +35,14 @@ class MockTransport implements Transport {
   }
 }
 
-export async function mockSdk({ replayOptions, sentryOptions }: MockSdkParams = {}): Promise<{ replay: ReplayClass }> {
+export async function mockSdk({ replayOptions, sentryOptions }: MockSdkParams = {}): Promise<{
+  replay: ReplayContainer;
+  integration: ReplayIntegration;
+}> {
   const { init } = jest.requireActual('@sentry/browser');
 
   const { Replay } = await import('../../src');
-  const replay = new Replay({
+  const replayIntegration = new Replay({
     stickySession: false,
     ...replayOptions,
   });
@@ -51,15 +55,19 @@ export async function mockSdk({ replayOptions, sentryOptions }: MockSdkParams = 
     replaysSessionSampleRate: 1.0,
     replaysOnErrorSampleRate: 0.0,
     ...sentryOptions,
-    integrations: [replay],
+    integrations: [replayIntegration],
   });
 
-  // setupOnce is only called the first time, so we ensure to re-parse the options every time
-  replay['_loadReplayOptionsFromClient']();
+  // setupOnce is only called the first time, so we ensure to manually run setup in subsequent calls
+  if (replayIntegration['_hasCalledSetupOnce']) {
+    // The first time the integration is used, `start()` is called (in setupOnce)
+    // For consistency, we want to stop that
+    replayIntegration.stop();
+  } else {
+    replayIntegration['_setup']();
+  }
 
-  // The first time the integration is used, `start()` is called (in setupOnce)
-  // For consistency, we want to stop that
-  replay.stop();
+  const replay = replayIntegration['_replay']!;
 
-  return { replay };
+  return { replay, integration: replayIntegration };
 }

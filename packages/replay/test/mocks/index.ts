@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 
-import { Replay } from './../../src';
+import { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { DomHandler, MockTransportSend } from './../types';
 import { MockSdkParams } from './mockSdk';
@@ -9,7 +9,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
   domHandler: DomHandler;
   mockRecord: RecordMock;
   mockTransportSend: MockTransportSend;
-  replay: Replay;
+  replay: ReplayContainer;
   spyCaptureException: jest.SpyInstance;
 }> {
   let domHandler: DomHandler;

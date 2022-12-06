@@ -1,10 +1,11 @@
 jest.mock('./../../src/util/isInternal', () => ({
   isInternal: jest.fn(() => true),
 }));
+
 import { EventType } from 'rrweb';
 
-import { Replay } from '../../src';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { ReplayContainer } from '../../src/replay';
 import { RecordingEvent } from '../../src/types';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
@@ -91,7 +92,7 @@ describe('Replay with custom mock', () => {
 });
 
 describe('Replay', () => {
-  let replay: Replay;
+  let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let mockTransportSend: MockTransportSend;
   let domHandler: DomHandler;
@@ -421,7 +422,7 @@ describe('Replay', () => {
       ]),
     });
 
-    // `context` should be reset when a new session is created
+    // `_context` should be reset when a new session is created
     // @ts-ignore private member
     expect(replay._context).toEqual(
       expect.objectContaining({
@@ -482,7 +483,7 @@ describe('Replay', () => {
     expect(replay).toHaveSameSession(initialSession);
 
     // @ts-ignore private
-    expect(replay.stopRecording).toBeUndefined();
+    expect(replay._stopRecording).toBeUndefined();
 
     // Now do a click
     domHandler({
@@ -534,7 +535,7 @@ describe('Replay', () => {
       ]),
     });
 
-    // `context` should be reset when a new session is created
+    // `_context` should be reset when a new session is created
     // @ts-ignore private member
     expect(replay._context).toEqual(
       expect.objectContaining({
