@@ -12,8 +12,10 @@ describe('Replay (sampling)', () => {
     const { replay } = await mockSdk({
       replayOptions: {
         stickySession: true,
-        sessionSampleRate: 0.0,
-        errorSampleRate: 0.0,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 0.0,
       },
     });
 

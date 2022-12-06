@@ -1,11 +1,11 @@
 import { getCurrentHub } from '@sentry/core';
 
-import { ReplayConfiguration } from '../../src/types';
 import { Replay } from './../../src';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { DomHandler, MockTransportSend } from './../types';
+import { MockSdkParams } from './mockSdk';
 
-export async function resetSdkMock(options?: ReplayConfiguration): Promise<{
+export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkParams): Promise<{
   domHandler: DomHandler;
   mockRecord: RecordMock;
   mockTransportSend: MockTransportSend;
@@ -38,9 +38,8 @@ export async function resetSdkMock(options?: ReplayConfiguration): Promise<{
 
   const { mockSdk } = await import('./mockSdk');
   const { replay } = await mockSdk({
-    replayOptions: {
-      ...options,
-    },
+    replayOptions,
+    sentryOptions,
   });
 
   const mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;

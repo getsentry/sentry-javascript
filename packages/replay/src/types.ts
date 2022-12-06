@@ -104,22 +104,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   useCompression: boolean;
 
   /**
-   * Only capture replays when an error happens
-   *
-   * @deprecated
-   * @see errorSampleRate
-   */
-  captureOnlyOnError?: boolean;
-
-  /**
-   * The sample rate for replays. 1.0 will record all replays, 0 will record none.
-   *
-   * @deprecated
-   * @see sessionSampleRate
-   */
-  replaysSamplingRate?: number;
-
-  /**
    * Mask all text in recordings. All text will be replaced with asterisks by default.
    */
   maskAllText: boolean;

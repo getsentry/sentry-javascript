@@ -26,10 +26,10 @@ describe('Replay with custom mock', () => {
 
   it('calls rrweb.record with custom options', async () => {
     const { mockRecord } = await resetSdkMock({
-      ignoreClass: 'sentry-test-ignore',
-      stickySession: false,
-      sessionSampleRate: 1.0,
-      errorSampleRate: 0.0,
+      replayOptions: {
+        ignoreClass: 'sentry-test-ignore',
+        stickySession: false,
+      },
     });
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
@@ -60,9 +60,9 @@ describe('Replay with custom mock', () => {
       });
 
       const { replay } = await resetSdkMock({
-        stickySession,
-        sessionSampleRate: 1.0,
-        errorSampleRate: 0.0,
+        replayOptions: {
+          stickySession,
+        },
       });
 
       // Initially called up to three times: once for start, then once for replay.updateSessionActivity & once for segmentId increase
@@ -108,9 +108,9 @@ describe('Replay', () => {
 
   beforeEach(async () => {
     ({ mockRecord, mockTransportSend, domHandler, replay, spyCaptureException } = await resetSdkMock({
-      sessionSampleRate: 1.0,
-      errorSampleRate: 0.0,
-      stickySession: false,
+      replayOptions: {
+        stickySession: false,
+      },
     }));
 
     jest.spyOn(replay, 'flush');
