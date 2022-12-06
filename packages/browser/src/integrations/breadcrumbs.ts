@@ -6,6 +6,7 @@ import {
   addInstrumentationHandler,
   getEventDescription,
   htmlTreeAsString,
+  logger,
   parseUrl,
   safeJoin,
   severityLevelFromString,
@@ -16,12 +17,20 @@ import { WINDOW } from '../helpers';
 /** JSDoc */
 interface BreadcrumbsOptions {
   console: boolean;
-  dom: boolean | { serializeAttribute: string | string[] };
+  dom:
+    | boolean
+    | {
+        serializeAttribute?: string | string[];
+        maxStringLength?: number;
+      };
   fetch: boolean;
   history: boolean;
   sentry: boolean;
   xhr: boolean;
 }
+
+/** maxStringLength gets capped to prevent 100 breadcrumbs exceeding 1MB event payload size */
+const MAX_ALLOWED_STRING_LENGTH = 1024;
 
 export const BREADCRUMB_INTEGRATION_ID = 'Breadcrumbs';
 
@@ -118,6 +127,16 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
+    let maxStringLength =
+      typeof dom === 'object' && typeof dom.maxStringLength === 'number' ? dom.maxStringLength : undefined;
+    if (maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH) {
+      __DEBUG_BUILD__ &&
+        logger.warn(
+          `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`,
+        );
+      maxStringLength = MAX_ALLOWED_STRING_LENGTH;
+    }
+
     if (typeof keyAttrs === 'string') {
       keyAttrs = [keyAttrs];
     }
@@ -125,8 +144,8 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
       target = handlerData.event.target
-        ? htmlTreeAsString(handlerData.event.target as Node, keyAttrs)
-        : htmlTreeAsString(handlerData.event as unknown as Node, keyAttrs);
+        ? htmlTreeAsString(handlerData.event.target as Node, { keyAttrs, maxStringLength })
+        : htmlTreeAsString(handlerData.event as unknown as Node, { keyAttrs, maxStringLength });
     } catch (e) {
       target = '<unknown>';
     }

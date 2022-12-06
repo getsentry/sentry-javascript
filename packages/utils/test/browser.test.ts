@@ -9,6 +9,10 @@ beforeAll(() => {
 });
 
 describe('htmlTreeAsString', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
   it('generates html tree for a simple element', () => {
     const el = document.createElement('ul');
     el.innerHTML = `<li class="container">
@@ -40,8 +44,29 @@ describe('htmlTreeAsString', () => {
     </li>`;
     document.body.appendChild(el);
 
+    // Two formats for specifying keyAttrs
     expect(htmlTreeAsString(document.getElementById('cat-2'), ['test-id'])).toBe(
       'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
+    );
+    expect(htmlTreeAsString(document.getElementById('cat-2'), { keyAttrs: ['test-id'] })).toBe(
+      'body > ul > li.li-class[title="li-title"] > img[test-id="cat-2-test-id"]',
+    );
+  });
+
+  it('caps string output according to provided maxStringLength', () => {
+    const el = document.createElement('div');
+    el.innerHTML = `<div id="main-cta">
+      <div class="container">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white hover:text-blue-100" />
+      </div>
+    </div>`;
+    document.body.appendChild(el);
+
+    expect(htmlTreeAsString(document.querySelector('button'))).toBe(
+      'button.bg-blue-500.hover:bg-blue-700.text-white.hover:text-blue-100',
+    );
+    expect(htmlTreeAsString(document.querySelector('button'), { maxStringLength: 100 })).toBe(
+      'div#main-cta > div.container > button.bg-blue-500.hover:bg-blue-700.text-white.hover:text-blue-100',
     );
   });
 });
