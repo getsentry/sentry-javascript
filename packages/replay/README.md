@@ -22,7 +22,7 @@ Make sure to use the exact same version of `@sentry/replay` as your other Sentry
 
 ## Installation
 
-Install the Replay package with NPM or your favourite package manager. Alternatively, you can load the Replay integration via a [CDN bundle](#loading-replay-as-a-CDN-bundle).
+Install the Replay package with NPM or your favourite package manager. Alternatively, you can load the Replay integration via a [CDN bundle](#loading-replay-as-a-cdn-bundle).
 
 with npm:
 
