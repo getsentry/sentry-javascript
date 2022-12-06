@@ -8,7 +8,7 @@ on:
 
 jobs:
   enforce-license-compliance:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: 'Enforce License Compliance'
         uses: getsentry/action-enforce-license-compliance@main
