@@ -1,7 +1,6 @@
 import { Hub } from '@sentry/core';
 import { EventProcessor, Integration, SpanContext } from '@sentry/types';
-import { fill, isInstanceOf, isThenable, loadModule, logger } from '@sentry/utils';
-import { EventEmitter } from 'events';
+import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -91,6 +90,14 @@ interface MongoOptions {
   useMongoose?: boolean;
 }
 
+interface MongoCursor {
+  once(event: 'close', listener: () => void): void;
+}
+
+function isCursor(maybeCursor: MongoCursor): maybeCursor is MongoCursor {
+  return maybeCursor && typeof maybeCursor === 'object' && maybeCursor.once && typeof maybeCursor.once === 'function';
+}
+
 /** Tracing integration for mongo package */
 export class Mongo implements Integration {
   /**
@@ -169,10 +176,10 @@ export class Mongo implements Integration {
               return res;
             });
           }
-          // If the operation returns a cursor (which is an EventEmitter),
+          // If the operation returns a Cursor
           // we need to attach a listener to it to finish the span when the cursor is closed.
-          else if (isInstanceOf(maybePromiseOrCursor, EventEmitter)) {
-            const cursor = maybePromiseOrCursor as EventEmitter;
+          else if (isCursor(maybePromiseOrCursor)) {
+            const cursor = maybePromiseOrCursor as MongoCursor;
 
             try {
               cursor.once('close', () => {
