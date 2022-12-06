@@ -26,7 +26,7 @@ jest.mock('@sentry/utils', () => {
 import * as Sentry from '@sentry/browser';
 
 import { WINDOW } from '../../../src/constants';
-import { Session } from '../../../src/session/Session';
+import { getSessionSampleType, makeSession } from '../../../src/session/Session';
 
 type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
 
@@ -39,42 +39,33 @@ afterEach(() => {
 });
 
 it('does not sample', function () {
-  const newSession = new Session(undefined, {
-    sessionSampleRate: 0.0,
-    errorSampleRate: 0.0,
+  const newSession = makeSession({
+    sampled: getSessionSampleType(0, 0),
   });
 
   expect(newSession.sampled).toBe(false);
 });
 
 it('samples using `sessionSampleRate`', function () {
-  const newSession = new Session(undefined, {
-    sessionSampleRate: 1.0,
-    errorSampleRate: 0.0,
+  const newSession = makeSession({
+    sampled: getSessionSampleType(1.0, 0),
   });
 
   expect(newSession.sampled).toBe('session');
 });
 
 it('samples using `errorSampleRate`', function () {
-  const newSession = new Session(undefined, {
-    sessionSampleRate: 0,
-    errorSampleRate: 1.0,
+  const newSession = makeSession({
+    sampled: getSessionSampleType(0, 1),
   });
 
   expect(newSession.sampled).toBe('error');
 });
 
 it('does not run sampling function if existing session was sampled', function () {
-  const newSession = new Session(
-    {
-      sampled: 'session',
-    },
-    {
-      sessionSampleRate: 0,
-      errorSampleRate: 0,
-    },
-  );
+  const newSession = makeSession({
+    sampled: 'session',
+  });
 
   expect(newSession.sampled).toBe('session');
 });

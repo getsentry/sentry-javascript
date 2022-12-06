@@ -57,3 +57,8 @@ If you only imported from `@sentry/replay`, this will not affect you.
 
 It is highly unlikely to affect anybody, but the type `IEventBuffer` was renamed to `EventBuffer` for consistency.
 Unless you manually imported this and used it somewhere in your codebase, this will not affect you.
+
+## Session object is now a plain object (https://github.com/getsentry/sentry-javascript/pull/6417)
+
+The `Session` object exported from Replay is now a plain object, instead of a class.
+This should not affect you unless you specifically accessed this class & did custom things with it.
