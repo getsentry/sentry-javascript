@@ -21,6 +21,26 @@ export interface ErrorHandlerOptions {
   extractor?(error: unknown, defaultExtractor: (error: unknown) => unknown): unknown;
 }
 
+function extractHttpModuleError(error: HttpErrorResponse): string | Error {
+  // The `error` property of http exception can be either an `Error` object, which we can use directly...
+  if (error.error instanceof Error) {
+    return error.error;
+  }
+
+  // ... or an`ErrorEvent`, which can provide us with the message but no stack...
+  if (error.error instanceof ErrorEvent && error.error.message) {
+    return error.error.message;
+  }
+
+  // ...or the request body itself, which we can use as a message instead.
+  if (typeof error.error === 'string') {
+    return `Server returned code ${error.status} with body "${error.error}"`;
+  }
+
+  // If we don't have any detailed information, fallback to the request message itself.
+  return error.message;
+}
+
 /**
  * Implementation of Angular's ErrorHandler provider that can be used as a drop-in replacement for the stock one.
  */
@@ -101,23 +121,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
     // If it's http module error, extract as much information from it as we can.
     if (error instanceof HttpErrorResponse) {
-      // The `error` property of http exception can be either an `Error` object, which we can use directly...
-      if (error.error instanceof Error) {
-        return error.error;
-      }
-
-      // ... or an`ErrorEvent`, which can provide us with the message but no stack...
-      if (error.error instanceof ErrorEvent && error.error.message) {
-        return error.error.message;
-      }
-
-      // ...or the request body itself, which we can use as a message instead.
-      if (typeof error.error === 'string') {
-        return `Server returned code ${error.status} with body "${error.error}"`;
-      }
-
-      // If we don't have any detailed information, fallback to the request message itself.
-      return error.message;
+      return extractHttpModuleError(error);
     }
 
     // Nothing was extracted, fallback to default error message.
