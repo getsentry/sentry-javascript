@@ -335,7 +335,7 @@ export class ReplayContainer {
       return;
     }
 
-    this._performanceObserver = new PerformanceObserver(this.handle_performanceObserver);
+    this._performanceObserver = new PerformanceObserver(this.handlePerformanceObserver);
 
     // Observe almost everything for now (no mark/measure)
     [
@@ -573,7 +573,7 @@ export class ReplayContainer {
   /**
    * Keep a list of performance entries that will be sent with a replay
    */
-  handle_performanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
+  handlePerformanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
     // For whatever reason the observer was returning duplicate navigation
     // entries (the other entry types were not duplicated).
     const newPerformanceEntries = dedupePerformanceEntries(
