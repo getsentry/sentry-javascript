@@ -6,7 +6,7 @@
 
 ## 7.24.0
 
-This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.2.0.
+This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.24.0.
 Along with this version bump, we're introducing a few breaking changes.
 Take a look at the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
 Furthermore, we're now also publishing CDN bundles for the Replay integration.
