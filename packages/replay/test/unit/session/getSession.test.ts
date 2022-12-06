@@ -18,16 +18,13 @@ const SAMPLE_RATES = {
 };
 
 function createMockSession(when: number = new Date().getTime()) {
-  return makeSession(
-    {
-      id: 'test_session_id',
-      segmentId: 0,
-      lastActivity: when,
-      started: when,
-      sampled: 'session',
-    },
-    { ...SAMPLE_RATES },
-  );
+  return makeSession({
+    id: 'test_session_id',
+    segmentId: 0,
+    lastActivity: when,
+    started: when,
+    sampled: 'session',
+  });
 }
 
 beforeAll(() => {
@@ -84,15 +81,13 @@ it('creates a non-sticky session, when one is expired', function () {
     expiry: 1000,
     stickySession: false,
     ...SAMPLE_RATES,
-    currentSession: makeSession(
-      {
-        id: 'old_session_id',
-        lastActivity: new Date().getTime() - 1001,
-        started: new Date().getTime() - 1001,
-        segmentId: 0,
-      },
-      { ...SAMPLE_RATES },
-    ),
+    currentSession: makeSession({
+      id: 'old_session_id',
+      lastActivity: new Date().getTime() - 1001,
+      started: new Date().getTime() - 1001,
+      segmentId: 0,
+      sampled: 'session',
+    }),
   });
 
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -180,15 +175,13 @@ it('fetches a non-expired non-sticky session', function () {
     expiry: 1000,
     stickySession: false,
     ...SAMPLE_RATES,
-    currentSession: makeSession(
-      {
-        id: 'test_session_id_2',
-        lastActivity: +new Date() - 500,
-        started: +new Date() - 500,
-        segmentId: 0,
-      },
-      { ...SAMPLE_RATES },
-    ),
+    currentSession: makeSession({
+      id: 'test_session_id_2',
+      lastActivity: +new Date() - 500,
+      started: +new Date() - 500,
+      segmentId: 0,
+      sampled: 'session',
+    }),
   });
 
   expect(FetchSession.fetchSession).not.toHaveBeenCalled();

@@ -23,14 +23,44 @@ const SAMPLE_RATES = {
 it('fetches a valid and sampled session', function () {
   WINDOW.sessionStorage.setItem(
     REPLAY_SESSION_KEY,
-    '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": true,"started":1648827162630,"lastActivity":1648827162658}',
+    '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": "session","started":1648827162630,"lastActivity":1648827162658}',
   );
 
   expect(fetchSession(SAMPLE_RATES)).toEqual({
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     segmentId: 0,
-    sampled: true,
+    sampled: 'session',
+    started: 1648827162630,
+  });
+});
+
+it('fetches an unsampled session', function () {
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": false,"started":1648827162630,"lastActivity":1648827162658}',
+  );
+
+  expect(fetchSession(SAMPLE_RATES)).toEqual({
+    id: 'fd09adfc4117477abc8de643e5a5798a',
+    lastActivity: 1648827162658,
+    segmentId: 0,
+    sampled: false,
+    started: 1648827162630,
+  });
+});
+
+it('auto-fixes a session without sampled', function () {
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    '{"id":"fd09adfc4117477abc8de643e5a5798a","started":1648827162630,"lastActivity":1648827162658}',
+  );
+
+  expect(fetchSession(SAMPLE_RATES)).toEqual({
+    id: 'fd09adfc4117477abc8de643e5a5798a',
+    lastActivity: 1648827162658,
+    segmentId: 0,
+    sampled: 'session',
     started: 1648827162630,
   });
 });

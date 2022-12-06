@@ -2,16 +2,14 @@ import { makeSession } from '../../../src/session/Session';
 import { isSessionExpired } from '../../../src/util/isSessionExpired';
 
 function createSession(extra?: Record<string, any>) {
-  return makeSession(
-    {
-      // Setting started/lastActivity to 0 makes it use the default, which is `Date.now()`
-      started: 1,
-      lastActivity: 1,
-      segmentId: 0,
-      ...extra,
-    },
-    { sessionSampleRate: 1.0, errorSampleRate: 0 },
-  );
+  return makeSession({
+    // Setting started/lastActivity to 0 makes it use the default, which is `Date.now()`
+    started: 1,
+    lastActivity: 1,
+    segmentId: 0,
+    sampled: 'session',
+    ...extra,
+  });
 }
 
 it('session last activity is older than expiry time', function () {

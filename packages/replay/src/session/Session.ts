@@ -1,6 +1,5 @@
 import { uuid4 } from '@sentry/utils';
 
-import { SampleRates } from '../types';
 import { isSampled } from '../util/isSampled';
 
 type Sampled = false | 'session' | 'error';
@@ -38,14 +37,14 @@ export interface Session {
 /**
  * Get a session with defaults & applied sampling.
  */
-export function makeSession(session: Partial<Session>, { sessionSampleRate, errorSampleRate }: SampleRates): Session {
+export function makeSession(session: Partial<Session> & { sampled: Sampled }): Session {
   const now = new Date().getTime();
   const id = session.id || uuid4();
   // Note that this means we cannot set a started/lastActivity of `0`, but this should not be relevant outside of tests.
   const started = session.started || now;
   const lastActivity = session.lastActivity || now;
   const segmentId = session.segmentId || 0;
-  const sampled = sampleSession(session.sampled, { sessionSampleRate, errorSampleRate });
+  const sampled = session.sampled;
 
   return {
     id,
@@ -56,7 +55,14 @@ export function makeSession(session: Partial<Session>, { sessionSampleRate, erro
   };
 }
 
-function sampleSession(sampled: Sampled | undefined, { sessionSampleRate, errorSampleRate }: SampleRates): Sampled {
+/**
+ * Get the sampled status for a session based on sample rates & current sampled status.
+ */
+export function sampleSession(
+  sampled: Sampled | undefined,
+  sessionSampleRate: number,
+  errorSampleRate: number,
+): Sampled {
   if (typeof sampled !== 'undefined') {
     return sampled;
   }
