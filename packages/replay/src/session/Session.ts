@@ -41,11 +41,11 @@ export interface Session {
 export function makeSession(session: Partial<Session>, { sessionSampleRate, errorSampleRate }: SampleRates): Session {
   const now = new Date().getTime();
   const id = session.id || uuid4();
-  const started = session.started ?? now;
-  const lastActivity = session.lastActivity ?? now;
-  const segmentId = session.segmentId ?? 0;
-  const sampled =
-    session.sampled ?? (isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false);
+  // Note that this means we cannot set a started/lastActivity of `0`, but this should not be relevant outside of tests.
+  const started = session.started || now;
+  const lastActivity = session.lastActivity || now;
+  const segmentId = session.segmentId || 0;
+  const sampled = sampleSession(session.sampled, { sessionSampleRate, errorSampleRate });
 
   return {
     id,
@@ -54,4 +54,12 @@ export function makeSession(session: Partial<Session>, { sessionSampleRate, erro
     segmentId,
     sampled,
   };
+}
+
+function sampleSession(sampled: Sampled | undefined, { sessionSampleRate, errorSampleRate }: SampleRates): Sampled {
+  if (typeof sampled !== 'undefined') {
+    return sampled;
+  }
+
+  return isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false;
 }

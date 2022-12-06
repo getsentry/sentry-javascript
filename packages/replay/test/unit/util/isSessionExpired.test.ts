@@ -4,8 +4,9 @@ import { isSessionExpired } from '../../../src/util/isSessionExpired';
 function createSession(extra?: Record<string, any>) {
   return makeSession(
     {
-      started: 0,
-      lastActivity: 0,
+      // Setting started/lastActivity to 0 makes it use the default, which is `Date.now()`
+      started: 1,
+      lastActivity: 1,
       segmentId: 0,
       ...extra,
     },
@@ -26,5 +27,5 @@ it('session age is not older than max session life', function () {
 });
 
 it('session age is older than max session life', function () {
-  expect(isSessionExpired(createSession(), 1_800_000, 1_800_000)).toBe(true); // Session expires at ts >= 1_800_000
+  expect(isSessionExpired(createSession(), 1_800_000, 1_800_001)).toBe(true); // Session expires at ts >= 1_800_000
 });
