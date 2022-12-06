@@ -3,6 +3,7 @@ jest.unmock('@sentry/browser');
 import { captureException } from '@sentry/browser';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { addEvent } from '../../src/util/addEvent';
 import { ReplayContainer } from './../../src/replay';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -195,7 +196,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
 

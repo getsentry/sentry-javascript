@@ -7,6 +7,7 @@ import { EventType } from 'rrweb';
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
 import { RecordingEvent } from '../../src/types';
+import { addEvent } from '../../src/util/addEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -82,7 +83,7 @@ describe('Replay with custom mock', () => {
         timestamp: new Date().valueOf(),
       } as RecordingEvent;
 
-      replay.addEvent(event);
+      addEvent(replay, event);
 
       await replay.runFlush();
 
@@ -250,7 +251,7 @@ describe('Replay', () => {
       },
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -276,7 +277,7 @@ describe('Replay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -687,7 +688,7 @@ describe('Replay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay).toHaveSentReplay({
@@ -695,7 +696,7 @@ describe('Replay', () => {
     });
     expect(replay.session?.segmentId).toBe(1);
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -727,7 +728,7 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
@@ -812,10 +813,10 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
 
     // Add a fake event that started BEFORE
-    replay.addEvent({
+    addEvent(replay, {
       data: {},
       timestamp: (BASE_TIMESTAMP - 10000) / 1000,
       type: 5,
@@ -861,7 +862,7 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     // This event will trigger a flush
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();

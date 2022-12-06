@@ -41,6 +41,7 @@ import { createPayload } from './util/createPayload';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
+import { addEvent } from './util/addEvent';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -135,6 +136,11 @@ export class ReplayContainer {
   /** If recording is currently enabled. */
   public isEnabled(): boolean {
     return this._isEnabled;
+  }
+
+  /** If recording is currently paused. */
+  public isPaused(): boolean {
+    return this._isPaused;
   }
 
   /**
@@ -439,7 +445,7 @@ export class ReplayContainer {
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      this.addEvent(event, isCheckout);
+      addEvent(this, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -553,7 +559,7 @@ export class ReplayContainer {
       }
 
       this.addUpdate(() => {
-        this.addEvent({
+        addEvent(this, {
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
@@ -624,45 +630,6 @@ export class ReplayContainer {
   }
 
   /**
-   * Add an event to the event buffer
-   */
-  addEvent(event: RecordingEvent, isCheckout?: boolean): void {
-    if (!this.eventBuffer) {
-      // This implies that `_isEnabled` is false
-      return;
-    }
-
-    if (this._isPaused) {
-      // Do not add to event buffer when recording is paused
-      return;
-    }
-
-    // TODO: sadness -- we will want to normalize timestamps to be in ms -
-    // requires coordination with frontend
-    const isMs = event.timestamp > 9999999999;
-    const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
-
-    // Throw out events that happen more than 5 minutes ago. This can happen if
-    // page has been left open and idle for a long period of time and user
-    // comes back to trigger a new session. The performance entries rely on
-    // `performance.timeOrigin`, which is when the page first opened.
-    if (timestampInMs + SESSION_IDLE_DURATION < new Date().getTime()) {
-      return;
-    }
-
-    // Only record earliest event if a new session was created, otherwise it
-    // shouldn't be relevant
-    if (
-      this.session?.segmentId === 0 &&
-      (!this._context.earliestEvent || timestampInMs < this._context.earliestEvent)
-    ) {
-      this._context.earliestEvent = timestampInMs;
-    }
-
-    this.eventBuffer.addEvent(event, isCheckout);
-  }
-
-  /**
    * Update user activity (across session lifespans)
    */
   updateUserActivity(_lastActivity: number = new Date().getTime()): void {
@@ -710,7 +677,7 @@ export class ReplayContainer {
    */
   createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      this.addEvent({
+      addEvent(this, {
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -727,7 +694,7 @@ export class ReplayContainer {
   createPerformanceSpans(entries: ReplayPerformanceEntry[]): Promise<void[]> {
     return Promise.all(
       entries.map(({ type, start, end, name, data }) =>
-        this.addEvent({
+        addEvent(this, {
           type: EventType.Custom,
           timestamp: start,
           data: {
