@@ -62,7 +62,7 @@
     "lodash.debounce": "^4.0.8"
   },
   "peerDependencies": {
-    "@sentry/browser": "7.23.0"
+    "@sentry/browser": ">=7.24.0"
   },
   "engines": {
     "node": ">=12"
