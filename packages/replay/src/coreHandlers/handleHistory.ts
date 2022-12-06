@@ -1,5 +1,6 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import { ReplayContainer } from '../replay';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
 
 interface HistoryHandlerData {
   from: string;
@@ -39,7 +40,7 @@ export function handleHistorySpanListener(replay: ReplayContainer): (handlerData
     replay.triggerUserActivity();
 
     replay.addUpdate(() => {
-      void replay.createPerformanceSpans([result]);
+      void createPerformanceSpans(replay, [result]);
       // Returning false to flush
       return false;
     });

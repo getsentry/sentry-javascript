@@ -1,5 +1,6 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import { ReplayContainer } from '../replay';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
 import { isIngestHost } from '../util/isIngestHost';
 
 // From sentry-javascript
@@ -76,7 +77,7 @@ export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: Xh
     }
 
     replay.addUpdate(() => {
-      void replay.createPerformanceSpans([result]);
+      void createPerformanceSpans(replay, [result]);
       // Returning true will cause `addUpdate` to not flush
       // We do not want network requests to cause a flush. This will prevent
       // recurring/polling requests from keeping the replay session alive.

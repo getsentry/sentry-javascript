@@ -8,6 +8,7 @@ import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW
 import { ReplayContainer } from '../../src/replay';
 import { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
+import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -461,7 +462,7 @@ describe('Replay', () => {
     // performance events can still be collected while recording is stopped
     // TODO: we may want to prevent `addEvent` from adding to buffer when user is inactive
     replay.addUpdate(() => {
-      replay.createPerformanceSpans([
+      createPerformanceSpans(replay, [
         {
           type: 'navigation.navigate',
           name: 'foo',

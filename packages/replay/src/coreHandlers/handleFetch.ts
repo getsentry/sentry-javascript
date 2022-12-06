@@ -1,5 +1,6 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import { ReplayContainer } from '../replay';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
 import { isIngestHost } from '../util/isIngestHost';
 
 interface FetchHandlerData {
@@ -57,7 +58,7 @@ export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: 
     }
 
     replay.addUpdate(() => {
-      void replay.createPerformanceSpans([result]);
+      void createPerformanceSpans(replay, [result]);
       // Returning true will cause `addUpdate` to not flush
       // We do not want network requests to cause a flush. This will prevent
       // recurring/polling requests from keeping the replay session alive.

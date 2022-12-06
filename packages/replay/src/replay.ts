@@ -19,7 +19,7 @@ import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
-import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
+import { createMemoryEntry, createPerformanceEntries } from './createPerformanceEntry';
 import { createEventBuffer, EventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
@@ -35,13 +35,14 @@ import type {
   ReplayPluginOptions,
   SendReplay,
 } from './types';
+import { addEvent } from './util/addEvent';
 import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
+import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
-import { addEvent } from './util/addEvent';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -689,30 +690,6 @@ export class ReplayContainer {
   }
 
   /**
-   * Create a "span" for each performance entry. The parent transaction is `this.replayEvent`.
-   */
-  createPerformanceSpans(entries: ReplayPerformanceEntry[]): Promise<void[]> {
-    return Promise.all(
-      entries.map(({ type, start, end, name, data }) =>
-        addEvent(this, {
-          type: EventType.Custom,
-          timestamp: start,
-          data: {
-            tag: 'performanceSpan',
-            payload: {
-              op: type,
-              description: name,
-              startTimestamp: start,
-              endTimestamp: end,
-              data,
-            },
-          },
-        }),
-      ),
-    );
-  }
-
-  /**
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
@@ -721,7 +698,7 @@ export class ReplayContainer {
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    return this.createPerformanceSpans(createPerformanceEntries(entries));
+    return createPerformanceSpans(this, createPerformanceEntries(entries));
   }
 
   /**
@@ -735,7 +712,7 @@ export class ReplayContainer {
       return;
     }
 
-    return this.createPerformanceSpans([
+    return createPerformanceSpans(this, [
       // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
       createMemoryEntry(WINDOW.performance.memory),
     ]);

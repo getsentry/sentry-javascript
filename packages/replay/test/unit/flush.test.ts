@@ -1,6 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
 import { ReplayContainer } from './../../src/replay';
 import { useFakeTimers } from './../../test/utils/use-fake-timers';
@@ -179,7 +180,8 @@ it('long first flush enqueues following events', async () => {
 
   // Add this to test that segment ID increases
   mockAddPerformanceEntries.mockImplementationOnce(async () => {
-    return replay.createPerformanceSpans(
+    return createPerformanceSpans(
+      replay,
       createPerformanceEntries([
         {
           name: 'https://sentry.io/foo.js',
