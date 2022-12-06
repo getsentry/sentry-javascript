@@ -16,13 +16,6 @@ export interface SendReplay {
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
-export type InstrumentationTypeSpan = 'fetch' | 'xhr' | 'history';
-export type InstrumentationType =
-  | InstrumentationTypeBreadcrumb
-  | InstrumentationTypeSpan
-  | 'console'
-  | 'error'
-  | 'unhandledrejection';
 
 /**
  * The request payload to worker

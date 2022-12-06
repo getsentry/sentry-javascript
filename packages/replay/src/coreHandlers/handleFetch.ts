@@ -1,7 +1,8 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import { ReplayContainer } from '../replay';
 import { isIngestHost } from '../util/isIngestHost';
 
-export interface FetchHandlerData {
+interface FetchHandlerData {
   args: Parameters<typeof fetch>;
   fetchData: {
     method: string;
@@ -18,6 +19,7 @@ export interface FetchHandlerData {
   endTimestamp?: number;
 }
 
+/** only exported for tests */
 export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerformanceEntry {
   if (!handlerData.endTimestamp) {
     return null;
@@ -39,5 +41,28 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
       method: fetchData.method,
       statusCode: response.status,
     },
+  };
+}
+
+export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: FetchHandlerData) => void {
+  return (handlerData: FetchHandlerData) => {
+    // @ts-ignore private
+    if (!replay._isEnabled) {
+      return;
+    }
+
+    const result = handleFetch(handlerData);
+
+    if (result === null) {
+      return;
+    }
+
+    replay.addUpdate(() => {
+      void replay.createPerformanceSpans([result]);
+      // Returning true will cause `addUpdate` to not flush
+      // We do not want network requests to cause a flush. This will prevent
+      // recurring/polling requests from keeping the replay session alive.
+      return true;
+    });
   };
 }

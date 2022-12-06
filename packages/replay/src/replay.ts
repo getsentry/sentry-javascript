@@ -14,7 +14,9 @@ import {
   WINDOW,
 } from './constants';
 import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
-import { spanHandler } from './coreHandlers/spanHandler';
+import { handleFetchSpanListener } from './coreHandlers/handleFetch';
+import { handleHistorySpanListener } from './coreHandlers/handleHistory';
+import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
 import { createEventBuffer, EventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
@@ -24,7 +26,6 @@ import { Session } from './session/Session';
 import type {
   AllPerformanceEntry,
   InstrumentationTypeBreadcrumb,
-  InstrumentationTypeSpan,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
@@ -314,9 +315,9 @@ export class ReplayContainer {
         const scope = getCurrentHub().getScope();
         scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
         addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
-        addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
-        addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
-        addInstrumentationHandler('history', this.handleCoreSpanListener('history'));
+        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
+        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
+        addInstrumentationHandler('history', handleHistorySpanListener(this));
 
         // Tag all (non replay) events that get sent to Sentry with the current
         // replay ID so that we can reference them later in the UI
@@ -589,39 +590,6 @@ export class ReplayContainer {
     // interactive with page
     this.doChangeToForegroundTasks(breadcrumb);
   };
-
-  /**
-   * Handler for Sentry Core SDK events.
-   *
-   * These specific events will create span-like objects in the recording.
-   */
-  handleCoreSpanListener: (type: InstrumentationTypeSpan) => (handlerData: unknown) => void =
-    (type: InstrumentationTypeSpan) =>
-    (handlerData: unknown): void => {
-      if (!this._isEnabled) {
-        return;
-      }
-
-      const result = spanHandler(type, handlerData);
-
-      if (result === null) {
-        return;
-      }
-
-      if (type === 'history') {
-        // Need to collect visited URLs
-        this._context.urls.push(result.name);
-        this.triggerUserActivity();
-      }
-
-      this.addUpdate(() => {
-        void this.createPerformanceSpans([result as ReplayPerformanceEntry]);
-        // Returning true will cause `addUpdate` to not flush
-        // We do not want network requests to cause a flush. This will prevent
-        // recurring/polling requests from keeping the replay session alive.
-        return ['xhr', 'fetch'].includes(type);
-      });
-    };
 
   /**
    * Handler for Sentry Core SDK events.

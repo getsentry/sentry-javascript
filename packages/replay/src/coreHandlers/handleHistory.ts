@@ -1,11 +1,12 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import { ReplayContainer } from '../replay';
 
-export interface HistoryHandlerData {
+interface HistoryHandlerData {
   from: string;
   to: string;
 }
 
-export function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
+function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
   const { from, to } = handlerData;
 
   const now = new Date().getTime() / 1000;
@@ -18,5 +19,31 @@ export function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanc
     data: {
       previous: from,
     },
+  };
+}
+
+export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HistoryHandlerData) => void {
+  return (handlerData: HistoryHandlerData) => {
+    // @ts-ignore private
+    if (!replay._isEnabled) {
+      return;
+    }
+
+    const result = handleHistory(handlerData);
+
+    if (result === null) {
+      return;
+    }
+
+    // Need to collect visited URLs
+    // @ts-ignore private
+    replay._context.urls.push(result.name);
+    replay.triggerUserActivity();
+
+    replay.addUpdate(() => {
+      void replay.createPerformanceSpans([result]);
+      // Returning false to flush
+      return false;
+    });
   };
 }
