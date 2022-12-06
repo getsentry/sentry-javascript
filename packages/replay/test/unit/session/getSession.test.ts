@@ -58,7 +58,7 @@ it('creates a non-sticky session when one does not exist', function () {
   });
 
   // Should not have anything in storage
-  expect(FetchSession.fetchSession(SAMPLE_RATES)).toBe(null);
+  expect(FetchSession.fetchSession()).toBe(null);
 });
 
 it('creates a non-sticky session, regardless of session existing in sessionStorage', function () {
@@ -98,7 +98,7 @@ it('creates a non-sticky session, when one is expired', function () {
 });
 
 it('creates a sticky session when one does not exist', function () {
-  expect(FetchSession.fetchSession(SAMPLE_RATES)).toBe(null);
+  expect(FetchSession.fetchSession()).toBe(null);
 
   const { session } = getSession({
     expiry: 900000,
@@ -119,7 +119,7 @@ it('creates a sticky session when one does not exist', function () {
   });
 
   // Should not have anything in storage
-  expect(FetchSession.fetchSession(SAMPLE_RATES)).toEqual({
+  expect(FetchSession.fetchSession()).toEqual({
     id: 'test_session_id',
     segmentId: 0,
     lastActivity: expect.any(Number),

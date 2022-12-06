@@ -15,18 +15,13 @@ afterEach(() => {
   WINDOW.sessionStorage.clear();
 });
 
-const SAMPLE_RATES = {
-  sessionSampleRate: 1.0,
-  errorSampleRate: 0.0,
-};
-
 it('fetches a valid and sampled session', function () {
   WINDOW.sessionStorage.setItem(
     REPLAY_SESSION_KEY,
     '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": "session","started":1648827162630,"lastActivity":1648827162658}',
   );
 
-  expect(fetchSession(SAMPLE_RATES)).toEqual({
+  expect(fetchSession()).toEqual({
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     segmentId: 0,
@@ -41,7 +36,7 @@ it('fetches an unsampled session', function () {
     '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": false,"started":1648827162630,"lastActivity":1648827162658}',
   );
 
-  expect(fetchSession(SAMPLE_RATES)).toEqual({
+  expect(fetchSession()).toEqual({
     id: 'fd09adfc4117477abc8de643e5a5798a',
     lastActivity: 1648827162658,
     segmentId: 0,
@@ -50,29 +45,14 @@ it('fetches an unsampled session', function () {
   });
 });
 
-it('auto-fixes a session without sampled', function () {
-  WINDOW.sessionStorage.setItem(
-    REPLAY_SESSION_KEY,
-    '{"id":"fd09adfc4117477abc8de643e5a5798a","started":1648827162630,"lastActivity":1648827162658}',
-  );
-
-  expect(fetchSession(SAMPLE_RATES)).toEqual({
-    id: 'fd09adfc4117477abc8de643e5a5798a',
-    lastActivity: 1648827162658,
-    segmentId: 0,
-    sampled: 'session',
-    started: 1648827162630,
-  });
-});
-
 it('fetches a session that does not exist', function () {
-  expect(fetchSession(SAMPLE_RATES)).toBe(null);
+  expect(fetchSession()).toBe(null);
 });
 
 it('fetches an invalid session', function () {
   WINDOW.sessionStorage.setItem(REPLAY_SESSION_KEY, '{"id":"fd09adfc4117477abc8de643e5a5798a",');
 
-  expect(fetchSession(SAMPLE_RATES)).toBe(null);
+  expect(fetchSession()).toBe(null);
 });
 
 it('safely attempts to fetch session when Session Storage is disabled', function () {
@@ -85,5 +65,5 @@ it('safely attempts to fetch session when Session Storage is disabled', function
     },
   });
 
-  expect(fetchSession(SAMPLE_RATES)).toEqual(null);
+  expect(fetchSession()).toEqual(null);
 });

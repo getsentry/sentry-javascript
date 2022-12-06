@@ -1,11 +1,10 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
-import { SampleRates } from '../types';
-import { makeSession, sampleSession, Session } from './Session';
+import { makeSession, Session } from './Session';
 
 /**
  * Fetches a session from storage
  */
-export function fetchSession({ sessionSampleRate, errorSampleRate }: SampleRates): Session | null {
+export function fetchSession(): Session | null {
   const hasSessionStorage = 'sessionStorage' in WINDOW;
 
   if (!hasSessionStorage) {
@@ -20,10 +19,9 @@ export function fetchSession({ sessionSampleRate, errorSampleRate }: SampleRates
       return null;
     }
 
-    const sessionObj = JSON.parse(sessionStringFromStorage) as Partial<Session>;
-    const sampled = sampleSession(sessionObj.sampled, sessionSampleRate, errorSampleRate);
+    const sessionObj = JSON.parse(sessionStringFromStorage) as Session;
 
-    return makeSession({ ...sessionObj, sampled });
+    return makeSession(sessionObj);
   } catch {
     return null;
   }
