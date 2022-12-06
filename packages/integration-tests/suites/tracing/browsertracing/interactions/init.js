@@ -9,7 +9,7 @@ Sentry.init({
     new Integrations.BrowserTracing({
       idleTimeout: 1000,
       _experiments: {
-        interactionSampleRate: 1.0,
+        enableInteractions: true,
       },
     }),
   ],
