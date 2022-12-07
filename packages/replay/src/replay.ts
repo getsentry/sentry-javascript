@@ -696,12 +696,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): Promise<void[]> {
+  addPerformanceEntries(): void {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    return createPerformanceSpans(this, createPerformanceEntries(entries));
+    createPerformanceSpans(this, createPerformanceEntries(entries));
   }
 
   /**

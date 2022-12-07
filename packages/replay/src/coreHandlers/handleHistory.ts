@@ -43,7 +43,7 @@ export function handleHistorySpanListener(replay: ReplayContainer): (handlerData
     replay.triggerUserActivity();
 
     replay.addUpdate(() => {
-      void createPerformanceSpans(replay, [result]);
+      createPerformanceSpans(replay, [result]);
       // Returning false to flush
       return false;
     });

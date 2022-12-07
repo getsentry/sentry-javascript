@@ -61,7 +61,7 @@ export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: 
     }
 
     replay.addUpdate(() => {
-      void createPerformanceSpans(replay, [result]);
+      createPerformanceSpans(replay, [result]);
       // Returning true will cause `addUpdate` to not flush
       // We do not want network requests to cause a flush. This will prevent
       // recurring/polling requests from keeping the replay session alive.

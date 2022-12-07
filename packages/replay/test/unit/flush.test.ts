@@ -179,8 +179,8 @@ it('long first flush enqueues following events', async () => {
   });
 
   // Add this to test that segment ID increases
-  mockAddPerformanceEntries.mockImplementationOnce(async () => {
-    return createPerformanceSpans(
+  mockAddPerformanceEntries.mockImplementationOnce(() => {
+    createPerformanceSpans(
       replay,
       createPerformanceEntries([
         {
