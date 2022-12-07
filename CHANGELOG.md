@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.24.2
+
+- fix(replay): Add missing rrweb type declarations (#6464)
+- fix(tracing): Check for otel before loading db module (#6461)
+- fix(tracing): Deprecate and remove `reportAllChanges` option (#6456)
+- ref(replay): Extract integration to clarify public API (#6457)
+
 ## 7.24.1
 
 This patch corrects an oversight on our end which caused the Sentry Replay integration CDN bundles to be ignored when uploading bundles to our CDN.
