@@ -89,6 +89,7 @@ describe('BrowserTracing', () => {
     expect(browserTracing.options).toEqual({
       _experiments: {
         enableLongTask: true,
+        enableInteractions: false,
       },
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       finalTimeout: DEFAULT_FINAL_TIMEOUT,
