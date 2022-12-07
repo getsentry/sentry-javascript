@@ -6,7 +6,7 @@ import { EventType } from 'rrweb';
 
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
-import { RecordingEvent } from '../../src/types';
+import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { useFakeTimers } from '../utils/use-fake-timers';

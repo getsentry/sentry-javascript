@@ -1,5 +1,4 @@
-import type { ReplayContainer } from '../replay';
-import { AllPerformanceEntry } from '../types';
+import type { AllPerformanceEntry, ReplayContainer } from '../types';
 import { dedupePerformanceEntries } from '../util/dedupePerformanceEntries';
 
 /**

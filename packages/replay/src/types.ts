@@ -160,3 +160,62 @@ export interface InternalEventContext extends CommonEventContext {
    */
   earliestEvent: number | null;
 }
+
+export type Sampled = false | 'session' | 'error';
+
+export interface Session {
+  id: string;
+
+  /**
+   * Start time of current session
+   */
+  started: number;
+
+  /**
+   * Last known activity of the session
+   */
+  lastActivity: number;
+
+  /**
+   * Segment ID for replay events
+   */
+  segmentId: number;
+
+  /**
+   * The ID of the previous session.
+   * If this is empty, there was no previous session.
+   */
+  previousSessionId?: string;
+
+  /**
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
+   */
+  sampled: Sampled;
+}
+
+export interface EventBuffer {
+  readonly length: number;
+  destroy(): void;
+  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
+  finish(): Promise<string | Uint8Array>;
+}
+
+export type AddUpdateCallback = () => boolean | void;
+
+export interface ReplayContainer {
+  eventBuffer: EventBuffer | null;
+  performanceEvents: AllPerformanceEntry[];
+  session: Session | undefined;
+  isEnabled(): boolean;
+  isPaused(): boolean;
+  getContext(): InternalEventContext;
+  start(): void;
+  stop(): void;
+  pause(): void;
+  resume(): void;
+  startRecording(): void;
+  stopRecording(): boolean;
+  flushImmediate(): void;
+  triggerUserActivity(): void;
+  addUpdate(cb: AddUpdateCallback): void;
+}

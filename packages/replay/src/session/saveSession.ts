@@ -1,5 +1,5 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
-import { Session } from './Session';
+import type { Session } from '../types';
 
 export function saveSession(session: Session): void {
   const hasSessionStorage = 'sessionStorage' in WINDOW;

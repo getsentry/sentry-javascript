@@ -20,20 +20,23 @@ import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createPerformanceEntries } from './createPerformanceEntry';
-import { createEventBuffer, EventBuffer } from './eventBuffer';
+import { createEventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
-import { Session } from './session/Session';
 import type {
+  AddUpdateCallback,
   AllPerformanceEntry,
+  EventBuffer,
   InstrumentationTypeBreadcrumb,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
   RecordingOptions,
+  ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   SendReplay,
+  Session,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -48,12 +51,11 @@ import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/m
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
  */
-type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
 
-export class ReplayContainer {
+export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null = null;
 
   /**
@@ -398,7 +400,7 @@ export class ReplayContainer {
    * Accepts a callback to perform side-effects and returns true to stop batch
    * processing and hand back control to caller.
    */
-  addUpdate(cb?: AddUpdateCallback): void {
+  addUpdate(cb: AddUpdateCallback): void {
     // We need to always run `cb` (e.g. in the case of `this._waitForError == true`)
     const cbResult = cb?.();
 

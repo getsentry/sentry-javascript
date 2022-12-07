@@ -1,5 +1,5 @@
 import type { ReplayPerformanceEntry } from '../createPerformanceEntry';
-import type { ReplayContainer } from '../replay';
+import type { ReplayContainer } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
 import { isIngestHost } from '../util/isIngestHost';
 

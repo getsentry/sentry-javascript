@@ -1,7 +1,7 @@
 import { EventType } from 'rrweb';
 
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
-import type { ReplayContainer } from '../replay';
+import type { ReplayContainer } from '../types';
 import { addEvent } from './addEvent';
 
 /**

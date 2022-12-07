@@ -1,5 +1,5 @@
 import { WINDOW } from '../constants';
-import type { ReplayContainer } from '../replay';
+import type { ReplayContainer } from '../types';
 import { createPerformanceSpans } from './createPerformanceSpans';
 
 /**

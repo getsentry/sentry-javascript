@@ -2,8 +2,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 
-import { ReplayContainer } from './src/replay';
-import { Session } from './src/session/Session';
+import type { ReplayContainer, Session } from './src/types';
 
 // @ts-ignore TS error, this is replaced in prod builds bc of rollup
 global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
