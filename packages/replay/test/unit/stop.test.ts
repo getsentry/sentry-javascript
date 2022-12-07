@@ -77,7 +77,7 @@ describe('Replay - stop', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toEqual(BASE_TIMESTAMP);
     // eventBuffer is destroyed
@@ -107,7 +107,7 @@ describe('Replay - stop', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         // This event happens when we call `replay.start`
         {
@@ -137,7 +137,7 @@ describe('Replay - stop', () => {
     await new Promise(process.nextTick);
 
     expect(replay.eventBuffer?.length).toBe(undefined);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {
