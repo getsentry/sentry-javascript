@@ -17,8 +17,8 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
 
   await page.locator('[data-test-id=interaction-button]').click();
 
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2);
-  const eventData = envelopes[1];
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+  const eventData = envelopes[0];
 
   expect(eventData).toEqual(
     expect.objectContaining({
