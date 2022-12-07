@@ -20,17 +20,17 @@ export class GraphQL implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     const pkg = loadModule<{
       [method: string]: (...args: unknown[]) => unknown;
     }>('graphql/execution/execute.js');
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
       return;
     }
 

@@ -158,8 +158,6 @@ export class ReplayContainer {
     // when an error will occur, so we need to keep a buffer of
     // replay events.
     if (this.session.sampled === 'error') {
-      // Checkout every minute, meaning we only get up-to one minute of events before the error happens
-      this.recordingOptions.checkoutEveryNms = 60000;
       this._waitForError = true;
     }
 
@@ -187,6 +185,10 @@ export class ReplayContainer {
     try {
       this._stopRecording = record({
         ...this.recordingOptions,
+        // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
+        // Without this, it would record forever, until an error happens, which we don't want
+        // instead, we'll always keep the last 60 seconds of replay before an error happened
+        ...(this._waitForError && { checkoutEveryNth: 60000 }),
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
@@ -470,7 +472,6 @@ export class ReplayContainer {
           this._stopRecording();
           // Reset all "capture on error" configuration before
           // starting a new recording
-          delete this.recordingOptions.checkoutEveryNms;
           this._waitForError = false;
           this.startRecording();
         }

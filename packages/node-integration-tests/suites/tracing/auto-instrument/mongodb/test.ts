@@ -53,16 +53,6 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
             collectionName: 'movies',
             dbName: 'admin',
             namespace: 'admin.movies',
-            query: '{"title":"Back to the Future"}',
-          },
-          description: 'find',
-          op: 'db',
-        },
-        {
-          data: {
-            collectionName: 'movies',
-            dbName: 'admin',
-            namespace: 'admin.movies',
             filter: '{"title":"Back to the Future"}',
             update: '{"$set":{"title":"South Park"}}',
           },

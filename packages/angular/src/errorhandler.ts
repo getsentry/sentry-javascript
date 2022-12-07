@@ -21,6 +21,15 @@ export interface ErrorHandlerOptions {
   extractor?(error: unknown, defaultExtractor: (error: unknown) => unknown): unknown;
 }
 
+// https://github.com/angular/angular/blob/master/packages/core/src/util/errors.ts
+function tryToUnwrapZonejsError(error: unknown): unknown | Error {
+  // TODO: once Angular14 is the minimum requirement ERROR_ORIGINAL_ERROR and
+  //  getOriginalError from error.ts can be used directly.
+  return error && (error as { ngOriginalError: Error }).ngOriginalError
+    ? (error as { ngOriginalError: Error }).ngOriginalError
+    : error;
+}
+
 function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   // The `error` property of http exception can be either an `Error` object, which we can use directly...
   if (error.error instanceof Error) {
@@ -106,13 +115,7 @@ class SentryErrorHandler implements AngularErrorHandler {
    * Default implementation of error extraction that handles default error wrapping, HTTP responses, ErrorEvent and few other known cases.
    */
   protected _defaultExtractor(errorCandidate: unknown): unknown {
-    let error = errorCandidate;
-
-    // Try to unwrap zone.js error.
-    // https://github.com/angular/angular/blob/master/packages/core/src/util/errors.ts
-    if (error && (error as { ngOriginalError: Error }).ngOriginalError) {
-      error = (error as { ngOriginalError: Error }).ngOriginalError;
-    }
+    const error = tryToUnwrapZonejsError(errorCandidate);
 
     // We can handle messages and Error objects directly.
     if (typeof error === 'string' || error instanceof Error) {
