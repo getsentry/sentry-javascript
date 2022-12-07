@@ -26,7 +26,8 @@ export type EnvelopeItemType =
   | 'sessions'
   | 'transaction'
   | 'attachment'
-  | 'event';
+  | 'event'
+  | 'profile';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
