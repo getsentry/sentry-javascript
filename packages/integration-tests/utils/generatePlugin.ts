@@ -49,6 +49,7 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
 function generateSentryAlias(): Record<string, string> {
   const packageNames = readdirSync(PACKAGES_DIR, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
+    .filter(dir => !['apm', 'minimal', 'next-plugin-sentry'].includes(dir.name))
     .map(dir => dir.name);
 
   return Object.fromEntries(
