@@ -28,13 +28,15 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Collect traceIds in _context regardless of `_waitForError` - if it's true,
     // _context gets cleared on every checkout
-    if (event.type === 'transaction') {
-      replay.getContext().traceIds.add(String(event.contexts?.trace?.trace_id || ''));
+    if (event.type === 'transaction' && event.contexts && event.contexts.trace && event.contexts.trace.trace_id) {
+      replay.getContext().traceIds.add(event.contexts.trace.trace_id as string);
       return event;
     }
 
-    // XXX: Is it safe to assume that all other events are error events?
-    replay.getContext().errorIds.add(event.event_id as string);
+    // no event type means error
+    if (!event.type) {
+      replay.getContext().errorIds.add(event.event_id as string);
+    }
 
     const exc = event.exception?.values?.[0];
     addInternalBreadcrumb({

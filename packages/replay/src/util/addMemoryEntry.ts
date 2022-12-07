@@ -7,14 +7,13 @@ import { createPerformanceSpans } from './createPerformanceSpans';
  * (including v8 internal objects).
  */
 export function addMemoryEntry(replay: ReplayContainer): Promise<void[]> | undefined {
-  // window.performance.memory is a non-standard API and doesn't work on all browsers
-  // so we check before creating the event.
-  if (!('memory' in WINDOW.performance)) {
+  // window.performance.memory is a non-standard API and doesn't work on all browsers, so we try-catch this
+  try {
+    return createPerformanceSpans(replay, [
+      // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
+      createMemoryEntry(WINDOW.performance.memory),
+    ]);
+  } catch (error) {
     return;
   }
-
-  return createPerformanceSpans(replay, [
-    // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
-    createMemoryEntry(WINDOW.performance.memory),
-  ]);
 }
