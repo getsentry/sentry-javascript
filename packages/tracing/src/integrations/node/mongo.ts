@@ -90,6 +90,14 @@ interface MongoOptions {
   useMongoose?: boolean;
 }
 
+interface MongoCursor {
+  once(event: 'close', listener: () => void): void;
+}
+
+function isCursor(maybeCursor: MongoCursor): maybeCursor is MongoCursor {
+  return maybeCursor && typeof maybeCursor === 'object' && maybeCursor.once && typeof maybeCursor.once === 'function';
+}
+
 /** Tracing integration for mongo package */
 export class Mongo implements Integration {
   /**
@@ -160,20 +168,38 @@ export class Mongo implements Integration {
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
           const span = parentSpan?.startChild(getSpanContext(this, operation, args));
-          const maybePromise = orig.call(this, ...args) as Promise<unknown>;
+          const maybePromiseOrCursor = orig.call(this, ...args);
 
-          if (isThenable(maybePromise)) {
-            return maybePromise.then((res: unknown) => {
+          if (isThenable(maybePromiseOrCursor)) {
+            return maybePromiseOrCursor.then((res: unknown) => {
               span?.finish();
               return res;
             });
+          }
+          // If the operation returns a Cursor
+          // we need to attach a listener to it to finish the span when the cursor is closed.
+          else if (isCursor(maybePromiseOrCursor)) {
+            const cursor = maybePromiseOrCursor as MongoCursor;
+
+            try {
+              cursor.once('close', () => {
+                span?.finish();
+              });
+            } catch (e) {
+              // If the cursor is already closed, `once` will throw an error. In that case, we can
+              // finish the span immediately.
+              span?.finish();
+            }
+
+            return cursor;
           } else {
             span?.finish();
-            return maybePromise;
+            return maybePromiseOrCursor;
           }
         }
 
         const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
+
         return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
           span?.finish();
           lastArg(err, result);
