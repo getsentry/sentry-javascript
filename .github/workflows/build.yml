@@ -344,6 +344,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/bundles/**
+            ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
 
   job_unit_test:
