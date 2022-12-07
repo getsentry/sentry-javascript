@@ -4,11 +4,18 @@ import * as Sentry from '@sentry/node';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
 import cors from 'cors';
 import express from 'express';
+import { trace } from '@opentelemetry/api';
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+
+// For troubleshooting, set the log level to DiagLogLevel.DEBUG
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 Sentry.init({
+  debug: true,
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  defaultIntegrations: false,
   release: '1.0',
-  instrumenter: 'otel',
+  // instrumenter: 'otel',
   tracesSampleRate: 1.0,
 });
 
@@ -21,7 +28,9 @@ const sdk = new opentelemetry.NodeSDK({
   textMapPropagator: new SentryPropagator(),
 });
 
-void sdk.start();
+sdk.start().then(() => {
+  console.log('OpenTelemetry started');
+});
 
 const app = express();
 
@@ -31,6 +40,7 @@ app.use(Sentry.Handlers.tracingHandler());
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
+  console.log(trace.getActiveSpan());
   res.send({ response: 'response 1' });
 });
 

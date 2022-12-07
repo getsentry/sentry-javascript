@@ -50,6 +50,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onStart(otelSpan: OtelSpan, parentContext: Context): void {
+    console.log('SentrySpanProcessor.onStart', otelSpan, parentContext);
     const hub = getCurrentHub();
     if (!hub) {
       __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
