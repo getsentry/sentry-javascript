@@ -236,6 +236,7 @@ export interface Router {
   getFetcher(key?: string): any;
   deleteFetcher(key?: string): void;
   dispose(): void;
+  encodeLocation(to: To): Path;
 }
 
 export type CreateRouterFunction = (routes: RouteObject[], opts?: any) => Router;
