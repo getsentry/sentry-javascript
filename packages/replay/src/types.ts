@@ -1,4 +1,4 @@
-import type { eventWithTime, recordOptions } from './rrweb-types';
+import type { eventWithTime, recordOptions } from './types/rrweb';
 
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
