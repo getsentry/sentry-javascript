@@ -2,16 +2,13 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import * as opentelemetry from '@opentelemetry/sdk-node';
 import * as Sentry from '@sentry/node';
 import { SentryPropagator, SentrySpanProcessor } from '@sentry/opentelemetry-node';
-import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
 import express from 'express';
-
-const app = express();
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  integrations: [new Tracing.Integrations.Express({ app })],
+  instrumenter: 'otel',
   tracesSampleRate: 1.0,
 });
 
@@ -25,6 +22,8 @@ const sdk = new opentelemetry.NodeSDK({
 });
 
 void sdk.start();
+
+const app = express();
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());
