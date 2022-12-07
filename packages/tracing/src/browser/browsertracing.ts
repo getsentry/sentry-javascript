@@ -74,11 +74,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   markBackgroundTransactions: boolean;
 
   /**
-   * _metricOptions allows the user to send options to change how metrics are collected.
-   *
-   * _metricOptions is currently experimental.
-   *
-   * Default: undefined
+   * @deprecated This property no longer has any effect and will be removed in v8.
    */
   _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
 
@@ -162,8 +158,7 @@ export class BrowserTracing implements Integration {
       this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
-    const { _metricOptions } = this.options;
-    startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
+    startTrackingWebVitals();
     if (this.options._experiments?.enableLongTask) {
       startTrackingLongTasks();
     }
