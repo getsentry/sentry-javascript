@@ -14,6 +14,8 @@ If you want to use the Replay CDN bundles, please use the 7.24.1 version (or new
 - fix(tracing): Instrument cursors returned from MongoDB operations. (#6437)
 - ref(angular): Extract zonejs error unwrapper into a dedicated function (#6443)
 
+Work in this release contributed by @theofidry. Thank you for your contribution!
+
 ## 7.24.0
 
 This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.24.0.
