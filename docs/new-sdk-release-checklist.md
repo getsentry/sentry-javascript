@@ -40,6 +40,10 @@ This page serves as a checklist of what to do when releasing a new SDK for the f
     - [ ]  Ensure dependent packages are correctly set for “Determine changed packages”
     - [ ]  Ensure unit tests run correctly
 
+- [ ]  Make sure the file paths in the ["Uplad Artifacts" job](https://github.com/getsentry/sentry-javascript/blob/e5c1486eed236b878f2c49d6a04be86093816ac9/.github/workflows/build.yml#L314-L349) in `build.yml` include your new artifacts.
+    - **This is especially important, if you're adding new CDN bundles!**
+    - Tarballs (*.tgz archives) should work OOTB
+
 ## Cutting the Release
 
 When you’re ready to make the first release, there are a couple of steps that need to be performed in the **correct order**. Note that you can prepare the PRs at any time but the **merging oder** is important:
