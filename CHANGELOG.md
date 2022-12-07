@@ -7,7 +7,7 @@
 ## 7.24.1
 
 This patch corrects an oversight on our end which caused the Sentry Replay integration CDN bundles to be ignored when uploading bundles to our CDN.
-If you want to use the Replay CDN bundles, please use the 7.24.1 version (or newer).
+If you want to use the Replay CDN bundles, please use version 7.24.1 or newer.
 
 - fix(react): Add type for React Router's `encodeLocation` method (#6439)
 - fix(replay): Add CDN bundle path to release artifacts (#6452)
