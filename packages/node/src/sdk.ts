@@ -13,6 +13,7 @@ import {
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
+  parseSemver,
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -107,6 +108,7 @@ export const defaultIntegrations = [
  *
  * @see {@link NodeOptions} for documentation on configuration options.
  */
+// eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
@@ -118,6 +120,14 @@ export function init(options: NodeOptions = {}): void {
           ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
           ...autoloadedIntegrations,
         ];
+
+  const nodeVersion = parseSemver(process.versions.node);
+
+  if (options.includeStackLocals && (nodeVersion.major || 0) >= 14) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { LocalVariables } = require('./integrations/localvariables');
+    options.defaultIntegrations.push(new LocalVariables());
+  }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
