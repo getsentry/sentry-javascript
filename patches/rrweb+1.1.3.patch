@@ -15,3 +15,16 @@ index 8091399..48e8321 100644
          });
          var init_1 = function () {
              takeFullSnapshot();
+diff --git a/node_modules/rrweb/typings/index.d.ts b/node_modules/rrweb/typings/index.d.ts
+index 6b6d18d..31456a0 100644
+--- a/node_modules/rrweb/typings/index.d.ts
++++ b/node_modules/rrweb/typings/index.d.ts
+@@ -2,7 +2,7 @@ import record from './record';
+ import { Replayer } from './replay';
+ import { _mirror } from './utils';
+ import * as utils from './utils';
+-export { EventType, IncrementalSource, MouseInteractions, ReplayerEvents, } from './types';
++export { EventType, IncrementalSource, MouseInteractions, ReplayerEvents, eventWithTime, recordOptions } from './types';
+ declare const addCustomEvent: <T>(tag: string, payload: T) => void;
+ declare const freezePage: () => void;
+ export { record, addCustomEvent, freezePage, Replayer, _mirror as mirror, utils, };
