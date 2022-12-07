@@ -1,7 +1,7 @@
-import type { eventWithTime, recordOptions } from 'rrweb/typings/types';
+import type { eventWithTime, recordOptions } from './types/rrweb';
 
 export type RecordingEvent = eventWithTime;
-export type RecordingOptions = recordOptions<eventWithTime>;
+export type RecordingOptions = recordOptions;
 
 export type RecordedEvents = Uint8Array | string;
 
