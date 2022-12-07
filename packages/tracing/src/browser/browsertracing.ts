@@ -74,9 +74,18 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   markBackgroundTransactions: boolean;
 
   /**
-   * @deprecated This property no longer has any effect and will be removed in v8.
+   * _metricOptions allows the user to send options to change how metrics are collected.
+   *
+   * _metricOptions is currently experimental.
+   *
+   * Default: undefined
    */
-  _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
+  _metricOptions?: Partial<{
+    /**
+     * @deprecated This property no longer has any effect and will be removed in v8.
+     */
+    _reportAllChanges: boolean;
+  }>;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
