@@ -23,6 +23,9 @@ function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry 
   };
 }
 
+/**
+ * Returns a listener to be added to `addInstrumentationHandler('history', listener)`.
+ */
 export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HistoryHandlerData) => void {
   return (handlerData: HistoryHandlerData) => {
     if (!replay.isEnabled()) {

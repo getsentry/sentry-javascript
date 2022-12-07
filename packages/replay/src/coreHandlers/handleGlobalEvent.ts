@@ -4,6 +4,9 @@ import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { ReplayContainer } from '../replay';
 import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
 
+/**
+ * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
+ */
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event) => Event {
   return (event: Event) => {
     // Do not apply replayId to the root event

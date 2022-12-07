@@ -2,6 +2,9 @@ import { ReplayContainer } from '../replay';
 import { AllPerformanceEntry } from '../types';
 import { dedupePerformanceEntries } from '../util/dedupePerformanceEntries';
 
+/**
+ * Sets up a PerformanceObserver to listen to all performance entry types.
+ */
 export function setupPerformanceObserver(replay: ReplayContainer): PerformanceObserver {
   const performanceObserverHandler = (list: PerformanceObserverEntryList): void => {
     // For whatever reason the observer was returning duplicate navigation

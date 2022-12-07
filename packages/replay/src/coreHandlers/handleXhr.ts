@@ -64,6 +64,9 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
   };
 }
 
+/**
+ * Returns a listener to be added to `addInstrumentationHandler('xhr', listener)`.
+ */
 export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: XhrHandlerData) => void {
   return (handlerData: XhrHandlerData) => {
     if (!replay.isEnabled()) {
