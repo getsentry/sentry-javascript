@@ -1,5 +1,5 @@
 import { SESSION_IDLE_DURATION } from '../constants';
-import { ReplayContainer } from '../replay';
+import type { ReplayContainer } from '../replay';
 import { RecordingEvent } from '../types';
 
 /**

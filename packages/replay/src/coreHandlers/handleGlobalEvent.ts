@@ -1,7 +1,7 @@
 import { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
-import { ReplayContainer } from '../replay';
+import type { ReplayContainer } from '../replay';
 import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
 
 /**
