@@ -12,10 +12,7 @@ import { isRrwebError } from '../util/isRrwebError';
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event) => Event | null {
   return (event: Event) => {
     // Do not apply replayId to the root event
-    if (
-      // @ts-ignore new event type
-      event.type === REPLAY_EVENT_NAME
-    ) {
+    if (event.type === REPLAY_EVENT_NAME) {
       // Replays have separate set of breadcrumbs, do not include breadcrumbs
       // from core SDK
       delete event.breadcrumbs;
@@ -31,7 +28,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Only tag transactions with replayId if not waiting for an error
     // @ts-ignore private
-    if (event.type !== 'transaction' || replay.recordingMode === 'session') {
+    if (!event.type || replay.recordingMode === 'session') {
       event.tags = { ...event.tags, replayId: replay.session?.id };
     }
 
