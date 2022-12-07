@@ -36,15 +36,15 @@ export class Postgres implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Postgres Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     const pkg = loadModule<{ Client: PgClient; native: { Client: PgClient } }>('pg');
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Postgres Integration was unable to require `pg` package.');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Postgres Integration is skipped because of instrumenter configuration.');
       return;
     }
 

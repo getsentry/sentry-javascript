@@ -24,15 +24,15 @@ export class Mysql implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     const pkg = loadModule<MysqlConnection>('mysql/lib/Connection.js');
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to require `mysql` package.');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
       return;
     }
 
