@@ -4,13 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.24.1
+
+This patch corrects an oversight on our end which caused the Sentry Replay integration CDN bundles to be ignored when uploading bundles to our CDN.
+If you want to use the Replay CDN bundles, please use the 7.24.1 version (or newer).
+
+- fix(react): Add type for React Router's `encodeLocation` method (#6439)
+- fix(replay): Add CDN bundle path to release artifacts (#6452)
+- fix(tracing): Instrument cursors returned from MongoDB operations. (#6437)
+- ref(angular): Extract zonejs error unwrapper into a dedicated function (#6443)
+
 ## 7.24.0
 
 This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.24.0.
 Along with this version bump, we're introducing a few breaking changes.
 Take a look at the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
-Furthermore, we're now also publishing CDN bundles for the Replay integration.
 The Replay version bump is the result of moving the package into the Sentry JavaScript SDK monorepo which aligns the version with our other JS SDK packages.
+**Important:** If you're using Replay with version 7.24.x or newer, make sure to also upgrade your other `@sentry/*` packages to this version.
 
 - feat(browser): Support dom.maxStringLength configuration (#6311)
 - feat(nextjs): Don't init SDK on Vercel Edge Runtime (#6408)
