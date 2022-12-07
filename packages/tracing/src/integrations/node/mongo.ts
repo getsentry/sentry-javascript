@@ -127,16 +127,16 @@ export class Mongo implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
     const pkg = loadModule<{ Collection: MongoCollection }>(moduleName);
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
       return;
     }
 
