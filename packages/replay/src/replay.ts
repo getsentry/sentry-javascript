@@ -195,9 +195,10 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     this.addListeners();
 
-    this.startRecording();
-
+    // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
     this._isEnabled = true;
+
+    this.startRecording();
   }
 
   /**
@@ -489,7 +490,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       // it can prevent loading on the UI. This will cause an increase in short
       // replays (e.g. opening and closing a tab quickly), but these can be
       // filtered on the UI.
-      this.flushImmediate();
+      if (!this._waitForError) {
+        void this.flushImmediate();
+      }
 
       return true;
     });
