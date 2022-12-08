@@ -44,18 +44,18 @@ type EnvelopeHeader = {
     name: string;
     version?: string;
   };
-}
+};
 
-type ReplayEventHeader = { type: 'replay_event' }
-type ReplayEventPayload = Record<string, unknown>
-type RecordingHeader = { type: 'replay_recording'; length: number }
-type RecordingPayloadHeader = Record<string, unknown>
+type ReplayEventHeader = { type: 'replay_event' };
+type ReplayEventPayload = Record<string, unknown>;
+type RecordingHeader = { type: 'replay_recording'; length: number };
+type RecordingPayloadHeader = Record<string, unknown>;
 type SentReplayExpected = {
   envelopeHeader?: EnvelopeHeader;
   replayEventHeader?: ReplayEventHeader;
-  replayEventPayload?: ReplayEventPayload
+  replayEventPayload?: ReplayEventPayload;
   recordingHeader?: RecordingHeader;
-  recordingPayloadHeader?: RecordingPayloadHeader
+  recordingPayloadHeader?: RecordingPayloadHeader;
   events?: string | Uint8Array;
 };
 
@@ -77,11 +77,25 @@ const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expe
   };
 };
 
-type Result = {passed: boolean, key: string, expectedVal:SentReplayExpected[keyof SentReplayExpected], actualVal: SentReplayExpected[keyof SentReplayExpected]};
-type Call = [EnvelopeHeader, [[ReplayEventHeader|undefined, ReplayEventPayload|undefined], [RecordingHeader|undefined, RecordingPayloadHeader|undefined]]];
-type CheckCallForSentReplayResult = {pass: boolean, call: Call|undefined, results: Result[]}
+type Result = {
+  passed: boolean;
+  key: string;
+  expectedVal: SentReplayExpected[keyof SentReplayExpected];
+  actualVal: SentReplayExpected[keyof SentReplayExpected];
+};
+type Call = [
+  EnvelopeHeader,
+  [
+    [ReplayEventHeader | undefined, ReplayEventPayload | undefined],
+    [RecordingHeader | undefined, RecordingPayloadHeader | undefined],
+  ],
+];
+type CheckCallForSentReplayResult = { pass: boolean; call: Call | undefined; results: Result[] };
 
-function checkCallForSentReplay(call: Call|undefined, expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean }): CheckCallForSentReplayResult {
+function checkCallForSentReplay(
+  call: Call | undefined,
+  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
+): CheckCallForSentReplayResult {
   const envelopeHeader = call?.[0];
   const envelopeItems = call?.[1] || [[], []];
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
@@ -118,9 +132,9 @@ function checkCallForSentReplay(call: Call|undefined, expected?: SentReplayExpec
           const expectedVal = expectedObj[key as keyof SentReplayExpected];
           const passed = !expectedVal || this.equals(actualVal, expectedVal);
 
-          return {passed, key, expectedVal, actualVal};
+          return { passed, key, expectedVal, actualVal };
         })
-        .filter(({passed}) => !passed)
+        .filter(({ passed }) => !passed)
     : [];
 
   const pass = Boolean(call && (!expected || results.length === 0));
@@ -130,9 +144,7 @@ function checkCallForSentReplay(call: Call|undefined, expected?: SentReplayExpec
     call,
     results,
   };
-
-};
-
+}
 
 /**
  * Checks all calls to `fetch` and ensures a replay was uploaded by
@@ -155,7 +167,7 @@ const toHaveSentReplay = function (
   }
 
   // @ts-ignore use before assigned
-  const {results, call, pass} = result;
+  const { results, call, pass } = result;
 
   const options = {
     isNot: this.isNot,
@@ -171,7 +183,7 @@ const toHaveSentReplay = function (
           : 'Expected Replay to have been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(
-              ({key, expectedVal, actualVal}: Result) =>
+              ({ key, expectedVal, actualVal }: Result) =>
                 `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
                 `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
             )
@@ -191,7 +203,7 @@ const toHaveLastSentReplay = function (
   const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
   const lastCall = calls[calls.length - 1]?.[0];
 
-  const {results, call, pass} = checkCallForSentReplay.call(this, lastCall, expected);
+  const { results, call, pass } = checkCallForSentReplay.call(this, lastCall, expected);
 
   const options = {
     isNot: this.isNot,
@@ -207,14 +219,13 @@ const toHaveLastSentReplay = function (
           : 'Expected Replay to have last been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(
-              ({key, expectedVal, actualVal}: Result) =>
+              ({ key, expectedVal, actualVal }: Result) =>
                 `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
                 `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
             )
             .join('\n')}`,
   };
 };
-
 
 expect.extend({
   toHaveSameSession,
