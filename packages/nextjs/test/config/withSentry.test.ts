@@ -38,7 +38,7 @@ async function callWrappedHandler(wrappedHandler: WrappedNextApiHandler, req: Ne
 
 // We mock `captureException` as a no-op because under normal circumstances it is an un-awaited effectively-async
 // function which might or might not finish before any given test ends, potentially leading jest to error out.
-const captureExceptionSpy = jest.spyOn(Sentry, 'captureException').mockImplementation(jest.fn());
+const captureExceptionSpy = jest.spyOn(hub, 'captureException').mockImplementation(jest.fn());
 const loggerSpy = jest.spyOn(utils.logger, 'log');
 const flushSpy = jest.spyOn(Sentry, 'flush').mockImplementation(async () => {
   // simulate the time it takes time to flush all events

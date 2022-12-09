@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
-import { captureException, configureScope, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
+import { captureException } from '@sentry/core';
+import { configureScope, deepReadDirSync, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import {
   addExceptionMechanism,
