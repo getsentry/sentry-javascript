@@ -103,6 +103,7 @@ below:
 
 - [`@sentry/tracing`](https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing): Provides
   Integrations and extensions for Performance Monitoring / Tracing
+- [`@sentry/profiling-node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node): SDK for profiling Node.js
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
