@@ -144,6 +144,10 @@ module.exports = {
         // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-async-await': 'error',
 
+        // Enforce internal use of `captureException` from `@sentry/core` rather than `@sentry/browser`, `@sentry/node`,
+        // or any wrapper SDK thereof. This prevents manual-usage mechanism data from getting erroneously included.
+        '@sentry-internal/sdk/captureException-from-core': 'error',
+
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
         'jsdoc/require-jsdoc': [

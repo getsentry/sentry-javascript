@@ -12,5 +12,6 @@ module.exports = {
   rules: {
     'no-async-await': require('./rules/no-async-await'),
     'no-eq-empty': require('./rules/no-eq-empty'),
+    'captureException-from-core': require('./rules/captureException-from-core'),
   },
 };
