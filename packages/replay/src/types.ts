@@ -227,4 +227,5 @@ export interface ReplayContainer {
   flushImmediate(): void;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
+  getOptions(): ReplayPluginOptions;
 }

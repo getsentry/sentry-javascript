@@ -67,9 +67,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Options to pass to `rrweb.record()`
    */
-  readonly recordingOptions: RecordingOptions;
+  private readonly _recordingOptions: RecordingOptions;
 
-  readonly options: ReplayPluginOptions;
+  private readonly _options: ReplayPluginOptions;
 
   private _performanceObserver: PerformanceObserver | null = null;
 
@@ -123,11 +123,11 @@ export class ReplayContainer implements ReplayContainerInterface {
   };
 
   constructor({ options, recordingOptions }: { options: ReplayPluginOptions; recordingOptions: RecordingOptions }) {
-    this.recordingOptions = recordingOptions;
-    this.options = options;
+    this._recordingOptions = recordingOptions;
+    this._options = options;
 
-    this._debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
-      maxWait: this.options.flushMaxDelay,
+    this._debouncedFlush = debounce(() => this.flush(), this._options.flushMinDelay, {
+      maxWait: this._options.flushMaxDelay,
     });
   }
 
@@ -144,6 +144,11 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** If recording is currently paused. */
   public isPaused(): boolean {
     return this._isPaused;
+  }
+
+  /** Get the replay integration options. */
+  public getOptions(): ReplayPluginOptions {
+    return this._options;
   }
 
   /**
@@ -181,7 +186,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.updateSessionActivity();
 
     this.eventBuffer = createEventBuffer({
-      useCompression: Boolean(this.options.useCompression),
+      useCompression: Boolean(this._options.useCompression),
     });
 
     this.addListeners();
@@ -199,7 +204,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   startRecording(): void {
     try {
       this._stopRecording = record({
-        ...this.recordingOptions,
+        ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
@@ -273,7 +278,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   handleException(error: unknown): void {
     __DEBUG_BUILD__ && logger.error('[Replay]', error);
 
-    if (__DEBUG_BUILD__ && this.options._experiments && this.options._experiments.captureExceptions) {
+    if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
       captureException(error);
     }
   }
@@ -295,10 +300,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   loadSession({ expiry }: { expiry: number }): void {
     const { type, session } = getSession({
       expiry,
-      stickySession: Boolean(this.options.stickySession),
+      stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
-      sessionSampleRate: this.options.sessionSampleRate,
-      errorSampleRate: this.options.errorSampleRate,
+      sessionSampleRate: this._options.sessionSampleRate,
+      errorSampleRate: this._options.errorSampleRate,
     });
 
     // If session was newly created (i.e. was not loaded from storage), then
@@ -480,7 +485,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // a previous session ID. In this case, we want to buffer events
       // for a set amount of time before flushing. This can help avoid
       // capturing replays of users that immediately close the window.
-      setTimeout(() => this.conditionalFlush(), this.options.initialFlushDelay);
+      setTimeout(() => this.conditionalFlush(), this._options.initialFlushDelay);
 
       // Cancel any previously debounced flushes to ensure there are no [near]
       // simultaneous flushes happening. The latter request should be
@@ -953,8 +958,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
           preparedEvent.tags = {
             ...preparedEvent.tags,
-            sessionSampleRate: this.options.sessionSampleRate,
-            errorSampleRate: this.options.errorSampleRate,
+            sessionSampleRate: this._options.sessionSampleRate,
+            errorSampleRate: this._options.errorSampleRate,
             replayType: this.session?.sampled,
           };
 
@@ -1059,7 +1064,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** Save the session, if it is sticky */
   private _maybeSaveSession(): void {
-    if (this.session && this.options.stickySession) {
+    if (this.session && this._options.stickySession) {
       saveSession(this.session);
     }
   }
