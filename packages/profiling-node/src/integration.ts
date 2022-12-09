@@ -12,22 +12,20 @@ import { createProfilingEventEnvelope, isProfiledTransactionEvent, maybeRemovePr
  *
  */
 export class ProfilingIntegration implements Integration {
-  name = 'ProfilingIntegration';
-  getCurrentHub?: () => Hub = undefined;
-
   /**
    * Registers our global event processor and stores the getCurrentHub reference
    */
-  setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
+
   /**
    * Registers a global event handler that intercepts transaction events with profiling data and sends them to Sentry.
    * @param event The event to process.
    * @returns {Event} with the profile removed.
    */
-  handleGlobalEvent(event: Event): Event {
+  public handleGlobalEvent(event: Event): Event {
     if (this.getCurrentHub === undefined) {
       return maybeRemoveProfileFromSdkMetadata(event);
     }
@@ -72,10 +70,13 @@ export class ProfilingIntegration implements Integration {
       if (isDebugBuild()) {
         logger.log('[Profiling] Preparing envelope and sending a profiling event.');
       }
-      transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
+      void transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
     }
 
     // Ensure sdkProcessingMetadata["profile"] is removed from the event before forwarding it to the next event processor.
     return maybeRemoveProfileFromSdkMetadata(event);
   }
+
+  getCurrentHub?: () => Hub = undefined;
+  name = 'ProfilingIntegration';
 }
