@@ -50,3 +50,5 @@ targets:
         onlyIfPresent: /^sentry-svelte-.*\.tgz$/
       'npm:@sentry/opentelemetry-node':
         onlyIfPresent: /^sentry-opentelemetry-node-.*\.tgz$/
+      'npm:@sentry/profiling-node':
+        onlyIfPresent: /^sentry-profiling-node-.*\.tgz$/
