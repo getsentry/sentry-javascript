@@ -14,7 +14,7 @@
 
 ```javascript
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
+import '@sentry/tracing'; // Note: @sentry/tracing needs to be imported before @sentry/profiling-node
 import { ProfilingIntegration } from '@sentry/profiling-node';
 
 Sentry.init({
