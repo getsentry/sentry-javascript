@@ -241,7 +241,7 @@ describe('SentryErrorHandler', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
   });
 
-  it('handleError method extracts ErrorEvent which has an non-error-like object has an error', () => {
+  it('handleError method extracts ErrorEvent which has a non-error-like object as an error', () => {
     const err = createErrorEvent('something happened', true);
 
     createErrorHandler().handleError(err);
@@ -527,7 +527,7 @@ describe('SentryErrorHandler', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
   });
 
-  it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has an non-error-like object has an error', () => {
+  it('handleError method extracts an `HttpErrorResponse` with an ErrorEvent which has a non-error-like object has an error', () => {
     const innerErr = createErrorEvent('something happened', true);
     const err = new HttpErrorResponse({ error: innerErr });
 
