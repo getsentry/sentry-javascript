@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@sentry/core": "7.26.0",
+    "@sentry/replay": "7.26.0",
     "@sentry/types": "7.26.0",
     "@sentry/utils": "7.26.0",
     "tslib": "^1.9.3"

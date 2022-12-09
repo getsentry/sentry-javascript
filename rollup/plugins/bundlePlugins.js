@@ -15,6 +15,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
+import MagicString from 'magic-string';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -160,6 +161,34 @@ export function makeTSPlugin(jsVersion) {
 
   // give it a nicer name for later, when we'll need to sort the plugins
   plugin.name = 'typescript';
+
+  return plugin;
+}
+
+/**
+ * Creates a Rollup plugin that removes all code between the `__ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__`
+ * and `__ROLLUP_EXCLUDE_FROM_BUNDLES_END__` comment guards. This is used to exclude the Replay integration
+ * from the browser and browser+tracing bundles.
+ */
+export function makeExcludeReplayPlugin() {
+  const replacementRegex = /\/\/ __ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_FROM_BUNDLES_END__/gm;
+
+  const plugin = {
+    transform(code) {
+      if (!replacementRegex.test(code)) {
+        return null;
+      }
+
+      const ms = new MagicString(code);
+      const transformedCode = ms.replace(new RegExp(replacementRegex), '');
+      return {
+        code: transformedCode.toString(),
+        map: transformedCode.generateMap({ hires: true }),
+      };
+    },
+  };
+
+  plugin.name = 'excludeReplay';
 
   return plugin;
 }

@@ -1,6 +1,5 @@
-import type { BrowserClient, BrowserOptions } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import { BrowserClientReplayOptions, Integration } from '@sentry/types';
 
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
 import { ReplayContainer } from './replay';
@@ -184,8 +183,8 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
   /** Parse Replay-related options from SDK options */
   private _loadReplayOptionsFromClient(): void {
-    const client = getCurrentHub().getClient() as BrowserClient | undefined;
-    const opt = client && (client.getOptions() as BrowserOptions | undefined);
+    const client = getCurrentHub().getClient();
+    const opt = client && (client.getOptions() as BrowserClientReplayOptions | undefined);
 
     if (opt && typeof opt.replaysSessionSampleRate === 'number') {
       this.options.sessionSampleRate = opt.replaysSessionSampleRate;
