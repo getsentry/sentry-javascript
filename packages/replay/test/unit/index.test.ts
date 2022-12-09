@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/core';
 import { EventType } from 'rrweb';
 
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
@@ -9,7 +10,7 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { resetSdkMock } from './../mocks/resetSdkMock';
-import { DomHandler, MockTransportSend } from './../types';
+import { DomHandler } from './../types';
 
 useFakeTimers();
 
@@ -92,7 +93,7 @@ describe('Replay with custom mock', () => {
 describe('Replay', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
-  let mockTransportSend: MockTransportSend;
+  let mockTransportSend: jest.SpyInstance<any>;
   let domHandler: DomHandler;
   const prevLocation = WINDOW.location;
 
@@ -105,11 +106,13 @@ describe('Replay', () => {
   });
 
   beforeEach(async () => {
-    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
+    ({ mockRecord, domHandler, replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
       },
     }));
+
+    mockTransportSend = jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send');
 
     jest.spyOn(replay, 'flush');
     jest.spyOn(replay, 'runFlush');
