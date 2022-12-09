@@ -3,7 +3,7 @@ import { Envelope, Transport } from '@sentry/types';
 
 import { Replay as ReplayIntegration } from '../../src';
 import { ReplayContainer } from '../../src/replay';
-import { ReplayConfiguration } from '../../src/types';
+import type { ReplayConfiguration } from '../../src/types';
 
 export interface MockSdkParams {
   replayOptions?: ReplayConfiguration;

@@ -3,6 +3,7 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
+import { addEvent } from '../../src/util/addEvent';
 import { ReplayContainer } from './../../src/replay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 import { useFakeTimers } from './../utils/use-fake-timers';
@@ -119,7 +120,7 @@ describe('Replay (no sticky)', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
 

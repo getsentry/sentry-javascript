@@ -1,55 +1,61 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
-import { Breadcrumb, Client, DataCategory, Event, EventDropReason } from '@sentry/types';
+import { Breadcrumb, Client, Event } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
-import { PerformanceObserverEntryList } from 'perf_hooks';
 import { EventType, record } from 'rrweb';
 
 import {
   MAX_SESSION_LIFE,
   REPLAY_EVENT_NAME,
   SESSION_IDLE_DURATION,
+  UNABLE_TO_SEND_REPLAY,
   VISIBILITY_CHANGE_TIMEOUT,
   WINDOW,
 } from './constants';
 import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
-import { spanHandler } from './coreHandlers/spanHandler';
-import { createMemoryEntry, createPerformanceEntries, ReplayPerformanceEntry } from './createPerformanceEntry';
-import { createEventBuffer, EventBuffer } from './eventBuffer';
+import { handleFetchSpanListener } from './coreHandlers/handleFetch';
+import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
+import { handleHistorySpanListener } from './coreHandlers/handleHistory';
+import { handleXhrSpanListener } from './coreHandlers/handleXhr';
+import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
+import { createPerformanceEntries } from './createPerformanceEntry';
+import { createEventBuffer } from './eventBuffer';
 import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
-import { Session } from './session/Session';
 import type {
+  AddUpdateCallback,
   AllPerformanceEntry,
+  EventBuffer,
   InstrumentationTypeBreadcrumb,
-  InstrumentationTypeSpan,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
   RecordingOptions,
+  ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   SendReplay,
+  Session,
 } from './types';
-import { addInternalBreadcrumb } from './util/addInternalBreadcrumb';
+import { addEvent } from './util/addEvent';
+import { addMemoryEntry } from './util/addMemoryEntry';
 import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
-import { dedupePerformanceEntries } from './util/dedupePerformanceEntries';
+import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
  */
-type AddUpdateCallback = () => boolean | void;
 
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
-const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
-export class ReplayContainer {
+export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null = null;
 
   /**
@@ -108,11 +114,6 @@ export class ReplayContainer {
    */
   private _stopRecording: ReturnType<typeof record> | null = null;
 
-  /**
-   * We overwrite `client.recordDroppedEvent`, but store the original method here so we can restore it.
-   */
-  private _originalRecordDroppedEvent?: Client['recordDroppedEvent'];
-
   private _context: InternalEventContext = {
     errorIds: new Set(),
     traceIds: new Set(),
@@ -129,6 +130,21 @@ export class ReplayContainer {
     this._debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
       maxWait: this.options.flushMaxDelay,
     });
+  }
+
+  /** Get the event context. */
+  public getContext(): InternalEventContext {
+    return this._context;
+  }
+
+  /** If recording is currently enabled. */
+  public isEnabled(): boolean {
+    return this._isEnabled;
+  }
+
+  /** If recording is currently paused. */
+  public isPaused(): boolean {
+    return this._isPaused;
   }
 
   /**
@@ -195,6 +211,19 @@ export class ReplayContainer {
       __DEBUG_BUILD__ && logger.error('[Replay]', err);
       captureInternalException(err);
     }
+  }
+
+  /**
+   * Stops the recording, if it was running.
+   * Returns true if it was stopped, else false.
+   */
+  public stopRecording(): boolean {
+    if (this._stopRecording) {
+      this._stopRecording();
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -310,7 +339,7 @@ export class ReplayContainer {
       WINDOW.addEventListener('focus', this.handleWindowFocus);
 
       // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      this._overwriteRecordDroppedEvent();
+      overwriteRecordDroppedEvent(this._context.errorIds);
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
@@ -318,13 +347,13 @@ export class ReplayContainer {
         const scope = getCurrentHub().getScope();
         scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
         addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
-        addInstrumentationHandler('fetch', this.handleCoreSpanListener('fetch'));
-        addInstrumentationHandler('xhr', this.handleCoreSpanListener('xhr'));
-        addInstrumentationHandler('history', this.handleCoreSpanListener('history'));
+        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
+        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
+        addInstrumentationHandler('history', handleHistorySpanListener(this));
 
         // Tag all (non replay) events that get sent to Sentry with the current
         // replay ID so that we can reference them later in the UI
-        addGlobalEventProcessor(this.handleGlobalEvent);
+        addGlobalEventProcessor(handleGlobalEventListener(this));
 
         this._hasInitializedCoreListeners = true;
       }
@@ -338,30 +367,7 @@ export class ReplayContainer {
       return;
     }
 
-    this._performanceObserver = new PerformanceObserver(this.handle_performanceObserver);
-
-    // Observe almost everything for now (no mark/measure)
-    [
-      'element',
-      'event',
-      'first-input',
-      'largest-contentful-paint',
-      'layout-shift',
-      'longtask',
-      'navigation',
-      'paint',
-      'resource',
-    ].forEach(type => {
-      try {
-        this._performanceObserver?.observe({
-          type,
-          buffered: true,
-        });
-      } catch {
-        // This can throw if an entry type is not supported in the browser.
-        // Ignore these errors.
-      }
-    });
+    this._performanceObserver = setupPerformanceObserver(this);
   }
 
   /**
@@ -374,7 +380,7 @@ export class ReplayContainer {
       WINDOW.removeEventListener('blur', this.handleWindowBlur);
       WINDOW.removeEventListener('focus', this.handleWindowFocus);
 
-      this._restoreRecordDroppedEvent();
+      restoreRecordDroppedEvent();
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
@@ -394,7 +400,7 @@ export class ReplayContainer {
    * Accepts a callback to perform side-effects and returns true to stop batch
    * processing and hand back control to caller.
    */
-  addUpdate(cb?: AddUpdateCallback): void {
+  addUpdate(cb: AddUpdateCallback): void {
     // We need to always run `cb` (e.g. in the case of `this._waitForError == true`)
     const cbResult = cb?.();
 
@@ -414,72 +420,6 @@ export class ReplayContainer {
     // respects the flush delays and does not flush immediately
     this._debouncedFlush();
   }
-
-  /**
-   * Core Sentry SDK global event handler. Attaches `replayId` to all [non-replay]
-   * events as a tag. Also handles the case where we only want to capture a reply
-   * when an error occurs.
-   **/
-  handleGlobalEvent: (event: Event) => Event = (event: Event) => {
-    // Do not apply replayId to the root event
-    if (
-      // @ts-ignore new event type
-      event.type === REPLAY_EVENT_NAME
-    ) {
-      // Replays have separate set of breadcrumbs, do not include breadcrumbs
-      // from core SDK
-      delete event.breadcrumbs;
-      return event;
-    }
-
-    // Only tag transactions with replayId if not waiting for an error
-    if (event.type !== 'transaction' || !this._waitForError) {
-      event.tags = { ...event.tags, replayId: this.session?.id };
-    }
-
-    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
-    // _context gets cleared on every checkout
-    if (event.type === 'transaction') {
-      this._context.traceIds.add(String(event.contexts?.trace?.trace_id || ''));
-      return event;
-    }
-
-    // XXX: Is it safe to assume that all other events are error events?
-    // @ts-ignore: Type 'undefined' is not assignable to type 'string'.ts(2345)
-    this._context.errorIds.add(event.event_id);
-
-    const exc = event.exception?.values?.[0];
-    addInternalBreadcrumb({
-      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
-        exc?.value || 'n/a'
-      }`,
-    });
-
-    // Need to be very careful that this does not cause an infinite loop
-    if (
-      this._waitForError &&
-      event.exception &&
-      event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
-    ) {
-      setTimeout(async () => {
-        // Allow flush to complete before resuming as a session recording, otherwise
-        // the checkout from `startRecording` may be included in the payload.
-        // Prefer to keep the error replay as a separate (and smaller) segment
-        // than the session replay.
-        await this.flushImmediate();
-
-        if (this._stopRecording) {
-          this._stopRecording();
-          // Reset all "capture on error" configuration before
-          // starting a new recording
-          this._waitForError = false;
-          this.startRecording();
-        }
-      });
-    }
-
-    return event;
-  };
 
   /**
    * Handler for recording events.
@@ -509,7 +449,7 @@ export class ReplayContainer {
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      this.addEvent(event, isCheckout);
+      addEvent(this, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -597,39 +537,6 @@ export class ReplayContainer {
   /**
    * Handler for Sentry Core SDK events.
    *
-   * These specific events will create span-like objects in the recording.
-   */
-  handleCoreSpanListener: (type: InstrumentationTypeSpan) => (handlerData: unknown) => void =
-    (type: InstrumentationTypeSpan) =>
-    (handlerData: unknown): void => {
-      if (!this._isEnabled) {
-        return;
-      }
-
-      const result = spanHandler(type, handlerData);
-
-      if (result === null) {
-        return;
-      }
-
-      if (type === 'history') {
-        // Need to collect visited URLs
-        this._context.urls.push(result.name);
-        this.triggerUserActivity();
-      }
-
-      this.addUpdate(() => {
-        void this.createPerformanceSpans([result as ReplayPerformanceEntry]);
-        // Returning true will cause `addUpdate` to not flush
-        // We do not want network requests to cause a flush. This will prevent
-        // recurring/polling requests from keeping the replay session alive.
-        return ['xhr', 'fetch'].includes(type);
-      });
-    };
-
-  /**
-   * Handler for Sentry Core SDK events.
-   *
    * These events will create breadcrumb-like objects in the recording.
    */
   handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
@@ -656,7 +563,7 @@ export class ReplayContainer {
       }
 
       this.addUpdate(() => {
-        this.addEvent({
+        addEvent(this, {
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
@@ -671,19 +578,6 @@ export class ReplayContainer {
         return result.category === 'console';
       });
     };
-
-  /**
-   * Keep a list of performance entries that will be sent with a replay
-   */
-  handle_performanceObserver: (list: PerformanceObserverEntryList) => void = (list: PerformanceObserverEntryList) => {
-    // For whatever reason the observer was returning duplicate navigation
-    // entries (the other entry types were not duplicated).
-    const newPerformanceEntries = dedupePerformanceEntries(
-      this.performanceEvents,
-      list.getEntries() as AllPerformanceEntry[],
-    );
-    this.performanceEvents = newPerformanceEntries;
-  };
 
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
@@ -740,45 +634,6 @@ export class ReplayContainer {
   }
 
   /**
-   * Add an event to the event buffer
-   */
-  addEvent(event: RecordingEvent, isCheckout?: boolean): void {
-    if (!this.eventBuffer) {
-      // This implies that `_isEnabled` is false
-      return;
-    }
-
-    if (this._isPaused) {
-      // Do not add to event buffer when recording is paused
-      return;
-    }
-
-    // TODO: sadness -- we will want to normalize timestamps to be in ms -
-    // requires coordination with frontend
-    const isMs = event.timestamp > 9999999999;
-    const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
-
-    // Throw out events that happen more than 5 minutes ago. This can happen if
-    // page has been left open and idle for a long period of time and user
-    // comes back to trigger a new session. The performance entries rely on
-    // `performance.timeOrigin`, which is when the page first opened.
-    if (timestampInMs + SESSION_IDLE_DURATION < new Date().getTime()) {
-      return;
-    }
-
-    // Only record earliest event if a new session was created, otherwise it
-    // shouldn't be relevant
-    if (
-      this.session?.segmentId === 0 &&
-      (!this._context.earliestEvent || timestampInMs < this._context.earliestEvent)
-    ) {
-      this._context.earliestEvent = timestampInMs;
-    }
-
-    this.eventBuffer.addEvent(event, isCheckout);
-  }
-
-  /**
    * Update user activity (across session lifespans)
    */
   updateUserActivity(_lastActivity: number = new Date().getTime()): void {
@@ -826,7 +681,7 @@ export class ReplayContainer {
    */
   createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      this.addEvent({
+      addEvent(this, {
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -838,56 +693,15 @@ export class ReplayContainer {
   }
 
   /**
-   * Create a "span" for each performance entry. The parent transaction is `this.replayEvent`.
-   */
-  createPerformanceSpans(entries: ReplayPerformanceEntry[]): Promise<void[]> {
-    return Promise.all(
-      entries.map(({ type, start, end, name, data }) =>
-        this.addEvent({
-          type: EventType.Custom,
-          timestamp: start,
-          data: {
-            tag: 'performanceSpan',
-            payload: {
-              op: type,
-              description: name,
-              startTimestamp: start,
-              endTimestamp: end,
-              data,
-            },
-          },
-        }),
-      ),
-    );
-  }
-
-  /**
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): Promise<void[]> {
+  addPerformanceEntries(): void {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    return this.createPerformanceSpans(createPerformanceEntries(entries));
-  }
-
-  /**
-   * Create a "span" for the total amount of memory being used by JS objects
-   * (including v8 internal objects).
-   */
-  addMemoryEntry(): Promise<void[]> | undefined {
-    // window.performance.memory is a non-standard API and doesn't work on all browsers
-    // so we check before creating the event.
-    if (!('memory' in WINDOW.performance)) {
-      return;
-    }
-
-    return this.createPerformanceSpans([
-      // @ts-ignore memory doesn't exist on type Performance as the API is non-standard (we check that it exists above)
-      createMemoryEntry(WINDOW.performance.memory),
-    ]);
+    createPerformanceSpans(this, createPerformanceEntries(entries));
   }
 
   /**
@@ -991,7 +805,7 @@ export class ReplayContainer {
     }
 
     // Only attach memory event if eventBuffer is not empty
-    await this.addMemoryEntry();
+    await addMemoryEntry(this);
 
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
@@ -1248,40 +1062,5 @@ export class ReplayContainer {
     if (this.session && this.options.stickySession) {
       saveSession(this.session);
     }
-  }
-
-  private _overwriteRecordDroppedEvent(): void {
-    const client = getCurrentHub().getClient();
-
-    if (!client) {
-      return;
-    }
-
-    const _originalCallback = client.recordDroppedEvent.bind(client);
-
-    const recordDroppedEvent: Client['recordDroppedEvent'] = (
-      reason: EventDropReason,
-      category: DataCategory,
-      event?: Event,
-    ): void => {
-      if (event && event.event_id) {
-        this._context.errorIds.delete(event.event_id);
-      }
-
-      return _originalCallback(reason, category, event);
-    };
-
-    client.recordDroppedEvent = recordDroppedEvent;
-    this._originalRecordDroppedEvent = _originalCallback;
-  }
-
-  private _restoreRecordDroppedEvent(): void {
-    const client = getCurrentHub().getClient();
-
-    if (!client || !this._originalRecordDroppedEvent) {
-      return;
-    }
-
-    client.recordDroppedEvent = this._originalRecordDroppedEvent;
   }
 }

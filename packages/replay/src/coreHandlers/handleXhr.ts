@@ -1,4 +1,6 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import type { ReplayContainer } from '../types';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
 import { isIngestHost } from '../util/isIngestHost';
 
 // From sentry-javascript
@@ -19,14 +21,14 @@ interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
   __sentry_own_request__?: boolean;
 }
 
-export interface XhrHandlerData {
+interface XhrHandlerData {
   args: [string, string];
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp: number;
   endTimestamp?: number;
 }
 
-export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
+function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
   if (handlerData.xhr.__sentry_own_request__) {
     // Taken from sentry-javascript
     // Only capture non-sentry requests
@@ -59,5 +61,30 @@ export function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry |
       method,
       statusCode,
     },
+  };
+}
+
+/**
+ * Returns a listener to be added to `addInstrumentationHandler('xhr', listener)`.
+ */
+export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: XhrHandlerData) => void {
+  return (handlerData: XhrHandlerData) => {
+    if (!replay.isEnabled()) {
+      return;
+    }
+
+    const result = handleXhr(handlerData);
+
+    if (result === null) {
+      return;
+    }
+
+    replay.addUpdate(() => {
+      createPerformanceSpans(replay, [result]);
+      // Returning true will cause `addUpdate` to not flush
+      // We do not want network requests to cause a flush. This will prevent
+      // recurring/polling requests from keeping the replay session alive.
+      return true;
+    });
   };
 }

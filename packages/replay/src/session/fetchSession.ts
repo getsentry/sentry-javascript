@@ -1,5 +1,6 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
-import { makeSession, Session } from './Session';
+import type { Session } from '../types';
+import { makeSession } from './Session';
 
 /**
  * Fetches a session from storage

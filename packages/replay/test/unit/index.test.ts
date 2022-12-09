@@ -6,7 +6,9 @@ import { EventType } from 'rrweb';
 
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
-import { RecordingEvent } from '../../src/types';
+import type { RecordingEvent } from '../../src/types';
+import { addEvent } from '../../src/util/addEvent';
+import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -82,7 +84,7 @@ describe('Replay with custom mock', () => {
         timestamp: new Date().valueOf(),
       } as RecordingEvent;
 
-      replay.addEvent(event);
+      addEvent(replay, event);
 
       await replay.runFlush();
 
@@ -250,7 +252,7 @@ describe('Replay', () => {
       },
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -276,7 +278,7 @@ describe('Replay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     document.dispatchEvent(new Event('visibilitychange'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -349,8 +351,7 @@ describe('Replay', () => {
     const initialSession = replay.session;
 
     expect(initialSession?.id).toBeDefined();
-    // @ts-ignore private member
-    expect(replay._context).toEqual(
+    expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
         initialTimestamp: BASE_TIMESTAMP,
@@ -423,8 +424,7 @@ describe('Replay', () => {
     });
 
     // `_context` should be reset when a new session is created
-    // @ts-ignore private member
-    expect(replay._context).toEqual(
+    expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
         initialTimestamp: newTimestamp,
@@ -437,8 +437,7 @@ describe('Replay', () => {
     const initialSession = replay.session;
 
     expect(initialSession?.id).toBeDefined();
-    // @ts-ignore private member
-    expect(replay._context).toEqual(
+    expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost/',
         initialTimestamp: BASE_TIMESTAMP,
@@ -463,7 +462,7 @@ describe('Replay', () => {
     // performance events can still be collected while recording is stopped
     // TODO: we may want to prevent `addEvent` from adding to buffer when user is inactive
     replay.addUpdate(() => {
-      replay.createPerformanceSpans([
+      createPerformanceSpans(replay, [
         {
           type: 'navigation.navigate',
           name: 'foo',
@@ -536,8 +535,7 @@ describe('Replay', () => {
     });
 
     // `_context` should be reset when a new session is created
-    // @ts-ignore private member
-    expect(replay._context).toEqual(
+    expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://dummy/',
         initialTimestamp: newTimestamp,
@@ -691,7 +689,7 @@ describe('Replay', () => {
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(replay).toHaveSentReplay({
@@ -699,7 +697,7 @@ describe('Replay', () => {
     });
     expect(replay.session?.segmentId).toBe(1);
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -731,7 +729,7 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
@@ -816,10 +814,10 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
 
     // Add a fake event that started BEFORE
-    replay.addEvent({
+    addEvent(replay, {
       data: {},
       timestamp: (BASE_TIMESTAMP - 10000) / 1000,
       type: 5,
@@ -855,8 +853,7 @@ describe('Replay', () => {
     );
 
     // This should be null because `addEvent` has not been called yet
-    // @ts-ignore private member
-    expect(replay._context.earliestEvent).toBe(null);
+    expect(replay.getContext().earliestEvent).toBe(null);
     expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
@@ -866,7 +863,7 @@ describe('Replay', () => {
       type: 2,
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     // This event will trigger a flush
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
@@ -896,8 +893,7 @@ describe('Replay', () => {
     });
 
     // This gets reset after sending replay
-    // @ts-ignore private member
-    expect(replay._context.earliestEvent).toBe(null);
+    expect(replay.getContext().earliestEvent).toBe(null);
   });
 
   it('has single flush when checkout flush and debounce flush happen near simultaneously', async () => {

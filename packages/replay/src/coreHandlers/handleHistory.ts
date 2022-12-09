@@ -1,11 +1,13 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import type { ReplayContainer } from '../types';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
 
-export interface HistoryHandlerData {
+interface HistoryHandlerData {
   from: string;
   to: string;
 }
 
-export function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
+function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
   const { from, to } = handlerData;
 
   const now = new Date().getTime() / 1000;
@@ -18,5 +20,32 @@ export function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanc
     data: {
       previous: from,
     },
+  };
+}
+
+/**
+ * Returns a listener to be added to `addInstrumentationHandler('history', listener)`.
+ */
+export function handleHistorySpanListener(replay: ReplayContainer): (handlerData: HistoryHandlerData) => void {
+  return (handlerData: HistoryHandlerData) => {
+    if (!replay.isEnabled()) {
+      return;
+    }
+
+    const result = handleHistory(handlerData);
+
+    if (result === null) {
+      return;
+    }
+
+    // Need to collect visited URLs
+    replay.getContext().urls.push(result.name);
+    replay.triggerUserActivity();
+
+    replay.addUpdate(() => {
+      createPerformanceSpans(replay, [result]);
+      // Returning false to flush
+      return false;
+    });
   };
 }
