@@ -1,4 +1,4 @@
-import { init, BrowserOptions } from '@sentry/browser';
+import { BrowserOptions, init } from '@sentry/browser';
 import { Envelope, Transport } from '@sentry/types';
 
 import { Replay as ReplayIntegration } from '../../src';
