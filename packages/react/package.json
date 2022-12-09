@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@sentry/browser": "7.24.2",
+    "@sentry/core": "7.24.2",
     "@sentry/types": "7.24.2",
     "@sentry/utils": "7.24.2",
     "hoist-non-react-statics": "^3.3.2",

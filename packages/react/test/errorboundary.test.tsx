@@ -15,14 +15,21 @@ const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
 const EVENT_ID = 'test-id-123';
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
+jest.mock('@sentry/core', () => {
+  const actual = jest.requireActual('@sentry/core');
   return {
     ...actual,
     captureException: (...args: unknown[]) => {
       mockCaptureException(...args);
       return EVENT_ID;
     },
+  };
+});
+
+jest.mock('@sentry/browser', () => {
+  const actual = jest.requireActual('@sentry/browser');
+  return {
+    ...actual,
     showReportDialog: (options: any) => {
       mockShowReportDialog(options);
     },

@@ -1,4 +1,5 @@
-import { captureException, ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
+import { ReportDialogOptions, Scope, showReportDialog, withScope } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
