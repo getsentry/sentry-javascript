@@ -49,7 +49,7 @@ type BaseEnvelope<EnvelopeHeader, Item> = [
 ];
 
 type EventItemHeaders = {
-  type: 'event' | 'transaction';
+  type: 'event' | 'transaction' | 'profile';
 };
 type AttachmentItemHeaders = {
   type: 'attachment';
