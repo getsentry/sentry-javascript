@@ -1,12 +1,7 @@
-import type { Config } from 'jest';
-
-const config: Config = {
-  verbose: true,
+module.exports = {
   forceExit: true,
   preset: 'ts-jest',
   collectCoverage: true,
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['benchmarks/'],
 };
-
-export default config;
