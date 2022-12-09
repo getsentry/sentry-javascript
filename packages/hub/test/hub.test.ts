@@ -2,6 +2,7 @@
 /* eslint-disable deprecation/deprecation */
 
 import { Client, Event } from '@sentry/types';
+import { EventType } from '@sentry/types/build/types/event';
 
 import { getCurrentHub, Hub, Scope } from '../src';
 
@@ -358,10 +359,11 @@ describe('Hub', () => {
       expect(args[1].event_id).toEqual(hub.lastEventId());
     });
 
-    test('transactions do not set lastEventId', () => {
+    const eventTypesToIgnoreLastEventId: EventType[] = ['transaction', 'replay_event'];
+    it.each(eventTypesToIgnoreLastEventId)('eventType %s does not set lastEventId', eventType => {
       const event: Event = {
         extra: { b: 3 },
-        type: 'transaction',
+        type: eventType,
       };
       const testClient = makeClient();
       const hub = new Hub(testClient);
