@@ -41,7 +41,7 @@ declare global {
 
 describe('webpack loaders', () => {
   describe('server loaders', () => {
-    it('adds server `RewriteFrames` loader to server config', async () => {
+    it('adds server `valueInjection` loader to server config', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -52,34 +52,8 @@ describe('webpack loaders', () => {
         test: /sentry\.server\.config\.(jsx?|tsx?)/,
         use: [
           {
-            loader: expect.stringEndingWith('prefixLoader.js'),
-            options: expect.objectContaining({ templatePrefix: 'serverRewriteFrames' }),
-          },
-        ],
-      });
-    });
-
-    it('adds release prefix loader to server config', async () => {
-      const finalWebpackConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: serverBuildContext,
-        userSentryWebpackPluginConfig: userSentryWebpackPluginConfig,
-      });
-
-      expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-        use: [
-          {
-            loader: expect.stringEndingWith('prefixLoader.js'),
-            options: {
-              templatePrefix: 'release',
-              replacements: [
-                ['__RELEASE__', 'doGsaREgReaT'],
-                ['__ORG__', 'squirrelChasers'],
-                ['__PROJECT__', 'simulator'],
-              ],
-            },
+            loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            options: expect.objectContaining({ values: expect.objectContaining({}) }),
           },
         ],
       });
@@ -87,7 +61,7 @@ describe('webpack loaders', () => {
   });
 
   describe('client loaders', () => {
-    it('adds `RewriteFrames` loader to client config', async () => {
+    it('adds `valueInjection` loader to client config', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
@@ -98,14 +72,14 @@ describe('webpack loaders', () => {
         test: /sentry\.client\.config\.(jsx?|tsx?)/,
         use: [
           {
-            loader: expect.stringEndingWith('prefixLoader.js'),
-            options: expect.objectContaining({ templatePrefix: 'clientRewriteFrames' }),
+            loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            options: expect.objectContaining({ values: expect.objectContaining({}) }),
           },
         ],
       });
     });
 
-    it('adds release prefix loader to client config', async () => {
+    it('adds `valueInjection` loader with release values to client and server configs', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: clientWebpackConfig,
@@ -117,14 +91,12 @@ describe('webpack loaders', () => {
         test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
         use: [
           {
-            loader: expect.stringEndingWith('prefixLoader.js'),
+            loader: expect.stringEndingWith('valueInjectionLoader.js'),
             options: {
-              templatePrefix: 'release',
-              replacements: [
-                ['__RELEASE__', 'doGsaREgReaT'],
-                ['__ORG__', 'squirrelChasers'],
-                ['__PROJECT__', 'simulator'],
-              ],
+              values: {
+                SENTRY_RELEASE: { id: 'doGsaREgReaT' },
+                SENTRY_RELEASES: { 'simulator@squirrelChasers': { id: 'doGsaREgReaT' } },
+              },
             },
           },
         ],

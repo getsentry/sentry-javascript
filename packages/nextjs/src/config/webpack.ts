@@ -87,26 +87,8 @@ export function constructWebpackConfigFunction(
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    // Add a loader which will inject code that sets global values for use by `RewriteFrames`
-    addRewriteFramesLoader(newConfig, isServer ? 'server' : 'client', userNextConfig);
-
-    newConfig.module.rules.push({
-      test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-      use: [
-        {
-          // Inject the release value the same way the webpack plugin does.
-          loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-          options: {
-            templatePrefix: 'release',
-            replacements: [
-              ['__RELEASE__', webpackPluginOptions.release || process.env.SENTRY_RELEASE],
-              ['__ORG__', webpackPluginOptions.org || process.env.SENTRY_ORG],
-              ['__PROJECT__', webpackPluginOptions.project || process.env.SENTRY_PROJECT || ''],
-            ],
-          },
-        },
-      ],
-    });
+    // Add a loader which will inject code that sets global values
+    addValueInjectionLoader(newConfig, userNextConfig, webpackPluginOptions);
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -667,49 +649,85 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 }
 
 /**
- * Support the `distDir` and `assetPrefix` options by making their values (easy to get here at build-time) available at
- * runtime (for use by `RewriteFrames`), by injecting code to attach their values to `global` or `window`.
- *
- * @param newConfig The webpack config object being constructed
- * @param target Either 'server' or 'client'
- * @param userNextConfig The user's nextjs config options
+ * Adds loaders to inject values on the global object based on user configuration.
  */
-function addRewriteFramesLoader(
+function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
-  target: 'server' | 'client',
   userNextConfig: NextConfigObject,
+  webpackPluginOptions: SentryWebpackPlugin.SentryCliPluginOptions,
 ): void {
-  // Nextjs will use `basePath` in place of `assetPrefix` if it's defined but `assetPrefix` is not
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
-  const replacements = {
-    server: [
-      [
-        '__DIST_DIR__',
-        // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
-        // characters)
-        userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
-      ],
-    ],
-    client: [
-      [
-        '__ASSET_PREFIX_PATH__',
-        // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
-        // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-        assetPrefix ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '') : '',
-      ],
-    ],
+  const releaseValue = webpackPluginOptions.release || process.env.SENTRY_RELEASE;
+  const orgValue = webpackPluginOptions.org || process.env.SENTRY_ORG;
+  const projectValue = webpackPluginOptions.project || process.env.SENTRY_PROJECT;
+
+  const serverValues = {
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
   };
 
-  newConfig.module.rules.push({
-    test: new RegExp(`sentry\\.${target}\\.config\\.(jsx?|tsx?)`),
-    use: [
-      {
-        loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-        options: {
-          templatePrefix: `${target}RewriteFrames`,
-          replacements: replacements[target],
+  const clientValues = {
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    __rewriteFramesAssetPrefixPath__: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
+  };
+
+  const isomorphicValues = {
+    // Inject release into SDK
+    ...(releaseValue
+      ? {
+          SENTRY_RELEASE: {
+            id: releaseValue,
+          },
+        }
+      : undefined),
+
+    // Enable module federation support (see https://github.com/getsentry/sentry-webpack-plugin/pull/307)
+    ...(projectValue && releaseValue
+      ? {
+          SENTRY_RELEASES: {
+            [orgValue ? `${projectValue}@${orgValue}` : projectValue]: { id: releaseValue },
+          },
+        }
+      : undefined),
+  };
+
+  newConfig.module.rules.push(
+    {
+      test: /sentry\.server\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          options: {
+            values: serverValues,
+          },
         },
-      },
-    ],
-  });
+      ],
+    },
+    {
+      test: /sentry\.client\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          options: {
+            values: clientValues,
+          },
+        },
+      ],
+    },
+    {
+      test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          options: {
+            values: isomorphicValues,
+          },
+        },
+      ],
+    },
+  );
 }
