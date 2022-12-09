@@ -239,10 +239,9 @@ export function createProfilingEventEnvelope(
 
   const envelopeItem: EventItem = [
     {
-      // @ts-ignore profile is not yet a type in @sentry/types
       type: 'profile',
     },
-    // @ts-ignore profile is not yet a type in @sentry/types
+    // @ts-ignore profile is not a valid type for EventItem yet
     profile,
   ];
 
