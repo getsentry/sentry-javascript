@@ -22,11 +22,11 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Only tag transactions with replayId if not waiting for an error
     // @ts-ignore private
-    if (event.type !== 'transaction' || !replay._waitForError) {
+    if (event.type !== 'transaction' || replay.mode === 'session') {
       event.tags = { ...event.tags, replayId: replay.session?.id };
     }
 
-    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
+    // Collect traceIds in _context regardless of `mode` - if it's true,
     // _context gets cleared on every checkout
     if (event.type === 'transaction' && event.contexts && event.contexts.trace && event.contexts.trace.trace_id) {
       replay.getContext().traceIds.add(event.contexts.trace.trace_id as string);
@@ -47,8 +47,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Need to be very careful that this does not cause an infinite loop
     if (
-      // @ts-ignore private
-      replay._waitForError &&
+      replay.mode === 'error' &&
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
@@ -62,8 +61,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
         if (replay.stopRecording()) {
           // Reset all "capture on error" configuration before
           // starting a new recording
-          // @ts-ignore private
-          replay._waitForError = false;
+          replay.mode = 'session';
           replay.startRecording();
         }
       });

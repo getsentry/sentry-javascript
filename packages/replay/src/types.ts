@@ -7,6 +7,8 @@ export type RecordedEvents = Uint8Array | string;
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
+export type ReplayRecordingMode = 'session' | 'error';
+
 export interface SendReplay {
   events: RecordedEvents;
   replayId: string;
@@ -215,6 +217,7 @@ export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
+  mode: ReplayRecordingMode;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
