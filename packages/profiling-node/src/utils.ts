@@ -239,10 +239,10 @@ export function createProfilingEventEnvelope(
 
   const envelopeItem: EventItem = [
     {
-      // @ts-expect-error profile is not yet a type in @sentry/types
+      // @ts-ignore profile is not yet a type in @sentry/types
       type: 'profile',
     },
-    // @ts-expect-error profile is not yet a type in @sentry/types
+    // @ts-ignore profile is not yet a type in @sentry/types
     profile,
   ];
 

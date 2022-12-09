@@ -124,7 +124,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
       const profile = onProfileHandler();
-      // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
+      // @ts-ignore profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       return originalFinish();
     }
