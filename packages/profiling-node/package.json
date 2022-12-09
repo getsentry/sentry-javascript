@@ -4,10 +4,6 @@
   "description": "Sampling based Node.js profiler.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/getsentry/profiling-node.git"
-  },
   "engines": {
     "node": ">=14.0.0"
   },

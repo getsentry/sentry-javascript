@@ -15,7 +15,7 @@ function recompileFromSource() {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(
-      '@sentry/profiling-node: Failed to build from source, please report this a bug at https://github.com/getsentry/profiling-node/issues/new?assignees=&labels=Type%3A+Bug&template=bug.yml',
+      '@sentry/profiling-node: Failed to build from source, please report this a bug at https://github.com/getsentry/sentry-javascript/issues/new',
     );
     return false;
   }
