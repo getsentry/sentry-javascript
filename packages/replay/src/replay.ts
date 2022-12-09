@@ -273,7 +273,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   handleException(error: unknown): void {
     __DEBUG_BUILD__ && logger.error('[Replay]', error);
 
-    if (this.options._experiments && this.options._experiments.captureExceptions) {
+    if (__DEBUG_BUILD__ && this.options._experiments && this.options._experiments.captureExceptions) {
       captureException(error);
     }
   }
