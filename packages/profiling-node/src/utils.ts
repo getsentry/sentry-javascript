@@ -9,7 +9,7 @@ import type {
   SdkMetadata,
 } from '@sentry/types';
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
-import * as os from 'os';
+import os from 'os';
 import { isMainThread, threadId } from 'worker_threads';
 
 import type { RawThreadCpuProfile, ThreadCpuProfile } from './cpu_profiler';
