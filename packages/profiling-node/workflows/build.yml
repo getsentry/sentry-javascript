@@ -1,0 +1,97 @@
+name: Upload build artifacts
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: If the commit you want to test isn't the head of a branch, provide its SHA here
+        required: false
+jobs:
+  precompile-bindings:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-2019, ubuntu-latest]
+        node-version: [14.x, 16.x, 18.x]
+        target: [x64]
+        host: [x64]
+        # arm64 is not supported by gh runners yet
+        # include:
+        #   - os: macos-latest
+        #     node-version: 18.x
+        #     target: arm64
+        #     host: arm64
+
+    runs-on: ${{ matrix.os }}
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    name: ${{ matrix.os }} (node=${{ matrix.node-version }}, host=${{ matrix.host }}, target=${{ matrix.target }})
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          architecture: ${{ matrix.host }}
+
+      - name: Setup windows build tools
+        uses: microsoft/setup-msbuild@v1.1
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          msbuild-architecture: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure gyp
+        run: yarn build:configure --arch=${{ matrix.target }}
+
+      - name: Build bindings
+        run: yarn build:bindings --arch=${{ matrix.target }}
+
+      - name: Test
+        run: yarn test
+
+      - name: Copy Binary
+        run: node scripts/copy-target.js
+
+      - name: Log binary
+        run: du -sh binaries/*
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/binaries/
+
+  build-and-pack:
+    runs-on: ubuntu-latest
+    needs: [precompile-bindings]
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn build:lib
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: binaries-${{ github.sha }}
+          path: binaries
+      - run: ls -l binaries
+      - run: yarn pack
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/*.tgz
