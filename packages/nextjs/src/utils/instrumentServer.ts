@@ -76,6 +76,10 @@ type WrappedPageComponentFinder = PageComponentFinder;
 let liveServer: Server;
 let sdkSetupComplete = false;
 
+const globalWithInjectedValues = global as typeof global & {
+  __sentryRewritesTunnelPath__?: string;
+};
+
 /**
  * Do the monkeypatching and wrapping necessary to catch errors in page routes and record transactions for both page and
  * API routes.
@@ -346,12 +350,27 @@ function makeWrappedMethodForGettingParameterizedPath(
 /**
  * Determine if the request should be traced, by filtering out requests for internal next files and static resources.
  *
- * @param url The URL of the request
+ * @param path The path of the request
  * @param publicDirFiles A set containing relative paths to all available static resources (note that this does not
  * include static *pages*, but rather images and the like)
  * @returns false if the URL is for an internal or static resource
  */
-function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
+function shouldTraceRequest(path: string, publicDirFiles: Set<string>): boolean {
+  // Don't trace tunneled sentry events
+  const tunnelPath = globalWithInjectedValues.__sentryRewritesTunnelPath__;
+  if (tunnelPath) {
+    const startsWithTunnelPath = path.startsWith(tunnelPath);
+    const transactionNameRest = path.substring(tunnelPath.length);
+
+    // Check if the requested path matches the path we tunnel requests to
+    const restMatchesTunnelStructure = transactionNameRest.match(/^\/o\d+\/\d+\/?$/);
+
+    if (startsWithTunnelPath && restMatchesTunnelStructure) {
+      __DEBUG_BUILD__ && logger.log(`Tunneling Sentry event to "${path}"`);
+      return false;
+    }
+  }
+
   // `static` is a deprecated but still-functional location for static resources
-  return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
+  return !path.startsWith('/_next/') && !path.startsWith('/static/') && !publicDirFiles.has(path);
 }

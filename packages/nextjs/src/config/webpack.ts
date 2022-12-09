@@ -88,7 +88,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, webpackPluginOptions);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, webpackPluginOptions);
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -654,6 +654,7 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
+  userSentryOptions: UserSentryOptions,
   webpackPluginOptions: SentryWebpackPlugin.SentryCliPluginOptions,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
@@ -693,6 +694,9 @@ function addValueInjectionLoader(
           },
         }
       : undefined),
+
+    // `rewritesTunnel` set by the user in Next.js config
+    __sentryRewritesTunnelPath__: userSentryOptions.rewritesTunnel,
   };
 
   newConfig.module.rules.push(

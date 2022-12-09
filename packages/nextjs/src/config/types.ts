@@ -27,6 +27,12 @@ export type NextConfigFunctionWithSentry = (
   defaults: { defaultConfig: NextConfigObject },
 ) => NextConfigObjectWithSentry;
 
+// Vendored from Next.js (this type is not complete - extend if necessary)
+type Rewrite = {
+  source: string;
+  destination: string;
+};
+
 export type NextConfigObject = {
   // Custom webpack options
   webpack?: WebpackConfigFunction | null;
@@ -42,6 +48,15 @@ export type NextConfigObject = {
   publicRuntimeConfig?: { [key: string]: unknown };
   // File extensions that count as pages in the `pages/` directory
   pageExtensions?: string[];
+  // Paths to reroute when requested
+  rewrites?: () => Promise<
+    | Rewrite[]
+    | {
+        beforeFiles: Rewrite[];
+        afterFiles: Rewrite[];
+        fallback: Rewrite[];
+      }
+  >;
 };
 
 export type UserSentryOptions = {
@@ -75,6 +90,9 @@ export type UserSentryOptions = {
   // (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
   // exact match.
   excludeServerRoutes?: Array<RegExp | string>;
+
+  // TODO
+  rewritesTunnel?: string;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;

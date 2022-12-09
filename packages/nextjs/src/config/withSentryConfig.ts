@@ -40,8 +40,10 @@ function getFinalConfigObject(
   // to `constructWebpackConfigFunction` so that it can live in the returned function's closure.
   const { sentry: userSentryOptions } = incomingUserNextConfigObject;
   delete incomingUserNextConfigObject.sentry;
-  // Remind TS that there's now no `sentry` property
-  const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
+
+  if (userSentryOptions?.rewritesTunnel) {
+    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.rewritesTunnel);
+  }
 
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
   // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
@@ -50,11 +52,51 @@ function getFinalConfigObject(
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { constructWebpackConfigFunction } = require('./webpack');
     return {
-      ...userNextConfigObject,
-      webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
+      ...incomingUserNextConfigObject,
+      webpack: constructWebpackConfigFunction(
+        incomingUserNextConfigObject,
+        userSentryWebpackPluginOptions,
+        userSentryOptions,
+      ),
     };
   }
 
   // At runtime, we just return the user's config untouched.
-  return userNextConfigObject;
+  return incomingUserNextConfigObject;
+}
+
+/**
+ * Injects rewrite rules into the Next.js config provided by the user to tunnel
+ * requests from the `tunnelPath` to Sentry.
+ */
+function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
+  const originalRewrites = userNextConfig.rewrites;
+
+  // This function doesn't take any arguments at the time of writing but we future-proof
+  // here in case Next.js ever decides to pass some
+  userNextConfig.rewrites = async (...args: unknown[]) => {
+    const injectedRewrites = [
+      {
+        source: `${tunnelPath}/:orgid/:projectid`, // without trailing slash
+        destination: 'https://:orgid.ingest.sentry.io/api/:projectid/envelope/',
+      },
+      {
+        source: `${tunnelPath}/:orgid/:projectid/`, // with trailing slash
+        destination: 'https://:orgid.ingest.sentry.io/api/:projectid/envelope/',
+      },
+    ];
+
+    if (typeof originalRewrites === 'function') {
+      // @ts-ignore weird args error
+      const intermediaryValue = await originalRewrites(...args);
+      if (Array.isArray(intermediaryValue)) {
+        intermediaryValue.push(...injectedRewrites);
+      } else {
+        intermediaryValue.beforeFiles.push(...injectedRewrites);
+      }
+      return intermediaryValue;
+    } else {
+      return injectedRewrites;
+    }
+  };
 }

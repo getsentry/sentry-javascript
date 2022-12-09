@@ -2,7 +2,7 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { dsnFromString, logger } from '@sentry/utils';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
@@ -34,7 +34,6 @@ declare const __SENTRY_TRACING__: boolean;
 // v12.2.1-canary.3 onwards:
 // https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
 declare const EdgeRuntime: string | undefined;
-
 const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesAssetPrefixPath__: string;
   __sentryRewritesTunnelPath__?: string;
@@ -48,6 +47,19 @@ export function init(options: NextjsOptions): void {
     // the init call a no-op. This will prevent the SDK from crashing on the Edge Runtime.
     __DEBUG_BUILD__ && logger.log('Vercel Edge Runtime detected. Will not initialize SDK.');
     return;
+  }
+
+  let tunnelPath: string | undefined;
+  if (globalWithInjectedValues.__sentryRewritesTunnelPath__ && options.dsn) {
+    const dsnComponents = dsnFromString(options.dsn);
+    if (dsnComponents.host.match(/^o\d+\.ingest\.sentry\.io$/)) {
+      const orgId = dsnComponents.host.split('.')[0];
+      tunnelPath = `${globalWithInjectedValues.__sentryRewritesTunnelPath__}/${orgId}/${dsnComponents.projectId}/`;
+      __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
+      options.tunnel = tunnelPath;
+    } else {
+      __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
+    }
   }
 
   buildMetadata(options, ['nextjs', 'react']);
