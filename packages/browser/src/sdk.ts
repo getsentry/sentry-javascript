@@ -16,13 +16,14 @@ import {
 
 import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
 import { ReportDialogOptions, WINDOW, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
+import { Breadcrumbs, Dedupe, GlobalHandlers, HttpClient, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
 export const defaultIntegrations = [
   new CoreIntegrations.InboundFilters(),
   new CoreIntegrations.FunctionToString(),
+  new HttpClient(),
   new TryCatch(),
   new Breadcrumbs(),
   new GlobalHandlers(),

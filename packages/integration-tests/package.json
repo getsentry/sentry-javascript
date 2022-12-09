@@ -14,7 +14,7 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "type-check": "tsc",
-    "pretest": "yarn clean && yarn type-check",
+    "pretest": "yarn clean",
     "test": "playwright test ./suites",
     "test:bundle:es5": "PW_BUNDLE=bundle_es5 yarn test",
     "test:bundle:es5:min": "PW_BUNDLE=bundle_es5_min yarn test",

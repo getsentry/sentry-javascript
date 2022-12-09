@@ -5,6 +5,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   device?: DeviceContext;
   os?: OsContext;
   culture?: CultureContext;
+  response?: ResponseContext;
 }
 
 export interface AppContext extends Record<string, unknown> {
@@ -69,4 +70,12 @@ export interface CultureContext extends Record<string, unknown> {
   locale?: string;
   is_24_hour_format?: boolean;
   timezone?: string;
+}
+
+export interface ResponseContext extends Record<string, unknown> {
+  type?: string;
+  cookies?: string[][] | Record<string, string>;
+  headers?: Record<string, string>; // TODO: should be only Record<string, string>?
+  status_code?: number;
+  body_size?: number; // in bytes
 }
