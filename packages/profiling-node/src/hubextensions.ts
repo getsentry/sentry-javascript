@@ -1,4 +1,4 @@
-import { getMainCarrier } from '@sentry/hub';
+import { getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
