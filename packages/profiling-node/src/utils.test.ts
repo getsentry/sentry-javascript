@@ -72,11 +72,11 @@ describe('maybeRemoveProfileFromSdkMetadata', () => {
 describe('createProfilingEventEnvelope', () => {
   it('throws if profile is undefined', () => {
     expect(() =>
-      // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming
+      // @ts-ignore undefined is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({})),
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
-      // @ts-expect-error null is not a valid profile, we are forcing it here for some defensive programming
+      // @ts-ignore null is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({})),
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
@@ -107,9 +107,9 @@ describe('createProfilingEventEnvelope', () => {
       }),
     );
 
-    // @ts-expect-error header type inference is broken
+    // @ts-ignore header type inference is broken
     expect(envelope[0].sdk.name).toBe('sentry.javascript.node');
-    // @ts-expect-error header type inference is broken
+    // @ts-ignore header type inference is broken
     expect(envelope[0].sdk.version).toBe('1.2.3');
   });
 
@@ -164,9 +164,9 @@ describe('createProfilingEventEnvelope', () => {
     expect(() =>
       createProfilingEventEnvelope(
         makeEvent(
-          // @ts-expect-error type is forced to something other than transaction
+          // @ts-ignore type is forced to something other than transaction
           { type: 'error' },
-          // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+          // @ts-ignore thread_id is forced to undefined and we assert that it is enriched
           makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] }),
         ),
         makeDsn({}),
@@ -193,7 +193,7 @@ describe('createProfilingEventEnvelope', () => {
             },
           },
         },
-        // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+        // @ts-ignore thread_id is forced to undefined and we assert that it is enriched
         makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] }),
       ),
       makeDsn({}),

@@ -164,7 +164,7 @@ describe('Profiler bindings', () => {
       iterateOverLargeHashTable();
     });
 
-    // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
+    // @ts-ignore deopt reasons are removed from types for now as we need to figure out the backend support
     const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
   });

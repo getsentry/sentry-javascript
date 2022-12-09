@@ -12,6 +12,9 @@ import { createProfilingEventEnvelope, isProfiledTransactionEvent, maybeRemovePr
  *
  */
 export class ProfilingIntegration implements Integration {
+  public getCurrentHub?: () => Hub = undefined;
+  public name: string = 'ProfilingIntegration';
+
   /**
    * Registers our global event processor and stores the getCurrentHub reference
    */
@@ -76,7 +79,4 @@ export class ProfilingIntegration implements Integration {
     // Ensure sdkProcessingMetadata["profile"] is removed from the event before forwarding it to the next event processor.
     return maybeRemoveProfileFromSdkMetadata(event);
   }
-
-  getCurrentHub?: () => Hub = undefined;
-  name = 'ProfilingIntegration';
 }
