@@ -108,6 +108,9 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-integration-tests/**'
+            profiling_node:
+              - *shared
+              - 'packages/profiling-node/**'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
@@ -117,6 +120,7 @@ jobs:
       changed_node: ${{ steps.changed.outputs.node }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
+      changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
 
   job_install_deps:
     name: Install Dependencies
@@ -419,6 +423,32 @@ jobs:
         run: |
           cd packages/nextjs
           yarn test:integration
+
+  job_profiling_node_integration_test:
+    name: Test @sentry/profiling-node on OS/Node matrix
+    if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-2019, ubuntu-latest]
+        node-version: [14.x, 16.x, 18.x]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: cd packages/profiling-node
+      - run: yarn clean
+      - name: Setup windows build tools
+        uses: microsoft/setup-msbuild@v1.1
+        if: ${{ runner.os == 'Windows' }}
+
+      - run: yarn install
+      - run: yarn build:configure
+      - run: yarn build
+      - run: yarn test
 
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
   # separate job allows them to run in parallel with the other tests.

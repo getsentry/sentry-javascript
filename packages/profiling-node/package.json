@@ -1,7 +1,7 @@
 {
   "name": "@sentry/profiling-node",
   "version": "0.0.12",
-  "description": "Sampling based nodejs profiler.",
+  "description": "Sampling based Node.js profiler.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "repository": {
@@ -37,12 +37,12 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest --config jest.config.ts",
     "test:watch": "jest --watch",
-    "build": "npm run build:bindings && npm run build:lib",
+    "build": "yarn build:bindings && yarn build:lib",
     "build:lib": "tsc",
     "build:configure": "node-gyp configure",
     "build:bindings": "node-gyp build",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
-    "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
+    "benchmark": "yarn benchmark:methods && yarn benchmark:profiler && yarn benchmark:server && yarn benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
@@ -56,7 +56,7 @@
     "node",
     "performance"
   ],
-  "author": "jonas.badalic@sentry.io",
+  "author": "Sentry",
   "license": "MIT",
   "dependencies": {
     "@sentry/hub": "^7.16.0",
