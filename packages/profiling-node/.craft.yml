@@ -1,0 +1,10 @@
+github:
+  owner: getsentry
+  repo: profiling-node
+changelog: CHANGES
+changelogPolicy: auto
+targets:
+  - name: npm
+    access: public
+  - name: github
+    tagPrefix: v

@@ -1,0 +1,157 @@
+## 0.0.12
+
+### Various fixes & improvements
+
+- fix(timestamps): int64_t (#69) by @JonasBa
+
+## 0.0.11
+
+### Various fixes & improvements
+
+- fix(stack): use unique pointer not i (#68) by @JonasBa
+
+## 0.0.10
+
+### Various fixes & improvements
+
+- fix(profile): wrong stack indexing insertion (#67) by @JonasBa
+- docs: readme semicolon (#66) by @scttcper
+- Update README.md (595ebb99) by @JonasBa
+
+## 0.0.9
+
+### Various fixes & improvements
+
+- fix(envelope): missmatch in type guard (#65) by @JonasBa
+- feat(binaries): precompile binaries (#64) by @JonasBa
+
+## 0.0.8
+
+### Various fixes & improvements
+
+- fix(profiling): remove build script (c5cf7353) by @JonasBa
+
+## 0.0.7
+
+### Various fixes & improvements
+
+- ref(sdk): remove spans (#62) by @JonasBa
+- feat(profiling): use env variable instead of compile time (#61) by @JonasBa
+
+## 0.0.6
+
+### Various fixes & improvements
+
+- ref(sdk): add temporary spans (#60) by @JonasBa
+- ref(sdk): remove sdk tag (#59) by @JonasBa
+- fix: fix javascript repo reference (af046f28) by @JonasBa
+
+## 0.0.5
+
+### Various fixes & improvements
+
+- feat(profiling): index stacks (#58) by @JonasBa
+- test(config): skip benchmarks (ee8e4d90) by @JonasBa
+- chore(pkg): add github (#57) by @JonasBa
+- test(samples): bump min samples (123928a2) by @JonasBa
+
+## 0.0.4
+
+### Various fixes & improvements
+
+- chore(license): switch to MIT (#56) by @JonasBa
+- fix(release): js not sh (27482070) by @JonasBa
+
+## 0.0.3
+
+### Various fixes & improvements
+
+- fix(test): fix setTag test (096619d9) by @JonasBa
+- chore(deps): bump (331e8450) by @JonasBa
+- fix(profiler): fix typo (f1cb8823) by @JonasBa
+- feat(profiler): set logging mode as tag (f2517f69) by @JonasBa
+
+## 0.0.2
+
+### Various fixes & improvements
+
+- ref(benchmark): add jest benchmark (#54) by @JonasBa
+- build(gyp): add compile time flag for profiler logging strategy (#55) by @JonasBa
+
+## 0.0.1
+
+### Various fixes & improvements
+
+- feat(profile): log call site info (#53) by @JonasBa
+- fix(benchmark): recompute json (eddcad28) by @JonasBa
+- fix(benchmark): pass both options (b9911726) by @JonasBa
+- fix(benchmark): pass option to compare (ce805797) by @JonasBa
+- fix(benchmark): run node benchmark instead of compare (0a4d9abb) by @JonasBa
+- fix(benchmark): run node benchmark (595a4f96) by @JonasBa
+- fix(scripts): stash and apply script results (3d4c92df) by @JonasBa
+- fix(scripts): stash and apply script results (a9e7f360) by @JonasBa
+- fix(benchmark): allow running between two commits (#52) by @JonasBa
+- test(threshold) increase max sample threshold (847f42ac) by @JonasBa
+- test(threshold) increase max sample threshold (6d10b885) by @JonasBa
+- feat(profiling): adjust sampling frequency (#50) by @JonasBa
+- chore(github): add issue bug template (d5b488ad) by @JonasBa
+- chore(github): add feature template (f137585b) by @JonasBa
+- chore(github): add pull request template (759237f0) by @JonasBa
+
+## 0.0.0-alpha.6
+
+### Various fixes & improvements
+
+- feat(sdk): use uuid to avoid ignored transactions (#47) by @JonasBa
+- fix(profiling): correct ts (b46547f6) by @JonasBa
+- feat(sdk): add max duration timeout (#46) by @JonasBa
+- fix(units): report ns to backend (#45) by @JonasBa
+- feat(timestamps): more accurate timestamps (#44) by @JonasBa
+- ref(hubextension): explain finish reference (05924fe7) by @JonasBa
+- fix(sampling): remove unnecessary negate (1b6fdab5) by @JonasBa
+- fix(profile): rename fields and eval device info only once (#43) by @JonasBa
+- feat(skd): add better messaging when we cannot patch the lib (#42) by @JonasBa
+- chore(github): add contributing (#41) by @JonasBa
+
+## 0.0.0-alpha.5
+
+### Various fixes & improvements
+
+- fix(c++): make sure we use unique_id (#40) by @JonasBa
+- chore(readme): improve wording (5f439bba) by @JonasBa
+- chore(workers): remove disclaimer as we do not support node 10 (ac15d4f7) by @JonasBa
+
+## 0.0.0-alpha.4
+
+### Various fixes & improvements
+
+- chore(readme): overhead explanation (c159e6bd) by @JonasBa
+- chore(readme): overhead explanation (58d865c5) by @JonasBa
+- feat(playground): add express node test (#39) by @JonasBa
+- feat(c++): cleanup addon data (#38) by @JonasBa
+- feat(playground): add express integration (#37) by @JonasBa
+- chore(readme): remove todo (505888e7) by @JonasBa
+
+## 0.0.0-alpha.3
+
+### Various fixes & improvements
+
+- deps(nan): move to dependencies (#36) by @JonasBa
+
+## 0.0.0-alpha.2
+
+### Various fixes & improvements
+
+- feat(build): move node-gyp to dep (#33) by @JonasBa
+
+## 0.0.0-alpha.1
+
+### Various fixes & improvements
+
+- ci: use npm pack (#32) by @JonasBa
+- fix(ci): remove dependant job (#31) by @JonasBa
+- ci(craft): setup build (#30) by @JonasBa
+- fix(ci): run ci for release (#28) by @JonasBa
+- chore(craft): add bump version script (#26) by @JonasBa
+- chore(changelog): add changelog (#25) by @JonasBa
+

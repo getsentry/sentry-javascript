@@ -1,0 +1,273 @@
+{
+  "title": "test",
+  "startValue": 346335885917,
+  "endValue": 346336166751,
+  "type": "sampled",
+  "threadID": 10,
+  "topDownRoot": {
+    "name": "(root)",
+    "scriptName": "",
+    "scriptId": 0,
+    "lineNumber": 0,
+    "columnNumber": 0,
+    "hitCount": 0,
+    "children": [
+      {
+        "name": "",
+        "scriptName": "node:internal/main/run_main_module",
+        "scriptId": 94,
+        "lineNumber": 1,
+        "columnNumber": 1,
+        "hitCount": 0,
+        "children": [
+          {
+            "name": "executeUserEntryPoint",
+            "scriptName": "node:internal/modules/run_main",
+            "scriptId": 119,
+            "lineNumber": 70,
+            "columnNumber": 31,
+            "hitCount": 0,
+            "children": [
+              {
+                "name": "Module._load",
+                "scriptName": "node:internal/modules/cjs/loader",
+                "scriptId": 102,
+                "lineNumber": 757,
+                "columnNumber": 24,
+                "hitCount": 0,
+                "children": [
+                  {
+                    "name": "Module.load",
+                    "scriptName": "node:internal/modules/cjs/loader",
+                    "scriptId": 102,
+                    "lineNumber": 969,
+                    "columnNumber": 33,
+                    "hitCount": 0,
+                    "children": [
+                      {
+                        "name": "Module._extensions..js",
+                        "scriptName": "node:internal/modules/cjs/loader",
+                        "scriptId": 102,
+                        "lineNumber": 1112,
+                        "columnNumber": 37,
+                        "hitCount": 0,
+                        "children": [
+                          {
+                            "name": "Module._compile",
+                            "scriptName": "node:internal/modules/cjs/loader",
+                            "scriptId": 102,
+                            "lineNumber": 1057,
+                            "columnNumber": 37,
+                            "hitCount": 0,
+                            "children": [
+                              {
+                                "name": "",
+                                "scriptName": "/Users/jonasbadalic/code/node-profiler/test.js",
+                                "scriptId": 120,
+                                "lineNumber": 1,
+                                "columnNumber": 1,
+                                "hitCount": 0,
+                                "children": [
+                                  {
+                                    "name": "iife",
+                                    "scriptName": "/Users/jonasbadalic/code/node-profiler/test.js",
+                                    "scriptId": 120,
+                                    "lineNumber": 5,
+                                    "columnNumber": 21,
+                                    "hitCount": 0,
+                                    "children": [
+                                      {
+                                        "name": "",
+                                        "scriptName": "",
+                                        "scriptId": 0,
+                                        "lineNumber": 0,
+                                        "columnNumber": 0,
+                                        "hitCount": 0,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "(idle)",
+        "scriptName": "",
+        "scriptId": 0,
+        "lineNumber": 0,
+        "columnNumber": 0,
+        "hitCount": 18,
+        "children": []
+      },
+      {
+        "name": "iife",
+        "scriptName": "/Users/jonasbadalic/code/node-profiler/test.js",
+        "scriptId": 120,
+        "lineNumber": 5,
+        "columnNumber": 21,
+        "hitCount": 0,
+        "children": [
+          {
+            "name": "fib",
+            "scriptName": "/Users/jonasbadalic/code/node-profiler/test.js",
+            "scriptId": 120,
+            "lineNumber": 9,
+            "columnNumber": 15,
+            "hitCount": 0,
+            "children": [
+              {
+                "name": "consoleCall",
+                "scriptName": "",
+                "scriptId": 0,
+                "lineNumber": 0,
+                "columnNumber": 0,
+                "hitCount": 0,
+                "children": [
+                  {
+                    "name": "log",
+                    "scriptName": "node:internal/console/constructor",
+                    "scriptId": 37,
+                    "lineNumber": 359,
+                    "columnNumber": 6,
+                    "hitCount": 1,
+                    "children": [
+                      {
+                        "name": "value",
+                        "scriptName": "node:internal/console/constructor",
+                        "scriptId": 37,
+                        "lineNumber": 321,
+                        "columnNumber": 20,
+                        "hitCount": 0,
+                        "children": [
+                          {
+                            "name": "value",
+                            "scriptName": "node:internal/console/constructor",
+                            "scriptId": 37,
+                            "lineNumber": 300,
+                            "columnNumber": 20,
+                            "hitCount": 0,
+                            "children": [
+                              {
+                                "name": "getColorDepth",
+                                "scriptName": "node:internal/tty",
+                                "scriptId": 173,
+                                "lineNumber": 106,
+                                "columnNumber": 23,
+                                "hitCount": 1,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name": "value",
+                        "scriptName": "node:internal/console/constructor",
+                        "scriptId": 37,
+                        "lineNumber": 258,
+                        "columnNumber": 20,
+                        "hitCount": 0,
+                        "children": [
+                          {
+                            "name": "Writable.write",
+                            "scriptName": "node:internal/streams/writable",
+                            "scriptId": 63,
+                            "lineNumber": 333,
+                            "columnNumber": 36,
+                            "hitCount": 0,
+                            "children": [
+                              {
+                                "name": "_write",
+                                "scriptName": "node:internal/streams/writable",
+                                "scriptId": 63,
+                                "lineNumber": 283,
+                                "columnNumber": 16,
+                                "hitCount": 0,
+                                "children": [
+                                  {
+                                    "name": "writeOrBuffer",
+                                    "scriptName": "node:internal/streams/writable",
+                                    "scriptId": 63,
+                                    "lineNumber": 365,
+                                    "columnNumber": 23,
+                                    "hitCount": 0,
+                                    "children": [
+                                      {
+                                        "name": "Socket._write",
+                                        "scriptName": "node:net",
+                                        "scriptId": 170,
+                                        "lineNumber": 806,
+                                        "columnNumber": 35,
+                                        "hitCount": 0,
+                                        "children": [
+                                          {
+                                            "name": "Socket._writeGeneric",
+                                            "scriptName": "node:net",
+                                            "scriptId": 170,
+                                            "lineNumber": 769,
+                                            "columnNumber": 42,
+                                            "hitCount": 0,
+                                            "children": [
+                                              {
+                                                "name": "writeGeneric",
+                                                "scriptName": "node:internal/stream_base_commons",
+                                                "scriptId": 87,
+                                                "lineNumber": 147,
+                                                "columnNumber": 22,
+                                                "hitCount": 0,
+                                                "children": [
+                                                  {
+                                                    "name": "handleWriteReq",
+                                                    "scriptName": "node:internal/stream_base_commons",
+                                                    "scriptId": 87,
+                                                    "lineNumber": 45,
+                                                    "columnNumber": 24,
+                                                    "hitCount": 0,
+                                                    "children": [
+                                                      {
+                                                        "name": "writeUtf8String",
+                                                        "scriptName": "",
+                                                        "scriptId": 0,
+                                                        "lineNumber": 0,
+                                                        "columnNumber": 0,
+                                                        "hitCount": 2,
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

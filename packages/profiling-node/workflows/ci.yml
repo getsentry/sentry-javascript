@@ -1,0 +1,38 @@
+name: 'ci'
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'release/*'
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - run: npm ci
+      - run: npm run lint
+  build-test-matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-2019, ubuntu-latest]
+        node-version: [14.x, 16.x, 18.x]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm run clean
+
+      - name: Setup windows build tools
+        uses: microsoft/setup-msbuild@v1.1
+        if: ${{ runner.os == 'Windows' }}
+
+      - run: npm install
+      - run: npm run build:configure
+      - run: npm run build
+      - run: npm run test
