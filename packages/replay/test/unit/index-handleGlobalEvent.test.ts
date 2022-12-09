@@ -4,7 +4,7 @@ import { REPLAY_EVENT_NAME } from '../../src/constants';
 import { ReplayContainer } from './../../src/replay';
 import { Error } from './../fixtures/error';
 import { Transaction } from './../fixtures/transaction';
-import { resetSdkMock } from './../mocks';
+import { resetSdkMock } from './../mocks/resetSdkMock';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();

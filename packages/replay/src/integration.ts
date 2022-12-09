@@ -30,8 +30,13 @@ export class Replay implements Integration {
 
   readonly options: ReplayPluginOptions;
 
-  /** In tests, this is only called the first time */
-  protected _hasCalledSetupOnce: boolean = false;
+  protected get _isInitialized(): boolean {
+    return _initialized;
+  }
+
+  protected set _isInitialized(value: boolean) {
+    _initialized = value;
+  }
 
   private _replay?: ReplayContainer;
 
@@ -112,13 +117,13 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    if (isBrowser() && _initialized) {
+    if (isBrowser() && this._isInitialized) {
       const error = new Error('Multiple Sentry Session Replay instances are not supported');
       captureInternalException(error);
       throw error;
     }
 
-    _initialized = true;
+    this._isInitialized = true;
   }
 
   /**
@@ -137,7 +142,6 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     this._setup();
-    this._hasCalledSetupOnce = true;
 
     // XXX: See method comments above
     setTimeout(() => this.start());

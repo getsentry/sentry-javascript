@@ -3,7 +3,7 @@ import { getCurrentHub } from '@sentry/core';
 import { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { DomHandler, MockTransportSend } from './../types';
-import { MockSdkParams } from './mockSdk';
+import { mockSdk, MockSdkParams } from './mockSdk';
 
 export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkParams): Promise<{
   domHandler: DomHandler;
@@ -36,7 +36,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
   const SentryCore = await import('@sentry/core');
   const spyCaptureException = jest.spyOn(SentryCore, 'captureException');
 
-  const { mockSdk } = await import('./mockSdk');
   const { replay } = await mockSdk({
     replayOptions,
     sentryOptions,
