@@ -10,6 +10,7 @@ import {
 import { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
+  dynamicRequire,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
@@ -124,8 +125,11 @@ export function init(options: NodeOptions = {}): void {
   const nodeVersion = parseSemver(process.versions.node);
 
   if (options.includeStackLocals && (nodeVersion.major || 0) >= 14) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { LocalVariables } = require('./integrations/localvariables');
+    const { LocalVariables } = dynamicRequire(
+      module,
+      './integrations/localvariables',
+    ) as typeof import('./integrations/localvariables');
+
     options.defaultIntegrations.push(new LocalVariables());
   }
 
