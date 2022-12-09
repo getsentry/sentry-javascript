@@ -8,7 +8,7 @@
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
 
-#ifndef PROFILER_FORMAT 
+#ifndef PROFILER_FORMAT
 #define PROFILER_FORMAT FORMAT_SAMPLED
 #endif
 
@@ -16,8 +16,8 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a 
-// given time. The Profiler is a context aware class that is bound to an isolate. 
+// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a
+// given time. The Profiler is a context aware class that is bound to an isolate.
 static const uint8_t MAX_STACK_DEPTH = 128;
 static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
@@ -25,21 +25,21 @@ static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
 static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
 v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
 
-// Allow users to override the default logging mode via env variable. This is useful 
-// because sometimes the flow of the profiled program can be to execute many sequential 
+// Allow users to override the default logging mode via env variable. This is useful
+// because sometimes the flow of the profiled program can be to execute many sequential
 // transaction - in that case, it may be preferable to set eager logging to avoid paying the
-// high cost of profiling for each individual transaction (one example for this are jest 
+// high cost of profiling for each individual transaction (one example for this are jest
 // tests when run with --runInBand option).
-v8::CpuProfilingLoggingMode getLoggingMode(){
+v8::CpuProfilingLoggingMode getLoggingMode() {
   char* logging_mode = getenv("SENTRY_PROFILER_LOGGING_MODE");
-  if(logging_mode){
-    if(std::strcmp(logging_mode, "eager") == 0) {
+  if (logging_mode) {
+    if (std::strcmp(logging_mode, "eager") == 0) {
       return v8::CpuProfilingLoggingMode::kEagerLogging;
-    } if(std::strcmp(logging_mode, "lazy") == 0) {
+    } if (std::strcmp(logging_mode, "lazy") == 0) {
       return v8::CpuProfilingLoggingMode::kLazyLogging;
     }
   }
-  
+
   return LOGGING_MODE;
 }
 class Profiler {
@@ -47,8 +47,8 @@ public:
   explicit Profiler(v8::Isolate* isolate):
     cpu_profiler(
       v8::CpuProfiler::New(isolate, NAMING_MODE, getLoggingMode())) {
-        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
-    }
+    node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+  }
 
   v8::CpuProfiler* cpu_profiler;
 
@@ -112,8 +112,8 @@ v8::Local<v8::Object> CreateFrameNode(
   Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), abs_path);
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
-  Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"), 
-  Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
+  Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"),
+    Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
 
   // @TODO Deopt info needs to be added to backend
   // size_t size = deoptInfos.size();
@@ -175,7 +175,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     uint32_t stack_index = unique_stack_id;
     const v8::CpuProfileNode* node = profile->GetSample(i);
 
-    // If a node was only on top of the stack once, then it will only ever 
+    // If a node was only on top of the stack once, then it will only ever
     // be inserted once and there is no need for hashing.
     if (node->GetHitCount() > 1) {
       std::string node_hash = hashCpuProfilerNodeByPath(node);
