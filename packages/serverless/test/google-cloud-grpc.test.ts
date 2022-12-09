@@ -85,9 +85,7 @@ describe('GoogleCloudGrpc tracing', () => {
     nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, []);
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
-    spyConnect.mockClear();
+    jest.clearAllMocks();
   });
   afterAll(() => {
     nock.restore();
@@ -118,8 +116,7 @@ describe('GoogleCloudGrpc tracing', () => {
     });
 
     afterEach(() => {
-      dnsLookup.mockReset();
-      resolveTxt.mockReset();
+      jest.resetAllMocks();
     });
 
     test('publish', async () => {

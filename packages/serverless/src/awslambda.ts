@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
+import { captureException } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { captureException, captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
+import { captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { Integration } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, dsnFromString, dsnToString, isString, logger } from '@sentry/utils';

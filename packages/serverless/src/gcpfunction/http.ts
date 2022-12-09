@@ -1,4 +1,5 @@
-import { AddRequestDataToEventOptions, captureException, flush, getCurrentHub } from '@sentry/node';
+import { captureException } from '@sentry/core';
+import { AddRequestDataToEventOptions, flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { baggageHeaderToDynamicSamplingContext, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 

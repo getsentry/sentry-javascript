@@ -16,8 +16,7 @@ describe('AWSServices', () => {
     new AWSServices().setupOnce();
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    jest.clearAllMocks();
   });
   afterAll(() => {
     nock.restore();

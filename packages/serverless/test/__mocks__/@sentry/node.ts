@@ -35,34 +35,6 @@ export const init = jest.fn();
 export const addGlobalEventProcessor = jest.fn();
 export const getCurrentHub = jest.fn(() => fakeHub);
 export const startTransaction = jest.fn(_ => fakeTransaction);
-export const captureException = jest.fn();
 export const captureMessage = jest.fn();
 export const withScope = jest.fn(cb => cb(fakeScope));
 export const flush = jest.fn(() => Promise.resolve());
-
-export const resetMocks = (): void => {
-  fakeTransaction.setHttpStatus.mockClear();
-  fakeTransaction.finish.mockClear();
-  fakeTransaction.startChild.mockClear();
-  fakeSpan.finish.mockClear();
-  fakeHub.configureScope.mockClear();
-  fakeHub.pushScope.mockClear();
-  fakeHub.popScope.mockClear();
-  fakeHub.getScope.mockClear();
-
-  fakeScope.addEventProcessor.mockClear();
-  fakeScope.setTransactionName.mockClear();
-  fakeScope.setTag.mockClear();
-  fakeScope.setContext.mockClear();
-  fakeScope.setSpan.mockClear();
-  fakeScope.getTransaction.mockClear();
-
-  init.mockClear();
-  addGlobalEventProcessor.mockClear();
-  getCurrentHub.mockClear();
-  startTransaction.mockClear();
-  captureException.mockClear();
-  captureMessage.mockClear();
-  withScope.mockClear();
-  flush.mockClear();
-};

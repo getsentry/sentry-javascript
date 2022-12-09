@@ -1,4 +1,5 @@
-import { captureException, flush, getCurrentHub } from '@sentry/node';
+import { captureException } from '@sentry/core';
+import { flush, getCurrentHub } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';

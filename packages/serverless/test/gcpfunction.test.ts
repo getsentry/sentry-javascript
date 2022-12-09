@@ -1,3 +1,4 @@
+import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import * as domain from 'domain';
 
@@ -22,8 +23,7 @@ import {
 
 describe('GCPFunction', () => {
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    jest.clearAllMocks();
   });
 
   async function handleHttp(fn: HttpFunction, trace_headers: { [key: string]: string } | null = null): Promise<void> {
@@ -195,7 +195,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -312,7 +312,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -375,7 +375,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -431,7 +431,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -459,7 +459,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
     });
   });
 
@@ -525,7 +525,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -581,7 +581,7 @@ describe('GCPFunction', () => {
       expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeTransaction.finish).toBeCalled();
       expect(Sentry.flush).toBeCalled();
@@ -610,7 +610,7 @@ describe('GCPFunction', () => {
       // @ts-ignore see "Why @ts-ignore" note
       expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
 
-      expect(Sentry.captureException).toBeCalledWith(error);
+      expect(SentryCore.captureException).toBeCalledWith(error);
     });
   });
 

@@ -23,8 +23,7 @@ describe('GoogleCloudHttp tracing', () => {
       .reply(200, '{"access_token":"a.b.c","expires_in":3599,"token_type":"Bearer"}');
   });
   afterEach(() => {
-    // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    jest.clearAllMocks();
   });
   afterAll(() => {
     nock.restore();

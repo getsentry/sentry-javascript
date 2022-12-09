@@ -16,6 +16,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/core": "7.24.2",
     "@sentry/node": "7.24.2",
     "@sentry/tracing": "7.24.2",
     "@sentry/types": "7.24.2",
