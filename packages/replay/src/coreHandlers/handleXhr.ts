@@ -1,7 +1,7 @@
 import { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import type { ReplayContainer } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
-import { isIngestHost } from '../util/isIngestHost';
+import { shouldFilterRequest } from '../util/shouldFilterRequest';
 
 // From sentry-javascript
 // e.g. https://github.com/getsentry/sentry-javascript/blob/c7fc025bf9fa8c073fdb56351808ce53909fbe45/packages/utils/src/instrument.ts#L180
@@ -47,8 +47,7 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
 
   const { method, url, status_code: statusCode } = handlerData.xhr.__sentry_xhr__ || {};
 
-  // Do not capture fetches to Sentry ingestion endpoint
-  if (url === undefined || isIngestHost(url)) {
+  if (url === undefined) {
     return null;
   }
 
@@ -76,6 +75,10 @@ export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: Xh
     const result = handleXhr(handlerData);
 
     if (result === null) {
+      return;
+    }
+
+    if (shouldFilterRequest(replay, result.name)) {
       return;
     }
 
