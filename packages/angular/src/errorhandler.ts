@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
-import { captureException } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 import { addExceptionMechanism } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
@@ -55,8 +55,10 @@ class SentryErrorHandler implements AngularErrorHandler {
       captureException(extractedError, scope => {
         scope.addEventProcessor(event => {
           addExceptionMechanism(event, {
+            // TODO: Should this be 'instrument'?
             type: 'angular',
             handled: false,
+            // will default to `caughtByUser: false`
           });
 
           return event;

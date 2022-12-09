@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@sentry/browser": "7.24.2",
+    "@sentry/core": "7.24.2",
     "@sentry/types": "7.24.2",
     "@sentry/utils": "7.24.2",
     "tslib": "^2.0.0"

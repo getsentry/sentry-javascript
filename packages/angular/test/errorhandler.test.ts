@@ -1,14 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import * as SentryBrowser from '@sentry/browser';
 import { Scope } from '@sentry/browser';
+import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import * as SentryUtils from '@sentry/utils';
 
 import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
 
 const FakeScope = new Scope();
 
-jest.mock('@sentry/browser', () => {
-  const original = jest.requireActual('@sentry/browser');
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
   return {
     ...original,
     captureException: (err: unknown, cb: (arg0?: unknown) => unknown) => {
@@ -18,7 +19,7 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+const captureExceptionSpy = jest.spyOn(SentryCore, 'captureException');
 
 jest.spyOn(console, 'error').mockImplementation();
 
