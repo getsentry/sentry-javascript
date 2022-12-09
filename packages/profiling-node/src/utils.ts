@@ -67,15 +67,18 @@ export interface Profile {
     relative_end_ns: string;
   }[];
 }
-
+/**
+ * Checks if profile has already been processed.
+ * @param profile
+ * @returns {Boolean}
+ */
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
   return !('thread_metadata' in profile);
 }
 
-// Enriches the profile with threadId of the current thread.
-// This is done in node as we seem to not be able to get the info from C native code.
 /**
- *
+ * Enriches the profile with threadId of the current thread.
+ * This is done in node as we seem to not be able to get the info from C native code.
  */
 export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
@@ -102,7 +105,10 @@ export interface ProfiledEvent extends Event {
   };
 }
 
-/** Extract sdk info from from the API metadata */
+/**
+ * Extract sdk info from from the API metadata
+ * @returns {SdkInfo | undefined}
+ */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
   if (!metadata || !metadata.sdk) {
     return undefined;
@@ -114,6 +120,9 @@ function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | unde
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
+ * @param event
+ * @param sdkInfo
+ * @returns {Event}
  **/
 function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
@@ -127,6 +136,14 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   return event;
 }
 
+/**
+ * Creates envelope headers for the event.
+ * @param event
+ * @param sdkInfo
+ * @param tunnel
+ * @param dsn
+ * @returns {EventEnvelopeHeaders}
+ */
 function createEventEnvelopeHeaders(
   event: Event,
   sdkInfo: SdkInfo | undefined,
@@ -148,7 +165,12 @@ function createEventEnvelopeHeaders(
 }
 
 /**
- *
+ * Creates an event envelope with type profile and a profile payload
+ * @param event
+ * @param dsn
+ * @param metadata
+ * @param tunnel
+ * @returns {EventEnvelope}
  */
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
@@ -228,17 +250,20 @@ export function createProfilingEventEnvelope(
 }
 
 /**
- *
+ * Checks if transaction has an associated profile
+ * @param event
+ * @returns {Boolean}
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
-// Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
-// they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
-// profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
 /**
- *
+ * Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
+ * they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
+ * profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
+ * @param event
+ * @returns {Event}
  */
 export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
   if (!isProfiledTransactionEvent(event)) {

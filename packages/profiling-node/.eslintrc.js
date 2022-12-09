@@ -1,10 +1,10 @@
 module.exports = {
   env: {
-    node: true
+    node: true,
   },
-  extends: ['../node/.eslintrc.js'],
+  extends: ['../../.eslintrc.js'],
   ignorePatterns: ['playground/**/*', 'benchmarks/**/*'],
   rules: {
-    '@sentry-internal/sdk/no-async-await': 'off'
-  }
+    '@sentry-internal/sdk/no-async-await': 'off',
+  },
 };

@@ -16,15 +16,16 @@ export class ProfilingIntegration implements Integration {
   getCurrentHub?: () => Hub = undefined;
 
   /**
-   *
+   * Registers our global event processor and stores the getCurrentHub reference
    */
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
-
   /**
-   *
+   * Registers a global event handler that intercepts transaction events with profiling data and sends them to Sentry.
+   * @param event The event to process.
+   * @returns {Event} with the profile removed.
    */
   handleGlobalEvent(event: Event): Event {
     if (this.getCurrentHub === undefined) {

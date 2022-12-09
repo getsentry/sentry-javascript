@@ -4,7 +4,7 @@ import path from 'path';
 import { threadId } from 'worker_threads';
 
 /**
- *
+ * Finds the correct executable for the current platform and abi and returns the bindings module
  */
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   const name = `sentry_cpu_profiler-v${abi.getAbi(process.versions.node, 'node')}-${os.platform()}-${os.arch()}.node`;

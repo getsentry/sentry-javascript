@@ -2,6 +2,7 @@ import { getMainCarrier } from '@sentry/hub';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
+import { BaseNodeOptions } from '../../node/build/types/types';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -13,11 +14,10 @@ type StartTransaction = (
   customSamplingContext?: CustomSamplingContext,
 ) => Transaction;
 
-// Wraps startTransaction and stopTransaction with profiling related logic.
-// startProfiling is called after the call to startTransaction in order to avoid our own code from
-// being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
 /**
- *
+ * Wraps startTransaction and stopTransaction with profiling related logic.
+ * startProfiling is called after the call to startTransaction in order to avoid our own code from
+ * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
 export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
@@ -26,9 +26,8 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     customSamplingContext?: CustomSamplingContext,
   ): Transaction {
     const client = this.getClient();
-    // @ts-expect-error profilesSampleRate is not part of the options type yet
-    const profilesSampleRate = client?.getOptions().profilesSampleRate ?? undefined;
-    const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
+    const profilesSampleRate = (client?.getOptions() as BaseNodeOptions).profilesSampleRate ?? undefined;
+    const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // We create "unique" transaction names to avoid concurrent transactions with same names
     // from being ignored by the profiler. From here on, only this transaction name should be used when
@@ -69,7 +68,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     let profile: ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null = null;
 
     /**
+     *  Handle stopProfiling and timeout logic. Ensures that multiple calls to stopProfiling are idempotent.
+     *  and the profiler is not unnecessarily stopped for any possibly overlapping transactions.
      *
+     * @returns {Profile} if it exists, otherwise null.
      */
     function onProfileHandler(): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
       // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
@@ -114,9 +116,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     }, MAX_PROFILE_DURATION_MS);
 
     /**
-     *
+     * Wraps the original finish method to ensure that the profiling is stopped and the profile is processed.
+     * Returns whatever the original finish method returns.
+     * @returns {void}
      */
-    function profilingWrappedTransactionFinish() {
+    function profilingWrappedTransactionFinish(): Transaction {
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
       const profile = onProfileHandler();
