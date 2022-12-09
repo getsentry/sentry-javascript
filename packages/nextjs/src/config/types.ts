@@ -91,8 +91,9 @@ export type UserSentryOptions = {
   // exact match.
   excludeServerRoutes?: Array<RegExp | string>;
 
-  // TODO
-  rewritesTunnel?: string;
+  // Tunnel Sentry requests through the Next.js server to circumvent ad-blockers blocking Sentry events from being sent.
+  // This option should be a path (for example: '/error-monitoring').
+  tunnelRoute?: string;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;

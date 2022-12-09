@@ -696,7 +696,7 @@ function addValueInjectionLoader(
       : undefined),
 
     // `rewritesTunnel` set by the user in Next.js config
-    __sentryRewritesTunnelPath__: userSentryOptions.rewritesTunnel,
+    __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
   };
 
   newConfig.module.rules.push(

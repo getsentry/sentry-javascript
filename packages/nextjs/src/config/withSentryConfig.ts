@@ -41,8 +41,8 @@ function getFinalConfigObject(
   const { sentry: userSentryOptions } = incomingUserNextConfigObject;
   delete incomingUserNextConfigObject.sentry;
 
-  if (userSentryOptions?.rewritesTunnel) {
-    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.rewritesTunnel);
+  if (userSentryOptions?.tunnelRoute) {
+    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
   }
 
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
