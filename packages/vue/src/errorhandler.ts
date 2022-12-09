@@ -1,4 +1,5 @@
 import { getCurrentHub } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 
 import { formatComponentName, generateComponentTrace } from './components';
 import { Options, ViewModel, Vue } from './types';
@@ -31,7 +32,7 @@ export const attachErrorHandler = (app: Vue, options: Options): void => {
     setTimeout(() => {
       getCurrentHub().withScope(scope => {
         scope.setContext('vue', metadata);
-        getCurrentHub().captureException(error);
+        captureException(error);
       });
     });
 

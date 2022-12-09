@@ -1,4 +1,5 @@
-import { captureException, WINDOW } from '@sentry/browser';
+import { WINDOW } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 import { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 import { getActiveTransaction } from './tracing';

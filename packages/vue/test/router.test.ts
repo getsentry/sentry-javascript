@@ -1,11 +1,11 @@
-import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import { Transaction } from '@sentry/types';
 
 import { vueRouterInstrumentation } from '../src';
 import { Route } from '../src/router';
 import * as vueTracing from '../src/tracing';
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+const captureExceptionSpy = jest.spyOn(SentryCore, 'captureException');
 
 const mockVueRouter = {
   onError: jest.fn<void, [(error: Error) => void]>(),
