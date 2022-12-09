@@ -15,12 +15,12 @@ if [[ -n $(git status -s) ]]; then
 fi
 
 git checkout "$BEFORE";
-npm run build:benchmark:format;
-RUN_NAME=$BEFORE npm run benchmark:format;
+yarn build:benchmark:format;
+RUN_NAME=$BEFORE yarn benchmark:format;
 git stash;
 git checkout "$AFTER";
 git stash pop;
-npm run build:benchmark:format;
-RUN_NAME=$AFTER npm run benchmark:format;
-BEFORE="$BEFORE" AFTER="$AFTER" npm run benchmark:format;
+yarn build:benchmark:format;
+RUN_NAME=$AFTER yarn benchmark:format;
+BEFORE="$BEFORE" AFTER="$AFTER" yarn benchmark:format;
 git restore .;

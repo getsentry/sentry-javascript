@@ -8,14 +8,14 @@ function recompileFromSource() {
   try {
     // eslint-disable-next-line no-console
     console.log('@sentry/profiling-node: Precompiled binary not found, compiling from source...');
-    cp.execSync(`npm run build:configure --arch=${os.arch()}`);
-    cp.execSync('npm run build:bindings');
+    cp.execSync(`yarn build:configure --arch=${os.arch()}`);
+    cp.execSync('yarn build:bindings');
     cp.execSync('node scripts/copy-target.js');
     return true;
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(
-      '@sentry/profiling-node: Failed to build from source, please report this a bug at https://github.com/getsentry/profiling-node/issues/new?assignees=&labels=Type%3A+Bug&template=bug.yml'
+      '@sentry/profiling-node: Failed to build from source, please report this a bug at https://github.com/getsentry/profiling-node/issues/new?assignees=&labels=Type%3A+Bug&template=bug.yml',
     );
     return false;
   }

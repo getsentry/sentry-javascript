@@ -20,7 +20,7 @@ jobs:
         target: [x64]
         host: [x64]
         # arm64 is not supported by gh runners yet
-        # include: 
+        # include:
         #   - os: macos-latest
         #     node-version: 18.x
         #     target: arm64
@@ -51,17 +51,17 @@ jobs:
         run: npm install
 
       - name: Configure gyp
-        run: npm run build:configure --arch=${{ matrix.target }}
+        run: yarn build:configure --arch=${{ matrix.target }}
 
       - name: Build bindings
-        run: npm run build:bindings --arch=${{ matrix.target }}
+        run: yarn build:bindings --arch=${{ matrix.target }}
 
       - name: Test
-        run: npm run test
-      
+        run: yarn test
+
       - name: Copy Binary
         run: node scripts/copy-target.js
-      
+
       - name: Log binary
         run: du -sh binaries/*
 
@@ -84,16 +84,16 @@ jobs:
         with:
           node-version: 18
 
-      - run: npm ci
+      - run: yarn install --frozen-lockfile
 
-      - run: npm run build:lib
+      - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
-        with: 
+        with:
           name: binaries-${{ github.sha }}
           path: binaries
       - run: ls -l binaries
-      - run: npm pack
+      - run: yarn pack
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
@@ -101,4 +101,3 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/*.tgz
-
