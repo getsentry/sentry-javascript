@@ -1,10 +1,5 @@
 name: Upload build artifacts
 on:
-  push:
-    branches:
-      - main
-      - release/**
-  pull_request:
   workflow_dispatch:
     inputs:
       commit:
@@ -79,7 +74,6 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/setup-node@v2
         with:
           node-version: 18
