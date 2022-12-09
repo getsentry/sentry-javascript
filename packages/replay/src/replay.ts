@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
+import { addGlobalEventProcessor, captureException, getCurrentHub, Scope, setContext } from '@sentry/core';
 import { Breadcrumb, Client, Event } from '@sentry/types';
 import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
@@ -40,7 +40,6 @@ import type {
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
-import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
@@ -160,7 +159,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If there is no session, then something bad has happened - can't continue
     if (!this.session) {
-      captureInternalException(new Error('Invalid session'));
+      this.handleException(new Error('No session found'));
       return;
     }
 
@@ -208,8 +207,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -239,8 +237,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -257,8 +254,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._stopRecording = undefined;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -273,14 +269,22 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.startRecording();
   }
 
+  /** A wrapper to conditionally capture exceptions. */
+  handleException(error: unknown): void {
+    __DEBUG_BUILD__ && logger.error('[Replay]', error);
+
+    if (this.options._experiments && this.options._experiments.captureExceptions) {
+      captureException(error);
+    }
+  }
+
   /** for tests only */
   clearSession(): void {
     try {
       deleteSession();
       this.session = undefined;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -358,8 +362,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._hasInitializedCoreListeners = true;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
 
     // _performanceObserver //
@@ -387,8 +390,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._performanceObserver = null;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -827,8 +829,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
       });
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -1021,12 +1022,11 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.resetRetries();
       return true;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
       // Capture error for every failed replay
       setContext('Replays', {
         _retryCount: this._retryCount,
       });
-      captureInternalException(err);
+      this.handleException(err);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload

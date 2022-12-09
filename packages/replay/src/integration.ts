@@ -5,7 +5,6 @@ import { Integration } from '@sentry/types';
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
-import { captureInternalException } from './util/captureInternalException';
 import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
@@ -51,6 +50,7 @@ export class Replay implements Integration {
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
+    _experiments = {},
     blockClass = 'sentry-block',
     ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
@@ -76,6 +76,7 @@ export class Replay implements Integration {
       useCompression,
       maskAllText,
       blockAllMedia,
+      _experiments,
     };
 
     if (typeof sessionSampleRate === 'number') {
@@ -118,9 +119,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     if (isBrowser() && this._isInitialized) {
-      const error = new Error('Multiple Sentry Session Replay instances are not supported');
-      captureInternalException(error);
-      throw error;
+      throw new Error('Multiple Sentry Session Replay instances are not supported');
     }
 
     this._isInitialized = true;

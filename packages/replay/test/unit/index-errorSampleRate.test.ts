@@ -1,6 +1,4 @@
-jest.unmock('@sentry/browser');
-
-import { captureException } from '@sentry/browser';
+import { captureException } from '@sentry/core';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
