@@ -189,4 +189,24 @@ describe('integration settings', () => {
       expect(replay.recordingOptions.maskTextSelector).toBe('*');
     });
   });
+
+  describe('_experiments', () => {
+    it('works with defining _experiments in integration', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: { _experiments: { captureExceptions: true } },
+        sentryOptions: {},
+      });
+
+      expect(replay.options._experiments).toEqual({ captureExceptions: true });
+    });
+
+    it('works without defining _experiments in integration', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: {},
+        sentryOptions: {},
+      });
+
+      expect(replay.options._experiments).toEqual({});
+    });
+  });
 });

@@ -1,7 +1,3 @@
-jest.mock('./../../src/util/isInternal', () => ({
-  isInternal: jest.fn(() => true),
-}));
-
 import { EventType } from 'rrweb';
 
 import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
@@ -98,7 +94,6 @@ describe('Replay', () => {
   let mockRecord: RecordMock;
   let mockTransportSend: MockTransportSend;
   let domHandler: DomHandler;
-  let spyCaptureException: jest.MockedFunction<any>;
   const prevLocation = WINDOW.location;
 
   type MockSendReplayRequest = jest.MockedFunction<typeof replay.sendReplayRequest>;
@@ -110,7 +105,7 @@ describe('Replay', () => {
   });
 
   beforeEach(async () => {
-    ({ mockRecord, mockTransportSend, domHandler, replay, spyCaptureException } = await resetSdkMock({
+    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
       },
@@ -631,6 +626,9 @@ describe('Replay', () => {
     // Suppress console.errors
     const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
+    // Check errors
+    const spyHandleException = jest.spyOn(replay, 'handleException');
+
     expect(replay.session?.segmentId).toBe(0);
 
     // fail the first and second requests and pass the third one
@@ -662,11 +660,10 @@ describe('Replay', () => {
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
     expect(replay.sendReplay).toHaveBeenCalledTimes(4);
 
-    expect(spyCaptureException).toHaveBeenCalledTimes(5);
     // Retries = 3 (total tries = 4 including initial attempt)
     // + last exception is max retries exceeded
-    expect(spyCaptureException).toHaveBeenCalledTimes(5);
-    expect(spyCaptureException).toHaveBeenLastCalledWith(new Error('Unable to send Replay - max retries exceeded'));
+    expect(spyHandleException).toHaveBeenCalledTimes(5);
+    expect(spyHandleException).toHaveBeenLastCalledWith(new Error('Unable to send Replay - max retries exceeded'));
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);

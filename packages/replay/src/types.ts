@@ -105,6 +105,15 @@ export interface ReplayPluginOptions extends SessionOptions {
    * Block all media (e.g. images, svg, video) in recordings.
    */
   blockAllMedia: boolean;
+
+  /**
+   * _experiments allows users to enable experimental or internal features.
+   * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
+   * Experimental features can be added, changed or removed at any time.
+   *
+   * Default: undefined
+   */
+  _experiments?: Partial<{ captureExceptions: boolean }>;
 }
 
 // These are optional for ReplayPluginOptions because the plugin sets default values

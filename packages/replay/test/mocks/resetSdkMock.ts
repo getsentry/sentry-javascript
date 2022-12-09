@@ -10,7 +10,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
   mockRecord: RecordMock;
   mockTransportSend: MockTransportSend;
   replay: ReplayContainer;
-  spyCaptureException: jest.SpyInstance;
 }> {
   let domHandler: DomHandler;
 
@@ -28,13 +27,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
   });
   const { mockRrweb } = await import('./mockRrweb');
   const { record: mockRecord } = mockRrweb();
-
-  // Because of `resetModules`, we need to import and add a spy for
-  // `@sentry/core` here before `mockSdk` is called
-  // XXX: This is probably going to make writing future tests difficult and/or
-  // bloat this area of code
-  const SentryCore = await import('@sentry/core');
-  const spyCaptureException = jest.spyOn(SentryCore, 'captureException');
 
   const { replay } = await mockSdk({
     replayOptions,
@@ -54,6 +46,5 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
     mockRecord,
     mockTransportSend,
     replay,
-    spyCaptureException,
   };
 }
