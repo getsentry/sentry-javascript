@@ -4,12 +4,9 @@ module.exports = {
   },
   extends: ['../../.eslintrc.js'],
   ignorePatterns: ['playground/**/*', 'benchmarks/**/*'],
-  rules: {
-    '@sentry-internal/sdk/no-async-await': 'off',
-  },
   overrides: [
     {
-      files: ['**/*.ts'],
+      files: ['*.ts', '*.d.ts'],
       parserOptions: {
         project: ['tsconfig.json'],
       },
