@@ -441,7 +441,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: cd packages/profiling-node
-      - run: yarn clean
       - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
