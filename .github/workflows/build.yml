@@ -430,8 +430,7 @@ jobs:
         working-directory: packages/profiling-node
     name: Test @sentry/profiling-node on OS/Node matrix
     needs: [job_get_metadata]
-    # @TODO enable this
-    if: needs.job_get_metadata.outputs.changed_profiling_node == 'false' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
