@@ -3,6 +3,7 @@
 import { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
+import {WrapperOptions} from '../src/awslambda';
 
 const { wrapHandler } = Sentry.AWSLambda;
 
@@ -156,14 +157,16 @@ describe('AWSLambda', () => {
     });
 
     describe('captureAllSettledReasons', () => {
-      const error = new Error();
-      const error2 = new Error();
+      const error = new Error('error1');
+      const error2 = new Error('error2');
       const handler = () =>
         Promise.resolve([
           { status: 'rejected', reason: error },
           { status: 'fulfilled', value: undefined },
           { status: 'rejected', reason: error2 },
         ]);
+
+
       test.each([
         ['undefined', undefined],
         ['no options', {}],
@@ -182,23 +185,28 @@ describe('AWSLambda', () => {
           'contextBuilderFn returning CaptureContext',
           {
             captureAllSettledReasons: {
-              contextBuilderFn: () => ({ tags: {} }),
+              contextBuilderFn: jest.fn().mockResolvedValue({ tags: {promise: false} }),
             },
           },
-          { tags: {} },
+          { tags: {promise: false} },
         ],
         [
           'contextBuilderFn returning Promise<CaptureContext>',
           {
             captureAllSettledReasons: {
-              contextBuilderFn: () => Promise.resolve({ tags: { promise: true } }),
+              contextBuilderFn: jest.fn().mockResolvedValue(Promise.resolve({ tags: { promise: true } })),
             },
           },
           { tags: { promise: true } },
         ],
-      ])('captureAllSettledReasons is enable (%s)', async (_, config, expectedContext) => {
+      ])('captureAllSettledReasons is enable (%s)', async (_, config: Partial<WrapperOptions>, expectedContext) => {
         const wrappedHandler = wrapHandler(handler, config);
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        if(typeof config.captureAllSettledReasons !== 'boolean' && config.captureAllSettledReasons?.contextBuilderFn) {
+          expect(config.captureAllSettledReasons?.contextBuilderFn).toHaveBeenNthCalledWith(1, fakeEvent, error, 0);
+          expect(config.captureAllSettledReasons?.contextBuilderFn).toHaveBeenNthCalledWith(2, fakeEvent, error2, 2);
+          expect(config.captureAllSettledReasons?.contextBuilderFn).toBeCalledTimes(2);
+        }
         expect(Sentry.captureException).toHaveBeenNthCalledWith(1, error, expectedContext);
         expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2, expectedContext);
         expect(Sentry.captureException).toBeCalledTimes(2);
