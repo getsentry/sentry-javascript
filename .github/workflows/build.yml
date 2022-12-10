@@ -425,9 +425,13 @@ jobs:
           yarn test:integration
 
   job_profiling_node_integration_test:
+    defaults:
+      run:
+        working-directory: packages/profiling-node
     name: Test @sentry/profiling-node on OS/Node matrix
     needs: [job_get_metadata]
-    if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    # @TODO enable this
+    if: needs.job_get_metadata.outputs.changed_profiling_node == 'false' || github.event_name != 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -440,7 +444,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: cd packages/profiling-node
       - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
