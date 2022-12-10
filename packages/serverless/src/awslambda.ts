@@ -48,16 +48,16 @@ export interface WrapperOptions {
     | boolean
     | {
         /**
-         * Build {CaptureContext} according to the error reported.
+         * Build {@link CaptureContext} according to the error reported.
          * @param event The original event.
          * @param reason The `reason` property of the promise rejection
-         * @param allSettledResultIndex The  {PromiseSettledResult} `index`
+         * @param allSettledResultIndex The {@link PromiseSettledResult[]} `index`
          */
-        buildContext?: (
+        contextBuilderFn?: (
           event: Parameters<Handler>[0],
           reason: PromiseSettledResult<unknown>['reason'],
           allSettledResultIndex: number,
-        ) => CaptureContext;
+        ) => CaptureContext | Promise<CaptureContext>;
       };
 }
 
@@ -347,15 +347,18 @@ export function wrapHandler<TEvent, TResult>(
 
       // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
       if (options.captureAllSettledReasons && isPromiseAllSettledResult(rv)) {
-        rv.forEach((result, allSettledIndex) => {
-          if (result.status === 'rejected') {
-            const context =
-              typeof options.captureAllSettledReasons !== 'boolean'
-                ? options.captureAllSettledReasons.buildContext?.(event, result.reason, allSettledIndex)
-                : undefined;
-            captureException(result.reason, context);
-          }
-        });
+        await Promise.all(
+          rv.map(async (result, allSettledIndex) => {
+            if (result.status === 'rejected') {
+              const contextPromise = Promise.resolve(
+                typeof options.captureAllSettledReasons !== 'boolean'
+                  ? options.captureAllSettledReasons.contextBuilderFn?.(event, result.reason, allSettledIndex)
+                  : undefined,
+              );
+              captureException(result.reason, await contextPromise);
+            }
+          }),
+        );
       }
     } catch (e) {
       captureException(e);
