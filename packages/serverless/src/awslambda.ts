@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/node';
 import { captureException, captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { CaptureContext,Integration } from '@sentry/types';
+import { CaptureContext, Integration } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, dsnFromString, dsnToString, isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
@@ -44,15 +44,21 @@ export interface WrapperOptions {
    * The {@link wrapHandler} will not fail the lambda even if there are errors
    * @default false
    */
-  captureAllSettledReasons: boolean | {
-    /**
-     * Build {CaptureContext} according to the error reported.
-     * @param event The original event.
-     * @param reason The `reason` property of the promise rejection
-     * @param allSettledResultIndex The  {PromiseSettledResult} `index`
-     */
-    buildContext?: (event: Parameters<Handler>[0], reason: PromiseSettledResult<unknown>['reason'], allSettledResultIndex: number) => CaptureContext;
-  };
+  captureAllSettledReasons:
+    | boolean
+    | {
+        /**
+         * Build {CaptureContext} according to the error reported.
+         * @param event The original event.
+         * @param reason The `reason` property of the promise rejection
+         * @param allSettledResultIndex The  {PromiseSettledResult} `index`
+         */
+        buildContext?: (
+          event: Parameters<Handler>[0],
+          reason: PromiseSettledResult<unknown>['reason'],
+          allSettledResultIndex: number,
+        ) => CaptureContext;
+      };
 }
 
 export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
@@ -128,7 +134,11 @@ function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
   return require(require.resolve(mod, { paths: [taskRoot, subdir] }));
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PromiseSettledResult<T, S extends 'rejected' | 'fulfilled' = 'rejected' | 'fulfilled'> = { status: S; reason?: any, value: T };
+type PromiseSettledResult<T, S extends 'rejected' | 'fulfilled' = 'rejected' | 'fulfilled'> = {
+  status: S;
+  reason?: any;
+  value: T;
+};
 
 /** */
 function isPromiseAllSettledResult<T>(result: unknown): result is PromiseSettledResult<T>[] {
@@ -137,8 +147,10 @@ function isPromiseAllSettledResult<T>(result: unknown): result is PromiseSettled
 
 /** */
 function isPromiseSettledResult<T>(result: unknown): result is PromiseSettledResult<T> {
-  return Object.prototype.hasOwnProperty.call(result, 'status') &&
-    (Object.prototype.hasOwnProperty.call(result, 'value') || Object.prototype.hasOwnProperty.call(result, 'reason'));
+  return (
+    Object.prototype.hasOwnProperty.call(result, 'status') &&
+    (Object.prototype.hasOwnProperty.call(result, 'value') || Object.prototype.hasOwnProperty.call(result, 'reason'))
+  );
 }
 
 /** */
@@ -336,8 +348,9 @@ export function wrapHandler<TEvent, TResult>(
       // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
       if (options.captureAllSettledReasons && isPromiseAllSettledResult(rv)) {
         rv.forEach((result, allSettledIndex) => {
-          if(result.status === 'rejected') {
-            const context = typeof options.captureAllSettledReasons !== 'boolean'
+          if (result.status === 'rejected') {
+            const context =
+              typeof options.captureAllSettledReasons !== 'boolean'
                 ? options.captureAllSettledReasons.buildContext?.(event, result.reason, allSettledIndex)
                 : undefined;
             captureException(result.reason, context);
