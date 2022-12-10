@@ -133,9 +133,9 @@ function tryRequire<T>(taskRoot: string, subdir: string, mod: string): T {
   // Node-style path
   return require(require.resolve(mod, { paths: [taskRoot, subdir] }));
 }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PromiseSettledResult<T, S extends 'rejected' | 'fulfilled' = 'rejected' | 'fulfilled'> = {
   status: S;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reason?: any;
   value: T;
 };
