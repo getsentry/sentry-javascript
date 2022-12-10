@@ -155,14 +155,7 @@ describe('AWSLambda', () => {
       expect(Sentry.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
     });
 
-    test('captureAllSettledReasons disabled (default)', async () => {
-      const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
-      const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(Sentry.captureException).toBeCalledTimes(0);
-    });
-
-    test('captureAllSettledReasons enable', async () => {
+    describe('captureAllSettledReasons', () => {
       const error = new Error();
       const error2 = new Error();
       const handler = () =>
@@ -171,11 +164,45 @@ describe('AWSLambda', () => {
           { status: 'fulfilled', value: undefined },
           { status: 'rejected', reason: error2 },
         ]);
-      const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(Sentry.captureException).toHaveBeenNthCalledWith(1, error);
-      expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2);
-      expect(Sentry.captureException).toBeCalledTimes(2);
+      test.each([
+        ['undefined', undefined],
+        ['no options', {}],
+        ['boolean false', { captureAllSettledReasons: false }],
+        ['with other options', { flushTimeout: 1337 }],
+      ])('default: captureAllSettledReasons is disable (%s)', async (_, config) => {
+        const wrappedHandler = wrapHandler(handler, config);
+        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        expect(Sentry.captureException).toBeCalledTimes(0);
+      });
+
+      test.each([
+        ['boolean true', { captureAllSettledReasons: true }, undefined],
+        ['empty object', { captureAllSettledReasons: {} }, undefined],
+        [
+          'contextBuilderFn returning CaptureContext',
+          {
+            captureAllSettledReasons: {
+              contextBuilderFn: () => ({ tags: {} }),
+            },
+          },
+          { tags: {} },
+        ],
+        [
+          'contextBuilderFn returning Promise<CaptureContext>',
+          {
+            captureAllSettledReasons: {
+              contextBuilderFn: () => Promise.resolve({ tags: { promise: true } }),
+            },
+          },
+          { tags: { promise: true } },
+        ],
+      ])('captureAllSettledReasons is enable (%s)', async (_, config, expectedContext) => {
+        const wrappedHandler = wrapHandler(handler, config);
+        await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
+        expect(Sentry.captureException).toHaveBeenNthCalledWith(1, error, expectedContext);
+        expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2, expectedContext);
+        expect(Sentry.captureException).toBeCalledTimes(2);
+      });
     });
   });
 
