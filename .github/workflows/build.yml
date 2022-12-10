@@ -430,7 +430,7 @@ jobs:
       run:
         working-directory: packages/profiling-node
     name: Test profiling-node on OS/Node matrix
-    needs: [job_get_metadata]
+    needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     strategy:
       fail-fast: false
@@ -447,7 +447,6 @@ jobs:
       - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
-
       - run: yarn install
       - run: yarn build:configure
       - run: yarn build

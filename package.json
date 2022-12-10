@@ -86,7 +86,7 @@
     "jsdom": "^19.0.0",
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",
-    "lerna": "3.13.4",
+    "lerna": "^3.22.1",
     "madge": "4.0.2",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
@@ -114,5 +114,5 @@
     "@types/express-serve-static-core": "4.17.30"
   },
   "version": "0.0.0",
-  "dependencies": {}
+  "name": "sentry-javascript"
 }

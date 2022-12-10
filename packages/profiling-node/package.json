@@ -37,6 +37,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "build": "yarn build:bindings && yarn build:lib",
+    "build:extras": "node-gyp configure && yarn build",
     "build:lib": "tsc",
     "build:configure": "node-gyp configure",
     "build:bindings": "node-gyp build",

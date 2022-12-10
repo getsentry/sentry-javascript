@@ -4,12 +4,7 @@ module.exports = {
   },
   extends: ['../../.eslintrc.js'],
   ignorePatterns: ['playground/**/*', 'benchmarks/**/*'],
-  overrides: [
-    {
-      files: ['*.ts', '*.d.ts'],
-      parserOptions: {
-        project: ['tsconfig.json'],
-      },
-    },
-  ],
+  parserOptions: {
+    project: ['tsconfig.json'],
+  },
 };
