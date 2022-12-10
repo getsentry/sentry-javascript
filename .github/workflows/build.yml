@@ -424,6 +424,7 @@ jobs:
           cd packages/nextjs
           yarn test:integration
 
+  # We dont split between unit/integration tests so just run them all per arch.
   job_profiling_node_integration_test:
     defaults:
       run:

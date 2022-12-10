@@ -4,7 +4,7 @@ import * as fs from 'fs';
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
 // We run ember tests in their own job.
-const DEFAULT_SKIP_TESTS_PACKAGES = ['@sentry/ember'];
+const DEFAULT_SKIP_TESTS_PACKAGES = ['@sentry/ember', '@sentry/profiling-node'];
 // These packages don't support Node 8 for syntax or dependency reasons.
 const NODE_8_SKIP_TESTS_PACKAGES = [
   ...DEFAULT_SKIP_TESTS_PACKAGES,
@@ -18,7 +18,6 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/remix',
   '@sentry/svelte', // svelte testing library requires Node >= 10
   '@sentry/replay',
-  '@sentry/profiling-node',
 ];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
@@ -30,15 +29,10 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'ts-jest@25.x',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = [
-  ...DEFAULT_SKIP_TESTS_PACKAGES,
-  '@sentry/remix',
-  '@sentry/replay',
-  '@sentry/profiling-node',
-];
+const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix', '@sentry/replay'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
 
-const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix', '@sentry/profiling-node'];
+const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
