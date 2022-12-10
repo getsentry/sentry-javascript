@@ -424,12 +424,12 @@ jobs:
           cd packages/nextjs
           yarn test:integration
 
-  # We dont split between unit/integration tests so just run them all per arch.
+  # We dont split between unit/integration tests so just run them all per arch
   job_profiling_node_integration_test:
     defaults:
       run:
         working-directory: packages/profiling-node
-    name: Test @sentry/profiling-node on OS/Node matrix
+    name: Test profiling-node on OS/Node matrix
     needs: [job_get_metadata]
     if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     strategy:

@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=14.0.0"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "lib",
     "bindings",
@@ -66,6 +69,7 @@
     "node-gyp": "^9.3.0"
   },
   "devDependencies": {
+    "@types/node": "18.11.12",
     "@types/node-abi": "^3.0.0",
     "@types/express": "^4.17.14",
     "autocannon": "^7.10.0",

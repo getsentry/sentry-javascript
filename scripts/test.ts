@@ -3,7 +3,7 @@ import * as fs from 'fs';
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
-// We run ember tests in their own job.
+// We run ember and profiling tests in their own job.
 const DEFAULT_SKIP_TESTS_PACKAGES = ['@sentry/ember', '@sentry/profiling-node'];
 // These packages don't support Node 8 for syntax or dependency reasons.
 const NODE_8_SKIP_TESTS_PACKAGES = [
