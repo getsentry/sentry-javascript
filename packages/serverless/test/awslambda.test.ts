@@ -3,7 +3,7 @@
 import { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
-import {WrapperOptions} from '../src/awslambda';
+import { WrapperOptions } from '../src/awslambda';
 
 const { wrapHandler } = Sentry.AWSLambda;
 
@@ -166,7 +166,6 @@ describe('AWSLambda', () => {
           { status: 'rejected', reason: error2 },
         ]);
 
-
       test.each([
         ['undefined', undefined],
         ['no options', {}],
@@ -185,10 +184,10 @@ describe('AWSLambda', () => {
           'contextBuilderFn returning CaptureContext',
           {
             captureAllSettledReasons: {
-              contextBuilderFn: jest.fn().mockResolvedValue({ tags: {promise: false} }),
+              contextBuilderFn: jest.fn().mockResolvedValue({ tags: { promise: false } }),
             },
           },
-          { tags: {promise: false} },
+          { tags: { promise: false } },
         ],
         [
           'contextBuilderFn returning Promise<CaptureContext>',
@@ -202,7 +201,7 @@ describe('AWSLambda', () => {
       ])('captureAllSettledReasons is enable (%s)', async (_, config: Partial<WrapperOptions>, expectedContext) => {
         const wrappedHandler = wrapHandler(handler, config);
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-        if(typeof config.captureAllSettledReasons !== 'boolean' && config.captureAllSettledReasons?.contextBuilderFn) {
+        if (typeof config.captureAllSettledReasons !== 'boolean' && config.captureAllSettledReasons?.contextBuilderFn) {
           expect(config.captureAllSettledReasons?.contextBuilderFn).toHaveBeenNthCalledWith(1, fakeEvent, error, 0);
           expect(config.captureAllSettledReasons?.contextBuilderFn).toHaveBeenNthCalledWith(2, fakeEvent, error2, 2);
           expect(config.captureAllSettledReasons?.contextBuilderFn).toBeCalledTimes(2);
