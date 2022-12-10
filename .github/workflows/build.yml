@@ -426,6 +426,9 @@ jobs:
 
   # We dont split between unit/integration tests so just run them all per arch.
   job_profiling_node_integration_test:
+    defaults:
+      run:
+        working-directory: packages/profiling-node
     name: Test @sentry/profiling-node on OS/Node matrix
     needs: [job_get_metadata]
     if: needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
@@ -445,9 +448,10 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
 
-      - run: cd packages/profiling-node && yarn install --frozen-lockfile
-      - run: cd packages/profiling-node && yarn build:configure && yarn build
-      - run: cd packages/profiling-node && yarn test
+      - run: yarn install
+      - run: yarn build:configure
+      - run: yarn build
+      - run: yarn test
 
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
   # separate job allows them to run in parallel with the other tests.
