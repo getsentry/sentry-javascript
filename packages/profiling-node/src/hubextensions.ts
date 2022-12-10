@@ -1,8 +1,8 @@
 import { getMainCarrier } from '@sentry/core';
+import { NodeOptions } from '@sentry/node';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
-import { BaseNodeOptions } from '../../node/build/types/types';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -26,7 +26,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     customSamplingContext?: CustomSamplingContext,
   ): Transaction {
     const client = this.getClient();
-    const profilesSampleRate = (client?.getOptions() as BaseNodeOptions).profilesSampleRate ?? undefined;
+    const profilesSampleRate = (client?.getOptions() as NodeOptions).profilesSampleRate ?? undefined;
     const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // We create "unique" transaction names to avoid concurrent transactions with same names
