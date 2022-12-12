@@ -217,7 +217,7 @@ export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
-  mode: ReplayRecordingMode;
+  recordingMode: ReplayRecordingMode;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
