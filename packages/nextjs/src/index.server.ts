@@ -19,7 +19,10 @@ export { captureUnderscoreErrorException } from './utils/_error';
 // because or SSR of next.js we can only use this.
 export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
 
-type GlobalWithDistDir = typeof global & { __rewriteFramesDistDir__: string };
+const globalWithInjectedValues = global as typeof global & {
+  __rewriteFramesDistDir__: string;
+};
+
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
 
 // This is a variable that Next.js will string replace during build with a string if run in an edge runtime from Next.js
@@ -114,7 +117,7 @@ function addServerIntegrations(options: NextjsOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = (global as GlobalWithDistDir).__rewriteFramesDistDir__ || '.next';
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__ || '.next';
   // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
   // we can read in the project directory from the currently running process
   const distDirAbsPath = path.resolve(process.cwd(), distDirName);
