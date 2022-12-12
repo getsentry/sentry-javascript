@@ -45,7 +45,7 @@ type PausedExceptionEvent = Debugger.PausedEventDataType & {
 
 /** Could this be an anonymous function? */
 function isAnonymous(name: string | undefined): boolean {
-  return !!name && ['', '?', '<anonymous>'].includes(name);
+  return name !== undefined && ['', '?', '<anonymous>'].includes(name);
 }
 
 /** Do the function names appear to match? */
