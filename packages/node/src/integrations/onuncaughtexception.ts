@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/core';
+import { captureExceptionWithHint, getCurrentHub, Scope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -124,7 +124,7 @@ export class OnUncaughtException implements Integration {
         if (hub.getIntegration(OnUncaughtException)) {
           hub.withScope((scope: Scope) => {
             scope.setLevel('fatal');
-            hub.captureException(error, {
+            captureExceptionWithHint(error, {
               originalException: error,
               data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
             });

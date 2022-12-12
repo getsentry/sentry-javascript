@@ -1,4 +1,4 @@
-import { getCurrentHub, Scope } from '@sentry/core';
+import { captureExceptionWithHint, getCurrentHub, Scope } from '@sentry/core';
 import { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -49,7 +49,7 @@ export class OnUnhandledRejection implements Integration {
     if (hub.getIntegration(OnUnhandledRejection)) {
       hub.withScope((scope: Scope) => {
         scope.setExtra('unhandledPromiseRejection', true);
-        hub.captureException(reason, {
+        captureExceptionWithHint(reason, {
           originalException: promise,
           data: { mechanism: { handled: false, type: 'onunhandledrejection' } },
         });
