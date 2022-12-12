@@ -19,7 +19,7 @@ export default function valueInjectionLoader(this: LoaderThis<LoaderOptions>, us
   let injectedCode = 'var _sentryCollisionFreeGlobalObject = typeof window === "undefined" ? global : window;\n';
 
   Object.entries(values).forEach(([key, value]) => {
-    injectedCode += `_sentryCollisionFreeGlobalObject.${key} = ${JSON.stringify(value)};\n`;
+    injectedCode += `_sentryCollisionFreeGlobalObject["${key}"] = ${JSON.stringify(value)};\n`;
   });
 
   return `${injectedCode}\n${userCode}`;
