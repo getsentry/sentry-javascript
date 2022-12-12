@@ -10,9 +10,9 @@
 - feat(replay): Allow to opt-in to capture replay exceptions (#6482)
 - feat(tracing): Add interaction transaction as an experiment (#6210)
 - feat(types): Add profile envelope item type (#6468)
-- fix(replay): Do not mangle private fields used by Replay (#6493)
 - fix(replay): Replace `_waitForError` with `recordingMode` (#6489)
 - ref(replay): Inline lodash dependency into build (#6483)
+- build(core): Do not mangle private methods used by Replay (#6493)
 
 ## 7.24.2
 
