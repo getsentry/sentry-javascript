@@ -1411,7 +1411,8 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      const captureExceptionSpy = jest.spyOn(client, 'captureException');
+      // @ts-ignore Need to spy on protected method
+      const captureExceptionSpy = jest.spyOn(client, '_captureException');
       const loggerWarnSpy = jest.spyOn(logger, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');

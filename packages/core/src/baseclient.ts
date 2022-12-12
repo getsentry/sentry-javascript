@@ -121,23 +121,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
-    // ensure we haven't captured this very object before
-    if (checkOrSetAlreadyCaught(exception)) {
-      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
-      return;
-    }
-
-    let eventId: string | undefined = hint && hint.event_id;
-
-    this._process(
-      this.eventFromException(exception, hint)
-        .then(event => this._captureEvent(event, hint, scope))
-        .then(result => {
-          eventId = result;
-        }),
-    );
-
-    return eventId;
+    return this._captureException(exception, hint, scope);
   }
 
   /**
@@ -580,6 +564,30 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
+   * Internal implementation of public `captureException` method
+   */
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+  protected _captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+    // ensure we haven't captured this very object before
+    if (checkOrSetAlreadyCaught(exception)) {
+      __DEBUG_BUILD__ && logger.log(ALREADY_SEEN_ERROR);
+      return;
+    }
+
+    let eventId: string | undefined = hint && hint.event_id;
+
+    this._process(
+      this.eventFromException(exception, hint)
+        .then(event => this._captureEvent(event, hint, scope))
+        .then(result => {
+          eventId = result;
+        }),
+    );
+
+    return eventId;
+  }
+
+  /**
    * Processes the event and logs an error in case of rejection
    * @param event
    * @param hint
@@ -699,7 +707,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw reason;
         }
 
-        this.captureException(reason, {
+        this._captureException(reason, {
           data: {
             __sentry__: true,
           },

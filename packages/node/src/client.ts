@@ -60,7 +60,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       }
     }
 
-    return super.captureException(exception, hint, scope);
+    return super._captureException(exception, hint, scope);
   }
 
   /**
