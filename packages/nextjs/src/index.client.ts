@@ -52,11 +52,12 @@ export function init(options: NextjsOptions): void {
   let tunnelPath: string | undefined;
   if (globalWithInjectedValues.__sentryRewritesTunnelPath__ && options.dsn) {
     const dsnComponents = dsnFromString(options.dsn);
-    if (dsnComponents.host.match(/^o\d+\.ingest\.sentry\.io$/)) {
-      const orgId = dsnComponents.host.split('.')[0];
-      tunnelPath = `${globalWithInjectedValues.__sentryRewritesTunnelPath__}/${orgId}/${dsnComponents.projectId}/`;
-      __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
+    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
+    if (sentrySaasDsnMatch) {
+      const orgId = sentrySaasDsnMatch[1];
+      tunnelPath = `${globalWithInjectedValues.__sentryRewritesTunnelPath__}?o=${orgId}&p=${dsnComponents.projectId}`;
       options.tunnel = tunnelPath;
+      __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
     } else {
       __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
     }

@@ -73,28 +73,37 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
-    const injectedRewrites = [
-      {
-        source: `${tunnelPath}/:orgid/:projectid`, // without trailing slash
-        destination: 'https://:orgid.ingest.sentry.io/api/:projectid/envelope/',
-      },
-      {
-        source: `${tunnelPath}/:orgid/:projectid/`, // with trailing slash
-        destination: 'https://:orgid.ingest.sentry.io/api/:projectid/envelope/',
-      },
-    ];
+    const injectedRewrite = {
+      source: `${tunnelPath}(/?)`,
+      has: [
+        {
+          type: 'query',
+          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
+          value: '(?<orgid>.*)',
+        },
+        {
+          type: 'query',
+          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
+          value: '(?<projectid>.*)',
+        },
+      ],
+      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/',
+    };
 
-    if (typeof originalRewrites === 'function') {
-      // @ts-ignore weird args error
-      const intermediaryValue = await originalRewrites(...args);
-      if (Array.isArray(intermediaryValue)) {
-        intermediaryValue.push(...injectedRewrites);
-      } else {
-        intermediaryValue.beforeFiles.push(...injectedRewrites);
-      }
-      return intermediaryValue;
+    if (typeof originalRewrites !== 'function') {
+      return [injectedRewrite];
+    }
+
+    // @ts-ignore Expected 0 arguments but got 1 - we don't care about that
+    const originalRewritesResult = await originalRewrites(...args);
+
+    if (Array.isArray(originalRewritesResult)) {
+      return [injectedRewrite, ...originalRewritesResult];
     } else {
-      return injectedRewrites;
+      return {
+        ...originalRewritesResult,
+        beforeFiles: [injectedRewrite, ...originalRewritesResult.beforeFiles],
+      };
     }
   };
 }
