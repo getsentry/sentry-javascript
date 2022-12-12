@@ -490,7 +490,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // it can prevent loading on the UI. This will cause an increase in short
       // replays (e.g. opening and closing a tab quickly), but these can be
       // filtered on the UI.
-      if (!this._waitForError) {
+      if (this.recordingMode === 'session') {
         void this.flushImmediate();
       }
 
