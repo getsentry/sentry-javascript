@@ -76,7 +76,8 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
     const injectedRewrite = {
-      // Nextjs will automatically convert this into a regex for us
+      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
+      // Nextjs will automatically convert `source` into a regex for us
       source: `${tunnelPath}(/?)`,
       has: [
         {
