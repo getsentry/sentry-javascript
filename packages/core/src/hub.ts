@@ -187,6 +187,7 @@ export class Hub implements HubInterface {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
     this._withClient((client, scope) => {
+      // eslint-disable-next-line @sentry-internal/sdk/captureException-from-core
       client.captureException(
         exception,
         {
