@@ -42,7 +42,7 @@ describe('applyTunnelRouteOption()', () => {
     expect(options.tunnel).toBeUndefined();
   });
 
-  it('should not `tunnelRoute` option when DSN is not a SaaS DSN', () => {
+  it('should not apply `tunnelRoute` option when DSN is not a SaaS DSN', () => {
     globalWithInjectedValues.__sentryRewritesTunnelPath__ = '/my-error-monitoring-route';
     const options: any = {
       dsn: 'https://11111111111111111111111111111111@example.com/3333333',

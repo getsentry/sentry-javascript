@@ -66,6 +66,8 @@ function getFinalConfigObject(
 /**
  * Injects rewrite rules into the Next.js config provided by the user to tunnel
  * requests from the `tunnelPath` to Sentry.
+ *
+ * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
  */
 function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
   const originalRewrites = userNextConfig.rewrites;
@@ -74,6 +76,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
     const injectedRewrite = {
+      // Nextjs will automatically convert this into a regex for us
       source: `${tunnelPath}(/?)`,
       has: [
         {
@@ -94,7 +97,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       return [injectedRewrite];
     }
 
-    // @ts-ignore Expected 0 arguments but got 1 - we don't care about that
+    // @ts-ignore Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
