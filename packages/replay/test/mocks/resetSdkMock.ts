@@ -1,14 +1,11 @@
-import { getCurrentHub } from '@sentry/core';
-
 import type { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
-import type { DomHandler, MockTransportSend } from './../types';
+import type { DomHandler } from './../types';
 import { mockSdk, MockSdkParams } from './mockSdk';
 
 export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkParams): Promise<{
   domHandler: DomHandler;
   mockRecord: RecordMock;
-  mockTransportSend: MockTransportSend;
   replay: ReplayContainer;
 }> {
   let domHandler: DomHandler;
@@ -33,8 +30,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
     sentryOptions,
   });
 
-  const mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
-
   // XXX: This is needed to ensure `domHandler` is set
   jest.runAllTimers();
   await new Promise(process.nextTick);
@@ -44,7 +39,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
     // @ts-ignore use before assign
     domHandler,
     mockRecord,
-    mockTransportSend,
     replay,
   };
 }
