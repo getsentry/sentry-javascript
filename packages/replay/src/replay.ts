@@ -954,6 +954,42 @@ export class ReplayContainer implements ReplayContainerInterface {
       replayType: this.session?.sampled,
     };
 
+    /*
+    For reference, the fully built event looks something like this:
+    {
+        "type": "replay_event",
+        "timestamp": 1670837008.634,
+        "error_ids": [
+            "errorId"
+        ],
+        "trace_ids": [
+            "traceId"
+        ],
+        "urls": [
+            "https://example.com"
+        ],
+        "replay_id": "eventId",
+        "segment_id": 3,
+        "platform": "javascript",
+        "event_id": "eventId",
+        "environment": "production",
+        "sdk": {
+            "integrations": [
+                "BrowserTracing",
+                "Replay"
+            ],
+            "name": "sentry.javascript.integration.replay",
+            "version": "7.24.2"
+        },
+        "sdkProcessingMetadata": {},
+        "tags": {
+            "sessionSampleRate": 1,
+            "errorSampleRate": 0,
+            "replayType": "error"
+        }
+    }
+    */
+
     const envelope = createReplayEnvelope(replayId, replayEvent, payloadWithSequence);
 
     try {
