@@ -7,9 +7,10 @@ import {
   Integrations as CoreIntegrations,
   setHubOnCarrier,
 } from '@sentry/core';
-import { SessionStatus, StackParser } from '@sentry/types';
+import { Integration, SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
+  dynamicRequire,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
@@ -113,13 +114,7 @@ export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [
-          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
-          ...autoloadedIntegrations,
-        ];
+  options.defaultIntegrations = getDefaultIntegrations(options, autoloadedIntegrations);
 
   const nodeVersion = parseSemver(process.versions.node);
 
@@ -180,6 +175,29 @@ export function init(options: NodeOptions = {}): void {
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+}
+
+function getDefaultIntegrations(options: NodeOptions, autoloadedIntegrations: Integration[]): Integration[] {
+  const integrations =
+    options.defaultIntegrations === false
+      ? []
+      : [
+          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
+          ...autoloadedIntegrations,
+        ];
+
+  const nodeVersion = parseSemver(process.versions.node);
+
+  if (options.includeStackLocals && (nodeVersion.major || 0) >= 14) {
+    const { LocalVariables } = dynamicRequire(
+      module,
+      './integrations/localvariables',
+    ) as typeof import('./integrations/localvariables');
+
+    integrations.push(new LocalVariables());
+  }
+
+  return integrations;
 }
 
 /**
