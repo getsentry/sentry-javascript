@@ -9,6 +9,7 @@ export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 export const REPLAY_SESSION_KEY = 'sentryReplaySession';
 export const REPLAY_EVENT_NAME = 'replay_event';
 export const RECORDING_EVENT_NAME = 'replay_recording';
+export const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
 // The idle limit for a session
 export const SESSION_IDLE_DURATION = 300_000; // 5 minutes in ms
@@ -24,3 +25,8 @@ export const MAX_SESSION_LIFE = 1_800_000; // 30 minutes
  */
 export const DEFAULT_SESSION_SAMPLE_RATE = 0.1;
 export const DEFAULT_ERROR_SAMPLE_RATE = 1.0;
+
+export const REPLAY_SDK_INFO = {
+  name: 'sentry.javascript.integration.replay',
+  version: __SENTRY_REPLAY_VERSION__,
+};

@@ -1,7 +1,9 @@
-import { ReplayPerformanceEntry } from '../createPerformanceEntry';
-import { isIngestHost } from '../util/isIngestHost';
+import type { ReplayPerformanceEntry } from '../createPerformanceEntry';
+import type { ReplayContainer } from '../types';
+import { createPerformanceSpans } from '../util/createPerformanceSpans';
+import { shouldFilterRequest } from '../util/shouldFilterRequest';
 
-export interface FetchHandlerData {
+interface FetchHandlerData {
   args: Parameters<typeof fetch>;
   fetchData: {
     method: string;
@@ -18,17 +20,13 @@ export interface FetchHandlerData {
   endTimestamp?: number;
 }
 
+/** only exported for tests */
 export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerformanceEntry {
   if (!handlerData.endTimestamp) {
     return null;
   }
 
   const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
-
-  // Do not capture fetches to Sentry ingestion endpoint
-  if (isIngestHost(fetchData.url)) {
-    return null;
-  }
 
   return {
     type: 'resource.fetch',
@@ -39,5 +37,34 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
       method: fetchData.method,
       statusCode: response.status,
     },
+  };
+}
+
+/**
+ * Returns a listener to be added to `addInstrumentationHandler('fetch', listener)`.
+ */
+export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: FetchHandlerData) => void {
+  return (handlerData: FetchHandlerData) => {
+    if (!replay.isEnabled()) {
+      return;
+    }
+
+    const result = handleFetch(handlerData);
+
+    if (result === null) {
+      return;
+    }
+
+    if (shouldFilterRequest(replay, result.name)) {
+      return;
+    }
+
+    replay.addUpdate(() => {
+      createPerformanceSpans(replay, [result]);
+      // Returning true will cause `addUpdate` to not flush
+      // We do not want network requests to cause a flush. This will prevent
+      // recurring/polling requests from keeping the replay session alive.
+      return true;
+    });
   };
 }

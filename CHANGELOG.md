@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.25.0
+
+- feat(core): Add `scope.getLastBreadcrumb()` (#6495)
+- feat(replay): Allow to opt-in to capture replay exceptions (#6482)
+- feat(tracing): Add interaction transaction as an experiment (#6210)
+- feat(types): Add profile envelope item type (#6468)
+- fix(replay): Replace `_waitForError` with `recordingMode` (#6489)
+- ref(replay): Inline lodash dependency into build (#6483)
+- build(core): Do not mangle private methods used by Replay (#6493)
+
+## 7.24.2
+
+- fix(replay): Add missing rrweb type declarations (#6464)
+- fix(tracing): Check for otel before loading db module (#6461)
+- fix(tracing): Deprecate and remove `reportAllChanges` option (#6456)
+- ref(replay): Extract integration to clarify public API (#6457)
+
 ## 7.24.1
 
 This patch corrects an oversight on our end which caused the Sentry Replay integration CDN bundles to be ignored when uploading bundles to our CDN.

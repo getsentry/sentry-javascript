@@ -1,10 +1,9 @@
 import { logger } from '@sentry/utils';
 
-import { SessionOptions } from '../types';
+import type { Session, SessionOptions } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
-import { Session } from './Session';
 
 interface GetSessionParams extends SessionOptions {
   /**

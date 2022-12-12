@@ -1,8 +1,6 @@
 import { createPerformanceEntries } from '../../src/createPerformanceEntry';
 import { mockSdk } from './../index';
 
-jest.unmock('@sentry/browser');
-
 beforeAll(function () {
   mockSdk();
 });

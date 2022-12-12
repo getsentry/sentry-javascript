@@ -104,6 +104,9 @@ export function makeTerserPlugin() {
           '_driver',
           '_initStorage',
           '_support',
+          // TODO: Get rid of these once we use the SDK to send replay events
+          '_prepareEvent', // replay uses client._prepareEvent
+          '_updateSessionFromEvent', // replay client._updateSessionFromEvent
         ],
       },
     },

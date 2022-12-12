@@ -1,4 +1,4 @@
-import { RecordedEvents } from '../types';
+import type { RecordedEvents } from '../types';
 
 export function createPayload({
   events,

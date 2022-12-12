@@ -27,14 +27,14 @@ let _clsEntry: LayoutShift | undefined;
 /**
  * Start tracking web vitals
  */
-export function startTrackingWebVitals(reportAllChanges: boolean = false): void {
+export function startTrackingWebVitals(): void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
     _trackCLS();
-    _trackLCP(reportAllChanges);
+    _trackLCP();
     _trackFID();
   }
 }
@@ -82,20 +82,17 @@ function _trackCLS(): void {
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(reportAllChanges: boolean): void {
-  onLCP(
-    metric => {
-      const entry = metric.entries.pop();
-      if (!entry) {
-        return;
-      }
+function _trackLCP(): void {
+  onLCP(metric => {
+    const entry = metric.entries.pop();
+    if (!entry) {
+      return;
+    }
 
-      __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
-      _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
-      _lcpEntry = entry as LargestContentfulPaint;
-    },
-    { reportAllChanges },
-  );
+    __DEBUG_BUILD__ && logger.log('[Measurements] Adding LCP');
+    _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
+    _lcpEntry = entry as LargestContentfulPaint;
+  });
 }
 
 /** Starts tracking the First Input Delay on the current page. */

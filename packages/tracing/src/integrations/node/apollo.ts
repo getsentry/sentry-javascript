@@ -28,6 +28,11 @@ export class Apollo implements Integration {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
+      __DEBUG_BUILD__ && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
+      return;
+    }
+
     const pkg = loadModule<{
       ApolloServerBase: {
         prototype: {
@@ -38,11 +43,6 @@ export class Apollo implements Integration {
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      __DEBUG_BUILD__ && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
       return;
     }
 

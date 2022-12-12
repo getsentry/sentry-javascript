@@ -98,13 +98,13 @@ You have to add it in addition to the Sentry Browser SDK bundle:
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.0/bundle.tracing.min.js"
+  src="https://browser.sentry-cdn.com/7.24.1/bundle.tracing.min.js"
   crossorigin="anonymous"
 ></script>
 
 // Replay integration bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.0/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.24.1/replay.min.js"
   crossorigin="anonymous"
 ></script>
 
@@ -195,8 +195,7 @@ The following options can be configured as options to the integration, in `new R
 | ---------------- | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | collectFonts     | boolean                 | `false` | Should collect fonts used on the website                                                                                                                                                                                     |
 | inlineImages     | boolean                 | `false` | Should inline `<image>` content                                                                                                                                                                                              |
-| inlineStylesheet | boolean                 | `true`  | Should inline stylesheets used in the recording                                                                                                                                                                              |
-| recordCanvas     | boolean                 | `false` | Should record `<canvas>` elements                                                                                                                                                                                            |
+| inlineStylesheet | boolean                 | `true`  | Should inline stylesheets used in the recording                                                                                                                                                                                                                                                                                                                                                                       |
 
 
 ### rrweb Configuration

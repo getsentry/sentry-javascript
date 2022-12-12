@@ -414,6 +414,13 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public getLastBreadcrumb(): Breadcrumb | undefined {
+    return this._breadcrumbs[this._breadcrumbs.length - 1];
+  }
+
+  /**
+   * @inheritDoc
+   */
   public clearBreadcrumbs(): this {
     this._breadcrumbs = [];
     this._notifyScopeListeners();
