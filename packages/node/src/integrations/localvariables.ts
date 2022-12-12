@@ -1,14 +1,9 @@
-import { parseSemver } from '@sentry/utils';
-
-const nodeVersion = parseSemver(process.versions.node);
-
-if ((nodeVersion.major || 0) < 14) {
-  throw new Error('The LocalVariables integration requires node.js >= v14');
-}
-
-import { Event, EventProcessor, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import { getCurrentHub } from '@sentry/core';
+import { Event, EventProcessor, Integration, StackFrame, StackParser } from '@sentry/types';
 import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
+
+import { NodeClient } from '../client';
 
 /**
  * Promise API is available as `Experimental` and in Node 19 only.
@@ -101,26 +96,27 @@ export class LocalVariables implements Integration {
   private readonly _session: AsyncSession = new AsyncSession();
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(50);
 
-  public constructor() {
-    this._session.connect();
-    this._session.on('Debugger.paused', this._handlePaused.bind(this));
-    this._session.post('Debugger.enable');
-    // We only want to pause on uncaught exceptions
-    this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
-  }
-
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this._stackHasher = createHashFn(getCurrentHub().getClient()?.getOptions().stackParser);
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    const options = getCurrentHub().getClient<NodeClient>()?.getOptions();
 
-    addGlobalEventProcessor(async event => this._addLocalVariables(event));
+    if (options?.includeStackLocals) {
+      this._stackHasher = createHashFn(options.stackParser);
+      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+
+      this._session.connect();
+      this._session.on('Debugger.paused', this._handlePaused.bind(this));
+      this._session.post('Debugger.enable');
+      // We only want to pause on uncaught exceptions
+      this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+    }
   }
 
   /**
    * We use the stack parser to create a unique hash from the exception stack trace
-   * This is used to lookup vars when
+   * This is used to lookup vars when the event processor is called
    */
   private _stackHasher: HashFromStackFn = _ => undefined;
 

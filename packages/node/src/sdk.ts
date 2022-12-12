@@ -7,14 +7,12 @@ import {
   Integrations as CoreIntegrations,
   setHubOnCarrier,
 } from '@sentry/core';
-import { Integration, SessionStatus, StackParser } from '@sentry/types';
+import { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
-  dynamicRequire,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
-  parseSemver,
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import * as domain from 'domain';
@@ -26,6 +24,7 @@ import {
   ContextLines,
   Http,
   LinkedErrors,
+  LocalVariables,
   Modules,
   OnUncaughtException,
   OnUnhandledRejection,
@@ -52,6 +51,7 @@ export const defaultIntegrations = [
   new RequestData(),
   // Misc
   new LinkedErrors(),
+  new LocalVariables(),
 ];
 
 /**
@@ -114,15 +114,13 @@ export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
-  options.defaultIntegrations = getDefaultIntegrations(options, autoloadedIntegrations);
-
-  const nodeVersion = parseSemver(process.versions.node);
-
-  if (options.includeStackLocals && (nodeVersion.major || 0) >= 14) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { LocalVariables } = require('./integrations/localvariables');
-    options.defaultIntegrations.push(new LocalVariables());
-  }
+  options.defaultIntegrations =
+    options.defaultIntegrations === false
+      ? []
+      : [
+          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
+          ...autoloadedIntegrations,
+        ];
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
@@ -175,29 +173,6 @@ export function init(options: NodeOptions = {}): void {
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
-}
-
-function getDefaultIntegrations(options: NodeOptions, autoloadedIntegrations: Integration[]): Integration[] {
-  const integrations =
-    options.defaultIntegrations === false
-      ? []
-      : [
-          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
-          ...autoloadedIntegrations,
-        ];
-
-  const nodeVersion = parseSemver(process.versions.node);
-
-  if (options.includeStackLocals && (nodeVersion.major || 0) >= 14) {
-    const { LocalVariables } = dynamicRequire(
-      module,
-      './integrations/localvariables',
-    ) as typeof import('./integrations/localvariables');
-
-    integrations.push(new LocalVariables());
-  }
-
-  return integrations;
 }
 
 /**
