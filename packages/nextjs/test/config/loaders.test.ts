@@ -7,7 +7,6 @@ import {
   exportedNextConfig,
   serverBuildContext,
   serverWebpackConfig,
-  userSentryWebpackPluginConfig,
 } from './fixtures';
 import { materializeFinalWebpackConfig } from './testUtils';
 
@@ -53,6 +52,9 @@ describe('webpack loaders', () => {
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            // We use `expect.objectContaining({})` rather than `expect.any(Object)` to match any plain object because
+            // the latter will also match arrays, regexes, dates, sets, etc. - anything whose `typeof` value is
+            // `'object'`.
             options: expect.objectContaining({ values: expect.objectContaining({}) }),
           },
         ],
@@ -73,31 +75,10 @@ describe('webpack loaders', () => {
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),
+            // We use `expect.objectContaining({})` rather than `expect.any(Object)` to match any plain object because
+            // the latter will also match arrays, regexes, dates, sets, etc. - anything whose `typeof` value is
+            // `'object'`.
             options: expect.objectContaining({ values: expect.objectContaining({}) }),
-          },
-        ],
-      });
-    });
-
-    it('adds `valueInjection` loader with release values to client and server configs', async () => {
-      const finalWebpackConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: clientBuildContext,
-        userSentryWebpackPluginConfig: userSentryWebpackPluginConfig,
-      });
-
-      expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-        use: [
-          {
-            loader: expect.stringEndingWith('valueInjectionLoader.js'),
-            options: {
-              values: {
-                SENTRY_RELEASE: { id: 'doGsaREgReaT' },
-                SENTRY_RELEASES: { 'simulator@squirrelChasers': { id: 'doGsaREgReaT' } },
-              },
-            },
           },
         ],
       });
