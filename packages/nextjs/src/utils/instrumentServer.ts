@@ -360,7 +360,7 @@ function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
   const tunnelPath = globalWithInjectedValues.__sentryRewritesTunnelPath__;
   const pathname = new URL(url, 'http://example.com/').pathname; // `url` is relative so we need to define a base to be able to parse with URL
   if (tunnelPath && pathname === tunnelPath) {
-    __DEBUG_BUILD__ && logger.log(`Tunneling Sentry event to "${url}"`);
+    __DEBUG_BUILD__ && logger.log(`Tunneling Sentry event received on "${url}"`);
     return false;
   }
 
