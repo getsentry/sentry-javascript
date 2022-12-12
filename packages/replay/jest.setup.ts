@@ -36,19 +36,25 @@ afterEach(() => {
   (client.getTransport()?.send as MockTransport).mockClear();
 });
 
-type SentReplayExpected = {
-  envelopeHeader?: {
-    event_id: string;
-    sent_at: string;
-    sdk: {
-      name: string;
-      version?: string;
-    };
+type EnvelopeHeader = {
+  event_id: string;
+  sent_at: string;
+  sdk: {
+    name: string;
+    version?: string;
   };
-  replayEventHeader?: { type: 'replay_event' };
-  replayEventPayload?: Record<string, unknown>;
-  recordingHeader?: { type: 'replay_recording'; length: number };
-  recordingPayloadHeader?: Record<string, unknown>;
+};
+
+type ReplayEventHeader = { type: 'replay_event' };
+type ReplayEventPayload = Record<string, unknown>;
+type RecordingHeader = { type: 'replay_recording'; length: number };
+type RecordingPayloadHeader = Record<string, unknown>;
+type SentReplayExpected = {
+  envelopeHeader?: EnvelopeHeader;
+  replayEventHeader?: ReplayEventHeader;
+  replayEventPayload?: ReplayEventPayload;
+  recordingHeader?: RecordingHeader;
+  recordingPayloadHeader?: RecordingPayloadHeader;
   events?: string | Uint8Array;
 };
 
@@ -70,20 +76,27 @@ const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expe
   };
 };
 
-/**
- * Checks the last call to `fetch` and ensures a replay was uploaded by
- * checking the `fetch()` request's body.
- */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const toHaveSentReplay = function (
-  _received: jest.Mocked<ReplayContainer>,
-  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
-) {
-  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
-  const lastCall = calls[calls.length - 1]?.[0];
+type Result = {
+  passed: boolean;
+  key: string;
+  expectedVal: SentReplayExpected[keyof SentReplayExpected];
+  actualVal: SentReplayExpected[keyof SentReplayExpected];
+};
+type Call = [
+  EnvelopeHeader,
+  [
+    [ReplayEventHeader | undefined, ReplayEventPayload | undefined],
+    [RecordingHeader | undefined, RecordingPayloadHeader | undefined],
+  ],
+];
+type CheckCallForSentReplayResult = { pass: boolean; call: Call | undefined; results: Result[] };
 
-  const envelopeHeader = lastCall?.[0];
-  const envelopeItems = lastCall?.[1] || [[], []];
+function checkCallForSentReplay(
+  call: Call | undefined,
+  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
+): CheckCallForSentReplayResult {
+  const envelopeHeader = call?.[0];
+  const envelopeItems = call?.[1] || [[], []];
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
   // @ts-ignore recordingPayload is always a string in our tests
@@ -116,34 +129,98 @@ const toHaveSentReplay = function (
         .map(key => {
           const actualVal = actualObj[key as keyof SentReplayExpected];
           const expectedVal = expectedObj[key as keyof SentReplayExpected];
-          const matches = !expectedVal || this.equals(actualVal, expectedVal);
+          const passed = !expectedVal || this.equals(actualVal, expectedVal);
 
-          return [matches, key, expectedVal, actualVal];
+          return { passed, key, expectedVal, actualVal };
         })
-        .filter(([passed]) => !passed)
+        .filter(({ passed }) => !passed)
     : [];
 
-  const payloadPassed = Boolean(lastCall && (!expected || results.length === 0));
+  const pass = Boolean(call && (!expected || results.length === 0));
+
+  return {
+    pass,
+    call,
+    results,
+  };
+}
+
+/**
+ * Checks all calls to `fetch` and ensures a replay was uploaded by
+ * checking the `fetch()` request's body.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const toHaveSentReplay = function (
+  _received: jest.Mocked<ReplayContainer>,
+  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
+) {
+  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
+
+  let result: CheckCallForSentReplayResult;
+
+  for (const currentCall of calls) {
+    result = checkCallForSentReplay.call(this, currentCall[0], expected);
+    if (result.pass) {
+      break;
+    }
+  }
+
+  // @ts-ignore use before assigned
+  const { results, call, pass } = result;
 
   const options = {
     isNot: this.isNot,
     promise: this.promise,
   };
 
-  const allPass = payloadPassed;
-
   return {
-    pass: allPass,
+    pass,
     message: () =>
-      !lastCall
-        ? allPass
+      !call
+        ? pass
           ? 'Expected Replay to not have been sent, but a request was attempted'
           : 'Expected Replay to have been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(
-              ([, key, expected, actual]) =>
-                `Expected (key: ${key}): ${payloadPassed ? 'not ' : ''}${this.utils.printExpected(expected)}\n` +
-                `Received (key: ${key}): ${this.utils.printReceived(actual)}`,
+              ({ key, expectedVal, actualVal }: Result) =>
+                `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
+                `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
+            )
+            .join('\n')}`,
+  };
+};
+
+/**
+ * Checks the last call to `fetch` and ensures a replay was uploaded by
+ * checking the `fetch()` request's body.
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const toHaveLastSentReplay = function (
+  _received: jest.Mocked<ReplayContainer>,
+  expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
+) {
+  const { calls } = (getCurrentHub().getClient()?.getTransport()?.send as MockTransport).mock;
+  const lastCall = calls[calls.length - 1]?.[0];
+
+  const { results, call, pass } = checkCallForSentReplay.call(this, lastCall, expected);
+
+  const options = {
+    isNot: this.isNot,
+    promise: this.promise,
+  };
+
+  return {
+    pass,
+    message: () =>
+      !call
+        ? pass
+          ? 'Expected Replay to not have been sent, but a request was attempted'
+          : 'Expected Replay to have last been sent, but a request was not attempted'
+        : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
+            .map(
+              ({ key, expectedVal, actualVal }: Result) =>
+                `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
+                `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
             )
             .join('\n')}`,
   };
@@ -152,6 +229,7 @@ const toHaveSentReplay = function (
 expect.extend({
   toHaveSameSession,
   toHaveSentReplay,
+  toHaveLastSentReplay,
 });
 
 declare global {
@@ -159,10 +237,12 @@ declare global {
   namespace jest {
     interface AsymmetricMatchers {
       toHaveSentReplay(expected?: SentReplayExpected): void;
+      toHaveLastSentReplay(expected?: SentReplayExpected): void;
       toHaveSameSession(expected: undefined | Session): void;
     }
     interface Matchers<R> {
       toHaveSentReplay(expected?: SentReplayExpected): R;
+      toHaveLastSentReplay(expected?: SentReplayExpected): R;
       toHaveSameSession(expected: undefined | Session): R;
     }
   }

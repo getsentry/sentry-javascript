@@ -44,7 +44,7 @@ describe('Replay (errorSampleRate)', () => {
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Does not capture mouse click
     domHandler({
@@ -52,7 +52,7 @@ describe('Replay (errorSampleRate)', () => {
     });
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     captureException(new Error('testing'));
     jest.runAllTimers();
@@ -88,12 +88,10 @@ describe('Replay (errorSampleRate)', () => {
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
 
     // New checkout when we call `startRecording` again after uploading segment
     // after an error occurs
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         {
           data: { isCheckout: true },
@@ -109,15 +107,15 @@ describe('Replay (errorSampleRate)', () => {
     });
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         {
           type: 5,
-          timestamp: BASE_TIMESTAMP + 15000 + 60,
+          timestamp: BASE_TIMESTAMP + 15000 + 40,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: (BASE_TIMESTAMP + 15000 + 60) / 1000,
+              timestamp: (BASE_TIMESTAMP + 15000 + 40) / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -144,7 +142,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not send a replay if user hides the tab and comes back within 60 seconds', async () => {
@@ -159,7 +157,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
     jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 100);
@@ -175,7 +173,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not upload a replay event when document becomes hidden', async () => {
@@ -199,7 +197,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not upload a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
@@ -214,7 +212,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not upload a replay event if 15 seconds have elapsed since the last replay upload', async () => {
@@ -230,18 +228,18 @@ describe('Replay (errorSampleRate)', () => {
     mockRecord._emitter(TEST_EVENT);
     await new Promise(process.nextTick);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
     await advanceTimers(5000);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Let's make sure it continues to work
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not upload if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
@@ -256,7 +254,7 @@ describe('Replay (errorSampleRate)', () => {
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -268,7 +266,7 @@ describe('Replay (errorSampleRate)', () => {
     // replay the event on top. Or maybe replay the event on top of a refresh
     // snapshot.
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
   });
 
@@ -277,7 +275,7 @@ describe('Replay (errorSampleRate)', () => {
     mockRecord._emitter(TEST_EVENT);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -289,7 +287,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
@@ -319,7 +317,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     jest.advanceTimersByTime(ELAPSED);
 
@@ -340,7 +338,7 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
 
     // Does not capture mouse click
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out
         replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
@@ -389,18 +387,18 @@ it('sends a replay after loading the session multiple times', async () => {
   const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
   mockRecord._emitter(TEST_EVENT);
 
-  expect(replay).not.toHaveSentReplay();
+  expect(replay).not.toHaveLastSentReplay();
 
   captureException(new Error('testing'));
   jest.runAllTimers();
   await new Promise(process.nextTick);
 
-  expect(replay).toHaveSentReplay({
+  expect(replay).toHaveLastSentReplay({
     events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
   mockTransportSend.mockClear();
-  expect(replay).not.toHaveSentReplay();
+  expect(replay).not.toHaveLastSentReplay();
 
   jest.runAllTimers();
   await new Promise(process.nextTick);
@@ -409,7 +407,7 @@ it('sends a replay after loading the session multiple times', async () => {
 
   // New checkout when we call `startRecording` again after uploading segment
   // after an error occurs
-  expect(replay).toHaveSentReplay({
+  expect(replay).toHaveLastSentReplay({
     events: JSON.stringify([
       {
         data: { isCheckout: true },
