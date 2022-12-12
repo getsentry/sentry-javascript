@@ -927,7 +927,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const hub = getCurrentHub();
     const client = hub.getClient();
     const scope = hub.getScope();
-    const transport = client?.getTransport();
+    const transport = client && client.getTransport();
 
     if (!client || !scope || !transport) {
       return;
