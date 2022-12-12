@@ -35,6 +35,7 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
+  ReplayRecordingMode,
   SendReplay,
   Session,
 } from './types';
@@ -63,6 +64,13 @@ export class ReplayContainer implements ReplayContainerInterface {
   public performanceEvents: AllPerformanceEntry[] = [];
 
   public session: Session | undefined;
+
+  /**
+   * Recording can happen in one of two modes:
+   * * session: Record the whole session, sending it continuously
+   * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
+   */
+  public recordingMode: ReplayRecordingMode = 'session';
 
   /**
    * Options to pass to `rrweb.record()`
@@ -95,12 +103,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    * - Nothing will be added to event buffer (e.g. core SDK events)
    */
   private _isPaused: boolean = false;
-
-  /**
-   * Integration will wait until an error occurs before creating and sending a
-   * replay.
-   */
-  private _waitForError: boolean = false;
 
   /**
    * Have we attached listeners to the core SDK?
@@ -173,7 +175,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // when an error will occur, so we need to keep a buffer of
     // replay events.
     if (this.session.sampled === 'error') {
-      this._waitForError = true;
+      this.recordingMode = 'error';
     }
 
     // setup() is generally called on page load or manually - in both cases we
@@ -203,7 +205,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this._waitForError && { checkoutEveryNth: 60000 }),
+        ...(this.recordingMode === 'error' && { checkoutEveryNth: 60000 }),
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
@@ -403,12 +405,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * processing and hand back control to caller.
    */
   addUpdate(cb: AddUpdateCallback): void {
-    // We need to always run `cb` (e.g. in the case of `this._waitForError == true`)
+    // We need to always run `cb` (e.g. in the case of `this.recordingMode == 'error'`)
     const cbResult = cb?.();
 
     // If this option is turned on then we will only want to call `flush`
     // explicitly
-    if (this._waitForError) {
+    if (this.recordingMode === 'error') {
       return;
     }
 
@@ -445,7 +447,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (this._waitForError && event.type === 2) {
+      if (this.recordingMode === 'error' && event.type === 2) {
         this.setInitialState();
       }
 
@@ -471,7 +473,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // See note above re: session start needs to reflect the most recent
       // checkout.
-      if (this._waitForError && this.session && this._context.earliestEvent) {
+      if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
         this.session.started = this._context.earliestEvent;
         this._maybeSaveSession();
       }
@@ -744,10 +746,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Only flush if `this._waitForError` is false.
+   * Only flush if `this.recordingMode === 'session'`
    */
   conditionalFlush(): void {
-    if (this._waitForError) {
+    if (this.recordingMode === 'error') {
       return;
     }
 
