@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import * as SentryCore from '@sentry/core';
 import { Event, Hub, Integration } from '@sentry/types';
 
 import { CaptureConsole } from '../src/captureconsole';
+
+jest.spyOn(SentryCore, 'captureException');
 
 const mockScope = {
   setLevel: jest.fn(),
@@ -14,7 +17,6 @@ const mockHub = {
     callback(mockScope);
   }),
   captureMessage: jest.fn(),
-  captureException: jest.fn(),
 };
 
 const mockConsole = {
@@ -225,8 +227,8 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(SentryCore.captureException).toHaveBeenCalledTimes(1);
+    expect(SentryCore.captureException).toHaveBeenCalledWith(someError);
   });
 
   it('should capture exception on `console.error` when no levels are provided in constructor', () => {
@@ -239,8 +241,8 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(SentryCore.captureException).toHaveBeenCalledTimes(1);
+    expect(SentryCore.captureException).toHaveBeenCalledWith(someError);
   });
 
   it('should capture message on `console.log` when no levels are provided in constructor', () => {
@@ -267,7 +269,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('some non-error message');
-    expect(mockHub.captureException).not.toHaveBeenCalled();
+    expect(SentryCore.captureException).not.toHaveBeenCalled();
   });
 
   it('should capture a message for non-error log levels', () => {

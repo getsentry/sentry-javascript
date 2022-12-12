@@ -1,3 +1,4 @@
+import { captureException } from '@sentry/core';
 import { EventProcessor, Hub, Integration } from '@sentry/types';
 import { CONSOLE_LEVELS, fill, GLOBAL_OBJ, safeJoin, severityLevelFromString } from '@sentry/utils';
 
@@ -62,7 +63,7 @@ export class CaptureConsole implements Integration {
                 hub.captureMessage(message);
               }
             } else if (level === 'error' && args[0] instanceof Error) {
-              hub.captureException(args[0]);
+              captureException(args[0]);
             } else {
               hub.captureMessage(message);
             }
