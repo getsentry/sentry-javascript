@@ -78,30 +78,6 @@ describe('webpack loaders', () => {
         ],
       });
     });
-
-    it('adds `valueInjection` loader with release values to client and server configs', async () => {
-      const finalWebpackConfig = await materializeFinalWebpackConfig({
-        exportedNextConfig,
-        incomingWebpackConfig: clientWebpackConfig,
-        incomingWebpackBuildContext: clientBuildContext,
-        userSentryWebpackPluginConfig: userSentryWebpackPluginConfig,
-      });
-
-      expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-        use: [
-          {
-            loader: expect.stringEndingWith('valueInjectionLoader.js'),
-            options: {
-              values: {
-                SENTRY_RELEASE: { id: 'doGsaREgReaT' },
-                SENTRY_RELEASES: { 'simulator@squirrelChasers': { id: 'doGsaREgReaT' } },
-              },
-            },
-          },
-        ],
-      });
-    });
   });
 });
 
