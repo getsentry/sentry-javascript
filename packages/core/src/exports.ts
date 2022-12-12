@@ -32,6 +32,7 @@ import { Scope } from './scope';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export function captureException(exception: any, captureContext?: CaptureContext): ReturnType<Hub['captureException']> {
+  // eslint-disable-next-line @sentry-internal/sdk/captureException-from-core -- This is the one place this is allowed
   return getCurrentHub().captureException(exception, { captureContext });
 }
 
