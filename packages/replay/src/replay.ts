@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { addGlobalEventProcessor, captureException, getCurrentHub, Scope, setContext } from '@sentry/core';
-import { Breadcrumb, Client, Event } from '@sentry/types';
-import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
+import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
+import { Breadcrumb, Event } from '@sentry/types';
+import { addInstrumentationHandler, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
 
@@ -44,6 +44,8 @@ import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
+import { createReplayEnvelope } from './util/createReplayEnvelope';
+import { getReplayEvent } from './util/getReplayEvent';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -906,7 +908,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   async sendReplayRequest({
     events,
-    replayId: event_id,
+    replayId,
     segmentId: segment_id,
     includeReplayStartTimestamp,
     eventContext,
@@ -922,77 +924,76 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const currentTimestamp = new Date().getTime();
 
-    const sdkInfo = {
-      name: 'sentry.javascript.integration.replay',
-      version: __SENTRY_REPLAY_VERSION__,
+    const hub = getCurrentHub();
+    const client = hub.getClient();
+    const scope = hub.getScope();
+    const transport = client && client.getTransport();
+
+    if (!client || !scope || !transport) {
+      return;
+    }
+
+    const baseEvent: Event = {
+      // @ts-ignore private api
+      type: REPLAY_EVENT_NAME,
+      ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
+      timestamp: currentTimestamp / 1000,
+      error_ids: errorIds,
+      trace_ids: traceIds,
+      urls,
+      replay_id: replayId,
+      segment_id,
     };
 
-    const replayEvent = await new Promise(resolve => {
-      getCurrentHub()
-        // @ts-ignore private api
-        ?._withClient(async (client: Client, scope: Scope) => {
-          // XXX: This event does not trigger `beforeSend` in SDK
-          // @ts-ignore private api
-          const preparedEvent: Event = await client._prepareEvent(
-            {
-              type: REPLAY_EVENT_NAME,
-              ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
-              timestamp: currentTimestamp / 1000,
-              error_ids: errorIds,
-              trace_ids: traceIds,
-              urls,
-              replay_id: event_id,
-              segment_id,
-            },
-            { event_id },
-            scope,
-          );
-          const session = scope && scope.getSession();
-          if (session) {
-            // @ts-ignore private api
-            client._updateSessionFromEvent(session, preparedEvent);
-          }
+    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
 
-          preparedEvent.sdk = {
-            ...preparedEvent.sdk,
-            ...sdkInfo,
-          };
+    replayEvent.tags = {
+      ...replayEvent.tags,
+      sessionSampleRate: this._options.sessionSampleRate,
+      errorSampleRate: this._options.errorSampleRate,
+      replayType: this.session?.sampled,
+    };
 
-          preparedEvent.tags = {
-            ...preparedEvent.tags,
-            sessionSampleRate: this._options.sessionSampleRate,
-            errorSampleRate: this._options.errorSampleRate,
-            replayType: this.session?.sampled,
-          };
-
-          resolve(preparedEvent);
-        });
-    });
-
-    const envelope = createEnvelope(
-      {
-        event_id,
-        sent_at: new Date().toISOString(),
-        sdk: sdkInfo,
-      },
-      [
-        // @ts-ignore New types
-        [{ type: 'replay_event' }, replayEvent],
-        [
-          {
-            // @ts-ignore setting envelope
-            type: 'replay_recording',
-            length: payloadWithSequence.length,
-          },
-          // @ts-ignore: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
-          payloadWithSequence,
+    /*
+    For reference, the fully built event looks something like this:
+    {
+        "type": "replay_event",
+        "timestamp": 1670837008.634,
+        "error_ids": [
+            "errorId"
         ],
-      ],
-    );
+        "trace_ids": [
+            "traceId"
+        ],
+        "urls": [
+            "https://example.com"
+        ],
+        "replay_id": "eventId",
+        "segment_id": 3,
+        "platform": "javascript",
+        "event_id": "eventId",
+        "environment": "production",
+        "sdk": {
+            "integrations": [
+                "BrowserTracing",
+                "Replay"
+            ],
+            "name": "sentry.javascript.integration.replay",
+            "version": "7.24.2"
+        },
+        "sdkProcessingMetadata": {},
+        "tags": {
+            "sessionSampleRate": 1,
+            "errorSampleRate": 0,
+            "replayType": "error"
+        }
+    }
+    */
 
-    const client = getCurrentHub().getClient();
+    const envelope = createReplayEnvelope(replayId, replayEvent, payloadWithSequence);
+
     try {
-      return client?.getTransport()?.send(envelope);
+      return transport.send(envelope);
     } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
