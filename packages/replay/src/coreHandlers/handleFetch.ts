@@ -1,7 +1,7 @@
 import type { ReplayPerformanceEntry } from '../createPerformanceEntry';
 import type { ReplayContainer } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
-import { isIngestHost } from '../util/isIngestHost';
+import { shouldFilterRequest } from '../util/shouldFilterRequest';
 
 interface FetchHandlerData {
   args: Parameters<typeof fetch>;
@@ -28,11 +28,6 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
 
   const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
 
-  // Do not capture fetches to Sentry ingestion endpoint
-  if (isIngestHost(fetchData.url)) {
-    return null;
-  }
-
   return {
     type: 'resource.fetch',
     start: startTimestamp / 1000,
@@ -57,6 +52,10 @@ export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: 
     const result = handleFetch(handlerData);
 
     if (result === null) {
+      return;
+    }
+
+    if (shouldFilterRequest(replay, result.name)) {
       return;
     }
 

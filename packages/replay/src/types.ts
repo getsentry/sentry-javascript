@@ -115,7 +115,10 @@ export interface ReplayPluginOptions extends SessionOptions {
    *
    * Default: undefined
    */
-  _experiments?: Partial<{ captureExceptions: boolean }>;
+  _experiments?: Partial<{
+    captureExceptions: boolean;
+    traceInternals: boolean;
+  }>;
 }
 
 // These are optional for ReplayPluginOptions because the plugin sets default values
@@ -230,4 +233,5 @@ export interface ReplayContainer {
   flushImmediate(): void;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
+  getOptions(): ReplayPluginOptions;
 }

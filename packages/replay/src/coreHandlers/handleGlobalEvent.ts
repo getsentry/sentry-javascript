@@ -1,8 +1,8 @@
+import { addBreadcrumb } from '@sentry/core';
 import { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { ReplayContainer } from '../types';
-import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
 
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
@@ -39,11 +39,13 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
     }
 
     const exc = event.exception?.values?.[0];
-    addInternalBreadcrumb({
-      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
-        exc?.value || 'n/a'
-      }`,
-    });
+    if (__DEBUG_BUILD__ && replay.getOptions()._experiments?.traceInternals) {
+      addInternalBreadcrumb({
+        message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
+          exc?.value || 'n/a'
+        }`,
+      });
+    }
 
     // Need to be very careful that this does not cause an infinite loop
     if (
@@ -69,4 +71,15 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     return event;
   };
+}
+
+function addInternalBreadcrumb(arg: Parameters<typeof addBreadcrumb>[0]): void {
+  const { category, level, message, ...rest } = arg;
+
+  addBreadcrumb({
+    category: category || 'console',
+    level: level || 'debug',
+    message: `[debug]: ${message}`,
+    ...rest,
+  });
 }
