@@ -35,7 +35,10 @@ declare const __SENTRY_TRACING__: boolean;
 // https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
 declare const EdgeRuntime: string | undefined;
 
-type GlobalWithAssetPrefixPath = typeof global & { __rewriteFramesAssetPrefixPath__: string };
+const globalWithInjectedValues = global as typeof global & {
+  __rewriteFramesAssetPrefixPath__: string;
+  __sentryRewritesTunnelPath__?: string;
+};
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
@@ -67,7 +70,7 @@ function addClientIntegrations(options: NextjsOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = (global as GlobalWithAssetPrefixPath).__rewriteFramesAssetPrefixPath__ || '';
+  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
 
   const defaultRewriteFramesIntegration = new RewriteFrames({
     // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
