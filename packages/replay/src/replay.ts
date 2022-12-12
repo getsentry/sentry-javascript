@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { addGlobalEventProcessor, getCurrentHub, Scope, setContext } from '@sentry/core';
-import { Breadcrumb, Client, Event } from '@sentry/types';
-import { addInstrumentationHandler, createEnvelope, logger } from '@sentry/utils';
+import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
+import { Breadcrumb, Event } from '@sentry/types';
+import { addInstrumentationHandler, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
 
@@ -35,15 +35,17 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
+  ReplayRecordingMode,
   SendReplay,
   Session,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
-import { captureInternalException } from './util/captureInternalException';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
+import { createReplayEnvelope } from './util/createReplayEnvelope';
+import { getReplayEvent } from './util/getReplayEvent';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -66,11 +68,18 @@ export class ReplayContainer implements ReplayContainerInterface {
   public session: Session | undefined;
 
   /**
+   * Recording can happen in one of two modes:
+   * * session: Record the whole session, sending it continuously
+   * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
+   */
+  public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
    * Options to pass to `rrweb.record()`
    */
-  readonly recordingOptions: RecordingOptions;
+  private readonly _recordingOptions: RecordingOptions;
 
-  readonly options: ReplayPluginOptions;
+  private readonly _options: ReplayPluginOptions;
 
   private _performanceObserver: PerformanceObserver | null = null;
 
@@ -98,12 +107,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _isPaused: boolean = false;
 
   /**
-   * Integration will wait until an error occurs before creating and sending a
-   * replay.
-   */
-  private _waitForError: boolean = false;
-
-  /**
    * Have we attached listeners to the core SDK?
    * Note we have to track this as there is no way to remove instrumentation handlers.
    */
@@ -124,11 +127,11 @@ export class ReplayContainer implements ReplayContainerInterface {
   };
 
   constructor({ options, recordingOptions }: { options: ReplayPluginOptions; recordingOptions: RecordingOptions }) {
-    this.recordingOptions = recordingOptions;
-    this.options = options;
+    this._recordingOptions = recordingOptions;
+    this._options = options;
 
-    this._debouncedFlush = debounce(() => this.flush(), this.options.flushMinDelay, {
-      maxWait: this.options.flushMaxDelay,
+    this._debouncedFlush = debounce(() => this.flush(), this._options.flushMinDelay, {
+      maxWait: this._options.flushMaxDelay,
     });
   }
 
@@ -147,6 +150,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._isPaused;
   }
 
+  /** Get the replay integration options. */
+  public getOptions(): ReplayPluginOptions {
+    return this._options;
+  }
+
   /**
    * Initializes the plugin.
    *
@@ -160,7 +168,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If there is no session, then something bad has happened - can't continue
     if (!this.session) {
-      captureInternalException(new Error('Invalid session'));
+      this.handleException(new Error('No session found'));
       return;
     }
 
@@ -174,7 +182,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // when an error will occur, so we need to keep a buffer of
     // replay events.
     if (this.session.sampled === 'error') {
-      this._waitForError = true;
+      this.recordingMode = 'error';
     }
 
     // setup() is generally called on page load or manually - in both cases we
@@ -182,7 +190,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.updateSessionActivity();
 
     this.eventBuffer = createEventBuffer({
-      useCompression: Boolean(this.options.useCompression),
+      useCompression: Boolean(this._options.useCompression),
     });
 
     this.addListeners();
@@ -200,16 +208,15 @@ export class ReplayContainer implements ReplayContainerInterface {
   startRecording(): void {
     try {
       this._stopRecording = record({
-        ...this.recordingOptions,
+        ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this._waitForError && { checkoutEveryNth: 60000 }),
+        ...(this.recordingMode === 'error' && { checkoutEveryNth: 60000 }),
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -239,8 +246,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -257,8 +263,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._stopRecording = undefined;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -273,14 +278,22 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.startRecording();
   }
 
+  /** A wrapper to conditionally capture exceptions. */
+  handleException(error: unknown): void {
+    __DEBUG_BUILD__ && logger.error('[Replay]', error);
+
+    if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
+      captureException(error);
+    }
+  }
+
   /** for tests only */
   clearSession(): void {
     try {
       deleteSession();
       this.session = undefined;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -291,10 +304,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   loadSession({ expiry }: { expiry: number }): void {
     const { type, session } = getSession({
       expiry,
-      stickySession: Boolean(this.options.stickySession),
+      stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
-      sessionSampleRate: this.options.sessionSampleRate,
-      errorSampleRate: this.options.errorSampleRate,
+      sessionSampleRate: this._options.sessionSampleRate,
+      errorSampleRate: this._options.errorSampleRate,
     });
 
     // If session was newly created (i.e. was not loaded from storage), then
@@ -358,8 +371,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._hasInitializedCoreListeners = true;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
 
     // _performanceObserver //
@@ -387,8 +399,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._performanceObserver = null;
       }
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error('[Replay]', err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -401,12 +412,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * processing and hand back control to caller.
    */
   addUpdate(cb: AddUpdateCallback): void {
-    // We need to always run `cb` (e.g. in the case of `this._waitForError == true`)
+    // We need to always run `cb` (e.g. in the case of `this.recordingMode == 'error'`)
     const cbResult = cb?.();
 
     // If this option is turned on then we will only want to call `flush`
     // explicitly
-    if (this._waitForError) {
+    if (this.recordingMode === 'error') {
       return;
     }
 
@@ -443,7 +454,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (this._waitForError && event.type === 2) {
+      if (this.recordingMode === 'error' && event.type === 2) {
         this.setInitialState();
       }
 
@@ -469,7 +480,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // See note above re: session start needs to reflect the most recent
       // checkout.
-      if (this._waitForError && this.session && this._context.earliestEvent) {
+      if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
         this.session.started = this._context.earliestEvent;
         this._maybeSaveSession();
       }
@@ -478,7 +489,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // a previous session ID. In this case, we want to buffer events
       // for a set amount of time before flushing. This can help avoid
       // capturing replays of users that immediately close the window.
-      setTimeout(() => this.conditionalFlush(), this.options.initialFlushDelay);
+      setTimeout(() => this.conditionalFlush(), this._options.initialFlushDelay);
 
       // Cancel any previously debounced flushes to ensure there are no [near]
       // simultaneous flushes happening. The latter request should be
@@ -742,10 +753,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Only flush if `this._waitForError` is false.
+   * Only flush if `this.recordingMode === 'session'`
    */
   conditionalFlush(): void {
-    if (this._waitForError) {
+    if (this.recordingMode === 'error') {
       return;
     }
 
@@ -827,8 +838,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
       });
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
-      captureInternalException(err);
+      this.handleException(err);
     }
   }
 
@@ -898,7 +908,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   async sendReplayRequest({
     events,
-    replayId: event_id,
+    replayId,
     segmentId: segment_id,
     includeReplayStartTimestamp,
     eventContext,
@@ -914,77 +924,76 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const currentTimestamp = new Date().getTime();
 
-    const sdkInfo = {
-      name: 'sentry.javascript.integration.replay',
-      version: __SENTRY_REPLAY_VERSION__,
+    const hub = getCurrentHub();
+    const client = hub.getClient();
+    const scope = hub.getScope();
+    const transport = client && client.getTransport();
+
+    if (!client || !scope || !transport) {
+      return;
+    }
+
+    const baseEvent: Event = {
+      // @ts-ignore private api
+      type: REPLAY_EVENT_NAME,
+      ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
+      timestamp: currentTimestamp / 1000,
+      error_ids: errorIds,
+      trace_ids: traceIds,
+      urls,
+      replay_id: replayId,
+      segment_id,
     };
 
-    const replayEvent = await new Promise(resolve => {
-      getCurrentHub()
-        // @ts-ignore private api
-        ?._withClient(async (client: Client, scope: Scope) => {
-          // XXX: This event does not trigger `beforeSend` in SDK
-          // @ts-ignore private api
-          const preparedEvent: Event = await client._prepareEvent(
-            {
-              type: REPLAY_EVENT_NAME,
-              ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
-              timestamp: currentTimestamp / 1000,
-              error_ids: errorIds,
-              trace_ids: traceIds,
-              urls,
-              replay_id: event_id,
-              segment_id,
-            },
-            { event_id },
-            scope,
-          );
-          const session = scope && scope.getSession();
-          if (session) {
-            // @ts-ignore private api
-            client._updateSessionFromEvent(session, preparedEvent);
-          }
+    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
 
-          preparedEvent.sdk = {
-            ...preparedEvent.sdk,
-            ...sdkInfo,
-          };
+    replayEvent.tags = {
+      ...replayEvent.tags,
+      sessionSampleRate: this._options.sessionSampleRate,
+      errorSampleRate: this._options.errorSampleRate,
+      replayType: this.session?.sampled,
+    };
 
-          preparedEvent.tags = {
-            ...preparedEvent.tags,
-            sessionSampleRate: this.options.sessionSampleRate,
-            errorSampleRate: this.options.errorSampleRate,
-            replayType: this.session?.sampled,
-          };
-
-          resolve(preparedEvent);
-        });
-    });
-
-    const envelope = createEnvelope(
-      {
-        event_id,
-        sent_at: new Date().toISOString(),
-        sdk: sdkInfo,
-      },
-      [
-        // @ts-ignore New types
-        [{ type: 'replay_event' }, replayEvent],
-        [
-          {
-            // @ts-ignore setting envelope
-            type: 'replay_recording',
-            length: payloadWithSequence.length,
-          },
-          // @ts-ignore: Type 'string' is not assignable to type 'ClientReport'.ts(2322)
-          payloadWithSequence,
+    /*
+    For reference, the fully built event looks something like this:
+    {
+        "type": "replay_event",
+        "timestamp": 1670837008.634,
+        "error_ids": [
+            "errorId"
         ],
-      ],
-    );
+        "trace_ids": [
+            "traceId"
+        ],
+        "urls": [
+            "https://example.com"
+        ],
+        "replay_id": "eventId",
+        "segment_id": 3,
+        "platform": "javascript",
+        "event_id": "eventId",
+        "environment": "production",
+        "sdk": {
+            "integrations": [
+                "BrowserTracing",
+                "Replay"
+            ],
+            "name": "sentry.javascript.integration.replay",
+            "version": "7.24.2"
+        },
+        "sdkProcessingMetadata": {},
+        "tags": {
+            "sessionSampleRate": 1,
+            "errorSampleRate": 0,
+            "replayType": "error"
+        }
+    }
+    */
 
-    const client = getCurrentHub().getClient();
+    const envelope = createReplayEnvelope(replayId, replayEvent, payloadWithSequence);
+
     try {
-      return client?.getTransport()?.send(envelope);
+      return transport.send(envelope);
     } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
@@ -1021,12 +1030,11 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.resetRetries();
       return true;
     } catch (err) {
-      __DEBUG_BUILD__ && logger.error(err);
       // Capture error for every failed replay
       setContext('Replays', {
         _retryCount: this._retryCount,
       });
-      captureInternalException(err);
+      this.handleException(err);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
@@ -1059,7 +1067,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** Save the session, if it is sticky */
   private _maybeSaveSession(): void {
-    if (this.session && this.options.stickySession) {
+    if (this.session && this._options.stickySession) {
       saveSession(this.session);
     }
   }

@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.25.0
+
+- feat(core): Add `scope.getLastBreadcrumb()` (#6495)
+- feat(replay): Allow to opt-in to capture replay exceptions (#6482)
+- feat(tracing): Add interaction transaction as an experiment (#6210)
+- feat(types): Add profile envelope item type (#6468)
+- fix(replay): Replace `_waitForError` with `recordingMode` (#6489)
+- ref(replay): Inline lodash dependency into build (#6483)
+- build(core): Do not mangle private methods used by Replay (#6493)
+
 ## 7.24.2
 
 - fix(replay): Add missing rrweb type declarations (#6464)

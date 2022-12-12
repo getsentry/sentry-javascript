@@ -55,7 +55,7 @@ export interface Event {
 }
 
 /** JSDoc */
-export type EventType = 'transaction';
+export type EventType = 'transaction' | 'profile';
 
 /** JSDoc */
 export interface EventHint {

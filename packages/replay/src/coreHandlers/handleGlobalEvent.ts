@@ -1,8 +1,8 @@
+import { addBreadcrumb } from '@sentry/core';
 import { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { ReplayContainer } from '../types';
-import { addInternalBreadcrumb } from '../util/addInternalBreadcrumb';
 
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
@@ -22,11 +22,11 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Only tag transactions with replayId if not waiting for an error
     // @ts-ignore private
-    if (event.type !== 'transaction' || !replay._waitForError) {
+    if (event.type !== 'transaction' || replay.recordingMode === 'session') {
       event.tags = { ...event.tags, replayId: replay.session?.id };
     }
 
-    // Collect traceIds in _context regardless of `_waitForError` - if it's true,
+    // Collect traceIds in _context regardless of `recordingMode` - if it's true,
     // _context gets cleared on every checkout
     if (event.type === 'transaction' && event.contexts && event.contexts.trace && event.contexts.trace.trace_id) {
       replay.getContext().traceIds.add(event.contexts.trace.trace_id as string);
@@ -39,16 +39,17 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
     }
 
     const exc = event.exception?.values?.[0];
-    addInternalBreadcrumb({
-      message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
-        exc?.value || 'n/a'
-      }`,
-    });
+    if (__DEBUG_BUILD__ && replay.getOptions()._experiments?.traceInternals) {
+      addInternalBreadcrumb({
+        message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
+          exc?.value || 'n/a'
+        }`,
+      });
+    }
 
     // Need to be very careful that this does not cause an infinite loop
     if (
-      // @ts-ignore private
-      replay._waitForError &&
+      replay.recordingMode === 'error' &&
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
@@ -62,8 +63,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
         if (replay.stopRecording()) {
           // Reset all "capture on error" configuration before
           // starting a new recording
-          // @ts-ignore private
-          replay._waitForError = false;
+          replay.recordingMode = 'session';
           replay.startRecording();
         }
       });
@@ -71,4 +71,15 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     return event;
   };
+}
+
+function addInternalBreadcrumb(arg: Parameters<typeof addBreadcrumb>[0]): void {
+  const { category, level, message, ...rest } = arg;
+
+  addBreadcrumb({
+    category: category || 'console',
+    level: level || 'debug',
+    message: `[debug]: ${message}`,
+    ...rest,
+  });
 }

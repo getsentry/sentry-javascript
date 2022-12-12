@@ -1,6 +1,4 @@
-jest.unmock('@sentry/browser');
-
-import { captureException } from '@sentry/browser';
+import { captureException, getCurrentHub } from '@sentry/core';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
@@ -8,7 +6,7 @@ import { ReplayContainer } from './../../src/replay';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
 import { resetSdkMock } from './../mocks/resetSdkMock';
-import { DomHandler, MockTransportSend } from './../types';
+import { DomHandler } from './../types';
 import { useFakeTimers } from './../utils/use-fake-timers';
 
 useFakeTimers();
@@ -21,11 +19,11 @@ async function advanceTimers(time: number) {
 describe('Replay (errorSampleRate)', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
-  let mockTransportSend: MockTransportSend;
+
   let domHandler: DomHandler;
 
   beforeEach(async () => {
-    ({ mockRecord, mockTransportSend, domHandler, replay } = await resetSdkMock({
+    ({ mockRecord, domHandler, replay } = await resetSdkMock({
       replayOptions: {
         stickySession: true,
       },
@@ -87,9 +85,6 @@ describe('Replay (errorSampleRate)', () => {
         },
       ]),
     });
-
-    mockTransportSend.mockClear();
-    expect(replay).not.toHaveSentReplay();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -312,63 +307,6 @@ describe('Replay (errorSampleRate)', () => {
     });
   });
 
-  /**
-   * This is testing a case that should only happen with error-only sessions.
-   * Previously we had assumed that loading a session from session storage meant
-   * that the session was not new. However, this is not the case with error-only
-   * sampling since we can load a saved session that did not have an error (and
-   * thus no replay was created).
-   */
-  it('sends a replay after loading the session multiple times', async () => {
-    // Pretend that a session is already saved before loading replay
-    WINDOW.sessionStorage.setItem(
-      REPLAY_SESSION_KEY,
-      `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
-    );
-    ({ mockRecord, mockTransportSend, replay } = await resetSdkMock({
-      replayOptions: {
-        stickySession: true,
-      },
-    }));
-    replay.start();
-
-    jest.runAllTimers();
-
-    await new Promise(process.nextTick);
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    mockRecord._emitter(TEST_EVENT);
-
-    expect(replay).not.toHaveSentReplay();
-
-    captureException(new Error('testing'));
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-
-    expect(replay).toHaveSentReplay({
-      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
-    });
-
-    mockTransportSend.mockClear();
-    expect(replay).not.toHaveSentReplay();
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-
-    // New checkout when we call `startRecording` again after uploading segment
-    // after an error occurs
-    expect(replay).toHaveSentReplay({
-      events: JSON.stringify([
-        {
-          data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + 10000 + 20,
-          type: 2,
-        },
-      ]),
-    });
-  });
-
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
     const ELAPSED = 60000;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -415,5 +353,69 @@ describe('Replay (errorSampleRate)', () => {
         },
       ]),
     });
+  });
+});
+
+/**
+ * This is testing a case that should only happen with error-only sessions.
+ * Previously we had assumed that loading a session from session storage meant
+ * that the session was not new. However, this is not the case with error-only
+ * sampling since we can load a saved session that did not have an error (and
+ * thus no replay was created).
+ */
+it('sends a replay after loading the session multiple times', async () => {
+  // Pretend that a session is already saved before loading replay
+  WINDOW.sessionStorage.setItem(
+    REPLAY_SESSION_KEY,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
+  );
+  const { mockRecord, replay } = await resetSdkMock({
+    replayOptions: {
+      stickySession: true,
+    },
+    autoStart: false,
+  });
+
+  const fn = getCurrentHub()?.getClient()?.getTransport()?.send;
+  const mockTransportSend = fn
+    ? (jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send') as jest.MockedFunction<any>)
+    : jest.fn();
+
+  replay.start();
+
+  jest.runAllTimers();
+
+  await new Promise(process.nextTick);
+  const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+  mockRecord._emitter(TEST_EVENT);
+
+  expect(replay).not.toHaveSentReplay();
+
+  captureException(new Error('testing'));
+  jest.runAllTimers();
+  await new Promise(process.nextTick);
+
+  expect(replay).toHaveSentReplay({
+    events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
+  });
+
+  mockTransportSend.mockClear();
+  expect(replay).not.toHaveSentReplay();
+
+  jest.runAllTimers();
+  await new Promise(process.nextTick);
+  jest.runAllTimers();
+  await new Promise(process.nextTick);
+
+  // New checkout when we call `startRecording` again after uploading segment
+  // after an error occurs
+  expect(replay).toHaveSentReplay({
+    events: JSON.stringify([
+      {
+        data: { isCheckout: true },
+        timestamp: BASE_TIMESTAMP + 10000 + 20,
+        type: 2,
+      },
+    ]),
   });
 });

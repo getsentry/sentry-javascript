@@ -9,13 +9,13 @@ describe('integration settings', () => {
     it('sets the correct configuration when `blockAllMedia` is disabled', async () => {
       const { replay } = await mockSdk({ replayOptions: { blockAllMedia: false } });
 
-      expect(replay.recordingOptions.blockSelector).toBe('[data-sentry-block]');
+      expect(replay['_recordingOptions'].blockSelector).toBe('[data-sentry-block]');
     });
 
     it('sets the correct configuration when `blockSelector` is empty and `blockAllMedia` is enabled', async () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
-      expect(replay.recordingOptions.blockSelector).toMatchInlineSnapshot(
+      expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
         '"img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
       );
     });
@@ -25,7 +25,7 @@ describe('integration settings', () => {
         replayOptions: { blockSelector: '[data-test-blockSelector]' },
       });
 
-      expect(replay.recordingOptions.blockSelector).toMatchInlineSnapshot(
+      expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
         '"[data-test-blockSelector],img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
       );
     });
@@ -48,7 +48,7 @@ describe('integration settings', () => {
         sentryOptions: { replaysSessionSampleRate: undefined },
       });
 
-      expect(replay.options.sessionSampleRate).toBe(0.5);
+      expect(replay.getOptions().sessionSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
@@ -58,21 +58,21 @@ describe('integration settings', () => {
         sentryOptions: { replaysSessionSampleRate: undefined },
       });
 
-      expect(replay.options.sessionSampleRate).toBe(0);
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0.5 }, replayOptions: {} });
 
-      expect(replay.options.sessionSampleRate).toBe(0.5);
+      expect(replay.getOptions().sessionSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0 }, replayOptions: {} });
 
-      expect(replay.options.sessionSampleRate).toBe(0);
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(0);
     });
 
@@ -82,7 +82,7 @@ describe('integration settings', () => {
         replayOptions: { sessionSampleRate: 0.1 },
       });
 
-      expect(replay.options.sessionSampleRate).toBe(0.5);
+      expect(replay.getOptions().sessionSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
@@ -92,7 +92,7 @@ describe('integration settings', () => {
         replayOptions: { sessionSampleRate: 0.1 },
       });
 
-      expect(replay.options.sessionSampleRate).toBe(0);
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
   });
@@ -114,7 +114,7 @@ describe('integration settings', () => {
         sentryOptions: { replaysOnErrorSampleRate: undefined },
       });
 
-      expect(replay.options.errorSampleRate).toBe(0.5);
+      expect(replay.getOptions().errorSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
@@ -124,21 +124,21 @@ describe('integration settings', () => {
         sentryOptions: { replaysOnErrorSampleRate: undefined },
       });
 
-      expect(replay.options.errorSampleRate).toBe(0);
+      expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0.5 }, replayOptions: {} });
 
-      expect(replay.options.errorSampleRate).toBe(0.5);
+      expect(replay.getOptions().errorSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0 }, replayOptions: {} });
 
-      expect(replay.options.errorSampleRate).toBe(0);
+      expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(0);
     });
 
@@ -148,7 +148,7 @@ describe('integration settings', () => {
         replayOptions: { errorSampleRate: 0.1 },
       });
 
-      expect(replay.options.errorSampleRate).toBe(0.5);
+      expect(replay.getOptions().errorSampleRate).toBe(0.5);
       expect(mockConsole).toBeCalledTimes(1);
     });
 
@@ -158,7 +158,7 @@ describe('integration settings', () => {
         replayOptions: { errorSampleRate: 0.1 },
       });
 
-      expect(replay.options.errorSampleRate).toBe(0);
+      expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
   });
@@ -168,25 +168,45 @@ describe('integration settings', () => {
       const { replay } = await mockSdk({ replayOptions: {} });
 
       // Default is true
-      expect(replay.recordingOptions.maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
     });
 
     it('works with true', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true } });
 
-      expect(replay.recordingOptions.maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
     });
 
     it('works with false', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: false } });
 
-      expect(replay.recordingOptions.maskTextSelector).toBe(undefined);
+      expect(replay['_recordingOptions'].maskTextSelector).toBe(undefined);
     });
 
     it('overwrites custom maskTextSelector option', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true, maskTextSelector: '[custom]' } });
 
-      expect(replay.recordingOptions.maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
+    });
+  });
+
+  describe('_experiments', () => {
+    it('works with defining _experiments in integration', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: { _experiments: { captureExceptions: true } },
+        sentryOptions: {},
+      });
+
+      expect(replay.getOptions()._experiments).toEqual({ captureExceptions: true });
+    });
+
+    it('works without defining _experiments in integration', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: {},
+        sentryOptions: {},
+      });
+
+      expect(replay.getOptions()._experiments).toEqual({});
     });
   });
 });
