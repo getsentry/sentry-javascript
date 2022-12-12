@@ -1,10 +1,15 @@
 /* eslint-disable max-lines */
 import { Hub } from '@sentry/core';
-import { EventProcessor, Integration, Transaction, TransactionContext } from '@sentry/types';
+import { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
 
 import { startIdleTransaction } from '../hubextensions';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
+import {
+  DEFAULT_FINAL_TIMEOUT,
+  DEFAULT_HEARTBEAT_INTERVAL,
+  DEFAULT_IDLE_TIMEOUT,
+  IdleTransaction,
+} from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
@@ -80,14 +85,19 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _metricOptions?: Partial<{ _reportAllChanges: boolean }>;
+  _metricOptions?: Partial<{
+    /**
+     * @deprecated This property no longer has any effect and will be removed in v8.
+     */
+    _reportAllChanges: boolean;
+  }>;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
    */
-  _experiments?: Partial<{ enableLongTask: boolean }>;
+  _experiments?: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -120,7 +130,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
-  _experiments: { enableLongTask: true },
+  _experiments: { enableLongTask: true, enableInteractions: false },
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -147,6 +157,9 @@ export class BrowserTracing implements Integration {
 
   private _getCurrentHub?: () => Hub;
 
+  private _latestRouteName?: string;
+  private _latestRouteSource?: TransactionSource;
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -162,8 +175,7 @@ export class BrowserTracing implements Integration {
       this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
-    const { _metricOptions } = this.options;
-    startTrackingWebVitals(_metricOptions && _metricOptions._reportAllChanges);
+    startTrackingWebVitals();
     if (this.options._experiments?.enableLongTask) {
       startTrackingLongTasks();
     }
@@ -185,6 +197,7 @@ export class BrowserTracing implements Integration {
       traceXHR,
       tracePropagationTargets,
       shouldCreateSpanForRequest,
+      _experiments,
     } = this.options;
 
     instrumentRouting(
@@ -195,6 +208,10 @@ export class BrowserTracing implements Integration {
 
     if (markBackgroundTransactions) {
       registerBackgroundTabDetection();
+    }
+
+    if (_experiments?.enableInteractions) {
+      this._registerInteractionListener();
     }
 
     instrumentOutgoingRequests({
@@ -248,6 +265,9 @@ export class BrowserTracing implements Integration {
         ? { ...finalContext.metadata, source: 'custom' }
         : finalContext.metadata;
 
+    this._latestRouteName = finalContext.name;
+    this._latestRouteSource = finalContext.metadata?.source;
+
     if (finalContext.sampled === false) {
       __DEBUG_BUILD__ &&
         logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
@@ -272,6 +292,57 @@ export class BrowserTracing implements Integration {
     });
 
     return idleTransaction as Transaction;
+  }
+
+  /** Start listener for interaction transactions */
+  private _registerInteractionListener(): void {
+    let inflightInteractionTransaction: IdleTransaction | undefined;
+    const registerInteractionTransaction = (): void => {
+      const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
+
+      const op = 'ui.action.click';
+      if (inflightInteractionTransaction) {
+        inflightInteractionTransaction.finish();
+        inflightInteractionTransaction = undefined;
+      }
+
+      if (!this._getCurrentHub) {
+        __DEBUG_BUILD__ && logger.warn(`[Tracing] Did not create ${op} transaction because _getCurrentHub is invalid.`);
+        return undefined;
+      }
+
+      if (!this._latestRouteName) {
+        __DEBUG_BUILD__ &&
+          logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
+        return undefined;
+      }
+
+      const hub = this._getCurrentHub();
+      const { location } = WINDOW;
+
+      const context: TransactionContext = {
+        name: this._latestRouteName,
+        op,
+        trimEnd: true,
+        metadata: {
+          source: this._latestRouteSource ?? 'url',
+        },
+      };
+
+      inflightInteractionTransaction = startIdleTransaction(
+        hub,
+        context,
+        idleTimeout,
+        finalTimeout,
+        true,
+        { location }, // for use in the tracesSampler
+        heartbeatInterval,
+      );
+    };
+
+    ['click'].forEach(type => {
+      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+    });
   }
 }
 

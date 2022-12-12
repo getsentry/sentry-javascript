@@ -17,4 +17,6 @@ export type DataCategory =
   // Session update events
   | 'session'
   // SDK internal event, like client_reports
-  | 'internal';
+  | 'internal'
+  // Profile event type
+  | 'profile';

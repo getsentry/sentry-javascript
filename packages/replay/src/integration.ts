@@ -5,7 +5,6 @@ import { Integration } from '@sentry/types';
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
-import { captureInternalException } from './util/captureInternalException';
 import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
@@ -30,8 +29,13 @@ export class Replay implements Integration {
 
   readonly options: ReplayPluginOptions;
 
-  /** In tests, this is only called the first time */
-  protected _hasCalledSetupOnce: boolean = false;
+  protected get _isInitialized(): boolean {
+    return _initialized;
+  }
+
+  protected set _isInitialized(value: boolean) {
+    _initialized = value;
+  }
 
   private _replay?: ReplayContainer;
 
@@ -46,6 +50,7 @@ export class Replay implements Integration {
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
+    _experiments = {},
     blockClass = 'sentry-block',
     ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
@@ -71,6 +76,7 @@ export class Replay implements Integration {
       useCompression,
       maskAllText,
       blockAllMedia,
+      _experiments,
     };
 
     if (typeof sessionSampleRate === 'number') {
@@ -112,13 +118,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    if (isBrowser() && _initialized) {
-      const error = new Error('Multiple Sentry Session Replay instances are not supported');
-      captureInternalException(error);
-      throw error;
+    if (isBrowser() && this._isInitialized) {
+      throw new Error('Multiple Sentry Session Replay instances are not supported');
     }
 
-    _initialized = true;
+    this._isInitialized = true;
   }
 
   /**
@@ -137,7 +141,6 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     this._setup();
-    this._hasCalledSetupOnce = true;
 
     // XXX: See method comments above
     setTimeout(() => this.start());

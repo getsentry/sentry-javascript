@@ -2,8 +2,7 @@ import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
 import { WINDOW } from './constants';
-import { AllPerformanceEntry, PerformanceNavigationTiming, PerformancePaintTiming } from './types';
-import { isIngestHost } from './util/isIngestHost';
+import type { AllPerformanceEntry, PerformanceNavigationTiming, PerformancePaintTiming } from './types';
 
 export interface ReplayPerformanceEntry {
   /**
@@ -109,11 +108,6 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createResourceEntry(entry: PerformanceResourceTiming) {
   const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
-
-  // Do not capture fetches to Sentry ingestion endpoint
-  if (isIngestHost(name)) {
-    return null;
-  }
 
   // Core SDK handles these
   if (['fetch', 'xmlhttprequest'].includes(initiatorType)) {

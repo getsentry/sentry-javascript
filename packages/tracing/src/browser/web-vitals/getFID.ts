@@ -19,7 +19,7 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { FIDMetric, PerformanceEventTiming, ReportCallback, ReportOpts } from './types';
+import { FIDMetric, PerformanceEventTiming, ReportCallback } from './types';
 
 /**
  * Calculates the [FID](https://web.dev/fid/) value for the current page and
@@ -30,7 +30,7 @@ import { FIDMetric, PerformanceEventTiming, ReportCallback, ReportOpts } from '.
  * _**Important:** since FID is only reported after the user interacts with the
  * page, it's possible that it will not be reported for some page loads._
  */
-export const onFID = (onReport: ReportCallback, opts: ReportOpts = {}): void => {
+export const onFID = (onReport: ReportCallback): void => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('FID');
   // eslint-disable-next-line prefer-const
@@ -50,7 +50,7 @@ export const onFID = (onReport: ReportCallback, opts: ReportOpts = {}): void => 
   };
 
   const po = observe('first-input', handleEntries);
-  report = bindReporter(onReport, metric, opts.reportAllChanges);
+  report = bindReporter(onReport, metric);
 
   if (po) {
     onHidden(() => {

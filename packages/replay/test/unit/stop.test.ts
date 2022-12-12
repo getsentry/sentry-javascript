@@ -2,6 +2,7 @@ import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
+import { addEvent } from '../../src/util/addEvent';
 import { Replay } from './../../src';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
@@ -73,7 +74,7 @@ describe('Replay - stop', () => {
     // Pretend 5 seconds have passed
     jest.advanceTimersByTime(ELAPSED);
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
@@ -103,7 +104,7 @@ describe('Replay - stop', () => {
       },
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);

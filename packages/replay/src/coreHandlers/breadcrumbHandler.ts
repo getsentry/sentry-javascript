@@ -1,6 +1,6 @@
 import { Breadcrumb, Scope } from '@sentry/types';
 
-import { InstrumentationTypeBreadcrumb } from '../types';
+import type { InstrumentationTypeBreadcrumb } from '../types';
 import { DomHandlerData, handleDom } from './handleDom';
 import { handleScope } from './handleScope';
 
