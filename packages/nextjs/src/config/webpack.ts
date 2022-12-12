@@ -661,20 +661,6 @@ function addValueInjectionLoader(
   const orgValue = webpackPluginOptions.org || process.env.SENTRY_ORG;
   const projectValue = webpackPluginOptions.project || process.env.SENTRY_PROJECT;
 
-  const serverValues = {
-    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
-    // characters)
-    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
-  };
-
-  const clientValues = {
-    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
-    // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-    __rewriteFramesAssetPrefixPath__: assetPrefix
-      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
-      : '',
-  };
-
   const isomorphicValues = {
     // Inject release into SDK
     ...(releaseValue
@@ -693,6 +679,22 @@ function addValueInjectionLoader(
           },
         }
       : undefined),
+  };
+
+  const serverValues = {
+    ...isomorphicValues,
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+  };
+
+  const clientValues = {
+    ...isomorphicValues,
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    __rewriteFramesAssetPrefixPath__: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
   };
 
   newConfig.module.rules.push(
@@ -714,17 +716,6 @@ function addValueInjectionLoader(
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
           options: {
             values: clientValues,
-          },
-        },
-      ],
-    },
-    {
-      test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-      use: [
-        {
-          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
-          options: {
-            values: isomorphicValues,
           },
         },
       ],
