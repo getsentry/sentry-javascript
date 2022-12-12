@@ -2,11 +2,12 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
-import { dsnFromString, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
+import { applyTunnelRouteOption } from './utils/tunnelRoute';
 import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/react';
@@ -34,9 +35,9 @@ declare const __SENTRY_TRACING__: boolean;
 // v12.2.1-canary.3 onwards:
 // https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
 declare const EdgeRuntime: string | undefined;
+
 const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesAssetPrefixPath__: string;
-  __sentryRewritesTunnelPath__?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
@@ -49,20 +50,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
-  let tunnelPath: string | undefined;
-  if (globalWithInjectedValues.__sentryRewritesTunnelPath__ && options.dsn) {
-    const dsnComponents = dsnFromString(options.dsn);
-    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
-    if (sentrySaasDsnMatch) {
-      const orgId = sentrySaasDsnMatch[1];
-      tunnelPath = `${globalWithInjectedValues.__sentryRewritesTunnelPath__}?o=${orgId}&p=${dsnComponents.projectId}`;
-      options.tunnel = tunnelPath;
-      __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
-    } else {
-      __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
-    }
-  }
-
+  applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
   addClientIntegrations(options);
