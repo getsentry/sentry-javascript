@@ -1,14 +1,9 @@
-import { parseSemver } from '@sentry/utils';
-
-const nodeVersion = parseSemver(process.versions.node);
-
-if ((nodeVersion.major || 0) < 14) {
-  throw new Error('The LocalVariables integration requires node.js >= v14');
-}
-
-import { Event, EventProcessor, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import { getCurrentHub } from '@sentry/core';
+import { Event, EventProcessor, Integration, StackFrame, StackParser } from '@sentry/types';
 import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
+
+import { NodeClient } from '../client';
 
 /**
  * Promise API is available as `Experimental` and in Node 19 only.
@@ -67,24 +62,6 @@ function hashFrames(frames: StackFrame[] | undefined): string | undefined {
   return frames.reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
 }
 
-type HashFromStackFn = (stack: string | undefined) => string | undefined;
-
-/**
- * Creates a function used to hash stack strings
- *
- * We use the stack parser to create a unique hash from the exception stack trace
- * This is used to lookup vars when the exception passes through the event processor
- */
-function createHashFn(stackParser: StackParser | undefined): HashFromStackFn {
-  return (stack: string | undefined) => {
-    if (stackParser === undefined || stack === undefined) {
-      return undefined;
-    }
-
-    return hashFrames(stackParser(stack, 1));
-  };
-}
-
 interface FrameVariables {
   function: string;
   vars?: Record<string, unknown>;
@@ -100,29 +77,38 @@ export class LocalVariables implements Integration {
 
   private readonly _session: AsyncSession = new AsyncSession();
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(50);
-
-  public constructor() {
-    this._session.connect();
-    this._session.on('Debugger.paused', this._handlePaused.bind(this));
-    this._session.post('Debugger.enable');
-    // We only want to pause on uncaught exceptions
-    this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
-  }
+  private _stackParser: StackParser | undefined;
 
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this._stackHasher = createHashFn(getCurrentHub().getClient()?.getOptions().stackParser);
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+    const options = getCurrentHub().getClient<NodeClient>()?.getOptions();
 
-    addGlobalEventProcessor(async event => this._addLocalVariables(event));
+    if (options?.includeStackLocals) {
+      this._stackParser = options.stackParser;
+
+      this._session.connect();
+      this._session.on('Debugger.paused', this._handlePaused.bind(this));
+      this._session.post('Debugger.enable');
+      // We only want to pause on uncaught exceptions
+      this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+
+      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+    }
   }
 
   /**
    * We use the stack parser to create a unique hash from the exception stack trace
-   * This is used to lookup vars when
+   * This is used to lookup vars when the exception passes through the event processor
    */
-  private _stackHasher: HashFromStackFn = _ => undefined;
+  private _hashFromStack(stack: string | undefined): string | undefined {
+    if (this._stackParser === undefined || stack === undefined) {
+      return undefined;
+    }
+
+    return hashFrames(this._stackParser(stack, 1));
+  }
 
   /**
    * Handle the pause event
@@ -135,7 +121,7 @@ export class LocalVariables implements Integration {
     }
 
     // data.description contains the original error.stack
-    const exceptionHash = this._stackHasher(data?.description);
+    const exceptionHash = this._hashFromStack(data?.description);
 
     if (exceptionHash == undefined) {
       return;
@@ -223,7 +209,7 @@ export class LocalVariables implements Integration {
     const frameCount = event?.exception?.values?.[0]?.stacktrace?.frames?.length || 0;
 
     for (let i = 0; i < frameCount; i++) {
-      // Sentry frames are already in reverse order
+      // Sentry frames are in reverse order
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
