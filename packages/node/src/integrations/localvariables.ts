@@ -62,24 +62,6 @@ function hashFrames(frames: StackFrame[] | undefined): string | undefined {
   return frames.reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
 }
 
-type HashFromStackFn = (stack: string | undefined) => string | undefined;
-
-/**
- * Creates a function used to hash stack strings
- *
- * We use the stack parser to create a unique hash from the exception stack trace
- * This is used to lookup vars when the exception passes through the event processor
- */
-function createHashFn(stackParser: StackParser | undefined): HashFromStackFn {
-  return (stack: string | undefined) => {
-    if (stackParser === undefined || stack === undefined) {
-      return undefined;
-    }
-
-    return hashFrames(stackParser(stack, 1));
-  };
-}
-
 interface FrameVariables {
   function: string;
   vars?: Record<string, unknown>;
@@ -95,6 +77,7 @@ export class LocalVariables implements Integration {
 
   private readonly _session: AsyncSession = new AsyncSession();
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(50);
+  private _stackParser: StackParser | undefined;
 
   /**
    * @inheritDoc
@@ -103,22 +86,29 @@ export class LocalVariables implements Integration {
     const options = getCurrentHub().getClient<NodeClient>()?.getOptions();
 
     if (options?.includeStackLocals) {
-      this._stackHasher = createHashFn(options.stackParser);
-      addGlobalEventProcessor(async event => this._addLocalVariables(event));
+      this._stackParser = options.stackParser;
 
       this._session.connect();
       this._session.on('Debugger.paused', this._handlePaused.bind(this));
       this._session.post('Debugger.enable');
       // We only want to pause on uncaught exceptions
       this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+
+      addGlobalEventProcessor(async event => this._addLocalVariables(event));
     }
   }
 
   /**
    * We use the stack parser to create a unique hash from the exception stack trace
-   * This is used to lookup vars when the event processor is called
+   * This is used to lookup vars when the exception passes through the event processor
    */
-  private _stackHasher: HashFromStackFn = _ => undefined;
+  private _hashFromStack(stack: string | undefined): string | undefined {
+    if (this._stackParser === undefined || stack === undefined) {
+      return undefined;
+    }
+
+    return hashFrames(this._stackParser(stack, 1));
+  }
 
   /**
    * Handle the pause event
@@ -131,7 +121,7 @@ export class LocalVariables implements Integration {
     }
 
     // data.description contains the original error.stack
-    const exceptionHash = this._stackHasher(data?.description);
+    const exceptionHash = this._hashFromStack(data?.description);
 
     if (exceptionHash == undefined) {
       return;
@@ -219,7 +209,7 @@ export class LocalVariables implements Integration {
     const frameCount = event?.exception?.values?.[0]?.stacktrace?.frames?.length || 0;
 
     for (let i = 0; i < frameCount; i++) {
-      // Sentry frames are already in reverse order
+      // Sentry frames are in reverse order
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
