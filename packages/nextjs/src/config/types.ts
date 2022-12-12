@@ -28,7 +28,7 @@ export type NextConfigFunctionWithSentry = (
 ) => NextConfigObjectWithSentry;
 
 // Vendored from Next.js (this type is not complete - extend if necessary)
-type Rewrite = {
+type NextRewrite = {
   source: string;
   destination: string;
 };
@@ -50,11 +50,11 @@ export type NextConfigObject = {
   pageExtensions?: string[];
   // Paths to reroute when requested
   rewrites?: () => Promise<
-    | Rewrite[]
+    | NextRewrite[]
     | {
-        beforeFiles: Rewrite[];
-        afterFiles: Rewrite[];
-        fallback: Rewrite[];
+        beforeFiles: NextRewrite[];
+        afterFiles: NextRewrite[];
+        fallback: NextRewrite[];
       }
   >;
 };
@@ -91,7 +91,7 @@ export type UserSentryOptions = {
   // exact match.
   excludeServerRoutes?: Array<RegExp | string>;
 
-  // Tunnel Sentry requests through the Next.js server to circumvent ad-blockers blocking Sentry events from being sent.
+  // Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events from being sent.
   // This option should be a path (for example: '/error-monitoring').
   tunnelRoute?: string;
 };

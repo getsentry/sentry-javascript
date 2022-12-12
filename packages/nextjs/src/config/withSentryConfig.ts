@@ -40,9 +40,11 @@ function getFinalConfigObject(
   // to `constructWebpackConfigFunction` so that it can live in the returned function's closure.
   const { sentry: userSentryOptions } = incomingUserNextConfigObject;
   delete incomingUserNextConfigObject.sentry;
+  // Remind TS that there's now no `sentry` property
+  const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
 
   if (userSentryOptions?.tunnelRoute) {
-    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
+    setUpTunnelRewriteRules(userNextConfigObject, userSentryOptions.tunnelRoute);
   }
 
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
@@ -52,17 +54,13 @@ function getFinalConfigObject(
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { constructWebpackConfigFunction } = require('./webpack');
     return {
-      ...incomingUserNextConfigObject,
-      webpack: constructWebpackConfigFunction(
-        incomingUserNextConfigObject,
-        userSentryWebpackPluginOptions,
-        userSentryOptions,
-      ),
+      ...userNextConfigObject,
+      webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
     };
   }
 
   // At runtime, we just return the user's config untouched.
-  return incomingUserNextConfigObject;
+  return userNextConfigObject;
 }
 
 /**
