@@ -8,6 +8,9 @@ const mockHandleScope = HandleScope.handleScope as jest.MockedFunction<typeof Ha
 it('returns a breadcrumb only if last breadcrumb has changed (unit)', function () {
   const scope = {
     _breadcrumbs: [],
+    getLastBreadcrumb() {
+      return this._breadcrumbs[this._breadcrumbs.length - 1];
+    },
   } as unknown as Scope;
 
   function addBreadcrumb(breadcrumb: Breadcrumb) {
