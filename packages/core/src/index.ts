@@ -4,6 +4,7 @@ export type { Carrier, Layer } from './hub';
 export {
   addBreadcrumb,
   captureException,
+  captureExceptionWithHint,
   captureEvent,
   captureMessage,
   configureScope,

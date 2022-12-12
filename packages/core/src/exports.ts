@@ -36,6 +36,19 @@ export function captureException(exception: any, captureContext?: CaptureContext
 }
 
 /**
+ * A version of `captureException` which takes a hint as its second parameter, primarily for internal use.
+ *
+ * @param exception An exception-like object
+ * @param hint Metadata for use in capturing event
+ * @returns The generated event id
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+export function captureExceptionWithHint(exception: any, hint: EventHint): ReturnType<Hub['captureException']> {
+  // eslint-disable-next-line @sentry-internal/sdk/captureException-from-core -- This is the one place this is allowed
+  return getCurrentHub().captureException(exception, hint);
+}
+
+/**
  * Captures a message event and sends it to Sentry.
  *
  * @param message The message to send to Sentry.
