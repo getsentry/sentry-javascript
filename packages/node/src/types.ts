@@ -11,9 +11,6 @@ export interface BaseNodeOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
-  /**  */
-  includeStackLocals?: boolean;
-
   // TODO (v8): Remove this in v8
   /**
    * @deprecated Moved to constructor options of the `Http` integration.

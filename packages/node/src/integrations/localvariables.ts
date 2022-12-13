@@ -85,7 +85,7 @@ export class LocalVariables implements Integration {
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     const options = getCurrentHub().getClient<NodeClient>()?.getOptions();
 
-    if (options?.includeStackLocals) {
+    if (options?._experiments?.includeStackLocals) {
       this._stackParser = options.stackParser;
 
       this._session.connect();
