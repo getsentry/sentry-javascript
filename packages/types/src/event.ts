@@ -11,6 +11,7 @@ import { CaptureContext } from './scope';
 import { SdkInfo } from './sdkinfo';
 import { Severity, SeverityLevel } from './severity';
 import { Span } from './span';
+import { Thread } from './thread';
 import { TransactionNameChange, TransactionSource } from './transaction';
 import { User } from './user';
 
@@ -51,6 +52,9 @@ export interface Event {
     source: TransactionSource;
     changes: TransactionNameChange[];
     propagations: number;
+  };
+  threads?: {
+    values: Thread[];
   };
 }
 
