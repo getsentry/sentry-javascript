@@ -8,6 +8,7 @@ import {
   Event,
   EventDropReason,
   EventHint,
+  EventType,
   Integration,
   IntegrationClass,
   Outcome,
@@ -41,6 +42,8 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { Scope } from './scope';
 import { updateSession } from './session';
+
+type BeforeSendProcessorMethod = 'beforeSend' | 'beforeSendTransaction';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -628,13 +631,20 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     const isTransaction = event.type === 'transaction';
-    const beforeSendProcessorName = isTransaction ? 'beforeSendTransaction' : 'beforeSend';
-    const beforeSendProcessor = options[beforeSendProcessorName];
+    const isError = !event.type;
+
+    const beforeSendProcessorMap: Map<EventType | undefined, BeforeSendProcessorMethod | undefined> = new Map([
+      [undefined, 'beforeSend'],
+      ['transaction', 'beforeSendTransaction'],
+    ]);
+
+    const beforeSendProcessorName = beforeSendProcessorMap.get(event.type);
+    const beforeSendProcessor = beforeSendProcessorName ? options[beforeSendProcessorName] : undefined;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
-    if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    if (isError && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
       return rejectedSyncPromise(
         new SentryError(
@@ -657,7 +667,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const beforeSendResult = beforeSendProcessor(prepared, hint);
-        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
+        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName as BeforeSendProcessorMethod);
       })
       .then(processedEvent => {
         if (processedEvent === null) {

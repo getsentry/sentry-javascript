@@ -24,7 +24,7 @@ export type {
   UserFeedbackItem,
 } from './envelope';
 export type { ExtendedError } from './error';
-export type { Event, EventHint } from './event';
+export type { Event, EventHint, EventType } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
