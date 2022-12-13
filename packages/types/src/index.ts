@@ -19,6 +19,7 @@ export type {
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  ReplayEnvelope,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
