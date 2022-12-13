@@ -7,6 +7,7 @@ import { logger } from '@sentry/utils';
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
+import { applyTunnelRouteOption } from './utils/tunnelRoute';
 import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/react';
@@ -35,7 +36,9 @@ declare const __SENTRY_TRACING__: boolean;
 // https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
 declare const EdgeRuntime: string | undefined;
 
-type GlobalWithAssetPrefixPath = typeof global & { __rewriteFramesAssetPrefixPath__: string };
+const globalWithInjectedValues = global as typeof global & {
+  __rewriteFramesAssetPrefixPath__: string;
+};
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
@@ -47,6 +50,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
+  applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
   addClientIntegrations(options);
@@ -67,7 +71,7 @@ function addClientIntegrations(options: NextjsOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = (global as GlobalWithAssetPrefixPath).__rewriteFramesAssetPrefixPath__ || '';
+  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
 
   const defaultRewriteFramesIntegration = new RewriteFrames({
     // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`

@@ -133,6 +133,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   event: 'error',
   client_report: 'internal',
   user_report: 'default',
+  profile: 'profile',
 };
 
 /**

@@ -1,11 +1,13 @@
-import type { eventWithTime, recordOptions } from 'rrweb/typings/types';
+import type { eventWithTime, recordOptions } from './types/rrweb';
 
 export type RecordingEvent = eventWithTime;
-export type RecordingOptions = recordOptions<eventWithTime>;
+export type RecordingOptions = recordOptions;
 
 export type RecordedEvents = Uint8Array | string;
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
+
+export type ReplayRecordingMode = 'session' | 'error';
 
 export interface SendReplay {
   events: RecordedEvents;
@@ -16,13 +18,6 @@ export interface SendReplay {
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
-export type InstrumentationTypeSpan = 'fetch' | 'xhr' | 'history';
-export type InstrumentationType =
-  | InstrumentationTypeBreadcrumb
-  | InstrumentationTypeSpan
-  | 'console'
-  | 'error'
-  | 'unhandledrejection';
 
 /**
  * The request payload to worker
@@ -112,6 +107,18 @@ export interface ReplayPluginOptions extends SessionOptions {
    * Block all media (e.g. images, svg, video) in recordings.
    */
   blockAllMedia: boolean;
+
+  /**
+   * _experiments allows users to enable experimental or internal features.
+   * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
+   * Experimental features can be added, changed or removed at any time.
+   *
+   * Default: undefined
+   */
+  _experiments?: Partial<{
+    captureExceptions: boolean;
+    traceInternals: boolean;
+  }>;
 }
 
 // These are optional for ReplayPluginOptions because the plugin sets default values
@@ -166,4 +173,65 @@ export interface InternalEventContext extends CommonEventContext {
    * The timestamp of the earliest event that has been added to event buffer. This can happen due to the Performance Observer which buffers events.
    */
   earliestEvent: number | null;
+}
+
+export type Sampled = false | 'session' | 'error';
+
+export interface Session {
+  id: string;
+
+  /**
+   * Start time of current session
+   */
+  started: number;
+
+  /**
+   * Last known activity of the session
+   */
+  lastActivity: number;
+
+  /**
+   * Segment ID for replay events
+   */
+  segmentId: number;
+
+  /**
+   * The ID of the previous session.
+   * If this is empty, there was no previous session.
+   */
+  previousSessionId?: string;
+
+  /**
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
+   */
+  sampled: Sampled;
+}
+
+export interface EventBuffer {
+  readonly length: number;
+  destroy(): void;
+  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
+  finish(): Promise<string | Uint8Array>;
+}
+
+export type AddUpdateCallback = () => boolean | void;
+
+export interface ReplayContainer {
+  eventBuffer: EventBuffer | null;
+  performanceEvents: AllPerformanceEntry[];
+  session: Session | undefined;
+  recordingMode: ReplayRecordingMode;
+  isEnabled(): boolean;
+  isPaused(): boolean;
+  getContext(): InternalEventContext;
+  start(): void;
+  stop(): void;
+  pause(): void;
+  resume(): void;
+  startRecording(): void;
+  stopRecording(): boolean;
+  flushImmediate(): void;
+  triggerUserActivity(): void;
+  addUpdate(cb: AddUpdateCallback): void;
+  getOptions(): ReplayPluginOptions;
 }

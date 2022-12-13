@@ -4,6 +4,66 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.26.0
+
+- feat(browser): Export event builder methods for use in other SDKs (#6515)
+- feat(types): Add threads to Event (#6516)
+- feat(nextjs): Add option to automatically tunnel events (#6425)
+- fix(nextjs): Fix automatic release value discovery (#6513)
+- ref(nextjs): Use generic loader to inject global values (#6484)
+
+Work in this release contributed by @theofidry. Thank you for your contribution!
+
+## 7.25.0
+
+- feat(core): Add `scope.getLastBreadcrumb()` (#6495)
+- feat(replay): Allow to opt-in to capture replay exceptions (#6482)
+- feat(tracing): Add interaction transaction as an experiment (#6210)
+- feat(types): Add profile envelope item type (#6468)
+- fix(replay): Replace `_waitForError` with `recordingMode` (#6489)
+- ref(replay): Inline lodash dependency into build (#6483)
+- build(core): Do not mangle private methods used by Replay (#6493)
+
+## 7.24.2
+
+- fix(replay): Add missing rrweb type declarations (#6464)
+- fix(tracing): Check for otel before loading db module (#6461)
+- fix(tracing): Deprecate and remove `reportAllChanges` option (#6456)
+- ref(replay): Extract integration to clarify public API (#6457)
+
+## 7.24.1
+
+This patch corrects an oversight on our end which caused the Sentry Replay integration CDN bundles to be ignored when uploading bundles to our CDN.
+If you want to use the Replay CDN bundles, please use version 7.24.1 or newer.
+
+- fix(react): Add type for React Router's `encodeLocation` method (#6439)
+- fix(replay): Add CDN bundle path to release artifacts (#6452)
+- fix(tracing): Instrument cursors returned from MongoDB operations. (#6437)
+- ref(angular): Extract zonejs error unwrapper into a dedicated function (#6443)
+
+Work in this release contributed by @theofidry. Thank you for your contribution!
+
+## 7.24.0
+
+This release bumps the [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/README.md) package from version 0.x to 7.24.0.
+Along with this version bump, we're introducing a few breaking changes.
+Take a look at the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
+The Replay version bump is the result of moving the package into the Sentry JavaScript SDK monorepo which aligns the version with our other JS SDK packages.
+**Important:** If you're using Replay with version 7.24.x or newer, make sure to also upgrade your other `@sentry/*` packages to this version.
+
+- feat(browser): Support dom.maxStringLength configuration (#6311)
+- feat(nextjs): Don't init SDK on Vercel Edge Runtime (#6408)
+- feat(nextjs): Parameterize prefix loader values (#6377)
+- feat(nextjs): Support `assetPrefix` option (#6388)
+- fix(nextjs): Inject SDK in dev mode (#6368)
+- fix(nextjs): Use `basePath` for `assetPrefix` if needed (#6424)
+- fix(node): Move `profilesSampleRate` into `BaseNodeOptions` (#6409)
+- ref(nextjs): Clean up client-side integrations code (#6382)
+- ref(nextjs): Use loader for rather than webpack plugin for injecting release (#6404)
+- ref(remix): Do not fail silently if `getClientIpAddress` throws error. (#6400)
+
+Work in this release contributed by @tomgrossman and @ZachGawlik. Thank you for your contributions!
+
 ## 7.23.0
 
 - feat(browser): Add `__SENTRY_RELEASE__` magic string (#6322)

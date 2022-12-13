@@ -1,8 +1,8 @@
 import { logger } from '@sentry/utils';
 
-import { SessionOptions } from '../types';
+import type { Session, SessionOptions } from '../types';
 import { saveSession } from './saveSession';
-import { getSessionSampleType, makeSession, Session } from './Session';
+import { getSessionSampleType, makeSession } from './Session';
 
 /**
  * Create a new session, which in its current implementation is a Sentry event

@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
 
-const SENTRY_TEST_ORG_SLUG = 'sentry-sdks';
-const SENTRY_TEST_PROJECT = 'sentry-javascript-e2e-tests';
-
 const EVENT_POLLING_TIMEOUT = 30_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
+const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
+const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 
 test('Sends an exception to Sentry', async ({ page }) => {
   await page.goto('/');
@@ -24,7 +23,7 @@ test('Sends an exception to Sentry', async ({ page }) => {
       async () => {
         try {
           const response = await axios.get(
-            `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${exceptionEventId}/`,
+            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
             { headers: { Authorization: `Bearer ${authToken}` } },
           );
           return response.status;
@@ -74,7 +73,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
           async () => {
             try {
               const response = await axios.get(
-                `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
+                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
                 { headers: { Authorization: `Bearer ${authToken}` } },
               );
 
@@ -139,7 +138,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
           async () => {
             try {
               const response = await axios.get(
-                `https://sentry.io/api/0/projects/${SENTRY_TEST_ORG_SLUG}/${SENTRY_TEST_PROJECT}/events/${transactionEventId}/`,
+                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
                 { headers: { Authorization: `Bearer ${authToken}` } },
               );
 

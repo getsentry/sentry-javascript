@@ -344,6 +344,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/tracing/build/bundles/**
+            ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
 
   job_unit_test:
@@ -690,6 +691,8 @@ jobs:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
           E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+          E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+          E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
         run: |
           cd packages/e2e-tests
           yarn test:e2e

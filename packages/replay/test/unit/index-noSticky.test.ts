@@ -3,6 +3,7 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
+import { addEvent } from '../../src/util/addEvent';
 import { ReplayContainer } from './../../src/replay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 import { useFakeTimers } from './../utils/use-fake-timers';
@@ -119,7 +120,7 @@ describe('Replay (no sticky)', () => {
     jest.advanceTimersByTime(ELAPSED);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -127,7 +128,7 @@ describe('Replay (no sticky)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
     // visibilitystate as user being active
@@ -167,7 +168,7 @@ describe('Replay (no sticky)', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -190,14 +191,14 @@ describe('Replay (no sticky)', () => {
     mockRecord._emitter(TEST_EVENT);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
     mockTransport.mockClear();
     await advanceTimers(5000);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
@@ -208,7 +209,7 @@ describe('Replay (no sticky)', () => {
     mockTransport.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
   it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
@@ -228,7 +229,7 @@ describe('Replay (no sticky)', () => {
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     await new Promise(process.nextTick);
 
@@ -244,7 +245,7 @@ describe('Replay (no sticky)', () => {
     expect(replay).not.toHaveSameSession(initialSession);
 
     // Replay does not send immediately because checkout was due to expired session
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Now do a click
     domHandler({
@@ -256,7 +257,7 @@ describe('Replay (no sticky)', () => {
     const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {

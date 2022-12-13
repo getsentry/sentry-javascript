@@ -2,6 +2,7 @@ import * as SentryUtils from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
+import { addEvent } from '../../src/util/addEvent';
 import { Replay } from './../../src';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
@@ -73,11 +74,11 @@ describe('Replay - stop', () => {
     // Pretend 5 seconds have passed
     jest.advanceTimersByTime(ELAPSED);
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toEqual(BASE_TIMESTAMP);
     // eventBuffer is destroyed
@@ -103,11 +104,11 @@ describe('Replay - stop', () => {
       },
     };
 
-    replay.addEvent(TEST_EVENT);
+    addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         // This event happens when we call `replay.start`
         {
@@ -137,7 +138,7 @@ describe('Replay - stop', () => {
     await new Promise(process.nextTick);
 
     expect(replay.eventBuffer?.length).toBe(undefined);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('does not call core SDK `addInstrumentationHandler` after initial setup', async function () {

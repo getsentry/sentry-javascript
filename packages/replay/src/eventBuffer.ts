@@ -4,7 +4,7 @@
 import { captureException } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { RecordingEvent, WorkerRequest, WorkerResponse } from './types';
+import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
 import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
@@ -33,13 +33,6 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
 
   __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
   return new EventBufferArray();
-}
-
-export interface EventBuffer {
-  readonly length: number;
-  destroy(): void;
-  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
-  finish(): Promise<string | Uint8Array>;
 }
 
 class EventBufferArray implements EventBuffer {

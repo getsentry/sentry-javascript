@@ -69,11 +69,6 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
-    const webpackPluginOptions = getWebpackPluginOptions(
-      buildContext,
-      userSentryWebpackPluginOptions,
-      userSentryOptions,
-    );
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -87,26 +82,8 @@ export function constructWebpackConfigFunction(
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    // Add a loader which will inject code that sets global values for use by `RewriteFrames`
-    addRewriteFramesLoader(newConfig, isServer ? 'server' : 'client', userNextConfig);
-
-    newConfig.module.rules.push({
-      test: /sentry\.(server|client)\.config\.(jsx?|tsx?)/,
-      use: [
-        {
-          // Inject the release value the same way the webpack plugin does.
-          loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-          options: {
-            templatePrefix: 'release',
-            replacements: [
-              ['__RELEASE__', webpackPluginOptions.release || process.env.SENTRY_RELEASE],
-              ['__ORG__', webpackPluginOptions.org || process.env.SENTRY_ORG],
-              ['__PROJECT__', webpackPluginOptions.project || process.env.SENTRY_PROJECT || ''],
-            ],
-          },
-        },
-      ],
-    });
+    // Add a loader which will inject code that sets global values
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -218,7 +195,11 @@ export function constructWebpackConfigFunction(
       }
 
       newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(new SentryWebpackPlugin(webpackPluginOptions));
+      newConfig.plugins.push(
+        new SentryWebpackPlugin(
+          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
+        ),
+      );
     }
 
     return newConfig;
@@ -547,9 +528,8 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    // We don't want to inject the release using the webpack plugin because we're instead doing it via the prefix loader
-    // combined with the release prefix loader template.
-    entries: [],
+    entries: (entryPointName: string) =>
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
@@ -667,49 +647,58 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 }
 
 /**
- * Support the `distDir` and `assetPrefix` options by making their values (easy to get here at build-time) available at
- * runtime (for use by `RewriteFrames`), by injecting code to attach their values to `global` or `window`.
- *
- * @param newConfig The webpack config object being constructed
- * @param target Either 'server' or 'client'
- * @param userNextConfig The user's nextjs config options
+ * Adds loaders to inject values on the global object based on user configuration.
  */
-function addRewriteFramesLoader(
+function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
-  target: 'server' | 'client',
   userNextConfig: NextConfigObject,
+  userSentryOptions: UserSentryOptions,
 ): void {
-  // Nextjs will use `basePath` in place of `assetPrefix` if it's defined but `assetPrefix` is not
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
-  const replacements = {
-    server: [
-      [
-        '__DIST_DIR__',
-        // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
-        // characters)
-        userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
-      ],
-    ],
-    client: [
-      [
-        '__ASSET_PREFIX_PATH__',
-        // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
-        // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-        assetPrefix ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '') : '',
-      ],
-    ],
+
+  const isomorphicValues = {
+    // `rewritesTunnel` set by the user in Next.js config
+    __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
   };
 
-  newConfig.module.rules.push({
-    test: new RegExp(`sentry\\.${target}\\.config\\.(jsx?|tsx?)`),
-    use: [
-      {
-        loader: path.resolve(__dirname, 'loaders/prefixLoader.js'),
-        options: {
-          templatePrefix: `${target}RewriteFrames`,
-          replacements: replacements[target],
+  const serverValues = {
+    ...isomorphicValues,
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+  };
+
+  const clientValues = {
+    ...isomorphicValues,
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    __rewriteFramesAssetPrefixPath__: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
+  };
+
+  newConfig.module.rules.push(
+    {
+      test: /sentry\.server\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          options: {
+            values: serverValues,
+          },
         },
-      },
-    ],
-  });
+      ],
+    },
+    {
+      test: /sentry\.client\.config\.(jsx?|tsx?)/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          options: {
+            values: clientValues,
+          },
+        },
+      ],
+    },
+  );
 }

@@ -1,5 +1,5 @@
 import { MAX_SESSION_LIFE } from '../constants';
-import { Session } from '../session/Session';
+import type { Session } from '../types';
 import { isExpired } from './isExpired';
 
 /**

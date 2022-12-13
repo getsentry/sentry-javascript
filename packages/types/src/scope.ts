@@ -156,6 +156,11 @@ export interface Scope {
   addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this;
 
   /**
+   * Get the last breadcrumb.
+   */
+  getLastBreadcrumb(): Breadcrumb | undefined;
+
+  /**
    * Clears all currently set Breadcrumbs.
    */
   clearBreadcrumbs(): this;
