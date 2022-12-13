@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException } from '@sentry/core';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
@@ -19,7 +19,6 @@ async function advanceTimers(time: number) {
 describe('Replay (errorSampleRate)', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
-
   let domHandler: DomHandler;
 
   beforeEach(async () => {
@@ -59,6 +58,7 @@ describe('Replay (errorSampleRate)', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         tags: expect.objectContaining({
           errorSampleRate: 1,
@@ -86,6 +86,19 @@ describe('Replay (errorSampleRate)', () => {
       ]),
     });
 
+    // This is from when we stop recording and start a session recording
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 1 },
+      replayEventPayload: expect.objectContaining({
+        tags: expect.objectContaining({
+          errorSampleRate: 1,
+          replayType: 'error',
+          sessionSampleRate: 0,
+        }),
+      }),
+      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+    });
+
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
@@ -111,11 +124,11 @@ describe('Replay (errorSampleRate)', () => {
       events: JSON.stringify([
         {
           type: 5,
-          timestamp: BASE_TIMESTAMP + 15000 + 40,
+          timestamp: BASE_TIMESTAMP + 10000 + 40,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: (BASE_TIMESTAMP + 15000 + 40) / 1000,
+              timestamp: (BASE_TIMESTAMP + 10000 + 40) / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -287,7 +300,7 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveLastSentReplay({
+    expect(replay).toHaveSentReplay({
       events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
@@ -338,7 +351,8 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
 
     // Does not capture mouse click
-    expect(replay).toHaveLastSentReplay({
+    expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out
         replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
@@ -373,12 +387,6 @@ it('sends a replay after loading the session multiple times', async () => {
     },
     autoStart: false,
   });
-
-  const fn = getCurrentHub()?.getClient()?.getTransport()?.send;
-  const mockTransportSend = fn
-    ? (jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send') as jest.MockedFunction<any>)
-    : jest.fn();
-
   replay.start();
 
   jest.runAllTimers();
@@ -393,27 +401,13 @@ it('sends a replay after loading the session multiple times', async () => {
   jest.runAllTimers();
   await new Promise(process.nextTick);
 
-  expect(replay).toHaveLastSentReplay({
+  expect(replay).toHaveSentReplay({
     events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
-  mockTransportSend.mockClear();
-  expect(replay).not.toHaveLastSentReplay();
-
-  jest.runAllTimers();
-  await new Promise(process.nextTick);
-  jest.runAllTimers();
-  await new Promise(process.nextTick);
-
-  // New checkout when we call `startRecording` again after uploading segment
-  // after an error occurs
+  // Latest checkout when we call `startRecording` again after uploading segment
+  // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
-    events: JSON.stringify([
-      {
-        data: { isCheckout: true },
-        timestamp: BASE_TIMESTAMP + 10000 + 20,
-        type: 2,
-      },
-    ]),
+    events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
   });
 });

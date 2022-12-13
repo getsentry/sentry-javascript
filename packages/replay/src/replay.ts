@@ -195,9 +195,10 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     this.addListeners();
 
-    this.startRecording();
-
+    // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
     this._isEnabled = true;
+
+    this.startRecording();
   }
 
   /**
@@ -485,21 +486,13 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._maybeSaveSession();
       }
 
-      // If the full snapshot is due to an initial load, we will not have
-      // a previous session ID. In this case, we want to buffer events
-      // for a set amount of time before flushing. This can help avoid
-      // capturing replays of users that immediately close the window.
-      setTimeout(() => this.conditionalFlush(), this._options.initialFlushDelay);
-
-      // Cancel any previously debounced flushes to ensure there are no [near]
-      // simultaneous flushes happening. The latter request should be
-      // insignificant in this case, so wait for additional user interaction to
-      // trigger a new flush.
-      //
-      // This can happen because there's no guarantee that a recording event
-      // happens first. e.g. a mouse click can happen and trigger a debounced
-      // flush before the checkout.
-      this._debouncedFlush?.cancel();
+      // Flush immediately so that we do not miss the first segment, otherwise
+      // it can prevent loading on the UI. This will cause an increase in short
+      // replays (e.g. opening and closing a tab quickly), but these can be
+      // filtered on the UI.
+      if (this.recordingMode === 'session') {
+        void this.flushImmediate();
+      }
 
       return true;
     });
