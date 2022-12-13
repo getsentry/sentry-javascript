@@ -84,7 +84,6 @@ This document gives an outline for how event sending works, and which which plac
       * `baseclient._applyIntegrationsMetadata()`
       * `scope.applyToEvent()`
       * `baseclient._normalizeEvent()`
-    * `baseclient._updateSessionFromEvent()`
   * `createReplayEnvelope()`
     * `createEnvelope()`
   * `transport.send()`
