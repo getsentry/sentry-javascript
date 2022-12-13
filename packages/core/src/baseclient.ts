@@ -632,6 +632,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const isTransaction = event.type === 'transaction';
     const isError = !event.type;
     const eventType = event.type || 'error';
+    const beforeSendLabel = `before send for type \`${eventType}\``;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -659,12 +660,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const result = processBeforeSend(options, prepared, hint);
-        return _validateBeforeSendResult(result, eventType);
+        return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error', event);
-          throw new SentryError(`before send for type \`${eventType}\` returned \`null\`, will not send event.`, 'log');
+          throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
         const session = scope && scope.getSession();
@@ -781,9 +782,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
-  eventType: string,
+  beforeSendLabel: string,
 ): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = `before send for type \`${eventType}\` must return \`null\` or a valid event.`;
+  const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
       event => {
@@ -793,7 +794,7 @@ function _validateBeforeSendResult(
         return event;
       },
       e => {
-        throw new SentryError(`before send for type \`${eventType}\` rejected with ${e}`);
+        throw new SentryError(`${beforeSendLabel} rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
