@@ -41,6 +41,8 @@ jobs:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
           E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+          E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+          E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
           CANARY_E2E_TEST: 'yes'
         run: |
           cd packages/e2e-tests
