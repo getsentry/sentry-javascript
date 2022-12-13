@@ -21,7 +21,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     expect(resourceSpans).toContainEqual(
       expect.objectContaining({
         op: op,
-        parent_span_id: eventData.contexts?.trace.span_id,
+        parent_span_id: eventData.contexts?.trace?.span_id,
       }),
     ),
   );
