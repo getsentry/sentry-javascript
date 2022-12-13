@@ -1,17 +1,16 @@
 import { Envelope, Event } from '@sentry/types';
-import { createEnvelope } from '@sentry/utils';
+import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 export function createReplayEnvelope(
   replayId: string,
   replayEvent: Event,
   payloadWithSequence: string | Uint8Array,
 ): Envelope {
-  const { name, version } = replayEvent.sdk || {};
   return createEnvelope(
     {
       event_id: replayId,
       sent_at: new Date().toISOString(),
-      sdk: { name, version },
+      sdk: getSdkMetadataForEnvelopeHeader(replayEvent),
     },
     [
       // @ts-ignore New types
