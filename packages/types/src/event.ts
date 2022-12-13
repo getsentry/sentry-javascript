@@ -61,8 +61,12 @@ export interface Event {
 /** JSDoc */
 export type EventType = 'transaction' | 'profile';
 
-export type ErrorEvent = Event & { type: undefined };
-export type TransactionEvent = Event & { type: 'transaction' };
+export interface ErrorEvent extends Event {
+  type: undefined;
+}
+export interface TransactionEvent extends Event {
+  type: 'transaction';
+}
 
 /** JSDoc */
 export interface EventHint {
