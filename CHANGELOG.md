@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.26.0
+
+- feat(browser): Export event builder methods for use in other SDKs (#6515)
+- feat(types): Add threads to Event (#6516)
+- feat(nextjs): Add option to automatically tunnel events (#6425)
+- fix(nextjs): Fix automatic release value discovery (#6513)
+- ref(nextjs): Use generic loader to inject global values (#6484)
+
+Work in this release contributed by @theofidry. Thank you for your contribution!
+
 ## 7.25.0
 
 - feat(core): Add `scope.getLastBreadcrumb()` (#6495)
