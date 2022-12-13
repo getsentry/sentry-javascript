@@ -806,19 +806,19 @@ function _validateBeforeSendResult(
 /**
  * Process the matching `beforeSendXXX` callback.
  */
-function processBeforeSend<T extends Event>(
+function processBeforeSend(
   options: ClientOptions,
-  event: T,
+  event: Event,
   hint: EventHint,
-): PromiseLike<T | null> | T | null {
+): PromiseLike<Event | null> | Event | null {
   const { beforeSend, beforeSendTransaction } = options;
 
   if (isErrorEvent(event) && beforeSend) {
-    return beforeSend(event, hint) as PromiseLike<T | null> | T | null;
+    return beforeSend(event, hint);
   }
 
   if (isTransactionEvent(event) && beforeSendTransaction) {
-    return beforeSendTransaction(event, hint) as PromiseLike<T | null> | T | null;
+    return beforeSendTransaction(event, hint);
   }
 
   return event;
