@@ -5,7 +5,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
-  'should assign request and response context from a failed 500 fetch request',
+  'should assign request and response context from a failed 500 XHR request',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
@@ -47,9 +47,9 @@ sentryTest(
         url: 'http://localhost:7654/foo',
         method: 'GET',
         headers: {
-          accept: 'application/json',
-          cache: 'no-cache',
-          'content-type': 'application/json',
+          Accept: 'application/json',
+          Cache: 'no-cache',
+          'Content-Type': 'application/json',
         },
       },
       contexts: {
