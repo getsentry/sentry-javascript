@@ -5,7 +5,6 @@ import { Event } from './event';
  * @hidden
  */
 export interface ReplayEvent extends Event {
-  event_id: string;
   urls: string[];
   error_ids: string[];
   trace_ids: string[];

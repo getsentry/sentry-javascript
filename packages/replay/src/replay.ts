@@ -936,7 +936,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       trace_ids: traceIds,
       urls,
       replay_id: replayId,
-      event_id: replayId,
       segment_id,
     };
 
