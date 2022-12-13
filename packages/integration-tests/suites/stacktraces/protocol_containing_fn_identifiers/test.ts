@@ -20,7 +20,7 @@ sentryTest(
         { function: 'readFile' },
         { function: 'httpsCall' },
         { function: 'webpackDevServer' },
-        { function: 'Function.httpCode' },
+        { function: 'Response.httpCode' },
       ]);
     });
 

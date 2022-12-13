@@ -10,13 +10,13 @@ sentryTest('should create a navigation transaction on page navigation', async ({
   const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
 
-  expect(pageloadRequest.contexts?.trace.op).toBe('pageload');
-  expect(navigationRequest.contexts?.trace.op).toBe('navigation');
+  expect(pageloadRequest.contexts?.trace?.op).toBe('pageload');
+  expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
 
   expect(navigationRequest.transaction_info?.source).toEqual('url');
 
-  const pageloadTraceId = pageloadRequest.contexts?.trace.trace_id;
-  const navigationTraceId = navigationRequest.contexts?.trace.trace_id;
+  const pageloadTraceId = pageloadRequest.contexts?.trace?.trace_id;
+  const navigationTraceId = navigationRequest.contexts?.trace?.trace_id;
 
   expect(pageloadTraceId).toBeDefined();
   expect(navigationTraceId).toBeDefined();
@@ -25,8 +25,8 @@ sentryTest('should create a navigation transaction on page navigation', async ({
   const pageloadSpans = pageloadRequest.spans;
   const navigationSpans = navigationRequest.spans;
 
-  const pageloadSpanId = pageloadRequest.contexts?.trace.span_id;
-  const navigationSpanId = navigationRequest.contexts?.trace.span_id;
+  const pageloadSpanId = pageloadRequest.contexts?.trace?.span_id;
+  const navigationSpanId = navigationRequest.contexts?.trace?.span_id;
 
   expect(pageloadSpanId).toBeDefined();
   expect(navigationSpanId).toBeDefined();

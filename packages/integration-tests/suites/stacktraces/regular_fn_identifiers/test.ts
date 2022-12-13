@@ -21,7 +21,7 @@ sentryTest(
         { function: '?' },
         { function: 'foo' },
         { function: 'bar' },
-        { function: 'Function.baz' },
+        { function: 'Test.baz' },
       ]);
     });
 
