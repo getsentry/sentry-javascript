@@ -1,9 +1,9 @@
-import { DsnComponents, Envelope, Event } from '@sentry/types';
+import { DsnComponents, Envelope, ReplayEvent, ReplayRecordingData } from '@sentry/types';
 import { createEnvelope, createEventEnvelopeHeaders, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 export function createReplayEnvelope(
-  replayEvent: Event,
-  payloadWithSequence: string | Uint8Array,
+  replayEvent: ReplayEvent,
+  payloadWithSequence: ReplayRecordingData,
   dsn: DsnComponents,
   tunnel?: string,
 ): Envelope {

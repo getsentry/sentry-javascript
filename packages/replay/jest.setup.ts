@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
+import { ReplayRecordingData,Transport } from '@sentry/types';
 
 import type { ReplayContainer, Session } from './src/types';
 
@@ -55,7 +55,7 @@ type SentReplayExpected = {
   replayEventPayload?: ReplayEventPayload;
   recordingHeader?: RecordingHeader;
   recordingPayloadHeader?: RecordingPayloadHeader;
-  events?: string | Uint8Array;
+  events?: ReplayRecordingData;
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

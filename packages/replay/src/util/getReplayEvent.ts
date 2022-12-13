@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/core';
-import { Client, Event } from '@sentry/types';
+import { Client, ReplayEvent } from '@sentry/types';
 
 export async function getReplayEvent({
   client,
@@ -10,11 +10,11 @@ export async function getReplayEvent({
   client: Client;
   scope: Scope;
   replayId: string;
-  event: Event;
-}): Promise<Event | null> {
+  event: ReplayEvent;
+}): Promise<ReplayEvent | null> {
   // XXX: This event does not trigger `beforeSend` in SDK
   // @ts-ignore private api
-  const preparedEvent: Event | null = await client._prepareEvent(event, { event_id }, scope);
+  const preparedEvent: ReplayEvent | null = await client._prepareEvent(event, { event_id }, scope);
 
   if (preparedEvent) {
     // extract the SDK name because `client._prepareEvent` doesn't add it to the event
