@@ -19,7 +19,7 @@ export function mergePlugins(pluginsA, pluginsB) {
     // Hacky way to make sure the ones we care about end up where they belong in the order. (Really the TS and sucrase
     // plugins are tied - both should come first - but they're mutually exclusive, so they can come in arbitrary order
     // here.)
-    const order = ['excludeReplay', 'typescript', 'sucrase', '...', 'terser', 'license'];
+    const order = ['typescript', 'sucrase', '...', 'terser', 'license'];
     const sortKeyA = order.includes(a.name) ? a.name : '...';
     const sortKeyB = order.includes(b.name) ? b.name : '...';
 
