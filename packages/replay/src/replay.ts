@@ -939,7 +939,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     };
 
     const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
-
     replayEvent.tags = {
       ...replayEvent.tags,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -971,8 +970,8 @@ export class ReplayContainer implements ReplayContainerInterface {
                 "BrowserTracing",
                 "Replay"
             ],
-            "name": "sentry.javascript.integration.replay",
-            "version": "7.24.2"
+            "name": "sentry.javascript.browser",
+            "version": "7.25.0"
         },
         "sdkProcessingMetadata": {},
         "tags": {
