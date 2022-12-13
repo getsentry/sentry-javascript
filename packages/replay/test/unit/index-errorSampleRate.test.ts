@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub } from '@sentry/core';
+import { captureException } from '@sentry/core';
 
 import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
@@ -401,7 +401,7 @@ it('sends a replay after loading the session multiple times', async () => {
   jest.runAllTimers();
   await new Promise(process.nextTick);
 
-  expect(replay).toHaveentReplay({
+  expect(replay).toHaveSentReplay({
     events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
