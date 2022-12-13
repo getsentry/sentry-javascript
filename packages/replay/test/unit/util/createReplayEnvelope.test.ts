@@ -1,4 +1,5 @@
 import { Event } from '@sentry/types';
+
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 
 describe('createReplayEnvelope', () => {
@@ -34,7 +35,7 @@ describe('createReplayEnvelope', () => {
       {
         event_id: '1234',
         sdk: { name: 'sentry.javascript.browser', version: '7.25.0' },
-        sent_at: '2022-12-13T13:29:36.439Z',
+        sent_at: expect.any(String),
       },
       [
         [
