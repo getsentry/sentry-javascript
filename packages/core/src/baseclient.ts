@@ -5,10 +5,10 @@ import {
   DataCategory,
   DsnComponents,
   Envelope,
+  ErrorEvent,
   Event,
   EventDropReason,
   EventHint,
-  EventType,
   Integration,
   IntegrationClass,
   Outcome,
@@ -16,6 +16,7 @@ import {
   SessionAggregates,
   Severity,
   SeverityLevel,
+  TransactionEvent,
   Transport,
 } from '@sentry/types';
 import {
@@ -42,8 +43,6 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { IntegrationIndex, setupIntegrations } from './integration';
 import { Scope } from './scope';
 import { updateSession } from './session';
-
-type BeforeSendProcessorMethod = 'beforeSend' | 'beforeSendTransaction';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -633,13 +632,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const isTransaction = event.type === 'transaction';
     const isError = !event.type;
 
-    const beforeSendProcessorMap: Map<EventType | undefined, BeforeSendProcessorMethod | undefined> = new Map([
-      [undefined, 'beforeSend'],
-      ['transaction', 'beforeSendTransaction'],
-    ]);
-
-    const beforeSendProcessorName = beforeSendProcessorMap.get(event.type);
-    const beforeSendProcessor = beforeSendProcessorName ? options[beforeSendProcessorName] : undefined;
+    const beforeSendProcessorName = getBeforeSendMethodName(event);
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -662,12 +655,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-        if (isInternalException || !beforeSendProcessor) {
+        if (isInternalException) {
           return prepared;
         }
 
-        const beforeSendResult = beforeSendProcessor(prepared, hint);
-        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName as BeforeSendProcessorMethod);
+        const beforeSendResult = processBeforeSend(options, prepared, hint);
+        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
@@ -789,7 +782,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
-  beforeSendProcessorName: 'beforeSend' | 'beforeSendTransaction',
+  beforeSendProcessorName: string,
 ): PromiseLike<Event | null> | Event | null {
   const invalidValueError = `\`${beforeSendProcessorName}\` must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
@@ -808,4 +801,47 @@ function _validateBeforeSendResult(
     throw new SentryError(invalidValueError);
   }
   return beforeSendResult;
+}
+
+/**
+ * Process the matching `beforeSendXXX` callback.
+ */
+function processBeforeSend<T extends Event>(
+  options: ClientOptions,
+  event: T,
+  hint: EventHint,
+): PromiseLike<T | null> | T | null {
+  const { beforeSend, beforeSendTransaction } = options;
+
+  if (isErrorEvent(event) && beforeSend) {
+    return beforeSend(event, hint) as PromiseLike<T | null> | T | null;
+  }
+
+  if (isTransactionEvent(event) && beforeSendTransaction) {
+    return beforeSendTransaction(event, hint) as PromiseLike<T | null> | T | null;
+  }
+
+  return event;
+}
+
+/** Get the name of the before send processor for logging purposes. */
+function getBeforeSendMethodName<T extends Event>(event: T): string {
+  if (isErrorEvent(event)) {
+    return 'beforeSend';
+  }
+
+  if (isTransactionEvent(event)) {
+    return 'beforeSendTransaction';
+  }
+
+  // This shouldn't happen, but if it does, we need to return a string
+  return 'unknown';
+}
+
+function isErrorEvent(event: Event): event is ErrorEvent {
+  return event.type === undefined;
+}
+
+function isTransactionEvent(event: Event): event is TransactionEvent {
+  return event.type === 'transaction';
 }
