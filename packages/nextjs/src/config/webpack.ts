@@ -69,11 +69,6 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
-    const webpackPluginOptions = getWebpackPluginOptions(
-      buildContext,
-      userSentryWebpackPluginOptions,
-      userSentryOptions,
-    );
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -88,7 +83,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, webpackPluginOptions);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -200,7 +195,11 @@ export function constructWebpackConfigFunction(
       }
 
       newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(new SentryWebpackPlugin(webpackPluginOptions));
+      newConfig.plugins.push(
+        new SentryWebpackPlugin(
+          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
+        ),
+      );
     }
 
     return newConfig;
@@ -529,9 +528,8 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    // We don't want to inject the release using the webpack plugin because we're instead doing it via the prefix loader
-    // combined with the release prefix loader template.
-    entries: [],
+    entries: (entryPointName: string) =>
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
@@ -655,32 +653,10 @@ function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
   userSentryOptions: UserSentryOptions,
-  webpackPluginOptions: SentryWebpackPlugin.SentryCliPluginOptions,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
-  const releaseValue = webpackPluginOptions.release || process.env.SENTRY_RELEASE;
-  const orgValue = webpackPluginOptions.org || process.env.SENTRY_ORG;
-  const projectValue = webpackPluginOptions.project || process.env.SENTRY_PROJECT;
 
   const isomorphicValues = {
-    // Inject release into SDK
-    ...(releaseValue
-      ? {
-          SENTRY_RELEASE: {
-            id: releaseValue,
-          },
-        }
-      : undefined),
-
-    // Enable module federation support (see https://github.com/getsentry/sentry-webpack-plugin/pull/307)
-    ...(projectValue && releaseValue
-      ? {
-          SENTRY_RELEASES: {
-            [orgValue ? `${projectValue}@${orgValue}` : projectValue]: { id: releaseValue },
-          },
-        }
-      : undefined),
-
     // `rewritesTunnel` set by the user in Next.js config
     __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
   };
