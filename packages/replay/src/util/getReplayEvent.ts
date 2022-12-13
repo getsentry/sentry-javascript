@@ -1,8 +1,6 @@
 import { Scope } from '@sentry/core';
 import { Client, Event } from '@sentry/types';
 
-import { REPLAY_SDK_INFO } from '../constants';
-
 export async function getReplayEvent({
   client,
   scope,
@@ -18,9 +16,14 @@ export async function getReplayEvent({
   // @ts-ignore private api
   const preparedEvent: Event = await client._prepareEvent(event, { event_id }, scope);
 
+  // extract the SDK name because `client._prepareEvent` doesn't add it to the event
+  const metadata = client.getOptions() && client.getOptions()._metadata;
+  const { name } = (metadata && metadata.sdk) || {};
+
   preparedEvent.sdk = {
     ...preparedEvent.sdk,
-    ...REPLAY_SDK_INFO,
+    version: __SENTRY_REPLAY_VERSION__,
+    name,
   };
 
   return preparedEvent;
