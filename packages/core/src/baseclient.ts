@@ -629,8 +629,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
     }
 
-    const isTransaction = event.type === 'transaction';
-    const isError = !event.type;
+    const isTransaction = isTransactionEvent(event);
+    const isError = isErrorEvent(event);
     const eventType = event.type || 'error';
     const beforeSendLabel = `before send for type \`${eventType}\``;
 
