@@ -631,8 +631,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     const isTransaction = event.type === 'transaction';
     const isError = !event.type;
-
-    const beforeSendProcessorName = getBeforeSendMethodName(event);
+    const eventType = event.type || 'error';
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
@@ -650,7 +649,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     return this._prepareEvent(event, hint, scope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', event.type || 'error', event);
+          this.recordDroppedEvent('event_processor', eventType, event);
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
@@ -659,13 +658,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
-        const beforeSendResult = processBeforeSend(options, prepared, hint);
-        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
+        const result = processBeforeSend(options, prepared, hint);
+        return _validateBeforeSendResult(result, eventType);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error', event);
-          throw new SentryError(`\`${beforeSendProcessorName}\` returned \`null\`, will not send event.`, 'log');
+          throw new SentryError(`before send for type \`${eventType}\` returned \`null\`, will not send event.`, 'log');
         }
 
         const session = scope && scope.getSession();
@@ -782,9 +781,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
-  beforeSendProcessorName: string,
+  eventType: string,
 ): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = `\`${beforeSendProcessorName}\` must return \`null\` or a valid event.`;
+  const invalidValueError = `before send for type \`${eventType}\` must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
       event => {
@@ -794,7 +793,7 @@ function _validateBeforeSendResult(
         return event;
       },
       e => {
-        throw new SentryError(`\`${beforeSendProcessorName}\` rejected with ${e}`);
+        throw new SentryError(`before send for type \`${eventType}\` rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
@@ -822,20 +821,6 @@ function processBeforeSend<T extends Event>(
   }
 
   return event;
-}
-
-/** Get the name of the before send processor for logging purposes. */
-function getBeforeSendMethodName<T extends Event>(event: T): string {
-  if (isErrorEvent(event)) {
-    return 'beforeSend';
-  }
-
-  if (isTransactionEvent(event)) {
-    return 'beforeSendTransaction';
-  }
-
-  // This shouldn't happen, but if it does, we need to return a string
-  return 'unknown';
 }
 
 function isErrorEvent(event: Event): event is ErrorEvent {
