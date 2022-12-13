@@ -16,7 +16,7 @@ sentryTest('should report finished spans as children of the root transaction', a
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-  const rootSpanId = transaction?.contexts?.trace.spanId;
+  const rootSpanId = transaction?.contexts?.trace?.spanId;
 
   expect(transaction.spans).toHaveLength(3);
 

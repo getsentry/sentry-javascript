@@ -52,15 +52,15 @@ sentryTest(
       trace_id: '12312012123120121231201212312012',
     });
 
-    expect(navigationRequest.contexts?.trace.op).toBe('navigation');
-    expect(navigationRequest.contexts?.trace.trace_id).toBeDefined();
-    expect(navigationRequest.contexts?.trace.trace_id).not.toBe(pageloadRequest.contexts?.trace.trace_id);
+    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+    expect(navigationRequest.contexts?.trace?.trace_id).toBeDefined();
+    expect(navigationRequest.contexts?.trace?.trace_id).not.toBe(pageloadRequest.contexts?.trace?.trace_id);
 
     const pageloadSpans = pageloadRequest.spans;
     const navigationSpans = navigationRequest.spans;
 
-    const pageloadSpanId = pageloadRequest.contexts?.trace.span_id;
-    const navigationSpanId = navigationRequest.contexts?.trace.span_id;
+    const pageloadSpanId = pageloadRequest.contexts?.trace?.span_id;
+    const navigationSpanId = navigationRequest.contexts?.trace?.span_id;
 
     expect(pageloadSpanId).toBeDefined();
     expect(navigationSpanId).toBeDefined();

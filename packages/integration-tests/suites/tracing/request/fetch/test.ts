@@ -27,11 +27,11 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
-      parent_span_id: tracingEvent.contexts?.trace.span_id,
+      parent_span_id: tracingEvent.contexts?.trace?.span_id,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: tracingEvent.contexts?.trace.trace_id,
+      trace_id: tracingEvent.contexts?.trace?.trace_id,
     }),
   );
 });
