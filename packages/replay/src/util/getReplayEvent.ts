@@ -18,12 +18,6 @@ export async function getReplayEvent({
   // @ts-ignore private api
   const preparedEvent: Event = await client._prepareEvent(event, { event_id }, scope);
 
-  const session = scope && scope.getSession();
-  if (session) {
-    // @ts-ignore private api
-    client._updateSessionFromEvent(session, preparedEvent);
-  }
-
   preparedEvent.sdk = {
     ...preparedEvent.sdk,
     ...REPLAY_SDK_INFO,
