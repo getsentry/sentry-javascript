@@ -8,6 +8,8 @@
  * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
  */
 
+import path from 'path';
+
 import commonjs from '@rollup/plugin-commonjs';
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
@@ -169,13 +171,16 @@ export function makeTSPlugin(jsVersion) {
  * Creates a Rollup plugin that removes all code between the `__ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__`
  * and `__ROLLUP_EXCLUDE_FROM_BUNDLES_END__` comment guards. This is used to exclude the Replay integration
  * from the browser and browser+tracing bundles.
+ * If we need to add more such guards in the future, we might want to refactor this into a more generic plugin.
  */
 export function makeExcludeReplayPlugin() {
   const replacementRegex = /\/\/ __ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_FROM_BUNDLES_END__/gm;
+  const browserIndexFilePath = path.resolve(__dirname, '../../packages/browser/src/index.ts');
 
   const plugin = {
-    transform(code) {
-      if (!replacementRegex.test(code)) {
+    transform(code, id) {
+      const isBrowserIndexFile = path.resolve(id) === browserIndexFilePath;
+      if (!isBrowserIndexFile || !replacementRegex.test(code)) {
         return null;
       }
 
