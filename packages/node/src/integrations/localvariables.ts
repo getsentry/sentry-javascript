@@ -171,7 +171,7 @@ export class LocalVariables implements Integration {
   private async _unrollArray(objectId: string): Promise<unknown> {
     const props = await this._session.getProperties(objectId);
     return props
-      .filter(v => v.name !== 'length')
+      .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
       .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
       .map(v => v?.value?.value);
   }

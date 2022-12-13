@@ -21,7 +21,7 @@ class Some {
 }
 
 function one(name) {
-  const arr = [1, '2', new Date()];
+  const arr = [1, '2', null];
   const obj = {
     name,
     num: 5,
