@@ -108,6 +108,8 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-integration-tests/**'
+            any_code:
+              - '!**/*.md'
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
@@ -117,6 +119,7 @@ jobs:
       changed_node: ${{ steps.changed.outputs.node }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
+      changed_any_code: ${{ steps.changed.outputs.any_code }}
 
   job_install_deps:
     name: Install Dependencies
@@ -152,6 +155,7 @@ jobs:
     needs: [job_get_metadata, job_install_deps]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    if: needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
