@@ -961,7 +961,7 @@ describe('BaseClient', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSend` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('`beforeSend` returned `null`, will not send event.');
+      expect(loggerWarnSpy).toBeCalledWith('before send for type `error` returned `null`, will not send event.');
     });
 
     test('calls `beforeSendTransaction` and discards the event', () => {
@@ -980,7 +980,7 @@ describe('BaseClient', () => {
       // This proves that the reason the event didn't send/didn't get set on the test client is not because there was an
       // error, but because `beforeSendTransaction` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
-      expect(loggerWarnSpy).toBeCalledWith('`beforeSendTransaction` returned `null`, will not send event.');
+      expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {
@@ -998,7 +998,9 @@ describe('BaseClient', () => {
 
         expect(beforeSend).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
-        expect(loggerWarnSpy).toBeCalledWith(new SentryError('`beforeSend` must return `null` or a valid event.'));
+        expect(loggerWarnSpy).toBeCalledWith(
+          new SentryError('before send for type `error` must return `null` or a valid event.'),
+        );
       }
     });
 
@@ -1018,7 +1020,7 @@ describe('BaseClient', () => {
         expect(beforeSendTransaction).toHaveBeenCalled();
         expect(TestClient.instance!.event).toBeUndefined();
         expect(loggerWarnSpy).toBeCalledWith(
-          new SentryError('`beforeSendTransaction` must return `null` or a valid event.'),
+          new SentryError('before send for type `transaction` must return `null` or a valid event.'),
         );
       }
     });
