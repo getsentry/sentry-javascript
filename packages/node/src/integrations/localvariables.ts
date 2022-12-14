@@ -1,5 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
-import { Event, EventProcessor, Exception, Integration, StackFrame, StackParser } from '@sentry/types';
+import { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
@@ -81,7 +80,7 @@ export class LocalVariables implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const options = getCurrentHub().getClient()?.getOptions();
 
     if (options?._experiments?.includeStackLocals) {
