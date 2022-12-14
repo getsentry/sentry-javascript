@@ -180,7 +180,7 @@ jobs:
         # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
         # this file) to a constant and skip rebuilding all of the packages each time CI runs.
         if: steps.cache_built_packages.outputs.cache-hit == ''
-        run: yarn build
+        run: yarn build:dev
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
