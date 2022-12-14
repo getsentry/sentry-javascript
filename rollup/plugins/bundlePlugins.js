@@ -174,7 +174,7 @@ export function makeTSPlugin(jsVersion) {
  * If we need to add more such guards in the future, we might want to refactor this into a more generic plugin.
  */
 export function makeExcludeReplayPlugin() {
-  const replacementRegex = /\/\/ __ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_FROM_BUNDLES_END__/gm;
+  const replacementRegex = /\/\/ __ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_FROM_BUNDLES_END__/m;
   const browserIndexFilePath = path.resolve(__dirname, '../../packages/browser/src/index.ts');
 
   const plugin = {
@@ -185,7 +185,7 @@ export function makeExcludeReplayPlugin() {
       }
 
       const ms = new MagicString(code);
-      const transformedCode = ms.replace(new RegExp(replacementRegex), '');
+      const transformedCode = ms.replace(replacementRegex, '');
       return {
         code: transformedCode.toString(),
         map: transformedCode.generateMap({ hires: true }),
