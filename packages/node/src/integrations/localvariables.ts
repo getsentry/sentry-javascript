@@ -1,9 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventProcessor, Integration, StackFrame, StackParser } from '@sentry/types';
+import { Event, EventProcessor, Exception, Integration, StackFrame, StackParser } from '@sentry/types';
 import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
-
-import { NodeClient } from '../client';
 
 /**
  * Promise API is available as `Experimental` and in Node 19 only.
@@ -15,7 +13,7 @@ import { NodeClient } from '../client';
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
 class AsyncSession extends Session {
-  public async getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
+  public getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
       this.post(
         'Runtime.getProperties',
@@ -59,7 +57,8 @@ function hashFrames(frames: StackFrame[] | undefined): string | undefined {
     return;
   }
 
-  return frames.reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
+  // Only hash the 10 most recent frames (ie. the last 10)
+  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
 }
 
 interface FrameVariables {
@@ -76,14 +75,14 @@ export class LocalVariables implements Integration {
   public readonly name: string = LocalVariables.id;
 
   private readonly _session: AsyncSession = new AsyncSession();
-  private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(50);
+  private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
   private _stackParser: StackParser | undefined;
 
   /**
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    const options = getCurrentHub().getClient<NodeClient>()?.getOptions();
+    const options = getCurrentHub().getClient()?.getOptions();
 
     if (options?._experiments?.includeStackLocals) {
       this._stackParser = options.stackParser;
@@ -130,7 +129,7 @@ export class LocalVariables implements Integration {
     const framePromises = callFrames.map(async ({ scopeChain, functionName, this: obj }) => {
       const localScope = scopeChain.find(scope => scope.type === 'local');
 
-      const fn = obj.className !== 'global' ? `${obj.className}.${functionName}` : functionName;
+      const fn = obj.className === 'global' ? functionName : `${obj.className}.${functionName}`;
 
       if (localScope?.object.objectId === undefined) {
         return { function: fn };
@@ -190,30 +189,43 @@ export class LocalVariables implements Integration {
   }
 
   /**
-   * Adds local variables to the exception stack trace frames.
+   * Adds local variables event stack frames.
    */
   private async _addLocalVariables(event: Event): Promise<Event> {
-    const hash = hashFrames(event?.exception?.values?.[0]?.stacktrace?.frames);
+    for (const exception of event?.exception?.values || []) {
+      await this._addLocalVariablesToException(exception);
+    }
+
+    return event;
+  }
+
+  /**
+   * Adds local variables to the exception stack frames.
+   */
+  private async _addLocalVariablesToException(exception: Exception): Promise<void> {
+    const hash = hashFrames(exception?.stacktrace?.frames);
 
     if (hash === undefined) {
-      return event;
+      return;
     }
 
     // Check if we have local variables for an exception that matches the hash
     const cachedFrames = await this._cachedFrames.get(hash);
 
     if (cachedFrames === undefined) {
-      return event;
+      return;
     }
 
-    const frameCount = event?.exception?.values?.[0]?.stacktrace?.frames?.length || 0;
+    await this._cachedFrames.delete(hash);
+
+    const frameCount = exception.stacktrace?.frames?.length || 0;
 
     for (let i = 0; i < frameCount; i++) {
       // Sentry frames are in reverse order
       const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!event?.exception?.values?.[0]?.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
+      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrames[i]) {
         break;
       }
 
@@ -221,16 +233,14 @@ export class LocalVariables implements Integration {
         // We need to have vars to add
         cachedFrames[i].vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        event.exception.values[0].stacktrace.frames[frameIndex].in_app === false ||
+        exception.stacktrace.frames[frameIndex].in_app === false ||
         // The function names need to match
-        !functionNamesMatch(event.exception.values[0].stacktrace.frames[frameIndex].function, cachedFrames[i].function)
+        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrames[i].function)
       ) {
         continue;
       }
 
-      event.exception.values[0].stacktrace.frames[frameIndex].vars = cachedFrames[i].vars;
+      exception.stacktrace.frames[frameIndex].vars = cachedFrames[i].vars;
     }
-
-    return event;
   }
 }
