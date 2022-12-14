@@ -17,7 +17,7 @@ export function overwriteRecordDroppedEvent(errorIds: Set<string>): void {
     category: DataCategory,
     event?: Event,
   ): void => {
-    if (event && event.event_id) {
+    if (event && !event.type && event.event_id) {
       errorIds.delete(event.event_id);
     }
 
