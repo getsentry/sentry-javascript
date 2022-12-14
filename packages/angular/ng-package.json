@@ -5,9 +5,10 @@
     "entryFile": "src/index.ts",
     "umdModuleIds": {
       "@sentry/browser": "Sentry",
+      "@sentry/core": "Sentry.core",
       "@sentry/utils": "Sentry.util"
     }
   },
-  "whitelistedNonPeerDependencies": ["@sentry/browser", "@sentry/utils", "@sentry/types", "tslib"],
+  "whitelistedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/utils", "@sentry/types", "tslib"],
   "assets": ["README.md", "LICENSE"]
 }
