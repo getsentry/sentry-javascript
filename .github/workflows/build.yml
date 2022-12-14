@@ -738,8 +738,8 @@ jobs:
       [
         job_build,
         job_browser_build_tests,
-        job_browser_unit_test,
-        job_node_unit_test,
+        job_browser_unit_tests,
+        job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
