@@ -186,6 +186,43 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
+  job_build_cdn_bundles:
+    name: Build CDN Bundles
+    needs: [job_get_metadata, job_install_deps, job_build]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: volta-cli/action@v4
+      - name: Check dependency cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v3
+        id: cache_built_packages
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Check build cache (CDN)
+        uses: actions/cache@v3
+        id: cache_built_packages_cdn
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: '${{ env.BUILD_CACHE_KEY }}-cdn'
+      - name: Build packages
+        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
+        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
+        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
+        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
+        if: steps.cache_built_packages_cdn.outputs.cache-hit == ''
+        run: yarn build:bundle
+
   job_pack_aws_lambda_layer:
     name: Pack and Upload AWS Lambda Layer
     needs: [job_get_metadata, job_build]
@@ -228,7 +265,7 @@ jobs:
 
   job_size_check:
     name: Size Check
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_cdn_bundles]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
     # Size Check will error out outside of the context of a PR
@@ -254,7 +291,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          key: '${{ env.BUILD_CACHE_KEY }}-cdn'
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v5
         # Don't run size check on release branches - at that point, we're already committed
@@ -520,7 +557,7 @@ jobs:
 
   job_browser_integration_tests:
     name: Old Browser Integration Tests (${{ matrix.browser }})
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_cdn_bundles]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -547,7 +584,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          key: '${{ env.BUILD_CACHE_KEY }}-cdn'
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -666,7 +703,7 @@ jobs:
     if:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_cdn_bundles]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
@@ -685,7 +722,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          key: '${{ env.BUILD_CACHE_KEY }}-cdn'
       - name: Get node version
         id: versions
         run: |
