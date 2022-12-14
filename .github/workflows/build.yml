@@ -507,7 +507,7 @@ jobs:
 
   job_browser_playwright_tests:
     name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_build_cdn_bundles]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     strategy:
@@ -545,7 +545,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          key: '${{ env.BUILD_CACHE_KEY }}-cdn'
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
