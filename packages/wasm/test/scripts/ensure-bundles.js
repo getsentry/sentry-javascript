@@ -7,7 +7,7 @@ function ensureBrowserBundle() {
   if (!fs.existsSync(path.resolve(browserPackageDir, 'build/bundles/bundle.js'))) {
     // eslint-disable-next-line no-console
     console.warn('\nWARNING: Missing browser bundle. Bundle will be created before running wasm integration tests.');
-    execSync(`pushd ${browserPackageDir} && yarn build:bundle && popd`);
+    execSync(`cd ${browserPackageDir} && yarn build:bundle && popd`);
   }
 }
 
