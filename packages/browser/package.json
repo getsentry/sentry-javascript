@@ -66,7 +66,7 @@
     "size:check": "run-p size:check:es5 size:check:es6",
     "size:check:es5": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
     "size:check:es6": "cat build/bundles/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
-    "test": "run-s test:unit",
+    "test": "yarn test:unit",
     "test:unit": "jest",
     "test:integration": "test/integration/run.js",
     "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
