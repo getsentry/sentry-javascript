@@ -126,6 +126,7 @@ jobs:
     needs: job_get_metadata
     runs-on: ubuntu-20.04
     timeout-minutes: 15
+    if: needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request'
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v3
@@ -155,7 +156,6 @@ jobs:
     needs: [job_get_metadata, job_install_deps]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-    if: needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
