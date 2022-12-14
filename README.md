@@ -109,3 +109,5 @@ below:
   utility functions useful for various SDKs.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
   packages.
+
+JUST A TEST CHANGE!
