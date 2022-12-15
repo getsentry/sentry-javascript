@@ -1,10 +1,10 @@
-import { LocalVariables, DebugSession, FrameVariables } from '../../src/integrations/localvariables';
-import { InspectorNotification, Debugger } from 'inspector';
-import { EventProcessor, ClientOptions } from '@sentry/types';
-import { getDefaultNodeClientOptions } from '../helper/node-client-options';
+import { ClientOptions, EventProcessor } from '@sentry/types';
+import { Debugger, InspectorNotification } from 'inspector';
 import { LRUMap } from 'lru_map';
 
 import { defaultStackParser } from '../../src';
+import { DebugSession, FrameVariables, LocalVariables } from '../../src/integrations/localvariables';
+import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
 interface ThrowOn {
   configureAndConnect?: boolean;
@@ -12,9 +12,9 @@ interface ThrowOn {
 }
 
 class MockDebugSession implements DebugSession {
-  constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
-
   private _onPause?: (message: InspectorNotification<Debugger.PausedEventDataType>) => void;
+
+  constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
 
   public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
     if (this._throwOn?.configureAndConnect) {
@@ -116,7 +116,7 @@ describe('LocalVariables', () => {
       _experiments: { includeStackLocals: true },
     });
 
-    var eventProcessor: EventProcessor | undefined;
+    let eventProcessor: EventProcessor | undefined;
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
       eventProcessor = callback;
@@ -128,7 +128,7 @@ describe('LocalVariables', () => {
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
-    var frames: Promise<FrameVariables[]> | undefined;
+    let frames: Promise<FrameVariables[]> | undefined;
 
     (localVariables as unknown as LocalVariablesPrivate)._cachedFrames.forEach(promise => {
       frames = promise;
@@ -234,7 +234,7 @@ describe('LocalVariables', () => {
       _experiments: { includeStackLocals: false },
     });
 
-    var eventProcessor: EventProcessor | undefined;
+    let eventProcessor: EventProcessor | undefined;
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
       eventProcessor = callback;
