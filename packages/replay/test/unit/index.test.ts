@@ -1,7 +1,13 @@
 import { getCurrentHub } from '@sentry/core';
 import { EventType } from 'rrweb';
 
-import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import {
+  MASK_ALL_TEXT_SELECTOR,
+  MAX_SESSION_LIFE,
+  REPLAY_SESSION_KEY,
+  VISIBILITY_CHANGE_TIMEOUT,
+  WINDOW,
+} from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
@@ -39,7 +45,7 @@ describe('Replay with custom mock', () => {
         "ignoreClass": "sentry-test-ignore",
         "maskAllInputs": true,
         "maskTextClass": "sentry-mask",
-        "maskTextSelector": "*",
+        "maskTextSelector": "${MASK_ALL_TEXT_SELECTOR}",
       }
     `);
   });

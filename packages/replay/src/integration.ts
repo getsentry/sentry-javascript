@@ -2,7 +2,7 @@ import type { BrowserClient, BrowserOptions } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
 import { Integration } from '@sentry/types';
 
-import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
+import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { isBrowser } from './util/isBrowser';
@@ -107,7 +107,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       // `maskAllText` is a more user friendly option to configure
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
-      this.recordingOptions.maskTextSelector = '*';
+      this.recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
     if (this.options.blockAllMedia) {
