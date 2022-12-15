@@ -87,24 +87,24 @@ jobs:
               - 'packages/replay/**'
             browser_integration:
               - *shared
-              - 'packages/browser/**'
+              - *browser
               - 'packages/integration-tests/**'
             ember:
               - *shared
+              - *browser
               - 'packages/ember/**'
-              - 'packages/browser/**'
             nextjs:
               - *shared
+              - *browser
               - 'packages/nextjs/**'
               - 'packages/node/**'
               - 'packages/react/**'
-              - 'packages/browser/**'
             remix:
               - *shared
+              - *browser
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
-              - 'packages/browser/**'
             node:
               - *shared
               - 'packages/node/**'
