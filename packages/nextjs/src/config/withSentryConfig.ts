@@ -90,8 +90,13 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
           value: '(?<projectid>.*)',
         },
+        {
+          type: 'query',
+          key: 'k', // short for sentryKey - we keep it short so matching is harder for ad-blockers
+          value: '(?<sentrykey>.*)',
+        },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/',
+      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?sentry_key=:sentrykey',
     };
 
     if (typeof originalRewrites !== 'function') {

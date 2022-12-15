@@ -14,13 +14,15 @@ export function applyTunnelRouteOption(options: NextjsOptions): void {
   if (tunnelRouteOption && options.dsn) {
     const dsnComponents = dsnFromString(options.dsn);
     const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
-    if (sentrySaasDsnMatch) {
+    if (!sentrySaasDsnMatch) {
+      __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
+    } else if (!dsnComponents.publicKey) {
+      __DEBUG_BUILD__ && logger.warn('DSN is missing public key. Will not tunnel events.');
+    } else {
       const orgId = sentrySaasDsnMatch[1];
-      const tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
+      const tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}&k=${dsnComponents.publicKey}`;
       options.tunnel = tunnelPath;
       __DEBUG_BUILD__ && logger.info(`Tunneling events to "${tunnelPath}"`);
-    } else {
-      __DEBUG_BUILD__ && logger.warn('Provided DSN is not a Sentry SaaS DSN. Will not tunnel events.');
     }
   }
 }
