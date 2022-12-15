@@ -28,6 +28,7 @@ const SKIP_BROWSER_TESTS_PACKAGES = [
   '@sentry/angular',
   '@sentry/svelte',
   '@sentry/replay',
+  '@sentry/wasm',
 ];
 
 // These can be skipped when running tests independently of the Node version.
@@ -49,10 +50,10 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'ts-jest@25.x',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix', '@sentry/replay'];
+const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/replay'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
 
-const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
+const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
