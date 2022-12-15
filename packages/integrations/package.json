@@ -16,6 +16,7 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "dependencies": {
+    "@sentry/core": "7.26.0",
     "@sentry/types": "7.26.0",
     "@sentry/utils": "7.26.0",
     "localforage": "^1.8.1",
