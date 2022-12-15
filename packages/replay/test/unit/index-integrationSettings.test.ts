@@ -1,3 +1,4 @@
+import { MASK_ALL_TEXT_SELECTOR } from '../../src/constants';
 import { mockSdk } from './../index';
 
 describe('integration settings', () => {
@@ -168,13 +169,13 @@ describe('integration settings', () => {
       const { replay } = await mockSdk({ replayOptions: {} });
 
       // Default is true
-      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
     });
 
     it('works with true', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true } });
 
-      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
     });
 
     it('works with false', async () => {
@@ -186,7 +187,7 @@ describe('integration settings', () => {
     it('overwrites custom maskTextSelector option', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true, maskTextSelector: '[custom]' } });
 
-      expect(replay['_recordingOptions'].maskTextSelector).toBe('*');
+      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
     });
   });
 

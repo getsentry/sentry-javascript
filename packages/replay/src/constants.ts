@@ -25,3 +25,6 @@ export const MAX_SESSION_LIFE = 1_800_000; // 30 minutes
  */
 export const DEFAULT_SESSION_SAMPLE_RATE = 0.1;
 export const DEFAULT_ERROR_SAMPLE_RATE = 1.0;
+
+/** The select to use for the `maskAllText` option  */
+export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style,script)';
