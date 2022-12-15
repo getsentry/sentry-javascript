@@ -147,9 +147,13 @@ export function parseSemver(input: string): SemVer {
  * @param linesOfContext number of context lines we want to add pre/post
  */
 export function addContextToFrame(lines: string[], frame: StackFrame, linesOfContext: number = 5): void {
-  const lineno = frame.lineno || 0;
+  // When there is no line number in the frame, attaching context is nonsensical and will even break grouping
+  if (frame.lineno === undefined) {
+    return;
+  }
+
   const maxLines = lines.length;
-  const sourceLine = Math.max(Math.min(maxLines, lineno - 1), 0);
+  const sourceLine = Math.max(Math.min(maxLines, frame.lineno - 1), 0);
 
   frame.pre_context = lines
     .slice(Math.max(0, sourceLine - linesOfContext), sourceLine)
