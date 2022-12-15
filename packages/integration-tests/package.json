@@ -10,9 +10,8 @@
   "scripts": {
     "clean": "rimraf -g suites/**/dist",
     "install-browsers": "playwright install --with-deps",
-    "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
+    "lint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
     "pretest": "yarn clean && yarn type-check",
     "test": "playwright test ./suites",

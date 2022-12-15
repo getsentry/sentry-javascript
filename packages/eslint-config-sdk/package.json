@@ -24,6 +24,7 @@
     "@typescript-eslint/eslint-plugin": "^3.9.0",
     "@typescript-eslint/parser": "^3.9.0",
     "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-deprecation": "^1.1.0",
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-jsdoc": "^30.0.3",

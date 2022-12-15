@@ -4,13 +4,14 @@ module.exports = {
     node: true,
   },
   extends: ['prettier', 'eslint:recommended', 'plugin:import/errors', 'plugin:import/warnings'],
-  plugins: ['@sentry-internal/eslint-plugin-sdk', 'simple-import-sort'],
+  plugins: ['@sentry-internal/eslint-plugin-sdk', 'simple-import-sort', 'prettier'],
   overrides: [
     {
       // Configuration for JavaScript files
       files: ['*.js'],
       rules: {
         'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+        'prettier/prettier': 'error',
       },
     },
     {
@@ -20,6 +21,7 @@ module.exports = {
       plugins: ['@typescript-eslint', 'jsdoc', 'deprecation'],
       parser: '@typescript-eslint/parser',
       rules: {
+        'prettier/prettier': 'error',
         // We want to guard against using the equality operator with empty arrays
         '@sentry-internal/sdk/no-eq-empty': 'error',
 
@@ -251,7 +253,5 @@ module.exports = {
     // `.filter` and `.reduce`. If we are not, we should be using
     // `.forEach()` or an explicit for loop.
     'array-callback-return': ['error', { allowImplicit: true }],
-
-    quotes: ['error', 'single', { avoidEscape: true }],
   },
 };

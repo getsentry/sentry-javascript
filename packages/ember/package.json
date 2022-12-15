@@ -24,6 +24,7 @@
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
     "lint:ts": "tsc",
+    "fix": "eslint . --fix",
     "start": "ember serve",
     "test": "ember test",
     "test:all": "ember try:each"
