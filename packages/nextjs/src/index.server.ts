@@ -169,19 +169,3 @@ export {
   withSentryAPI,
   withSentry,
 } from './config/wrappers';
-
-// Wrap various server methods to enable error monitoring and tracing. (Note: This only happens for non-Vercel
-// deployments, because the current method of doing the wrapping a) crashes Next 12 apps deployed to Vercel and
-// b) doesn't work on those apps anyway. We also don't do it during build, because there's no server running in that
-// phase.)
-if (!IS_BUILD && !IS_VERCEL) {
-  // Dynamically require the file because even importing from it causes Next 12 to crash on Vercel.
-  // In environments where the JS file doesn't exist, such as testing, import the TS file.
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { instrumentServer } = require('./utils/instrumentServer.js');
-    instrumentServer();
-  } catch (err) {
-    __DEBUG_BUILD__ && logger.warn(`Error: Unable to instrument server for tracing. Got ${err}.`);
-  }
-}
