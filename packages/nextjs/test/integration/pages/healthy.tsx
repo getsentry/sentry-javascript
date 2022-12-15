@@ -1,7 +1,8 @@
 import Link from 'next/link';
 
 const HealthyPage = (): JSX.Element => (
-  <Link href="/alsoHealthy">
+  // @ts-ignore
+  <Link href="/alsoHealthy" passHref legacyBehavior>
     <a id="alsoHealthy">AlsoHealthy</a>
   </Link>
 );
