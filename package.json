@@ -26,6 +26,8 @@
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/browser-integration-tests --ignore @sentry-internal/node-integration-tests --stream --concurrency 1 --sort test",
     "test-ci": "ts-node ./scripts/test.ts",
+    "test-ci-browser": "cross-env TESTS_SKIP=node ts-node ./scripts/test.ts",
+    "test-ci-node": "cross-env TESTS_SKIP=browser ts-node ./scripts/test.ts",
     "postinstall": "patch-package"
   },
   "volta": {

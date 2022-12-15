@@ -32,7 +32,6 @@ env:
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
-    ${{ github.workspace }}/packages/ember/instance-initializers
     ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/packages/serverless
@@ -352,8 +351,39 @@ jobs:
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
 
-  job_unit_test:
-    name: Test (Node ${{ matrix.node }})
+  job_browser_unit_tests:
+    name: Browser Unit Tests
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.DEFAULT_NODE_VERSION }}
+      - name: Check dependency cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check build cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Run tests
+        env:
+          NODE_VERSION: 16
+        run: yarn test-ci-browser
+      - name: Compute test coverage
+        uses: codecov/codecov-action@v3
+
+  job_node_unit_tests:
+    name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 30
     runs-on: ubuntu-20.04
@@ -385,12 +415,12 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
-          yarn test-ci
+          yarn test-ci-node
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
   job_nextjs_integration_test:
-    name: Test @sentry/nextjs on (Node ${{ matrix.node }})
+    name: Nextjs (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 30
@@ -428,7 +458,7 @@ jobs:
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
   # separate job allows them to run in parallel with the other tests.
   job_ember_tests:
-    name: Test @sentry/ember
+    name: Ember (${{ matrix.scenario }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_ember == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
@@ -470,7 +500,7 @@ jobs:
         uses: codecov/codecov-action@v3
 
   job_browser_playwright_tests:
-    name: Playwright - ${{ (matrix.tracing_only && 'Browser + Tracing') || 'Browser' }} (${{ matrix.bundle }})
+    name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -520,7 +550,7 @@ jobs:
           yarn test:ci
 
   job_browser_integration_tests:
-    name: Old Browser Integration Tests (${{ matrix.browser }})
+    name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -589,7 +619,7 @@ jobs:
           yarn test:package
 
   job_node_integration_tests:
-    name: Node SDK Integration Tests (${{ matrix.node }})
+    name: Node (${{ matrix.node }}) Integration Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -625,7 +655,7 @@ jobs:
           yarn test
 
   job_remix_integration_tests:
-    name: Remix SDK Integration Tests (${{ matrix.node }})
+    name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -708,7 +738,8 @@ jobs:
       [
         job_build,
         job_browser_build_tests,
-        job_unit_test,
+        job_browser_unit_tests,
+        job_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
