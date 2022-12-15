@@ -36,14 +36,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getsentry/sentry-replay.git"
+    "url": "git+https://github.com/getsentry/sentry-javascript.git"
   },
   "author": "Sentry",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/getsentry/sentry-replay/issues"
+    "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
-  "homepage": "https://github.com/getsentry/sentry-replay#readme",
+  "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry/browser": "7.26.0",
