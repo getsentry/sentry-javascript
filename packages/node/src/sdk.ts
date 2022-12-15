@@ -109,7 +109,6 @@ export const defaultIntegrations = [
  *
  * @see {@link NodeOptions} for documentation on configuration options.
  */
-// eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
