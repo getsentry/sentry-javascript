@@ -130,6 +130,18 @@ function hashFrames(frames: StackFrame[] | undefined): string | undefined {
   return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
 }
 
+/**
+ * We use the stack parser to create a unique hash from the exception stack trace
+ * This is used to lookup vars when the exception passes through the event processor
+ */
+function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
+  if (stack === undefined) {
+    return undefined;
+  }
+
+  return hashFrames(stackParser(stack, 1));
+}
+
 export interface FrameVariables {
   function: string;
   vars?: Record<string, unknown>;
@@ -144,7 +156,6 @@ export class LocalVariables implements Integration {
   public readonly name: string = LocalVariables.id;
 
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
-  private _stackParser: StackParser | undefined;
 
   public constructor(private readonly _session: DebugSession = new AsyncSession()) {}
 
@@ -161,38 +172,27 @@ export class LocalVariables implements Integration {
     clientOptions: ClientOptions | undefined,
   ): void {
     if (clientOptions?._experiments?.includeStackLocals) {
-      this._stackParser = clientOptions.stackParser;
-
-      this._session.configureAndConnect(this._handlePaused.bind(this));
+      this._session.configureAndConnect(ev =>
+        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+      );
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
     }
   }
 
   /**
-   * We use the stack parser to create a unique hash from the exception stack trace
-   * This is used to lookup vars when the exception passes through the event processor
-   */
-  private _hashFromStack(stack: string | undefined): string | undefined {
-    if (this._stackParser === undefined || stack === undefined) {
-      return undefined;
-    }
-
-    return hashFrames(this._stackParser(stack, 1));
-  }
-
-  /**
    * Handle the pause event
    */
-  private async _handlePaused({
-    params: { reason, data, callFrames },
-  }: InspectorNotification<PausedExceptionEvent>): Promise<void> {
+  private async _handlePaused(
+    stackParser: StackParser,
+    { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
+  ): Promise<void> {
     if (reason !== 'exception' && reason !== 'promiseRejection') {
       return;
     }
 
     // data.description contains the original error.stack
-    const exceptionHash = this._hashFromStack(data?.description);
+    const exceptionHash = hashFromStack(stackParser, data?.description);
 
     if (exceptionHash == undefined) {
       return;
