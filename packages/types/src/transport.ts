@@ -29,7 +29,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
-  send(request: Envelope): PromiseLike<void>;
+  send(request: Envelope): PromiseLike<void | TransportMakeRequestResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
 
