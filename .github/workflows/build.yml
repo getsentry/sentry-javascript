@@ -84,6 +84,7 @@ jobs:
             browser:
               - *shared
               - 'packages/browser/**'
+              - 'packages/replay/**'
             browser_integration:
               - *shared
               - 'packages/browser/**'
