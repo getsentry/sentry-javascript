@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import * as SentryCore from '@sentry/core';
 import { Event, Hub, Integration } from '@sentry/types';
 
 import { CaptureConsole } from '../src/captureconsole';
@@ -31,6 +32,8 @@ const getMockHubWithIntegration = (integration: Integration) =>
     ...mockHub,
     getIntegration: jest.fn(() => integration),
   } as unknown as Hub);
+
+const mockCaptureException = jest.spyOn(SentryCore, 'captureException');
 
 // We're using this to un-monkey patch the console after each test.
 const originalConsole = Object.assign({}, global.console);
@@ -225,8 +228,8 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(someError);
   });
 
   it('should capture exception on `console.error` when no levels are provided in constructor', () => {
@@ -239,8 +242,8 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     global.console.error(someError);
 
-    expect(mockHub.captureException).toHaveBeenCalledTimes(1);
-    expect(mockHub.captureException).toHaveBeenCalledWith(someError);
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(someError);
   });
 
   it('should capture message on `console.log` when no levels are provided in constructor', () => {
@@ -267,7 +270,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockHub.captureMessage).toHaveBeenCalledTimes(1);
     expect(mockHub.captureMessage).toHaveBeenCalledWith('some non-error message');
-    expect(mockHub.captureException).not.toHaveBeenCalled();
+    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
   it('should capture a message for non-error log levels', () => {
