@@ -1,7 +1,5 @@
 import { Envelope, Event } from '@sentry/types';
-import { createEnvelope } from '@sentry/utils';
-
-import { REPLAY_SDK_INFO } from '../constants';
+import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 export function createReplayEnvelope(
   replayId: string,
@@ -12,7 +10,7 @@ export function createReplayEnvelope(
     {
       event_id: replayId,
       sent_at: new Date().toISOString(),
-      sdk: REPLAY_SDK_INFO,
+      sdk: getSdkMetadataForEnvelopeHeader(replayEvent),
     },
     [
       // @ts-ignore New types

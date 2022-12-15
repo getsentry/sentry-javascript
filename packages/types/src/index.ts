@@ -24,7 +24,7 @@ export type {
   UserFeedbackItem,
 } from './envelope';
 export type { ExtendedError } from './error';
-export type { Event, EventHint } from './event';
+export type { Event, EventHint, ErrorEvent, TransactionEvent } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
@@ -93,3 +93,5 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
+
+export type { BrowserClientReplayOptions } from './browseroptions';

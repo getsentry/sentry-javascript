@@ -26,6 +26,8 @@
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/browser-integration-tests --ignore @sentry-internal/node-integration-tests --stream --concurrency 1 --sort test",
     "test-ci": "ts-node ./scripts/test.ts",
+    "test-ci-browser": "cross-env TESTS_SKIP=node ts-node ./scripts/test.ts",
+    "test-ci-node": "cross-env TESTS_SKIP=browser ts-node ./scripts/test.ts",
     "postinstall": "patch-package"
   },
   "volta": {
@@ -87,6 +89,7 @@
     "karma-firefox-launcher": "^1.1.0",
     "lerna": "3.13.4",
     "madge": "4.0.2",
+    "magic-string": "^0.27.0",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",

@@ -7,6 +7,7 @@ import { logger } from '@sentry/utils';
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
 import { NextjsOptions } from './utils/nextjsOptions';
+import { applyTunnelRouteOption } from './utils/tunnelRoute';
 import { addOrUpdateIntegration } from './utils/userIntegrations';
 
 export * from '@sentry/react';
@@ -37,7 +38,6 @@ declare const EdgeRuntime: string | undefined;
 
 const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesAssetPrefixPath__: string;
-  __sentryRewritesTunnelPath__?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
@@ -50,6 +50,7 @@ export function init(options: NextjsOptions): void {
     return;
   }
 
+  applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
   addClientIntegrations(options);

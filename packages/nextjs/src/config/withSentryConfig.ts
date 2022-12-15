@@ -43,6 +43,10 @@ function getFinalConfigObject(
   // Remind TS that there's now no `sentry` property
   const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
 
+  if (userSentryOptions?.tunnelRoute) {
+    setUpTunnelRewriteRules(userNextConfigObject, userSentryOptions.tunnelRoute);
+  }
+
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
   // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
   // make sure that we only require it at build time or in development mode.
@@ -57,4 +61,53 @@ function getFinalConfigObject(
 
   // At runtime, we just return the user's config untouched.
   return userNextConfigObject;
+}
+
+/**
+ * Injects rewrite rules into the Next.js config provided by the user to tunnel
+ * requests from the `tunnelPath` to Sentry.
+ *
+ * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
+ */
+function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
+  const originalRewrites = userNextConfig.rewrites;
+
+  // This function doesn't take any arguments at the time of writing but we future-proof
+  // here in case Next.js ever decides to pass some
+  userNextConfig.rewrites = async (...args: unknown[]) => {
+    const injectedRewrite = {
+      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
+      // Nextjs will automatically convert `source` into a regex for us
+      source: `${tunnelPath}(/?)`,
+      has: [
+        {
+          type: 'query',
+          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
+          value: '(?<orgid>.*)',
+        },
+        {
+          type: 'query',
+          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
+          value: '(?<projectid>.*)',
+        },
+      ],
+      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/',
+    };
+
+    if (typeof originalRewrites !== 'function') {
+      return [injectedRewrite];
+    }
+
+    // @ts-ignore Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
+    const originalRewritesResult = await originalRewrites(...args);
+
+    if (Array.isArray(originalRewritesResult)) {
+      return [injectedRewrite, ...originalRewritesResult];
+    } else {
+      return {
+        ...originalRewritesResult,
+        beforeFiles: [injectedRewrite, ...originalRewritesResult.beforeFiles],
+      };
+    }
+  };
 }

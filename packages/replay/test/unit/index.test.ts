@@ -1,7 +1,13 @@
 import { getCurrentHub } from '@sentry/core';
 import { EventType } from 'rrweb';
 
-import { MAX_SESSION_LIFE, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import {
+  MASK_ALL_TEXT_SELECTOR,
+  MAX_SESSION_LIFE,
+  REPLAY_SESSION_KEY,
+  VISIBILITY_CHANGE_TIMEOUT,
+  WINDOW,
+} from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
@@ -39,7 +45,7 @@ describe('Replay with custom mock', () => {
         "ignoreClass": "sentry-test-ignore",
         "maskAllInputs": true,
         "maskTextClass": "sentry-mask",
-        "maskTextSelector": "*",
+        "maskTextSelector": "${MASK_ALL_TEXT_SELECTOR}",
       }
     `);
   });
@@ -254,7 +260,7 @@ describe('Replay', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
     });
     // Session's last activity should not be updated
@@ -282,7 +288,7 @@ describe('Replay', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
     // visibilitystate as user being active
@@ -300,7 +306,7 @@ describe('Replay', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -323,7 +329,7 @@ describe('Replay', () => {
     mockRecord._emitter(TEST_EVENT);
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
     });
 
@@ -331,7 +337,7 @@ describe('Replay', () => {
     mockTransportSend.mockClear();
     await advanceTimers(5000);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
@@ -342,7 +348,7 @@ describe('Replay', () => {
     mockTransportSend.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(5000);
-    expect(replay).toHaveSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
   it('creates a new session if user has been idle for 15 minutes and comes back to click their mouse', async () => {
@@ -373,7 +379,7 @@ describe('Replay', () => {
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     await new Promise(process.nextTick);
 
@@ -385,7 +391,7 @@ describe('Replay', () => {
     // snapshot.
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
 
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Should be a new session
     expect(replay).not.toHaveSameSession(initialSession);
@@ -400,7 +406,7 @@ describe('Replay', () => {
     const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
@@ -475,7 +481,7 @@ describe('Replay', () => {
     await advanceTimers(5000);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
     // Should be the same session because user has been idle and no events have caused a new session to be created
     expect(replay).toHaveSameSession(initialSession);
 
@@ -510,7 +516,7 @@ describe('Replay', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       events: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
@@ -550,7 +556,7 @@ describe('Replay', () => {
     const ELAPSED = 5000;
     await advanceTimers(ELAPSED);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         {
           type: 5,
@@ -598,7 +604,7 @@ describe('Replay', () => {
     await advanceTimers(8000);
     await advanceTimers(2000);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         error_ids: [],
         replay_id: expect.any(String),
@@ -619,7 +625,7 @@ describe('Replay', () => {
 
     // next tick should do nothing
     await advanceTimers(5000);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
   });
 
   it('fails to upload data and hits retry max and stops', async () => {
@@ -692,7 +698,7 @@ describe('Replay', () => {
     addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
     });
     expect(replay.session?.segmentId).toBe(1);
@@ -702,7 +708,7 @@ describe('Replay', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay.session?.segmentId).toBe(2);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 1 },
     });
   });
@@ -717,7 +723,7 @@ describe('Replay', () => {
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -733,7 +739,7 @@ describe('Replay', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
@@ -802,7 +808,7 @@ describe('Replay', () => {
 
     document.dispatchEvent(new Event('visibilitychange'));
     await new Promise(process.nextTick);
-    expect(replay).not.toHaveSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
@@ -825,7 +831,7 @@ describe('Replay', () => {
 
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: (BASE_TIMESTAMP - 10000) / 1000,
         urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
@@ -870,7 +876,7 @@ describe('Replay', () => {
     await new Promise(process.nextTick);
 
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         // Make sure the old performance event is thrown out
         replay_start_timestamp: BASE_TIMESTAMP / 1000,

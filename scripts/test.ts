@@ -5,9 +5,9 @@ const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
 // We run ember tests in their own job.
 const DEFAULT_SKIP_TESTS_PACKAGES = ['@sentry/ember'];
+
 // These packages don't support Node 8 for syntax or dependency reasons.
 const NODE_8_SKIP_TESTS_PACKAGES = [
-  ...DEFAULT_SKIP_TESTS_PACKAGES,
   '@sentry-internal/eslint-plugin-sdk',
   '@sentry/react',
   '@sentry/wasm',
@@ -20,6 +20,27 @@ const NODE_8_SKIP_TESTS_PACKAGES = [
   '@sentry/replay',
 ];
 
+// These can be skipped when running tests in different Node environments.
+const SKIP_BROWSER_TESTS_PACKAGES = [
+  '@sentry/browser',
+  '@sentry/vue',
+  '@sentry/react',
+  '@sentry/angular',
+  '@sentry/svelte',
+  '@sentry/replay',
+  '@sentry/wasm',
+];
+
+// These can be skipped when running tests independently of the Node version.
+const SKIP_NODE_TESTS_PACKAGES = [
+  '@sentry/node',
+  '@sentry/opentelemetry-node',
+  '@sentry/serverless',
+  '@sentry/nextjs',
+  '@sentry/remix',
+  '@sentry/gatsby',
+];
+
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
 const NODE_8_LEGACY_DEPENDENCIES = [
   'jsdom@15.x',
@@ -29,10 +50,10 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'ts-jest@25.x',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix', '@sentry/replay'];
+const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/replay'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
 
-const NODE_12_SKIP_TESTS_PACKAGES = [...DEFAULT_SKIP_TESTS_PACKAGES, '@sentry/remix'];
+const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
@@ -91,13 +112,10 @@ const es6ifyTestTSConfig = (pkg: string): void => {
 };
 
 /**
- * Skip tests which don't apply to Node and therefore don't need to run in older Node versions.
- *
- * TODO We're foreced to skip these tests for compatibility reasons (right now this function only gets called in Node
- * 8), but we could be skipping a lot more tests in Node 8-14 - anything where compatibility with different Node
- * versions is irrelevant - and only running them in Node 16.
+ * Skip tests which don't run in Node 8.
+ * We're forced to skip these tests for compatibility reasons.
  */
-function skipNonNodeTests(): void {
+function skipNodeV8Tests(): void {
   run('rm -rf packages/tracing/test/browser');
 }
 
@@ -113,29 +131,37 @@ function runWithIgnores(skipPackages: string[] = []): void {
  * Run the tests, accounting for compatibility problems in older versions of Node.
  */
 function runTests(): void {
-  if (CURRENT_NODE_VERSION === '8') {
-    installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
-    // TODO Right now, this just skips incompatible tests, but it could be skipping more (hence the aspirational name),
-    // and not just in Node 8. See `skipNonNodeTests`'s docstring.
-    skipNonNodeTests();
-    es6ifyTestTSConfig('utils');
-    runWithIgnores(NODE_8_SKIP_TESTS_PACKAGES);
+  const ignores = new Set<string>();
+
+  DEFAULT_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+
+  if (process.env.TESTS_SKIP === 'browser') {
+    SKIP_BROWSER_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
   }
-  //
-  else if (CURRENT_NODE_VERSION === '10') {
-    installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
-    es6ifyTestTSConfig('utils');
-    runWithIgnores(NODE_10_SKIP_TESTS_PACKAGES);
+
+  if (process.env.TESTS_SKIP === 'node') {
+    SKIP_NODE_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
   }
-  //
-  else if (CURRENT_NODE_VERSION === '12') {
-    es6ifyTestTSConfig('utils');
-    runWithIgnores(NODE_12_SKIP_TESTS_PACKAGES);
+
+  switch (CURRENT_NODE_VERSION) {
+    case '8':
+      NODE_8_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+      installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
+      skipNodeV8Tests();
+      es6ifyTestTSConfig('utils');
+      break;
+    case '10':
+      NODE_10_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+      installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
+      es6ifyTestTSConfig('utils');
+      break;
+    case '12':
+      NODE_12_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+      es6ifyTestTSConfig('utils');
+      break;
   }
-  //
-  else {
-    runWithIgnores(DEFAULT_SKIP_TESTS_PACKAGES);
-  }
+
+  runWithIgnores(Array.from(ignores));
 }
 
 runTests();

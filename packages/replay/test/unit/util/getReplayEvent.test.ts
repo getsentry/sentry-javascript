@@ -50,7 +50,7 @@ describe('getReplayEvent', () => {
       event_id: 'replay-ID',
       environment: 'production',
       sdk: {
-        name: 'sentry.javascript.integration.replay',
+        name: 'sentry.javascript.browser',
         version: 'version:Test',
       },
       sdkProcessingMetadata: {},

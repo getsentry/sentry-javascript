@@ -76,6 +76,10 @@ type WrappedPageComponentFinder = PageComponentFinder;
 let liveServer: Server;
 let sdkSetupComplete = false;
 
+const globalWithInjectedValues = global as typeof global & {
+  __sentryRewritesTunnelPath__?: string;
+};
+
 /**
  * Do the monkeypatching and wrapping necessary to catch errors in page routes and record transactions for both page and
  * API routes.
@@ -352,6 +356,14 @@ function makeWrappedMethodForGettingParameterizedPath(
  * @returns false if the URL is for an internal or static resource
  */
 function shouldTraceRequest(url: string, publicDirFiles: Set<string>): boolean {
+  // Don't trace tunneled sentry events
+  const tunnelPath = globalWithInjectedValues.__sentryRewritesTunnelPath__;
+  const pathname = new URL(url, 'http://example.com/').pathname; // `url` is relative so we need to define a base to be able to parse with URL
+  if (tunnelPath && pathname === tunnelPath) {
+    __DEBUG_BUILD__ && logger.log(`Tunneling Sentry event received on "${url}"`);
+    return false;
+  }
+
   // `static` is a deprecated but still-functional location for static resources
   return !url.startsWith('/_next/') && !url.startsWith('/static/') && !publicDirFiles.has(url);
 }

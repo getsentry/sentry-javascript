@@ -5,6 +5,9 @@ import {
   Envelope,
   EnvelopeItem,
   EnvelopeItemType,
+  Event,
+  SdkInfo,
+  SdkMetadata,
   TextEncoderInternal,
 } from '@sentry/types';
 
@@ -141,4 +144,13 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
  */
 export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCategory {
   return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
+}
+
+/** Extracts the minimal SDK info from from the metadata or an events */
+export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
+  if (!metadataOrEvent || !metadataOrEvent.sdk) {
+    return;
+  }
+  const { name, version } = metadataOrEvent.sdk;
+  return { name, version };
 }

@@ -11,16 +11,7 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
-
-/** Extract sdk info from from the API metadata */
-function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
-  if (!metadata || !metadata.sdk) {
-    return;
-  }
-  const { name, version } = metadata.sdk;
-  return { name, version };
-}
+import { createEnvelope, dropUndefinedKeys, dsnToString, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.

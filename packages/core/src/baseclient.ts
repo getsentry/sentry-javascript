@@ -5,6 +5,7 @@ import {
   DataCategory,
   DsnComponents,
   Envelope,
+  ErrorEvent,
   Event,
   EventDropReason,
   EventHint,
@@ -15,6 +16,7 @@ import {
   SessionAggregates,
   Severity,
   SeverityLevel,
+  TransactionEvent,
   Transport,
 } from '@sentry/types';
 import {
@@ -627,14 +629,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       return rejectedSyncPromise(new SentryError('SDK not enabled, will not capture event.', 'log'));
     }
 
-    const isTransaction = event.type === 'transaction';
-    const beforeSendProcessorName = isTransaction ? 'beforeSendTransaction' : 'beforeSend';
-    const beforeSendProcessor = options[beforeSendProcessorName];
+    const isTransaction = isTransactionEvent(event);
+    const isError = isErrorEvent(event);
+    const eventType = event.type || 'error';
+    const beforeSendLabel = `before send for type \`${eventType}\``;
 
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
-    if (!isTransaction && typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    if (isError && typeof sampleRate === 'number' && Math.random() > sampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
       return rejectedSyncPromise(
         new SentryError(
@@ -647,22 +650,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     return this._prepareEvent(event, hint, scope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', event.type || 'error', event);
+          this.recordDroppedEvent('event_processor', eventType, event);
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
         const isInternalException = hint.data && (hint.data as { __sentry__: boolean }).__sentry__ === true;
-        if (isInternalException || !beforeSendProcessor) {
+        if (isInternalException) {
           return prepared;
         }
 
-        const beforeSendResult = beforeSendProcessor(prepared, hint);
-        return _validateBeforeSendResult(beforeSendResult, beforeSendProcessorName);
+        const result = processBeforeSend(options, prepared, hint);
+        return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', event.type || 'error', event);
-          throw new SentryError(`\`${beforeSendProcessorName}\` returned \`null\`, will not send event.`, 'log');
+          throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
         const session = scope && scope.getSession();
@@ -779,9 +782,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
  */
 function _validateBeforeSendResult(
   beforeSendResult: PromiseLike<Event | null> | Event | null,
-  beforeSendProcessorName: 'beforeSend' | 'beforeSendTransaction',
+  beforeSendLabel: string,
 ): PromiseLike<Event | null> | Event | null {
-  const invalidValueError = `\`${beforeSendProcessorName}\` must return \`null\` or a valid event.`;
+  const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
       event => {
@@ -791,11 +794,40 @@ function _validateBeforeSendResult(
         return event;
       },
       e => {
-        throw new SentryError(`\`${beforeSendProcessorName}\` rejected with ${e}`);
+        throw new SentryError(`${beforeSendLabel} rejected with ${e}`);
       },
     );
   } else if (!isPlainObject(beforeSendResult) && beforeSendResult !== null) {
     throw new SentryError(invalidValueError);
   }
   return beforeSendResult;
+}
+
+/**
+ * Process the matching `beforeSendXXX` callback.
+ */
+function processBeforeSend(
+  options: ClientOptions,
+  event: Event,
+  hint: EventHint,
+): PromiseLike<Event | null> | Event | null {
+  const { beforeSend, beforeSendTransaction } = options;
+
+  if (isErrorEvent(event) && beforeSend) {
+    return beforeSend(event, hint);
+  }
+
+  if (isTransactionEvent(event) && beforeSendTransaction) {
+    return beforeSendTransaction(event, hint);
+  }
+
+  return event;
+}
+
+function isErrorEvent(event: Event): event is ErrorEvent {
+  return event.type === undefined;
+}
+
+function isTransactionEvent(event: Event): event is TransactionEvent {
+  return event.type === 'transaction';
 }
