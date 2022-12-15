@@ -93,3 +93,5 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
+
+export type { BrowserClientReplayOptions } from './browseroptions';

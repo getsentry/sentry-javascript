@@ -46,7 +46,6 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry/browser": "7.26.0",
     "@types/lodash.debounce": "4.0.7",
     "@types/pako": "^2.0.0",
     "jsdom-worker": "^0.2.1",
