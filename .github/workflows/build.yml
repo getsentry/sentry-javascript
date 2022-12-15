@@ -81,7 +81,7 @@ jobs:
               - 'packages/utils/**'
               - 'packages/types/**'
               - 'packages/integrations/**'
-            browser:
+            browser: &browser
               - *shared
               - 'packages/browser/**'
               - 'packages/replay/**'
