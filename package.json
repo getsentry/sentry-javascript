@@ -87,6 +87,7 @@
     "karma-firefox-launcher": "^1.1.0",
     "lerna": "3.13.4",
     "madge": "4.0.2",
+    "magic-string": "^0.27.0",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",

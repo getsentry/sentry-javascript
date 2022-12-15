@@ -16,6 +16,7 @@ import {
   makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
+  makeExcludeReplayPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -30,6 +31,7 @@ export function makeBaseBundleConfig(options) {
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
+  const excludeReplayPlugin = makeExcludeReplayPlugin();
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -43,7 +45,7 @@ export function makeBaseBundleConfig(options) {
       name: 'Sentry',
     },
     context: 'window',
-    plugins: [markAsBrowserBuildPlugin],
+    plugins: [markAsBrowserBuildPlugin, excludeReplayPlugin],
   };
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
