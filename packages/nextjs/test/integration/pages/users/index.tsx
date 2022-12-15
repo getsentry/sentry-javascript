@@ -19,7 +19,9 @@ const WithStaticProps = ({ items }: Props) => (
     <p>You are currently on: /users</p>
     <List items={items} />
     <p>
-      <Link href="/">
+      {/*
+      // @ts-ignore https://nextjs.org/docs/api-reference/next/link#if-the-child-is-a-custom-component-that-wraps-an-a-tag */}
+      <Link href="/" passHref legacyBehavior>
         <a>Go home</a>
       </Link>
     </p>
