@@ -1,6 +1,22 @@
-import { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import {
+  ClientOptions,
+  Event,
+  EventProcessor,
+  Exception,
+  Hub,
+  Integration,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
+
+export interface DebugSession {
+  /** Configures and connects to the debug session */
+  configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void;
+  /** Gets local variables for an objectId */
+  getLocalVariables(objectId: string): Promise<Record<string, unknown>>;
+}
 
 /**
  * Promise API is available as `Experimental` and in Node 19 only.
@@ -11,8 +27,38 @@ import { LRUMap } from 'lru_map';
  * https://nodejs.org/docs/latest-v19.x/api/inspector.html#promises-api
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
-class AsyncSession extends Session {
-  public getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
+class AsyncSession extends Session implements DebugSession {
+  /** @inheritdoc */
+  public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
+    this.connect();
+    this.on('Debugger.paused', onPause);
+    this.post('Debugger.enable');
+    // We only want to pause on uncaught exceptions
+    this.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+  }
+
+  /** @inheritdoc */
+  public async getLocalVariables(objectId: string): Promise<Record<string, unknown>> {
+    const props = await this._getProperties(objectId);
+    const unrolled: Record<string, unknown> = {};
+
+    for (const prop of props) {
+      if (prop?.value?.objectId && prop?.value.className === 'Array') {
+        unrolled[prop.name] = await this._unrollArray(prop.value.objectId);
+      } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
+        unrolled[prop.name] = await this._unrollObject(prop.value.objectId);
+      } else if (prop?.value?.value || prop?.value?.description) {
+        unrolled[prop.name] = prop.value.value || `<${prop.value.description}>`;
+      }
+    }
+
+    return unrolled;
+  }
+
+  /**
+   * Gets all the PropertyDescriptors of an object
+   */
+  private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
       this.post(
         'Runtime.getProperties',
@@ -29,6 +75,30 @@ class AsyncSession extends Session {
         },
       );
     });
+  }
+
+  /**
+   * Unrolls an array property
+   */
+  private async _unrollArray(objectId: string): Promise<unknown> {
+    const props = await this._getProperties(objectId);
+    return props
+      .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+      .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
+      .map(v => v?.value?.value);
+  }
+
+  /**
+   * Unrolls an object property
+   */
+  private async _unrollObject(objectId: string): Promise<Record<string, unknown>> {
+    const props = await this._getProperties(objectId);
+    return props
+      .map<[string, unknown]>(v => [v.name, v?.value?.value])
+      .reduce((obj, [key, val]) => {
+        obj[key] = val;
+        return obj;
+      }, {} as Record<string, unknown>);
   }
 }
 
@@ -60,7 +130,7 @@ function hashFrames(frames: StackFrame[] | undefined): string | undefined {
   return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
 }
 
-interface FrameVariables {
+export interface FrameVariables {
   function: string;
   vars?: Record<string, unknown>;
 }
@@ -73,24 +143,27 @@ export class LocalVariables implements Integration {
 
   public readonly name: string = LocalVariables.id;
 
-  private readonly _session: AsyncSession = new AsyncSession();
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
   private _stackParser: StackParser | undefined;
+
+  public constructor(private readonly _session: DebugSession = new AsyncSession()) {}
 
   /**
    * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    const options = getCurrentHub().getClient()?.getOptions();
+    this._setup(addGlobalEventProcessor, getCurrentHub().getClient()?.getOptions());
+  }
 
-    if (options?._experiments?.includeStackLocals) {
-      this._stackParser = options.stackParser;
+  /** Setup in a way that's easier to call from tests */
+  private _setup(
+    addGlobalEventProcessor: (callback: EventProcessor) => void,
+    clientOptions: ClientOptions | undefined,
+  ): void {
+    if (clientOptions?._experiments?.includeStackLocals) {
+      this._stackParser = clientOptions.stackParser;
 
-      this._session.connect();
-      this._session.on('Debugger.paused', this._handlePaused.bind(this));
-      this._session.post('Debugger.enable');
-      // We only want to pause on uncaught exceptions
-      this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+      this._session.configureAndConnect(this._handlePaused.bind(this));
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
     }
@@ -134,7 +207,7 @@ export class LocalVariables implements Integration {
         return { function: fn };
       }
 
-      const vars = await this._unrollProps(await this._session.getProperties(localScope.object.objectId));
+      const vars = await this._session.getLocalVariables(localScope.object.objectId);
 
       return { function: fn, vars };
     });
@@ -142,49 +215,6 @@ export class LocalVariables implements Integration {
     // We add the un-awaited promise to the cache rather than await here otherwise the event processor
     // can be called before we're finished getting all the vars
     this._cachedFrames.set(exceptionHash, Promise.all(framePromises));
-  }
-
-  /**
-   * Unrolls all the properties
-   */
-  private async _unrollProps(props: Runtime.PropertyDescriptor[]): Promise<Record<string, unknown>> {
-    const unrolled: Record<string, unknown> = {};
-
-    for (const prop of props) {
-      if (prop?.value?.objectId && prop?.value.className === 'Array') {
-        unrolled[prop.name] = await this._unrollArray(prop.value.objectId);
-      } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
-        unrolled[prop.name] = await this._unrollObject(prop.value.objectId);
-      } else if (prop?.value?.value || prop?.value?.description) {
-        unrolled[prop.name] = prop.value.value || `<${prop.value.description}>`;
-      }
-    }
-
-    return unrolled;
-  }
-
-  /**
-   * Unrolls an array property
-   */
-  private async _unrollArray(objectId: string): Promise<unknown> {
-    const props = await this._session.getProperties(objectId);
-    return props
-      .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
-      .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
-      .map(v => v?.value?.value);
-  }
-
-  /**
-   * Unrolls an object property
-   */
-  private async _unrollObject(objectId: string): Promise<Record<string, unknown>> {
-    const props = await this._session.getProperties(objectId);
-    return props
-      .map<[string, unknown]>(v => [v.name, v?.value?.value])
-      .reduce((obj, [key, val]) => {
-        obj[key] = val;
-        return obj;
-      }, {} as Record<string, unknown>);
   }
 
   /**
@@ -209,13 +239,12 @@ export class LocalVariables implements Integration {
     }
 
     // Check if we have local variables for an exception that matches the hash
-    const cachedFrames = await this._cachedFrames.get(hash);
+    // delete is identical to get but also removes the entry from the cache
+    const cachedFrames = await this._cachedFrames.delete(hash);
 
     if (cachedFrames === undefined) {
       return;
     }
-
-    await this._cachedFrames.delete(hash);
 
     const frameCount = exception.stacktrace?.frames?.length || 0;
 
