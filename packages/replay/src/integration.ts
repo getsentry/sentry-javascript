@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
-import { BrowserClientReplayOptions, Integration } from '@sentry/types';
+import type { BrowserClientReplayOptions } from '@sentry/types';
+import { Integration } from '@sentry/types';
 
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
 import { ReplayContainer } from './replay';
