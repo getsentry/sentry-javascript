@@ -2,7 +2,6 @@ import {
   DsnComponents,
   Event,
   EventEnvelope,
-  EventEnvelopeHeaders,
   EventItem,
   SdkInfo,
   SdkMetadata,
@@ -11,7 +10,12 @@ import {
   SessionEnvelope,
   SessionItem,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
+import {
+  createEnvelope,
+  createEventEnvelopeHeaders,
+  dsnToString,
+  getSdkMetadataForEnvelopeHeader,
+} from '@sentry/utils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -73,24 +77,4 @@ export function createEventEnvelope(
 
   const eventItem: EventItem = [{ type: eventType }, event];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
-}
-
-function createEventEnvelopeHeaders(
-  event: Event,
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn: DsnComponents,
-): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
-
-  return {
-    event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' &&
-      dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
-      }),
-  };
 }
