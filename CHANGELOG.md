@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.27.0
+
+This release exports the Session Replay integration via `@sentry/browser` and all framework SDKs building on top of it.
+Going forward, the `@sentry/replay` package doesn't have to be installed explicitly to use Replay.
+Furthermore, this release increases the maximim replay session duration from 30 minutes to 1 hour.
+
+- feat(browser): Export `Replay` integration from Browser SDK (#6508)
+- feat(replay): Change `MAX_SESSION_LIFE` to 1 hour (#6561)
+- feat(replay): Do not capture errors originating from rrweb (#6521)
+- feat(replay): Flush immediately on DOM checkouts (#6463)
+- fix(core): Make `beforeSend` handling defensive for different event types (#6507)
+- fix(replay): Ensure lodash.debounce does not trigger next.js warning (#6551)
+- fix(replay): Make `maskAllText` selector more specific (#6544)
+- fix(replay): Send `dsn` in envelope header if tunneling is active (#6568)
+- fix(utils): Don't attach context lines to stack frames without line number (#6549)
+- ref(replay): Send SDK's name in replay event (#6514)
+
+Work in this release contributed by @theofidry. Thank you for your contribution!
+
 ## 7.26.0
 
 - feat(browser): Export event builder methods for use in other SDKs (#6515)
