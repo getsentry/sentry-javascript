@@ -18,7 +18,7 @@ describe('applyTunnelRouteOption()', () => {
 
     applyTunnelRouteOption(options);
 
-    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333');
+    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333&k=11111111111111111111111111111111');
   });
 
   it('should not apply `tunnelRoute` when DSN is missing', () => {
