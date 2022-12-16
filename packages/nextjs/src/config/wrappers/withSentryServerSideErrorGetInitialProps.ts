@@ -4,7 +4,7 @@ import { NextPageContext } from 'next';
 import { ErrorProps } from 'next/error';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
+import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
 
 type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 
@@ -19,14 +19,12 @@ type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 export function withSentryServerSideErrorGetInitialProps(
   origErrorGetInitialProps: ErrorGetInitialProps,
 ): ErrorGetInitialProps {
-  return async function (
-    ...errorGetInitialPropsArguments: Parameters<ErrorGetInitialProps>
-  ): ReturnType<ErrorGetInitialProps> {
+  return async function (this: unknown, ...args: Parameters<ErrorGetInitialProps>): ReturnType<ErrorGetInitialProps> {
     if (isBuild()) {
-      return origErrorGetInitialProps(...errorGetInitialPropsArguments);
+      return origErrorGetInitialProps.apply(this, args);
     }
 
-    const [context] = errorGetInitialPropsArguments;
+    const [context] = args;
     const { req, res } = context;
 
     const errorWrappedGetInitialProps = withErrorInstrumentation(origErrorGetInitialProps);
@@ -36,14 +34,16 @@ export function withSentryServerSideErrorGetInitialProps(
     // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
     // span with each other when there are no req or res objects, we simply do not trace them at all here.
     if (hasTracingEnabled() && req && res) {
-      const errorGetInitialProps: ErrorProps & {
-        _sentryTraceData?: string;
-        _sentryBaggage?: string;
-      } = await callTracedServerSideDataFetcher(errorWrappedGetInitialProps, errorGetInitialPropsArguments, req, res, {
+      const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
         dataFetcherRouteName: '/_error',
         requestedRouteName: context.pathname,
         dataFetchingMethodName: 'getInitialProps',
       });
+
+      const errorGetInitialProps: ErrorProps & {
+        _sentryTraceData?: string;
+        _sentryBaggage?: string;
+      } = await tracedGetInitialProps.apply(this, args);
 
       const requestTransaction = getTransactionFromRequest(req);
       if (requestTransaction) {
@@ -55,7 +55,7 @@ export function withSentryServerSideErrorGetInitialProps(
 
       return errorGetInitialProps;
     } else {
-      return errorWrappedGetInitialProps(...errorGetInitialPropsArguments);
+      return errorWrappedGetInitialProps.apply(this, args);
     }
   };
 }
