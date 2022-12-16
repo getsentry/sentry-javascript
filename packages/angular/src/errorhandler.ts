@@ -32,7 +32,7 @@ function tryToUnwrapZonejsError(error: unknown): unknown | Error {
 
 function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   // The `error` property of http exception can be either an `Error` object, which we can use directly...
-  if (error.error instanceof Error) {
+  if (isErrorOrErrorLikeObject(error.error)) {
     return error.error;
   }
 
@@ -48,6 +48,35 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
 
   // If we don't have any detailed information, fallback to the request message itself.
   return error.message;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+function hasOwnProperty<ObjectType extends Record<string, unknown>, PropertyType extends PropertyKey>(
+  object: ObjectType,
+  propertyName: PropertyType,
+): object is ObjectType & Record<PropertyType, unknown> {
+  return Object.prototype.hasOwnProperty.call(object, propertyName);
+}
+
+function hasErrorName(value: Record<string, unknown>): value is Pick<Error, 'name'> {
+  return hasOwnProperty(value, 'name') && typeof value.name === 'string';
+}
+
+function hasErrorMessage(value: Record<string, unknown>): value is Pick<Error, 'message'> {
+  return hasOwnProperty(value, 'message') && typeof value.message === 'string';
+}
+
+function hasErrorStack(value: Record<string, unknown>): value is Pick<Error, 'stack'> {
+  return !hasOwnProperty(value, 'stack') || typeof value.stack === 'string';
+}
+
+function isErrorOrErrorLikeObject(value: unknown): value is Error {
+  return (
+    value instanceof Error || (isObject(value) && hasErrorName(value) && hasErrorMessage(value) && hasErrorStack(value))
+  );
 }
 
 /**
@@ -117,14 +146,14 @@ class SentryErrorHandler implements AngularErrorHandler {
   protected _defaultExtractor(errorCandidate: unknown): unknown {
     const error = tryToUnwrapZonejsError(errorCandidate);
 
-    // We can handle messages and Error objects directly.
-    if (typeof error === 'string' || error instanceof Error) {
-      return error;
-    }
-
     // If it's http module error, extract as much information from it as we can.
     if (error instanceof HttpErrorResponse) {
       return extractHttpModuleError(error);
+    }
+
+    // We can handle messages and Error objects directly.
+    if (typeof error === 'string' || isErrorOrErrorLikeObject(error)) {
+      return error;
     }
 
     // Nothing was extracted, fallback to default error message.
