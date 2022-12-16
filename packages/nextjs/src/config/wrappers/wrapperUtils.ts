@@ -38,7 +38,7 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...origFunctionArguments: Parameters<F>): Promise<ReturnType<F>> {
     try {
-      return await origFunction.call(this, ...origFunctionArguments);
+      return await origFunction.apply(this, origFunctionArguments);
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e);
@@ -54,16 +54,15 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
  *
  * All of the above happens in an isolated domain, meaning all thrown errors will be associated with the correct span.
  *
- * @param origFunction The data fetching method to call.
+ * @param origDataFetcher The data fetching method to call.
  * @param origFunctionArguments The arguments to call the data fetching method with.
  * @param req The data fetching function's request object.
  * @param res The data fetching function's response object.
  * @param options Options providing details for the created transaction and span.
  * @returns what the data fetching method call returned.
  */
-export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Promise<any> | any>(
-  origFunction: F,
-  origFunctionArguments: Parameters<F>,
+export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Promise<any> | any>(
+  origDataFetcher: F,
   req: IncomingMessage,
   res: ServerResponse,
   options: {
@@ -74,70 +73,72 @@ export function callTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     /** Name of the data fetching method - will be used for describing the data fetcher's span. */
     dataFetchingMethodName: string;
   },
-): Promise<ReturnType<F>> {
-  return domain.create().bind(async () => {
-    let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
+): (...params: Parameters<F>) => Promise<ReturnType<F>> {
+  return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
+    return domain.create().bind(async () => {
+      let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
 
-    if (requestTransaction === undefined) {
-      const sentryTraceHeader = req.headers['sentry-trace'];
-      const rawBaggageString = req.headers && req.headers.baggage;
-      const traceparentData =
-        typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
+      if (requestTransaction === undefined) {
+        const sentryTraceHeader = req.headers['sentry-trace'];
+        const rawBaggageString = req.headers && req.headers.baggage;
+        const traceparentData =
+          typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
 
-      const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
+        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
-      const newTransaction = startTransaction(
-        {
-          op: 'http.server',
-          name: options.requestedRouteName,
-          ...traceparentData,
-          status: 'ok',
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        const newTransaction = startTransaction(
+          {
+            op: 'http.server',
+            name: options.requestedRouteName,
+            ...traceparentData,
+            status: 'ok',
+            metadata: {
+              source: 'route',
+              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+            },
           },
-        },
-        { request: req },
-      );
+          { request: req },
+        );
 
-      requestTransaction = newTransaction;
-      autoEndTransactionOnResponseEnd(newTransaction, res);
+        requestTransaction = newTransaction;
+        autoEndTransactionOnResponseEnd(newTransaction, res);
 
-      // Link the transaction and the request together, so that when we would normally only have access to one, it's
-      // still possible to grab the other.
-      setTransactionOnRequest(newTransaction, req);
-      newTransaction.setMetadata({ request: req });
-    }
-
-    const dataFetcherSpan = requestTransaction.startChild({
-      op: 'function.nextjs',
-      description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-      status: 'ok',
-    });
-
-    const currentScope = getCurrentHub().getScope();
-    if (currentScope) {
-      currentScope.setSpan(dataFetcherSpan);
-      currentScope.setSDKProcessingMetadata({ request: req });
-    }
-
-    try {
-      return await origFunction(...origFunctionArguments);
-    } catch (e) {
-      // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
-      // that set the transaction status, we need to manually set the status of the span & transaction
-      dataFetcherSpan.setStatus('internal_error');
-
-      const transaction = dataFetcherSpan.transaction;
-      if (transaction) {
-        transaction.setStatus('internal_error');
+        // Link the transaction and the request together, so that when we would normally only have access to one, it's
+        // still possible to grab the other.
+        setTransactionOnRequest(newTransaction, req);
+        newTransaction.setMetadata({ request: req });
       }
 
-      throw e;
-    } finally {
-      dataFetcherSpan.finish();
-    }
-  })();
+      const dataFetcherSpan = requestTransaction.startChild({
+        op: 'function.nextjs',
+        description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+        status: 'ok',
+      });
+
+      const currentScope = getCurrentHub().getScope();
+      if (currentScope) {
+        currentScope.setSpan(dataFetcherSpan);
+        currentScope.setSDKProcessingMetadata({ request: req });
+      }
+
+      try {
+        return await origDataFetcher.apply(this, args);
+      } catch (e) {
+        // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
+        // that set the transaction status, we need to manually set the status of the span & transaction
+        dataFetcherSpan.setStatus('internal_error');
+
+        const transaction = dataFetcherSpan.transaction;
+        if (transaction) {
+          transaction.setStatus('internal_error');
+        }
+
+        throw e;
+      } finally {
+        dataFetcherSpan.finish();
+      }
+    })();
+  };
 }
 
 /**

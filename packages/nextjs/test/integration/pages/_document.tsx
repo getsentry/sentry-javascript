@@ -2,6 +2,7 @@ import Document, { DocumentContext } from 'next/document';
 
 class MyDocument extends Document {
   static async getInitialProps(ctx: DocumentContext) {
+    // Verify that wrapping correctly passes `this`
     this.testFunction();
 
     const initialProps = await Document.getInitialProps(ctx);
@@ -10,7 +11,7 @@ class MyDocument extends Document {
   }
 
   static testFunction() {
-    console.log('Calling me with this should not throw after wrapping');
+    // noop
   }
 }
 

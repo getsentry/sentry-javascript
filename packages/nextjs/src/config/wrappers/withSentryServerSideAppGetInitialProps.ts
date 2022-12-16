@@ -3,7 +3,7 @@ import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import App from 'next/app';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
+import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
 
 type AppGetInitialProps = typeof App['getInitialProps'];
 
@@ -16,14 +16,12 @@ type AppGetInitialProps = typeof App['getInitialProps'];
  * @returns A wrapped version of the function
  */
 export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: AppGetInitialProps): AppGetInitialProps {
-  return async function (
-    ...appGetInitialPropsArguments: Parameters<AppGetInitialProps>
-  ): ReturnType<AppGetInitialProps> {
+  return async function (this: unknown, ...args: Parameters<AppGetInitialProps>): ReturnType<AppGetInitialProps> {
     if (isBuild()) {
-      return origAppGetInitialProps(...appGetInitialPropsArguments);
+      return origAppGetInitialProps.apply(this, args);
     }
 
-    const [context] = appGetInitialPropsArguments;
+    const [context] = args;
     const { req, res } = context.ctx;
 
     const errorWrappedAppGetInitialProps = withErrorInstrumentation(origAppGetInitialProps);
@@ -33,16 +31,18 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
     // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
     // span with each other when there are no req or res objects, we simply do not trace them at all here.
     if (hasTracingEnabled() && req && res) {
+      const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedAppGetInitialProps, req, res, {
+        dataFetcherRouteName: '/_app',
+        requestedRouteName: context.ctx.pathname,
+        dataFetchingMethodName: 'getInitialProps',
+      });
+
       const appGetInitialProps: {
         pageProps: {
           _sentryTraceData?: string;
           _sentryBaggage?: string;
         };
-      } = await callTracedServerSideDataFetcher(errorWrappedAppGetInitialProps, appGetInitialPropsArguments, req, res, {
-        dataFetcherRouteName: '/_app',
-        requestedRouteName: context.ctx.pathname,
-        dataFetchingMethodName: 'getInitialProps',
-      });
+      } = await tracedGetInitialProps.apply(this, args);
 
       const requestTransaction = getTransactionFromRequest(req);
 
@@ -64,7 +64,7 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
 
       return appGetInitialProps;
     } else {
-      return errorWrappedAppGetInitialProps(...appGetInitialPropsArguments);
+      return errorWrappedAppGetInitialProps.apply(this, args);
     }
   };
 }
