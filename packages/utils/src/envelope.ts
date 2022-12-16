@@ -2,15 +2,18 @@ import {
   Attachment,
   AttachmentItem,
   DataCategory,
+  DsnComponents,
   Envelope,
   EnvelopeItem,
   EnvelopeItemType,
   Event,
+  EventEnvelopeHeaders,
   SdkInfo,
   SdkMetadata,
   TextEncoderInternal,
 } from '@sentry/types';
 
+import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
 
@@ -153,4 +156,28 @@ export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | 
   }
   const { name, version } = metadataOrEvent.sdk;
   return { name, version };
+}
+
+/**
+ * Creates event envelope headers, based on event, sdk info and tunnel
+ * Note: This function was extracted from the core package to make it available in Replay
+ */
+export function createEventEnvelopeHeaders(
+  event: Event,
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn: DsnComponents,
+): EventEnvelopeHeaders {
+  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
+
+  return {
+    event_id: event.event_id as string,
+    sent_at: new Date().toISOString(),
+    ...(sdkInfo && { sdk: sdkInfo }),
+    ...(!!tunnel && { dsn: dsnToString(dsn) }),
+    ...(event.type === 'transaction' &&
+      dynamicSamplingContext && {
+        trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
+      }),
+  };
 }
