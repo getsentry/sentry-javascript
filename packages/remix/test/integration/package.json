@@ -28,6 +28,7 @@
     "@sentry/integrations": "file:../../../integrations",
     "@sentry/node": "file:../../../node",
     "@sentry/react": "file:../../../react",
+    "@sentry/replay": "file:../../../replay",
     "@sentry/tracing": "file:../../../tracing",
     "@sentry/types": "file:../../../types",
     "@sentry/utils": "file:../../../utils"
