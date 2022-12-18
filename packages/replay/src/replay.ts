@@ -940,6 +940,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     };
 
     const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
+
+    if (!replayEvent) {
+      __DEBUG_BUILD__ && logger.error('[Replay] An event processor returned null, will not send replay.');
+      return;
+    }
+
     replayEvent.tags = {
       ...replayEvent.tags,
       sessionSampleRate: this._options.sessionSampleRate,
