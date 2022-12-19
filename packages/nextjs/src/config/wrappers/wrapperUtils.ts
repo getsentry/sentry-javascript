@@ -78,6 +78,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return domain.create().bind(async () => {
       let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
+      let dataFetcherSpan;
 
       const sentryTraceHeader = req.headers['sentry-trace'];
       const rawBaggageString = req.headers && req.headers.baggage;
@@ -86,36 +87,35 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 
       const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
-      if (requestTransaction === undefined) {
-        const newTransaction = startTransaction(
-          {
-            op: 'http.server',
-            name: options.requestedRouteName,
-            ...traceparentData,
-            status: 'ok',
-            metadata: {
-              request: req,
-              source: 'route',
-              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      if (platformSupportsStreaming()) {
+        if (requestTransaction === undefined) {
+          const newTransaction = startTransaction(
+            {
+              op: 'http.server',
+              name: options.requestedRouteName,
+              ...traceparentData,
+              status: 'ok',
+              metadata: {
+                request: req,
+                source: 'route',
+                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+              },
             },
-          },
-          { request: req },
-        );
+            { request: req },
+          );
 
-        requestTransaction = newTransaction;
+          requestTransaction = newTransaction;
 
-        if (platformSupportsStreaming()) {
-          // On platforms that don't support streaming, doing things after res.end() is unreliable.
-          autoEndTransactionOnResponseEnd(newTransaction, res);
+          if (platformSupportsStreaming()) {
+            // On platforms that don't support streaming, doing things after res.end() is unreliable.
+            autoEndTransactionOnResponseEnd(newTransaction, res);
+          }
+
+          // Link the transaction and the request together, so that when we would normally only have access to one, it's
+          // still possible to grab the other.
+          setTransactionOnRequest(newTransaction, req);
         }
 
-        // Link the transaction and the request together, so that when we would normally only have access to one, it's
-        // still possible to grab the other.
-        setTransactionOnRequest(newTransaction, req);
-      }
-
-      let dataFetcherSpan;
-      if (platformSupportsStreaming()) {
         dataFetcherSpan = requestTransaction.startChild({
           op: 'function.nextjs',
           description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
@@ -125,10 +125,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         dataFetcherSpan = startTransaction({
           op: 'function.nextjs',
           name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-          traceId: requestTransaction.traceId,
-          parentSpanId: requestTransaction.spanId,
-          parentSampled: requestTransaction.sampled,
-          sampled: requestTransaction.sampled,
+          ...traceparentData,
           status: 'ok',
           metadata: {
             request: req,
@@ -150,12 +147,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
         // that set the transaction status, we need to manually set the status of the span & transaction
         dataFetcherSpan.setStatus('internal_error');
-        requestTransaction.setStatus('internal_error');
+        requestTransaction?.setStatus('internal_error');
         throw e;
       } finally {
         dataFetcherSpan.finish();
         if (!platformSupportsStreaming()) {
-          requestTransaction.finish(requestTransaction.startTimestamp);
           await flushQueue();
         }
       }
