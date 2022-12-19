@@ -3,7 +3,7 @@ import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { GetServerSideProps } from 'next';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, getTransactionFromRequest, withErrorInstrumentation } from './wrapperUtils';
+import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function
@@ -16,30 +16,26 @@ export function withSentryGetServerSideProps(
   origGetServerSideProps: GetServerSideProps,
   parameterizedRoute: string,
 ): GetServerSideProps {
-  return async function (
-    ...getServerSidePropsArguments: Parameters<GetServerSideProps>
-  ): ReturnType<GetServerSideProps> {
+  return async function (this: unknown, ...args: Parameters<GetServerSideProps>): ReturnType<GetServerSideProps> {
     if (isBuild()) {
-      return origGetServerSideProps(...getServerSidePropsArguments);
+      return origGetServerSideProps.apply(this, args);
     }
 
-    const [context] = getServerSidePropsArguments;
+    const [context] = args;
     const { req, res } = context;
 
     const errorWrappedGetServerSideProps = withErrorInstrumentation(origGetServerSideProps);
 
     if (hasTracingEnabled()) {
-      const serverSideProps = await callTracedServerSideDataFetcher(
-        errorWrappedGetServerSideProps,
-        getServerSidePropsArguments,
-        req,
-        res,
-        {
-          dataFetcherRouteName: parameterizedRoute,
-          requestedRouteName: parameterizedRoute,
-          dataFetchingMethodName: 'getServerSideProps',
-        },
-      );
+      const tracedGetServerSideProps = withTracedServerSideDataFetcher(errorWrappedGetServerSideProps, req, res, {
+        dataFetcherRouteName: parameterizedRoute,
+        requestedRouteName: parameterizedRoute,
+        dataFetchingMethodName: 'getServerSideProps',
+      });
+
+      const serverSideProps = await (tracedGetServerSideProps.apply(this, args) as ReturnType<
+        typeof tracedGetServerSideProps
+      >);
 
       if ('props' in serverSideProps) {
         const requestTransaction = getTransactionFromRequest(req);
@@ -53,7 +49,7 @@ export function withSentryGetServerSideProps(
 
       return serverSideProps;
     } else {
-      return errorWrappedGetServerSideProps(...getServerSidePropsArguments);
+      return errorWrappedGetServerSideProps.apply(this, args);
     }
   };
 }

@@ -921,8 +921,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     const client = hub.getClient();
     const scope = hub.getScope();
     const transport = client && client.getTransport();
+    const dsn = client?.getDsn();
 
-    if (!client || !scope || !transport) {
+    if (!client || !scope || !transport || !dsn) {
       return;
     }
 
@@ -982,7 +983,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
     */
 
-    const envelope = createReplayEnvelope(replayId, replayEvent, payloadWithSequence);
+    const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn, client.getOptions().tunnel);
 
     try {
       return transport.send(envelope);

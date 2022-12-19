@@ -1,17 +1,14 @@
-import { Envelope, Event } from '@sentry/types';
-import { createEnvelope, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
+import { DsnComponents, Envelope, Event } from '@sentry/types';
+import { createEnvelope, createEventEnvelopeHeaders, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 export function createReplayEnvelope(
-  replayId: string,
   replayEvent: Event,
   payloadWithSequence: string | Uint8Array,
+  dsn: DsnComponents,
+  tunnel?: string,
 ): Envelope {
   return createEnvelope(
-    {
-      event_id: replayId,
-      sent_at: new Date().toISOString(),
-      sdk: getSdkMetadataForEnvelopeHeader(replayEvent),
-    },
+    createEventEnvelopeHeaders(replayEvent, getSdkMetadataForEnvelopeHeader(replayEvent), tunnel, dsn),
     [
       // @ts-ignore New types
       [{ type: 'replay_event' }, replayEvent],

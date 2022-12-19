@@ -2,7 +2,7 @@ import { hasTracingEnabled } from '@sentry/tracing';
 import Document from 'next/document';
 
 import { isBuild } from '../../utils/isBuild';
-import { callTracedServerSideDataFetcher, withErrorInstrumentation } from './wrapperUtils';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
 
 type DocumentGetInitialProps = typeof Document.getInitialProps;
 
@@ -18,13 +18,14 @@ export function withSentryServerSideDocumentGetInitialProps(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
   return async function (
-    ...documentGetInitialPropsArguments: Parameters<DocumentGetInitialProps>
+    this: unknown,
+    ...args: Parameters<DocumentGetInitialProps>
   ): ReturnType<DocumentGetInitialProps> {
     if (isBuild()) {
-      return origDocumentGetInitialProps(...documentGetInitialPropsArguments);
+      return origDocumentGetInitialProps.apply(this, args);
     }
 
-    const [context] = documentGetInitialPropsArguments;
+    const [context] = args;
     const { req, res } = context;
 
     const errorWrappedGetInitialProps = withErrorInstrumentation(origDocumentGetInitialProps);
@@ -34,13 +35,15 @@ export function withSentryServerSideDocumentGetInitialProps(
     // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
     // span with each other when there are no req or res objects, we simply do not trace them at all here.
     if (hasTracingEnabled() && req && res) {
-      return callTracedServerSideDataFetcher(errorWrappedGetInitialProps, documentGetInitialPropsArguments, req, res, {
+      const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
         dataFetcherRouteName: '/_document',
         requestedRouteName: context.pathname,
         dataFetchingMethodName: 'getInitialProps',
       });
+
+      return await tracedGetInitialProps.apply(this, args);
     } else {
-      return errorWrappedGetInitialProps(...documentGetInitialPropsArguments);
+      return errorWrappedGetInitialProps.apply(this, args);
     }
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "7.26.0",
+  "version": "7.27.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -36,17 +36,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getsentry/sentry-replay.git"
+    "url": "git+https://github.com/getsentry/sentry-javascript.git"
   },
   "author": "Sentry",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/getsentry/sentry-replay/issues"
+    "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
-  "homepage": "https://github.com/getsentry/sentry-replay#readme",
+  "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry/browser": "7.26.0",
     "@types/lodash.debounce": "4.0.7",
     "@types/pako": "^2.0.0",
     "jsdom-worker": "^0.2.1",
@@ -56,9 +55,9 @@
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@sentry/core": "7.26.0",
-    "@sentry/types": "7.26.0",
-    "@sentry/utils": "7.26.0"
+    "@sentry/core": "7.27.0",
+    "@sentry/types": "7.27.0",
+    "@sentry/utils": "7.27.0"
   },
   "peerDependencies": {
     "@sentry/browser": ">=7.24.0"

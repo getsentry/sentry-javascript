@@ -1,8 +1,8 @@
-import type { BrowserClient, BrowserOptions } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/core';
+import type { BrowserClientReplayOptions } from '@sentry/types';
 import { Integration } from '@sentry/types';
 
-import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE } from './constants';
+import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { isBrowser } from './util/isBrowser';
@@ -107,7 +107,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       // `maskAllText` is a more user friendly option to configure
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
-      this.recordingOptions.maskTextSelector = '*';
+      this.recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
     if (this.options.blockAllMedia) {
@@ -184,8 +184,8 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
   /** Parse Replay-related options from SDK options */
   private _loadReplayOptionsFromClient(): void {
-    const client = getCurrentHub().getClient() as BrowserClient | undefined;
-    const opt = client && (client.getOptions() as BrowserOptions | undefined);
+    const client = getCurrentHub().getClient();
+    const opt = client && (client.getOptions() as BrowserClientReplayOptions | undefined);
 
     if (opt && typeof opt.replaysSessionSampleRate === 'number') {
       this.options.sessionSampleRate = opt.replaysSessionSampleRate;
