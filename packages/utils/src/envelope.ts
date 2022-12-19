@@ -127,9 +127,9 @@ export function parseEnvelope(
   let buffer = typeof env === 'string' ? textEncoder.encode(env) : env;
 
   function readBinary(length: number): Uint8Array {
-    const bin = buffer.slice(0, length);
-    // Replace the buffer with the remaining data and newline
-    buffer = buffer.slice(length + 1);
+    const bin = buffer.subarray(0, length);
+    // Replace the buffer with the remaining data excluding trailing newline
+    buffer = buffer.subarray(length + 1);
     return bin;
   }
 
@@ -143,7 +143,7 @@ export function parseEnvelope(
     return JSON.parse(textDecoder.decode(readBinary(i))) as T;
   }
 
-  const header = readJson<BaseEnvelopeHeaders>();
+  const envelopeHeader = readJson<BaseEnvelopeHeaders>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const items: [any, any][] = [];
 
@@ -154,7 +154,7 @@ export function parseEnvelope(
     items.push([itemHeader, binaryLength ? readBinary(binaryLength) : readJson()]);
   }
 
-  return [header, items];
+  return [envelopeHeader, items];
 }
 
 /**
