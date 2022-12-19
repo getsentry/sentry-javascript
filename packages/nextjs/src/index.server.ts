@@ -15,6 +15,11 @@ import { addOrUpdateIntegration, IntegrationWithExclusionOption } from './utils/
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
 
+// Exporting the Replay integration also from index.server.ts because TS only recognizes types from index.server.ts
+// If we didn't export this, TS would complain that it can't find `Sentry.Replay` in the package,
+// causing a build failure, when users initialize Replay in their sentry.client.config.js/ts file.
+export { Replay } from './index.client';
+
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
 export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
