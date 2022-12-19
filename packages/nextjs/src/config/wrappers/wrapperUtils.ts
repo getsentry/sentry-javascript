@@ -1,5 +1,4 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
-import { flush } from '@sentry/node';
 import { getActiveTransaction } from '@sentry/tracing';
 import { Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
@@ -7,7 +6,7 @@ import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
 import { platformSupportsStreaming } from '../../utils/platformSupportsStreaming';
-import { autoEndTransactionOnResponseEnd } from './utils/responseEnd';
+import { autoEndTransactionOnResponseEnd, flushQueue } from './utils/responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -106,6 +105,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         requestTransaction = newTransaction;
 
         if (platformSupportsStreaming()) {
+          // On platforms that don't support streaming, doing things after res.end() is unreliable.
           autoEndTransactionOnResponseEnd(newTransaction, res);
         }
 
@@ -156,7 +156,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         dataFetcherSpan.finish();
         if (!platformSupportsStreaming()) {
           requestTransaction.finish(requestTransaction.startTimestamp);
-          await flush(1000).then(null, null);
+          await flushQueue();
         }
       }
     })();
