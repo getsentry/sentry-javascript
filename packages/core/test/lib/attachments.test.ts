@@ -1,5 +1,5 @@
-import { parseEnvelope } from '@sentry/utils/test/testutils';
-import { TextEncoder } from 'util';
+import { parseEnvelope } from '@sentry/utils';
+import { TextDecoder, TextEncoder } from 'util';
 
 import { createTransport } from '../../src/transports/base';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
@@ -22,7 +22,7 @@ describe('Attachments', () => {
       enableSend: true,
       transport: () =>
         createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, async req => {
-          const [, items] = parseEnvelope(req.body);
+          const [, items] = parseEnvelope(req.body, new TextEncoder(), new TextDecoder());
           expect(items.length).toEqual(2);
           // Second envelope item should be the attachment
           expect(items[1][0]).toEqual({ type: 'attachment', length: 50000, filename: 'empty.bin' });
