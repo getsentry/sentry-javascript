@@ -1,5 +1,6 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
+import { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
@@ -11,6 +12,7 @@ import {
 import * as domain from 'domain';
 
 import { formatAsCode, nextLogger } from '../../utils/nextLogger';
+import { platformSupportsStreaming } from '../../utils/platformSupportsStreaming';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler, WrappedNextApiHandler } from './types';
 import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from './utils/responseEnd';
 
@@ -74,8 +76,9 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
     // `local.bind` causes everything to run inside a domain, just like `local.run` does, but it also lets the callback
     // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
     // getting that before it will finish the response.
+    // eslint-disable-next-line complexity
     const boundHandler = local.bind(async () => {
-      let transaction;
+      let transaction: Transaction | undefined;
       const currentScope = getCurrentHub().getScope();
 
       if (currentScope) {
@@ -127,7 +130,43 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
           );
           currentScope.setSpan(transaction);
 
-          autoEndTransactionOnResponseEnd(transaction, res);
+          if (platformSupportsStreaming()) {
+            autoEndTransactionOnResponseEnd(transaction, res);
+          } else {
+            // If we're not on a platform that supports streaming, we're blocking all response-ending methods until the
+            // queue is flushed.
+
+            const origResSend = res.send;
+            res.send = async function (this: unknown, ...args: unknown[]) {
+              if (transaction) {
+                await finishTransaction(transaction, res);
+                await flushQueue();
+              }
+
+              origResSend.apply(this, args);
+            };
+
+            const origResJson = res.json;
+            res.json = async function (this: unknown, ...args: unknown[]) {
+              if (transaction) {
+                await finishTransaction(transaction, res);
+                await flushQueue();
+              }
+
+              origResJson.apply(this, args);
+            };
+
+            // eslint-disable-next-line @typescript-eslint/unbound-method
+            const origResEnd = res.end;
+            res.end = async function (this: unknown, ...args: unknown[]) {
+              if (transaction) {
+                await finishTransaction(transaction, res);
+                await flushQueue();
+              }
+
+              origResEnd.apply(this, args);
+            };
+          }
         }
       }
 
@@ -184,8 +223,12 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
         // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
         // deployed serverlessly will run into this cleanup code again in `res.end(), but the transaction will already
         // be finished and the queue will already be empty, so effectively it'll just no-op.)
-        await finishTransaction(transaction, res);
-        await flushQueue();
+        if (platformSupportsStreaming()) {
+          void finishTransaction(transaction, res);
+        } else {
+          await finishTransaction(transaction, res);
+          await flushQueue();
+        }
 
         // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
         // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
