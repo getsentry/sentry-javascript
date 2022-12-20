@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.28.0
+
+- feat(nextjs): Check for Vercel Edge Function GA (#6565)
+- feat(utils): Improved envelope parser (#6580)
+- fix(nextjs): Export Replay from `index.server.ts` to avoid TS error (#6577)
+- fix(nextjs): Pass `this` through wrappers (#6572)
+- ref(types): Add `undefined` as possible event type (#6584)
+
 ## 7.27.0
 
 This release exports the Session Replay integration via `@sentry/browser` and all framework SDKs building on top of it.
