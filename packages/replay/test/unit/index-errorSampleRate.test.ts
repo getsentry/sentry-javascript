@@ -257,7 +257,7 @@ describe('Replay (errorSampleRate)', () => {
 
   it('does not upload if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
     // Idle for 15 minutes
-    jest.advanceTimersByTime(15 * 60000);
+    jest.advanceTimersByTime(15 * 60_000);
 
     // TBD: We are currently deciding that this event will get dropped, but
     // this could/should change in the future.

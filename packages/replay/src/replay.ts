@@ -1,8 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
 import { Breadcrumb, Event } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
-import debounce from 'lodash.debounce';
+import { addInstrumentationHandler, debounce, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -892,8 +891,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   flushImmediate(): Promise<void> {
     this._debouncedFlush();
-    // `.flush` is provided by lodash.debounce
-    return this._debouncedFlush.flush();
+    // `.flush` is provided by the debounced function, analogously to lodash.debounce
+    return this._debouncedFlush.flush() as Promise<void>;
   }
 
   /**

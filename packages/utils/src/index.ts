@@ -27,3 +27,4 @@ export * from './clientreport';
 export * from './ratelimit';
 export * from './baggage';
 export * from './url';
+export * from './debounce';
