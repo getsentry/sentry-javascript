@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import { captureException } from '@sentry/browser';
-import { addExceptionMechanism } from '@sentry/utils';
+import { addExceptionMechanism, isString } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
 
@@ -50,32 +50,17 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   return error.message;
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object';
-}
-
-function hasOwnProperty<ObjectType extends Record<string, unknown>, PropertyType extends PropertyKey>(
-  object: ObjectType,
-  propertyName: PropertyType,
-): object is ObjectType & Record<PropertyType, unknown> {
-  return Object.prototype.hasOwnProperty.call(object, propertyName);
-}
-
-function hasErrorName(value: Record<string, unknown>): value is Pick<Error, 'name'> {
-  return hasOwnProperty(value, 'name') && typeof value.name === 'string';
-}
-
-function hasErrorMessage(value: Record<string, unknown>): value is Pick<Error, 'message'> {
-  return hasOwnProperty(value, 'message') && typeof value.message === 'string';
-}
-
-function hasErrorStack(value: Record<string, unknown>): value is Pick<Error, 'stack'> {
-  return !hasOwnProperty(value, 'stack') || typeof value.stack === 'string';
-}
-
 function isErrorOrErrorLikeObject(value: unknown): value is Error {
+  if (value instanceof Error) {
+    return true;
+  }
+
   return (
-    value instanceof Error || (isObject(value) && hasErrorName(value) && hasErrorMessage(value) && hasErrorStack(value))
+    value !== null &&
+    typeof value === 'object' &&
+    isString((value as Partial<Error>).name) &&
+    isString((value as Partial<Error>).message) &&
+    (undefined === (value as Partial<Error>).stack || isString((value as Partial<Error>).stack))
   );
 }
 
