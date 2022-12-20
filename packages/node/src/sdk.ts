@@ -140,7 +140,7 @@ export function init(options: NodeOptions = {}): void {
     }
   }
 
-  if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
+  if (process.env.SENTRY_ENVIRONMENT) {
     options.environment = process.env.SENTRY_ENVIRONMENT;
   }
 
