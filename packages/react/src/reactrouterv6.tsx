@@ -131,17 +131,8 @@ function handleNavigation(
   location: Location,
   routes: RouteObject[],
   navigationType: Action,
-  isBaseLocation: boolean,
   matches?: AgnosticDataRouteMatch,
 ): void {
-  if (isBaseLocation) {
-    if (activeTransaction) {
-      activeTransaction.finish();
-    }
-
-    return;
-  }
-
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location);
 
   if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
@@ -179,12 +170,12 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     return Routes;
   }
 
-  let isBaseLocation: boolean = false;
   let routes: RouteObject[];
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
     const navigationType = _useNavigationType();
+    let isBaseLocation: boolean = false;
 
     _useEffect(() => {
       // Performance concern:
@@ -197,7 +188,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     }, [props.children]);
 
     _useEffect(() => {
-      handleNavigation(location, routes, navigationType, isBaseLocation);
+      if (!isBaseLocation) {
+        handleNavigation(location, routes, navigationType);
+      }
     }, [props.children, location, navigationType, isBaseLocation]);
 
     isBaseLocation = false;
@@ -224,8 +217,6 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let isBaseLocation: boolean = false;
-
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
     const SentryRoutes: React.FC<unknown> = (props: unknown) => {
@@ -234,6 +225,7 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
       const locationArgObject = typeof location === 'string' ? { pathname: location } : location;
       const locationObject = (locationArgObject as Location) || _useLocation();
       const navigationType = _useNavigationType();
+      let isBaseLocation: boolean = false;
 
       _useEffect(() => {
         isBaseLocation = true;
@@ -242,7 +234,9 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
       }, [props]);
 
       _useEffect(() => {
-        handleNavigation(locationObject, routes, navigationType, isBaseLocation);
+        if (!isBaseLocation) {
+          handleNavigation(locationObject, routes, navigationType);
+        }
       }, [props, locationObject, navigationType, isBaseLocation]);
 
       isBaseLocation = false;
@@ -275,7 +269,7 @@ export function wrapCreateBrowserRouter(createRouterFunction: CreateRouterFuncti
         (state.historyAction === 'PUSH' || state.historyAction === 'POP') &&
         activeTransaction
       ) {
-        handleNavigation(location, routes, state.historyAction, false);
+        handleNavigation(location, routes, state.historyAction);
       }
     });
 
