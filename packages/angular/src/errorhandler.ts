@@ -50,17 +50,28 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   return error.message;
 }
 
+type ErrorCandidate = {
+  name?: unknown;
+  message?: unknown;
+  stack?: unknown;
+};
+
 function isErrorOrErrorLikeObject(value: unknown): value is Error {
   if (value instanceof Error) {
     return true;
   }
 
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as ErrorCandidate;
+
   return (
-    value !== null &&
-    typeof value === 'object' &&
-    isString((value as Partial<Error>).name) &&
-    isString((value as Partial<Error>).message) &&
-    (undefined === (value as Partial<Error>).stack || isString((value as Partial<Error>).stack))
+    isString(candidate.name) &&
+    isString(candidate.name) &&
+    isString(candidate.message) &&
+    (undefined === candidate.stack || isString(candidate.stack))
   );
 }
 
