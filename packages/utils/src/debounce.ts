@@ -56,17 +56,13 @@ export function debounce(func: CallbackFunction, wait: number, options?: Debounc
   function shouldInvoke(time: number): boolean {
     const timeSinceLastCall = time - (lastCallTime || 0);
     const timeSinceLastInvoke = time - lastInvokeTime;
-    // console.log({ timeSinceLastCall, timeSinceLastInvoke, wait });
 
     return timeSinceLastCall >= wait || (Boolean(maxWait) && timeSinceLastInvoke >= maxWait);
   }
 
   function timerExpired(): void {
     const time = Date.now();
-    // console.log('timerexpired', time);
     if (shouldInvoke(time)) {
-      // console.log('invoking', time);
-
       return void invokeFunc(time);
     }
 
