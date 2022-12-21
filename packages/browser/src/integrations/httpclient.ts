@@ -1,15 +1,36 @@
 import { captureEvent, getCurrentHub } from '@sentry/core';
 import { Event as SentryEvent, Integration } from '@sentry/types';
-import { addExceptionMechanism, fill, GLOBAL_OBJ, logger } from '@sentry/utils';
+import { addExceptionMechanism, fill, GLOBAL_OBJ, logger, supportsNativeFetch } from '@sentry/utils';
 
 import { eventFromUnknownInput } from '../eventbuilder';
 
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
-
 interface HttpClientOptions {
+  /**
+   * Controls whether failed requests should be captured.
+   *
+   * Default: false
+   */
   captureFailedRequests?: boolean;
+
+  /**
+   * HTTP status codes that should be considered failed.
+   * This array can contain tuples of `[begin, end]` (both inclusive),
+   * single status codes, or a combinations of both
+   *
+   * Example: [[500, 505], 507]
+   * Default: [[500, 599]]
+   */
   failedRequestStatusCodes?: HttpStatusCodeRange[];
+
+  /**
+   * Targets to track for failed requests.
+   * This array can contain strings or regular expressions.
+   *
+   * Example: ['http://localhost', /api\/.*\/]
+   * Default: [/.*\/]
+   */
   failedRequestTargets?: HttpRequestTarget[];
 }
 
@@ -65,7 +86,6 @@ export class HttpClient implements Integration {
   private _fetchResponseHandler(requestInfo: RequestInfo, response: Response, requestInit?: RequestInit): void {
     if (this._shouldCaptureResponse(response.status, response.url)) {
       const request = new Request(requestInfo, requestInit);
-      const url = new URL(request.url);
 
       let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
@@ -96,7 +116,7 @@ export class HttpClient implements Integration {
       }
 
       const event = this._createEvent({
-        url: url,
+        url: request.url,
         method: request.method,
         status: response.status,
         requestHeaders,
@@ -105,12 +125,7 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      captureEvent(event, {
-        data: {
-          OK_HTTP_REQUEST: request,
-          OK_HTTP_RESPONSE: response,
-        },
-      });
+      captureEvent(event);
     }
   }
 
@@ -123,8 +138,6 @@ export class HttpClient implements Integration {
    */
   private _xhrResponseHandler(xhr: XMLHttpRequest, method: string, headers: Record<string, string>): void {
     if (this._shouldCaptureResponse(xhr.status, xhr.responseURL)) {
-      const url = new URL(xhr.responseURL);
-
       let requestHeaders, responseCookies, responseHeaders;
 
       if (getCurrentHub().shouldSendDefaultPii()) {
@@ -148,7 +161,7 @@ export class HttpClient implements Integration {
       }
 
       const event = this._createEvent({
-        url: url,
+        url: xhr.responseURL,
         method: method,
         status: xhr.status,
         requestHeaders,
@@ -274,34 +287,30 @@ export class HttpClient implements Integration {
    *
    */
   private _wrapFetch(): void {
-    if (!('fetch' in GLOBAL_OBJ)) {
+    if (!supportsNativeFetch()) {
       return;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
-    fill(
-      GLOBAL_OBJ,
-      'fetch',
-      function (originalFetch: (requestInfo: RequestInfo, requestInit?: RequestInit) => Promise<Response>) {
-        return function (this: Window, requestInfo: RequestInfo, requestInit?: RequestInit): Promise<Response> {
-          const responsePromise: Promise<Response> = originalFetch.apply(this, [requestInfo, requestInit]);
+    fill(GLOBAL_OBJ, 'fetch', function (originalFetch: (...args: unknown[]) => Promise<Response>) {
+      return function (this: Window, ...args: unknown[]): Promise<Response> {
+        const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
+        const responsePromise: Promise<Response> = originalFetch.apply(this, args);
 
-          responsePromise
-            .then((response: Response) => {
-              self._fetchResponseHandler(requestInfo, response, requestInit);
-              return response;
-            })
-            .catch((error: Error) => {
-              // TODO:
-              throw error;
-            });
+        responsePromise
+          .then((response: Response) => {
+            self._fetchResponseHandler(requestInfo, response, requestInit);
+            return response;
+          })
+          .catch((error: Error) => {
+            throw error;
+          });
 
-          return responsePromise;
-        };
-      },
-    );
+        return responsePromise;
+      };
+    });
   }
 
   /**
@@ -315,11 +324,11 @@ export class HttpClient implements Integration {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
-    fill(XMLHttpRequest.prototype, 'open', function (originalOpen: (method: string) => void): () => void {
-      return function (this: XMLHttpRequest, ...openArgs: any[]): void {
+    fill(XMLHttpRequest.prototype, 'open', function (originalOpen: (...openArgs: unknown[]) => void): () => void {
+      return function (this: XMLHttpRequest, ...openArgs: unknown[]): void {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const xhr = this;
-        const method = openArgs[0];
+        const method = openArgs[0] as string;
         const headers: Record<string, string> = {};
 
         // Intercepting `setRequestHeader` to access the request headers of XHR instance.
@@ -329,25 +338,27 @@ export class HttpClient implements Integration {
           xhr,
           'setRequestHeader',
           // eslint-disable-next-line @typescript-eslint/ban-types
-          function (originalSetRequestHeader: (header: string, value: string) => void): Function {
-            return function (header: string, value: string): void {
+          function (originalSetRequestHeader: (...setRequestHeaderArgs: unknown[]) => void): Function {
+            return function (...setRequestHeaderArgs: unknown[]): void {
+              const [header, value] = setRequestHeaderArgs as [string, string];
+
               headers[header] = value;
 
-              return originalSetRequestHeader.apply(xhr, [header, value]);
+              return originalSetRequestHeader.apply(xhr, setRequestHeaderArgs);
             };
           },
         );
 
         // eslint-disable-next-line @typescript-eslint/ban-types
-        fill(xhr, 'onloadend', function (original?: (progressEvent: ProgressEvent) => void): Function {
-          return function (progressEvent: ProgressEvent): void {
+        fill(xhr, 'onloadend', function (original?: (...onloadendArgs: unknown[]) => void): Function {
+          return function (...onloadendArgs: unknown[]): void {
             try {
               self._xhrResponseHandler(xhr, method, headers);
             } catch (e) {
               __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
             }
 
-            return original?.apply(xhr, progressEvent);
+            return original?.apply(xhr, onloadendArgs);
           };
         });
 
@@ -383,7 +394,7 @@ export class HttpClient implements Integration {
    * @returns event
    */
   private _createEvent(data: {
-    url: URL;
+    url: string;
     method: string;
     status: number;
     responseHeaders?: Record<string, string>;
@@ -394,10 +405,7 @@ export class HttpClient implements Integration {
     const event = eventFromUnknownInput(() => [], `HTTP Client Error with status code: ${data.status}`);
 
     event.request = {
-      url: data.url.href,
-      query_string: data.url.search,
-      // TODO: should we add `data: request.body` too?
-      // https://develop.sentry.dev/sdk/event-payloads/request/
+      url: data.url,
       method: data.method,
       headers: data.requestHeaders,
       cookies: data.requestCookies,

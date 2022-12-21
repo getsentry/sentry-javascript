@@ -75,7 +75,7 @@ export interface CultureContext extends Record<string, unknown> {
 export interface ResponseContext extends Record<string, unknown> {
   type?: string;
   cookies?: string[][] | Record<string, string>;
-  headers?: Record<string, string>; // TODO: should be only Record<string, string>?
+  headers?: Record<string, string>;
   status_code?: number;
   body_size?: number; // in bytes
 }
