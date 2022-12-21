@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "name": "metrics",
+  "main": "index.js",
+  "author": "Sentry",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./build/index.js",
+    "dev": "ts-node-esm ./src/index.ts"
+  },
+  "dependencies": {
+    "@types/node": "^18.11.17",
+    "puppeteer": "^19.4.1",
+    "typescript": "^4.9.4"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}

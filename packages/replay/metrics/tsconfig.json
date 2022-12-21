@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "outDir": "build",
+    "esModuleInterop": true,
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}
