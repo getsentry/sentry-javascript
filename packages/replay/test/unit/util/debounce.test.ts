@@ -240,4 +240,20 @@ describe('debounce', () => {
     const returnValue = debouncedCallback.flush();
     expect(returnValue).toBe(undefined);
   });
+
+  it('should handle equal wait and maxWait values and only invoke func once', () => {
+    const callback = jest.fn().mockReturnValue('foo');
+    const debouncedCallback = debounce(callback, 100, { maxWait: 100 });
+
+    debouncedCallback();
+    jest.advanceTimersByTime(100);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+
+    const retval = debouncedCallback();
+    expect(retval).toBe('foo');
+
+    jest.advanceTimersByTime(100);
+    expect(callback).toHaveBeenCalledTimes(2);
+  });
 });
