@@ -171,29 +171,35 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
   }
 
   let routes: RouteObject[];
+  let isFirstPageloadUpdateUseEffectCall = true;
+  let isFirstNavigationUseEffectCall = true;
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
     const navigationType = _useNavigationType();
-    let isBaseLocation: boolean = false;
 
     _useEffect(() => {
       // Performance concern:
       // This is repeated when <Routes /> is rendered.
       routes = _createRoutesFromChildren(props.children) as RouteObject[];
-      isBaseLocation = true;
-
-      updatePageloadTransaction(location, routes);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.children]);
 
     _useEffect(() => {
-      if (!isBaseLocation) {
+      if (isFirstNavigationUseEffectCall) {
+        isFirstNavigationUseEffectCall = false;
+      } else {
         handleNavigation(location, routes, navigationType);
       }
-    }, [props.children, location, navigationType, isBaseLocation]);
+    }, [location, navigationType]);
 
-    isBaseLocation = false;
+    _useEffect(() => {
+      if (isFirstPageloadUpdateUseEffectCall) {
+        routes = _createRoutesFromChildren(props.children) as RouteObject[];
+        updatePageloadTransaction(location, routes);
+      } else {
+        isFirstPageloadUpdateUseEffectCall = false;
+      }
+    }, [props.children, location]);
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
@@ -217,29 +223,36 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
+  let isFirstPageloadUpdateUseEffectCall = true;
+  let isFirstNavigationUseEffectCall = true;
+
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
     const SentryRoutes: React.FC<unknown> = (props: unknown) => {
       const Routes = origUseRoutes(routes, location);
 
+      // the case where location is a string might be killing performance because we're always creating a new
+      // object(with different identity) that will trigger useEffects below to run again
       const locationArgObject = typeof location === 'string' ? { pathname: location } : location;
+
       const locationObject = (locationArgObject as Location) || _useLocation();
       const navigationType = _useNavigationType();
-      let isBaseLocation: boolean = false;
 
       _useEffect(() => {
-        isBaseLocation = true;
-
-        updatePageloadTransaction(locationObject, routes);
-      }, [props]);
-
-      _useEffect(() => {
-        if (!isBaseLocation) {
-          handleNavigation(locationObject, routes, navigationType);
+        if (isFirstPageloadUpdateUseEffectCall) {
+          updatePageloadTransaction(locationObject, routes);
+        } else {
+          isFirstPageloadUpdateUseEffectCall = false;
         }
-      }, [props, locationObject, navigationType, isBaseLocation]);
+      }, [locationObject, routes]);
 
-      isBaseLocation = false;
+      _useEffect(() => {
+        if (isFirstNavigationUseEffectCall) {
+          handleNavigation(locationObject, routes, navigationType);
+        } else {
+          isFirstNavigationUseEffectCall = false;
+        }
+      }, [locationObject, routes, navigationType]);
 
       return Routes;
     };
