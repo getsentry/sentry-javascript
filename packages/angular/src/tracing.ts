@@ -2,6 +2,7 @@
 import {
   AfterViewInit,
   Directive,
+  Inject,
   Injectable,
   Input,
   NgModule,
@@ -173,7 +174,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
 
   private _tracingSpan?: Span;
 
-  public constructor(@Optional() private readonly _vcRef: ViewContainerRef) {}
+  public constructor(@Optional() @Inject(ViewContainerRef) private readonly _vcRef: ViewContainerRef) {}
 
   /**
    * Implementation of OnInit lifecycle method
@@ -181,7 +182,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    */
   public ngOnInit(): void {
     if (!this.componentName) {
-      this.componentName = detectComponentName(this._vcRef as EnhancedVieContainerRef);
+      this.componentName = detectComponentName(this._vcRef as EnhancedViewContainerRef);
     }
 
     const activeTransaction = getActiveTransaction();
@@ -204,7 +205,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
   }
 }
 
-type EnhancedVieContainerRef = ViewContainerRef & {
+type EnhancedViewContainerRef = ViewContainerRef & {
   _lContainer?: {
     localName?: string;
   }[][];
@@ -215,10 +216,9 @@ type EnhancedVieContainerRef = ViewContainerRef & {
  * Specifically, it looks up the selector of the component (e.g. `app-my-component`) or
  * falls back to the default component name if the selector is not available.
  */
-function detectComponentName(vcRef: EnhancedVieContainerRef | undefined): string {
+function detectComponentName(vcRef: EnhancedViewContainerRef | undefined): string {
   if (vcRef && vcRef._lContainer && vcRef._lContainer[0] && vcRef._lContainer[0][0]) {
-    // TODO: is this preferrable?
-    // Alternative: We could get the class name like so:
+    // Alternatively, we could get the class name like so:
     // const className = Object.getPrototypeOf(vcRef._lContainer[0][8]).constructor.name;
 
     const selectorName = vcRef._lContainer[0][0].localName;
