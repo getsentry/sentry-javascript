@@ -1,42 +1,45 @@
-import puppeteer from 'puppeteer';
+import * as puppeteer from 'puppeteer';
+
+import { WebVitals, WebVitalsCollector } from './vitals/index.js';
+
+const cpuThrottling = 4;
+const networkConditions = puppeteer.PredefinedNetworkConditions['Fast 3G'];
+
+class Metrics {
+  constructor(
+      public url: string, public pageMetrics: puppeteer.Metrics,
+      public vitals: WebVitals) {}
+}
 
 class MetricsCollector {
-  public async run(): Promise<void> {
-    const browser = await puppeteer.launch({ headless: false });
+  constructor(public url: string) {}
+
+  public async run(): Promise<Metrics> {
+    const browser = await puppeteer.launch({headless: false,});
     try {
       const page = await browser.newPage();
 
-      await page.goto('https://developers.google.com/web/');
+      const vitalsCollector = new WebVitalsCollector(page);
+      await vitalsCollector.setup();
 
-      // Type into search box.
-      await page.type('.devsite-search-field', 'Headless Chrome');
+      // Simulated throttling
+      await page.emulateNetworkConditions(networkConditions);
+      await page.emulateCPUThrottling(cpuThrottling);
 
-      // Wait for suggest overlay to appear and click "show all results".
-      const allResultsSelector = '.devsite-suggest-all-results';
-      await page.waitForSelector(allResultsSelector);
-      await page.click(allResultsSelector);
+      await page.goto(this.url, { waitUntil: 'load', timeout: 60000 });
 
-      // Wait for the results page to load and display the results.
-      const resultsSelector = '.gsc-results .gs-title';
-      await page.waitForSelector(resultsSelector);
+      const pageMetrics = await page.metrics();
+      const vitals = await vitalsCollector.collect();
 
-      // // Extract the results from the page.
-      // const links = await page.evaluate(resultsSelector => {
-      //   return [...document.querySelectorAll(resultsSelector)].map(anchor => {
-      //     const title = anchor.textContent.split('|')[0].trim();
-      //     return `${title} - ${anchor.href}`;
-      //   });
-      // }, resultsSelector);
-
-      // // Print all the files.
-      // console.log(links.join('\n'));
+      return new Metrics(this.url, pageMetrics, vitals);
     } finally {
       await browser.close();
     }
   }
 }
 
- void (async () => {
-  const collector = new MetricsCollector();
-  await collector.run();
+void (async () => {
+  const collector = new MetricsCollector('https://developers.google.com/web/');
+  const metrics = await collector.run();
+  console.log(metrics);
 })();
