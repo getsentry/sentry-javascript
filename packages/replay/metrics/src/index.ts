@@ -19,12 +19,11 @@ class MetricsCollector {
     try {
       const page = await browser.newPage();
 
-      const vitalsCollector = new WebVitalsCollector(page);
-      await vitalsCollector.setup();
-
       // Simulated throttling
       await page.emulateNetworkConditions(networkConditions);
       await page.emulateCPUThrottling(cpuThrottling);
+
+      const vitalsCollector = await WebVitalsCollector.create(page);
 
       await page.goto(this.url, { waitUntil: 'load', timeout: 60000 });
 
