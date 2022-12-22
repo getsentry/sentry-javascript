@@ -185,20 +185,20 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     }, [props.children]);
 
     _useEffect(() => {
-      if (isFirstNavigationUseEffectCall) {
-        isFirstNavigationUseEffectCall = false;
-      } else {
-        handleNavigation(location, routes, navigationType);
-      }
-    }, [location, navigationType]);
-
-    _useEffect(() => {
       if (isFirstPageloadUpdateUseEffectCall) {
         isFirstPageloadUpdateUseEffectCall = false;
         routes = _createRoutesFromChildren(props.children) as RouteObject[];
         updatePageloadTransaction(location, routes);
       }
     }, [props.children, location]);
+
+    _useEffect(() => {
+      if (isFirstNavigationUseEffectCall) {
+        isFirstNavigationUseEffectCall = false;
+      } else {
+        handleNavigation(location, routes, navigationType);
+      }
+    }, [location, navigationType]);
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
