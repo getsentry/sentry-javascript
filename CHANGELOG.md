@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.28.1
+
+- fix(replay): Do not mangle `_metadata` in client options (#6600)
+- fix(replay): Cater for event processor returning null (#6576)
+
 ## 7.28.0
 
 - feat(nextjs): Check for Vercel Edge Function GA (#6565)
