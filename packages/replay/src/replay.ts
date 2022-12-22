@@ -873,7 +873,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     // It's possible there are other flush requests queued and waiting for it
     // to resolve. We want to reduce all outstanding requests (as well as any
     // new flush requests that occur within a second of the locked flush
-    // completing) into a single flush.thin a second of the locked flush
     // completing) into a single flush.
 
     try {

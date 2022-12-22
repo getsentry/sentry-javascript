@@ -1,4 +1,3 @@
-import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 
 import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
@@ -19,8 +18,6 @@ const baseBundleConfig = makeBaseBundleConfig({
           __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
         },
       }),
-      // lodash.debounce is a CJS module, so we need to convert it to ESM first
-      commonjs(),
     ],
   },
 });
