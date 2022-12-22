@@ -2,7 +2,13 @@ import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions } from '@sentry/types';
 import { Integration } from '@sentry/types';
 
-import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
+import {
+  DEFAULT_ERROR_SAMPLE_RATE,
+  DEFAULT_FLUSH_MAX_DELAY,
+  DEFAULT_FLUSH_MIN_DELAY,
+  DEFAULT_SESSION_SAMPLE_RATE,
+  MASK_ALL_TEXT_SELECTOR,
+} from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { isBrowser } from './util/isBrowser';
@@ -40,9 +46,9 @@ export class Replay implements Integration {
   private _replay?: ReplayContainer;
 
   constructor({
-    flushMinDelay = 5000,
-    flushMaxDelay = 15000,
-    initialFlushDelay = 5000,
+    flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
+    flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
+    initialFlushDelay = INITIAL_FLUSH_DELAY,
     stickySession = true,
     useCompression = true,
     sessionSampleRate,
