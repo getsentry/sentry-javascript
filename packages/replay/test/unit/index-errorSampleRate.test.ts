@@ -54,7 +54,7 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     captureException(new Error('testing'));
-    jest.runAllTimers();
+    jest.advanceTimersByTime(5000);
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
@@ -99,8 +99,7 @@ describe('Replay (errorSampleRate)', () => {
       events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
     });
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(5000);
 
     // New checkout when we call `startRecording` again after uploading segment
     // after an error occurs
@@ -118,8 +117,10 @@ describe('Replay (errorSampleRate)', () => {
     domHandler({
       name: 'click',
     });
-    jest.runAllTimers();
+
+    jest.advanceTimersByTime(5000);
     await new Promise(process.nextTick);
+
     expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         {
@@ -297,7 +298,7 @@ describe('Replay (errorSampleRate)', () => {
 
     captureException(new Error('testing'));
 
-    jest.runAllTimers();
+    jest.advanceTimersByTime(5000);
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
@@ -398,7 +399,8 @@ it('sends a replay after loading the session multiple times', async () => {
   expect(replay).not.toHaveLastSentReplay();
 
   captureException(new Error('testing'));
-  jest.runAllTimers();
+
+  jest.advanceTimersByTime(5000);
   await new Promise(process.nextTick);
 
   expect(replay).toHaveSentReplay({

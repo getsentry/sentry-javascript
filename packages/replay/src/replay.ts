@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
 import { Breadcrumb, Event } from '@sentry/types';
-import { addInstrumentationHandler, debounce, logger } from '@sentry/utils';
+import { addInstrumentationHandler, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -44,6 +44,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { createReplayEnvelope } from './util/createReplayEnvelope';
+import { debounce } from './util/debounce';
 import { getReplayEvent } from './util/getReplayEvent';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
@@ -872,6 +873,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // It's possible there are other flush requests queued and waiting for it
     // to resolve. We want to reduce all outstanding requests (as well as any
     // new flush requests that occur within a second of the locked flush
+    // completing) into a single flush.thin a second of the locked flush
     // completing) into a single flush.
 
     try {
