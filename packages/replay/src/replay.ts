@@ -859,7 +859,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     // A flush is about to happen, cancel any queued flushes
     this._debouncedFlush?.cancel();
 
-    // No existing flush in progress, proceed with flushing.
     // this._flushLock acts as a lock so that future calls to `flush()`
     // will be blocked until this promise resolves
     if (!this._flushLock) {
