@@ -2,18 +2,23 @@ import * as puppeteer from 'puppeteer';
 
 export {CLS};
 
+// https://web.dev/cls/
 class CLS {
   constructor(
       private _page: puppeteer.Page) {}
 
   public async setup(): Promise<void> {
     await this._page.evaluateOnNewDocument(`{
-      window.cumulativeLayoutShiftScore = 0;
+      window.cumulativeLayoutShiftScore = undefined;
 
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (!entry.hadRecentInput) {
-            window.cumulativeLayoutShiftScore += entry.value;
+            if (window.cumulativeLayoutShiftScore === undefined) {
+              window.cumulativeLayoutShiftScore = entry.value;
+            } else {
+              window.cumulativeLayoutShiftScore += entry.value;
+            }
           }
         }
       });

@@ -28,6 +28,8 @@ class MetricsCollector {
       await page.goto(this.url, { waitUntil: 'load', timeout: 60000 });
 
       const pageMetrics = await page.metrics();
+
+      // TODO FID needs some interaction to actually show a value
       const vitals = await vitalsCollector.collect();
 
       return new Metrics(this.url, pageMetrics, vitals);
