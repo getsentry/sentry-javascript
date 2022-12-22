@@ -3,20 +3,19 @@ import * as puppeteer from 'puppeteer';
 import {CpuUsage} from './perf/cpu.js';
 import {JsHeapUsage} from './perf/memory.js';
 import {PerfMetricsSampler} from './perf/sampler.js';
-import {WebVitals, WebVitalsCollector} from './vitals/index.js';
+import { LoadPageScenario, Scenario } from './scenarios.js';
+import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
 const cpuThrottling = 4;
 const networkConditions = puppeteer.PredefinedNetworkConditions['Fast 3G'];
 
 class Metrics {
-  constructor(public url: string, public vitals: WebVitals,
+  constructor(public scenario: Scenario, public vitals: WebVitals,
               public cpu: CpuUsage, public memory: JsHeapUsage) {}
 }
 
 class MetricsCollector {
-  constructor(public url: string) {}
-
-  public async run(): Promise<Metrics> {
+  public async run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
       const browser = await puppeteer.launch({
@@ -37,12 +36,12 @@ class MetricsCollector {
 
       const vitalsCollector = await WebVitalsCollector.create(page);
 
-      await page.goto(this.url, {waitUntil : 'load', timeout : 60000});
+      await scenario.run(browser, page);
 
-      // TODO FID needs some interaction to actually show a value
+      // NOTE: FID needs some interaction to actually show a value
       const vitals = await vitalsCollector.collect();
 
-      return new Metrics(this.url, vitals, cpu, jsHeap);
+      return new Metrics(scenario, vitals, cpu, jsHeap);
     } finally {
       disposeCallbacks.reverse().forEach((cb) => cb().catch(console.log));
     }
@@ -50,7 +49,7 @@ class MetricsCollector {
 }
 
 void (async () => {
-  const collector = new MetricsCollector('https://developers.google.com/web/');
-  const metrics = await collector.run();
+  const collector = new MetricsCollector();
+  const metrics = await collector.run(new LoadPageScenario('https://developers.google.com/web/'));
   console.log(metrics);
 })();
