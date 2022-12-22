@@ -194,10 +194,9 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
 
     _useEffect(() => {
       if (isFirstPageloadUpdateUseEffectCall) {
+        isFirstPageloadUpdateUseEffectCall = false;
         routes = _createRoutesFromChildren(props.children) as RouteObject[];
         updatePageloadTransaction(location, routes);
-      } else {
-        isFirstPageloadUpdateUseEffectCall = false;
       }
     }, [props.children, location]);
 
@@ -240,17 +239,16 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
 
       _useEffect(() => {
         if (isFirstPageloadUpdateUseEffectCall) {
-          updatePageloadTransaction(locationObject, routes);
-        } else {
           isFirstPageloadUpdateUseEffectCall = false;
+          updatePageloadTransaction(locationObject, routes);
         }
       }, [locationObject, routes]);
 
       _useEffect(() => {
         if (isFirstNavigationUseEffectCall) {
-          handleNavigation(locationObject, routes, navigationType);
-        } else {
           isFirstNavigationUseEffectCall = false;
+        } else {
+          handleNavigation(locationObject, routes, navigationType);
         }
       }, [locationObject, routes, navigationType]);
 
