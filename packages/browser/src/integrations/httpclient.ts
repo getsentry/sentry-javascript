@@ -256,7 +256,7 @@ export class HttpClient implements Integration {
 
     return this._options.failedRequestTargets.some((givenRequestTarget: HttpRequestTarget) => {
       if (typeof givenRequestTarget === 'string') {
-        return target === givenRequestTarget;
+        return target.includes(givenRequestTarget);
       }
 
       return givenRequestTarget.test(target);
