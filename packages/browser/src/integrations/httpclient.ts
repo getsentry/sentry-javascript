@@ -414,7 +414,6 @@ export class HttpClient implements Integration {
     event.contexts = {
       ...event.contexts,
       response: {
-        type: 'response',
         status_code: data.status,
         headers: data.responseHeaders,
         cookies: data.responseCookies,
