@@ -139,6 +139,24 @@ describe('Server init()', () => {
     });
   });
 
+  it('should not fail on valid tunnel option', () => {
+    expect(() =>
+      init({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tunnel: 'https://example.com/api',
+      }),
+    ).not.toThrowError();
+  });
+
+  it('should fail on invalid tunnel option', () => {
+    expect(() =>
+      init({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tunnel: '/invalid',
+      }),
+    ).toThrowError('The tunnel option is not a valid URL. It must be a full URL including the protocol.');
+  });
+
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
     type ModifiedInitOptions = { integrations: Integration[] };
