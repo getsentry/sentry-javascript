@@ -3,7 +3,7 @@ import * as puppeteer from 'puppeteer';
 import { CpuUsage } from './perf/cpu.js';
 import { JsHeapUsage } from './perf/memory.js';
 import { PerfMetricsSampler } from './perf/sampler.js';
-import { LoadPageScenario, Scenario } from './scenarios.js';
+import { Scenario } from './scenarios.js';
 import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
 const cpuThrottling = 4;
@@ -14,7 +14,7 @@ class Metrics {
     public cpu: CpuUsage, public memory: JsHeapUsage) { }
 }
 
-class MetricsCollector {
+export class MetricsCollector {
   public async run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
@@ -24,12 +24,12 @@ class MetricsCollector {
       disposeCallbacks.push(async () => browser.close());
       const page = await browser.newPage();
 
-      // Simulated throttling
+      // Simulate throttling.
       await page.emulateNetworkConditions(networkConditions);
       await page.emulateCPUThrottling(cpuThrottling);
 
-      const perfSampler = await PerfMetricsSampler.create(
-        page, 100); // collect 10 times per second
+      // Collect CPU and memory info 10 times per second.
+      const perfSampler = await PerfMetricsSampler.create(page, 100);
       disposeCallbacks.push(async () => perfSampler.stop());
       const cpu = new CpuUsage(perfSampler);
       const jsHeap = new JsHeapUsage(perfSampler);
@@ -47,9 +47,3 @@ class MetricsCollector {
     }
   }
 }
-
-void (async () => {
-  const collector = new MetricsCollector();
-  const metrics = await collector.run(new LoadPageScenario('https://developers.google.com/web/'));
-  console.log(metrics);
-})();
