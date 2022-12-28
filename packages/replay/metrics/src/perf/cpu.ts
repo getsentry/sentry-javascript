@@ -32,7 +32,6 @@ class CpuUsage {
     } else {
       const frameDuration = data.timestamp - this._lastTimestamp;
       let usage = frameDuration == 0 ? 0 : (data.activeTime - this._cumulativeActiveTime) / frameDuration;
-      if (usage > 1) usage = 1
 
       this.snapshots.push(new CpuSnapshot(data.timestamp, usage));
       this.average = data.activeTime / (data.timestamp - this._startTime);

@@ -1,21 +1,56 @@
+import assert from 'assert';
 import * as puppeteer from 'puppeteer';
 
 import { CpuUsage } from './perf/cpu.js';
 import { JsHeapUsage } from './perf/memory.js';
 import { PerfMetricsSampler } from './perf/sampler.js';
-import { Scenario } from './scenarios.js';
+import { Scenario, TestCase } from './scenarios.js';
 import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
 const cpuThrottling = 4;
 const networkConditions = puppeteer.PredefinedNetworkConditions['Fast 3G'];
 
-class Metrics {
+export class Metrics {
   constructor(public scenario: Scenario, public vitals: WebVitals,
     public cpu: CpuUsage, public memory: JsHeapUsage) { }
 }
 
 export class MetricsCollector {
-  public async run(scenario: Scenario): Promise<Metrics> {
+  public async execute(testCase: TestCase): Promise<void> {
+    console.log(`Executing test case ${testCase.name}`);
+    console.group();
+    for (let i = 1; i <= testCase.tries; i++) {
+      let aResults = await this.collect('A', testCase.a, testCase.runs);
+      let bResults = await this.collect('B', testCase.b, testCase.runs);
+      if (await testCase.test(aResults, bResults)) {
+        console.groupEnd();
+        console.log(`Test case ${testCase.name} passed on try ${i}/${testCase.tries}`);
+        break;
+      } else if (i != testCase.tries) {
+        console.log(`Test case ${testCase.name} failed on try ${i}/${testCase.tries}`);
+      } else {
+        console.groupEnd();
+        console.error(`Test case ${testCase.name} failed`);
+      }
+    }
+  }
+
+  private async collect(name: string, scenario: Scenario, runs: number): Promise<Metrics[]> {
+    const label = `Scenario ${name} data collection (total ${runs} runs)`;
+    console.time(label);
+    const results: Metrics[] = [];
+    for (let run = 0; run < runs; run++) {
+      let innerLabel = `Scenario ${name} data collection, run ${run}/${runs}`;
+      console.time(innerLabel);
+      results.push(await this.run(scenario));
+      console.timeEnd(innerLabel);
+    }
+    console.timeEnd(label);
+    assert(results.length == runs);
+    return results;
+  }
+
+  private async run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
       const browser = await puppeteer.launch({
