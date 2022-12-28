@@ -1,11 +1,11 @@
 import * as puppeteer from 'puppeteer';
 
-export {FID};
+export { FID };
 
 // https://web.dev/fid/
 class FID {
   constructor(
-      private _page: puppeteer.Page) {}
+    private _page: puppeteer.Page) { }
 
   public async setup(): Promise<void> {
     await this._page.evaluateOnNewDocument(`{

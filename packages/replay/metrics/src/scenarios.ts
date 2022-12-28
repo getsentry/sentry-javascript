@@ -10,6 +10,6 @@ export class LoadPageScenario implements Scenario {
   public constructor(public url: string) { }
 
   public async run(_: puppeteer.Browser, page: puppeteer.Page): Promise<void> {
-    await page.goto(this.url, {waitUntil : 'load', timeout : 60000});
+    await page.goto(this.url, { waitUntil: 'load', timeout: 60000 });
   }
 }

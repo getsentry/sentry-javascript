@@ -1,11 +1,11 @@
 import * as puppeteer from 'puppeteer';
 
-export {CLS};
+export { CLS };
 
 // https://web.dev/cls/
 class CLS {
   constructor(
-      private _page: puppeteer.Page) {}
+    private _page: puppeteer.Page) { }
 
   public async setup(): Promise<void> {
     await this._page.evaluateOnNewDocument(`{

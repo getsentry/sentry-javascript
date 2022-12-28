@@ -1,11 +1,11 @@
 import * as puppeteer from 'puppeteer';
 
-export {LCP};
+export { LCP };
 
 // https://web.dev/lcp/
 class LCP {
   constructor(
-      private _page: puppeteer.Page) {}
+    private _page: puppeteer.Page) { }
 
   public async setup(): Promise<void> {
     await this._page.evaluateOnNewDocument(`{

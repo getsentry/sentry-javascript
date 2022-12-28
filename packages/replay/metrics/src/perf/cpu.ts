@@ -25,7 +25,7 @@ class CpuUsage {
   }
 
   private async _collect(metrics: puppeteer.Metrics): Promise<void> {
-    const data = new MetricsDataPoint  (metrics.Timestamp!, metrics.TaskDuration! + metrics.TaskDuration! + metrics.LayoutDuration! + metrics.ScriptDuration!);
+    const data = new MetricsDataPoint(metrics.Timestamp!, metrics.TaskDuration! + metrics.TaskDuration! + metrics.LayoutDuration! + metrics.ScriptDuration!);
     if (this._initial == undefined) {
       this._initial = data;
       this._startTime = data.timestamp;

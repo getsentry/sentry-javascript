@@ -1,8 +1,8 @@
 import * as puppeteer from 'puppeteer';
 
-import {CpuUsage} from './perf/cpu.js';
-import {JsHeapUsage} from './perf/memory.js';
-import {PerfMetricsSampler} from './perf/sampler.js';
+import { CpuUsage } from './perf/cpu.js';
+import { JsHeapUsage } from './perf/memory.js';
+import { PerfMetricsSampler } from './perf/sampler.js';
 import { LoadPageScenario, Scenario } from './scenarios.js';
 import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
@@ -11,7 +11,7 @@ const networkConditions = puppeteer.PredefinedNetworkConditions['Fast 3G'];
 
 class Metrics {
   constructor(public scenario: Scenario, public vitals: WebVitals,
-              public cpu: CpuUsage, public memory: JsHeapUsage) {}
+    public cpu: CpuUsage, public memory: JsHeapUsage) { }
 }
 
 class MetricsCollector {
@@ -19,7 +19,7 @@ class MetricsCollector {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
       const browser = await puppeteer.launch({
-        headless : false,
+        headless: false,
       });
       disposeCallbacks.push(async () => browser.close());
       const page = await browser.newPage();
@@ -29,7 +29,7 @@ class MetricsCollector {
       await page.emulateCPUThrottling(cpuThrottling);
 
       const perfSampler = await PerfMetricsSampler.create(
-          page, 100); // collect 10 times per second
+        page, 100); // collect 10 times per second
       disposeCallbacks.push(async () => perfSampler.stop());
       const cpu = new CpuUsage(perfSampler);
       const jsHeap = new JsHeapUsage(perfSampler);
