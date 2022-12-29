@@ -25,11 +25,11 @@
       incrementor = 10,
       distance = 3,
       frame,
-      minimum = 10,
+      minimum = 100,
       subtract = document.querySelector('.subtract'),
       add = document.querySelector('.add');
 
-  app.optimize = false;
+  app.optimize = true;
   app.count = minimum;
   app.enableApp = true;
 

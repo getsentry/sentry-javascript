@@ -1,5 +1,8 @@
+import path from 'path';
 import * as puppeteer from 'puppeteer';
+import * as fs from 'fs';
 import { Metrics } from './collector';
+import assert from 'assert';
 
 // A testing scenario we want to collect metrics for.
 export interface Scenario {
@@ -25,5 +28,15 @@ export class LoadPageScenario implements Scenario {
 
   public async run(_: puppeteer.Browser, page: puppeteer.Page): Promise<void> {
     await page.goto(this.url, { waitUntil: 'load', timeout: 60000 });
+  }
+}
+
+// Loads test-apps/jank/ as a page source & waits for a short time before quitting.
+export class JankTestScenario implements Scenario {
+  public async run(_: puppeteer.Browser, page: puppeteer.Page): Promise<void> {
+    const url = path.resolve('./test-apps/jank/index.html');
+    assert(fs.existsSync(url));
+    await page.goto(url, { waitUntil: 'load', timeout: 60000 });
+    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 }
