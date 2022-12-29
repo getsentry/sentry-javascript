@@ -46,7 +46,7 @@ export class MetricsCollector {
       console.timeEnd(innerLabel);
     }
     console.timeEnd(label);
-    assert(results.length == runs);
+    assert.equal(results.length, runs);
     return results;
   }
 

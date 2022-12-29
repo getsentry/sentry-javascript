@@ -7,8 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node ./build/run.js",
-    "dev": "ts-node-esm ./src/run.ts"
+    "collect-dev": "ts-node-esm ./src/collect-dev.ts"
   },
   "dependencies": {
     "@types/node": "^18.11.17",
