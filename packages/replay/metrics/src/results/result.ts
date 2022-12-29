@@ -15,8 +15,18 @@ export class Result {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir);
     }
-    const json = JSON.stringify(this);
+    const json = this.serialize();
     fs.writeFileSync(filePath, json);
+  }
+
+  serialize(): string {
+    return JSON.stringify(this, (_: any, value: any): any => {
+      if (typeof value != 'undefined' && typeof value.toJSON == 'function') {
+        return value.toJSON();
+      } else {
+        return value;
+      }
+    }, 2);
   }
 
   public static readFromFile(filePath: string): Result {
@@ -24,7 +34,7 @@ export class Result {
     const data = JSON.parse(json);
     return new Result(
       data.name || '',
-      data.cpuThrottling || NaN,
+      data.cpuThrottling as number,
       data.networkConditions || '',
       (data.aResults || []).map(Metrics.fromJSON),
       (data.bResults || []).map(Metrics.fromJSON),

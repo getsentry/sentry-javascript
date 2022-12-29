@@ -1,24 +1,16 @@
 import * as puppeteer from 'puppeteer';
 
-import { PerfMetricsSampler } from './sampler';
+import { PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
-export { CpuUsageSampler, CpuUsage, CpuSnapshot }
-
-class CpuSnapshot {
-  constructor(public timestamp: number, public usage: number) { }
-
-  public static fromJSON(data: Partial<CpuSnapshot>): CpuSnapshot {
-    return new CpuSnapshot(data.timestamp || NaN, data.usage || NaN);
-  }
-}
+export { CpuUsageSampler, CpuUsage }
 
 class CpuUsage {
-  constructor(public snapshots: CpuSnapshot[], public average: number) { };
+  constructor(public snapshots: TimeBasedMap<number>, public average: number) { };
 
   public static fromJSON(data: Partial<CpuUsage>): CpuUsage {
     return new CpuUsage(
-      (data.snapshots || []).map(CpuSnapshot.fromJSON),
-      data.average || NaN,
+      TimeBasedMap.fromJSON<number>(data.snapshots || []),
+      data.average as number,
     );
   }
 }
@@ -28,8 +20,8 @@ class MetricsDataPoint {
 }
 
 class CpuUsageSampler {
-  public snapshots: CpuSnapshot[] = [];
-  public average: number = 0;
+  private _snapshots = new TimeBasedMap<number>();
+  private _average: number = 0;
   private _initial?: MetricsDataPoint = undefined;
   private _startTime!: number;
   private _lastTimestamp!: number;
@@ -40,7 +32,7 @@ class CpuUsageSampler {
   }
 
   public getData(): CpuUsage {
-    return new CpuUsage(this.snapshots, this.average);
+    return new CpuUsage(this._snapshots, this._average);
   }
 
   private async _collect(metrics: puppeteer.Metrics): Promise<void> {
@@ -52,8 +44,8 @@ class CpuUsageSampler {
       const frameDuration = data.timestamp - this._lastTimestamp;
       let usage = frameDuration == 0 ? 0 : (data.activeTime - this._cumulativeActiveTime) / frameDuration;
 
-      this.snapshots.push(new CpuSnapshot(data.timestamp, usage));
-      this.average = data.activeTime / (data.timestamp - this._startTime);
+      this._snapshots.set(data.timestamp, usage);
+      this._average = data.activeTime / (data.timestamp - this._startTime);
     }
     this._lastTimestamp = data.timestamp;
     this._cumulativeActiveTime = data.activeTime;

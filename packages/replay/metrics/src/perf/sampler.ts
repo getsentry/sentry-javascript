@@ -1,10 +1,24 @@
 import * as puppeteer from 'puppeteer';
 
-export { PerfMetricsSampler }
+export type PerfMetricsConsumer = (metrics: puppeteer.Metrics) => Promise<void>;
+export type TimestampSeconds = number;
 
-type PerfMetricsConsumer = (metrics: puppeteer.Metrics) => Promise<void>;
+export class TimeBasedMap<T> extends Map<TimestampSeconds, T> {
+  public toJSON(): any {
+    return Object.fromEntries(this.entries());
+  }
 
-class PerfMetricsSampler {
+  public static fromJSON<T>(entries: Object): TimeBasedMap<T> {
+    const result = new TimeBasedMap<T>();
+    for (const key in entries) {
+      const value = entries[key as keyof Object];
+      result.set(parseFloat(key), value as T);
+    }
+    return result;
+  }
+}
+
+export class PerfMetricsSampler {
   private _consumers: PerfMetricsConsumer[] = [];
   private _timer!: NodeJS.Timer;
 

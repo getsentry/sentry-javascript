@@ -1,29 +1,29 @@
 import * as puppeteer from 'puppeteer';
 
-import { PerfMetricsSampler } from './sampler';
+import { PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
 export { JsHeapUsageSampler, JsHeapUsage }
 
 class JsHeapUsage {
-  public constructor(public snapshots: number[]) { }
+  public constructor(public snapshots: TimeBasedMap<number>) { }
 
   public static fromJSON(data: Partial<JsHeapUsage>): JsHeapUsage {
-    return new JsHeapUsage(data.snapshots || []);
+    return new JsHeapUsage(TimeBasedMap.fromJSON<number>(data.snapshots || []));
   }
 }
 
 class JsHeapUsageSampler {
-  public snapshots: number[] = [];
+  private _snapshots = new TimeBasedMap<number>();
 
   public constructor(sampler: PerfMetricsSampler) {
     sampler.subscribe(this._collect.bind(this));
   }
 
   public getData(): JsHeapUsage {
-    return new JsHeapUsage(this.snapshots);
+    return new JsHeapUsage(this._snapshots);
   }
 
   private async _collect(metrics: puppeteer.Metrics): Promise<void> {
-    this.snapshots.push(metrics.JSHeapUsedSize!);
+    this._snapshots.set(metrics.Timestamp!, metrics.JSHeapUsedSize!);
   }
 }

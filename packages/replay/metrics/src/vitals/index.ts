@@ -6,12 +6,11 @@ import { LCP } from './lcp.js';
 
 export { WebVitals, WebVitalsCollector };
 
-
 class WebVitals {
   constructor(public lcp: number, public cls: number, public fid: number) { }
 
   public static fromJSON(data: Partial<WebVitals>): WebVitals {
-    return new WebVitals(data.lcp || NaN, data.cls || NaN, data.fid || NaN);
+    return new WebVitals(data.lcp as number, data.cls as number, data.fid as number);
   }
 }
 
