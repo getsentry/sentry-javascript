@@ -547,4 +547,30 @@ describe('Tracekit - Chrome Tests', () => {
       },
     });
   });
+
+  it('should drop frames that are over 1kb', () => {
+    const LONG_STR = 'A'.repeat(1040);
+
+    const LONG_FRAME = {
+      message: 'bad',
+      name: 'Error',
+      stack: `Error: bad
+          at aha (http://localhost:5000/:39:5)
+          at Foo.testMethod (http://localhost:5000/${LONG_STR}:44:7)
+          at http://localhost:5000/:50:19`,
+    };
+
+    const ex = exceptionFromError(parser, LONG_FRAME);
+
+    expect(ex).toEqual({
+      value: 'bad',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5, in_app: true },
+        ],
+      },
+    });
+  });
 });
