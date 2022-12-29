@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "collect-dev": "ts-node-esm ./src/collect-dev.ts"
+    "dev:collect": "ts-node-esm ./configs/dev/collect.ts"
   },
   "dependencies": {
     "@types/node": "^18.11.17",

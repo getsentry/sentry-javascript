@@ -42,7 +42,7 @@
         "name": "Debug replay metrics collection script",
         "request": "launch",
         "cwd": "${workspaceFolder}/packages/replay/metrics/",
-        "program": "${workspaceFolder}/packages/replay/metrics/src/collect-dev.ts",
+        "program": "${workspaceFolder}/packages/replay/metrics/configs/dev/collect.ts",
         "preLaunchTask": "Build Replay metrics script",
     },
     // Run rollup using the config file which is in the currently active tab.

@@ -9,6 +9,10 @@ export { WebVitals, WebVitalsCollector };
 
 class WebVitals {
   constructor(public lcp: number, public cls: number, public fid: number) { }
+
+  public static fromJSON(data: Partial<WebVitals>): WebVitals {
+    return new WebVitals(data.lcp || NaN, data.cls || NaN, data.fid || NaN);
+  }
 }
 
 class WebVitalsCollector {

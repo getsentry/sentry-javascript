@@ -2,17 +2,29 @@ import * as puppeteer from 'puppeteer';
 
 import { PerfMetricsSampler } from './sampler';
 
-export { CpuUsage, CpuSnapshot }
+export { CpuUsageSampler, CpuUsage, CpuSnapshot }
 
 class CpuSnapshot {
   constructor(public timestamp: number, public usage: number) { }
+
+  public static fromJSON(data: Partial<CpuSnapshot>): CpuSnapshot {
+    return new CpuSnapshot(data.timestamp || NaN, data.usage || NaN);
+  }
+}
+
+class CpuUsage {
+  constructor(public snapshots: CpuSnapshot[], public average: number) { };
+
+  public static fromJSON(data: Partial<CpuUsage>): CpuUsage {
+    return new CpuUsage(data.snapshots || [], data.average || NaN);
+  }
 }
 
 class MetricsDataPoint {
   constructor(public timestamp: number, public activeTime: number) { };
 }
 
-class CpuUsage {
+class CpuUsageSampler {
   public snapshots: CpuSnapshot[] = [];
   public average: number = 0;
   private _initial?: MetricsDataPoint = undefined;
@@ -22,6 +34,10 @@ class CpuUsage {
 
   public constructor(sampler: PerfMetricsSampler) {
     sampler.subscribe(this._collect.bind(this));
+  }
+
+  public getData(): CpuUsage {
+    return new CpuUsage(this.snapshots, this.average);
   }
 
   private async _collect(metrics: puppeteer.Metrics): Promise<void> {
