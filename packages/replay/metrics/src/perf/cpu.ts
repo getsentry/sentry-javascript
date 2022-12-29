@@ -16,7 +16,10 @@ class CpuUsage {
   constructor(public snapshots: CpuSnapshot[], public average: number) { };
 
   public static fromJSON(data: Partial<CpuUsage>): CpuUsage {
-    return new CpuUsage(data.snapshots || [], data.average || NaN);
+    return new CpuUsage(
+      (data.snapshots || []).map(CpuSnapshot.fromJSON),
+      data.average || NaN,
+    );
   }
 }
 

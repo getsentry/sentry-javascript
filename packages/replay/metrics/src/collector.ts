@@ -13,6 +13,14 @@ const networkConditions = 'Fast 3G';
 
 export class Metrics {
   constructor(public readonly vitals: WebVitals, public readonly cpu: CpuUsage, public readonly memory: JsHeapUsage) { }
+
+  public static fromJSON(data: Partial<Metrics>): Metrics {
+    return new Metrics(
+      WebVitals.fromJSON(data.vitals || {}),
+      CpuUsage.fromJSON(data.cpu || {}),
+      JsHeapUsage.fromJSON(data.memory || {}),
+    );
+  }
 }
 
 

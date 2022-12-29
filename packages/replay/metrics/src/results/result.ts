@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import path from 'path';
 
-import { Metrics } from '../collector';
+import { Metrics } from '../collector.js';
 
 export class Result {
   constructor(
@@ -23,7 +23,11 @@ export class Result {
     const json = fs.readFileSync(filePath, { encoding: 'utf-8' });
     const data = JSON.parse(json);
     return new Result(
-      data.name || '', data.cpuThrottling || NaN,
-      data.networkConditions || '', data.aResults || [], data.bResults || []);
+      data.name || '',
+      data.cpuThrottling || NaN,
+      data.networkConditions || '',
+      (data.aResults || []).map(Metrics.fromJSON),
+      (data.bResults || []).map(Metrics.fromJSON),
+    );
   }
 }
