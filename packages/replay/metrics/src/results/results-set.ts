@@ -1,5 +1,7 @@
+import assert from 'assert';
 import * as fs from 'fs';
 import path from 'path';
+import { Git } from '../git.js';
 
 const delimiter = '-';
 
@@ -46,8 +48,9 @@ export class ResultsSet {
     return fs.readdirSync(this.directory, { withFileTypes: true }).filter((v) => v.isFile())
   }
 
-  public add(file: ResultSetItem) {
-    console.log(`Preparing to add ${file.path} to ${this.directory}`);
+  public async add(newFile: string): Promise<void> {
+    console.log(`Preparing to add ${newFile} to ${this.directory}`);
+    assert(fs.existsSync(newFile));
 
     // Get the list of file sorted by the prefix number in the descending order.
     const files = this.items().sort((a, b) => b.number - a.number);
@@ -61,8 +64,8 @@ export class ResultsSet {
       fs.renameSync(file.path, newPath);
     }
 
-    const newName = `1${delimiter}${file.hash}${delimiter}result.json`;
-    console.log(`Adding ${file.path} to ${this.directory} as ${newName}`);
-    fs.copyFileSync(file.path, path.join(this.directory, newName));
+    const newName = `1${delimiter}${await Git.hash}${delimiter}result.json`;
+    console.log(`Adding ${newFile} to ${this.directory} as ${newName}`);
+    fs.copyFileSync(newFile, path.join(this.directory, newName));
   }
 }
