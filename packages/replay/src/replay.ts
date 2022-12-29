@@ -992,7 +992,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn, client.getOptions().tunnel);
 
     try {
-      return transport.send(envelope);
+      return await transport.send(envelope);
     } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
