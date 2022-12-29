@@ -9,6 +9,8 @@ import { makeNodeTransport } from '../../src/transports';
 import { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
 import testServerCerts from './test-server-certs';
 
+const textEncoder = new TextEncoder();
+
 jest.mock('@sentry/core', () => {
   const actualCore = jest.requireActual('@sentry/core');
   return {
@@ -70,7 +72,7 @@ const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, new TextEncoder());
+const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, textEncoder);
 
 const unsafeHttpsModule: HTTPModule = {
   request: jest
@@ -84,7 +86,7 @@ const defaultOptions = {
   httpModule: unsafeHttpsModule,
   url: TEST_SERVER_URL,
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
+  textEncoder,
 };
 
 describe('makeNewHttpsTransport()', () => {
@@ -151,20 +153,13 @@ describe('makeNewHttpsTransport()', () => {
       });
 
       const transport = makeNodeTransport(defaultOptions);
-      await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
-    });
-
-    it('should resolve when server responds with rate limit header and status code 200', async () => {
-      await setupTestServer({
+      await expect(transport.send(EVENT_ENVELOPE)).resolves.toEqual({
         statusCode: SUCCESS,
-        responseHeaders: {
-          'Retry-After': '2700',
-          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+        headers: {
+          'retry-after': '2700',
+          'x-sentry-rate-limits': '60::organization, 2700::organization',
         },
       });
-
-      const transport = makeNodeTransport(defaultOptions);
-      await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
     });
 
     it('should use `caCerts` option', async () => {
@@ -299,7 +294,7 @@ describe('makeNewHttpsTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
       category: 'error',
     });
 
@@ -319,7 +314,7 @@ describe('makeNewHttpsTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
       category: 'error',
     });
 
@@ -347,7 +342,7 @@ describe('makeNewHttpsTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
       category: 'error',
     });
 
@@ -375,7 +370,7 @@ describe('makeNewHttpsTransport()', () => {
     const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
     const executorResult = registeredRequestExecutor({
-      body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
       category: 'error',
     });
 
