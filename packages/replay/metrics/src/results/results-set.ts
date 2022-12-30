@@ -1,7 +1,8 @@
 import assert from 'assert';
 import * as fs from 'fs';
 import path from 'path';
-import { Git } from '../git.js';
+import { Git, GitHash } from '../util/git.js';
+import { Result } from './result.js';
 
 const delimiter = '-';
 
@@ -16,7 +17,7 @@ export class ResultSetItem {
     return parseInt(this.parts[0]);
   }
 
-  public get hash(): string {
+  public get hash(): GitHash {
     return this.parts[1];
   }
 
@@ -38,22 +39,41 @@ export class ResultsSet {
     return this.items().length;
   }
 
+  public find(predicate: (value: Result) => boolean): [GitHash, Result] | undefined {
+    const items = this.items();
+    for (let i = 0; i < items.length; i++) {
+      const result = Result.readFromFile(items[i].path);
+      if (predicate(result)) {
+        return [items[i].hash, result];
+      }
+    }
+    return undefined;
+  }
+
   public items(): ResultSetItem[] {
     return this.files().map((file) => {
       return new ResultSetItem(path.join(this.directory, file.name));
     }).filter((item) => !isNaN(item.number));
   }
 
-  files(): fs.Dirent[] {
+  private files(): fs.Dirent[] {
     return fs.readdirSync(this.directory, { withFileTypes: true }).filter((v) => v.isFile())
   }
 
-  public async add(newFile: string): Promise<void> {
+  public async add(newFile: string, onlyIfDifferent: boolean = false): Promise<void> {
     console.log(`Preparing to add ${newFile} to ${this.directory}`);
     assert(fs.existsSync(newFile));
 
-    // Get the list of file sorted by the prefix number in the descending order.
+    // Get the list of file sorted by the prefix number in the descending order (starting with the oldest files).
     const files = this.items().sort((a, b) => b.number - a.number);
+
+    if (onlyIfDifferent && files.length > 0) {
+      const latestFile = files[files.length - 1];
+      if (fs.readFileSync(latestFile.path, { encoding: 'utf-8' }) == fs.readFileSync(newFile, { encoding: 'utf-8' })) {
+        console.log(`Skipping - it's already stored as ${latestFile.name}`);
+        return;
+      }
+    }
 
     // Rename all existing files, increasing the prefix
     for (const file of files) {

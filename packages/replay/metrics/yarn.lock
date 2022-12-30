@@ -278,6 +278,11 @@ fd-slicer@~1.1.0:
   dependencies:
     pend "~1.2.0"
 
+filesize@^10.0.6:
+  version "10.0.6"
+  resolved "https://registry.yarnpkg.com/filesize/-/filesize-10.0.6.tgz#5f4cd2721664cd925db3a7a5a87bbfd6ab5ebb1a"
+  integrity sha512-rzpOZ4C9vMFDqOa6dNpog92CoLYjD79dnjLk2TYDDtImRIyLTOzqojCb05Opd1WuiWjs+fshhCgTd8cl7y5t+g==
+
 fs-constants@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs-constants/-/fs-constants-1.0.0.tgz#6be0de9be998ce16af8afc24497b9ee9b7ccd9ad"
@@ -520,6 +525,11 @@ simple-git@^3.15.1:
     "@kwsites/file-exists" "^1.1.1"
     "@kwsites/promise-deferred" "^1.1.1"
     debug "^4.3.4"
+
+simple-statistics@^7.8.0:
+  version "7.8.0"
+  resolved "https://registry.yarnpkg.com/simple-statistics/-/simple-statistics-7.8.0.tgz#1033d2d613656c7bd34f0e134fd7e69c803e6836"
+  integrity sha512-lTWbfJc0u6GZhBojLOrlHJMTHu6PdUjSsYLrpiH902dVBiYJyWlN/LdSoG8b5VvfG1D30gIBgarqMNeNmU5nAA==
 
 string_decoder@^1.1.1:
   version "1.3.0"
