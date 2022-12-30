@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. */
 
-(function(window) {
+document.addEventListener("DOMContentLoaded", function() {
   'use strict';
 
   var app = {},
@@ -168,4 +168,4 @@
   window.app = app;
   frame = window.requestAnimationFrame(app.update);
 
-})(window);
+});

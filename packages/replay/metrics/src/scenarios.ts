@@ -33,8 +33,10 @@ export class LoadPageScenario implements Scenario {
 
 // Loads test-apps/jank/ as a page source & waits for a short time before quitting.
 export class JankTestScenario implements Scenario {
+  public constructor(private withSentry: boolean) { }
+
   public async run(_: puppeteer.Browser, page: puppeteer.Page): Promise<void> {
-    const url = path.resolve('./test-apps/jank/index.html');
+    const url = path.resolve('./test-apps/jank/' + (this.withSentry ? 'with-sentry' : 'index') + '.html');
     assert(fs.existsSync(url));
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await new Promise(resolve => setTimeout(resolve, 5000));
