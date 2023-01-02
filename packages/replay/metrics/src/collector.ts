@@ -23,8 +23,20 @@ export class Metrics {
   }
 }
 
+export interface MetricsCollectorOptions {
+  headless: boolean;
+}
 
 export class MetricsCollector {
+  private options: MetricsCollectorOptions;
+
+  constructor(options: Partial<MetricsCollectorOptions>) {
+    this.options = {
+      headless: false,
+      ...options
+    };
+  }
+
   public async execute(testCase: TestCase): Promise<Result> {
     console.log(`Executing test case ${testCase.name}`);
     console.group();
@@ -64,7 +76,7 @@ export class MetricsCollector {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
       const browser = await puppeteer.launch({
-        headless: false,
+        headless: this.options.headless,
       });
       disposeCallbacks.push(async () => browser.close());
       const page = await browser.newPage();
