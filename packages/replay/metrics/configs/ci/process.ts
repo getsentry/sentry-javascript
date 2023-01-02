@@ -9,8 +9,8 @@ import { latestResultFile, previousResultsDir, baselineResultsDir, artifactName 
 const latestResult = Result.readFromFile(latestResultFile);
 console.debug(latestResult);
 
-GitHub.downloadPreviousArtifact(await Git.baseBranch, baselineResultsDir, artifactName);
-GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, artifactName);
+await GitHub.downloadPreviousArtifact(await Git.baseBranch, baselineResultsDir, artifactName);
+await GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, artifactName);
 
 GitHub.writeOutput("artifactName", artifactName)
 GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
