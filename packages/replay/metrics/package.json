@@ -9,7 +9,9 @@
     "build": "tsc",
     "deps": "yarn --cwd ../ build:bundle && yarn --cwd ../../tracing/ build:bundle",
     "dev:collect": "ts-node-esm ./configs/dev/collect.ts",
-    "dev:process": "ts-node-esm ./configs/dev/process.ts"
+    "dev:process": "ts-node-esm ./configs/dev/process.ts",
+    "ci:collect": "ts-node-esm ./configs/ci/collect.ts",
+    "ci:process": "ts-node-esm ./configs/ci/process.ts"
   },
   "dependencies": {
     "@types/node": "^18.11.17",
