@@ -16,13 +16,10 @@
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
     "strictTemplates": true,
-    // As per Angular 10, the recommendation from the library creation guide
-    // is to disable compilation for the Ivy rendering engine in production builds
-    // to ensure compatibility with Angular 10.
-    // For Angular 11-13 applications, ngcc and the Angular linker convert the compiled JS
-    // at application compile time into an Ivy-compatible version which is then further used in
-    // the build process. This ensures compatibility with newer Angular versions than the one
-    // that was used to initially compile the library (Angular 10 in our case).
-    "enableIvy": false
+    // Angular has introduced a partial compilation mode that allows for publishing libraries in a partially Ivy compiled
+    // state. Partial compilation is meant for published libraries so that any application can still use it but already
+    // has some preprocessing done on it and is not tied to any specific Angular version.
+    // {@link https://angular.io/guide/angular-package-format#partial-compilation}
+    "compilationMode": "partial"
   }
 }
