@@ -13,12 +13,15 @@ const octokit = new Octokit({
 const [_, owner, repo] = (await Git.repository).split('/');
 const defaultArgs = { owner: owner, repo: repo }
 
-export function downloadFile(url: string, path: string) {
+export function downloadArtifact(url: string, path: string) {
   const writer = fs.createWriteStream(path);
   return Axios({
     method: 'get',
     url: url,
     responseType: 'stream',
+    headers: {
+      'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`
+    }
   }).then(response => {
     return new Promise((resolve, reject) => {
       response.data.pipe(writer);
@@ -50,7 +53,10 @@ export const GitHub = {
       const workflow = (await octokit.actions.listRepoWorkflows(defaultArgs))
         .data.workflows.find((w) => w.name == process.env.GITHUB_WORKFLOW);
       if (workflow == undefined) {
-        console.log(`Skipping previous artifact '${artifactName}' download for branch '${branch}' - not running in CI`);
+        console.log(
+          `Skipping previous artifact '${artifactName}' download for branch '${branch}' - not running in CI?`,
+          "Environment variable GITHUB_WORKFLOW isn't set."
+        );
         return;
       }
       console.log(`Trying to download previous artifact '${artifactName}' for branch '${branch}'`);
@@ -77,7 +83,7 @@ export const GitHub = {
         return;
       }
 
-      console.log(`Downloading artifact ${artifact.archive_download_url} and extracting to $targetDir`);
+      console.log(`Downloading artifact ${artifact.archive_download_url} and extracting to ${targetDir}`);
 
       const tempFilePath = path.resolve(targetDir, '../tmp-artifacts.zip');
       if (fs.existsSync(tempFilePath)) {
@@ -85,10 +91,12 @@ export const GitHub = {
       }
 
       try {
-        await downloadFile(artifact.archive_download_url, tempFilePath);
-        await extract(tempFilePath, { dir: targetDir });
+        await downloadArtifact(artifact.archive_download_url, tempFilePath);
+        await extract(tempFilePath, { dir: path.resolve(targetDir) });
       } finally {
-        fs.unlinkSync(tempFilePath);
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
       }
     })();
   },
