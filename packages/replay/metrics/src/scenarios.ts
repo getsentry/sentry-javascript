@@ -36,8 +36,10 @@ export class JankTestScenario implements Scenario {
   public constructor(private withSentry: boolean) { }
 
   public async run(_: puppeteer.Browser, page: puppeteer.Page): Promise<void> {
-    const url = path.resolve('./test-apps/jank/' + (this.withSentry ? 'with-sentry' : 'index') + '.html');
+    let url = path.resolve('./test-apps/jank/' + (this.withSentry ? 'with-sentry' : 'index') + '.html');
     assert(fs.existsSync(url));
+    url = 'file:///' + url.replace('\\', '/');
+    console.log('Navigating to ', url);
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
