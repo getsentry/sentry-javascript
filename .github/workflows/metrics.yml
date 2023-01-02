@@ -1,0 +1,81 @@
+name: Collect SDK metrics
+on:
+  push:
+    paths:
+      - .github/workflows/metrics.yml
+      - packages/**
+      - patches/**
+      - lerna.json
+      - package.json
+      - tsconfig.json
+      - yarn.lock
+    branches-ignore:
+      - deps/**
+      - dependabot/**
+    tags-ignore: ['**']
+
+env:
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ~/.cache/ms-playwright/
+    ~/.cache/mongodb-binaries/
+
+jobs:
+  cancel-previous-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@b173b6ec0100793626c2d9e6b90435061f4fc3e5 # pin@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+  replay:
+    name: Replay SDK metrics
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: volta-cli/action@v4
+
+      - name: Compute dependency cache key
+        id: compute_lockfile_hash
+        # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
+        # so no need to reinstall them
+        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Check dependency cache
+        uses: actions/cache@v3
+        id: cache_dependencies
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
+      - name: Install dependencies
+        if: steps.cache_dependencies.outputs.cache-hit == ''
+        run: yarn install --ignore-engines --frozen-lockfile
+
+      - name: Build
+        run: |
+          yarn install --ignore-engines --frozen-lockfile
+          yarn deps
+        working-directory: packages/replay/metrics
+
+      - name: Collect
+        run: yarn ci:collect
+        working-directory: packages/replay/metrics
+
+      - name: Process
+        id: process
+        run: yarn ci:process
+        working-directory: packages/replay/metrics
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.process.outputs.artifactName }}
+          path: ${{ steps.process.outputs.artifactPath }}

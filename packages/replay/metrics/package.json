@@ -14,7 +14,10 @@
     "ci:process": "ts-node-esm ./configs/ci/process.ts"
   },
   "dependencies": {
+    "@octokit/rest": "^19.0.5",
     "@types/node": "^18.11.17",
+    "axios": "^1.2.2",
+    "extract-zip": "^2.0.1",
     "filesize": "^10.0.6",
     "puppeteer": "^19.4.1",
     "simple-git": "^3.15.1",

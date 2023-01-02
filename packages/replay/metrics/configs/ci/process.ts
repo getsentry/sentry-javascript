@@ -1,7 +1,7 @@
 import path from 'path';
 // import { AnalyzerItemMetric, ResultsAnalyzer } from '../../src/results/analyzer.js';
 import { Result } from '../../src/results/result.js';
-// import { ResultsSet } from '../../src/results/results-set.js';
+import { ResultsSet } from '../../src/results/results-set.js';
 import { Git } from '../../src/util/git.js';
 import { GitHub } from '../../src/util/github.js';
 import { latestResultFile, previousResultsDir, baselineResultsDir, artifactName } from './env.js';
@@ -15,7 +15,7 @@ GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, artifactNa
 GitHub.writeOutput("artifactName", artifactName)
 GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
 
-// const resultsSet = new ResultsSet(outDir);
+const resultsSet = new ResultsSet(previousResultsDir);
 // const analysis = ResultsAnalyzer.analyze(latestResult, resultsSet);
 
 // val prComment = PrCommentBuilder()
@@ -34,4 +34,4 @@ GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
 // GitHub.addOrUpdateComment(prComment);
 
 // Copy the latest test run results to the archived result dir.
-// await resultsSet.add(latestResultFile, true);
+await resultsSet.add(latestResultFile, true);
