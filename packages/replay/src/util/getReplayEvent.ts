@@ -26,7 +26,7 @@ export async function getReplayEvent({
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
   const metadata = client.getSdkMetadata && client.getSdkMetadata();
-  const { name } = (metadata && metadata.sdk) || {};
+  const name = (metadata && metadata.sdk && metadata.sdk.name) || 'sentry.javascript.unknown';
 
   preparedEvent.sdk = {
     ...preparedEvent.sdk,
