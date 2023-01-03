@@ -7,6 +7,7 @@ import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
   DEFAULT_SESSION_SAMPLE_RATE,
+  INITIAL_FLUSH_DELAY,
   MASK_ALL_TEXT_SELECTOR,
 } from './constants';
 import { ReplayContainer } from './replay';
