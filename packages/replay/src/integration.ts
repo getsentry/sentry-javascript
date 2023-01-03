@@ -47,7 +47,8 @@ export class Replay implements Integration {
     useCompression = true,
     sessionSampleRate,
     errorSampleRate,
-    maskAllText = true,
+    maskAllText,
+    maskTextSelector,
     maskAllInputs = true,
     blockAllMedia = true,
     _experiments = {},
@@ -62,6 +63,7 @@ export class Replay implements Integration {
       blockClass,
       ignoreClass,
       maskTextClass,
+      maskTextSelector,
       blockSelector,
       ...recordingOptions,
     };
@@ -74,7 +76,7 @@ export class Replay implements Integration {
       sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
       errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
       useCompression,
-      maskAllText,
+      maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
       blockAllMedia,
       _experiments,
     };
