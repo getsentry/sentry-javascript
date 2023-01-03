@@ -24,10 +24,8 @@ import { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
  */
 export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerResponse): void {
   const wrapEndMethod = (origEnd: ResponseEndMethod): WrappedResponseEndMethod => {
-    return async function sentryWrappedEnd(this: ServerResponse, ...args: unknown[]) {
-      await finishTransaction(transaction, this);
-      await flushQueue();
-
+    return function sentryWrappedEnd(this: ServerResponse, ...args: unknown[]) {
+      void finishTransaction(transaction, this);
       return origEnd.call(this, ...args);
     };
   };

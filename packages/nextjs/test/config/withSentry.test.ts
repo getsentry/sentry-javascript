@@ -1,7 +1,6 @@
 import * as hub from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { Client, ClientOptions } from '@sentry/types';
-import * as utils from '@sentry/utils';
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
 import { AugmentedNextApiResponse, withSentry, WrappedNextApiHandler } from '../../src/config/wrappers';
@@ -36,31 +35,16 @@ async function callWrappedHandler(wrappedHandler: WrappedNextApiHandler, req: Ne
   }
 }
 
-// We mock `captureException` as a no-op because under normal circumstances it is an un-awaited effectively-async
-// function which might or might not finish before any given test ends, potentially leading jest to error out.
-const captureExceptionSpy = jest.spyOn(Sentry, 'captureException').mockImplementation(jest.fn());
-const loggerSpy = jest.spyOn(utils.logger, 'log');
-const flushSpy = jest.spyOn(Sentry, 'flush').mockImplementation(async () => {
-  // simulate the time it takes time to flush all events
-  await sleep(FLUSH_DURATION);
-  return true;
-});
 const startTransactionSpy = jest.spyOn(Sentry, 'startTransaction');
 
 describe('withSentry', () => {
   let req: NextApiRequest, res: NextApiResponse;
 
-  const noShoesError = new Error('Oh, no! Charlie ate the flip-flops! :-(');
-
   const origHandlerNoError: NextApiHandler = async (_req, res) => {
     res.send('Good dog, Maisey!');
   };
-  const origHandlerWithError: NextApiHandler = async (_req, _res) => {
-    throw noShoesError;
-  };
 
   const wrappedHandlerNoError = withSentry(origHandlerNoError);
-  const wrappedHandlerWithError = withSentry(origHandlerWithError);
 
   beforeEach(() => {
     req = { url: 'http://dogs.are.great' } as NextApiRequest;
@@ -76,35 +60,6 @@ describe('withSentry', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('flushing', () => {
-    it('flushes events before rethrowing error', async () => {
-      try {
-        await callWrappedHandler(wrappedHandlerWithError, req, res);
-      } catch (err) {
-        expect(err).toBe(noShoesError);
-      }
-
-      expect(captureExceptionSpy).toHaveBeenCalledWith(noShoesError);
-      expect(flushSpy).toHaveBeenCalled();
-      expect(loggerSpy).toHaveBeenCalledWith('Done flushing events');
-
-      // This ensures the expect inside the `catch` block actually ran, i.e., that in the end the wrapped handler
-      // errored out the same way it would without sentry, meaning the error was indeed rethrown
-      expect.assertions(4);
-    });
-
-    it('flushes events before finishing non-erroring response', async () => {
-      jest
-        .spyOn(hub.Hub.prototype, 'getClient')
-        .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
-
-      await callWrappedHandler(wrappedHandlerNoError, req, res);
-
-      expect(flushSpy).toHaveBeenCalled();
-      expect(loggerSpy).toHaveBeenCalledWith('Done flushing events');
-    });
   });
 
   describe('tracing', () => {
