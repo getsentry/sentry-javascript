@@ -66,7 +66,7 @@ fields:
 
 - The `buildCommand` command runs only once before any of the tests and is supposed to build the test application. If
   this command returns a non-zero exit code, it counts as a failed test and the test application's tests are not run. In
-  the example above, we use the `--pure-lockfile` flag to install depencies without modifiying the lockfile so that
+  the example above, we use the `--pure-lockfile` flag to install dependencies without modifiying the lockfile so that
   there aren't any changes in the git worktree after running the tests.
 - The `testCommand` command is supposed to run tests on the test application. If the configured command returns a
   non-zero exit code, it counts as a failed test.
@@ -107,7 +107,7 @@ A standardized frontend test application has the following features:
   `standard-frontend-nextjs`.
 - A page at path `/`
   - Having a `<input type="button" id="exception-button">` that captures an Exception when clicked. The returned
-    `eventId` from the `Sentry.captureException()` call must be written to `window.capturedExceptionId`. It doesn not
+    `eventId` from the `Sentry.captureException()` call must be written to `window.capturedExceptionId`. It does not
     matter what the captured error looks like.
   - Having an link with `id="navigation"` that navigates to `/user/5`. It doesn't have to be an `<a>` tag, for example
     if a framework has another way of doing routing, the important part is that the element to click for navigation has
