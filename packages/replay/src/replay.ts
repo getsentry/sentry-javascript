@@ -34,7 +34,7 @@ import type {
   RecordingEvent,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
-  ReplayPluginOptions,
+  ReplayOptions,
   ReplayRecordingMode,
   SendReplay,
   Session,
@@ -79,7 +79,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private readonly _recordingOptions: RecordingOptions;
 
-  private readonly _options: ReplayPluginOptions;
+  private readonly _options: ReplayOptions;
 
   private _performanceObserver: PerformanceObserver | null = null;
 
@@ -126,7 +126,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialUrl: '',
   };
 
-  constructor({ options, recordingOptions }: { options: ReplayPluginOptions; recordingOptions: RecordingOptions }) {
+  constructor({ options, recordingOptions }: { options: ReplayOptions; recordingOptions: RecordingOptions }) {
     this._recordingOptions = recordingOptions;
     this._options = options;
 
@@ -151,7 +151,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /** Get the replay integration options. */
-  public getOptions(): ReplayPluginOptions {
+  public getOptions(): ReplayOptions {
     return this._options;
   }
 

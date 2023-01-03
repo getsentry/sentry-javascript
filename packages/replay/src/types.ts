@@ -77,7 +77,10 @@ export interface SessionOptions extends SampleRates {
   stickySession: boolean;
 }
 
-export interface ReplayPluginOptions extends SessionOptions {
+/**
+ * These are the options that are available on the replay container's `getOptions`
+ */
+export interface ReplayOptions extends SessionOptions {
   /**
    * The amount of time to wait before sending a replay
    */
@@ -101,16 +104,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   useCompression: boolean;
 
   /**
-   * Mask all text in recordings. All text will be replaced with asterisks by default.
-   */
-  maskAllText: boolean;
-
-  /**
-   * Block all media (e.g. images, svg, video) in recordings.
-   */
-  blockAllMedia: boolean;
-
-  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
@@ -123,10 +116,62 @@ export interface ReplayPluginOptions extends SessionOptions {
   }>;
 }
 
-// These are optional for ReplayPluginOptions because the plugin sets default values
-type OptionalReplayPluginOptions = Partial<ReplayPluginOptions>;
+/**
+ * These are the options to be passed at replay initialization.
+ */
+interface ReplayPluginOptions extends ReplayOptions {
+  /**
+   * Mask all text in recordings. All text will be replaced with asterisks by default.
+   *
+   * (default is true, unless `maskTextClass` is set)
+   */
+  maskAllText: boolean;
 
-export interface ReplayConfiguration extends OptionalReplayPluginOptions, RecordingOptions {}
+  /**
+   * Mask the content of the given class names.
+   */
+  maskTextClass?: string | RegExp;
+
+  /**
+   * Mask the content of the given selector.
+   */
+  maskTextSelector?: string;
+
+  /**
+   * If all inputs should be masked.
+   *
+   * (default is true)
+   */
+  maskAllInputs: boolean;
+
+  /**
+   * Block all media (e.g. images, svg, video) in recordings.
+   */
+  blockAllMedia: boolean;
+
+  /**
+   * Redact the given class names.
+   */
+  blockClass?: string | RegExp;
+
+  /**
+   * Redact the given selector.
+   */
+  blockSelector?: string;
+
+  /**
+   * Ignore all events on elements matching the class names.
+   */
+  ignoreClass?: string;
+
+  /**
+   * Additional config passed through to rrweb.
+   */
+  recordingOptions?: RecordingOptions;
+}
+
+// These are optional for ReplayPluginOptions because the plugin sets default values
+export type ReplayConfiguration = Partial<ReplayPluginOptions>;
 
 interface CommonEventContext {
   /**
@@ -235,5 +280,5 @@ export interface ReplayContainer {
   flushImmediate(): void;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
-  getOptions(): ReplayPluginOptions;
+  getOptions(): ReplayOptions;
 }

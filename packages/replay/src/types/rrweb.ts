@@ -1,8 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-type blockClass = string | RegExp;
-type maskTextClass = string | RegExp;
-
 enum EventType {
   DomContentLoaded = 0,
   Load = 1,
@@ -31,8 +28,8 @@ export type eventWithTime = {
  */
 export type recordOptions = {
   maskAllInputs?: boolean;
-  blockClass?: blockClass;
+  blockClass?: string | RegExp;
   ignoreClass?: string;
-  maskTextClass?: maskTextClass;
+  maskTextClass?: string | RegExp;
   blockSelector?: string;
 } & Record<string, unknown>;

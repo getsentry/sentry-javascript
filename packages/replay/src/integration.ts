@@ -4,7 +4,7 @@ import { Integration } from '@sentry/types';
 
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
+import type { RecordingOptions, ReplayConfiguration, ReplayOptions } from './types';
 import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
@@ -27,7 +27,7 @@ export class Replay implements Integration {
    */
   readonly recordingOptions: RecordingOptions;
 
-  readonly options: ReplayPluginOptions;
+  readonly options: ReplayOptions;
 
   protected get _isInitialized(): boolean {
     return _initialized;
@@ -48,15 +48,16 @@ export class Replay implements Integration {
     sessionSampleRate,
     errorSampleRate,
     maskAllText,
-    maskTextSelector,
     maskAllInputs = true,
-    blockAllMedia = true,
-    _experiments = {},
-    blockClass = 'sentry-block',
-    ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
+    maskTextSelector,
+    blockAllMedia = true,
+    blockClass = 'sentry-block',
     blockSelector = '[data-sentry-block]',
-    ...recordingOptions
+    ignoreClass = 'sentry-ignore',
+    _experiments = {},
+    recordingOptions = {},
+    ...rest
   }: ReplayConfiguration = {}) {
     this.recordingOptions = {
       maskAllInputs,
@@ -76,10 +77,20 @@ export class Replay implements Integration {
       sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
       errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
       useCompression,
-      maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
-      blockAllMedia,
       _experiments,
     };
+
+    if (Object.keys(rest).length > 0) {
+      // eslint-disable-next-line
+      console.warn(`[Replay] You are passing unknown option(s) to the Replay integration: ${Object.keys(rest).join(',')}
+This is deprecated and will not be supported in future versions.
+Instead, put recording-specific configuration into \`recordingOptions\`, e.g. \`recordingOptions: { inlineStylesheet: false }\`.`);
+
+      this.recordingOptions = {
+        ...this.recordingOptions,
+        ...rest,
+      };
+    }
 
     if (typeof sessionSampleRate === 'number') {
       // eslint-disable-next-line
@@ -105,14 +116,15 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       this.options.errorSampleRate = errorSampleRate;
     }
 
-    if (this.options.maskAllText) {
+    // We want to default `maskAllText` to true, unless `maskTextSelector` has been set
+    if (maskAllText || (!maskTextSelector && maskAllText !== false)) {
       // `maskAllText` is a more user friendly option to configure
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
       this.recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
-    if (this.options.blockAllMedia) {
+    if (blockAllMedia) {
       // `blockAllMedia` is a more user friendly option to configure blocking
       // embedded media elements
       this.recordingOptions.blockSelector = !this.recordingOptions.blockSelector

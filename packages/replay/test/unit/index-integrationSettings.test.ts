@@ -216,4 +216,49 @@ describe('integration settings', () => {
       expect(replay.getOptions()._experiments).toEqual({});
     });
   });
+
+  describe('recordingOptions', () => {
+    let mockConsole: jest.SpyInstance<void>;
+
+    beforeEach(() => {
+      mockConsole = jest.spyOn(console, 'warn').mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      mockConsole.mockRestore();
+    });
+
+    it('shows warning when passing rrweb config directly', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: {
+          // @ts-ignore for tests
+          otherThing: 'aha',
+        },
+      });
+
+      // @ts-ignore for tests
+      expect(replay['_options'].otherThing).toBeUndefined();
+      expect(replay['_recordingOptions'].otherThing).toBe('aha');
+      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole)
+        .toBeCalledWith(`[Replay] You are passing unknown option(s) to the Replay integration: otherThing
+This is deprecated and will not be supported in future versions.
+Instead, put recording-specific configuration into \`recordingOptions\`, e.g. \`recordingOptions: { inlineStylesheet: false }\`.`);
+    });
+
+    it('allows to pass rrweb config via recordingOptions', async () => {
+      const { replay } = await mockSdk({
+        replayOptions: {
+          recordingOptions: {
+            otherThing: 'aha',
+          },
+        },
+      });
+
+      // @ts-ignore for tests
+      expect(replay['_options'].otherThing).toBeUndefined();
+      expect(replay['_recordingOptions'].otherThing).toBe('aha');
+      expect(mockConsole).toBeCalledTimes(0);
+    });
+  });
 });
