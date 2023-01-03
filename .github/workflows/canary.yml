@@ -49,7 +49,7 @@ jobs:
           yarn test:e2e
       - name: Create Issue
         if: failure()
-        uses: JasonEtco/create-an-issue@1a16035489d05041b9af40b970f02e301c52ffba
+        uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
