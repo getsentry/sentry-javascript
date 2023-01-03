@@ -1,6 +1,7 @@
-import * as puppeteer from 'puppeteer';
+import * as playwright from 'playwright';
+import { Protocol } from 'playwright-core/types/protocol';
 
-export type PerfMetricsConsumer = (metrics: puppeteer.Metrics) => Promise<void>;
+export type PerfMetricsConsumer = (metrics: PerfMetrics) => Promise<void>;
 export type TimestampSeconds = number;
 
 export class TimeBasedMap<T> extends Map<TimestampSeconds, T> {
@@ -18,22 +19,39 @@ export class TimeBasedMap<T> extends Map<TimestampSeconds, T> {
   }
 }
 
+export class PerfMetrics {
+  constructor(private metrics: Protocol.Performance.Metric[]) { }
+
+  private find(name: string): number {
+    return this.metrics.find((metric) => metric.name == name)!.value;
+  }
+
+  public get Timestamp(): number {
+    return this.find('Timestamp');
+  }
+
+  public get Duration(): number {
+    return this.metrics.reduce((sum, metric) => metric.name.endsWith('Duration') ? sum + metric.value : sum, 0);
+  }
+
+  public get JSHeapUsedSize(): number {
+    return this.find('JSHeapUsedSize');
+  }
+}
+
 export class PerfMetricsSampler {
   private _consumers: PerfMetricsConsumer[] = [];
   private _timer!: NodeJS.Timer;
 
-  public static async create(page: puppeteer.Page, interval: number): Promise<PerfMetricsSampler> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const cdp = await page.target().createCDPSession();
-
+  public static async create(cdp: playwright.CDPSession, interval: number): Promise<PerfMetricsSampler> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     await cdp.send('Performance.enable', { timeDomain: 'timeTicks' })
 
     const self = new PerfMetricsSampler();
 
     self._timer = setInterval(async () => {
-      const metrics = await page.metrics();
-      self._consumers.forEach((cb) => cb(metrics).catch(console.log));
+      const metrics = await cdp.send("Performance.getMetrics").then((v) => v.metrics);
+      self._consumers.forEach((cb) => cb(new PerfMetrics(metrics)).catch(console.log));
     }, interval);
 
     return self;

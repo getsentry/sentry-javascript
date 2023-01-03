@@ -1,5 +1,5 @@
 import assert from 'assert';
-import * as puppeteer from 'puppeteer';
+import * as playwright from 'playwright';
 
 import { CpuUsage, CpuUsageSampler } from './perf/cpu.js';
 import { JsHeapUsage, JsHeapUsageSampler } from './perf/memory.js';
@@ -10,6 +10,22 @@ import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
 const cpuThrottling = 4;
 const networkConditions = 'Fast 3G';
+
+// Same as puppeteer-core PredefinedNetworkConditions
+const PredefinedNetworkConditions = Object.freeze({
+  'Slow 3G': {
+    download: ((500 * 1000) / 8) * 0.8,
+    upload: ((500 * 1000) / 8) * 0.8,
+    latency: 400 * 5,
+    connectionType: 'cellular3g',
+  },
+  'Fast 3G': {
+    download: ((1.6 * 1000 * 1000) / 8) * 0.9,
+    upload: ((750 * 1000) / 8) * 0.9,
+    latency: 150 * 3.75,
+    connectionType: 'cellular3g',
+  },
+});
 
 export class Metrics {
   constructor(public readonly vitals: WebVitals, public readonly cpu: CpuUsage, public readonly memory: JsHeapUsage) { }
@@ -30,7 +46,7 @@ export interface MetricsCollectorOptions {
 export class MetricsCollector {
   private options: MetricsCollectorOptions;
 
-  constructor(options: Partial<MetricsCollectorOptions>) {
+  constructor(options?: Partial<MetricsCollectorOptions>) {
     this.options = {
       headless: false,
       ...options
@@ -75,18 +91,26 @@ export class MetricsCollector {
   private async run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
-      const browser = await puppeteer.launch({
+      const browser = await playwright.chromium.launch({
         headless: this.options.headless,
+
       });
       disposeCallbacks.push(async () => browser.close());
       const page = await browser.newPage();
 
+      const cdp = await page.context().newCDPSession(page);
+
       // Simulate throttling.
-      await page.emulateNetworkConditions(puppeteer.PredefinedNetworkConditions[networkConditions]);
-      await page.emulateCPUThrottling(cpuThrottling);
+      await cdp.send('Network.emulateNetworkConditions', {
+        offline: false,
+        latency: PredefinedNetworkConditions[networkConditions].latency,
+        uploadThroughput: PredefinedNetworkConditions[networkConditions].upload,
+        downloadThroughput: PredefinedNetworkConditions[networkConditions].download,
+      });
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottling });
 
       // Collect CPU and memory info 10 times per second.
-      const perfSampler = await PerfMetricsSampler.create(page, 100);
+      const perfSampler = await PerfMetricsSampler.create(cdp, 100);
       disposeCallbacks.push(async () => perfSampler.stop());
       const cpuSampler = new CpuUsageSampler(perfSampler);
       const memSampler = new JsHeapUsageSampler(perfSampler);

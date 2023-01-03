@@ -1,14 +1,14 @@
-import * as puppeteer from 'puppeteer';
+import * as playwright from 'playwright';
 
 export { CLS };
 
 // https://web.dev/cls/
 class CLS {
   constructor(
-    private _page: puppeteer.Page) { }
+    private _page: playwright.Page) { }
 
   public async setup(): Promise<void> {
-    await this._page.evaluateOnNewDocument(`{
+    await this._page.context().addInitScript(`{
       window.cumulativeLayoutShiftScore = undefined;
 
       const observer = new PerformanceObserver((list) => {

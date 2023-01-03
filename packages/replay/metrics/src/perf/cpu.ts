@@ -1,6 +1,4 @@
-import * as puppeteer from 'puppeteer';
-
-import { PerfMetricsSampler, TimeBasedMap } from './sampler.js';
+import { PerfMetrics, PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
 export { CpuUsageSampler, CpuUsage }
 
@@ -35,8 +33,8 @@ class CpuUsageSampler {
     return new CpuUsage(this._snapshots, this._average);
   }
 
-  private async _collect(metrics: puppeteer.Metrics): Promise<void> {
-    const data = new MetricsDataPoint(metrics.Timestamp!, metrics.TaskDuration! + metrics.TaskDuration! + metrics.LayoutDuration! + metrics.ScriptDuration!);
+  private async _collect(metrics: PerfMetrics): Promise<void> {
+    const data = new MetricsDataPoint(metrics.Timestamp, metrics.Duration);
     if (this._initial == undefined) {
       this._initial = data;
       this._startTime = data.timestamp;

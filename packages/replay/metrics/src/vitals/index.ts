@@ -1,4 +1,4 @@
-import * as puppeteer from 'puppeteer';
+import * as playwright from 'playwright';
 
 import { CLS } from './cls.js';
 import { FID } from './fid.js';
@@ -18,7 +18,7 @@ class WebVitalsCollector {
   private constructor(private _lcp: LCP, private _cls: CLS, private _fid: FID) {
   }
 
-  public static async create(page: puppeteer.Page):
+  public static async create(page: playwright.Page):
     Promise<WebVitalsCollector> {
     const result =
       new WebVitalsCollector(new LCP(page), new CLS(page), new FID(page));

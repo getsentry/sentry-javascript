@@ -1,6 +1,4 @@
-import * as puppeteer from 'puppeteer';
-
-import { PerfMetricsSampler, TimeBasedMap } from './sampler.js';
+import { PerfMetrics, PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
 export { JsHeapUsageSampler, JsHeapUsage }
 
@@ -23,7 +21,7 @@ class JsHeapUsageSampler {
     return new JsHeapUsage(this._snapshots);
   }
 
-  private async _collect(metrics: puppeteer.Metrics): Promise<void> {
-    this._snapshots.set(metrics.Timestamp!, metrics.JSHeapUsedSize!);
+  private async _collect(metrics: PerfMetrics): Promise<void> {
+    this._snapshots.set(metrics.Timestamp, metrics.JSHeapUsedSize!);
   }
 }
