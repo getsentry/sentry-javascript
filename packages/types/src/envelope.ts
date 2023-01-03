@@ -1,6 +1,7 @@
 import { ClientReport } from './clientreport';
 import { DsnComponents } from './dsn';
 import { Event } from './event';
+import { ReplayEvent, ReplayRecordingData } from './replay';
 import { SdkInfo } from './sdkinfo';
 import { Session, SessionAggregates } from './session';
 import { Transaction } from './transaction';
@@ -27,7 +28,9 @@ export type EnvelopeItemType =
   | 'transaction'
   | 'attachment'
   | 'event'
-  | 'profile';
+  | 'profile'
+  | 'replay_event'
+  | 'replay_recording';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
@@ -62,6 +65,8 @@ type UserFeedbackItemHeaders = { type: 'user_report' };
 type SessionItemHeaders = { type: 'session' };
 type SessionAggregatesItemHeaders = { type: 'sessions' };
 type ClientReportItemHeaders = { type: 'client_report' };
+type ReplayEventItemHeaders = { type: 'replay_event' };
+type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
@@ -70,14 +75,18 @@ export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
+type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
+type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
+type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 
 export type EventEnvelope = BaseEnvelope<EventEnvelopeHeaders, EventItem | AttachmentItem | UserFeedbackItem>;
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
+export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 
-export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope;
+export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope | ReplayEnvelope;
 export type EnvelopeItem = Envelope[1][number];

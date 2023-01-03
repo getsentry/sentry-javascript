@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { getCurrentHub, Hub, Scope } from '@sentry/core';
-import { Client, Event } from '@sentry/types';
+import { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { getReplayEvent } from '../../../src/util/getReplayEvent';
@@ -25,7 +25,7 @@ describe('getReplayEvent', () => {
     expect(scope).toBeDefined();
 
     const replayId = 'replay-ID';
-    const event: Event = {
+    const event: ReplayEvent = {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       timestamp: 1670837008.634,
@@ -33,6 +33,7 @@ describe('getReplayEvent', () => {
       trace_ids: ['trace-ID'],
       urls: ['https://sentry.io/'],
       replay_id: replayId,
+      event_id: replayId,
       segment_id: 3,
     };
 

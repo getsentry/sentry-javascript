@@ -19,6 +19,7 @@ export type {
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  ReplayEnvelope,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
@@ -39,6 +40,7 @@ export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocati
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
+export type { ReplayEvent, ReplayRecordingData } from './replay';
 export type { QueryParams, Request } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';

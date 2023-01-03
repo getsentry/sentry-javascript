@@ -2,6 +2,7 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
+import { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
@@ -95,7 +96,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return this._eventBufferItemLength;
   }
 
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<string | Uint8Array> {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -159,7 +160,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     });
   }
 
-  private _sendEventToWorker(event: RecordingEvent): Promise<string | Uint8Array> {
+  private _sendEventToWorker(event: RecordingEvent): Promise<ReplayRecordingData> {
     const promise = this._postMessage({
       id: this._getAndIncrementId(),
       method: 'addEvent',

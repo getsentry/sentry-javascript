@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, Event } from '@sentry/types';
+import { Breadcrumb, ReplayEvent } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
@@ -927,7 +927,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const baseEvent: Event = {
+    const baseEvent: ReplayEvent = {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),

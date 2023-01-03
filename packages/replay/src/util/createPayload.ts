@@ -1,3 +1,5 @@
+import { ReplayRecordingData } from '@sentry/types';
+
 import type { RecordedEvents } from '../types';
 
 export function createPayload({
@@ -6,7 +8,7 @@ export function createPayload({
 }: {
   events: RecordedEvents;
   headers: Record<string, unknown>;
-}): string | Uint8Array {
+}): ReplayRecordingData {
   let payloadWithSequence;
 
   // XXX: newline is needed to separate sequence id from events
