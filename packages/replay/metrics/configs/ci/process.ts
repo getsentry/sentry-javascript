@@ -8,7 +8,6 @@ import { GitHub } from '../../src/util/github.js';
 import { latestResultFile, previousResultsDir, baselineResultsDir, artifactName } from './env.js';
 
 const latestResult = Result.readFromFile(latestResultFile);
-console.debug(latestResult);
 
 await GitHub.downloadPreviousArtifact(await Git.baseBranch, baselineResultsDir, artifactName);
 await GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, artifactName);
@@ -21,14 +20,14 @@ const previousResults = new ResultsSet(previousResultsDir);
 const prComment = new PrCommentBuilder();
 if (Git.baseBranch != Git.branch) {
   const baseResults = new ResultsSet(baselineResultsDir);
-  prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, baseResults), "Baseline");
+  await prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, baseResults), "Baseline");
   await prComment.addAdditionalResultsSet(
     `Baseline results on branch: ${Git.baseBranch}`,
     // We skip the first one here because it's already included as `Baseline` column above in addCurrentResult().
     baseResults.items().slice(1, 10)
   );
 } else {
-  prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, previousResults), "Previous");
+  await prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, previousResults), "Previous");
 }
 
 await prComment.addAdditionalResultsSet(
@@ -36,7 +35,7 @@ await prComment.addAdditionalResultsSet(
   previousResults.items().slice(0, 10)
 );
 
-GitHub.addOrUpdateComment(prComment);
+await GitHub.addOrUpdateComment(prComment);
 
 // Copy the latest test run results to the archived result dir.
 await previousResults.add(latestResultFile, true);

@@ -133,8 +133,9 @@ export const GitHub = {
       }
 
       if (prNumber == undefined) {
-        console.log("No PR available (not running in CI?). Printing the PR comment instead:");
-        console.log(commentBuilder.body);
+        const file = 'out/comment.html';
+        console.log(`No PR available (not running in CI?): writing built comment to ${path.resolve(file)}`);
+        fs.writeFileSync(file, commentBuilder.body);
         return;
       }
 
