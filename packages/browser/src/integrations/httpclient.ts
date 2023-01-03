@@ -8,13 +8,6 @@ export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
 interface HttpClientOptions {
   /**
-   * Controls whether failed requests should be captured.
-   *
-   * Default: false
-   */
-  captureFailedRequests?: boolean;
-
-  /**
    * HTTP status codes that should be considered failed.
    * This array can contain tuples of `[begin, end]` (both inclusive),
    * single status codes, or a combinations of both
@@ -55,7 +48,6 @@ export class HttpClient implements Integration {
    */
   public constructor(options?: Partial<HttpClientOptions>) {
     this._options = {
-      captureFailedRequests: false,
       failedRequestStatusCodes: [[500, 599]],
       failedRequestTargets: [/.*/],
       ...options,
@@ -68,10 +60,6 @@ export class HttpClient implements Integration {
    * @param options
    */
   public setupOnce(): void {
-    if (!this._options.captureFailedRequests) {
-      return;
-    }
-
     this._wrapFetch();
     this._wrapXHR();
   }
@@ -170,7 +158,6 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      // Note: Not adding request / response objects as hints for XHR
       captureEvent(event);
     }
   }
@@ -284,7 +271,7 @@ export class HttpClient implements Integration {
   }
 
   /**
-   *
+   * Wraps `fetch` function to capture request and response data
    */
   private _wrapFetch(): void {
     if (!supportsNativeFetch()) {
@@ -314,7 +301,7 @@ export class HttpClient implements Integration {
   }
 
   /**
-   *  Wraps XMLHttpRequest to capture request and response data
+   * Wraps XMLHttpRequest to capture request and response data
    */
   private _wrapXHR(): void {
     if (!('XMLHttpRequest' in GLOBAL_OBJ)) {
@@ -358,7 +345,9 @@ export class HttpClient implements Integration {
               __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
             }
 
-            return original?.apply(xhr, onloadendArgs);
+            if (original) {
+              return original.apply(xhr, onloadendArgs);
+            }
           };
         });
 
@@ -373,7 +362,13 @@ export class HttpClient implements Integration {
    * @param url url to verify
    */
   private _isSentryRequest(url: string): boolean {
-    const dsn = getCurrentHub().getClient()?.getDsn();
+    const client = getCurrentHub().getClient();
+
+    if (!client) {
+      return false;
+    }
+
+    const dsn = client.getDsn();
     return dsn ? url.includes(dsn.host) : false;
   }
 
