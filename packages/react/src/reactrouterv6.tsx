@@ -170,35 +170,28 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     return Routes;
   }
 
-  let routes: RouteObject[];
-  let isFirstPageloadUpdateUseEffectCall = true;
-  let isFirstNavigationUseEffectCall = true;
+  let previousLocation: Location | null = null;
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
-    _useEffect(() => {
-      // Performance concern:
-      // This is repeated when <Routes /> is rendered.
-      routes = _createRoutesFromChildren(props.children) as RouteObject[];
-    }, [props.children]);
+    _useEffect(
+      () => {
+        const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
-    _useEffect(() => {
-      if (isFirstPageloadUpdateUseEffectCall) {
-        isFirstPageloadUpdateUseEffectCall = false;
-        routes = _createRoutesFromChildren(props.children) as RouteObject[];
-        updatePageloadTransaction(location, routes);
-      }
-    }, [props.children, location]);
+        if (previousLocation === null) {
+          updatePageloadTransaction(location, routes);
+        } else {
+          handleNavigation(location, routes, navigationType);
+        }
 
-    _useEffect(() => {
-      if (isFirstNavigationUseEffectCall) {
-        isFirstNavigationUseEffectCall = false;
-      } else {
-        handleNavigation(location, routes, navigationType);
-      }
-    }, [location, navigationType]);
+        previousLocation = location;
+      },
+      // `props.children` is purpusely not included in the dependency array, because we do not want to re-run this effect
+      // when the children change. We only want to start transactions when the location or navigation type change.
+      [location, navigationType],
+    );
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
@@ -222,35 +215,34 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let isFirstPageloadUpdateUseEffectCall = true;
-  let isFirstNavigationUseEffectCall = true;
+  let previousLocation: Location | null = null;
 
   // eslint-disable-next-line react/display-name
-  return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
-    const SentryRoutes: React.FC<unknown> = (props: unknown) => {
-      const Routes = origUseRoutes(routes, location);
+  return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
+    const SentryRoutes: React.FC<unknown> = () => {
+      const Routes = origUseRoutes(routes, locationArg);
 
-      // the case where location is a string might be killing performance because we're always creating a new
-      // object(with different identity) that will trigger useEffects below to run again
-      const locationArgObject = typeof location === 'string' ? { pathname: location } : location;
-
-      const locationObject = (locationArgObject as Location) || _useLocation();
+      const location = _useLocation();
       const navigationType = _useNavigationType();
 
-      _useEffect(() => {
-        if (isFirstPageloadUpdateUseEffectCall) {
-          isFirstPageloadUpdateUseEffectCall = false;
-          updatePageloadTransaction(locationObject, routes);
-        }
-      }, [locationObject, routes]);
+      // A value with stable identity to either pick `locationArg` if available or `location` if not
+      const stableLocationParam =
+        typeof locationArg === 'string' || locationArg?.pathname !== undefined
+          ? (locationArg as { pathname: string })
+          : location;
 
       _useEffect(() => {
-        if (isFirstNavigationUseEffectCall) {
-          isFirstNavigationUseEffectCall = false;
+        const normalizedLocation =
+          typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
+
+        if (previousLocation === null) {
+          updatePageloadTransaction(normalizedLocation, routes);
         } else {
-          handleNavigation(locationObject, routes, navigationType);
+          handleNavigation(normalizedLocation, routes, navigationType);
         }
-      }, [locationObject, routes, navigationType]);
+
+        previousLocation = normalizedLocation;
+      }, [navigationType, stableLocationParam]);
 
       return Routes;
     };
