@@ -220,6 +220,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
+   * @see SdkMetadata in @sentry/types
+   *
+   * @return The metadata of the SDK
+   */
+  public getSdkMetadata(): O['_metadata'] {
+    return this._options._metadata;
+  }
+
+  /**
    * @inheritDoc
    */
   public getTransport(): Transport | undefined {

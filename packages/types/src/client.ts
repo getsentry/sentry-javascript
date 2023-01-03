@@ -70,6 +70,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   getOptions(): O;
 
   /**
+   * @inheritdoc
+   *
+   * TODO (v8): Make this a required method.
+   */
+  getSdkMetadata?(): O['_metadata'];
+
+  /**
    * Returns the transport that is used by the client.
    * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
    *
