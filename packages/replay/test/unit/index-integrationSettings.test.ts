@@ -184,7 +184,13 @@ describe('integration settings', () => {
       expect(replay['_recordingOptions'].maskTextSelector).toBe(undefined);
     });
 
-    it('overwrites custom maskTextSelector option', async () => {
+    it('maskTextSelector takes precedence over maskAllText when not specifiying maskAllText:true', async () => {
+      const { replay } = await mockSdk({ replayOptions: { maskTextSelector: '[custom]' } });
+
+      expect(replay['_recordingOptions'].maskTextSelector).toBe('[custom]');
+    });
+
+    it('maskAllText takes precedence over maskTextSelector when specifiying maskAllText:true', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true, maskTextSelector: '[custom]' } });
 
       expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
