@@ -8,9 +8,11 @@ import { GitHub } from '../../src/util/github.js';
 import { latestResultFile, previousResultsDir, baselineResultsDir, artifactName } from './env.js';
 
 const latestResult = Result.readFromFile(latestResultFile);
+const branch = await Git.branch;
+const baseBranch = await Git.baseBranch;
 
-await GitHub.downloadPreviousArtifact(await Git.baseBranch, baselineResultsDir, artifactName);
-await GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, artifactName);
+await GitHub.downloadPreviousArtifact(baseBranch, baselineResultsDir, artifactName);
+await GitHub.downloadPreviousArtifact(branch, previousResultsDir, artifactName);
 
 GitHub.writeOutput("artifactName", artifactName)
 GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
@@ -18,11 +20,11 @@ GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
 const previousResults = new ResultsSet(previousResultsDir);
 
 const prComment = new PrCommentBuilder();
-if (Git.baseBranch != Git.branch) {
+if (baseBranch != branch) {
   const baseResults = new ResultsSet(baselineResultsDir);
   await prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, baseResults), "Baseline");
   await prComment.addAdditionalResultsSet(
-    `Baseline results on branch: ${Git.baseBranch}`,
+    `Baseline results on branch: ${baseBranch}`,
     // We skip the first one here because it's already included as `Baseline` column above in addCurrentResult().
     baseResults.items().slice(1, 10)
   );
@@ -31,7 +33,7 @@ if (Git.baseBranch != Git.branch) {
 }
 
 await prComment.addAdditionalResultsSet(
-  `Previous results on branch: ${Git.branch}`,
+  `Previous results on branch: ${branch}`,
   previousResults.items().slice(0, 10)
 );
 

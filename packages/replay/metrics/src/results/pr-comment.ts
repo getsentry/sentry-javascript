@@ -49,8 +49,8 @@ export class PrCommentBuilder {
       <table>
         <tr>
           <th>&nbsp;</th>
-          <th align="right">Latest diff (${await Git.hash})</th>
-          ${maybeOther(() => '<th align="right">' + otherName + ' diff (' + analysis.otherHash + ')</a></th>')}
+          <th align="right">This PR (${await Git.hash})</th>
+          ${maybeOther(() => '<th align="right">' + otherName + ' (' + analysis.otherHash + ')</a></th>')}
         </tr>`
 
     for (const item of analysis.items) {
