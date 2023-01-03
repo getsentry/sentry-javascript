@@ -20,6 +20,7 @@ const defaultIntegrationsBackup = sdk.defaultIntegrations;
 
 describe('init()', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     global.__SENTRY__ = {};
   });
 
@@ -88,5 +89,29 @@ describe('init()', () => {
     expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
     expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not error on valid tunnel option', () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn');
+    expect(() =>
+      init({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tunnel: 'https://example.com/api',
+      }),
+    ).not.toThrowError();
+    expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+      'The tunnel option is not a valid URL. It must be a full URL including the protocol when using the Node transport.',
+    );
+  });
+
+  it('should not error on invalid tunnel option', () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn');
+    init({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tunnel: '/invalid',
+    });
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'The tunnel option is not a valid URL. It must be a full URL including the protocol when using the Node transport.',
+    );
   });
 });

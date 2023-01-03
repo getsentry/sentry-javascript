@@ -79,15 +79,6 @@ export function init(options: NextjsOptions): void {
   const activeDomain = domain.active;
   domain.active = null;
 
-  if (typeof options.tunnel !== 'undefined') {
-    try {
-      new URL(options.tunnel);
-    } catch (error) {
-      __DEBUG_BUILD__ &&
-        logger.error('The tunnel option is not a valid URL. It must be a full URL including the protocol.');
-      throw new Error('The tunnel option is not a valid URL. It must be a full URL including the protocol.');
-    }
-  }
   nodeInit(options);
 
   const filterTransactions: EventProcessor = event => {
