@@ -170,7 +170,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     return Routes;
   }
 
-  let previousLocation: Location | null = null;
+  let isMountRenderPass: boolean = true;
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
@@ -180,13 +180,12 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
-        if (previousLocation === null) {
+        if (isMountRenderPass) {
           updatePageloadTransaction(location, routes);
+          isMountRenderPass = false;
         } else {
           handleNavigation(location, routes, navigationType);
         }
-
-        previousLocation = location;
       },
       // `props.children` is purpusely not included in the dependency array, because we do not want to re-run this effect
       // when the children change. We only want to start transactions when the location or navigation type change.
@@ -215,7 +214,7 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let previousLocation: Location | null = null;
+  let isMountRenderPass: boolean = true;
 
   // eslint-disable-next-line react/display-name
   return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
@@ -235,13 +234,12 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
         const normalizedLocation =
           typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
-        if (previousLocation === null) {
+        if (isMountRenderPass) {
           updatePageloadTransaction(normalizedLocation, routes);
+          isMountRenderPass = false;
         } else {
           handleNavigation(normalizedLocation, routes, navigationType);
         }
-
-        previousLocation = normalizedLocation;
       }, [navigationType, stableLocationParam]);
 
       return Routes;
