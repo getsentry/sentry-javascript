@@ -5,7 +5,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { ClientOptions } from './options';
 import { Scope } from './scope';
-import { SdkInfo } from './sdkinfo';
+import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
 import { Transport } from './transport';
@@ -75,7 +75,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * TODO (v8): Make this a required method.
    */
-  getSdkMetadata?(): SdkInfo;
+  getSdkMetadata?(): SdkMetadata | undefined;
 
   /**
    * Returns the transport that is used by the client.

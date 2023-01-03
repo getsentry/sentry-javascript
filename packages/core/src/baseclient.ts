@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import { SdkInfo } from '@sentry/types';
 import {
   Client,
   ClientOptions,
@@ -13,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Outcome,
+  SdkMetadata,
   Session,
   SessionAggregates,
   Severity,
@@ -225,7 +225,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @return The metadata of the SDK
    */
-  public getSdkMetadata(): SdkInfo {
+  public getSdkMetadata(): SdkMetadata | undefined {
     return this._options._metadata;
   }
 
