@@ -6,14 +6,14 @@ import { latestResultFile, outDir } from './env.js';
 const resultsSet = new ResultsSet(outDir);
 const latestResult = Result.readFromFile(latestResultFile);
 
-const analysis = ResultsAnalyzer.analyze(latestResult, resultsSet);
+const analysis = await ResultsAnalyzer.analyze(latestResult, resultsSet);
 
 const table: { [k: string]: any } = {};
-for (const item of analysis) {
+for (const item of analysis.items) {
   const printable: { [k: string]: any } = {};
   printable.value = item.value.asString();
   if (item.other != undefined) {
-    printable.baseline = item.other.asString();
+    printable.previous = item.other.asString();
   }
   table[AnalyzerItemMetric[item.metric]] = printable;
 }

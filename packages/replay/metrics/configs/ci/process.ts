@@ -1,5 +1,6 @@
 import path from 'path';
-// import { AnalyzerItemMetric, ResultsAnalyzer } from '../../src/results/analyzer.js';
+import { ResultsAnalyzer } from '../../src/results/analyzer.js';
+import { PrCommentBuilder } from '../../src/results/pr-comment.js';
 import { Result } from '../../src/results/result.js';
 import { ResultsSet } from '../../src/results/results-set.js';
 import { Git } from '../../src/util/git.js';
@@ -15,23 +16,27 @@ await GitHub.downloadPreviousArtifact(await Git.branch, previousResultsDir, arti
 GitHub.writeOutput("artifactName", artifactName)
 GitHub.writeOutput("artifactPath", path.resolve(previousResultsDir));
 
-const resultsSet = new ResultsSet(previousResultsDir);
-// const analysis = ResultsAnalyzer.analyze(latestResult, resultsSet);
+const previousResults = new ResultsSet(previousResultsDir);
 
-// val prComment = PrCommentBuilder()
-// prComment.addCurrentResult(latestResults)
-// if (Git.baseBranch != Git.branch) {
-//   prComment.addAdditionalResultsSet(
-//     "Baseline results on branch: ${Git.baseBranch}",
-//     ResultsSet(baselineResultsDir)
-//   )
-// }
-// prComment.addAdditionalResultsSet(
-//   "Previous results on branch: ${Git.branch}",
-//   ResultsSet(previousResultsDir)
-// )
+const prComment = new PrCommentBuilder();
+if (Git.baseBranch != Git.branch) {
+  const baseResults = new ResultsSet(baselineResultsDir);
+  prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, baseResults), "Baseline");
+  await prComment.addAdditionalResultsSet(
+    `Baseline results on branch: ${Git.baseBranch}`,
+    // We skip the first one here because it's already included as `Baseline` column above in addCurrentResult().
+    baseResults.items().slice(1, 10)
+  );
+} else {
+  prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, previousResults), "Previous");
+}
 
-// GitHub.addOrUpdateComment(prComment);
+await prComment.addAdditionalResultsSet(
+  `Previous results on branch: ${Git.branch}`,
+  previousResults.items().slice(0, 10)
+);
+
+GitHub.addOrUpdateComment(prComment);
 
 // Copy the latest test run results to the archived result dir.
-await resultsSet.add(latestResultFile, true);
+await previousResults.add(latestResultFile, true);

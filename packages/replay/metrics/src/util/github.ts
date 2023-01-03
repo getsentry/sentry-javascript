@@ -4,6 +4,8 @@ import { Git } from './git.js';
 import path from 'path';
 import Axios from 'axios';
 import extract from 'extract-zip';
+import { consoleGroup } from './console.js';
+import { PrCommentBuilder } from '../results/pr-comment.js';
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
@@ -11,9 +13,9 @@ const octokit = new Octokit({
 });
 
 const [_, owner, repo] = (await Git.repository).split('/');
-const defaultArgs = { owner: owner, repo: repo }
+const defaultArgs = { owner, repo }
 
-export function downloadArtifact(url: string, path: string) {
+async function downloadArtifact(url: string, path: string): Promise<void> {
   const writer = fs.createWriteStream(path);
   return Axios({
     method: 'get',
@@ -32,7 +34,7 @@ export function downloadArtifact(url: string, path: string) {
         reject(err);
       });
       writer.on('close', () => {
-        if (!error) resolve(true);
+        if (!error) resolve();
       });
     });
   });
@@ -47,11 +49,17 @@ export const GitHub = {
   },
 
   downloadPreviousArtifact(branch: string, targetDir: string, artifactName: string): Promise<void> {
-    return (async () => {
+    console.log(`Trying to download previous artifact '${artifactName}' for branch '${branch}'`);
+    return consoleGroup(async () => {
       fs.mkdirSync(targetDir, { recursive: true });
 
-      const workflow = (await octokit.actions.listRepoWorkflows(defaultArgs))
-        .data.workflows.find((w) => w.name == process.env.GITHUB_WORKFLOW);
+      var workflow = await (async () => {
+        for await (const workflows of octokit.paginate.iterator(octokit.rest.actions.listRepoWorkflows, defaultArgs)) {
+          let found = workflows.data.find((w) => w.name == process.env.GITHUB_WORKFLOW);
+          if (found) return found;
+        }
+        return undefined;
+      })();
       if (workflow == undefined) {
         console.log(
           `Skipping previous artifact '${artifactName}' download for branch '${branch}' - not running in CI?`,
@@ -59,7 +67,6 @@ export const GitHub = {
         );
         return;
       }
-      console.log(`Trying to download previous artifact '${artifactName}' for branch '${branch}'`);
 
       const workflowRuns = await octokit.actions.listWorkflowRuns({
         ...defaultArgs,
@@ -98,32 +105,77 @@ export const GitHub = {
           fs.unlinkSync(tempFilePath);
         }
       }
-    })();
+    });
   },
 
-  //       fun addOrUpdateComment(commentBuilder: PrCommentBuilder) {
-  //   if (pullRequest == null) {
-  //               val file = File("out/comment.html")
-  //     println("No PR available (not running in CI?): writing built comment to ${file.absolutePath}")
-  //     file.writeText(commentBuilder.body)
-  //   } else {
-  //               val comments = pullRequest!!.comments
-  //               // Trying to fetch `github!!.myself` throws (in CI only): Exception in thread "main" org.kohsuke.github.HttpException:
-  //               //   {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/reference/users#get-the-authenticated-user"}
-  //               // Let's make this conditional on some env variable that's unlikely to be set.
-  //               // Do not use "CI" because that's commonly set during local development and testing.
-  //               val author = if (env.containsKey("GITHUB_ACTION")) "github-actions[bot]" else github!!.myself.login
-  //               val comment = comments.firstOrNull {
-  //       it.user.login.equals(author) &&
-  //         it.body.startsWith(commentBuilder.title, ignoreCase = true)
-  //     }
-  //     if (comment != null) {
-  //       println("Updating PR comment ${comment.htmlUrl} body")
-  //       comment.update(commentBuilder.body)
-  //     } else {
-  //       println("Adding new PR comment to ${pullRequest!!.htmlUrl}")
-  //       pullRequest!!.comment(commentBuilder.body)
-  //     }
-  //   }
-  // }
+  async addOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<void> {
+    console.log('Adding/updating PR comment');
+    return consoleGroup(async () => {
+      /* Env var GITHUB_REF is only set if a branch or tag is available for the current CI event trigger type.
+        The ref given is fully-formed, meaning that
+          * for branches the format is refs/heads/<branch_name>,
+          * for pull requests it is refs/pull/<pr_number>/merge,
+          * and for tags it is refs/tags/<tag_name>.
+        For example, refs/heads/feature-branch-1.
+      */
+      let prNumber: number | undefined;
+      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0) {
+        if (process.env.GITHUB_REF.startsWith("refs/pull/")) {
+          prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
+        } else {
+          const pr = await octokit.rest.pulls.list({
+            ...defaultArgs,
+            base: await Git.baseBranch,
+            head: await Git.branch
+          });
+          prNumber = pr.data.at(0)?.id;
+        }
+      }
+
+      if (prNumber == undefined) {
+        console.log("No PR available (not running in CI?). Printing the PR comment instead:");
+        console.log(commentBuilder.body);
+        return;
+      }
+
+      // Determine the PR comment author:
+      // Trying to fetch `octokit.users.getAuthenticated()` throws (in CI only):
+      //   {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/reference/users#get-the-authenticated-user"}
+      // Let's make this conditional on some env variable that's unlikely to be set locally but will be set in GH Actions.
+      // Do not use "CI" because that's commonly set during local development and testing.
+      const author = typeof process.env.GITHUB_ACTION == 'string' ? 'github-actions[bot]' : (await octokit.users.getAuthenticated()).data.login;
+
+      // Try to find an existing comment by the author and title.
+      var comment = await (async () => {
+        for await (const comments of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+          ...defaultArgs,
+          issue_number: prNumber,
+        })) {
+          const found = comments.data.find((comment) => {
+            return comment.user?.login == author
+              && comment.body != undefined
+              && comment.body.indexOf(commentBuilder.title) >= 0;
+          });
+          if (found) return found;
+        }
+        return undefined;
+      })();
+
+      if (comment != undefined) {
+        console.log(`Updating PR comment ${comment.html_url} body`)
+        await octokit.rest.issues.updateComment({
+          ...defaultArgs,
+          comment_id: comment.id,
+          body: commentBuilder.body,
+        });
+      } else {
+        console.log(`Adding new PR comment to PR ${prNumber}`)
+        await octokit.rest.issues.createComment({
+          ...defaultArgs,
+          issue_number: prNumber,
+          body: commentBuilder.body,
+        });
+      }
+    });
+  }
 }

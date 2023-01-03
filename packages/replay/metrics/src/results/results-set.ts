@@ -35,10 +35,6 @@ export class ResultsSet {
     }
   }
 
-  public count(): number {
-    return this.items().length;
-  }
-
   public find(predicate: (value: Result) => boolean): [GitHash, Result] | undefined {
     const items = this.items();
     for (let i = 0; i < items.length; i++) {

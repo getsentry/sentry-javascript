@@ -4,17 +4,17 @@ import { ResultsSet } from './results-set.js';
 import { MetricsStats } from './metrics-stats.js';
 import { filesize } from "filesize";
 
-// Compares latest result to previous/baseline results and produces the needed
-// info.
+// Compares latest result to previous/baseline results and produces the needed info.
 export class ResultsAnalyzer {
-  public static analyze(currentResult: Result, baselineResults: ResultsSet): AnalyzerItem[] {
+  public static async analyze(currentResult: Result, baselineResults?: ResultsSet): Promise<Analysis> {
     const items = new ResultsAnalyzer(currentResult).collect();
 
-    const baseline = baselineResults.find(
+    const baseline = baselineResults?.find(
       (other) => other.cpuThrottling == currentResult.cpuThrottling &&
         other.name == currentResult.name &&
         other.networkConditions == currentResult.networkConditions);
 
+    let otherHash: GitHash | undefined
     if (baseline != undefined) {
       const baseItems = new ResultsAnalyzer(baseline[1]).collect();
       // update items with baseline results
@@ -22,13 +22,16 @@ export class ResultsAnalyzer {
         for (const item of items) {
           if (item.metric == base.metric) {
             item.other = base.value;
-            item.otherHash = baseline[0];
+            otherHash = baseline[0];
           }
         }
       }
     }
 
-    return items;
+    return {
+      items: items,
+      otherHash: otherHash,
+    };
   }
 
   private constructor(private result: Result) { }
@@ -98,7 +101,17 @@ export enum AnalyzerItemMetric {
 
 export interface AnalyzerItem {
   metric: AnalyzerItemMetric;
+
+  // Current (latest) result.
   value: AnalyzerItemValue;
+
+  // Previous or baseline results, depending on the context.
   other?: AnalyzerItemValue;
+}
+
+export interface Analysis {
+  items: AnalyzerItem[];
+
+  // Commit hash that the the previous or baseline (depending on the context) result was collected for.
   otherHash?: GitHash;
 }
