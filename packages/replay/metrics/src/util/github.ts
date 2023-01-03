@@ -119,16 +119,18 @@ export const GitHub = {
         For example, refs/heads/feature-branch-1.
       */
       let prNumber: number | undefined;
-      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0) {
-        if (process.env.GITHUB_REF.startsWith("refs/pull/")) {
-          prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
-        } else {
-          const pr = await octokit.rest.pulls.list({
-            ...defaultArgs,
-            base: await Git.baseBranch,
-            head: await Git.branch
-          });
-          prNumber = pr.data.at(0)?.id;
+      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0 && process.env.GITHUB_REF.startsWith("refs/pull/")) {
+        prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
+        console.log(`Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`);
+      } else {
+        const pr = await octokit.rest.pulls.list({
+          ...defaultArgs,
+          base: await Git.baseBranch,
+          head: await Git.branch
+        });
+        prNumber = pr.data.at(0)?.number;
+        if (prNumber != undefined) {
+          console.log(`Found PR number ${prNumber} based on base and head branches`);
         }
       }
 
