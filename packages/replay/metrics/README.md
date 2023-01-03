@@ -1,6 +1,6 @@
 # Replay performance metrics
 
-Evaluates Replay impact on website performance by running a web app in Chromium via Puppeteer and collecting various metrics.
+Evaluates Replay impact on website performance by running a web app in Chromium via Playwright and collecting various metrics.
 
 ## Resources
 

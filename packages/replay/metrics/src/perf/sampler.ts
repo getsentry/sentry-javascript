@@ -31,6 +31,7 @@ export class PerfMetrics {
   }
 
   public get Duration(): number {
+    // TODO check if any of `Duration` fields is maybe a sum of the others. E.g. verify the measured CPU usage manually.
     return this.metrics.reduce((sum, metric) => metric.name.endsWith('Duration') ? sum + metric.value : sum, 0);
   }
 

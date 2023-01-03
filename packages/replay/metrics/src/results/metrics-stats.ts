@@ -6,15 +6,8 @@ export type NumberProvider = (metrics: Metrics) => number;
 export class MetricsStats {
   constructor(private items: Metrics[]) { }
 
-  // See https://en.wikipedia.org/wiki/Interquartile_range#Outliers for details
-  public filterOutliers(dataProvider: NumberProvider): number[] {
-    let numbers = this.items.map(dataProvider);
-    // TODO implement, see https://github.com/getsentry/action-app-sdk-overhead-metrics/blob/9ce7d562ff79b317688d22bd5c0bb725cbdfdb81/src/test/kotlin/StartupTimeTest.kt#L27-L37
-    return numbers;
-  }
-
   public filteredMean(dataProvider: NumberProvider): number | undefined {
-    const numbers = this.filterOutliers(dataProvider);
+    const numbers = this.items.map(dataProvider);
     return numbers.length > 0 ? ss.mean(numbers) : undefined;
   }
 
@@ -35,7 +28,7 @@ export class MetricsStats {
   }
 
   public get memoryMax(): number | undefined {
-    const numbers = this.filterOutliers((metrics) => ss.max(Array.from(metrics.memory.snapshots.values())));
+    const numbers = this.items.map((metrics) => ss.max(Array.from(metrics.memory.snapshots.values())));
     return numbers.length > 0 ? ss.max(numbers) : undefined;
   }
 }
