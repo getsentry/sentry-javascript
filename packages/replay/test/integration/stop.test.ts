@@ -11,7 +11,7 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-describe('Replay - stop', () => {
+describe('Integration | stop', () => {
   let replay: ReplayContainer;
   let integration: Replay;
   const prevLocation = WINDOW.location;

@@ -18,7 +18,6 @@ import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
-import { createPerformanceEntries } from './createPerformanceEntry';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
@@ -39,6 +38,7 @@ import type {
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
+import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { createRecordingData } from './util/createRecordingData';
 import { createReplayEnvelope } from './util/createReplayEnvelope';

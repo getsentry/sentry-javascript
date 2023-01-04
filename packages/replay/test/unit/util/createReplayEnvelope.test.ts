@@ -3,7 +3,7 @@ import { makeDsn } from '@sentry/utils';
 
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 
-describe('createReplayEnvelope', () => {
+describe('Unit | util | createReplayEnvelope', () => {
   const REPLAY_ID = 'MY_REPLAY_ID';
 
   const replayEvent: ReplayEvent = {

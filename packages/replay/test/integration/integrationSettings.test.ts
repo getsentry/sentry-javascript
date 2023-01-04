@@ -1,7 +1,7 @@
 import { MASK_ALL_TEXT_SELECTOR } from '../../src/constants';
 import { mockSdk } from '../index';
 
-describe('integration settings', () => {
+describe('Integration | integrationSettings', () => {
   beforeEach(() => {
     jest.resetModules();
   });

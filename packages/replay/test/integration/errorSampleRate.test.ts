@@ -17,7 +17,7 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('Replay (errorSampleRate)', () => {
+describe('Integration | errorSampleRate', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let domHandler: DomHandler;

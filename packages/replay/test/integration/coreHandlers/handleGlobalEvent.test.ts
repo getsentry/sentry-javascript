@@ -16,7 +16,7 @@ import { useFakeTimers } from '../../utils/use-fake-timers';
 useFakeTimers();
 let replay: ReplayContainer;
 
-describe('handleGlobalEvent', () => {
+describe('Integration | coreHandlers | handleGlobalEvent', () => {
   beforeEach(async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
