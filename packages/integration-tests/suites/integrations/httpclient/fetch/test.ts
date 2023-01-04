@@ -7,6 +7,12 @@ import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 sentryTest(
   'should assign request and response context from a failed 500 fetch request',
   async ({ getLocalTestPath, page }) => {
+    // Skipping this test when running in bundle mode, because `@sentry/integrations` bundle
+    // is not injected to the page with the current test setup.
+    if (process.env.PW_BUNDLE?.includes('bundle')) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.route('**/foo', route => {
