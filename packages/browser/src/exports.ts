@@ -58,4 +58,4 @@ export {
   winjsStackLineParser,
 } from './stack-parsers';
 export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
-export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, HttpClient, Dedupe } from './integrations';
+export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

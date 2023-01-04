@@ -1,8 +1,5 @@
-import { captureEvent, getCurrentHub } from '@sentry/core';
-import { Event as SentryEvent, Integration } from '@sentry/types';
+import { Event as SentryEvent, EventProcessor, Hub, Integration } from '@sentry/types';
 import { addExceptionMechanism, fill, GLOBAL_OBJ, logger, supportsNativeFetch } from '@sentry/utils';
-
-import { eventFromUnknownInput } from '../eventbuilder';
 
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
@@ -42,6 +39,11 @@ export class HttpClient implements Integration {
   private readonly _options: HttpClientOptions;
 
   /**
+   * Returns current hub.
+   */
+  private _getCurrentHub?: () => Hub;
+
+  /**
    * @inheritDoc
    *
    * @param options
@@ -59,7 +61,8 @@ export class HttpClient implements Integration {
    *
    * @param options
    */
-  public setupOnce(): void {
+  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    this._getCurrentHub = getCurrentHub;
     this._wrapFetch();
     this._wrapXHR();
   }
@@ -72,12 +75,13 @@ export class HttpClient implements Integration {
    * @param requestInit The request init object
    */
   private _fetchResponseHandler(requestInfo: RequestInfo, response: Response, requestInit?: RequestInit): void {
-    if (this._shouldCaptureResponse(response.status, response.url)) {
+    if (this._getCurrentHub && this._shouldCaptureResponse(response.status, response.url)) {
       const request = new Request(requestInfo, requestInit);
+      const hub = this._getCurrentHub();
 
       let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
-      if (getCurrentHub().shouldSendDefaultPii()) {
+      if (hub.shouldSendDefaultPii()) {
         [{ headers: requestHeaders, cookies: requestCookies }, { headers: responseHeaders, cookies: responseCookies }] =
           [
             { cookieHeader: 'Cookie', obj: request },
@@ -113,7 +117,7 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      captureEvent(event);
+      hub.captureEvent(event);
     }
   }
 
@@ -125,10 +129,11 @@ export class HttpClient implements Integration {
    * @param headers The HTTP headers
    */
   private _xhrResponseHandler(xhr: XMLHttpRequest, method: string, headers: Record<string, string>): void {
-    if (this._shouldCaptureResponse(xhr.status, xhr.responseURL)) {
+    if (this._getCurrentHub && this._shouldCaptureResponse(xhr.status, xhr.responseURL)) {
       let requestHeaders, responseCookies, responseHeaders;
+      const hub = this._getCurrentHub();
 
-      if (getCurrentHub().shouldSendDefaultPii()) {
+      if (hub.shouldSendDefaultPii()) {
         try {
           const cookieString = xhr.getResponseHeader('Set-Cookie') || xhr.getResponseHeader('set-cookie') || undefined;
 
@@ -158,7 +163,7 @@ export class HttpClient implements Integration {
         responseCookies,
       });
 
-      captureEvent(event);
+      hub.captureEvent(event);
     }
   }
 
@@ -362,7 +367,7 @@ export class HttpClient implements Integration {
    * @param url url to verify
    */
   private _isSentryRequest(url: string): boolean {
-    const client = getCurrentHub().getClient();
+    const client = this._getCurrentHub && this._getCurrentHub().getClient();
 
     if (!client) {
       return false;
@@ -397,22 +402,31 @@ export class HttpClient implements Integration {
     requestHeaders?: Record<string, string>;
     requestCookies?: Record<string, string>;
   }): SentryEvent {
-    const event = eventFromUnknownInput(() => [], `HTTP Client Error with status code: ${data.status}`);
+    const message = `HTTP Client Error with status code: ${data.status}`;
 
-    event.request = {
-      url: data.url,
-      method: data.method,
-      headers: data.requestHeaders,
-      cookies: data.requestCookies,
-    };
-
-    event.contexts = {
-      ...event.contexts,
-      response: {
-        status_code: data.status,
-        headers: data.responseHeaders,
-        cookies: data.responseCookies,
-        body_size: this._getResponseSizeFromHeaders(data.responseHeaders),
+    const event: SentryEvent = {
+      message,
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: message,
+          },
+        ],
+      },
+      request: {
+        url: data.url,
+        method: data.method,
+        headers: data.requestHeaders,
+        cookies: data.requestCookies,
+      },
+      contexts: {
+        response: {
+          status_code: data.status,
+          headers: data.responseHeaders,
+          cookies: data.responseCookies,
+          body_size: this._getResponseSizeFromHeaders(data.responseHeaders),
+        },
       },
     };
 
