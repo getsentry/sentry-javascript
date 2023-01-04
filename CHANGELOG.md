@@ -18,8 +18,6 @@ more information see #6578)
 - fix(replay): Envelope send should be awaited in try/catch (#6625)
 - fix(replay): Improve handling of `maskAllText` selector (#6637)
 - fix(tracing): Don't finish React Router 6 `pageload` transactions early (#6609)
-- ref(core): Expose `prepareEvent` util function (#6517)
-- ref(replay): Replace `lodash.debounce` with custom debounce implementation (#6593)
 
 ## 7.28.1
 
