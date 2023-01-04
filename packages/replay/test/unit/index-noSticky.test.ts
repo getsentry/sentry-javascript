@@ -2,7 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import { SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
 import { ReplayContainer } from './../../src/replay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
@@ -197,7 +197,7 @@ describe('Replay (no sticky)', () => {
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
     mockTransport.mockClear();
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay).not.toHaveLastSentReplay();
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -208,7 +208,7 @@ describe('Replay (no sticky)', () => {
     // Let's make sure it continues to work
     mockTransport.mockClear();
     mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
@@ -252,7 +252,7 @@ describe('Replay (no sticky)', () => {
       name: 'click',
     });
 
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
