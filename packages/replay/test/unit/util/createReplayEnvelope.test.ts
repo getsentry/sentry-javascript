@@ -24,10 +24,9 @@ describe('Unit | util | createReplayEnvelope', () => {
       version: '7.25.0',
     },
     replay_type: 'error',
-    tags: {
-      sessionSampleRate: 1,
-      errorSampleRate: 0,
-    },
+    error_sample_rate: 0,
+    session_sample_rate: 1,
+    tags: {},
   };
 
   const payloadWithSequence = 'payload';
@@ -56,13 +55,15 @@ describe('Unit | util | createReplayEnvelope', () => {
           {
             environment: 'production',
             error_ids: ['errorId'],
+            error_sample_rate: 0,
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
             replay_type: 'error',
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
-            tags: { errorSampleRate: 0, sessionSampleRate: 1 },
+            session_sample_rate: 1,
+            tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
             type: 'replay_event',
@@ -90,13 +91,15 @@ describe('Unit | util | createReplayEnvelope', () => {
           {
             environment: 'production',
             error_ids: ['errorId'],
+            error_sample_rate: 0,
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             replay_type: 'error',
-            tags: { errorSampleRate: 0, sessionSampleRate: 1 },
+            session_sample_rate: 1,
+            tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
             type: 'replay_event',
