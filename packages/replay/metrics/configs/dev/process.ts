@@ -12,9 +12,9 @@ const analysis = await ResultsAnalyzer.analyze(latestResult, resultsSet);
 const table: { [k: string]: any } = {};
 for (const item of analysis.items) {
   table[AnalyzerItemMetric[item.metric]] = {
-    value: item.value.asString(),
+    value: item.value.diff,
     ...((item.other == undefined) ? {} : {
-      previous: item.other.asString()
+      previous: item.other.diff
     })
   };
 }

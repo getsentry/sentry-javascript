@@ -42,6 +42,73 @@ async function downloadArtifact(url: string, path: string): Promise<void> {
   });
 }
 
+async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<boolean> {
+  /* Env var GITHUB_REF is only set if a branch or tag is available for the current CI event trigger type.
+    The ref given is fully-formed, meaning that
+      * for branches the format is refs/heads/<branch_name>,
+      * for pull requests it is refs/pull/<pr_number>/merge,
+      * and for tags it is refs/tags/<tag_name>.
+    For example, refs/heads/feature-branch-1.
+  */
+  let prNumber: number | undefined;
+  if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0 && process.env.GITHUB_REF.startsWith('refs/pull/')) {
+    prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
+    console.log(`Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`);
+  } else {
+    prNumber = (await octokit.rest.pulls.list({
+      ...defaultArgs,
+      base: await Git.baseBranch,
+      head: await Git.branch
+    })).data[0].number;
+    if (prNumber != undefined) {
+      console.log(`Found PR number ${prNumber} based on base and head branches`);
+    }
+  }
+
+  if (prNumber == undefined) return false;
+
+  // Determine the PR comment author:
+  // Trying to fetch `octokit.users.getAuthenticated()` throws (in CI only):
+  //   {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/reference/users#get-the-authenticated-user"}
+  // Let's make this conditional on some env variable that's unlikely to be set locally but will be set in GH Actions.
+  // Do not use "CI" because that's commonly set during local development and testing.
+  const author = typeof process.env.GITHUB_ACTION == 'string' ? 'github-actions[bot]' : (await octokit.users.getAuthenticated()).data.login;
+
+  // Try to find an existing comment by the author and title.
+  const comment = await (async () => {
+    for await (const comments of octokit.paginate.iterator(octokit.rest.issues.listComments, {
+      ...defaultArgs,
+      issue_number: prNumber,
+    })) {
+      const found = comments.data.find((comment) => {
+        return comment.user?.login == author
+          && comment.body != undefined
+          && comment.body.indexOf(commentBuilder.title) >= 0;
+      });
+      if (found) return found;
+    }
+    return undefined;
+  })();
+
+  if (comment != undefined) {
+    console.log(`Updating PR comment ${comment.html_url} body`)
+    await octokit.rest.issues.updateComment({
+      ...defaultArgs,
+      comment_id: comment.id,
+      body: commentBuilder.body,
+    });
+  } else {
+    console.log(`Adding new PR comment to PR ${prNumber}`)
+    await octokit.rest.issues.createComment({
+      ...defaultArgs,
+      issue_number: prNumber,
+      body: commentBuilder.body,
+    });
+  }
+
+  return true;
+}
+
 export const GitHub = {
   writeOutput(name: string, value: string): void {
     if (typeof process.env.GITHUB_OUTPUT == 'string' && process.env.GITHUB_OUTPUT.length > 0) {
@@ -113,72 +180,15 @@ export const GitHub = {
   async addOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<void> {
     console.log('Adding/updating PR comment');
     return consoleGroup(async () => {
-      /* Env var GITHUB_REF is only set if a branch or tag is available for the current CI event trigger type.
-        The ref given is fully-formed, meaning that
-          * for branches the format is refs/heads/<branch_name>,
-          * for pull requests it is refs/pull/<pr_number>/merge,
-          * and for tags it is refs/tags/<tag_name>.
-        For example, refs/heads/feature-branch-1.
-      */
-      let prNumber: number | undefined;
-      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0 && process.env.GITHUB_REF.startsWith('refs/pull/')) {
-        prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
-        console.log(`Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`);
-      } else {
-        prNumber = (await octokit.rest.pulls.list({
-          ...defaultArgs,
-          base: await Git.baseBranch,
-          head: await Git.branch
-        })).data[0].number;
-        if (prNumber != undefined) {
-          console.log(`Found PR number ${prNumber} based on base and head branches`);
+      let successful = false;
+      try {
+        successful = await tryAddOrUpdateComment(commentBuilder);
+      } finally {
+        if (!successful) {
+          const file = 'out/comment.html';
+          console.log(`Writing built comment to ${path.resolve(file)}`);
+          fs.writeFileSync(file, commentBuilder.body);
         }
-      }
-
-      if (prNumber == undefined) {
-        const file = 'out/comment.html';
-        console.log(`No PR available (not running in CI?): writing built comment to ${path.resolve(file)}`);
-        fs.writeFileSync(file, commentBuilder.body);
-        return;
-      }
-
-      // Determine the PR comment author:
-      // Trying to fetch `octokit.users.getAuthenticated()` throws (in CI only):
-      //   {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/reference/users#get-the-authenticated-user"}
-      // Let's make this conditional on some env variable that's unlikely to be set locally but will be set in GH Actions.
-      // Do not use "CI" because that's commonly set during local development and testing.
-      const author = typeof process.env.GITHUB_ACTION == 'string' ? 'github-actions[bot]' : (await octokit.users.getAuthenticated()).data.login;
-
-      // Try to find an existing comment by the author and title.
-      const comment = await (async () => {
-        for await (const comments of octokit.paginate.iterator(octokit.rest.issues.listComments, {
-          ...defaultArgs,
-          issue_number: prNumber,
-        })) {
-          const found = comments.data.find((comment) => {
-            return comment.user?.login == author
-              && comment.body != undefined
-              && comment.body.indexOf(commentBuilder.title) >= 0;
-          });
-          if (found) return found;
-        }
-        return undefined;
-      })();
-
-      if (comment != undefined) {
-        console.log(`Updating PR comment ${comment.html_url} body`)
-        await octokit.rest.issues.updateComment({
-          ...defaultArgs,
-          comment_id: comment.id,
-          body: commentBuilder.body,
-        });
-      } else {
-        console.log(`Adding new PR comment to PR ${prNumber}`)
-        await octokit.rest.issues.createComment({
-          ...defaultArgs,
-          issue_number: prNumber,
-          body: commentBuilder.body,
-        });
       }
     });
   }

@@ -47,18 +47,34 @@ export class PrCommentBuilder {
     this._buffer += `
       <h2>${this.title}</h2>
       <table>
-        <tr>
-          <th>&nbsp;</th>
-          <th align="right">This PR (${await Git.hash})</th>
-          ${maybeOther(() => `<th align="right">${  otherName  } (${  analysis.otherHash  })</a></th>`)}
-        </tr>`
+        <thead>
+          <tr>
+            <th rowspan="2">&nbsp;</th>
+            <th colspan="3" align="center">This PR (${await Git.hash})</th>
+            ${maybeOther(() => `<th colspan="3" align="center">${otherName} (${analysis.otherHash})</a></th>`)}
+          </tr>
+          <tr>
+            <th align="right">Plain</th>
+            <th align="right">+Replay</th>
+            <th align="right">Diff</th>
+            ${maybeOther(() => `
+              <th align="right">Plain</th>
+              <th align="right">+Replay</th>
+              <th align="right">Diff</th>`)}
+          </tr>
+        </thead>`
 
     for (const item of analysis.items) {
       this._buffer += `
         <tr>
-          <th>${printableMetricName(item.metric)}</th>
-          <td align="right">${item.value.asString()}</td>
-          ${maybeOther(() => `<td align="right">${  item.other!.asString()  }</td>`)}
+          <th align="right">${printableMetricName(item.metric)}</th>
+          <td align="right">${item.value.a}</td>
+          <td align="right">${item.value.b}</td>
+          <td align="right">${item.value.diff}</td>
+          ${maybeOther(() => `
+            <td align="right">${item.other!.a}</td>
+            <td align="right">${item.other!.b}</td>
+            <td align="right">${item.other!.diff}</td>`)}
         </tr>`
     }
 
@@ -92,7 +108,7 @@ export class PrCommentBuilder {
       // Add table row
       this._buffer += `<tr><th>${resultFile.hash}</th>`;
       for (const item of analysis.items) {
-        this._buffer += `<td align="right">${item.value.asString()}</td>`;
+        this._buffer += `<td align="right">${item.value.diff}</td>`;
       }
       this._buffer += '</tr>';
     }

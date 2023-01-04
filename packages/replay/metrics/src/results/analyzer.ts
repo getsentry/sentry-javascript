@@ -45,34 +45,13 @@ export class ResultsAnalyzer {
 
     const pushIfDefined = function (metric: AnalyzerItemMetric, unit: AnalyzerItemUnit, valueA?: number, valueB?: number): void {
       if (valueA == undefined || valueB == undefined) return;
-
-      items.push({
-        metric: metric,
-        value: {
-          unit: unit,
-          asDiff: () => valueB - valueA,
-          asRatio: () => valueB / valueA,
-          asString: () => {
-            const diff = valueB - valueA;
-            const prefix = diff >= 0 ? '+' : '';
-
-            switch (unit) {
-              case AnalyzerItemUnit.bytes:
-                return prefix + filesize(diff);
-              case AnalyzerItemUnit.ratio:
-                return `${prefix + (diff * 100).toFixed(2)} %`;
-              default:
-                return `${prefix + diff.toFixed(2)} ${AnalyzerItemUnit[unit]}`;
-            }
-          }
-        }
-      })
+      items.push({ metric: metric, value: new AnalyzerItemNumberValue(unit, valueA, valueB) })
     }
 
     pushIfDefined(AnalyzerItemMetric.lcp, AnalyzerItemUnit.ms, aStats.lcp, bStats.lcp);
     pushIfDefined(AnalyzerItemMetric.cls, AnalyzerItemUnit.ms, aStats.cls, bStats.cls);
     pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, aStats.cpu, bStats.cpu);
-    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, aStats.memoryAvg, bStats.memoryAvg);
+    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, aStats.memoryMean, bStats.memoryMean);
     pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, aStats.memoryMax, bStats.memoryMax);
 
     return items.filter((item) => item.value != undefined);
@@ -86,10 +65,38 @@ export enum AnalyzerItemUnit {
 }
 
 export interface AnalyzerItemValue {
-  unit: AnalyzerItemUnit;
-  asString(): string;
-  asDiff(): number;
-  asRatio(): number; // 1.0 == 100 %
+  readonly a: string;
+  readonly b: string;
+  readonly diff: string;
+}
+
+class AnalyzerItemNumberValue implements AnalyzerItemValue {
+  constructor(private _unit: AnalyzerItemUnit, private _a: number, private _b: number) { }
+
+  public get a(): string {
+    return this._withUnit(this._a);
+  }
+
+  public get b(): string {
+    return this._withUnit(this._b);
+  }
+
+  public get diff(): string {
+    const diff = this._b - this._a;
+    const str = this._withUnit(diff);
+    return diff > 0 ? `+${str}` : str;
+  }
+
+  private _withUnit(value: number): string {
+    switch (this._unit) {
+      case AnalyzerItemUnit.bytes:
+        return filesize(value) as string;
+      case AnalyzerItemUnit.ratio:
+        return `${(value * 100).toFixed(2)} %`;
+      default:
+        return `${value.toFixed(2)} ${AnalyzerItemUnit[this._unit]}`;
+    }
+  }
 }
 
 export enum AnalyzerItemMetric {
