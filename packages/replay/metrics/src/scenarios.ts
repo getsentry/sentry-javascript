@@ -18,9 +18,10 @@ export interface TestCase {
   runs: number;
   tries: number;
 
-  // Test function that will be executed and given scenarios A and B result sets.
-  // Each has exactly `runs` number of items.
-  test(aResults: Metrics[], bResults: Metrics[]): Promise<boolean>;
+  // Test function that will be executed and given a scenarios result set with exactly `runs` number of items.
+  // Should returns true if this "try" should be accepted and collected.
+  // If false is returned, `Collector` will retry up to `tries` number of times.
+  shouldAccept(results: Metrics[]): Promise<boolean>;
 }
 
 // A simple scenario that just loads the given URL.
@@ -37,9 +38,9 @@ export class JankTestScenario implements Scenario {
   public constructor(private _withSentry: boolean) { }
 
   public async run(_: playwright.Browser, page: playwright.Page): Promise<void> {
-    let url = path.resolve(`./test-apps/jank/${  this._withSentry ? 'with-sentry' : 'index'  }.html`);
+    let url = path.resolve(`./test-apps/jank/${this._withSentry ? 'with-sentry' : 'index'}.html`);
     assert(fs.existsSync(url));
-    url = `file:///${  url.replace('\\', '/')}`;
+    url = `file:///${url.replace('\\', '/')}`;
     console.log('Navigating to ', url);
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await new Promise(resolve => setTimeout(resolve, 5000));

@@ -48,11 +48,11 @@ export class ResultsAnalyzer {
       items.push({ metric: metric, value: new AnalyzerItemNumberValue(unit, valueA, valueB) })
     }
 
-    pushIfDefined(AnalyzerItemMetric.lcp, AnalyzerItemUnit.ms, aStats.lcp, bStats.lcp);
-    pushIfDefined(AnalyzerItemMetric.cls, AnalyzerItemUnit.ms, aStats.cls, bStats.cls);
-    pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, aStats.cpu, bStats.cpu);
-    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, aStats.memoryMean, bStats.memoryMean);
-    pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, aStats.memoryMax, bStats.memoryMax);
+    pushIfDefined(AnalyzerItemMetric.lcp, AnalyzerItemUnit.ms, aStats.mean(MetricsStats.lcp), bStats.mean(MetricsStats.lcp));
+    pushIfDefined(AnalyzerItemMetric.cls, AnalyzerItemUnit.ms, aStats.mean(MetricsStats.cls), bStats.mean(MetricsStats.cls));
+    pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, aStats.mean(MetricsStats.cpu), bStats.mean(MetricsStats.cpu));
+    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, aStats.mean(MetricsStats.memoryMean), bStats.mean(MetricsStats.memoryMean));
+    pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, aStats.max(MetricsStats.memoryMax), bStats.max(MetricsStats.memoryMax));
 
     return items.filter((item) => item.value != undefined);
   }

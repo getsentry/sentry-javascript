@@ -9,7 +9,7 @@ const result = await collector.execute({
   b: new JankTestScenario(true),
   runs: 1,
   tries: 1,
-  async test(_aResults: Metrics[], _bResults: Metrics[]) {
+  async shouldAccept(_results: Metrics[]): Promise<boolean> {
     return true;
   },
 });

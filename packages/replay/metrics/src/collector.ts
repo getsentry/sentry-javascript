@@ -6,6 +6,7 @@ import { JsHeapUsage, JsHeapUsageSampler, JsHeapUsageSerialized } from './perf/m
 import { PerfMetricsSampler } from './perf/sampler.js';
 import { Result } from './results/result.js';
 import { Scenario, TestCase } from './scenarios.js';
+import { consoleGroup } from './util/console.js';
 import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
 const cpuThrottling = 4;
@@ -55,37 +56,38 @@ export class MetricsCollector {
 
   public async execute(testCase: TestCase): Promise<Result> {
     console.log(`Executing test case ${testCase.name}`);
-    console.group();
-    for (let i = 1; i <= testCase.tries; i++) {
-      const aResults = await this._collect('A', testCase.a, testCase.runs);
-      const bResults = await this._collect('B', testCase.b, testCase.runs);
-      if (await testCase.test(aResults, bResults)) {
-        console.groupEnd();
-        console.log(`Test case ${testCase.name} passed on try ${i}/${testCase.tries}`);
-        return new Result(testCase.name, cpuThrottling, networkConditions, aResults, bResults);
-      } else if (i != testCase.tries) {
-        console.log(`Test case ${testCase.name} failed on try ${i}/${testCase.tries}`);
-      } else {
-        console.groupEnd();
-        console.error(`Test case ${testCase.name} failed`);
-      }
-    }
-    throw `Test case execution ${testCase.name} failed after ${testCase.tries} tries.`;
+    return consoleGroup(async () => {
+      const aResults = await this._collect(testCase, 'A', testCase.a);
+      const bResults = await this._collect(testCase, 'B', testCase.b);
+      return new Result(testCase.name, cpuThrottling, networkConditions, aResults, bResults);
+    });
   }
 
-  private async _collect(name: string, scenario: Scenario, runs: number): Promise<Metrics[]> {
-    const label = `Scenario ${name} data collection (total ${runs} runs)`;
-    console.time(label);
-    const results: Metrics[] = [];
-    for (let run = 0; run < runs; run++) {
-      const innerLabel = `Scenario ${name} data collection, run ${run}/${runs}`;
-      console.time(innerLabel);
-      results.push(await this._run(scenario));
-      console.timeEnd(innerLabel);
+  private async _collect(testCase: TestCase, name: string, scenario: Scenario): Promise<Metrics[]> {
+    const label = `Scenario ${name} data collection (total ${testCase.runs} runs)`;
+    for (let try_ = 1; try_ <= testCase.tries; try_++) {
+      console.time(label);
+      const results: Metrics[] = [];
+      for (let run = 1; run <= testCase.runs; run++) {
+        const innerLabel = `Scenario ${name} data collection, run ${run}/${testCase.runs}`;
+        console.time(innerLabel);
+        results.push(await this._run(scenario));
+        console.timeEnd(innerLabel);
+      }
+      console.timeEnd(label);
+      assert.strictEqual(results.length, testCase.runs);
+      if (await testCase.shouldAccept(results)) {
+        console.log(`Test case ${testCase.name}, scenario ${name} passed on try ${try_}/${testCase.tries}`);
+        return results;
+      } else if (try_ != testCase.tries) {
+        console.log(`Test case ${testCase.name} failed on try ${try_}/${testCase.tries}, retrying`);
+      } else {
+        throw `Test case ${testCase.name}, scenario ${name} failed after ${testCase.tries} tries.`;
+      }
     }
-    console.timeEnd(label);
-    assert.strictEqual(results.length, runs);
-    return results;
+    // Unreachable code, if configured properly:
+    console.assert(testCase.tries >= 1);
+    return [];
   }
 
   private async _run(scenario: Scenario): Promise<Metrics> {
