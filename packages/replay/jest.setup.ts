@@ -15,27 +15,6 @@ jest.mock('./src/util/isBrowser', () => {
   };
 });
 
-afterEach(() => {
-  const hub = getCurrentHub();
-  if (typeof hub?.getClient !== 'function') {
-    // Potentially not a function due to partial mocks
-    return;
-  }
-
-  const client = hub?.getClient();
-  // This can be weirded up by mocks/tests
-  if (
-    !client ||
-    !client.getTransport ||
-    typeof client.getTransport !== 'function' ||
-    typeof client.getTransport()?.send !== 'function'
-  ) {
-    return;
-  }
-
-  (client.getTransport()?.send as MockTransport).mockClear();
-});
-
 type EnvelopeHeader = {
   event_id: string;
   sent_at: string;
