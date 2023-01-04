@@ -1,13 +1,13 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { createPerformanceEntries } from '../../src/createPerformanceEntry';
+import { ReplayContainer } from '../../src/replay';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { clearSession } from '../utils/clearSession';
-import { createPerformanceEntries } from './../../src/createPerformanceEntry';
-import { ReplayContainer } from './../../src/replay';
-import { useFakeTimers } from './../../test/utils/use-fake-timers';
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 

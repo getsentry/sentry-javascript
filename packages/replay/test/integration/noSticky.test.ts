@@ -3,11 +3,11 @@ import { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
+import { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { clearSession } from '../utils/clearSession';
-import { ReplayContainer } from './../../src/replay';
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
-import { useFakeTimers } from './../utils/use-fake-timers';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 

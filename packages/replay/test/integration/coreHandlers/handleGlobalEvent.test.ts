@@ -1,14 +1,17 @@
 import { getCurrentHub } from '@sentry/core';
 import { Event } from '@sentry/types';
 
-import { REPLAY_EVENT_NAME } from '../../src/constants';
-import { handleGlobalEventListener } from '../../src/coreHandlers/handleGlobalEvent';
-import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from '../../src/util/monkeyPatchRecordDroppedEvent';
-import { ReplayContainer } from './../../src/replay';
-import { Error } from './../fixtures/error';
-import { Transaction } from './../fixtures/transaction';
-import { resetSdkMock } from './../mocks/resetSdkMock';
-import { useFakeTimers } from './../utils/use-fake-timers';
+import { REPLAY_EVENT_NAME } from '../../../src/constants';
+import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
+import { ReplayContainer } from '../../../src/replay';
+import {
+  overwriteRecordDroppedEvent,
+  restoreRecordDroppedEvent,
+} from '../../../src/util/monkeyPatchRecordDroppedEvent';
+import { Error } from '../../fixtures/error';
+import { Transaction } from '../../fixtures/transaction';
+import { resetSdkMock } from '../../mocks/resetSdkMock';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
 let replay: ReplayContainer;

@@ -14,12 +14,12 @@ import { ReplayContainer } from '../../src/replay';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
+import { BASE_TIMESTAMP, RecordMock } from '../index';
+import { resetSdkMock } from '../mocks/resetSdkMock';
+import { DomHandler } from '../types';
 import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
-import { BASE_TIMESTAMP, RecordMock } from './../index';
-import { resetSdkMock } from './../mocks/resetSdkMock';
-import { DomHandler } from './../types';
 
 useFakeTimers();
 

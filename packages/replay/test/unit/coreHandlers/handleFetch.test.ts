@@ -1,9 +1,4 @@
 import { handleFetch } from '../../../src/coreHandlers/handleFetch';
-import { mockSdk } from './../../index';
-
-beforeAll(function () {
-  mockSdk();
-});
 
 const DEFAULT_DATA = {
   args: ['/api/0/organizations/sentry/', { method: 'GET', headers: {}, credentials: 'include' }] as Parameters<

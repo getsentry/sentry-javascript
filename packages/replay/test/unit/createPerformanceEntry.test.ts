@@ -1,9 +1,4 @@
 import { createPerformanceEntries } from '../../src/createPerformanceEntry';
-import { mockSdk } from './../index';
-
-beforeAll(function () {
-  mockSdk();
-});
 
 it('ignores sdks own requests', function () {
   const data = {
