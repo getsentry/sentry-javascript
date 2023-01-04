@@ -16,6 +16,14 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const frames: StackFrame[] = [];
 
     for (const line of stack.split('\n').slice(skipFirst)) {
+      // Ignore lines over 1kb as they are unlikely to be stack frames.
+      // Many of the regular expressions use backtracking which results in run time that increases exponentially with
+      // input size. Huge strings can result in hangs/Denial of Service:
+      // https://github.com/getsentry/sentry-javascript/issues/2286
+      if (line.length > 1024) {
+        continue;
+      }
+
       // https://github.com/getsentry/sentry-javascript/issues/5459
       // Remove webpack (error: *) wrappers
       const cleanedLine = line.replace(/\(error: (.*)\)/, '$1');
