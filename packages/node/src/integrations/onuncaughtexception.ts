@@ -29,7 +29,7 @@ interface OnUncaughtExceptionOptions {
    * `onFatalError` itself threw, or because an independent error happened somewhere else while `onFatalError`
    * was running.
    */
-  onFatalError?(firstError: Error, secondError?: Error): void;
+  onFatalError?(this: void, firstError: Error, secondError?: Error): void;
 }
 
 /** Global Exception handler */
@@ -84,10 +84,8 @@ export class OnUncaughtException implements Integration {
       const client = getCurrentHub().getClient<NodeClient>();
 
       if (this._options.onFatalError) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         onFatalError = this._options.onFatalError;
       } else if (client && client.getOptions().onFatalError) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         onFatalError = client.getOptions().onFatalError as OnFatalErrorHandler;
       }
 

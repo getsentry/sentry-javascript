@@ -43,12 +43,12 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public destroy(): void {
-    this._events = [];
-  }
-
   public get length(): number {
     return this._events.length;
+  }
+
+  public destroy(): void {
+    this._events = [];
   }
 
   public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
@@ -82,18 +82,18 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._worker = worker;
   }
 
-  public destroy(): void {
-    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
-    this._worker?.terminate();
-    this._worker = null;
-  }
-
   /**
    * Note that this may not reflect what is actually in the event buffer. This
    * is only a local count of the buffer size since `addEvent` is async.
    */
   public get length(): number {
     return this._eventBufferItemLength;
+  }
+
+  public destroy(): void {
+    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
+    this._worker?.terminate();
+    this._worker = null;
   }
 
   public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {

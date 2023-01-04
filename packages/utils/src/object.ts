@@ -99,9 +99,7 @@ export function urlEncode(object: { [key: string]: any }): string {
  * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
  *  an Error.
  */
-export function convertToPlainObject<V extends unknown>(
-  value: V,
-):
+export function convertToPlainObject<V>(value: V):
   | {
       [ownProps: string]: unknown;
       type: string;

@@ -63,7 +63,8 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   // TODO(v7): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
   // versions(>= 8) as they had memory leaks when using it: #2555
   const agent = proxy
-    ? (new (require('https-proxy-agent'))(proxy) as http.Agent)
+    ? // eslint-disable-next-line @typescript-eslint/no-var-requires
+      (new (require('https-proxy-agent'))(proxy) as http.Agent)
     : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);

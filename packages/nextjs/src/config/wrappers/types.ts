@@ -23,14 +23,14 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 // wrapped route from being wrapped again by the auto-wrapper.
 
 export type NextApiHandler = {
-  __sentry_route__?: string;
   (req: NextApiRequest, res: NextApiResponse): void | Promise<void> | unknown | Promise<unknown>;
+  __sentry_route__?: string;
 };
 
 export type WrappedNextApiHandler = {
+  (req: NextApiRequest, res: NextApiResponse): Promise<void> | Promise<unknown>;
   __sentry_route__?: string;
   __sentry_wrapped__?: boolean;
-  (req: NextApiRequest, res: NextApiResponse): Promise<void> | Promise<unknown>;
 };
 
 export type AugmentedNextApiRequest = NextApiRequest & {

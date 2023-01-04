@@ -44,7 +44,7 @@ export type BaseEnvelopeItemHeaders = {
   length?: number;
 };
 
-type BaseEnvelopeItem<ItemHeader, P extends unknown> = [ItemHeader & BaseEnvelopeItemHeaders, P]; // P is for payload
+type BaseEnvelopeItem<ItemHeader, P> = [ItemHeader & BaseEnvelopeItemHeaders, P]; // P is for payload
 
 type BaseEnvelope<EnvelopeHeader, Item> = [
   EnvelopeHeader & BaseEnvelopeHeaders,
