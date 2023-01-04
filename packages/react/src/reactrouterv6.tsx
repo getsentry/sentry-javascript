@@ -131,17 +131,8 @@ function handleNavigation(
   location: Location,
   routes: RouteObject[],
   navigationType: Action,
-  isBaseLocation: boolean,
   matches?: AgnosticDataRouteMatch,
 ): void {
-  if (isBaseLocation) {
-    if (activeTransaction) {
-      activeTransaction.finish();
-    }
-
-    return;
-  }
-
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location);
 
   if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
@@ -179,28 +170,27 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
     return Routes;
   }
 
-  let isBaseLocation: boolean = false;
-  let routes: RouteObject[];
+  let isMountRenderPass: boolean = true;
 
   const SentryRoutes: React.FC<P> = (props: P) => {
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
-    _useEffect(() => {
-      // Performance concern:
-      // This is repeated when <Routes /> is rendered.
-      routes = _createRoutesFromChildren(props.children) as RouteObject[];
-      isBaseLocation = true;
+    _useEffect(
+      () => {
+        const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
-      updatePageloadTransaction(location, routes);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.children]);
-
-    _useEffect(() => {
-      handleNavigation(location, routes, navigationType, isBaseLocation);
-    }, [props.children, location, navigationType, isBaseLocation]);
-
-    isBaseLocation = false;
+        if (isMountRenderPass) {
+          updatePageloadTransaction(location, routes);
+          isMountRenderPass = false;
+        } else {
+          handleNavigation(location, routes, navigationType);
+        }
+      },
+      // `props.children` is purpusely not included in the dependency array, because we do not want to re-run this effect
+      // when the children change. We only want to start transactions when the location or navigation type change.
+      [location, navigationType],
+    );
 
     // @ts-ignore Setting more specific React Component typing for `R` generic above
     // will break advanced type inference done by react router params
@@ -224,28 +214,33 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let isBaseLocation: boolean = false;
+  let isMountRenderPass: boolean = true;
 
   // eslint-disable-next-line react/display-name
-  return (routes: RouteObject[], location?: Partial<Location> | string): React.ReactElement | null => {
-    const SentryRoutes: React.FC<unknown> = (props: unknown) => {
-      const Routes = origUseRoutes(routes, location);
+  return (routes: RouteObject[], locationArg?: Partial<Location> | string): React.ReactElement | null => {
+    const SentryRoutes: React.FC<unknown> = () => {
+      const Routes = origUseRoutes(routes, locationArg);
 
-      const locationArgObject = typeof location === 'string' ? { pathname: location } : location;
-      const locationObject = (locationArgObject as Location) || _useLocation();
+      const location = _useLocation();
       const navigationType = _useNavigationType();
 
+      // A value with stable identity to either pick `locationArg` if available or `location` if not
+      const stableLocationParam =
+        typeof locationArg === 'string' || locationArg?.pathname !== undefined
+          ? (locationArg as { pathname: string })
+          : location;
+
       _useEffect(() => {
-        isBaseLocation = true;
+        const normalizedLocation =
+          typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
-        updatePageloadTransaction(locationObject, routes);
-      }, [props]);
-
-      _useEffect(() => {
-        handleNavigation(locationObject, routes, navigationType, isBaseLocation);
-      }, [props, locationObject, navigationType, isBaseLocation]);
-
-      isBaseLocation = false;
+        if (isMountRenderPass) {
+          updatePageloadTransaction(normalizedLocation, routes);
+          isMountRenderPass = false;
+        } else {
+          handleNavigation(normalizedLocation, routes, navigationType);
+        }
+      }, [navigationType, stableLocationParam]);
 
       return Routes;
     };
@@ -275,7 +270,7 @@ export function wrapCreateBrowserRouter(createRouterFunction: CreateRouterFuncti
         (state.historyAction === 'PUSH' || state.historyAction === 'POP') &&
         activeTransaction
       ) {
-        handleNavigation(location, routes, state.historyAction, false);
+        handleNavigation(location, routes, state.historyAction);
       }
     });
 
