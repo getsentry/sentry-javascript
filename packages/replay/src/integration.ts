@@ -5,7 +5,7 @@ import { Integration } from '@sentry/types';
 import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
-import { isBrowser, isElectronNodeRenderer } from './util/isBrowser';
+import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
 
@@ -120,7 +120,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    if (this._isInitialized && (isBrowser() || isElectronNodeRenderer())) {
+    if (this._isInitialized && isBrowser()) {
       throw new Error('Multiple Sentry Session Replay instances are not supported');
     }
 
@@ -138,7 +138,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * here to avoid any future issues.
    */
   setupOnce(): void {
-    if (!isBrowser() && !isElectronNodeRenderer()) {
+    if (!isBrowser()) {
       return;
     }
 
