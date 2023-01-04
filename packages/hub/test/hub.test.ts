@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable deprecation/deprecation */
 
-import { Client, Event } from '@sentry/types';
-import { EventType } from '@sentry/types/build/types/event';
+import { Client, Event, EventType } from '@sentry/types';
 
 import { getCurrentHub, Hub, Scope } from '../src';
 
