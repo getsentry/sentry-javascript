@@ -8,14 +8,15 @@ const latestResult = Result.readFromFile(latestResultFile);
 
 const analysis = await ResultsAnalyzer.analyze(latestResult, resultsSet);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const table: { [k: string]: any } = {};
 for (const item of analysis.items) {
-  const printable: { [k: string]: any } = {};
-  printable.value = item.value.asString();
-  if (item.other != undefined) {
-    printable.previous = item.other.asString();
-  }
-  table[AnalyzerItemMetric[item.metric]] = printable;
+  table[AnalyzerItemMetric[item.metric]] = {
+    value: item.value.asString(),
+    ...((item.other == undefined) ? {} : {
+      previous: item.other.asString()
+    })
+  };
 }
 console.table(table);
 

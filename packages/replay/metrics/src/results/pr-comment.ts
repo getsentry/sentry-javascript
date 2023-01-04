@@ -1,7 +1,7 @@
-import { Git } from "../util/git.js";
-import { Analysis, AnalyzerItemMetric, ResultsAnalyzer } from "./analyzer.js";
-import { Result } from "./result.js";
-import { ResultSetItem } from "./results-set.js";
+import { Git } from '../util/git.js';
+import { Analysis, AnalyzerItemMetric, ResultsAnalyzer } from './analyzer.js';
+import { Result } from './result.js';
+import { ResultSetItem } from './results-set.js';
 
 function trimIndent(str: string): string {
   return str.split('\n').map(s => s.trim()).join('\n');
@@ -25,14 +25,14 @@ function printableMetricName(metric: AnalyzerItemMetric): string {
 }
 
 export class PrCommentBuilder {
-  private buffer = '';
+  private _buffer: string = '';
 
   public get title(): string {
     return 'Replay SDK metrics :rocket:';
   }
 
   public get body(): string {
-    return trimIndent(this.buffer);
+    return trimIndent(this._buffer);
   }
 
   public async addCurrentResult(analysis: Analysis, otherName: string): Promise<void> {
@@ -44,32 +44,32 @@ export class PrCommentBuilder {
       return content();
     }
 
-    this.buffer += `
+    this._buffer += `
       <h2>${this.title}</h2>
       <table>
         <tr>
           <th>&nbsp;</th>
           <th align="right">This PR (${await Git.hash})</th>
-          ${maybeOther(() => '<th align="right">' + otherName + ' (' + analysis.otherHash + ')</a></th>')}
+          ${maybeOther(() => `<th align="right">${  otherName  } (${  analysis.otherHash  })</a></th>`)}
         </tr>`
 
     for (const item of analysis.items) {
-      this.buffer += `
+      this._buffer += `
         <tr>
           <th>${printableMetricName(item.metric)}</th>
           <td align="right">${item.value.asString()}</td>
-          ${maybeOther(() => '<td align="right">' + item.other!.asString() + '</td>')}
+          ${maybeOther(() => `<td align="right">${  item.other!.asString()  }</td>`)}
         </tr>`
     }
 
-    this.buffer += `
+    this._buffer += `
       </table>`;
   }
 
-  public async addAdditionalResultsSet(name: String, resultFiles: ResultSetItem[]): Promise<void> {
+  public async addAdditionalResultsSet(name: string, resultFiles: ResultSetItem[]): Promise<void> {
     if (resultFiles.length == 0) return;
 
-    this.buffer += `
+    this._buffer += `
       <details>
         <summary><h3>${name}</h3></summary>
         <table>`;
@@ -82,22 +82,22 @@ export class PrCommentBuilder {
 
       if (i == 0) {
         // Add table header
-        this.buffer += '<tr><th>Revision</th>';
+        this._buffer += '<tr><th>Revision</th>';
         for (const item of analysis.items) {
-          this.buffer += `<th align="right">${printableMetricName(item.metric)}</th>`;
+          this._buffer += `<th align="right">${printableMetricName(item.metric)}</th>`;
         }
-        this.buffer += '</tr>';
+        this._buffer += '</tr>';
       }
 
       // Add table row
-      this.buffer += `<tr><th>${resultFile.hash}</th>`;
+      this._buffer += `<tr><th>${resultFile.hash}</th>`;
       for (const item of analysis.items) {
-        this.buffer += `<td align="right">${item.value.asString()}</td>`;
+        this._buffer += `<td align="right">${item.value.asString()}</td>`;
       }
-      this.buffer += '</tr>';
+      this._buffer += '</tr>';
     }
 
-    this.buffer += `
+    this._buffer += `
         </table>
       </details>`;
   }

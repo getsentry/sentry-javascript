@@ -1,17 +1,20 @@
+import { JsonObject } from '../util/json.js';
 import { PerfMetrics, PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
 export { JsHeapUsageSampler, JsHeapUsage }
 
+export type JsHeapUsageSerialized = Partial<{ snapshots: JsonObject<number> }>;
+
 class JsHeapUsage {
   public constructor(public snapshots: TimeBasedMap<number>) { }
 
-  public static fromJSON(data: Partial<JsHeapUsage>): JsHeapUsage {
-    return new JsHeapUsage(TimeBasedMap.fromJSON<number>(data.snapshots || []));
+  public static fromJSON(data: JsHeapUsageSerialized): JsHeapUsage {
+    return new JsHeapUsage(TimeBasedMap.fromJSON<number>(data.snapshots || {}));
   }
 }
 
 class JsHeapUsageSampler {
-  private _snapshots = new TimeBasedMap<number>();
+  private _snapshots: TimeBasedMap<number> = new TimeBasedMap<number>();
 
   public constructor(sampler: PerfMetricsSampler) {
     sampler.subscribe(this._collect.bind(this));

@@ -56,7 +56,7 @@ export const Git = {
   get hash(): Promise<GitHash> {
     return (async () => {
       let gitHash = await git.revparse('HEAD');
-      let diff = await git.diff();
+      const diff = await git.diff();
       if (diff.trim().length > 0) {
         gitHash += '+dirty';
       }

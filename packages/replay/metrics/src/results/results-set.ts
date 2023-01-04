@@ -1,6 +1,7 @@
 import assert from 'assert';
 import * as fs from 'fs';
 import path from 'path';
+
 import { Git, GitHash } from '../util/git.js';
 import { Result } from './result.js';
 
@@ -29,35 +30,30 @@ export class ResultSetItem {
 /// Wraps a directory containing multiple (N-<git-hash>-result.json) files.
 /// The files are numbered from the most recently added one, to the oldest one.
 export class ResultsSet {
-  public constructor(private directory: string) {
-    if (!fs.existsSync(directory)) {
-      fs.mkdirSync(directory, { recursive: true });
+  public constructor(private _directory: string) {
+    if (!fs.existsSync(_directory)) {
+      fs.mkdirSync(_directory, { recursive: true });
     }
   }
 
   public find(predicate: (value: Result) => boolean): [GitHash, Result] | undefined {
-    const items = this.items();
-    for (let i = 0; i < items.length; i++) {
-      const result = Result.readFromFile(items[i].path);
+    for (const item of this.items()) {
+      const result = Result.readFromFile(item.path);
       if (predicate(result)) {
-        return [items[i].hash, result];
+        return [item.hash, result];
       }
     }
     return undefined;
   }
 
   public items(): ResultSetItem[] {
-    return this.files().map((file) => {
-      return new ResultSetItem(path.join(this.directory, file.name));
+    return this._files().map((file) => {
+      return new ResultSetItem(path.join(this._directory, file.name));
     }).filter((item) => !isNaN(item.number));
   }
 
-  private files(): fs.Dirent[] {
-    return fs.readdirSync(this.directory, { withFileTypes: true }).filter((v) => v.isFile())
-  }
-
   public async add(newFile: string, onlyIfDifferent: boolean = false): Promise<void> {
-    console.log(`Preparing to add ${newFile} to ${this.directory}`);
+    console.log(`Preparing to add ${newFile} to ${this._directory}`);
     assert(fs.existsSync(newFile));
 
     // Get the list of file sorted by the prefix number in the descending order (starting with the oldest files).
@@ -75,13 +71,17 @@ export class ResultsSet {
     for (const file of files) {
       const parts = file.name.split(delimiter);
       parts[0] = (file.number + 1).toString();
-      const newPath = path.join(this.directory, parts.join(delimiter));
+      const newPath = path.join(this._directory, parts.join(delimiter));
       console.log(`Renaming ${file.path} to ${newPath}`);
       fs.renameSync(file.path, newPath);
     }
 
     const newName = `1${delimiter}${await Git.hash}${delimiter}result.json`;
-    console.log(`Adding ${newFile} to ${this.directory} as ${newName}`);
-    fs.copyFileSync(newFile, path.join(this.directory, newName));
+    console.log(`Adding ${newFile} to ${this._directory} as ${newName}`);
+    fs.copyFileSync(newFile, path.join(this._directory, newName));
+  }
+
+  private _files(): fs.Dirent[] {
+    return fs.readdirSync(this._directory, { withFileTypes: true }).filter((v) => v.isFile())
   }
 }

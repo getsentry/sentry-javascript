@@ -1,8 +1,9 @@
+import assert from 'assert';
+import * as fs from 'fs';
 import path from 'path';
 import * as playwright from 'playwright';
-import * as fs from 'fs';
+
 import { Metrics } from './collector';
-import assert from 'assert';
 
 // A testing scenario we want to collect metrics for.
 export interface Scenario {
@@ -33,12 +34,12 @@ export class LoadPageScenario implements Scenario {
 
 // Loads test-apps/jank/ as a page source & waits for a short time before quitting.
 export class JankTestScenario implements Scenario {
-  public constructor(private withSentry: boolean) { }
+  public constructor(private _withSentry: boolean) { }
 
   public async run(_: playwright.Browser, page: playwright.Page): Promise<void> {
-    let url = path.resolve('./test-apps/jank/' + (this.withSentry ? 'with-sentry' : 'index') + '.html');
+    let url = path.resolve(`./test-apps/jank/${  this._withSentry ? 'with-sentry' : 'index'  }.html`);
     assert(fs.existsSync(url));
-    url = 'file:///' + url.replace('\\', '/');
+    url = `file:///${  url.replace('\\', '/')}`;
     console.log('Navigating to ', url);
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await new Promise(resolve => setTimeout(resolve, 5000));

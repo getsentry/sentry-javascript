@@ -1,13 +1,16 @@
+import { filesize } from 'filesize';
+
 import { GitHash } from '../util/git.js';
+import { MetricsStats } from './metrics-stats.js';
 import { Result } from './result.js';
 import { ResultsSet } from './results-set.js';
-import { MetricsStats } from './metrics-stats.js';
-import { filesize } from "filesize";
 
 // Compares latest result to previous/baseline results and produces the needed info.
 export class ResultsAnalyzer {
+  private constructor(private _result: Result) { }
+
   public static async analyze(currentResult: Result, baselineResults?: ResultsSet): Promise<Analysis> {
-    const items = new ResultsAnalyzer(currentResult).collect();
+    const items = new ResultsAnalyzer(currentResult)._collect();
 
     const baseline = baselineResults?.find(
       (other) => other.cpuThrottling == currentResult.cpuThrottling &&
@@ -16,7 +19,7 @@ export class ResultsAnalyzer {
 
     let otherHash: GitHash | undefined
     if (baseline != undefined) {
-      const baseItems = new ResultsAnalyzer(baseline[1]).collect();
+      const baseItems = new ResultsAnalyzer(baseline[1])._collect();
       // update items with baseline results
       for (const base of baseItems) {
         for (const item of items) {
@@ -34,15 +37,13 @@ export class ResultsAnalyzer {
     };
   }
 
-  private constructor(private result: Result) { }
-
-  private collect(): AnalyzerItem[] {
+  private _collect(): AnalyzerItem[] {
     const items = new Array<AnalyzerItem>();
 
-    const aStats = new MetricsStats(this.result.aResults);
-    const bStats = new MetricsStats(this.result.bResults);
+    const aStats = new MetricsStats(this._result.aResults);
+    const bStats = new MetricsStats(this._result.bResults);
 
-    const pushIfDefined = function (metric: AnalyzerItemMetric, unit: AnalyzerItemUnit, valueA?: number, valueB?: number) {
+    const pushIfDefined = function (metric: AnalyzerItemMetric, unit: AnalyzerItemUnit, valueA?: number, valueB?: number): void {
       if (valueA == undefined || valueB == undefined) return;
 
       items.push({
@@ -59,9 +60,9 @@ export class ResultsAnalyzer {
               case AnalyzerItemUnit.bytes:
                 return prefix + filesize(diff);
               case AnalyzerItemUnit.ratio:
-                return prefix + (diff * 100).toFixed(2) + ' %';
+                return `${prefix + (diff * 100).toFixed(2)} %`;
               default:
-                return prefix + diff.toFixed(2) + ' ' + AnalyzerItemUnit[unit];
+                return `${prefix + diff.toFixed(2)} ${AnalyzerItemUnit[unit]}`;
             }
           }
         }

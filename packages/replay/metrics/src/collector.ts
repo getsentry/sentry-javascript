@@ -1,8 +1,8 @@
 import assert from 'assert';
 import * as playwright from 'playwright';
 
-import { CpuUsage, CpuUsageSampler } from './perf/cpu.js';
-import { JsHeapUsage, JsHeapUsageSampler } from './perf/memory.js';
+import { CpuUsage, CpuUsageSampler, CpuUsageSerialized } from './perf/cpu.js';
+import { JsHeapUsage, JsHeapUsageSampler, JsHeapUsageSerialized } from './perf/memory.js';
 import { PerfMetricsSampler } from './perf/sampler.js';
 import { Result } from './results/result.js';
 import { Scenario, TestCase } from './scenarios.js';
@@ -30,7 +30,7 @@ const PredefinedNetworkConditions = Object.freeze({
 export class Metrics {
   constructor(public readonly vitals: WebVitals, public readonly cpu: CpuUsage, public readonly memory: JsHeapUsage) { }
 
-  public static fromJSON(data: Partial<Metrics>): Metrics {
+  public static fromJSON(data: Partial<{ vitals: Partial<WebVitals>, cpu: CpuUsageSerialized, memory: JsHeapUsageSerialized }>): Metrics {
     return new Metrics(
       WebVitals.fromJSON(data.vitals || {}),
       CpuUsage.fromJSON(data.cpu || {}),
@@ -44,10 +44,10 @@ export interface MetricsCollectorOptions {
 }
 
 export class MetricsCollector {
-  private options: MetricsCollectorOptions;
+  private _options: MetricsCollectorOptions;
 
   constructor(options?: Partial<MetricsCollectorOptions>) {
-    this.options = {
+    this._options = {
       headless: false,
       ...options
     };
@@ -57,8 +57,8 @@ export class MetricsCollector {
     console.log(`Executing test case ${testCase.name}`);
     console.group();
     for (let i = 1; i <= testCase.tries; i++) {
-      let aResults = await this.collect('A', testCase.a, testCase.runs);
-      let bResults = await this.collect('B', testCase.b, testCase.runs);
+      const aResults = await this._collect('A', testCase.a, testCase.runs);
+      const bResults = await this._collect('B', testCase.b, testCase.runs);
       if (await testCase.test(aResults, bResults)) {
         console.groupEnd();
         console.log(`Test case ${testCase.name} passed on try ${i}/${testCase.tries}`);
@@ -73,26 +73,26 @@ export class MetricsCollector {
     throw `Test case execution ${testCase.name} failed after ${testCase.tries} tries.`;
   }
 
-  private async collect(name: string, scenario: Scenario, runs: number): Promise<Metrics[]> {
+  private async _collect(name: string, scenario: Scenario, runs: number): Promise<Metrics[]> {
     const label = `Scenario ${name} data collection (total ${runs} runs)`;
     console.time(label);
     const results: Metrics[] = [];
     for (let run = 0; run < runs; run++) {
-      let innerLabel = `Scenario ${name} data collection, run ${run}/${runs}`;
+      const innerLabel = `Scenario ${name} data collection, run ${run}/${runs}`;
       console.time(innerLabel);
-      results.push(await this.run(scenario));
+      results.push(await this._run(scenario));
       console.timeEnd(innerLabel);
     }
     console.timeEnd(label);
-    assert.equal(results.length, runs);
+    assert.strictEqual(results.length, runs);
     return results;
   }
 
-  private async run(scenario: Scenario): Promise<Metrics> {
+  private async _run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
       const browser = await playwright.chromium.launch({
-        headless: this.options.headless,
+        headless: this._options.headless,
 
       });
       disposeCallbacks.push(async () => browser.close());

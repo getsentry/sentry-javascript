@@ -1,13 +1,16 @@
+import { JsonObject } from '../util/json.js';
 import { PerfMetrics, PerfMetricsSampler, TimeBasedMap } from './sampler.js';
 
 export { CpuUsageSampler, CpuUsage }
 
+export type CpuUsageSerialized = Partial<{ snapshots: JsonObject<number>, average: number }>;
+
 class CpuUsage {
   constructor(public snapshots: TimeBasedMap<number>, public average: number) { };
 
-  public static fromJSON(data: Partial<CpuUsage>): CpuUsage {
+  public static fromJSON(data: CpuUsageSerialized): CpuUsage {
     return new CpuUsage(
-      TimeBasedMap.fromJSON<number>(data.snapshots || []),
+      TimeBasedMap.fromJSON<number>(data.snapshots || {}),
       data.average as number,
     );
   }
@@ -18,7 +21,7 @@ class MetricsDataPoint {
 }
 
 class CpuUsageSampler {
-  private _snapshots = new TimeBasedMap<number>();
+  private _snapshots: TimeBasedMap<number> = new TimeBasedMap<number>();
   private _average: number = 0;
   private _initial?: MetricsDataPoint = undefined;
   private _startTime!: number;
@@ -40,7 +43,7 @@ class CpuUsageSampler {
       this._startTime = data.timestamp;
     } else {
       const frameDuration = data.timestamp - this._lastTimestamp;
-      let usage = frameDuration == 0 ? 0 : (data.activeTime - this._cumulativeActiveTime) / frameDuration;
+      const usage = frameDuration == 0 ? 0 : (data.activeTime - this._cumulativeActiveTime) / frameDuration;
 
       this._snapshots.set(data.timestamp, usage);
       this._average = data.activeTime / (data.timestamp - this._startTime);

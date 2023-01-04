@@ -1,23 +1,24 @@
-import * as fs from 'fs';
-import { Octokit } from "@octokit/rest";
-import { Git } from './git.js';
-import path from 'path';
-import Axios from 'axios';
+import { Octokit } from '@octokit/rest';
+import axios from 'axios';
 import extract from 'extract-zip';
-import { consoleGroup } from './console.js';
+import * as fs from 'fs';
+import path from 'path';
+
 import { PrCommentBuilder } from '../results/pr-comment.js';
+import { consoleGroup } from './console.js';
+import { Git } from './git.js';
 
 const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
   // log: console,
 });
 
-const [_, owner, repo] = (await Git.repository).split('/');
+const [, owner, repo] = (await Git.repository).split('/');
 const defaultArgs = { owner, repo }
 
 async function downloadArtifact(url: string, path: string): Promise<void> {
   const writer = fs.createWriteStream(path);
-  return Axios({
+  return axios({
     method: 'get',
     url: url,
     responseType: 'stream',
@@ -26,6 +27,7 @@ async function downloadArtifact(url: string, path: string): Promise<void> {
     }
   }).then(response => {
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       response.data.pipe(writer);
       let error: Error;
       writer.on('error', err => {
@@ -41,7 +43,7 @@ async function downloadArtifact(url: string, path: string): Promise<void> {
 }
 
 export const GitHub = {
-  writeOutput(name: string, value: any): void {
+  writeOutput(name: string, value: string): void {
     if (typeof process.env.GITHUB_OUTPUT == 'string' && process.env.GITHUB_OUTPUT.length > 0) {
       fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
     }
@@ -53,9 +55,9 @@ export const GitHub = {
     return consoleGroup(async () => {
       fs.mkdirSync(targetDir, { recursive: true });
 
-      var workflow = await (async () => {
+      const workflow = await (async () => {
         for await (const workflows of octokit.paginate.iterator(octokit.rest.actions.listRepoWorkflows, defaultArgs)) {
-          let found = workflows.data.find((w) => w.name == process.env.GITHUB_WORKFLOW);
+          const found = workflows.data.find((w) => w.name == process.env.GITHUB_WORKFLOW);
           if (found) return found;
         }
         return undefined;
@@ -119,16 +121,15 @@ export const GitHub = {
         For example, refs/heads/feature-branch-1.
       */
       let prNumber: number | undefined;
-      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0 && process.env.GITHUB_REF.startsWith("refs/pull/")) {
+      if (typeof process.env.GITHUB_REF == 'string' && process.env.GITHUB_REF.length > 0 && process.env.GITHUB_REF.startsWith('refs/pull/')) {
         prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
         console.log(`Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`);
       } else {
-        const pr = await octokit.rest.pulls.list({
+        prNumber = (await octokit.rest.pulls.list({
           ...defaultArgs,
           base: await Git.baseBranch,
           head: await Git.branch
-        });
-        prNumber = pr.data.at(0)?.number;
+        })).data[0].number;
         if (prNumber != undefined) {
           console.log(`Found PR number ${prNumber} based on base and head branches`);
         }
@@ -149,7 +150,7 @@ export const GitHub = {
       const author = typeof process.env.GITHUB_ACTION == 'string' ? 'github-actions[bot]' : (await octokit.users.getAuthenticated()).data.login;
 
       // Try to find an existing comment by the author and title.
-      var comment = await (async () => {
+      const comment = await (async () => {
         for await (const comments of octokit.paginate.iterator(octokit.rest.issues.listComments, {
           ...defaultArgs,
           issue_number: prNumber,

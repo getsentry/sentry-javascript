@@ -1,13 +1,14 @@
-import { Metrics } from '../collector';
 import * as ss from 'simple-statistics'
+
+import { Metrics } from '../collector';
 
 export type NumberProvider = (metrics: Metrics) => number;
 
 export class MetricsStats {
-  constructor(private items: Metrics[]) { }
+  constructor(private _items: Metrics[]) { }
 
   public filteredMean(dataProvider: NumberProvider): number | undefined {
-    const numbers = this.items.map(dataProvider);
+    const numbers = this._items.map(dataProvider);
     return numbers.length > 0 ? ss.mean(numbers) : undefined;
   }
 
@@ -28,7 +29,7 @@ export class MetricsStats {
   }
 
   public get memoryMax(): number | undefined {
-    const numbers = this.items.map((metrics) => ss.max(Array.from(metrics.memory.snapshots.values())));
+    const numbers = this._items.map((metrics) => ss.max(Array.from(metrics.memory.snapshots.values())));
     return numbers.length > 0 ? ss.max(numbers) : undefined;
   }
 }
