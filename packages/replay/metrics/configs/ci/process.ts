@@ -6,7 +6,7 @@ import { Result } from '../../src/results/result.js';
 import { ResultsSet } from '../../src/results/results-set.js';
 import { Git } from '../../src/util/git.js';
 import { GitHub } from '../../src/util/github.js';
-import { artifactName,baselineResultsDir, latestResultFile, previousResultsDir } from './env.js';
+import { artifactName, baselineResultsDir, latestResultFile, previousResultsDir } from './env.js';
 
 const latestResult = Result.readFromFile(latestResultFile);
 const branch = await Git.branch;
@@ -25,7 +25,7 @@ if (baseBranch != branch) {
   const baseResults = new ResultsSet(baselineResultsDir);
   await prComment.addCurrentResult(await ResultsAnalyzer.analyze(latestResult, baseResults), 'Baseline');
   await prComment.addAdditionalResultsSet(
-    `Baseline results on branch: ${baseBranch}`,
+    `Baseline results on branch: <code>${baseBranch}</code>`,
     // We skip the first one here because it's already included as `Baseline` column above in addCurrentResult().
     baseResults.items().slice(1, 10)
   );
@@ -34,7 +34,7 @@ if (baseBranch != branch) {
 }
 
 await prComment.addAdditionalResultsSet(
-  `Previous results on branch: ${branch}`,
+  `Previous results on branch: <code>${branch}</code>`,
   previousResults.items().slice(0, 10)
 );
 

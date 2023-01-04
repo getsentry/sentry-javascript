@@ -47,22 +47,28 @@ export class PrCommentBuilder {
     this._buffer += `
       <h2>${this.title}</h2>
       <table>
-        <thead>
-          <tr>
-            <th rowspan="2">&nbsp;</th>
-            <th colspan="3" align="center">This PR (${await Git.hash})</th>
-            ${maybeOther(() => `<th colspan="3" align="center">${otherName} (${analysis.otherHash})</a></th>`)}
-          </tr>
-          <tr>
-            <th align="right">Plain</th>
-            <th align="right">+Replay</th>
-            <th align="right">Diff</th>
-            ${maybeOther(() => `
-              <th align="right">Plain</th>
-              <th align="right">+Replay</th>
-              <th align="right">Diff</th>`)}
-          </tr>
-        </thead>`
+        <thead>`;
+
+    const headerCols = '<th align="right">Plain</th><th align="right">+Replay</th><th align="right">Diff</th>';
+    if (analysis.otherHash != undefined) {
+      // If "other" is defined, add an aditional row of headers.
+      this._buffer += `
+        <tr>
+          <th rowspan="2">&nbsp;</th>
+          <th colspan="3" align="center">This PR (${await Git.hash})</th>
+          <th colspan="3" align="center">${otherName} (${analysis.otherHash})</a></th>
+        </tr>
+        <tr>
+          ${headerCols}
+          ${headerCols}
+        </tr>`;
+    } else {
+      this._buffer += `
+        <tr>
+          <th>&nbsp;</th>
+          ${headerCols}
+        </tr>`;
+    }
 
     for (const item of analysis.items) {
       this._buffer += `
@@ -70,11 +76,11 @@ export class PrCommentBuilder {
           <th align="right">${printableMetricName(item.metric)}</th>
           <td align="right">${item.value.a}</td>
           <td align="right">${item.value.b}</td>
-          <td align="right">${item.value.diff}</td>
+          <td align="right"><strong>${item.value.diff}</strong></td>
           ${maybeOther(() => `
             <td align="right">${item.other!.a}</td>
             <td align="right">${item.other!.b}</td>
-            <td align="right">${item.other!.diff}</td>`)}
+            <td align="right"><strong>${item.other!.diff}</strong></td>`)}
         </tr>`
     }
 
