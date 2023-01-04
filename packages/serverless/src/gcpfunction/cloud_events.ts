@@ -2,7 +2,7 @@ import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
-import { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
+import type { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
 
 export type CloudEventFunctionWrapperOptions = WrapperOptions;
 

@@ -1,4 +1,4 @@
-import { BrowserOptions } from '@sentry/react';
+import type { BrowserOptions } from '@sentry/react';
 import { dsnFromString, logger } from '@sentry/utils';
 
 const globalWithInjectedValues = global as typeof global & {

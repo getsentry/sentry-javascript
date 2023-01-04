@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import { EnvelopeItemType } from '@sentry/types';
+import type { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
-import axios, { AxiosRequestConfig } from 'axios';
-import { Express } from 'express';
-import * as http from 'http';
-import { AddressInfo } from 'net';
+import type { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
+import type { Express } from 'express';
+import type * as http from 'http';
+import type { AddressInfo } from 'net';
 import nock from 'nock';
 import * as path from 'path';
 

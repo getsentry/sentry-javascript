@@ -15,7 +15,7 @@
  */
 
 import { WINDOW } from '../../types';
-import { Metric } from '../types';
+import type { Metric } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';
 import { getNavigationEntry } from './getNavigationEntry';

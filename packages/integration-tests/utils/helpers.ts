@@ -1,5 +1,5 @@
-import { Page, Request } from '@playwright/test';
-import { Event, EventEnvelopeHeaders } from '@sentry/types';
+import type { Page, Request } from '@playwright/test';
+import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 

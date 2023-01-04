@@ -1,4 +1,10 @@
-import { AggregationCounts, Client, RequestSessionStatus, SessionAggregates, SessionFlusherLike } from '@sentry/types';
+import type {
+  AggregationCounts,
+  Client,
+  RequestSessionStatus,
+  SessionAggregates,
+  SessionFlusherLike,
+} from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';

@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { parseSemver } from '@sentry/utils';
-import * as http from 'http';
-import * as https from 'https';
+import type * as http from 'http';
+import type * as https from 'https';
 import { URL } from 'url';
 
 const NODE_VERSION = parseSemver(process.versions.node);

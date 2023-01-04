@@ -1,4 +1,4 @@
-import { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { SentryError } from './error';
 

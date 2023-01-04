@@ -1,4 +1,4 @@
-import {
+import type {
   Breadcrumb,
   CaptureContext,
   CustomSamplingContext,
@@ -13,8 +13,9 @@ import {
   User,
 } from '@sentry/types';
 
-import { getCurrentHub, Hub } from './hub';
-import { Scope } from './scope';
+import type { Hub } from './hub';
+import { getCurrentHub } from './hub';
+import type { Scope } from './scope';
 
 // Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
 // where HUB_FUNCTION is some method on the Hub class.

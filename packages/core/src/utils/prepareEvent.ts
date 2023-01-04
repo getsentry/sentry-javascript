@@ -1,4 +1,4 @@
-import { ClientOptions, Event, EventHint } from '@sentry/types';
+import type { ClientOptions, Event, EventHint } from '@sentry/types';
 import { dateTimestampInSeconds, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Scope } from '../scope';

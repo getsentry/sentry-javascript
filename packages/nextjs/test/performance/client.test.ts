@@ -1,7 +1,7 @@
 import { WINDOW } from '@sentry/react';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 import { JSDOM } from 'jsdom';
-import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
+import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
 import { nextRouterInstrumentation } from '../../src/client/performance';

@@ -2,7 +2,7 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
-import { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';

@@ -1,5 +1,5 @@
-import { CompileOptions } from 'svelte/types/compiler';
-import { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
+import type { CompileOptions } from 'svelte/types/compiler';
+import type { PreprocessorGroup } from 'svelte/types/compiler/preprocess';
 
 // Adds an id property to the preprocessor object we can use to check for duplication
 // in the preprocessors array

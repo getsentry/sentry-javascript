@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { configureScope } from '@sentry/browser';
-import { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 
 interface Action<T = any> {
   type: T;

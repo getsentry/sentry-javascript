@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import {
+import type {
   Breadcrumb,
   BreadcrumbHint,
   Client,

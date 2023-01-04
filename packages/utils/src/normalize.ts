@@ -1,7 +1,8 @@
-import { Primitive } from '@sentry/types';
+import type { Primitive } from '@sentry/types';
 
 import { isNaN, isSyntheticEvent } from './is';
-import { memoBuilder, MemoFunc } from './memo';
+import type { MemoFunc } from './memo';
+import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
 import { getFunctionName } from './stacktrace';
 

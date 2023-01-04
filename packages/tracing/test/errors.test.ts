@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
-import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 
 import { registerErrorInstrumentation } from '../src/errors';
 import { _addTracingExtensions } from '../src/hubextensions';

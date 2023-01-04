@@ -1,14 +1,17 @@
-import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/core';
+import type { Carrier } from '@sentry/core';
+import { getHubFromCarrier, getMainCarrier } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations, NodeOptions } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node';
+import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
-import { EventProcessor } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
 import { buildMetadata } from '../common/metadata';
-import { addOrUpdateIntegration, IntegrationWithExclusionOption } from '../common/userIntegrations';
+import type { IntegrationWithExclusionOption } from '../common/userIntegrations';
+import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { isBuild } from './utils/isBuild';
 
 export * from '@sentry/node';

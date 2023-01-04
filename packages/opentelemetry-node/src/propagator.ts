@@ -1,13 +1,5 @@
-import {
-  Baggage,
-  Context,
-  isSpanContextValid,
-  propagation,
-  TextMapGetter,
-  TextMapSetter,
-  trace,
-  TraceFlags,
-} from '@opentelemetry/api';
+import type { Baggage, Context, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { isSpanContextValid, propagation, trace, TraceFlags } from '@opentelemetry/api';
 import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import {
   baggageHeaderToDynamicSamplingContext,

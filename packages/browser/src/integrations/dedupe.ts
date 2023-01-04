@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 /** Deduplication filter */

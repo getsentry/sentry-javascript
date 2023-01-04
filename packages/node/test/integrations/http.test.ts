@@ -1,17 +1,18 @@
 import * as sentryCore from '@sentry/core';
 import { Hub } from '@sentry/core';
-import { addExtensionMethods, Span, TRACEPARENT_REGEXP, Transaction } from '@sentry/tracing';
-import { TransactionContext } from '@sentry/types';
+import type { Span, Transaction } from '@sentry/tracing';
+import { addExtensionMethods, TRACEPARENT_REGEXP } from '@sentry/tracing';
+import type { TransactionContext } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
 
-import { Breadcrumb } from '../../src';
+import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
-import { NodeClientOptions } from '../../src/types';
+import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const NODE_VERSION = parseSemver(process.versions.node);

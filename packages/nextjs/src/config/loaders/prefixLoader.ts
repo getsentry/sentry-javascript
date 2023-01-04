@@ -2,7 +2,7 @@ import { escapeStringForRegex } from '@sentry/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { LoaderThis } from './types';
+import type { LoaderThis } from './types';
 
 type LoaderOptions = {
   templatePrefix: string;

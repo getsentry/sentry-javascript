@@ -1,4 +1,4 @@
-import { Event, EventHint } from './event';
+import type { Event, EventHint } from './event';
 
 /**
  * Event processors are used to change the event before it will be send.

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import { Event, Integration } from '@sentry/types';
+import type { Event, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,

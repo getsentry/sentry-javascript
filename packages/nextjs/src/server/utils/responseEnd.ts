@@ -1,9 +1,9 @@
 import { flush } from '@sentry/node';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 
-import { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
+import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
 /**
  * Wrap `res.end()` so that it closes the transaction and flushes events before letting the request finish.

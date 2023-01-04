@@ -1,10 +1,10 @@
-import { Context } from './context';
-import { DynamicSamplingContext } from './envelope';
-import { Instrumenter } from './instrumenter';
-import { MeasurementUnit } from './measurement';
-import { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
-import { PolymorphicRequest } from './polymorphics';
-import { Span, SpanContext } from './span';
+import type { Context } from './context';
+import type { DynamicSamplingContext } from './envelope';
+import type { Instrumenter } from './instrumenter';
+import type { MeasurementUnit } from './measurement';
+import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+import type { PolymorphicRequest } from './polymorphics';
+import type { Span, SpanContext } from './span';
 
 /**
  * Interface holding Transaction-specific properties

@@ -1,4 +1,4 @@
-import { Client, ClientOptions } from '@sentry/types';
+import type { Client, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';

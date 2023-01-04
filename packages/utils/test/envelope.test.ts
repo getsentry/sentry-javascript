@@ -1,4 +1,4 @@
-import { EventEnvelope } from '@sentry/types';
+import type { EventEnvelope } from '@sentry/types';
 import { TextDecoder, TextEncoder } from 'util';
 
 const encoder = new TextEncoder();

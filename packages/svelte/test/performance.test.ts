@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
 // linter doesn't like Svelte component imports

@@ -2,15 +2,10 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
-import { Span, spanStatusfromHttpCode, Transaction } from '../../src';
-import {
-  fetchCallback,
-  FetchData,
-  instrumentOutgoingRequests,
-  shouldAttachHeaders,
-  xhrCallback,
-  XHRData,
-} from '../../src/browser/request';
+import type { Transaction } from '../../src';
+import { Span, spanStatusfromHttpCode } from '../../src';
+import type { FetchData, XHRData } from '../../src/browser/request';
+import { fetchCallback, instrumentOutgoingRequests, shouldAttachHeaders, xhrCallback } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
 import * as tracingUtils from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';

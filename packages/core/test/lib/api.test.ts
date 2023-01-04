@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { ClientOptions, DsnComponents } from '@sentry/types';
+import type { ClientOptions, DsnComponents } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';

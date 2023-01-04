@@ -3,7 +3,7 @@
 // Types vendored from @remix-run/server-runtime@1.6.0:
 // https://github.com/remix-run/remix/blob/f3691d51027b93caa3fd2cdfe146d7b62a6eb8f2/packages/remix-server-runtime/server.ts
 import type * as Express from 'express';
-import { Agent } from 'https';
+import type { Agent } from 'https';
 import type { ComponentType } from 'react';
 
 export type RemixRequestState = {

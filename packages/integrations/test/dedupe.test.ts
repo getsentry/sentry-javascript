@@ -1,4 +1,4 @@
-import { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
 import { _shouldDropEvent } from '../src/dedupe';
 

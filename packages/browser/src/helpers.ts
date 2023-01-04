@@ -1,5 +1,5 @@
 import { captureException, withScope } from '@sentry/core';
-import { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
+import type { DsnLike, Event as SentryEvent, Mechanism, Scope, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,

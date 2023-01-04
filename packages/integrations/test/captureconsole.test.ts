@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Event, Hub, Integration } from '@sentry/types';
+import type { Event, Hub, Integration } from '@sentry/types';
 
 import { CaptureConsole } from '../src/captureconsole';
 

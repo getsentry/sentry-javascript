@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import type { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
   baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,

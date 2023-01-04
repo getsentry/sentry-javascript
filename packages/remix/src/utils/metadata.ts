@@ -1,5 +1,5 @@
 import { SDK_VERSION } from '@sentry/core';
-import { Options, SdkInfo } from '@sentry/types';
+import type { Options, SdkInfo } from '@sentry/types';
 
 const PACKAGE_NAME_PREFIX = 'npm:@sentry/';
 

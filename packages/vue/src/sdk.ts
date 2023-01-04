@@ -4,7 +4,7 @@ import { arrayify, GLOBAL_OBJ } from '@sentry/utils';
 import { DEFAULT_HOOKS } from './constants';
 import { attachErrorHandler } from './errorhandler';
 import { createTracingMixins } from './tracing';
-import { Options, TracingOptions, Vue } from './types';
+import type { Options, TracingOptions, Vue } from './types';
 
 const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 

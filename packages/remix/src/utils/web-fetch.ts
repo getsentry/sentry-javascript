@@ -4,7 +4,7 @@
 import { logger } from '@sentry/utils';
 
 import { getClientIPAddress } from './getIpAddress';
-import { RemixRequest } from './types';
+import type { RemixRequest } from './types';
 
 /*
  * Symbol extractor utility to be able to access internal fields of Remix requests.

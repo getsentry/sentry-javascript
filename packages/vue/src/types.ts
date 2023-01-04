@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BrowserOptions } from '@sentry/browser';
+import type { BrowserOptions } from '@sentry/browser';
 
 // This is not great, but kinda necessary to make it woth with Vue@2 and Vue@3 at the same time.
 export interface Vue {

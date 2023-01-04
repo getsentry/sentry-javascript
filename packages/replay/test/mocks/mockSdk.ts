@@ -1,8 +1,9 @@
-import { BrowserOptions, init } from '@sentry/browser';
-import { Envelope, Transport } from '@sentry/types';
+import type { BrowserOptions } from '@sentry/browser';
+import { init } from '@sentry/browser';
+import type { Envelope, Transport } from '@sentry/types';
 
-import { Replay as ReplayIntegration } from '../../src';
-import { ReplayContainer } from '../../src/replay';
+import type { Replay as ReplayIntegration } from '../../src';
+import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';
 
 export interface MockSdkParams {

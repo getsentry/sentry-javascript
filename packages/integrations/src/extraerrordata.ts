@@ -1,4 +1,4 @@
-import { Contexts, Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
+import type { Contexts, Event, EventHint, EventProcessor, ExtendedError, Hub, Integration } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 /** JSDoc */

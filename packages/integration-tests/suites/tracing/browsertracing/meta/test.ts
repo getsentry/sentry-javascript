@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { Event, EventEnvelopeHeaders } from '@sentry/types';
+import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';

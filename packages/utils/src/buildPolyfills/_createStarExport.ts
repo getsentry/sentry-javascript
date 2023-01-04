@@ -1,4 +1,4 @@
-import { GenericObject } from './types';
+import type { GenericObject } from './types';
 
 declare const exports: GenericObject;
 

@@ -1,8 +1,8 @@
+import type { Hub } from '@sentry/core';
 import {
   getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
-  Hub,
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
@@ -14,8 +14,10 @@ import {
   supportsFetch,
 } from '@sentry/utils';
 
-import { BrowserClient, BrowserClientOptions, BrowserOptions } from './client';
-import { ReportDialogOptions, WINDOW, wrap as internalWrap } from './helpers';
+import type { BrowserClientOptions, BrowserOptions } from './client';
+import { BrowserClient } from './client';
+import type { ReportDialogOptions } from './helpers';
+import { WINDOW, wrap as internalWrap } from './helpers';
 import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';

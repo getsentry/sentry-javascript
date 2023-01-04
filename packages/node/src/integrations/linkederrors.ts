@@ -1,8 +1,8 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
 import { isInstanceOf, resolvedSyncPromise, SyncPromise } from '@sentry/utils';
 
-import { NodeClient } from '../client';
+import type { NodeClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
 import { ContextLines } from './contextlines';
 

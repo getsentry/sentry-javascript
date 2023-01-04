@@ -1,10 +1,10 @@
 import { init, SDK_VERSION } from '@sentry/react';
 import { Integrations } from '@sentry/tracing';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 
 import { init as gatsbyInit } from '../src/sdk';
-import { UserIntegrations } from '../src/utils/integrations';
-import { GatsbyOptions } from '../src/utils/types';
+import type { UserIntegrations } from '../src/utils/integrations';
+import type { GatsbyOptions } from '../src/utils/types';
 
 jest.mock('@sentry/react', () => {
   const actual = jest.requireActual('@sentry/react');

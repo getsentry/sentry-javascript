@@ -1,8 +1,10 @@
 import { Component, NgModule } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, Routes } from '@angular/router';
+import type { ComponentFixture } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import type { Routes } from '@angular/router';
+import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 
 import { instrumentAngularRouting, TraceService } from '../../src';
 

@@ -1,4 +1,4 @@
-import { ViewModel } from './types';
+import type { ViewModel } from './types';
 
 // Vendored directly from https://github.com/vuejs/vue/blob/master/src/core/util/debug.js with types only changes.
 const classifyRE = /(?:^|[-_])(\w)/g;

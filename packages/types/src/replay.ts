@@ -1,4 +1,4 @@
-import { Event } from './event';
+import type { Event } from './event';
 
 /**
  * NOTE: These types are still considered Beta and subject to change.

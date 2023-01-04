@@ -1,4 +1,4 @@
-import { Event } from '@sentry/node';
+import type { Event } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 

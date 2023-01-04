@@ -1,7 +1,7 @@
 import { WINDOW } from '@sentry/browser';
-import { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
-import { Location, ReactRouterInstrumentation } from './types';
+import type { Location, ReactRouterInstrumentation } from './types';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.

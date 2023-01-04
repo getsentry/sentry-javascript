@@ -1,4 +1,4 @@
-import { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
+import type { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**

@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/browser';
 
 import { formatComponentName, generateComponentTrace } from './components';
-import { Options, ViewModel, Vue } from './types';
+import type { Options, ViewModel, Vue } from './types';
 
 type UnknownFunc = (...args: unknown[]) => void;
 

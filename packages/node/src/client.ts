@@ -1,11 +1,12 @@
-import { BaseClient, Scope, SDK_VERSION, SessionFlusher } from '@sentry/core';
-import { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import type { Scope } from '@sentry/core';
+import { BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
+import type { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
-import { NodeClientOptions } from './types';
+import type { NodeClientOptions } from './types';
 
 /**
  * The Sentry Node SDK Client.

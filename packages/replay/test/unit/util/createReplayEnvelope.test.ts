@@ -1,4 +1,4 @@
-import { ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';

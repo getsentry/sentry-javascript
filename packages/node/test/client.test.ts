@@ -1,5 +1,5 @@
 import { Scope, SessionFlusher } from '@sentry/core';
-import { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/types';
 import * as os from 'os';
 
 import { NodeClient } from '../src';

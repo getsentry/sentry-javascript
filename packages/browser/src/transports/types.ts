@@ -1,4 +1,4 @@
-import { BaseTransportOptions } from '@sentry/types';
+import type { BaseTransportOptions } from '@sentry/types';
 
 export interface BrowserTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. Used by the FetchTransport */

@@ -1,4 +1,5 @@
-import { BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browser';
+import type { BrowserOptions } from '@sentry/browser';
+import { init as browserInit, SDK_VERSION } from '@sentry/browser';
 
 /**
  * Inits the React SDK

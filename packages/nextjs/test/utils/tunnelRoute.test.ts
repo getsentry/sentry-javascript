@@ -1,4 +1,4 @@
-import { BrowserOptions } from '@sentry/react';
+import type { BrowserOptions } from '@sentry/react';
 
 import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 

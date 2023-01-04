@@ -1,4 +1,4 @@
-import { Configuration } from 'webpack';
+import type { Configuration } from 'webpack';
 
 const config = function (userConfig: Record<string, unknown>): Configuration {
   return {

@@ -1,7 +1,7 @@
 import { default as arrayFlat } from 'array.prototype.flat';
 
 import { _optionalChain } from '../../src/buildPolyfills';
-import { GenericFunction, GenericObject, Value } from '../../src/buildPolyfills/types';
+import type { GenericFunction, GenericObject, Value } from '../../src/buildPolyfills/types';
 import { _optionalChain as _optionalChainOrig } from './originals';
 
 // Older versions of Node don't have `Array.prototype.flat`, which crashes these tests. On newer versions that do have

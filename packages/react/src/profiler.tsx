@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getCurrentHub, Hub } from '@sentry/browser';
-import { Span, Transaction } from '@sentry/types';
+import type { Hub } from '@sentry/browser';
+import { getCurrentHub } from '@sentry/browser';
+import type { Span, Transaction } from '@sentry/types';
 import { timestampWithMs } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';

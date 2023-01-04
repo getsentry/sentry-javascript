@@ -1,8 +1,8 @@
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, ExtendedError, Integration, StackParser } from '@sentry/types';
 import { isInstanceOf } from '@sentry/utils';
 
-import { BrowserClient } from '../client';
+import type { BrowserClient } from '../client';
 import { exceptionFromError } from '../eventbuilder';
 
 const DEFAULT_KEY = 'cause';

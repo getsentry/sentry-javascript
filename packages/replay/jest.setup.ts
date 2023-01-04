@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { ReplayRecordingData,Transport } from '@sentry/types';
+import type { ReplayRecordingData,Transport } from '@sentry/types';
 
 import type { ReplayContainer, Session } from './src/types';
 

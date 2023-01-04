@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, Severity, SeverityLevel, StackFrame, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,

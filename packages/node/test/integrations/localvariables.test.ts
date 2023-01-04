@@ -1,9 +1,10 @@
-import { ClientOptions, EventProcessor } from '@sentry/types';
-import { Debugger, InspectorNotification } from 'inspector';
-import { LRUMap } from 'lru_map';
+import type { ClientOptions, EventProcessor } from '@sentry/types';
+import type { Debugger, InspectorNotification } from 'inspector';
+import type { LRUMap } from 'lru_map';
 
 import { defaultStackParser } from '../../src';
-import { DebugSession, FrameVariables, LocalVariables } from '../../src/integrations/localvariables';
+import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
+import { LocalVariables } from '../../src/integrations/localvariables';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
 
 interface ThrowOn {

@@ -1,8 +1,8 @@
-import { Package } from '@sentry/types';
+import type { Package } from '@sentry/types';
 import { readdirSync, readFileSync } from 'fs';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import path from 'path';
-import { Compiler } from 'webpack';
+import type { Compiler } from 'webpack';
 
 const PACKAGES_DIR = '../../packages';
 

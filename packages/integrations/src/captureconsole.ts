@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { CONSOLE_LEVELS, fill, GLOBAL_OBJ, safeJoin, severityLevelFromString } from '@sentry/utils';
 
 /** Send Console API calls as Sentry Events */

@@ -1,6 +1,7 @@
-import { Event, EventProcessor } from '@sentry/types';
+import type { Event, EventProcessor } from '@sentry/types';
 
-import { InboundFilters, InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
+import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
+import { InboundFilters } from '../../../src/integrations/inboundfilters';
 
 /**
  * Creates an instance of the InboundFilters integration and returns

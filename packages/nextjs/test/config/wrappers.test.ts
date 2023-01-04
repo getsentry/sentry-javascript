@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import * as SentryTracing from '@sentry/tracing';
-import { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 import { withSentryGetServerSideProps, withSentryServerSideGetInitialProps } from '../../src/server';
 

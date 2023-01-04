@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { NodeClient } from '../../client';
+import type { NodeClient } from '../../client';
 
 const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 

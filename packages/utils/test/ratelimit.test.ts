@@ -1,9 +1,9 @@
+import type { RateLimits } from '../src/ratelimit';
 import {
   DEFAULT_RETRY_AFTER,
   disabledUntil,
   isRateLimited,
   parseRetryAfterHeader,
-  RateLimits,
   updateRateLimits,
 } from '../src/ratelimit';
 

@@ -14,7 +14,13 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Event, ExtractedNodeRequestData, PolymorphicRequest, Transaction, TransactionSource } from '@sentry/types';
+import type {
+  Event,
+  ExtractedNodeRequestData,
+  PolymorphicRequest,
+  Transaction,
+  TransactionSource,
+} from '@sentry/types';
 
 import { isPlainObject, isString } from './is';
 import { normalize } from './normalize';

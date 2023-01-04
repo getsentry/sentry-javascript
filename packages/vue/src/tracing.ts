@@ -1,10 +1,10 @@
 import { getCurrentHub } from '@sentry/browser';
-import { Span, Transaction } from '@sentry/types';
+import type { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { formatComponentName } from './components';
 import { DEFAULT_HOOKS } from './constants';
-import { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
+import type { Hook, Operation, TracingOptions, ViewModel, Vue } from './types';
 
 const VUE_OP = 'ui.vue';
 

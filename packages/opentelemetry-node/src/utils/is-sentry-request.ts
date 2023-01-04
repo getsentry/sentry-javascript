@@ -1,4 +1,4 @@
-import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { getCurrentHub } from '@sentry/core';
 

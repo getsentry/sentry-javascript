@@ -1,4 +1,4 @@
-import {
+import type {
   ClientOptions,
   Event,
   EventProcessor,
@@ -8,7 +8,8 @@ import {
   StackFrame,
   StackParser,
 } from '@sentry/types';
-import { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
+import type { Debugger, InspectorNotification, Runtime } from 'inspector';
+import { Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
 export interface DebugSession {

@@ -2,7 +2,7 @@ import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
-import { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
+import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
 

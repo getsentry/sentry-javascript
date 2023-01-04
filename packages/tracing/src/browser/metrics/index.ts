@@ -1,9 +1,9 @@
 /* eslint-disable max-lines */
-import { Measurements } from '@sentry/types';
+import type { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
-import { IdleTransaction } from '../../idletransaction';
-import { Transaction } from '../../transaction';
+import type { IdleTransaction } from '../../idletransaction';
+import type { Transaction } from '../../transaction';
 import { getActiveTransaction, msToSec } from '../../utils';
 import { WINDOW } from '../types';
 import { onCLS } from '../web-vitals/getCLS';
@@ -11,7 +11,7 @@ import { onFID } from '../web-vitals/getFID';
 import { onLCP } from '../web-vitals/getLCP';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe } from '../web-vitals/lib/observe';
-import { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
+import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
 
 function getBrowserPerformanceAPI(): Performance | undefined {

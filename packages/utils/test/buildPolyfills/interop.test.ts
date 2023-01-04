@@ -5,7 +5,7 @@ import {
   _interopRequireDefault,
   _interopRequireWildcard,
 } from '../../src/buildPolyfills';
-import { RequireResult } from '../../src/buildPolyfills/types';
+import type { RequireResult } from '../../src/buildPolyfills/types';
 import {
   _interopDefault as _interopDefaultOrig,
   _interopNamespace as _interopNamespaceOrig,

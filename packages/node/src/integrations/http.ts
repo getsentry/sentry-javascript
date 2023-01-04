@@ -1,5 +1,6 @@
-import { getCurrentHub, Hub } from '@sentry/core';
-import { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
+import type { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import type { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
@@ -7,18 +8,12 @@ import {
   parseSemver,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import * as http from 'http';
-import * as https from 'https';
+import type * as http from 'http';
+import type * as https from 'https';
 
-import { NodeClient } from '../client';
-import {
-  cleanSpanDescription,
-  extractUrl,
-  isSentryRequest,
-  normalizeRequestArgs,
-  RequestMethod,
-  RequestMethodArgs,
-} from './utils/http';
+import type { NodeClient } from '../client';
+import type { RequestMethod, RequestMethodArgs } from './utils/http';
+import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 

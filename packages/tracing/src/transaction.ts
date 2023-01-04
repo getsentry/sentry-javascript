@@ -1,5 +1,6 @@
-import { getCurrentHub, Hub } from '@sentry/core';
-import {
+import type { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import type {
   Context,
   Contexts,
   DynamicSamplingContext,

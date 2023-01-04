@@ -1,19 +1,19 @@
-import { Attachment } from './attachment';
-import { Breadcrumb } from './breadcrumb';
-import { Contexts } from './context';
-import { DebugMeta } from './debugMeta';
-import { Exception } from './exception';
-import { Extras } from './extra';
-import { Measurements } from './measurement';
-import { Primitive } from './misc';
-import { Request } from './request';
-import { CaptureContext } from './scope';
-import { SdkInfo } from './sdkinfo';
-import { Severity, SeverityLevel } from './severity';
-import { Span } from './span';
-import { Thread } from './thread';
-import { TransactionNameChange, TransactionSource } from './transaction';
-import { User } from './user';
+import type { Attachment } from './attachment';
+import type { Breadcrumb } from './breadcrumb';
+import type { Contexts } from './context';
+import type { DebugMeta } from './debugMeta';
+import type { Exception } from './exception';
+import type { Extras } from './extra';
+import type { Measurements } from './measurement';
+import type { Primitive } from './misc';
+import type { Request } from './request';
+import type { CaptureContext } from './scope';
+import type { SdkInfo } from './sdkinfo';
+import type { Severity, SeverityLevel } from './severity';
+import type { Span } from './span';
+import type { Thread } from './thread';
+import type { TransactionNameChange, TransactionSource } from './transaction';
+import type { User } from './user';
 
 /** JSDoc */
 export interface Event {

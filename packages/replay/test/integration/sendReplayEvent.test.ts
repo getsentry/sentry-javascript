@@ -1,9 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
-import { ReplayContainer } from '../../src/replay';
+import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { clearSession } from '../utils/clearSession';
