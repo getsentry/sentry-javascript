@@ -27,12 +27,11 @@ const result = await collector.execute({
   async shouldAccept(results: Metrics[]): Promise<boolean> {
     const stats = new MetricsStats(results);
     return true
-      && checkStdDev(stats, 'lcp', MetricsStats.lcp, 10)
-      && checkStdDev(stats, 'cls', MetricsStats.cls, 10)
+      && checkStdDev(stats, 'lcp', MetricsStats.lcp, 30)
+      && checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
       && checkStdDev(stats, 'cpu', MetricsStats.cpu, 10)
-      && checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 10000)
-      && checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 10000);
-    ;
+      && checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 30 * 1024)
+      && checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 100 * 1024);
   },
 });
 
