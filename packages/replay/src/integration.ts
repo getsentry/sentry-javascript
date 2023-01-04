@@ -127,7 +127,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    if (isBrowser() && this._isInitialized) {
+    if (this._isInitialized && isBrowser()) {
       throw new Error('Multiple Sentry Session Replay instances are not supported');
     }
 
