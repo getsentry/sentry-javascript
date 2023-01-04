@@ -108,6 +108,14 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
+  /**
+   * Add an integration to the client.
+   * This can be used to e.g. lazy load integrations.
+   * In most cases, this should not be necessary, and you're better off just passing the integrations via `integrations: []` at initialization time.
+   * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
+   * */
+  addIntegration?(integration: Integration): void;
+
   /** This is an internal function to setup all integrations that should run on the client */
   setupIntegrations(): void;
 
