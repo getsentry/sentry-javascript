@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Outcome,
+  SdkMetadata,
   Session,
   SessionAggregates,
   Severity,
@@ -217,6 +218,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public getOptions(): O {
     return this._options;
+  }
+
+  /**
+   * @see SdkMetadata in @sentry/types
+   *
+   * @return The metadata of the SDK
+   */
+  public getSdkMetadata(): SdkMetadata | undefined {
+    return this._options._metadata;
   }
 
   /**
