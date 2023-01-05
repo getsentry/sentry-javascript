@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // TODO: figure out member access types and remove the line above
 
+import workerString from '@sentry-internal/replay-worker';
 import { captureException } from '@sentry/core';
 import { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
-import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
   useCompression: boolean;

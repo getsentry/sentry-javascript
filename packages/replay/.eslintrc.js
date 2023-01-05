@@ -5,23 +5,9 @@
 
 module.exports = {
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: ['rollup.config.worker.js'],
   overrides: [
     {
-      files: ['worker/**/*.ts'],
-      parserOptions: {
-        // TODO: figure out if we need a worker-specific tsconfig
-        project: ['tsconfig.worker.json'],
-      },
-    },
-    {
-      files: ['src/worker/**/*.js'],
-      parserOptions: {
-        sourceType: 'module',
-      },
-    },
-    {
-      files: ['*.ts', '*.tsx', '*.d.ts'],
+      files: ['*.ts', '*.tsx'],
       rules: {
         // TODO (high-prio): Re-enable this after migration
         '@typescript-eslint/explicit-member-accessibility': 'off',

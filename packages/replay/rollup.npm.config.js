@@ -20,8 +20,7 @@ export default makeNPMConfigVariants(
         }),
       ],
       output: {
-        // set exports to 'named' or 'auto' so that rollup doesn't warn about
-        // the default export in `worker/worker.js`
+        // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
 
         // As we are inlining the rrweb dependency here, we need to ensure the nested folders are correct
