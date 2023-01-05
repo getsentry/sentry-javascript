@@ -35,8 +35,8 @@ const result = await collector.execute({
     }
 
     const cpuUsage = stats.mean(MetricsStats.cpu)!;
-    if (cpuUsage > 0.9) {
-      console.error(`CPU usage too high to be accurate: ${(cpuUsage * 100).toFixed(2)} %.`,
+    if (cpuUsage > 0.75) {
+      console.error(`CPU usage too high and may be inaccurate: ${(cpuUsage * 100).toFixed(2)} %.`,
         'Consider simplifying the scenario or changing the CPU throttling factor.');
       return false;
     }
