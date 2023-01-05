@@ -52,7 +52,7 @@ export class PerfMetricsSampler {
     await cdp.send('Performance.enable', { timeDomain: 'timeTicks' })
 
     // collect first sample immediately
-    void self._collectSample();
+    self._collectSample();
 
     // and set up automatic collection in the given interval
     self._timer = setInterval(self._collectSample.bind(self), interval);
@@ -68,9 +68,10 @@ export class PerfMetricsSampler {
     clearInterval(this._timer);
   }
 
-  private async _collectSample(): Promise<void> {
-    const response = await this._cdp.send('Performance.getMetrics');
-    const metrics = new PerfMetrics(response.metrics);
-    this._consumers.forEach(cb => cb(metrics).catch(console.error));
+  private _collectSample(): void {
+    this._cdp.send('Performance.getMetrics').then(response => {
+      const metrics = new PerfMetrics(response.metrics);
+      this._consumers.forEach(cb => cb(metrics).catch(console.error));
+    }, console.error);
   }
 }
