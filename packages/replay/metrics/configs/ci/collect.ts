@@ -31,7 +31,7 @@ const result = await collector.execute({
 
     if (!checkStdDev(stats, 'lcp', MetricsStats.lcp, 30)
       || !checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
-      || !checkStdDev(stats, 'cpu', MetricsStats.cpu, 10)
+      || !checkStdDev(stats, 'cpu', MetricsStats.cpu, 1)
       || !checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 1000 * 1024)
       || !checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 1000 * 1024)) {
       return false;
