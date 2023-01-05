@@ -33,8 +33,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es6_min: 'build/bundles/bundle.tracing.min.js',
   },
   integrations: {
-    cjs: 'build/npm/cjs/[INTEGRATION_NAME].js',
-    esm: 'build/npm/esm/[INTEGRATION_NAME].js',
+    cjs: 'build/npm/cjs/index.js',
+    esm: 'build/npm/esm/index.js',
     bundle_es5: 'build/bundles/[INTEGRATION_NAME].es5.js',
     bundle_es5_min: 'build/bundles/[INTEGRATION_NAME].es5.min.js',
     bundle_es6: 'build/bundles/[INTEGRATION_NAME].js',
