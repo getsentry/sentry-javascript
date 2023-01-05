@@ -37,7 +37,7 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { IntegrationIndex, setupIntegrations } from './integration';
+import { IntegrationIndex, setupIntegration, setupIntegrations } from './integration';
 import { Scope } from './scope';
 import { updateSession } from './session';
 import { prepareEvent } from './utils/prepareEvent';
@@ -289,6 +289,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       __DEBUG_BUILD__ && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
       return null;
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public addIntegration(integration: Integration): void {
+    setupIntegration(integration, this._integrations);
   }
 
   /**
