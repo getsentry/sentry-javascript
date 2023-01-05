@@ -1,0 +1,51 @@
+{
+  "name": "@sentry-internal/replay-worker",
+  "version": "7.29.0",
+  "description": "Worker for @sentry/replay",
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "sideEffects": false,
+  "private": true,
+  "scripts": {
+    "build": "run-s build:rollup",
+    "build:rollup": "rollup -c rollup.worker.config.js",
+    "build:dev": "yarn build",
+    "build:watch": "run-p build:rollup:watch",
+    "build:dev:watch": "run-p build:watch",
+    "build:rollup:watch": "yarn build:rollup --watch",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf build",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getsentry/sentry-javascript.git"
+  },
+  "author": "Sentry",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/getsentry/sentry-javascript/issues"
+  },
+  "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
+  "devDependencies": {
+    "@types/pako": "^2.0.0",
+    "rollup-plugin-copy": "~3.4.0",
+    "tslib": "^1.9.3"
+  },
+  "dependencies": {
+    "pako": "^2.0.4"
+  },
+  "engines": {
+    "node": ">=12"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

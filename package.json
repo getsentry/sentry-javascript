@@ -53,6 +53,7 @@
     "packages/react",
     "packages/remix",
     "packages/replay",
+    "packages/replay-worker",
     "packages/serverless",
     "packages/svelte",
     "packages/tracing",
