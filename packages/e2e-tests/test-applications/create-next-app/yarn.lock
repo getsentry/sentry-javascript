@@ -106,131 +106,6 @@
     estree-walker "^2.0.1"
     picomatch "^2.2.2"
 
-"@sentry/browser@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2fbrowser/-/browser-7.28.0.tgz#652971bc33e609426fd5690a7e68314287e85403"
-  integrity sha512-UMsFwNOEpdX3pHdpJ9klSK2FbwG0n9FlrPSb2KMuuW/OA62Yq2YStShoyJ35ix3cwHnhF6/F+lXxJ/WfMvX6DQ==
-  dependencies:
-    "@sentry/core" "7.28.0"
-    "@sentry/replay" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    tslib "^1.9.3"
-
-"@sentry/cli@^1.74.6":
-  version "1.74.6"
-  resolved "http://localhost:4873/@sentry%2fcli/-/cli-1.74.6.tgz#c4f276e52c6f5e8c8d692845a965988068ebc6f5"
-  integrity sha512-pJ7JJgozyjKZSTjOGi86chIngZMLUlYt2HOog+OJn+WGvqEkVymu8m462j1DiXAnex9NspB4zLLNuZ/R6rTQHg==
-  dependencies:
-    https-proxy-agent "^5.0.0"
-    mkdirp "^0.5.5"
-    node-fetch "^2.6.7"
-    npmlog "^4.1.2"
-    progress "^2.0.3"
-    proxy-from-env "^1.1.0"
-    which "^2.0.2"
-
-"@sentry/core@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2fcore/-/core-7.28.0.tgz#4e2bda6febecf9ac2109e569c2ef8be7e983469a"
-  integrity sha512-9wY6mRzoyZ8TEW7X1jpciD0DSqqYPaggiJyykxaVbjwmJc7GjJpY94XHmSeKNUV4w7ddMhdsznhBmGNN6CFMfQ==
-  dependencies:
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    tslib "^1.9.3"
-
-"@sentry/integrations@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2fintegrations/-/integrations-7.28.0.tgz#3a985f1a690a3e29561ed2ec5d323561f8f5d7dd"
-  integrity sha512-OS51DRs1lvI/pQaxcpsxOxhbDKB3ZxTZglVjoCr7pZQm7pb6gzQF2oaYT+W1hMgK0h/mEgyR9XWDOAZCa2aMBg==
-  dependencies:
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    localforage "^1.8.1"
-    tslib "^1.9.3"
-
-"@sentry/nextjs@*":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2fnextjs/-/nextjs-7.28.0.tgz#4d2325ba80532111a37c14697c19ba3d07168d29"
-  integrity sha512-kRU5giyutwr7lUkH8+z6DIeelQZyjf/TDQU+719dVRe1jMx0uxwKFII+VBf+NhP7UWs2klSzKoZYCdq/WE4MJA==
-  dependencies:
-    "@rollup/plugin-sucrase" "4.0.4"
-    "@rollup/plugin-virtual" "3.0.0"
-    "@sentry/core" "7.28.0"
-    "@sentry/integrations" "7.28.0"
-    "@sentry/node" "7.28.0"
-    "@sentry/react" "7.28.0"
-    "@sentry/tracing" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    "@sentry/webpack-plugin" "1.20.0"
-    chalk "3.0.0"
-    rollup "2.78.0"
-    tslib "^1.9.3"
-
-"@sentry/node@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2fnode/-/node-7.28.0.tgz#616b417e61bf386f99b967b18c87cdcb86124d55"
-  integrity sha512-tshViffPT8rMZc9ynqIBgl2ae9L6sMp9EY1uGmKItIxnbn5pOrFNUxESoBAGvMTbM73vGww5WuIlugusqsqsNQ==
-  dependencies:
-    "@sentry/core" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    cookie "^0.4.1"
-    https-proxy-agent "^5.0.0"
-    lru_map "^0.3.3"
-    tslib "^1.9.3"
-
-"@sentry/react@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2freact/-/react-7.28.0.tgz#4edca5f85b8220deea6a87e546ad080b6e8d1368"
-  integrity sha512-MLycDe5wto+MEtKiXSCjWCO/lepzib/Hgv+jmJshelFHLRBuVcFye/TxSnYMx04GDTDiI1hc0uXovaKdDGMqKA==
-  dependencies:
-    "@sentry/browser" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    hoist-non-react-statics "^3.3.2"
-    tslib "^1.9.3"
-
-"@sentry/replay@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2freplay/-/replay-7.28.0.tgz#d5c97d97e083038d8e7ec385a2b62816e06fea99"
-  integrity sha512-IIJJHIkw5NBpTx+9BOvYBy5wy+Zt7YU8q+OV0Q/6sLdTAcML2H5R7yIsoQG6qRDejysL+J0wjf8puOcPLVU7sw==
-  dependencies:
-    "@sentry/core" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-
-"@sentry/tracing@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2ftracing/-/tracing-7.28.0.tgz#341fc98e86639336cd260e932b8130496b3fa4d6"
-  integrity sha512-TH+f9AGqinX0B4EkP26ecF0ERm1KleTFHYEfpPEdbn92HFJua+Wvcm3uy6cwQ3njswi29sQHJv9bWQqp//mA+g==
-  dependencies:
-    "@sentry/core" "7.28.0"
-    "@sentry/types" "7.28.0"
-    "@sentry/utils" "7.28.0"
-    tslib "^1.9.3"
-
-"@sentry/types@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2ftypes/-/types-7.28.0.tgz#26318a71b4e121e7df7b54c48ddba6c7cfcfa70b"
-  integrity sha512-F6tZldpvC3Lt8FPgJ6wRTcE7P9txIpHSBjyYz9wqFlVJx4IhBmrn6vZU1LvANUaK1jZZF2PW5tFRrVEnydfpqg==
-
-"@sentry/utils@7.28.0":
-  version "7.28.0"
-  resolved "http://localhost:4873/@sentry%2futils/-/utils-7.28.0.tgz#6063afa81e49f8cc6b94250b9f8337c9953970a6"
-  integrity sha512-3Ed9gTA1TvDCY3IpbZ8aI2raW8/b10zI295l0AIFeZ/2YvJDFtrHIEgXzThG4vYNY8s/ohg19bjUEJQq42e0ow==
-  dependencies:
-    "@sentry/types" "7.28.0"
-    tslib "^1.9.3"
-
-"@sentry/webpack-plugin@1.20.0":
-  version "1.20.0"
-  resolved "http://localhost:4873/@sentry%2fwebpack-plugin/-/webpack-plugin-1.20.0.tgz#e7add76122708fb6b4ee7951294b521019720e58"
-  integrity sha512-Ssj1mJVFsfU6vMCOM2d+h+KQR7QHSfeIP16t4l20Uq/neqWXZUQ2yvQfe4S3BjdbJXz/X4Rw8Hfy1Sd0ocunYw==
-  dependencies:
-    "@sentry/cli" "^1.74.6"
-    webpack-sources "^2.0.0 || ^3.0.0"
 
 "@swc/helpers@0.4.14":
   version "0.4.14"
@@ -331,9 +206,9 @@ brace-expansion@^1.1.7:
     concat-map "0.0.1"
 
 caniuse-lite@^1.0.30001406:
-  version "1.0.30001439"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001439.tgz#ab7371faeb4adff4b74dad1718a6fd122e45d9cb"
-  integrity sha512-1MgUzEkoMO6gKfXflStpYgZDlFM7M/ck/bgfVCACO5vnAf0fXoNVHdWtqGU+MYca+4bL9Z5bpOVmR33cWW9G2A==
+  version "1.0.30001442"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001442.tgz#40337f1cf3be7c637b061e2f78582dc1daec0614"
+  integrity sha512-239m03Pqy0hwxYPYR5JwOIxRJfLTWtle9FV8zosfV5pHg+/51uD4nxcUlM8+mWWGfwKtt8lJNHnD3cWw9VZ6ow==
 
 chalk@3.0.0:
   version "3.0.0"
