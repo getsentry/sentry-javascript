@@ -10,6 +10,8 @@ export type DataCategory =
   | 'error'
   // Transaction type event
   | 'transaction'
+  // Replay type event
+  | 'replay_event'
   // Events with `event_type` csp, hpkp, expectct, expectstaple
   | 'security'
   // Attachment bytes stored (unused for rate limiting
