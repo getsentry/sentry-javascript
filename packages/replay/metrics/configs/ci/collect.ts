@@ -26,12 +26,22 @@ const result = await collector.execute({
   tries: 10,
   async shouldAccept(results: Metrics[]): Promise<boolean> {
     const stats = new MetricsStats(results);
-    return true
-      && checkStdDev(stats, 'lcp', MetricsStats.lcp, 30)
-      && checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
-      && checkStdDev(stats, 'cpu', MetricsStats.cpu, 10)
-      && checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 30 * 1024)
-      && checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 100 * 1024);
+    if (!checkStdDev(stats, 'lcp', MetricsStats.lcp, 30)
+      || !checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
+      || !checkStdDev(stats, 'cpu', MetricsStats.cpu, 10)
+      || !checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 30 * 1024)
+      || !checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 100 * 1024)) {
+      return false;
+    }
+
+    const cpuUsage = stats.mean(MetricsStats.cpu)!;
+    if (cpuUsage > 0.9) {
+      console.error(`CPU usage too high to be accurate: ${(cpuUsage * 100).toFixed(2)} %.`,
+        'Consider simplifying the scenario or changing the CPU throttling factor.');
+      return false;
+    }
+
+    return true;
   },
 });
 

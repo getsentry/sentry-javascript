@@ -1,4 +1,5 @@
 import { Metrics, MetricsCollector } from '../../src/collector.js';
+import { MetricsStats } from '../../src/results/metrics-stats.js';
 import { JankTestScenario } from '../../src/scenarios.js';
 import { latestResultFile } from './env.js';
 
@@ -9,7 +10,14 @@ const result = await collector.execute({
   b: new JankTestScenario(true),
   runs: 1,
   tries: 1,
-  async shouldAccept(_results: Metrics[]): Promise<boolean> {
+  async shouldAccept(results: Metrics[]): Promise<boolean> {
+    const stats = new MetricsStats(results);
+    const cpuUsage = stats.mean(MetricsStats.cpu)!;
+    if (cpuUsage > 0.9) {
+      console.error(`CPU usage too high to be accurate: ${(cpuUsage * 100).toFixed(2)} %.`,
+        'Consider simplifying the scenario or changing the CPU throttling factor.');
+      return false;
+    }
     return true;
   },
 });

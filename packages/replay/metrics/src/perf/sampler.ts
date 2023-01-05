@@ -33,8 +33,7 @@ export class PerfMetrics {
   }
 
   public get Duration(): number {
-    // TODO check if any of `Duration` fields is maybe a sum of the others. E.g. verify the measured CPU usage manually.
-    return this._metrics.reduce((sum, metric) => metric.name.endsWith('Duration') ? sum + metric.value : sum, 0);
+    return this._find('TaskDuration');
   }
 
   public get JSHeapUsedSize(): number {
@@ -46,16 +45,17 @@ export class PerfMetricsSampler {
   private _consumers: PerfMetricsConsumer[] = [];
   private _timer!: NodeJS.Timer;
 
+  private constructor(private _cdp: playwright.CDPSession) { }
+
   public static async create(cdp: playwright.CDPSession, interval: number): Promise<PerfMetricsSampler> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const self = new PerfMetricsSampler(cdp);
     await cdp.send('Performance.enable', { timeDomain: 'timeTicks' })
 
-    const self = new PerfMetricsSampler();
+    // collect first sample immediately
+    void self._collectSample();
 
-    self._timer = setInterval(async () => {
-      const metrics = await cdp.send('Performance.getMetrics').then((v) => v.metrics);
-      self._consumers.forEach((cb) => cb(new PerfMetrics(metrics)).catch(console.log));
-    }, interval);
+    // and set up automatic collection in the given interval
+    self._timer = setInterval(self._collectSample.bind(self), interval);
 
     return self;
   }
@@ -66,5 +66,11 @@ export class PerfMetricsSampler {
 
   public stop(): void {
     clearInterval(this._timer);
+  }
+
+  private async _collectSample(): Promise<void> {
+    const response = await this._cdp.send('Performance.getMetrics');
+    const metrics = new PerfMetrics(response.metrics);
+    this._consumers.forEach(cb => cb(metrics).catch(console.error));
   }
 }
