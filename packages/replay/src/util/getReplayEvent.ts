@@ -4,13 +4,15 @@ import { Client, ReplayEvent } from '@sentry/types';
 export async function getReplayEvent({
   client,
   scope,
+  replayId: event_id,
   event,
 }: {
   client: Client;
   scope: Scope;
+  replayId: string;
   event: ReplayEvent;
 }): Promise<ReplayEvent | null> {
-  const preparedEvent = (await prepareEvent(client.getOptions(), event, {}, scope)) as ReplayEvent | null;
+  const preparedEvent = (await prepareEvent(client.getOptions(), event, { event_id }, scope)) as ReplayEvent | null;
 
   // If e.g. a global event processor returned null
   if (!preparedEvent) {
