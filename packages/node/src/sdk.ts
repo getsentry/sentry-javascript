@@ -107,7 +107,6 @@ export const defaultIntegrations = [
  *
  * @see {@link NodeOptions} for documentation on configuration options.
  */
-// eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
@@ -156,18 +155,6 @@ export function init(options: NodeOptions = {}): void {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   if ((domain as any).active) {
     setHubOnCarrier(carrier, getCurrentHub());
-  }
-
-  if (options.tunnel !== undefined) {
-    try {
-      new URL(options.tunnel);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'The tunnel option is not a valid URL. It must be a full URL including the protocol when using the Node transport.',
-      );
-      options.tunnel = undefined;
-    }
   }
 
   // TODO(v7): Refactor this to reduce the logic above

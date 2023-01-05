@@ -47,7 +47,18 @@ function streamFromBody(body: Uint8Array | string): Readable {
  * Creates a Transport that uses native the native 'http' and 'https' modules to send events to Sentry.
  */
 export function makeNodeTransport(options: NodeTransportOptions): Transport {
-  const urlSegments = new URL(options.url);
+  let urlSegments: URL;
+
+  try {
+    urlSegments = new URL(options.url);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/node]: Invalid dsn or tunnel option, will not send any events. The tunnel option must be a full URL when used.',
+    );
+    return createTransport(options, () => Promise.resolve({}));
+  }
+
   const isHttps = urlSegments.protocol === 'https:';
 
   // Proxy prioritization: http => `options.proxy` | `process.env.http_proxy`
