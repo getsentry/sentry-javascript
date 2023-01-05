@@ -227,4 +227,10 @@ export interface Hub {
    * @param endSession If set the session will be marked as exited and removed from the scope
    */
   captureSession(endSession?: boolean): void;
+
+  /**
+   * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
+   * when Tracing is used.
+   */
+  shouldSendDefaultPii(): boolean;
 }
