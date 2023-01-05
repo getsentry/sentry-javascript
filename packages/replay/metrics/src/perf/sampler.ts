@@ -44,6 +44,7 @@ export class PerfMetrics {
 export class PerfMetricsSampler {
   private _consumers: PerfMetricsConsumer[] = [];
   private _timer!: NodeJS.Timer;
+  private _errorPrinted: boolean = false;
 
   private constructor(private _cdp: playwright.CDPSession) { }
 
@@ -72,6 +73,13 @@ export class PerfMetricsSampler {
     this._cdp.send('Performance.getMetrics').then(response => {
       const metrics = new PerfMetrics(response.metrics);
       this._consumers.forEach(cb => cb(metrics).catch(console.error));
-    }, console.error);
+    }, (e) => {
+      // This happens if the browser closed unexpectedly. No reason to try again.
+      if (!this._errorPrinted) {
+        this._errorPrinted = true;
+        console.log(e);
+        this.stop();
+      }
+    });
   }
 }

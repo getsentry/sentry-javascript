@@ -1,4 +1,4 @@
-import assert from 'assert';
+import pTimeout from 'p-timeout';
 import * as playwright from 'playwright';
 
 import { CpuUsage, CpuUsageSampler, CpuUsageSerialized } from './perf/cpu.js';
@@ -71,12 +71,16 @@ export class MetricsCollector {
       for (let run = 1; run <= testCase.runs; run++) {
         const innerLabel = `Scenario ${name} data collection, run ${run}/${testCase.runs}`;
         console.time(innerLabel);
-        results.push(await this._run(scenario));
+        try {
+          results.push(await this._run(scenario));
+        } catch (e) {
+          console.warn(`${innerLabel} failed with ${e}`);
+          break;
+        }
         console.timeEnd(innerLabel);
       }
       console.timeEnd(label);
-      assert.strictEqual(results.length, testCase.runs);
-      if (await testCase.shouldAccept(results)) {
+      if ((results.length == testCase.runs) && await testCase.shouldAccept(results)) {
         console.log(`Test case ${testCase.name}, scenario ${name} passed on try ${try_}/${testCase.tries}`);
         return results;
       } else if (try_ != testCase.tries) {
@@ -93,40 +97,44 @@ export class MetricsCollector {
   private async _run(scenario: Scenario): Promise<Metrics> {
     const disposeCallbacks: (() => Promise<void>)[] = [];
     try {
-      const browser = await playwright.chromium.launch({
-        headless: this._options.headless,
+      return await pTimeout((async () => {
+        const browser = await playwright.chromium.launch({
+          headless: this._options.headless,
+        });
+        disposeCallbacks.push(() => browser.close());
+        const page = await browser.newPage();
+        disposeCallbacks.push(() => page.close());
 
+        const cdp = await page.context().newCDPSession(page);
+
+        // Simulate throttling.
+        await cdp.send('Network.emulateNetworkConditions', {
+          offline: false,
+          latency: PredefinedNetworkConditions[networkConditions].latency,
+          uploadThroughput: PredefinedNetworkConditions[networkConditions].upload,
+          downloadThroughput: PredefinedNetworkConditions[networkConditions].download,
+        });
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottling });
+
+        // Collect CPU and memory info 10 times per second.
+        const perfSampler = await PerfMetricsSampler.create(cdp, 100);
+        disposeCallbacks.push(async () => perfSampler.stop());
+        const cpuSampler = new CpuUsageSampler(perfSampler);
+        const memSampler = new JsHeapUsageSampler(perfSampler);
+
+        const vitalsCollector = await WebVitalsCollector.create(page);
+        await scenario.run(browser, page);
+
+        // NOTE: FID needs some interaction to actually show a value
+        const vitals = await vitalsCollector.collect();
+
+        return new Metrics(vitals, cpuSampler.getData(), memSampler.getData());
+      })(), {
+        milliseconds: 60 * 1000,
       });
-      disposeCallbacks.push(async () => browser.close());
-      const page = await browser.newPage();
-
-      const cdp = await page.context().newCDPSession(page);
-
-      // Simulate throttling.
-      await cdp.send('Network.emulateNetworkConditions', {
-        offline: false,
-        latency: PredefinedNetworkConditions[networkConditions].latency,
-        uploadThroughput: PredefinedNetworkConditions[networkConditions].upload,
-        downloadThroughput: PredefinedNetworkConditions[networkConditions].download,
-      });
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottling });
-
-      // Collect CPU and memory info 10 times per second.
-      const perfSampler = await PerfMetricsSampler.create(cdp, 100);
-      disposeCallbacks.push(async () => perfSampler.stop());
-      const cpuSampler = new CpuUsageSampler(perfSampler);
-      const memSampler = new JsHeapUsageSampler(perfSampler);
-
-      const vitalsCollector = await WebVitalsCollector.create(page);
-
-      await scenario.run(browser, page);
-
-      // NOTE: FID needs some interaction to actually show a value
-      const vitals = await vitalsCollector.collect();
-
-      return new Metrics(vitals, cpuSampler.getData(), memSampler.getData());
     } finally {
-      disposeCallbacks.reverse().forEach((cb) => cb().catch(console.log));
+      console.log('Disposing of browser and resources');
+      disposeCallbacks.reverse().forEach((cb) => cb().catch(() => { /* silent */ }));
     }
   }
 }
