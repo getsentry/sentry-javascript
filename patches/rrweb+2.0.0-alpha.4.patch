@@ -1,0 +1,17 @@
+diff --git a/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/index.js b/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/index.js
+index 8f43354..17a19bb 100755
+--- a/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/index.js
++++ b/node_modules/rrweb/es/rrweb/packages/rrweb/src/record/index.js
+@@ -362,7 +362,11 @@ function record(options = {}) {
+             }, hooks);
+         };
+         iframeManager.addLoadListener((iframeEl) => {
+-            handlers.push(observe(iframeEl.contentDocument));
++            try {
++                handlers.push(observe(iframeEl.contentDocument));
++            } catch (error) {
++                console.warn('error in rrweb iframe observer', error);
++            }
+         });
+         const init = () => {
+             takeFullSnapshot();
