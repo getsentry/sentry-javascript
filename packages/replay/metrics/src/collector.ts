@@ -105,6 +105,11 @@ export class MetricsCollector {
         const page = await browser.newPage();
         disposeCallbacks.push(() => page.close());
 
+        const errorLogs: Array<string> = [];
+        await page.on('console', message => { if (message.type() === 'error') errorLogs.push(message.text()) });
+        await page.on('crash', _ => { errorLogs.push('Page crashed') });
+        await page.on('pageerror', error => { errorLogs.push(`${error.name}: ${error.message}`) });
+
         const cdp = await page.context().newCDPSession(page);
 
         // Simulate throttling.
@@ -127,6 +132,10 @@ export class MetricsCollector {
 
         // NOTE: FID needs some interaction to actually show a value
         const vitals = await vitalsCollector.collect();
+
+        if (errorLogs.length > 0) {
+          throw `Error logs in browser console:\n\t\t${errorLogs.join('\n\t\t')}`;
+        }
 
         return new Metrics(vitals, cpuSampler.getData(), memSampler.getData());
       })(), {
