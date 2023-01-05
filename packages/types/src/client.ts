@@ -113,6 +113,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * This can be used to e.g. lazy load integrations.
    * In most cases, this should not be necessary, and you're better off just passing the integrations via `integrations: []` at initialization time.
    * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
+   *
+   * TODO (v8): Make this a required method.
    * */
   addIntegration?(integration: Integration): void;
 
