@@ -58,8 +58,12 @@ export interface Event {
   };
 }
 
-/** JSDoc */
-export type EventType = 'transaction' | 'profile';
+/**
+ * The type of an `Event`.
+ * Note that `ErrorEvent`s do not have a type (hence its undefined),
+ * while all other events are required to have one.
+ */
+export type EventType = 'transaction' | 'profile' | 'replay_event' | undefined;
 
 export interface ErrorEvent extends Event {
   type: undefined;

@@ -1,3 +1,5 @@
+import { ReplayRecordingData } from '@sentry/types';
+
 import type { eventWithTime, recordOptions } from './types/rrweb';
 
 export type RecordingEvent = eventWithTime;
@@ -47,7 +49,7 @@ export interface WorkerResponse {
   id: number;
   method: string;
   success: boolean;
-  response: string | Uint8Array;
+  response: ReplayRecordingData;
 }
 
 export interface SampleRates {
@@ -211,7 +213,7 @@ export interface EventBuffer {
   readonly length: number;
   destroy(): void;
   addEvent(event: RecordingEvent, isCheckout?: boolean): void;
-  finish(): Promise<string | Uint8Array>;
+  finish(): Promise<ReplayRecordingData>;
 }
 
 export type AddUpdateCallback = () => boolean | void;

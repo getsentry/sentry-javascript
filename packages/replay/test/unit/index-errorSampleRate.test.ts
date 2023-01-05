@@ -1,6 +1,6 @@
 import { captureException } from '@sentry/core';
 
-import { REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
 import { ReplayContainer } from './../../src/replay';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
@@ -54,7 +54,7 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     captureException(new Error('testing'));
-    jest.runAllTimers();
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
@@ -99,8 +99,7 @@ describe('Replay (errorSampleRate)', () => {
       events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
     });
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
     // New checkout when we call `startRecording` again after uploading segment
     // after an error occurs
@@ -108,7 +107,7 @@ describe('Replay (errorSampleRate)', () => {
       events: JSON.stringify([
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + 5000 + 20,
+          timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 20,
           type: 2,
         },
       ]),
@@ -118,8 +117,10 @@ describe('Replay (errorSampleRate)', () => {
     domHandler({
       name: 'click',
     });
-    jest.runAllTimers();
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
+
     expect(replay).toHaveLastSentReplay({
       events: JSON.stringify([
         {
@@ -244,12 +245,12 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay).not.toHaveLastSentReplay();
 
     // Let's make sure it continues to work
     mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).not.toHaveLastSentReplay();
@@ -293,11 +294,11 @@ describe('Replay (errorSampleRate)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    jest.advanceTimersByTime(5000);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
     captureException(new Error('testing'));
 
-    jest.runAllTimers();
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
@@ -308,7 +309,7 @@ describe('Replay (errorSampleRate)', () => {
         // (advance timers + waiting for flush after the checkout) and
         // extra time is likely due to async of `addMemoryEntry()`
 
-        timestamp: (BASE_TIMESTAMP + 5000 + 5000 + 20) / 1000,
+        timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + DEFAULT_FLUSH_MIN_DELAY + 20) / 1000,
         error_ids: [expect.any(String)],
         trace_ids: [],
         urls: ['http://localhost/'],
@@ -398,7 +399,8 @@ it('sends a replay after loading the session multiple times', async () => {
   expect(replay).not.toHaveLastSentReplay();
 
   captureException(new Error('testing'));
-  jest.runAllTimers();
+
+  jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
   await new Promise(process.nextTick);
 
   expect(replay).toHaveSentReplay({

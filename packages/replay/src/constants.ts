@@ -27,4 +27,9 @@ export const DEFAULT_SESSION_SAMPLE_RATE = 0.1;
 export const DEFAULT_ERROR_SAMPLE_RATE = 1.0;
 
 /** The select to use for the `maskAllText` option  */
-export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style,script)';
+export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style), body *:not(script)';
+
+/** Default flush delays */
+export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
+export const DEFAULT_FLUSH_MAX_DELAY = 15_000;
+export const INITIAL_FLUSH_DELAY = 5_000;

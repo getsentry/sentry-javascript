@@ -1,6 +1,8 @@
 import {
   Attachment,
   AttachmentItem,
+  BaseEnvelopeHeaders,
+  BaseEnvelopeItemHeaders,
   DataCategory,
   DsnComponents,
   Envelope,
@@ -110,6 +112,51 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
   return merged;
 }
 
+interface TextDecoderInternal {
+  decode(input?: Uint8Array): string;
+}
+
+/**
+ * Parses an envelope
+ */
+export function parseEnvelope(
+  env: string | Uint8Array,
+  textEncoder: TextEncoderInternal,
+  textDecoder: TextDecoderInternal,
+): Envelope {
+  let buffer = typeof env === 'string' ? textEncoder.encode(env) : env;
+
+  function readBinary(length: number): Uint8Array {
+    const bin = buffer.subarray(0, length);
+    // Replace the buffer with the remaining data excluding trailing newline
+    buffer = buffer.subarray(length + 1);
+    return bin;
+  }
+
+  function readJson<T>(): T {
+    let i = buffer.indexOf(0xa);
+    // If we couldn't find a newline, we must have found the end of the buffer
+    if (i < 0) {
+      i = buffer.length;
+    }
+
+    return JSON.parse(textDecoder.decode(readBinary(i))) as T;
+  }
+
+  const envelopeHeader = readJson<BaseEnvelopeHeaders>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items: [any, any][] = [];
+
+  while (buffer.length) {
+    const itemHeader = readJson<BaseEnvelopeItemHeaders>();
+    const binaryLength = typeof itemHeader.length === 'number' ? itemHeader.length : undefined;
+
+    items.push([itemHeader, binaryLength ? readBinary(binaryLength) : readJson()]);
+  }
+
+  return [envelopeHeader, items];
+}
+
 /**
  * Creates attachment envelope items
  */
@@ -140,6 +187,8 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   client_report: 'internal',
   user_report: 'default',
   profile: 'profile',
+  replay_event: 'replay_event',
+  replay_recording: 'replay_recording',
 };
 
 /**

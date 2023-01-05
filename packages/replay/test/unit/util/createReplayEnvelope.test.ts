@@ -1,4 +1,4 @@
-import { Event } from '@sentry/types';
+import { ReplayEvent } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
@@ -6,7 +6,8 @@ import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 describe('createReplayEnvelope', () => {
   const REPLAY_ID = 'MY_REPLAY_ID';
 
-  const replayEvent = {
+  const replayEvent: ReplayEvent = {
+    // @ts-ignore private api
     type: 'replay_event',
     timestamp: 1670837008.634,
     error_ids: ['errorId'],
@@ -41,7 +42,7 @@ describe('createReplayEnvelope', () => {
   });
 
   it('creates an envelope for a given Replay event', () => {
-    const envelope = createReplayEnvelope(replayEvent as Event, payloadWithSequence, dsn);
+    const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn);
 
     expect(envelope).toEqual([
       {
@@ -73,7 +74,7 @@ describe('createReplayEnvelope', () => {
   });
 
   it('creates an envelope with the `dsn` key in the header if `tunnel` is specified', () => {
-    const envelope = createReplayEnvelope(replayEvent as Event, payloadWithSequence, dsn, '/my-tunnel-endpoint');
+    const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn, '/my-tunnel-endpoint');
 
     expect(envelope).toEqual([
       {

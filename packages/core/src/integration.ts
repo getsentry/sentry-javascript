@@ -88,14 +88,19 @@ export function setupIntegrations(integrations: Integration[]): IntegrationIndex
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
-    integrationIndex[integration.name] = integration;
-
-    if (installedIntegrations.indexOf(integration.name) === -1) {
-      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
-      installedIntegrations.push(integration.name);
-      __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
-    }
+    setupIntegration(integration, integrationIndex);
   });
 
   return integrationIndex;
+}
+
+/** Setup a single integration.  */
+export function setupIntegration(integration: Integration, integrationIndex: IntegrationIndex): void {
+  integrationIndex[integration.name] = integration;
+
+  if (installedIntegrations.indexOf(integration.name) === -1) {
+    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+    installedIntegrations.push(integration.name);
+    __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
+  }
 }

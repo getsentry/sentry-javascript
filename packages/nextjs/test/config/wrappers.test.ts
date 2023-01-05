@@ -14,7 +14,6 @@ import {
 } from '../../src/config/wrappers';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
-const setMetadataSpy = jest.spyOn(SentryTracing.Transaction.prototype, 'setMetadata');
 
 describe('data-fetching function wrappers', () => {
   const route = '/tricks/[trickName]';
@@ -43,7 +42,7 @@ describe('data-fetching function wrappers', () => {
         expect.objectContaining({
           name: '/tricks/[trickName]',
           op: 'http.server',
-          metadata: expect.objectContaining({ source: 'route' }),
+          metadata: expect.objectContaining({ source: 'route', request: req }),
         }),
         {
           request: expect.objectContaining({
@@ -51,8 +50,6 @@ describe('data-fetching function wrappers', () => {
           }),
         },
       );
-
-      expect(setMetadataSpy).toHaveBeenCalledWith({ request: req });
     });
 
     test('withSentryServerSideGetInitialProps', async () => {
@@ -65,7 +62,7 @@ describe('data-fetching function wrappers', () => {
         expect.objectContaining({
           name: '/tricks/[trickName]',
           op: 'http.server',
-          metadata: expect.objectContaining({ source: 'route' }),
+          metadata: expect.objectContaining({ source: 'route', request: req }),
         }),
         {
           request: expect.objectContaining({
@@ -73,8 +70,6 @@ describe('data-fetching function wrappers', () => {
           }),
         },
       );
-
-      expect(setMetadataSpy).toHaveBeenCalledWith({ request: req });
     });
   });
 });

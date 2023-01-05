@@ -49,7 +49,7 @@ export interface RequestInstrumentationOptions {
    *
    * Default: (url: string) => true
    */
-  shouldCreateSpanForRequest?(url: string): boolean;
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 }
 
 /** Data returned from fetch callback */

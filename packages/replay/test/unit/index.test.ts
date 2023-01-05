@@ -1,7 +1,9 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, Hub } from '@sentry/core';
+import { Event, Scope } from '@sentry/types';
 import { EventType } from 'rrweb';
 
 import {
+  DEFAULT_FLUSH_MIN_DELAY,
   MASK_ALL_TEXT_SELECTOR,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
@@ -335,7 +337,7 @@ describe('Replay', () => {
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
     mockTransportSend.mockClear();
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(replay).not.toHaveLastSentReplay();
 
@@ -347,7 +349,7 @@ describe('Replay', () => {
     // Let's make sure it continues to work
     mockTransportSend.mockClear();
     mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
   });
 
@@ -401,7 +403,7 @@ describe('Replay', () => {
       name: 'click',
     });
 
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
@@ -478,7 +480,7 @@ describe('Replay', () => {
     });
 
     WINDOW.dispatchEvent(new Event('blur'));
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
@@ -497,7 +499,7 @@ describe('Replay', () => {
 
     const NEW_TEST_EVENT = {
       data: { name: 'test' },
-      timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + 5000 + 20,
+      timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 20,
       type: 3,
     };
 
@@ -508,9 +510,9 @@ describe('Replay', () => {
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveSameSession(initialSession);
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
-    const newTimestamp = BASE_TIMESTAMP + MAX_SESSION_LIFE + 5000 + 20; // I don't know where this 20ms comes from
+    const newTimestamp = BASE_TIMESTAMP + MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 20; // I don't know where this 20ms comes from
     const breadcrumbTimestamp = newTimestamp;
 
     jest.runAllTimers();
@@ -590,13 +592,13 @@ describe('Replay', () => {
       throw new Error('Something bad happened');
     });
     mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     mockTransportSend.mockImplementationOnce(() => {
       throw new Error('Something bad happened');
     });
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     // next tick should retry and succeed
     mockConsole.mockRestore();
@@ -624,7 +626,7 @@ describe('Replay', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // next tick should do nothing
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay).not.toHaveLastSentReplay();
   });
 
@@ -647,12 +649,12 @@ describe('Replay', () => {
     });
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
 
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay.sendReplayRequest).toHaveBeenCalledTimes(2);
 
     await advanceTimers(10000);
@@ -745,54 +747,6 @@ describe('Replay', () => {
         urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
       }),
     });
-  });
-
-  // TODO: ... this doesn't really test anything anymore since replay event and recording are sent in the same envelope
-  it('does not create replay event if recording upload completely fails', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    // Suppress console.errors
-    const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    // fail the first and second requests and pass the third one
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      throw new Error('Something bad happened');
-    });
-    mockRecord._emitter(TEST_EVENT);
-
-    await advanceTimers(5000);
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-
-    // Reset console.error mock to minimize the amount of time we are hiding
-    // console messages in case an error happens after
-    mockConsole.mockClear();
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      throw new Error('Something bad happened');
-    });
-    await advanceTimers(5000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(2);
-
-    // next tick should retry and fail
-    mockConsole.mockClear();
-
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      throw new Error('Something bad happened');
-    });
-    await advanceTimers(10000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(3);
-
-    mockSendReplayRequest.mockImplementationOnce(() => {
-      throw new Error('Something bad happened');
-    });
-    await advanceTimers(30000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
-
-    // No activity has occurred, session's last activity should remain the same
-    expect(replay.session?.lastActivity).toBeGreaterThanOrEqual(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
-
-    // TODO: Recording should stop and next event should do nothing
   });
 
   it('has correct timestamps when there events earlier than initial timestamp', async function () {
@@ -912,11 +866,85 @@ describe('Replay', () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay.flush).toHaveBeenCalledTimes(1);
 
     // Make sure there's nothing queued up after
-    await advanceTimers(5000);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     expect(replay.flush).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('eventProcessors', () => {
+  let hub: Hub;
+  let scope: Scope;
+
+  beforeEach(() => {
+    hub = getCurrentHub();
+    scope = hub.pushScope();
+  });
+
+  afterEach(() => {
+    hub.popScope();
+    jest.resetAllMocks();
+  });
+
+  it('handles event processors properly', async () => {
+    const MUTATED_TIMESTAMP = BASE_TIMESTAMP + 3000;
+
+    const { mockRecord } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+    });
+
+    const client = hub.getClient()!;
+
+    jest.runAllTimers();
+    const mockTransportSend = jest.spyOn(client.getTransport()!, 'send');
+    mockTransportSend.mockReset();
+
+    const handler1 = jest.fn((event: Event): Event | null => {
+      event.timestamp = MUTATED_TIMESTAMP;
+
+      return event;
+    });
+
+    const handler2 = jest.fn((): Event | null => {
+      return null;
+    });
+
+    scope.addEventProcessor(handler1);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+
+    mockRecord._emitter(TEST_EVENT);
+    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
+    await new Promise(process.nextTick);
+
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
+
+    scope.addEventProcessor(handler2);
+
+    const TEST_EVENT2 = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+
+    mockRecord._emitter(TEST_EVENT2);
+    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
+    await new Promise(process.nextTick);
+
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
+
+    expect(handler1).toHaveBeenCalledTimes(2);
+    expect(handler2).toHaveBeenCalledTimes(1);
+
+    // This receives an envelope, which is a deeply nested array
+    // We only care about the fact that the timestamp was mutated
+    expect(mockTransportSend).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.arrayContaining([expect.arrayContaining([expect.objectContaining({ timestamp: MUTATED_TIMESTAMP })])]),
+      ]),
+    );
   });
 });

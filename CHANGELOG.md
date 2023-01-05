@@ -4,6 +4,34 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.29.0
+
+This update includes a change to the `@sentry/nextjs` SDK that may increase response times of requests in applications
+deployed to Vercel or AWS lambdas to ensure that error events are sent consistently.
+Additionally, Next.js applications deployed to Vercel or AWS lambdas may also see an uptick in sent transactions. (for
+more information see #6578)
+
+- feat(core): Add `getSdkMetadata` to `Client` (#6643)
+- feat(nextjs): Send events consistently on platforms that don't support streaming (#6578)
+- feat(replay): Use new `prepareEvent` util & ensure dropping replays works (#6522)
+- feat(types): Upstream some replay types (#6506)
+- fix(replay): Envelope send should be awaited in try/catch (#6625)
+- fix(replay): Improve handling of `maskAllText` selector (#6637)
+- fix(tracing): Don't finish React Router 6 `pageload` transactions early (#6609)
+
+## 7.28.1
+
+- fix(replay): Do not mangle `_metadata` in client options (#6600)
+- fix(replay): Cater for event processor returning null (#6576)
+
+## 7.28.0
+
+- feat(nextjs): Check for Vercel Edge Function GA (#6565)
+- feat(utils): Improved envelope parser (#6580)
+- fix(nextjs): Export Replay from `index.server.ts` to avoid TS error (#6577)
+- fix(nextjs): Pass `this` through wrappers (#6572)
+- ref(types): Add `undefined` as possible event type (#6584)
+
 ## 7.27.0
 
 This release exports the Session Replay integration via `@sentry/browser` and all framework SDKs building on top of it.

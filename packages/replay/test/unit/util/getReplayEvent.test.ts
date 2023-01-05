@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { getCurrentHub, Hub, Scope } from '@sentry/core';
-import { Client, Event } from '@sentry/types';
+import { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { getReplayEvent } from '../../../src/util/getReplayEvent';
@@ -25,7 +25,7 @@ describe('getReplayEvent', () => {
     expect(scope).toBeDefined();
 
     const replayId = 'replay-ID';
-    const event: Event = {
+    const event: ReplayEvent = {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       timestamp: 1670837008.634,
@@ -36,7 +36,7 @@ describe('getReplayEvent', () => {
       segment_id: 3,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, replayId, event });
+    const replayEvent = await getReplayEvent({ scope, client, event });
 
     expect(replayEvent).toEqual({
       type: 'replay_event',
@@ -47,7 +47,8 @@ describe('getReplayEvent', () => {
       replay_id: 'replay-ID',
       segment_id: 3,
       platform: 'javascript',
-      event_id: 'replay-ID',
+      // generated uuid with 32 chars
+      event_id: expect.stringMatching(/^\w{32}$/),
       environment: 'production',
       sdk: {
         name: 'sentry.javascript.browser',

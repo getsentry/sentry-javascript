@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
+import { ReplayRecordingData,Transport } from '@sentry/types';
 
 import type { ReplayContainer, Session } from './src/types';
 
@@ -13,27 +13,6 @@ jest.mock('./src/util/isBrowser', () => {
   return {
     isBrowser: () => true,
   };
-});
-
-afterEach(() => {
-  const hub = getCurrentHub();
-  if (typeof hub?.getClient !== 'function') {
-    // Potentially not a function due to partial mocks
-    return;
-  }
-
-  const client = hub?.getClient();
-  // This can be weirded up by mocks/tests
-  if (
-    !client ||
-    !client.getTransport ||
-    typeof client.getTransport !== 'function' ||
-    typeof client.getTransport()?.send !== 'function'
-  ) {
-    return;
-  }
-
-  (client.getTransport()?.send as MockTransport).mockClear();
 });
 
 type EnvelopeHeader = {
@@ -55,7 +34,7 @@ type SentReplayExpected = {
   replayEventPayload?: ReplayEventPayload;
   recordingHeader?: RecordingHeader;
   recordingPayloadHeader?: RecordingPayloadHeader;
-  events?: string | Uint8Array;
+  events?: ReplayRecordingData;
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type

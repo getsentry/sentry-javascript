@@ -180,6 +180,19 @@ describe('SentryBrowser', () => {
       captureEvent({ message: 'event' });
     });
 
+    it('should set `platform` on events', done => {
+      const options = getDefaultBrowserClientOptions({
+        beforeSend: (event: Event): Event | null => {
+          expect(event.platform).toBe('javascript');
+          done();
+          return event;
+        },
+        dsn,
+      });
+      getCurrentHub().bindClient(new BrowserClient(options));
+      captureEvent({ message: 'event' });
+    });
+
     it('should not dedupe an event on bound client', async () => {
       const localBeforeSend = jest.fn();
       const options = getDefaultBrowserClientOptions({

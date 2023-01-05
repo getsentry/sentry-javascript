@@ -5,6 +5,7 @@ import { Event, EventHint } from './event';
 import { Integration, IntegrationClass } from './integration';
 import { ClientOptions } from './options';
 import { Scope } from './scope';
+import { SdkMetadata } from './sdkmetadata';
 import { Session, SessionAggregates } from './session';
 import { Severity, SeverityLevel } from './severity';
 import { Transport } from './transport';
@@ -70,6 +71,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   getOptions(): O;
 
   /**
+   * @inheritdoc
+   *
+   * TODO (v8): Make this a required method.
+   */
+  getSdkMetadata?(): SdkMetadata | undefined;
+
+  /**
    * Returns the transport that is used by the client.
    * Please note that the transport gets lazy initialized so it will only be there once the first event has been sent.
    *
@@ -99,6 +107,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
+
+  /**
+   * Add an integration to the client.
+   * This can be used to e.g. lazy load integrations.
+   * In most cases, this should not be necessary, and you're better off just passing the integrations via `integrations: []` at initialization time.
+   * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
+   *
+   * TODO (v8): Make this a required method.
+   * */
+  addIntegration?(integration: Integration): void;
 
   /** This is an internal function to setup all integrations that should run on the client */
   setupIntegrations(): void;

@@ -19,12 +19,13 @@ export type {
   EventEnvelope,
   EventEnvelopeHeaders,
   EventItem,
+  ReplayEnvelope,
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
 } from './envelope';
 export type { ExtendedError } from './error';
-export type { Event, EventHint, ErrorEvent, TransactionEvent } from './event';
+export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
@@ -39,6 +40,7 @@ export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocati
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
+export type { ReplayEvent, ReplayRecordingData } from './replay';
 export type { QueryParams, Request } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';

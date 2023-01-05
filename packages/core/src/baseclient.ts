@@ -12,6 +12,7 @@ import {
   Integration,
   IntegrationClass,
   Outcome,
+  SdkMetadata,
   Session,
   SessionAggregates,
   Severity,
@@ -23,26 +24,23 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
-  dateTimestampInSeconds,
   isPlainObject,
   isPrimitive,
   isThenable,
   logger,
   makeDsn,
-  normalize,
   rejectedSyncPromise,
   resolvedSyncPromise,
   SentryError,
   SyncPromise,
-  truncate,
-  uuid4,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { IntegrationIndex, setupIntegrations } from './integration';
+import { IntegrationIndex, setupIntegration, setupIntegrations } from './integration';
 import { Scope } from './scope';
 import { updateSession } from './session';
+import { prepareEvent } from './utils/prepareEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -223,6 +221,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
+   * @see SdkMetadata in @sentry/types
+   *
+   * @return The metadata of the SDK
+   */
+  public getSdkMetadata(): SdkMetadata | undefined {
+    return this._options._metadata;
+  }
+
+  /**
    * @inheritDoc
    */
   public getTransport(): Transport | undefined {
@@ -287,6 +294,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
+  public addIntegration(integration: Integration): void {
+    setupIntegration(integration, this._integrations);
+  }
+
+  /**
+   * @inheritDoc
+   */
   public sendEvent(event: Event, hint: EventHint = {}): void {
     if (this._dsn) {
       let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
@@ -322,7 +336,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // Note: we use `event` in replay, where we overwrite this hook.
 
     if (this._options.sendClientReports) {
-      // We want to track each category (error, transaction, session) separately
+      // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
       // A correct type for map-based implementation if we want to go that route
@@ -419,166 +433,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A new event with more information.
    */
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
-    const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = this.getOptions();
-    const prepared: Event = {
-      ...event,
-      event_id: event.event_id || hint.event_id || uuid4(),
-      timestamp: event.timestamp || dateTimestampInSeconds(),
-    };
-
-    this._applyClientOptions(prepared);
-    this._applyIntegrationsMetadata(prepared);
-
-    // If we have scope given to us, use it as the base for further modifications.
-    // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
-    let finalScope = scope;
-    if (hint.captureContext) {
-      finalScope = Scope.clone(finalScope).update(hint.captureContext);
-    }
-
-    // We prepare the result here with a resolved Event.
-    let result = resolvedSyncPromise<Event | null>(prepared);
-
-    // This should be the last thing called, since we want that
-    // {@link Hub.addEventProcessor} gets the finished prepared event.
-    //
-    // We need to check for the existence of `finalScope.getAttachments`
-    // because `getAttachments` can be undefined if users are using an older version
-    // of `@sentry/core` that does not have the `getAttachments` method.
-    // See: https://github.com/getsentry/sentry-javascript/issues/5229
-    if (finalScope && finalScope.getAttachments) {
-      // Collect attachments from the hint and scope
-      const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
-
-      if (attachments.length) {
-        hint.attachments = attachments;
-      }
-
-      // In case we have a hub we reassign it.
-      result = finalScope.applyToEvent(prepared, hint);
-    }
-
-    return result.then(evt => {
-      if (typeof normalizeDepth === 'number' && normalizeDepth > 0) {
-        return this._normalizeEvent(evt, normalizeDepth, normalizeMaxBreadth);
-      }
-      return evt;
-    });
-  }
-
-  /**
-   * Applies `normalize` function on necessary `Event` attributes to make them safe for serialization.
-   * Normalized keys:
-   * - `breadcrumbs.data`
-   * - `user`
-   * - `contexts`
-   * - `extra`
-   * @param event Event
-   * @returns Normalized event
-   */
-  protected _normalizeEvent(event: Event | null, depth: number, maxBreadth: number): Event | null {
-    if (!event) {
-      return null;
-    }
-
-    const normalized: Event = {
-      ...event,
-      ...(event.breadcrumbs && {
-        breadcrumbs: event.breadcrumbs.map(b => ({
-          ...b,
-          ...(b.data && {
-            data: normalize(b.data, depth, maxBreadth),
-          }),
-        })),
-      }),
-      ...(event.user && {
-        user: normalize(event.user, depth, maxBreadth),
-      }),
-      ...(event.contexts && {
-        contexts: normalize(event.contexts, depth, maxBreadth),
-      }),
-      ...(event.extra && {
-        extra: normalize(event.extra, depth, maxBreadth),
-      }),
-    };
-
-    // event.contexts.trace stores information about a Transaction. Similarly,
-    // event.spans[] stores information about child Spans. Given that a
-    // Transaction is conceptually a Span, normalization should apply to both
-    // Transactions and Spans consistently.
-    // For now the decision is to skip normalization of Transactions and Spans,
-    // so this block overwrites the normalized event to add back the original
-    // Transaction information prior to normalization.
-    if (event.contexts && event.contexts.trace && normalized.contexts) {
-      normalized.contexts.trace = event.contexts.trace;
-
-      // event.contexts.trace.data may contain circular/dangerous data so we need to normalize it
-      if (event.contexts.trace.data) {
-        normalized.contexts.trace.data = normalize(event.contexts.trace.data, depth, maxBreadth);
-      }
-    }
-
-    // event.spans[].data may contain circular/dangerous data so we need to normalize it
-    if (event.spans) {
-      normalized.spans = event.spans.map(span => {
-        // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
-        if (span.data) {
-          span.data = normalize(span.data, depth, maxBreadth);
-        }
-        return span;
-      });
-    }
-
-    return normalized;
-  }
-
-  /**
-   *  Enhances event using the client configuration.
-   *  It takes care of all "static" values like environment, release and `dist`,
-   *  as well as truncating overly long values.
-   * @param event event instance to be enhanced
-   */
-  protected _applyClientOptions(event: Event): void {
     const options = this.getOptions();
-    const { environment, release, dist, maxValueLength = 250 } = options;
-
-    if (!('environment' in event)) {
-      event.environment = 'environment' in options ? environment : 'production';
-    }
-
-    if (event.release === undefined && release !== undefined) {
-      event.release = release;
-    }
-
-    if (event.dist === undefined && dist !== undefined) {
-      event.dist = dist;
-    }
-
-    if (event.message) {
-      event.message = truncate(event.message, maxValueLength);
-    }
-
-    const exception = event.exception && event.exception.values && event.exception.values[0];
-    if (exception && exception.value) {
-      exception.value = truncate(exception.value, maxValueLength);
-    }
-
-    const request = event.request;
-    if (request && request.url) {
-      request.url = truncate(request.url, maxValueLength);
-    }
-  }
-
-  /**
-   * This function adds all used integrations to the SDK info in the event.
-   * @param event The event that will be filled with all integrations.
-   */
-  protected _applyIntegrationsMetadata(event: Event): void {
-    const integrationsArray = Object.keys(this._integrations);
-    if (integrationsArray.length > 0) {
-      event.sdk = event.sdk || {};
-      event.sdk.integrations = [...(event.sdk.integrations || []), ...integrationsArray];
-    }
+    return prepareEvent(options, event, hint, scope);
   }
 
   /**

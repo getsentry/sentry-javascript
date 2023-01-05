@@ -109,13 +109,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * @returns A (potentially) modified context object, with `sampled = false` if the transaction should be dropped.
    */
-  beforeNavigate?(context: TransactionContext): TransactionContext | undefined;
+  beforeNavigate?(this: void, context: TransactionContext): TransactionContext | undefined;
 
   /**
    * Instrumentation that creates routing change transactions. By default creates
    * pageload and navigation transactions.
    */
   routingInstrumentation<T extends Transaction>(
+    this: void,
     customStartTransaction: (context: TransactionContext) => T | undefined,
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
@@ -187,7 +188,6 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const {
       routingInstrumentation: instrumentRouting,
       startTransactionOnLocationChange,
@@ -230,7 +230,6 @@ export class BrowserTracing implements Integration {
       return undefined;
     }
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeNavigate, idleTimeout, finalTimeout, heartbeatInterval } = this.options;
 
     const isPageloadTransaction = context.op === 'pageload';

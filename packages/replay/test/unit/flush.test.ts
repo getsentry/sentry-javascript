@@ -1,6 +1,6 @@
 import * as SentryUtils from '@sentry/utils';
 
-import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
@@ -145,7 +145,7 @@ it('long first flush enqueues following events', async () => {
   domHandler({
     name: 'click',
   });
-  await advanceTimers(5000);
+  await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
   // flush #2 @ t=5s - due to click
   expect(replay.flush).toHaveBeenCalledTimes(2);
 
@@ -212,7 +212,7 @@ it('long first flush enqueues following events', async () => {
   });
   // flush #5 @ t=25s - debounced flush calls `flush`
   // 20s + `flushMinDelay` which is 5 seconds
-  await advanceTimers(5000);
+  await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
   expect(replay.flush).toHaveBeenCalledTimes(5);
   expect(replay.runFlush).toHaveBeenCalledTimes(2);
   expect(mockSendReplay).toHaveBeenLastCalledWith({

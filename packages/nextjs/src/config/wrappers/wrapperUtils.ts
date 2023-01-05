@@ -5,7 +5,8 @@ import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
-import { autoEndTransactionOnResponseEnd } from './utils/responseEnd';
+import { platformSupportsStreaming } from '../../utils/platformSupportsStreaming';
+import { autoEndTransactionOnResponseEnd, flushQueue } from './utils/responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -77,43 +78,62 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return domain.create().bind(async () => {
       let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
+      let dataFetcherSpan;
 
-      if (requestTransaction === undefined) {
-        const sentryTraceHeader = req.headers['sentry-trace'];
-        const rawBaggageString = req.headers && req.headers.baggage;
-        const traceparentData =
-          typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
+      const sentryTraceHeader = req.headers['sentry-trace'];
+      const rawBaggageString = req.headers && req.headers.baggage;
+      const traceparentData =
+        typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
 
-        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
+      const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
-        const newTransaction = startTransaction(
-          {
-            op: 'http.server',
-            name: options.requestedRouteName,
-            ...traceparentData,
-            status: 'ok',
-            metadata: {
-              source: 'route',
-              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      if (platformSupportsStreaming()) {
+        if (requestTransaction === undefined) {
+          const newTransaction = startTransaction(
+            {
+              op: 'http.server',
+              name: options.requestedRouteName,
+              ...traceparentData,
+              status: 'ok',
+              metadata: {
+                request: req,
+                source: 'route',
+                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+              },
             },
+            { request: req },
+          );
+
+          requestTransaction = newTransaction;
+
+          if (platformSupportsStreaming()) {
+            // On platforms that don't support streaming, doing things after res.end() is unreliable.
+            autoEndTransactionOnResponseEnd(newTransaction, res);
+          }
+
+          // Link the transaction and the request together, so that when we would normally only have access to one, it's
+          // still possible to grab the other.
+          setTransactionOnRequest(newTransaction, req);
+        }
+
+        dataFetcherSpan = requestTransaction.startChild({
+          op: 'function.nextjs',
+          description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+          status: 'ok',
+        });
+      } else {
+        dataFetcherSpan = startTransaction({
+          op: 'function.nextjs',
+          name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+          ...traceparentData,
+          status: 'ok',
+          metadata: {
+            request: req,
+            source: 'route',
+            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
-          { request: req },
-        );
-
-        requestTransaction = newTransaction;
-        autoEndTransactionOnResponseEnd(newTransaction, res);
-
-        // Link the transaction and the request together, so that when we would normally only have access to one, it's
-        // still possible to grab the other.
-        setTransactionOnRequest(newTransaction, req);
-        newTransaction.setMetadata({ request: req });
+        });
       }
-
-      const dataFetcherSpan = requestTransaction.startChild({
-        op: 'function.nextjs',
-        description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-        status: 'ok',
-      });
 
       const currentScope = getCurrentHub().getScope();
       if (currentScope) {
@@ -127,15 +147,13 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
         // that set the transaction status, we need to manually set the status of the span & transaction
         dataFetcherSpan.setStatus('internal_error');
-
-        const transaction = dataFetcherSpan.transaction;
-        if (transaction) {
-          transaction.setStatus('internal_error');
-        }
-
+        requestTransaction?.setStatus('internal_error');
         throw e;
       } finally {
         dataFetcherSpan.finish();
+        if (!platformSupportsStreaming()) {
+          await flushQueue();
+        }
       }
     })();
   };

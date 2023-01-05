@@ -36,7 +36,7 @@ export class HttpContext implements Integration {
           ...(referrer && { Referer: referrer }),
           ...(userAgent && { 'User-Agent': userAgent }),
         };
-        const request = { ...(url && { url }), headers };
+        const request = { ...event.request, ...(url && { url }), headers };
 
         return { ...event, request };
       }

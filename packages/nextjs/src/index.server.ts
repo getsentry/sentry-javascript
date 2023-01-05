@@ -15,6 +15,11 @@ import { addOrUpdateIntegration, IntegrationWithExclusionOption } from './utils/
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from './utils/_error';
 
+// Exporting the Replay integration also from index.server.ts because TS only recognizes types from index.server.ts
+// If we didn't export this, TS would complain that it can't find `Sentry.Replay` in the package,
+// causing a build failure, when users initialize Replay in their sentry.client.config.js/ts file.
+export { Replay } from './index.client';
+
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
 export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
@@ -28,6 +33,7 @@ const domain = domainModule as typeof domainModule & { active: (domainModule.Dom
 // This is a variable that Next.js will string replace during build with a string if run in an edge runtime from Next.js
 // v12.2.1-canary.3 onwards:
 // https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
+// https://edge-runtime.vercel.sh/features/available-apis#addressing-the-runtime
 declare const EdgeRuntime: string | undefined;
 
 // Exporting this constant means we can compute it without the linter complaining, even if we stop directly using it in

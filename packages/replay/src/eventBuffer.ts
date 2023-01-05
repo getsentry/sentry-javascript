@@ -2,6 +2,7 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
+import { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
@@ -42,12 +43,12 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public destroy(): void {
-    this._events = [];
-  }
-
   public get length(): number {
     return this._events.length;
+  }
+
+  public destroy(): void {
+    this._events = [];
   }
 
   public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
@@ -81,12 +82,6 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._worker = worker;
   }
 
-  public destroy(): void {
-    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
-    this._worker?.terminate();
-    this._worker = null;
-  }
-
   /**
    * Note that this may not reflect what is actually in the event buffer. This
    * is only a local count of the buffer size since `addEvent` is async.
@@ -95,7 +90,13 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return this._eventBufferItemLength;
   }
 
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<string | Uint8Array> {
+  public destroy(): void {
+    __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
+    this._worker?.terminate();
+    this._worker = null;
+  }
+
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -159,7 +160,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     });
   }
 
-  private _sendEventToWorker(event: RecordingEvent): Promise<string | Uint8Array> {
+  private _sendEventToWorker(event: RecordingEvent): Promise<ReplayRecordingData> {
     const promise = this._postMessage({
       id: this._getAndIncrementId(),
       method: 'addEvent',

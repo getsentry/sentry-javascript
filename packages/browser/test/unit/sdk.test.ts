@@ -1,14 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Scope } from '@sentry/core';
-import { createTransport } from '@sentry/core';
+import { createTransport, Scope } from '@sentry/core';
 import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import { Client, Integration } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BrowserOptions } from '../../src';
 import { init } from '../../src/sdk';
-// eslint-disable-next-line no-var
-declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
 

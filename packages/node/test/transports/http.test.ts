@@ -393,4 +393,20 @@ describe('makeNewHttpTransport()', () => {
       );
     });
   });
+
+  it('should create a noop transport if an invalid url is passed', async () => {
+    const requestSpy = jest.spyOn(http, 'request');
+    const transport = makeNodeTransport({ ...defaultOptions, url: 'foo' });
+    await transport.send(EVENT_ENVELOPE);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  it('should warn if an invalid url is passed', async () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn');
+    const transport = makeNodeTransport({ ...defaultOptions, url: 'invalid url' });
+    await transport.send(EVENT_ENVELOPE);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[@sentry/node]: Invalid dsn or tunnel option, will not send any events. The tunnel option must be a full URL when used.',
+    );
+  });
 });

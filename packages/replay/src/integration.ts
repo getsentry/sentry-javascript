@@ -2,7 +2,14 @@ import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions } from '@sentry/types';
 import { Integration } from '@sentry/types';
 
-import { DEFAULT_ERROR_SAMPLE_RATE, DEFAULT_SESSION_SAMPLE_RATE, MASK_ALL_TEXT_SELECTOR } from './constants';
+import {
+  DEFAULT_ERROR_SAMPLE_RATE,
+  DEFAULT_FLUSH_MAX_DELAY,
+  DEFAULT_FLUSH_MIN_DELAY,
+  DEFAULT_SESSION_SAMPLE_RATE,
+  INITIAL_FLUSH_DELAY,
+  MASK_ALL_TEXT_SELECTOR,
+} from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { isBrowser } from './util/isBrowser';
@@ -29,25 +36,18 @@ export class Replay implements Integration {
 
   readonly options: ReplayPluginOptions;
 
-  protected get _isInitialized(): boolean {
-    return _initialized;
-  }
-
-  protected set _isInitialized(value: boolean) {
-    _initialized = value;
-  }
-
   private _replay?: ReplayContainer;
 
   constructor({
-    flushMinDelay = 5000,
-    flushMaxDelay = 15000,
-    initialFlushDelay = 5000,
+    flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
+    flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
+    initialFlushDelay = INITIAL_FLUSH_DELAY,
     stickySession = true,
     useCompression = true,
     sessionSampleRate,
     errorSampleRate,
-    maskAllText = true,
+    maskAllText,
+    maskTextSelector,
     maskAllInputs = true,
     blockAllMedia = true,
     _experiments = {},
@@ -62,6 +62,7 @@ export class Replay implements Integration {
       blockClass,
       ignoreClass,
       maskTextClass,
+      maskTextSelector,
       blockSelector,
       ...recordingOptions,
     };
@@ -74,7 +75,7 @@ export class Replay implements Integration {
       sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
       errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
       useCompression,
-      maskAllText,
+      maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
       blockAllMedia,
       _experiments,
     };
@@ -118,11 +119,19 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
         : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
-    if (isBrowser() && this._isInitialized) {
+    if (this._isInitialized && isBrowser()) {
       throw new Error('Multiple Sentry Session Replay instances are not supported');
     }
 
     this._isInitialized = true;
+  }
+
+  protected get _isInitialized(): boolean {
+    return _initialized;
+  }
+
+  protected set _isInitialized(value: boolean) {
+    _initialized = value;
   }
 
   /**

@@ -179,5 +179,5 @@ export interface ReportDialogOptions {
   errorFormEntry?: string;
   successMessage?: string;
   /** Callback after reportDialog showed up */
-  onLoad?(): void;
+  onLoad?(this: void): void;
 }

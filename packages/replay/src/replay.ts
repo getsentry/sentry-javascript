@@ -1,8 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, Event, TransportMakeRequestResponse } from '@sentry/types';
+import { Breadcrumb, ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
-import debounce from 'lodash.debounce';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -45,6 +44,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { createReplayEnvelope } from './util/createReplayEnvelope';
+import { debounce } from './util/debounce';
 import { getReplayEvent } from './util/getReplayEvent';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
@@ -859,7 +859,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     // A flush is about to happen, cancel any queued flushes
     this._debouncedFlush?.cancel();
 
-    // No existing flush in progress, proceed with flushing.
     // this._flushLock acts as a lock so that future calls to `flush()`
     // will be blocked until this promise resolves
     if (!this._flushLock) {
@@ -892,8 +891,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   flushImmediate(): Promise<void> {
     this._debouncedFlush();
-    // `.flush` is provided by lodash.debounce
-    return this._debouncedFlush.flush();
+    // `.flush` is provided by the debounced function, analogously to lodash.debounce
+    return this._debouncedFlush.flush() as Promise<void>;
   }
 
   /**
@@ -927,7 +926,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const baseEvent: Event = {
+    const baseEvent: ReplayEvent = {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
@@ -939,7 +938,15 @@ export class ReplayContainer implements ReplayContainerInterface {
       segment_id,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
+    const replayEvent = await getReplayEvent({ scope, client, event: baseEvent });
+
+    if (!replayEvent) {
+      // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
+      client.recordDroppedEvent('event_processor', 'replay_event', baseEvent);
+      __DEBUG_BUILD__ && logger.log('An event processor returned `null`, will not send event.');
+      return;
+    }
+
     replayEvent.tags = {
       ...replayEvent.tags,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -964,7 +971,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         "replay_id": "eventId",
         "segment_id": 3,
         "platform": "javascript",
-        "event_id": "eventId",
+        "event_id": "generated-uuid",
         "environment": "production",
         "sdk": {
             "integrations": [
@@ -986,7 +993,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn, client.getOptions().tunnel);
 
     try {
-      return transport.send(envelope);
+      return await transport.send(envelope);
     } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
