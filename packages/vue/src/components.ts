@@ -8,17 +8,8 @@ const ROOT_COMPONENT_NAME = '<Root>';
 const ANONYMOUS_COMPONENT_NAME = '<Anonymous>';
 
 const repeat = (str: string, n: number): string => {
-  let res = '';
-  while (n) {
-    if (n % 2 === 1) {
-      res += str;
-    }
-    if (n > 1) {
-      str += str; // eslint-disable-line no-param-reassign
-    }
-    n >>= 1; // eslint-disable-line no-bitwise, no-param-reassign
-  }
-  return res;
+  // string.repeat() is not supported by IE11, we fall back to just using the string in that case
+  return str.repeat ? str.repeat(n) : str;
 };
 
 export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): string => {
