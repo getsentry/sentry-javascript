@@ -49,7 +49,7 @@
     "@types/pako": "^2.0.0",
     "jsdom-worker": "^0.2.1",
     "pako": "^2.0.4",
-    "rrweb": "1.1.3",
+    "rrweb": "2.0.0-alpha.4",
     "tslib": "^1.9.3"
   },
   "dependencies": {
