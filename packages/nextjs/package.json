@@ -77,10 +77,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sideEffects": [
-    "./cjs/index.server.js",
-    "./esm/index.server.js",
-    "./src/index.server.ts"
-  ]
+  }
 }
