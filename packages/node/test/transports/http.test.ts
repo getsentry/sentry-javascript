@@ -7,6 +7,8 @@ import { createGunzip } from 'zlib';
 
 import { makeNodeTransport } from '../../src/transports';
 
+const textEncoder = new TextEncoder();
+
 jest.mock('@sentry/core', () => {
   const actualCore = jest.requireActual('@sentry/core');
   return {
@@ -70,22 +72,19 @@ const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, new TextEncoder());
+const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, textEncoder);
 
 const ATTACHMENT_ITEM = createAttachmentEnvelopeItem(
   { filename: 'empty-file.bin', data: new Uint8Array(50_000) },
-  new TextEncoder(),
+  textEncoder,
 );
 const EVENT_ATTACHMENT_ENVELOPE = addItemToEnvelope(EVENT_ENVELOPE, ATTACHMENT_ITEM);
-const SERIALIZED_EVENT_ATTACHMENT_ENVELOPE = serializeEnvelope(
-  EVENT_ATTACHMENT_ENVELOPE,
-  new TextEncoder(),
-) as Uint8Array;
+const SERIALIZED_EVENT_ATTACHMENT_ENVELOPE = serializeEnvelope(EVENT_ATTACHMENT_ENVELOPE, textEncoder) as Uint8Array;
 
 const defaultOptions = {
   url: TEST_SERVER_URL,
   recordDroppedEvent: () => undefined,
-  textEncoder: new TextEncoder(),
+  textEncoder,
 };
 
 describe('makeNewHttpTransport()', () => {
@@ -151,7 +150,9 @@ describe('makeNewHttpTransport()', () => {
 
         const transport = makeNodeTransport(defaultOptions);
 
-        await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
+        await expect(transport.send(EVENT_ENVELOPE)).resolves.toEqual(
+          expect.objectContaining({ statusCode: serverStatusCode }),
+        );
       },
     );
 
@@ -165,20 +166,13 @@ describe('makeNewHttpTransport()', () => {
       });
 
       const transport = makeNodeTransport(defaultOptions);
-      await expect(transport.send(EVENT_ENVELOPE)).resolves.toBeUndefined();
-    });
-
-    it('should resolve when server responds with rate limit header and status code 200', async () => {
-      await setupTestServer({
+      await expect(transport.send(EVENT_ENVELOPE)).resolves.toEqual({
         statusCode: SUCCESS,
-        responseHeaders: {
-          'Retry-After': '2700',
-          'X-Sentry-Rate-Limits': '60::organization, 2700::organization',
+        headers: {
+          'retry-after': '2700',
+          'x-sentry-rate-limits': '60::organization, 2700::organization',
         },
       });
-
-      const transport = makeNodeTransport(defaultOptions);
-      await transport.send(EVENT_ENVELOPE);
     });
   });
 
@@ -308,7 +302,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
         category: 'error',
       });
 
@@ -328,7 +322,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
         category: 'error',
       });
 
@@ -356,7 +350,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
         category: 'error',
       });
 
@@ -384,7 +378,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, new TextEncoder()),
+        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
         category: 'error',
       });
 

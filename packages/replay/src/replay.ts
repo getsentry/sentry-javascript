@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, ReplayEvent } from '@sentry/types';
+import { Breadcrumb, ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
@@ -904,7 +904,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     segmentId: segment_id,
     includeReplayStartTimestamp,
     eventContext,
-  }: SendReplay): Promise<void | undefined> {
+  }: SendReplay): Promise<void | TransportMakeRequestResponse> {
     const payloadWithSequence = createPayload({
       events,
       headers: {

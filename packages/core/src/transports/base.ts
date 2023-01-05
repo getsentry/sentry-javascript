@@ -7,6 +7,7 @@ import {
   EventItem,
   InternalBaseTransportOptions,
   Transport,
+  TransportMakeRequestResponse,
   TransportRequestExecutor,
 } from '@sentry/types';
 import {
@@ -35,13 +36,15 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export function createTransport(
   options: InternalBaseTransportOptions,
   makeRequest: TransportRequestExecutor,
-  buffer: PromiseBuffer<void> = makePromiseBuffer(options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE),
+  buffer: PromiseBuffer<void | TransportMakeRequestResponse> = makePromiseBuffer(
+    options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE,
+  ),
 ): Transport {
   let rateLimits: RateLimits = {};
 
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
-  function send(envelope: Envelope): PromiseLike<void> {
+  function send(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
 
     // Drop rate limited items from envelope
@@ -71,7 +74,7 @@ export function createTransport(
       });
     };
 
-    const requestTask = (): PromiseLike<void> =>
+    const requestTask = (): PromiseLike<void | TransportMakeRequestResponse> =>
       makeRequest({ body: serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
@@ -80,10 +83,11 @@ export function createTransport(
           }
 
           rateLimits = updateRateLimits(rateLimits, response);
+          return response;
         },
         error => {
-          __DEBUG_BUILD__ && logger.error('Failed while sending event:', error);
           recordEnvelopeLoss('network_error');
+          throw error;
         },
       );
 
