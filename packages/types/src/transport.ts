@@ -29,6 +29,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
+  // TODO (v8) Remove void from return as it was only retained to avoid a breaking change
   send(request: Envelope): PromiseLike<void | TransportMakeRequestResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
 }

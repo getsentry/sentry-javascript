@@ -86,7 +86,6 @@ export function createTransport(
           return response;
         },
         error => {
-          __DEBUG_BUILD__ && logger.error('Failed while sending event:', error);
           recordEnvelopeLoss('network_error');
           throw error;
         },
