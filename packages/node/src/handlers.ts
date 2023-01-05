@@ -256,7 +256,7 @@ export function errorHandler(options?: {
    * Callback method deciding whether error should be captured and sent to Sentry
    * @param error Captured middleware error
    */
-  shouldHandleError?(error: MiddlewareError): boolean;
+  shouldHandleError?(this: void, error: MiddlewareError): boolean;
 }): (
   error: MiddlewareError,
   req: http.IncomingMessage,
@@ -269,7 +269,6 @@ export function errorHandler(options?: {
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {

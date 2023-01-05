@@ -258,7 +258,6 @@ export class Hub implements HubInterface {
 
     if (!scope || !client) return;
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
       (client.getOptions && client.getOptions()) || {};
 

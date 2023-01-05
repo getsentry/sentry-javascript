@@ -1,7 +1,7 @@
 type DebouncedCallback = {
+  (): void | unknown;
   flush: () => void | unknown;
   cancel: () => void;
-  (): void | unknown;
 };
 type CallbackFunction = () => unknown;
 type DebounceOptions = { maxWait?: number };

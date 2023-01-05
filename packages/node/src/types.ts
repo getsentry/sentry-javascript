@@ -45,10 +45,10 @@ export interface BaseNodeOptions {
    * });
    * ```
    */
-  shouldCreateSpanForRequest?(url: string): boolean;
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 
   /** Callback that is executed when a fatal global error occurs. */
-  onFatalError?(error: Error): void;
+  onFatalError?(this: void, error: Error): void;
 }
 
 /**
