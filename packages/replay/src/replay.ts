@@ -936,6 +936,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       urls,
       replay_id: replayId,
       segment_id,
+      replay_type: this.session?.sampled,
     };
 
     const replayEvent = await getReplayEvent({ scope, client, event: baseEvent });
@@ -951,7 +952,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       ...replayEvent.tags,
       sessionSampleRate: this._options.sessionSampleRate,
       errorSampleRate: this._options.errorSampleRate,
-      replayType: this.session?.sampled,
     };
 
     /*
@@ -970,6 +970,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         ],
         "replay_id": "eventId",
         "segment_id": 3,
+        "replay_type": "error",
         "platform": "javascript",
         "event_id": "generated-uuid",
         "environment": "production",
@@ -985,7 +986,6 @@ export class ReplayContainer implements ReplayContainerInterface {
         "tags": {
             "sessionSampleRate": 1,
             "errorSampleRate": 0,
-            "replayType": "error"
         }
     }
     */
