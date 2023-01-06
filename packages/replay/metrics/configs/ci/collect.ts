@@ -39,6 +39,7 @@ const result = await collector.execute({
 
     const cpuUsage = stats.mean(MetricsStats.cpu)!;
     if (cpuUsage > 0.85) {
+      // Note: complexity on the "JankTest" is defined by the `minimum = ...,` setting in app.js - specifying the number of animated elements.
       console.warn(`✗ | Discarding results because CPU usage is too high and may be inaccurate: ${(cpuUsage * 100).toFixed(2)} %.`,
         'Consider simplifying the scenario or changing the CPU throttling factor.');
       return false;

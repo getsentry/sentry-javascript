@@ -83,16 +83,16 @@ class AnalyzerItemNumberValue implements AnalyzerItemValue {
 
   public get diff(): string {
     const diff = this._b - this._a;
-    const str = this._withUnit(diff);
+    const str = this._withUnit(diff, true);
     return diff > 0 ? `+${str}` : str;
   }
 
-  private _withUnit(value: number): string {
+  private _withUnit(value: number, isDiff: boolean = false): string {
     switch (this._unit) {
       case AnalyzerItemUnit.bytes:
         return filesize(value) as string;
       case AnalyzerItemUnit.ratio:
-        return `${(value * 100).toFixed(2)} %`;
+        return `${(value * 100).toFixed(2)} ${isDiff ? 'pp' : '%'}`;
       default:
         return `${value.toFixed(2)} ${AnalyzerItemUnit[this._unit]}`;
     }

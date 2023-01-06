@@ -4,7 +4,7 @@ import { Result } from './result.js';
 import { ResultSetItem } from './results-set.js';
 
 function trimIndent(str: string): string {
-  return str.split('\n').map(s => s.trim()).join('\n');
+  return str.trim().split('\n').map(s => s.trim()).join('\n');
 }
 
 function printableMetricName(metric: AnalyzerItemMetric): string {
@@ -32,7 +32,15 @@ export class PrCommentBuilder {
   }
 
   public get body(): string {
-    return trimIndent(this._buffer);
+    const now = new Date();
+    return trimIndent(`
+      ${this._buffer}
+      <hr />
+      <div align="right">
+        CPU usage difference is shown as <a href="https://en.wikipedia.org/wiki/Percentage_point">percentage points</a>. <br />
+        Last updated: <time datetime="${now.toISOString()}">${now.toUTCString()}</time>
+      </div>
+    `);
   }
 
   public async addCurrentResult(analysis: Analysis, otherName: string): Promise<void> {
