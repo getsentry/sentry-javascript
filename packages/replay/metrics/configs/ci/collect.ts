@@ -21,8 +21,8 @@ function checkStdDev(stats: MetricsStats, name: string, provider: NumberProvider
 const collector = new MetricsCollector({ headless: true, cpuThrottling: 2 });
 const result = await collector.execute({
   name: 'jank',
-  a: new JankTestScenario(false),
-  b: new JankTestScenario(true),
+  a: new JankTestScenario(false), // No sentry
+  b: new JankTestScenario(true),  // Sentry + Replay
   runs: 10,
   tries: 10,
   async shouldAccept(results: Metrics[]): Promise<boolean> {
