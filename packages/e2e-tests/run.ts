@@ -56,6 +56,10 @@ if (missingEnvVar) {
 const envVarsToInject = {
   REACT_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
   NEXT_PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
+  // Below are required for sentry-cli to work
+  SENTRY_ORG: process.env.E2E_TEST_SENTRY_ORG_SLUG,
+  SENTRY_PROJECT: process.env.E2E_TEST_SENTRY_TEST_PROJECT,
+  SENTRY_AUTH_TOKEN: process.env.E2E_TEST_AUTH_TOKEN,
 };
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines
