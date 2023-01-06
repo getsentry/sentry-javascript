@@ -37,7 +37,7 @@ export class PrCommentBuilder {
       ${this._buffer}
       <hr />
       <div align="right">
-        CPU usage difference is shown as <a href="https://en.wikipedia.org/wiki/Percentage_point">percentage points</a>. <br />
+        *) pp - <a href="https://en.wikipedia.org/wiki/Percentage_point">percentage points</a> - an absolute difference between two percentages. <br />
         Last updated: <time datetime="${now.toISOString()}">${now.toUTCString()}</time>
       </div>
     `);
@@ -57,14 +57,14 @@ export class PrCommentBuilder {
       <table>
         <thead>`;
 
-    const headerCols = '<th align="right">Plain</th><th align="right">+Replay</th><th align="right">Diff</th>';
+    const headerCols = '<th align="right">Plain</th><th align="right">+Replay</th><th align="right">Diff</th><th align="right">Ratio</th>';
     if (analysis.otherHash != undefined) {
       // If "other" is defined, add an aditional row of headers.
       this._buffer += `
         <tr>
           <th rowspan="2">&nbsp;</th>
-          <th colspan="3" align="center">This PR (${await Git.hash})</th>
-          <th colspan="3" align="center">${otherName} (${analysis.otherHash})</a></th>
+          <th colspan="4" align="center">This PR (${await Git.hash})</th>
+          <th colspan="4" align="center">${otherName} (${analysis.otherHash})</a></th>
         </tr>
         <tr>
           ${headerCols}
@@ -85,10 +85,12 @@ export class PrCommentBuilder {
           <td align="right">${item.value.a}</td>
           <td align="right">${item.value.b}</td>
           <td align="right"><strong>${item.value.diff}</strong></td>
+          <td align="right"><strong>${item.value.percent}</strong></td>
           ${maybeOther(() => `
             <td align="right">${item.other!.a}</td>
             <td align="right">${item.other!.b}</td>
-            <td align="right"><strong>${item.other!.diff}</strong></td>`)}
+            <td align="right"><strong>${item.other!.diff}</strong></td>
+            <td align="right"><strong>${item.other!.percent}</strong></td>`)}
         </tr>`
     }
 

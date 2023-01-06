@@ -68,6 +68,7 @@ export interface AnalyzerItemValue {
   readonly a: string;
   readonly b: string;
   readonly diff: string;
+  readonly percent: string;
 }
 
 class AnalyzerItemNumberValue implements AnalyzerItemValue {
@@ -84,6 +85,13 @@ class AnalyzerItemNumberValue implements AnalyzerItemValue {
   public get diff(): string {
     const diff = this._b - this._a;
     const str = this._withUnit(diff, true);
+    return diff > 0 ? `+${str}` : str;
+  }
+
+  public get percent(): string {
+    if (this._a == 0) return 'n/a';
+    const diff = this._b / this._a * 100 - 100;
+    const str = `${diff.toFixed(2)} %`;
     return diff > 0 ? `+${str}` : str;
   }
 
