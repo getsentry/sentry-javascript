@@ -77,8 +77,9 @@ export class MetricsCollector {
         } catch (e) {
           console.warn(`${innerLabel} failed with ${e}`);
           break;
+        } finally {
+          console.timeEnd(innerLabel);
         }
-        console.timeEnd(innerLabel);
       }
       console.timeEnd(label);
       if ((results.length == testCase.runs) && await testCase.shouldAccept(results)) {

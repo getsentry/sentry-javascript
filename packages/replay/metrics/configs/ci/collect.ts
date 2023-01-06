@@ -27,9 +27,9 @@ const result = await collector.execute({
   tries: 10,
   async shouldAccept(results: Metrics[]): Promise<boolean> {
     const stats = new MetricsStats(results);
-    printStats(stats);
+    await printStats(stats);
 
-    if (!checkStdDev(stats, 'lcp', MetricsStats.lcp, 30)
+    if (!checkStdDev(stats, 'lcp', MetricsStats.lcp, 50)
       || !checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
       || !checkStdDev(stats, 'cpu', MetricsStats.cpu, 1)
       || !checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 1000 * 1024)

@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function() {
       incrementor = 10,
       distance = 3,
       frame,
-      minimum = 70,
+      minimum = 20,
       subtract = document.querySelector('.subtract'),
       add = document.querySelector('.add');
 
