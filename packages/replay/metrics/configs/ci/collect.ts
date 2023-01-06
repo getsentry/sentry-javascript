@@ -18,7 +18,7 @@ function checkStdDev(stats: MetricsStats, name: string, provider: NumberProvider
   return true;
 }
 
-const collector = new MetricsCollector({ headless: true });
+const collector = new MetricsCollector({ headless: true, cpuThrottling: 2 });
 const result = await collector.execute({
   name: 'jank',
   a: new JankTestScenario(false),

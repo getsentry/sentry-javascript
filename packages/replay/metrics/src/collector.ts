@@ -9,7 +9,6 @@ import { Scenario, TestCase } from './scenarios.js';
 import { consoleGroup } from './util/console.js';
 import { WebVitals, WebVitalsCollector } from './vitals/index.js';
 
-const cpuThrottling = 4;
 const networkConditions = 'Fast 3G';
 
 // Same as puppeteer-core PredefinedNetworkConditions
@@ -42,6 +41,7 @@ export class Metrics {
 
 export interface MetricsCollectorOptions {
   headless: boolean;
+  cpuThrottling: number;
 }
 
 export class MetricsCollector {
@@ -50,6 +50,7 @@ export class MetricsCollector {
   constructor(options?: Partial<MetricsCollectorOptions>) {
     this._options = {
       headless: false,
+      cpuThrottling: 4,
       ...options
     };
   }
@@ -59,7 +60,7 @@ export class MetricsCollector {
     return consoleGroup(async () => {
       const aResults = await this._collect(testCase, 'A', testCase.a);
       const bResults = await this._collect(testCase, 'B', testCase.b);
-      return new Result(testCase.name, cpuThrottling, networkConditions, aResults, bResults);
+      return new Result(testCase.name, this._options.cpuThrottling, networkConditions, aResults, bResults);
     });
   }
 
@@ -119,7 +120,7 @@ export class MetricsCollector {
           uploadThroughput: PredefinedNetworkConditions[networkConditions].upload,
           downloadThroughput: PredefinedNetworkConditions[networkConditions].download,
         });
-        await cdp.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottling });
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: this._options.cpuThrottling });
 
         // Collect CPU and memory info 10 times per second.
         const perfSampler = await PerfMetricsSampler.create(cdp, 100);

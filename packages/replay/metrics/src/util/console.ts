@@ -13,8 +13,8 @@ type PrintableTable = { [k: string]: any };
 
 export function printStats(stats: MetricsStats): void {
   console.table({
-    lcp: `${stats.mean(MetricsStats.lcp)?.toFixed(2)} %`,
-    cls: `${stats.mean(MetricsStats.cls)?.toFixed(2)} %`,
+    lcp: `${stats.mean(MetricsStats.lcp)?.toFixed(2)} ms`,
+    cls: `${stats.mean(MetricsStats.cls)?.toFixed(2)} ms`,
     cpu: `${((stats.mean(MetricsStats.cpu) || 0) * 100).toFixed(2)} %`,
     memoryMean: filesize(stats.mean(MetricsStats.memoryMean)),
     memoryMax: filesize(stats.max(MetricsStats.memoryMax)),
