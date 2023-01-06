@@ -133,28 +133,8 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
           if (platformSupportsStreaming()) {
             autoEndTransactionOnResponseEnd(transaction, res);
           } else {
-            // If we're not on a platform that supports streaming, we're blocking all response-ending methods until the
-            // queue is flushed.
-
-            const origResSend = res.send;
-            res.send = async function (this: unknown, ...args: unknown[]) {
-              if (transaction) {
-                await finishTransaction(transaction, res);
-                await flushQueue();
-              }
-
-              origResSend.apply(this, args);
-            };
-
-            const origResJson = res.json;
-            res.json = async function (this: unknown, ...args: unknown[]) {
-              if (transaction) {
-                await finishTransaction(transaction, res);
-                await flushQueue();
-              }
-
-              origResJson.apply(this, args);
-            };
+            // If we're not on a platform that supports streaming, we're blocking res.end() until the queue is flushed.
+            // res.json() and res.send() will implicitly call res.end(), so it is enough to wrap res.end().
 
             // eslint-disable-next-line @typescript-eslint/unbound-method
             const origResEnd = res.end;
