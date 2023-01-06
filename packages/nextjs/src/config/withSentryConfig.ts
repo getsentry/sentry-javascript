@@ -17,7 +17,7 @@ import type {
 export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-): NextConfigFunction | NextConfigObject {
+): NextConfigFunction {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
     if (typeof exportedUserNextConfig === 'function') {
       const userNextConfigObject = exportedUserNextConfig(phase, defaults);
