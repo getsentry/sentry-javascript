@@ -85,6 +85,13 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
+    if (buildContext.nextRuntime === 'edge') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] You are using edge functions or middleware. Please note that Sentry does not yet support error monitoring for these features.',
+      );
+    }
+
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
@@ -102,6 +109,7 @@ export function constructWebpackConfigFunction(
                 pagesDir,
                 pageExtensionRegex,
                 excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+                isEdgeRuntime: buildContext.nextRuntime === 'edge',
               },
             },
           ],
@@ -305,7 +313,15 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev)) {
+    if (
+      shouldAddSentryToEntryPoint(
+        entryPointName,
+        isServer,
+        userSentryOptions.excludeServerRoutes,
+        isDev,
+        buildContext.nextRuntime === 'edge',
+      )
+    ) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     } else {
       if (
@@ -432,7 +448,13 @@ function shouldAddSentryToEntryPoint(
   isServer: boolean,
   excludeServerRoutes: Array<string | RegExp> = [],
   isDev: boolean,
+  isEdgeRuntime: boolean,
 ): boolean {
+  // We don't support the Edge runtime yet
+  if (isEdgeRuntime) {
+    return false;
+  }
+
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
   if (isServer) {
     const entryPointRoute = entryPointName.replace(/^pages/, '');
@@ -529,7 +551,13 @@ export function getWebpackPluginOptions(
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
     entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
+      shouldAddSentryToEntryPoint(
+        entryPointName,
+        isServer,
+        userSentryOptions.excludeServerRoutes,
+        isDev,
+        buildContext.nextRuntime === 'edge',
+      ),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });

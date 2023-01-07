@@ -9,6 +9,7 @@ type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
+  isEdgeRuntime: boolean;
 };
 
 /**
@@ -22,7 +23,13 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     pagesDir,
     pageExtensionRegex,
     excludeServerRoutes = [],
+    isEdgeRuntime,
   } = 'getOptions' in this ? this.getOptions() : this.query;
+
+  // We currently don't support the edge runtime
+  if (isEdgeRuntime) {
+    return userCode;
+  }
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRoute = path

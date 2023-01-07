@@ -2,7 +2,6 @@ import { RewriteFrames } from '@sentry/integrations';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { nextRouterInstrumentation } from './performance/client';
 import { buildMetadata } from './utils/metadata';
@@ -31,26 +30,12 @@ export { BrowserTracing };
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
-// This is a variable that Next.js will string replace during build with a string if run in an edge runtime from Next.js
-// v12.2.1-canary.3 onwards:
-// https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
-// https://edge-runtime.vercel.sh/features/available-apis#addressing-the-runtime
-declare const EdgeRuntime: string | undefined;
-
 const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesAssetPrefixPath__: string;
 };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: NextjsOptions): void {
-  if (typeof EdgeRuntime === 'string') {
-    // If the SDK is imported when using the Vercel Edge Runtime, it will import the browser SDK, even though it is
-    // running the server part of a Next.js application. We can use the `EdgeRuntime` to check for that case and make
-    // the init call a no-op. This will prevent the SDK from crashing on the Edge Runtime.
-    __DEBUG_BUILD__ && logger.log('Vercel Edge Runtime detected. Will not initialize SDK.');
-    return;
-  }
-
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;

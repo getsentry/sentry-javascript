@@ -137,7 +137,7 @@ export type BuildContext = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any;
   totalPages: number;
-  nextRuntime?: 'nodejs' | 'edge';
+  nextRuntime?: 'nodejs' | 'edge'; // Added in Next.js 12+
 };
 
 /**
