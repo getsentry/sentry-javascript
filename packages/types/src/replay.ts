@@ -10,6 +10,7 @@ export interface ReplayEvent extends Event {
   trace_ids: string[];
   replay_id: string;
   segment_id: number;
+  replay_type: 'session' | 'error';
 }
 
 /**

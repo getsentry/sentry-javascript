@@ -922,7 +922,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const transport = client && client.getTransport();
     const dsn = client?.getDsn();
 
-    if (!client || !scope || !transport || !dsn) {
+    if (!client || !scope || !transport || !dsn || !this.session || !this.session.sampled) {
       return;
     }
 
@@ -936,7 +936,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       urls,
       replay_id: replayId,
       segment_id,
-      replay_type: this.session?.sampled,
+      replay_type: this.session.sampled,
     };
 
     const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
