@@ -1,3 +1,5 @@
+import type webpack from 'webpack';
+
 export type LoaderThis<Options> = {
   /** Path to the file being loaded */
   resourcePath: string;
@@ -7,6 +9,12 @@ export type LoaderThis<Options> = {
 
   // Function to add outside file used by loader to `watch` process
   addDependency: (filepath: string) => void;
+
+  // Marks a loader as asynchronous
+  async: webpack.loader.LoaderContext['async'];
+
+  // Return errors, code, and sourcemaps from an asynchronous loader
+  callback: webpack.loader.LoaderContext['callback'];
 } & (
   | {
       // Loader options in Webpack 4

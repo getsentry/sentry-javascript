@@ -1,11 +1,10 @@
 import commonjs from '@rollup/plugin-commonjs';
-import virtual from '@rollup/plugin-virtual';
 import { stringMatchesSomePattern } from '@sentry/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 import { rollup } from 'rollup';
 
-import { LoaderThis } from './types';
+import type { LoaderThis } from './types';
 
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
@@ -16,8 +15,7 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
-// needs to end in .cjs in order for the `commonjs` plugin to pick it up - unfortunately the plugin has no option to
-// make this work in combination with the`virtual` plugin
+// Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET__.cjs';
 
 type LoaderOptions = {
@@ -31,7 +29,13 @@ type LoaderOptions = {
  * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) or API routes it contains
  * are wrapped, and then everything is re-exported.
  */
-export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
+export default function wrappingLoader(
+  this: LoaderThis<LoaderOptions>,
+  userCode: string,
+  userModuleSourceMap: any,
+): void {
+  this.async();
+
   // We know one or the other will be defined, depending on the version of webpack being used
   const {
     pagesDir,
@@ -56,7 +60,8 @@ export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, us
 
   // Skip explicitly-ignored pages
   if (stringMatchesSomePattern(parameterizedRoute, excludeServerRoutes, true)) {
-    return userCode;
+    this.callback(null, userCode, userModuleSourceMap);
+    return;
   }
 
   let templateCode = parameterizedRoute.startsWith('/api') ? apiWrapperTemplateCode : pageWrapperTemplateCode;
@@ -69,15 +74,18 @@ export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, us
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
-  try {
-    return await wrapUserCode(templateCode, userCode);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
-    );
-    return userCode;
-  }
+  wrapUserCode(templateCode, userCode, userModuleSourceMap)
+    .then(({ code: wrappedCode, map: wrappedCodeSourceMap }) => {
+      this.callback(null, wrappedCode, wrappedCodeSourceMap);
+    })
+    .catch(err => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
+      );
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    });
 }
 
 /**
@@ -92,26 +100,53 @@ export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, us
  *
  * @param wrapperCode The wrapper module code
  * @param userModuleCode The user module code
- * @returns The wrapped user code
+ * @returns The wrapped user code and a source map that describes the transformations done by this function
  */
-async function wrapUserCode(wrapperCode: string, userModuleCode: string): Promise<string> {
+async function wrapUserCode(
+  wrapperCode: string,
+  userModuleCode: string,
+  userModuleSourceMap: any,
+): Promise<{ code: string; map?: any }> {
   const rollupBuild = await rollup({
     input: SENTRY_WRAPPER_MODULE_NAME,
 
     plugins: [
-      // We're using virtual modules so we don't have to mess around with file paths
-      virtual({
-        [SENTRY_WRAPPER_MODULE_NAME]: wrapperCode,
-        [WRAPPING_TARGET_MODULE_NAME]: userModuleCode,
-      }),
+      // We're using a simple custom plugin that virtualizes our wrapper module and the user module, so we don't have to
+      // mess around with file paths and so that we can pass the original user module source map to rollup so that
+      // rollup gives us a bundle with correct source mapping to the original file
+      {
+        name: 'virtualize-sentry-wrapper-modules',
+        resolveId: id => {
+          if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
+            return id;
+          } else {
+            return null;
+          }
+        },
+        load(id) {
+          if (id === SENTRY_WRAPPER_MODULE_NAME) {
+            return wrapperCode;
+          } else if (id === WRAPPING_TARGET_MODULE_NAME) {
+            return {
+              code: userModuleCode,
+              map: userModuleSourceMap, // give rollup acces to original user module source map
+            };
+          } else {
+            return null;
+          }
+        },
+      },
 
       // People may use `module.exports` in their API routes or page files. Next.js allows that and we also need to
       // handle that correctly so we let a plugin to take care of bundling cjs exports for us.
-      commonjs(),
+      commonjs({
+        transformMixedEsModules: true,
+        sourceMap: true,
+      }),
     ],
 
     // We only want to bundle our wrapper module and the wrappee module into one, so we mark everything else as external.
-    external: source => source !== SENTRY_WRAPPER_MODULE_NAME && source !== WRAPPING_TARGET_MODULE_NAME,
+    external: sourceId => sourceId !== SENTRY_WRAPPER_MODULE_NAME && sourceId !== WRAPPING_TARGET_MODULE_NAME,
 
     // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
     // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
@@ -138,22 +173,18 @@ async function wrapUserCode(wrapperCode: string, userModuleCode: string): Promis
     // externals entirely, with the result that their paths remain untouched (which is what we want).
     makeAbsoluteExternalsRelative: false,
 
-    onwarn: () => {
+    onwarn: (_warning, _warn) => {
       // Suppress all warnings - we don't want to bother people with this output
-    },
-
-    output: {
-      // TODO
-      interop: 'auto',
-      // TODO
-      exports: 'named',
+      // Might be stuff like "you have unused imports"
+      // _warn(_warning); // uncomment to debug
     },
   });
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',
+    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map commment in the output
   });
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
-  return finalBundle.output[0].code;
+  return finalBundle.output[0];
 }

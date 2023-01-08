@@ -36,8 +36,6 @@ export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/config/loaders/index.ts'],
-      // Needed in order to successfully import sucrase
-      esModuleInterop: true,
 
       packageSpecificConfig: {
         output: {
@@ -47,7 +45,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@rollup/plugin-commonjs', '@rollup/plugin-virtual', 'rollup'],
+        external: ['@rollup/plugin-commonjs', 'rollup'],
       },
     }),
   ),

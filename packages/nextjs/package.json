@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
-    "@rollup/plugin-virtual": "3.0.0",
     "@sentry/core": "7.29.0",
     "@sentry/integrations": "7.29.0",
     "@sentry/node": "7.29.0",
