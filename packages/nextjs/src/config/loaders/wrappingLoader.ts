@@ -7,6 +7,12 @@ import { rollup } from 'rollup';
 
 import { LoaderThis } from './types';
 
+const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
+const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
+
+const pageWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'pageWrapperTemplate.js');
+const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encoding: 'utf8' });
+
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
@@ -53,12 +59,7 @@ export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, us
     return userCode;
   }
 
-  const templateFile = parameterizedRoute.startsWith('/api') ? 'apiWrapperTemplate.js' : 'pageWrapperTemplate.js';
-  const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
-  let templateCode = fs.readFileSync(templatePath, { encoding: 'utf8' });
-
-  // Make sure the template is included when running `webpack watch`
-  this.addDependency(templatePath);
+  let templateCode = parameterizedRoute.startsWith('/api') ? apiWrapperTemplateCode : pageWrapperTemplateCode;
 
   // Inject the route and the path to the file we're wrapping into the template
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
