@@ -14,10 +14,7 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: [
-        'src/config/templates/pageProxyLoaderTemplate.ts',
-        'src/config/templates/apiProxyLoaderTemplate.ts',
-      ],
+      entrypoints: ['src/config/templates/pageWrapperTemplate.ts', 'src/config/templates/apiWrapperTemplate.ts'],
 
       packageSpecificConfig: {
         output: {

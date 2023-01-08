@@ -44,9 +44,7 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     return userCode;
   }
 
-  const templateFile = parameterizedRoute.startsWith('/api')
-    ? 'apiProxyLoaderTemplate.js'
-    : 'pageProxyLoaderTemplate.js';
+  const templateFile = parameterizedRoute.startsWith('/api') ? 'apiWrapperTemplate.js' : 'pageWrapperTemplate.js';
   const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
   let templateCode = fs.readFileSync(templatePath, { encoding: 'utf8' });
 
