@@ -29,7 +29,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__SENTRY_WRAPEE__.cjs'],
+        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET__'],
       },
     }),
   ),

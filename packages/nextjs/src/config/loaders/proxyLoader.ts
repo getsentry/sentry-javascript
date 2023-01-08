@@ -7,8 +7,12 @@ import { rollup } from 'rollup';
 
 import { LoaderThis } from './types';
 
+// Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
-const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPEE__.cjs';
+
+// needs to end in .cjs in order for the `commonjs` plugin to pick it up - unfortunately the plugin has no option to
+// make this work in combination with the`virtual` plugin
+const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET__.cjs';
 
 type LoaderOptions = {
   pagesDir: string;
@@ -58,6 +62,9 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
 
   // Inject the route and the path to the file we're wrapping into the template
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
+
+  // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
+  templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET__/g, WRAPPING_TARGET_MODULE_NAME);
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
