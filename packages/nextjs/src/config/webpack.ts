@@ -98,7 +98,7 @@ export function constructWebpackConfigFunction(
           test: new RegExp(`^${escapeStringForRegex(pagesDir)}.*\\.(${pageExtensionRegex})$`),
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders/proxyLoader.js'),
+              loader: path.resolve(__dirname, 'loaders/wrappingLoader.js'),
               options: {
                 pagesDir,
                 pageExtensionRegex,

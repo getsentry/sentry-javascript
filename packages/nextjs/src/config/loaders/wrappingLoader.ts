@@ -21,11 +21,11 @@ type LoaderOptions = {
 };
 
 /**
- * Replace the loaded file with a proxy module "wrapping" the original file. In the proxy, the original file is loaded,
- * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) it contains are wrapped,
- * and then everything is re-exported.
+ * Replace the loaded file with a wrapped version the original file. In the wrapped version, the original file is loaded,
+ * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) or API routes it contains
+ * are wrapped, and then everything is re-exported.
  */
-export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
+export default async function wrappingLoader(this: LoaderThis<LoaderOptions>, userCode: string): Promise<string> {
   // We know one or the other will be defined, depending on the version of webpack being used
   const {
     pagesDir,
