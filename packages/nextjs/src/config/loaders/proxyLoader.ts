@@ -1,4 +1,4 @@
-import { escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
+import { stringMatchesSomePattern } from '@sentry/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,48 +44,27 @@ export default async function proxyLoader(this: LoaderThis<LoaderOptions>, userC
     return userCode;
   }
 
-  // We don't want to wrap twice (or infinitely), so in the proxy we add this query string onto references to the
-  // wrapped file, so that we know that it's already been processed. (Adding this query string is also necessary to
-  // convince webpack that it's a different file than the one it's in the middle of loading now, so that the originals
-  // themselves will have a chance to load.)
-  if (this.resourceQuery.includes('__sentry_wrapped__')) {
-    return userCode;
-  }
-
   const templateFile = parameterizedRoute.startsWith('/api')
     ? 'apiProxyLoaderTemplate.js'
     : 'pageProxyLoaderTemplate.js';
   const templatePath = path.resolve(__dirname, `../templates/${templateFile}`);
-  let templateCode = fs.readFileSync(templatePath).toString();
+  let templateCode = fs.readFileSync(templatePath, { encoding: 'utf8' });
+
   // Make sure the template is included when running `webpack watch`
   this.addDependency(templatePath);
 
   // Inject the route and the path to the file we're wrapping into the template
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
-  templateCode = templateCode.replace(/__RESOURCE_PATH__/g, this.resourcePath.replace(/\\/g, '\\\\'));
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
-  let proxyCode;
   try {
-    proxyCode = await rollupize(templateCode, this.resourcePath);
+    return await rollupize(templateCode, userCode);
   } catch (err) {
-    __DEBUG_BUILD__ &&
-      logger.warn(
-        `Could not wrap ${this.resourcePath}. An error occurred while processing the proxy module template:\n${err}`,
-      );
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
+    );
     return userCode;
   }
-
-  // Add a query string onto all references to the wrapped file, so that webpack will consider it different from the
-  // non-query-stringged version (which we're already in the middle of loading as we speak), and load it separately from
-  // this. When the second load happens this loader will run again, but we'll be able to see the query string and will
-  // know to immediately return without processing. This avoids an infinite loop.
-  const resourceFilename = path.basename(this.resourcePath);
-  proxyCode = proxyCode.replace(
-    new RegExp(`/${escapeStringForRegex(resourceFilename)}'`, 'g'),
-    `/${resourceFilename}?__sentry_wrapped__'`,
-  );
-
-  return proxyCode;
 }

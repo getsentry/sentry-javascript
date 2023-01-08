@@ -32,7 +32,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__RESOURCE_PATH__'],
+        external: ['@sentry/nextjs', '__SENTRY_WRAPEE__.cjs'],
       },
     }),
   ),
@@ -50,7 +50,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@rollup/plugin-sucrase', 'rollup'],
+        external: ['@rollup/plugin-commonjs', '@rollup/plugin-virtual', 'rollup'],
       },
     }),
   ),

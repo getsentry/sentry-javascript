@@ -8,7 +8,7 @@
 
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__RESOURCE_PATH__';
+import * as wrapee from '__SENTRY_WRAPEE__.cjs';
 import * as Sentry from '@sentry/nextjs';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
 
@@ -53,4 +53,4 @@ export default pageComponent;
 // not include anything whose name matchs something we've explicitly exported above.
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-export * from '__RESOURCE_PATH__';
+export * from '__SENTRY_WRAPEE__.cjs';

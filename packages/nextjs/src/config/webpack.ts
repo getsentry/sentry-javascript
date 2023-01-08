@@ -93,7 +93,8 @@ export function constructWebpackConfigFunction(
         const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
         const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
-        newConfig.module.rules.push({
+        // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
+        newConfig.module.rules.unshift({
           test: new RegExp(`^${escapeStringForRegex(pagesDir)}.*\\.(${pageExtensionRegex})$`),
           use: [
             {
