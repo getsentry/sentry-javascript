@@ -25,10 +25,8 @@ module.exports = {
       rules: {
         // TODO (high-prio): Re-enable this after migration
         '@typescript-eslint/explicit-member-accessibility': 'off',
-        // TODO (high-prio): Re-enable this after migration
+        // Since we target only es6 here, we can leave this off
         '@sentry-internal/sdk/no-async-await': 'off',
-        // TODO (medium-prio): Re-enable this after migration
-        'jsdoc/require-jsdoc': 'off',
       },
     },
     {

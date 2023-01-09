@@ -235,3 +235,30 @@ export interface ReplayContainer {
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
 }
+
+export interface ReplayPerformanceEntry {
+  /**
+   * One of these types https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/entryType
+   */
+  type: string;
+
+  /**
+   * A more specific description of the performance entry
+   */
+  name: string;
+
+  /**
+   * The start timestamp in seconds
+   */
+  start: number;
+
+  /**
+   * The end timestamp in seconds
+   */
+  end: number;
+
+  /**
+   * Additional unstructured data to be included
+   */
+  data?: Record<string, unknown>;
+}

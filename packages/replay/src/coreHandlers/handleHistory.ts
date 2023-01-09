@@ -1,5 +1,4 @@
-import { ReplayPerformanceEntry } from '../createPerformanceEntry';
-import type { ReplayContainer } from '../types';
+import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
 
 interface HistoryHandlerData {

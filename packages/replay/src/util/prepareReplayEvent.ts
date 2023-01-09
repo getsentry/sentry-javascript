@@ -1,7 +1,10 @@
 import { prepareEvent, Scope } from '@sentry/core';
 import { Client, ReplayEvent } from '@sentry/types';
 
-export async function getReplayEvent({
+/**
+ * Prepare a replay event & enrich it with the SDK metadata.
+ */
+export async function prepareReplayEvent({
   client,
   scope,
   replayId: event_id,

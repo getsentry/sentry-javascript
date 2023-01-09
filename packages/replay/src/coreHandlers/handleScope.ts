@@ -4,6 +4,9 @@ import { createBreadcrumb } from '../util/createBreadcrumb';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
 
+/**
+ * An event handler to handle scope changes.
+ */
 export function handleScope(scope: Scope): Breadcrumb | null {
   const newBreadcrumb = scope.getLastBreadcrumb();
 
