@@ -60,9 +60,9 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
+        replay_type: 'error',
         tags: expect.objectContaining({
           errorSampleRate: 1,
-          replayType: 'error',
           sessionSampleRate: 0,
         }),
       }),
@@ -90,9 +90,9 @@ describe('Replay (errorSampleRate)', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
+        replay_type: 'error',
         tags: expect.objectContaining({
           errorSampleRate: 1,
-          replayType: 'error',
           sessionSampleRate: 0,
         }),
       }),

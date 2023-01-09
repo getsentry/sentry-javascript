@@ -33,10 +33,12 @@ describe('getReplayEvent', () => {
       trace_ids: ['trace-ID'],
       urls: ['https://sentry.io/'],
       replay_id: replayId,
+      event_id: replayId,
+      replay_type: 'session',
       segment_id: 3,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, event });
+    const replayEvent = await getReplayEvent({ scope, client, replayId, event });
 
     expect(replayEvent).toEqual({
       type: 'replay_event',
@@ -45,10 +47,10 @@ describe('getReplayEvent', () => {
       trace_ids: ['trace-ID'],
       urls: ['https://sentry.io/'],
       replay_id: 'replay-ID',
+      replay_type: 'session',
       segment_id: 3,
       platform: 'javascript',
-      // generated uuid with 32 chars
-      event_id: expect.stringMatching(/^\w{32}$/),
+      event_id: 'replay-ID',
       environment: 'production',
       sdk: {
         name: 'sentry.javascript.browser',

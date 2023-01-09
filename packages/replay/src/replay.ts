@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { Breadcrumb, ReplayEvent, ReplayRecordingMode, TransportMakeRequestResponse } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
@@ -34,7 +34,6 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
-  ReplayRecordingMode,
   SendReplay,
   Session,
 } from './types';
@@ -922,7 +921,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const transport = client && client.getTransport();
     const dsn = client?.getDsn();
 
-    if (!client || !scope || !transport || !dsn) {
+    if (!client || !scope || !transport || !dsn || !this.session || !this.session.sampled) {
       return;
     }
 
@@ -936,9 +935,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       urls,
       replay_id: replayId,
       segment_id,
+      replay_type: this.session.sampled,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, event: baseEvent });
+    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
 
     if (!replayEvent) {
       // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
@@ -951,7 +951,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       ...replayEvent.tags,
       sessionSampleRate: this._options.sessionSampleRate,
       errorSampleRate: this._options.errorSampleRate,
-      replayType: this.session?.sampled,
     };
 
     /*
@@ -970,8 +969,9 @@ export class ReplayContainer implements ReplayContainerInterface {
         ],
         "replay_id": "eventId",
         "segment_id": 3,
+        "replay_type": "error",
         "platform": "javascript",
-        "event_id": "generated-uuid",
+        "event_id": "eventId",
         "environment": "production",
         "sdk": {
             "integrations": [
@@ -985,7 +985,6 @@ export class ReplayContainer implements ReplayContainerInterface {
         "tags": {
             "sessionSampleRate": 1,
             "errorSampleRate": 0,
-            "replayType": "error"
         }
     }
     */
