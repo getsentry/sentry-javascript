@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.30.0
+
+- feat(core): Add `addIntegration` method to client (#6651)
+- feat(core): Add `replay_event` type for events (#6481)
+- feat(gatsby): Support Gatsby v5 (#6635)
+- feat(integrations): Add HTTPClient integration (#6500)
+- feat(node): Add `LocalVariables` integration to capture local variables to stack frames (#6478)
+- feat(node): Check for invalid url in node transport (#6623)
+- feat(replay): Remove `replayType` from tags and into `replay_event` (#6658)
+- feat(transport): Return result through Transport send (#6626)
+- fix(nextjs): Don't wrap `res.json` and `res.send` (#6674)
+- fix(nextjs): Don't write to `res.end` to fix `next export` (#6682)
+- fix(nextjs): Exclude SDK from Edge runtime bundles (#6683)
+- fix(replay): Allow Replay to be used in Electron renderers with nodeIntegration enabled (#6644)
+- fix(utils): Ignore stack frames over 1kb (#6627)
+- ref(angular) Add error-like objects handling (#6446)
+- ref(nextjs): Remove `instrumentSever` (#6592)
+- ref(vue): Use `string.repeat()` (#6663)
+
+Work in this release contributed by @rjoonas, @Naddiseo, and @theofidry. Thank you for your contributions!
+
 ## 7.29.0
 
 This update includes a change to the `@sentry/nextjs` SDK that may increase response times of requests in applications
