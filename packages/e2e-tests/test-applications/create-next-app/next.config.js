@@ -29,6 +29,9 @@ const sentryWebpackPluginOptions = {
   silent: true, // Suppresses all logs
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
+
+  // We're not testing source map uploads at the moment.
+  dryRun: true,
 };
 
 // Make sure adding Sentry options is the last code to run before exporting, to
