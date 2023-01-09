@@ -9,10 +9,9 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/cjs/index.server.js",
-  "module": "build/esm/index.server.js",
-  "browser": "build/esm/index.client.js",
-  "types": "build/types/index.server.d.ts",
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.types.d.ts",
   "publishConfig": {
     "access": "public"
   },
