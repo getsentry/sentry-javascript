@@ -107,30 +107,24 @@ describe('Integration | flush', () => {
     replay && replay.stop();
   });
 
-  it('flushes twice after multiple flush() calls)', async () => {
-    // blur events cause an immediate flush (as well as a flush due to adding a
-    // breadcrumb) -- this means that the first blur event will be flushed and
-    // the following blur events will all call a debounced flush function, which
-    // should end up queueing a second flush
-
+  it('flushes after each blur event', async () => {
+    // blur events cause an immediate flush that bypass the debounced flush
+    // function and skip any async workers
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
     WINDOW.dispatchEvent(new Event('blur'));
-    WINDOW.dispatchEvent(new Event('blur'));
-    WINDOW.dispatchEvent(new Event('blur'));
-    WINDOW.dispatchEvent(new Event('blur'));
-
-    expect(mockFlush).toHaveBeenCalledTimes(4);
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
     expect(mockRunFlush).toHaveBeenCalledTimes(1);
+    WINDOW.dispatchEvent(new Event('blur'));
+    expect(mockRunFlush).toHaveBeenCalledTimes(2);
+    WINDOW.dispatchEvent(new Event('blur'));
+    expect(mockRunFlush).toHaveBeenCalledTimes(3);
+    WINDOW.dispatchEvent(new Event('blur'));
+    expect(mockRunFlush).toHaveBeenCalledTimes(4);
+
+    expect(mockFlush).toHaveBeenCalledTimes(0);
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(mockRunFlush).toHaveBeenCalledTimes(2);
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    expect(mockRunFlush).toHaveBeenCalledTimes(2);
+    expect(mockRunFlush).toHaveBeenCalledTimes(4);
   });
 
   it('long first flush enqueues following events', async () => {
@@ -141,8 +135,11 @@ describe('Integration | flush', () => {
 
     expect(mockAddPerformanceEntries).not.toHaveBeenCalled();
 
-    // flush #1 @ t=0s - due to blur
-    WINDOW.dispatchEvent(new Event('blur'));
+    // flush #1 @ t=0s - (blur bypasses debounce, so manually call `flushImmedate`)
+    domHandler({
+      name: 'click',
+    });
+    replay.flushImmediate();
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockRunFlush).toHaveBeenCalledTimes(1);
 
@@ -155,8 +152,11 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(2);
 
     await advanceTimers(1000);
-    // flush #3 @ t=6s - due to blur
-    WINDOW.dispatchEvent(new Event('blur'));
+    domHandler({
+      name: 'click',
+    });
+    // flush #3 @ t=6s
+    replay.flushImmediate();
     expect(mockFlush).toHaveBeenCalledTimes(3);
 
     // NOTE: Blur also adds a breadcrumb which calls `addUpdate`, meaning it will
@@ -164,8 +164,11 @@ describe('Integration | flush', () => {
     await advanceTimers(8000);
     expect(mockFlush).toHaveBeenCalledTimes(3);
 
-    // flush #4 @ t=14s - due to blur
-    WINDOW.dispatchEvent(new Event('blur'));
+    // flush #4 @ t=14s
+    domHandler({
+      name: 'click',
+    });
+    replay.flushImmediate();
     expect(mockFlush).toHaveBeenCalledTimes(4);
 
     expect(mockRunFlush).toHaveBeenCalledTimes(1);

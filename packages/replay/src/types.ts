@@ -7,6 +7,15 @@ export type RecordingOptions = recordOptions;
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
+export interface FlushOptions {
+  /**
+   * Attempt to finish the flush immediately without any asynchronous operations
+   * (e.g. worker calls). This is not directly related to `flushImmediate` which
+   * skips the debounced flush.
+   */
+  finishImmediate?: boolean;
+}
+
 export interface SendReplayData {
   recordingData: ReplayRecordingData;
   replayId: string;
@@ -17,6 +26,10 @@ export interface SendReplayData {
   session: Session;
   options: ReplayPluginOptions;
 }
+
+export type PendingReplayData = Omit<SendReplayData, 'recordingData'|'session'|'options'> & {
+  recordingData: RecordingEvent[];
+};
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
 
@@ -237,6 +250,11 @@ export interface EventBuffer {
    * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
+
+  /**
+* Clears and synchronously returns the pending contents of the buffer. This means no compression.
+*/
+  finishImmediate(): string;
 }
 
 export type AddUpdateCallback = () => boolean | void;

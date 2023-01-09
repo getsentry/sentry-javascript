@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingMode, ReplayRecordingData } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
 import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
@@ -28,6 +28,7 @@ import type {
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   Session,
+  FlushOptions,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -151,7 +152,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
-  public start(): void {
+  public async start(): Promise<void> {
     this._setInitialState();
 
     this._loadSession({ expiry: SESSION_IDLE_DURATION });
@@ -324,7 +325,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   *
    * Always flush via `_debouncedFlush` so that we do not have flushes triggered
    * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
    * cases of mulitple flushes happening closely together.
@@ -335,7 +335,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._debouncedFlush.flush() as Promise<void>;
   }
 
-  /** Get the current sesion (=replay) ID */
+  /** Get the current session (=replay) ID */
   public getSessionId(): string | undefined {
     return this.session && this.session.id;
   }
@@ -625,7 +625,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
-    this._conditionalFlush();
+    this._conditionalFlush({finishImmediate: true});
   }
 
   /**
@@ -747,8 +747,17 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Only flush if `this.recordingMode === 'session'`
    */
-  private _conditionalFlush(): void {
+  private _conditionalFlush(options: FlushOptions = {}): void {
     if (this.recordingMode === 'error') {
+      return;
+    }
+
+    /**
+     * Page is likely to unload so need to bypass debounce completely and
+     * synchronously retrieve pending events from buffer and send request asap.
+     */
+    if (options.finishImmediate) {
+      void this._runFlush(options);
       return;
     }
 
@@ -795,30 +804,26 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * Should never be called directly, only by `flush`
    */
-  private async _runFlush(): Promise<void> {
+  private async _runFlush(options: FlushOptions = {}): Promise<void> {
     if (!this.session || !this.eventBuffer) {
       __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
       return;
     }
 
-    await this._addPerformanceEntries();
-
-    // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
-      return;
-    }
-
-    // Only attach memory event if eventBuffer is not empty
-    await addMemoryEntry(this);
-
-    // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer) {
-      return;
-    }
-
     try {
-      // Note this empties the event buffer regardless of outcome of sending replay
-      const recordingData = await this.eventBuffer.finish();
+      this._debouncedFlush.cancel();
+
+      const promises: Promise<any>[] = [];
+
+      promises.push(this._addPerformanceEntries());
+
+      // Do not continue if there are no pending events in buffer
+      if (!this.eventBuffer?.pendingLength) {
+        return;
+      }
+
+      // Only attach memory entry if eventBuffer is not empty
+      promises.push(addMemoryEntry(this));
 
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
@@ -826,9 +831,33 @@ export class ReplayContainer implements ReplayContainerInterface {
       const eventContext = this._popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
+
+      // Save session (new segment id) after we save flush data assuming either
+      // 1) request succeeds or 2) it fails or never happens, in which case we
+      // need to retry this segment.
       this._maybeSaveSession();
 
-      await sendReplay({
+      let recordingData: ReplayRecordingData;
+
+      if (options.finishImmediate && this.eventBuffer.pendingLength) {
+        recordingData = this.eventBuffer.finishImmediate();
+      } else {
+        // NOTE: Be mindful that nothing after this point (the first `await`)
+        // will run after when the page is unloaded.
+        await Promise.all(promises);
+
+        // This can be empty due to blur events calling `runFlush` directly. In
+        // the case where we have a snapshot checkout and a blur event
+        // happening near the same time, the blur event can end up emptying the
+        // buffer even if snapshot happens first.
+        if (!this.eventBuffer.pendingLength) {
+          return;
+        }
+        // This empties the event buffer regardless of outcome of sending replay
+        recordingData = await this.eventBuffer.finish();
+      }
+
+      const sendReplayPromise = sendReplay({
         replayId,
         recordingData,
         segmentId,
@@ -838,6 +867,10 @@ export class ReplayContainer implements ReplayContainerInterface {
         options: this.getOptions(),
         timestamp: new Date().getTime(),
       });
+
+      await sendReplayPromise;
+
+      return;
     } catch (err) {
       this._handleException(err);
 

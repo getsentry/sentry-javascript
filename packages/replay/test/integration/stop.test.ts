@@ -106,6 +106,9 @@ describe('Integration | stop', () => {
     };
 
     addEvent(replay, TEST_EVENT);
+    // This is an interesting test case because `start()` causes a checkout and a `flushImmediate`, and
+    // blur causes a direct `runFlush` call to ensure if window unloads, it is able to send out an uncompressed segment.
+    // This means that the non-async blur call can empty out the buffer before `flushImmediate` finishes.
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
@@ -127,7 +130,7 @@ describe('Integration | stop', () => {
   });
 
   it('does not buffer events when stopped', async function () {
-    WINDOW.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('focus'));
     expect(replay.eventBuffer?.pendingLength).toBe(1);
 
     // stop replays
@@ -135,7 +138,7 @@ describe('Integration | stop', () => {
 
     expect(replay.eventBuffer?.pendingLength).toBe(undefined);
 
-    WINDOW.dispatchEvent(new Event('blur'));
+    WINDOW.dispatchEvent(new Event('focus'));
     await new Promise(process.nextTick);
 
     expect(replay.eventBuffer?.pendingLength).toBe(undefined);

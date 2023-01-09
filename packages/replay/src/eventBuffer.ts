@@ -73,13 +73,22 @@ class EventBufferArray implements EventBuffer {
 
   public finish(): Promise<string> {
     return new Promise<string>(resolve => {
-      // Make a copy of the events array reference and immediately clear the
-      // events member so that we do not lose new events while uploading
-      // attachment.
-      const eventsRet = this._events;
-      this._events = [];
-      resolve(JSON.stringify(eventsRet));
+      resolve(
+        this._finish());
     });
+  }
+
+  public finishImmediate(): string {
+    return this._finish();
+  }
+
+  private _finish(): string {
+    // Make a copy of the events array reference and immediately clear the
+    // events member so that we do not lose new events while uploading
+    // attachment.
+    const events = this._events;
+    this._events = [];
+    return JSON.stringify(events);
   }
 }
 
@@ -156,6 +165,18 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public finish(): Promise<Uint8Array> {
     return this._finishRequest(this._getAndIncrementId());
+  }
+
+  /**
+   * Finish the event buffer and return the pending events.
+   */
+  public finishImmediate(): string {
+    const events = this._pendingEvents;
+
+    // Ensure worker is still in a good state and disregard the result
+    void this._finishRequest(this._getAndIncrementId());
+
+    return JSON.stringify(events);
   }
 
   /**
