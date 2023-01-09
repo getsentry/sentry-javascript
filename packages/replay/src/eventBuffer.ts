@@ -12,6 +12,9 @@ interface CreateEventBufferParams {
   useCompression: boolean;
 }
 
+/**
+ * Create an event buffer for replays.
+ */
 export function createEventBuffer({ useCompression }: CreateEventBufferParams): EventBuffer {
   // eslint-disable-next-line no-restricted-globals
   if (useCompression && window.Worker) {
@@ -72,7 +75,10 @@ class EventBufferArray implements EventBuffer {
   }
 }
 
-// exporting for testing
+/**
+ * Event buffer that uses a web worker to compress events.
+ * Exported only for testing.
+ */
 export class EventBufferCompressionWorker implements EventBuffer {
   private _worker: null | Worker;
   private _eventBufferItemLength: number = 0;
@@ -90,12 +96,18 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return this._eventBufferItemLength;
   }
 
+  /**
+   * Destroy the event buffer.
+   */
   public destroy(): void {
     __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
     this._worker?.terminate();
     this._worker = null;
   }
 
+  /**
+   * Add an event to the event buffer.
+   */
   public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
@@ -110,6 +122,9 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return this._sendEventToWorker(event);
   }
 
+  /**
+   * Finish the event buffer and return the compressed data.
+   */
   public finish(): Promise<Uint8Array> {
     return this._finishRequest(this._getAndIncrementId());
   }
@@ -160,6 +175,9 @@ export class EventBufferCompressionWorker implements EventBuffer {
     });
   }
 
+  /**
+   * Send the event to the worker.
+   */
   private _sendEventToWorker(event: RecordingEvent): Promise<ReplayRecordingData> {
     const promise = this._postMessage({
       id: this._getAndIncrementId(),
@@ -173,6 +191,9 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return promise;
   }
 
+  /**
+   * Finish the request and return the compressed data from the worker.
+   */
   private async _finishRequest(id: number): Promise<Uint8Array> {
     const promise = this._postMessage({ id, method: 'finish', args: [] });
 
@@ -182,6 +203,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return promise as Promise<Uint8Array>;
   }
 
+  /** Get the current ID and increment it for the next call. */
   private _getAndIncrementId(): number {
     return this._id++;
   }

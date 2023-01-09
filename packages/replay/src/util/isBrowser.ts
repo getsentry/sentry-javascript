@@ -1,5 +1,8 @@
 import { isNodeEnv } from '@sentry/utils';
 
+/**
+ * Returns true if we are in the browser.
+ */
 export function isBrowser(): boolean {
   // eslint-disable-next-line no-restricted-globals
   return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());

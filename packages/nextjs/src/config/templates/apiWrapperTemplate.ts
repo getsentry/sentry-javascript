@@ -23,7 +23,7 @@ type NextApiModule = (
     }
   // CJS export
   | NextApiHandler
-) & { config?: PageConfig & { runtime?: string } };
+) & { config?: PageConfig };
 
 const userApiModule = origModule as NextApiModule;
 
@@ -53,21 +53,7 @@ export const config = {
   },
 };
 
-// This is a variable that Next.js will string replace during build with a string if run in an edge runtime from Next.js
-// v12.2.1-canary.3 onwards:
-// https://github.com/vercel/next.js/blob/166e5fb9b92f64c4b5d1f6560a05e2b9778c16fb/packages/next/build/webpack-config.ts#L206
-// https://edge-runtime.vercel.sh/features/available-apis#addressing-the-runtime
-declare const EdgeRuntime: string | undefined;
-
-let exportedHandler;
-
-if (typeof EdgeRuntime === 'string') {
-  exportedHandler = userProvidedHandler;
-} else {
-  exportedHandler = userProvidedHandler ? Sentry.withSentryAPI(userProvidedHandler, '__ROUTE__') : undefined;
-}
-
-export default exportedHandler;
+export default userProvidedHandler ? Sentry.withSentryAPI(userProvidedHandler, '__ROUTE__') : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.

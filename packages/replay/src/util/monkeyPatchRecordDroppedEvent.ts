@@ -3,6 +3,9 @@ import { Client, DataCategory, Event, EventDropReason } from '@sentry/types';
 
 let _originalRecordDroppedEvent: Client['recordDroppedEvent'] | undefined;
 
+/**
+ * Overwrite the `recordDroppedEvent` method on the client, so we can find out which events were dropped.
+ * */
 export function overwriteRecordDroppedEvent(errorIds: Set<string>): void {
   const client = getCurrentHub().getClient();
 
@@ -28,6 +31,9 @@ export function overwriteRecordDroppedEvent(errorIds: Set<string>): void {
   _originalRecordDroppedEvent = _originalCallback;
 }
 
+/**
+ * Restore the original method.
+ * */
 export function restoreRecordDroppedEvent(): void {
   const client = getCurrentHub().getClient();
 

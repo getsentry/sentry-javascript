@@ -22,6 +22,7 @@ type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
+  isEdgeRuntime: boolean;
 };
 
 /**
@@ -33,15 +34,21 @@ export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
   userModuleSourceMap: any,
-): void {
-  this.async();
-
+): void | string {
   // We know one or the other will be defined, depending on the version of webpack being used
   const {
     pagesDir,
     pageExtensionRegex,
     excludeServerRoutes = [],
+    isEdgeRuntime,
   } = 'getOptions' in this ? this.getOptions() : this.query;
+
+  // We currently don't support the edge runtime
+  if (isEdgeRuntime) {
+    return userCode;
+  }
+
+  this.async();
 
   // Get the parameterized route name from this page's filepath
   const parameterizedRoute = path

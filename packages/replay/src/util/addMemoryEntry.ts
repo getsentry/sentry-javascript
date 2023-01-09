@@ -1,6 +1,14 @@
 import { WINDOW } from '../constants';
-import type { ReplayContainer } from '../types';
+import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from './createPerformanceSpans';
+
+type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
+
+interface MemoryInfo {
+  jsHeapSizeLimit: number;
+  totalJSHeapSize: number;
+  usedJSHeapSize: number;
+}
 
 /**
  * Create a "span" for the total amount of memory being used by JS objects
@@ -16,4 +24,24 @@ export function addMemoryEntry(replay: ReplayContainer): void {
   } catch (error) {
     // Do nothing
   }
+}
+
+function createMemoryEntry(memoryEntry: MemoryInfo): ReplayMemoryEntry {
+  const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
+  // we don't want to use `getAbsoluteTime` because it adds the event time to the
+  // time origin, so we get the current timestamp instead
+  const time = new Date().getTime() / 1000;
+  return {
+    type: 'memory',
+    name: 'memory',
+    start: time,
+    end: time,
+    data: {
+      memory: {
+        jsHeapSizeLimit,
+        totalJSHeapSize,
+        usedJSHeapSize,
+      },
+    },
+  };
 }

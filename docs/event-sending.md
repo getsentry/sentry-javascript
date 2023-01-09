@@ -77,8 +77,8 @@ This document gives an outline for how event sending works, and which which plac
 ## Replay (WIP)
 
 * `replay.sendReplayRequest()`
-  * `createPayload()`
-  * `getReplayEvent()`
+  * `createRecordingData()`
+  * `prepareReplayEvent()`
     * `client._prepareEvent()` (see baseclient)
       * `baseclient._applyClientOptions()`
       * `baseclient._applyIntegrationsMetadata()`
