@@ -110,7 +110,7 @@ describe('LocalVariables', () => {
       '-6224981551105448869.1.2': { name: 'tim' },
       '-6224981551105448869.1.6': { arr: [1, 2, 3] },
     });
-    const localVariables = new LocalVariables(session);
+    const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       _experiments: { includeStackLocals: true },
@@ -206,7 +206,7 @@ describe('LocalVariables', () => {
     expect.assertions(1);
 
     const session = new MockDebugSession({}, { getLocalVariables: true });
-    const localVariables = new LocalVariables(session);
+    const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       _experiments: { includeStackLocals: true },
@@ -228,7 +228,7 @@ describe('LocalVariables', () => {
     expect.assertions(1);
 
     const session = new MockDebugSession({}, { configureAndConnect: true });
-    const localVariables = new LocalVariables(session);
+    const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       _experiments: { includeStackLocals: false },
@@ -250,7 +250,7 @@ describe('LocalVariables', () => {
       '-6224981551105448869.1.2': { name: 'tim' },
       '-6224981551105448869.1.6': { arr: [1, 2, 3] },
     });
-    const localVariables = new LocalVariables(session);
+    const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
       _experiments: { includeStackLocals: true },

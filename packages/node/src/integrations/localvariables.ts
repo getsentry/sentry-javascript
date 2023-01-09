@@ -147,6 +147,11 @@ export interface FrameVariables {
   vars?: Record<string, unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+interface Options {
+  // No options yet but this allows them to be added later without breaking changes
+}
+
 /**
  * Adds local variables to exception frames
  */
@@ -157,7 +162,7 @@ export class LocalVariables implements Integration {
 
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
 
-  public constructor(private readonly _session: DebugSession = new AsyncSession()) {}
+  public constructor(_options: Options = {}, private readonly _session: DebugSession = new AsyncSession()) {}
 
   /**
    * @inheritDoc
