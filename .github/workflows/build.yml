@@ -851,11 +851,14 @@ jobs:
         id: process
         run: yarn ci:process
         working-directory: packages/replay/metrics
+        # Don't run on forks - the PR comment cannot be added.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload results
         uses: actions/upload-artifact@v3
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}

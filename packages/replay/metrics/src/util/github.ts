@@ -98,7 +98,7 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
       body: commentBuilder.body,
     });
   } else {
-    console.log(`Adding new PR comment to PR ${prNumber}`)
+    console.log(`Adding a new comment to PR ${prNumber}`)
     await octokit.rest.issues.createComment({
       ...defaultArgs,
       issue_number: prNumber,
