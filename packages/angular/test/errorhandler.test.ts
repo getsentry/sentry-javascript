@@ -33,7 +33,7 @@ class CustomError extends Error {
 }
 
 class ErrorLikeShapedClass implements Partial<Error> {
-  constructor(public message: string) {}
+  constructor(public name: string, public message: string) {}
 }
 
 function createErrorEvent(message: string, innerError: any): ErrorEvent {
@@ -118,8 +118,7 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(errorLikeWithoutStack);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
-      expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+      expect(captureExceptionSpy).toHaveBeenCalledWith(errorLikeWithoutStack, expect.any(Function));
     });
 
     it('extracts an error-like object with a stack', () => {
@@ -132,8 +131,7 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(errorLikeWithStack);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
-      expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+      expect(captureExceptionSpy).toHaveBeenCalledWith(errorLikeWithStack, expect.any(Function));
     });
 
     it('extracts an object that could look like an error but is not (does not have a message)', () => {
@@ -150,7 +148,6 @@ describe('SentryErrorHandler', () => {
 
     it('extracts an object that could look like an error but is not (does not have an explicit name)', () => {
       const notErr: Partial<Error> = {
-        // missing name; but actually is always there as part of the Object prototype
         message: 'something failed.',
       };
 
@@ -194,12 +191,12 @@ describe('SentryErrorHandler', () => {
     });
 
     it('extracts an instance of class not extending Error but that has an error-like shape', () => {
-      const err = new ErrorLikeShapedClass('something happened');
+      const err = new ErrorLikeShapedClass('sentry-error', 'something happened');
 
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', expect.any(Function));
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, expect.any(Function));
     });
 
     it('extracts an instance of a class that does not extend Error and does not have an error-like shape', () => {
@@ -304,11 +301,7 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
-      expect(captureExceptionSpy).toHaveBeenCalledWith(
-        'Http failure response for (unknown url): undefined undefined',
-        expect.any(Function),
-      );
+      expect(captureExceptionSpy).toHaveBeenCalledWith(errorLikeWithoutStack, expect.any(Function));
     });
 
     it('extracts an `HttpErrorResponse` with error-like object with a stack', () => {
@@ -322,11 +315,7 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      // TODO: to be changed; see https://github.com/getsentry/sentry-javascript/issues/6332
-      expect(captureExceptionSpy).toHaveBeenCalledWith(
-        'Http failure response for (unknown url): undefined undefined',
-        expect.any(Function),
-      );
+      expect(captureExceptionSpy).toHaveBeenCalledWith(errorLikeWithStack, expect.any(Function));
     });
 
     it('extracts an `HttpErrorResponse` with an object that could look like an error but is not (does not have a message)', () => {
@@ -347,7 +336,6 @@ describe('SentryErrorHandler', () => {
 
     it('extracts an `HttpErrorResponse` with an object that could look like an error but is not (does not have an explicit name)', () => {
       const notErr: Partial<Error> = {
-        // missing name; but actually is always there as part of the Object prototype
         message: 'something failed.',
       };
       const err = new HttpErrorResponse({ error: notErr });
@@ -453,16 +441,13 @@ describe('SentryErrorHandler', () => {
     });
 
     it('extracts an `HttpErrorResponse` with an instance of class not extending Error but that has an error-like shape', () => {
-      const innerErr = new ErrorLikeShapedClass('something happened');
+      const innerErr = new ErrorLikeShapedClass('sentry-error', 'something happened');
       const err = new HttpErrorResponse({ error: innerErr });
 
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(
-        'Http failure response for (unknown url): undefined undefined',
-        expect.any(Function),
-      );
+      expect(captureExceptionSpy).toHaveBeenCalledWith(innerErr, expect.any(Function));
     });
 
     it('extracts an `HttpErrorResponse` with an instance of a class that does not extend Error and does not have an error-like shape', () => {
