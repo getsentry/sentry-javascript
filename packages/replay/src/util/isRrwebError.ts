@@ -1,5 +1,8 @@
 import { Event } from '@sentry/types';
 
+/**
+ * Returns true if we think the given event is an error originating inside of rrweb.
+ */
 export function isRrwebError(event: Event): boolean {
   if (event.type || !event.exception?.values?.length) {
     return false;

@@ -9,6 +9,9 @@ export interface DomHandlerData {
   event: Node | { target: Node };
 }
 
+/**
+ * An event handler to react to DOM events.
+ */
 export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
   let target;

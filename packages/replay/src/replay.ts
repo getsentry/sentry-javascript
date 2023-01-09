@@ -40,14 +40,14 @@ import type {
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
-import { createPayload } from './util/createPayload';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
+import { createRecordingData } from './util/createRecordingData';
 import { createReplayEnvelope } from './util/createReplayEnvelope';
 import { debounce } from './util/debounce';
-import { getReplayEvent } from './util/getReplayEvent';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
+import { prepareReplayEvent } from './util/prepareReplayEvent';
 
 /**
  * Returns true to return control to calling function, otherwise continue with normal batching
@@ -56,6 +56,9 @@ import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/m
 const BASE_RETRY_INTERVAL = 5000;
 const MAX_RETRY_COUNT = 3;
 
+/**
+ * The main replay container class, which holds all the state and methods for recording and sending replays.
+ */
 export class ReplayContainer implements ReplayContainerInterface {
   public eventBuffer: EventBuffer | null = null;
 
@@ -904,7 +907,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     includeReplayStartTimestamp,
     eventContext,
   }: SendReplay): Promise<void | TransportMakeRequestResponse> {
-    const payloadWithSequence = createPayload({
+    const recordingData = createRecordingData({
       events,
       headers: {
         segment_id,
@@ -938,7 +941,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       replay_type: this.session.sampled,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
+    const replayEvent = await prepareReplayEvent({ scope, client, replayId, event: baseEvent });
 
     if (!replayEvent) {
       // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
@@ -989,7 +992,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
     */
 
-    const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn, client.getOptions().tunnel);
+    const envelope = createReplayEnvelope(replayEvent, recordingData, dsn, client.getOptions().tunnel);
 
     try {
       return await transport.send(envelope);
@@ -998,6 +1001,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
   }
 
+  /**
+   * Reset the counter of retries for sending replays.
+   */
   resetRetries(): void {
     this._retryCount = 0;
     this._retryInterval = BASE_RETRY_INTERVAL;

@@ -2,7 +2,10 @@ import { ReplayRecordingData } from '@sentry/types';
 
 import type { RecordedEvents } from '../types';
 
-export function createPayload({
+/**
+ * Create the recording data ready to be sent.
+ */
+export function createRecordingData({
   events,
   headers,
 }: {

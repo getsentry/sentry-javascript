@@ -2,40 +2,12 @@ import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
 import { WINDOW } from './constants';
-import type { AllPerformanceEntry, PerformanceNavigationTiming, PerformancePaintTiming } from './types';
-
-export interface ReplayPerformanceEntry {
-  /**
-   * One of these types https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/entryType
-   */
-  type: string;
-
-  /**
-   * A more specific description of the performance entry
-   */
-  name: string;
-
-  /**
-   * The start timestamp in seconds
-   */
-  start: number;
-
-  /**
-   * The end timestamp in seconds
-   */
-  end: number;
-
-  /**
-   * Additional unstructured data to be included
-   */
-  data?: Record<string, unknown>;
-}
-
-interface MemoryInfo {
-  jsHeapSizeLimit: number;
-  totalJSHeapSize: number;
-  usedJSHeapSize: number;
-}
+import type {
+  AllPerformanceEntry,
+  PerformanceNavigationTiming,
+  PerformancePaintTiming,
+  ReplayPerformanceEntry,
+} from './types';
 
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type
@@ -46,9 +18,12 @@ const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayP
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
   navigation: createNavigationEntry,
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
-  ['largest-contentful-paint']: createLargestContentfulPaint,
+  'largest-contentful-paint': createLargestContentfulPaint,
 };
 
+/**
+ * Create replay performance entries from the browser performance entries.
+ */
 export function createPerformanceEntries(entries: AllPerformanceEntry[]): ReplayPerformanceEntry[] {
   return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry[];
 }
@@ -67,9 +42,7 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createPaintEntry(entry: PerformancePaintTiming) {
+function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -81,9 +54,7 @@ function createPaintEntry(entry: PerformancePaintTiming) {
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createNavigationEntry(entry: PerformanceNavigationTiming) {
+function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry | null {
   // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
   const { entryType, name, duration, domComplete, startTime, transferSize, type } = entry;
 
@@ -104,9 +75,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createResourceEntry(entry: PerformanceResourceTiming) {
+function createResourceEntry(entry: PerformanceResourceTiming): ReplayPerformanceEntry | null {
   const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
 
   // Core SDK handles these
@@ -126,9 +95,9 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
+function createLargestContentfulPaint(
+  entry: PerformanceEntry & { size: number; element: Node },
+): ReplayPerformanceEntry {
   const { duration, entryType, startTime, size } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -144,28 +113,6 @@ function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; 
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       nodeId: record.mirror.getId(entry.element as any),
-    },
-  };
-}
-
-type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
-
-export function createMemoryEntry(memoryEntry: MemoryInfo): ReplayMemoryEntry {
-  const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
-  // we don't want to use `getAbsoluteTime` because it adds the event time to the
-  // time origin, so we get the current timestamp instead
-  const time = new Date().getTime() / 1000;
-  return {
-    type: 'memory',
-    name: 'memory',
-    start: time,
-    end: time,
-    data: {
-      memory: {
-        jsHeapSizeLimit,
-        totalJSHeapSize,
-        usedJSHeapSize,
-      },
     },
   };
 }

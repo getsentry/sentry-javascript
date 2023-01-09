@@ -3,10 +3,10 @@ import { getCurrentHub, Hub, Scope } from '@sentry/core';
 import { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
-import { getReplayEvent } from '../../../src/util/getReplayEvent';
+import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
 import { getDefaultBrowserClientOptions } from '../../utils/getDefaultBrowserClientOptions';
 
-describe('getReplayEvent', () => {
+describe('prepareReplayEvent', () => {
   let hub: Hub;
   let client: Client;
   let scope: Scope;
@@ -33,12 +33,11 @@ describe('getReplayEvent', () => {
       trace_ids: ['trace-ID'],
       urls: ['https://sentry.io/'],
       replay_id: replayId,
-      event_id: replayId,
       replay_type: 'session',
       segment_id: 3,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, replayId, event });
+    const replayEvent = await prepareReplayEvent({ scope, client, replayId, event });
 
     expect(replayEvent).toEqual({
       type: 'replay_event',
