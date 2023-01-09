@@ -147,10 +147,9 @@ export interface FrameVariables {
   vars?: Record<string, unknown>;
 }
 
+/** There are no options yet. This allows them to be added later without breaking changes */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface Options {
-  // No options yet but this allows them to be added later without breaking changes
-}
+interface Options {}
 
 /**
  * Adds local variables to exception frames
