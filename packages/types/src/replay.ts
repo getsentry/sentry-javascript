@@ -10,7 +10,7 @@ export interface ReplayEvent extends Event {
   trace_ids: string[];
   replay_id: string;
   segment_id: number;
-  replay_type: 'session' | 'error';
+  replay_type: ReplayRecordingMode;
 }
 
 /**
@@ -18,3 +18,9 @@ export interface ReplayEvent extends Event {
  * @hidden
  */
 export type ReplayRecordingData = string | Uint8Array;
+
+/**
+ * NOTE: These types are still considered Beta and subject to change.
+ * @hidden
+ */
+export type ReplayRecordingMode = 'session' | 'error';

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { Breadcrumb, ReplayEvent, ReplayRecordingMode, TransportMakeRequestResponse } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
@@ -34,7 +34,6 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
-  ReplayRecordingMode,
   SendReplay,
   Session,
 } from './types';
