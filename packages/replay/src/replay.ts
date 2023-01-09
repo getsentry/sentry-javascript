@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
-import { Breadcrumb, ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { Breadcrumb, ReplayEvent, ReplayRecordingMode, TransportMakeRequestResponse } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
@@ -34,7 +34,6 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
-  ReplayRecordingMode,
   SendReplay,
   Session,
 } from './types';
@@ -922,7 +921,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const transport = client && client.getTransport();
     const dsn = client?.getDsn();
 
-    if (!client || !scope || !transport || !dsn) {
+    if (!client || !scope || !transport || !dsn || !this.session || !this.session.sampled) {
       return;
     }
 
@@ -936,7 +935,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       urls,
       replay_id: replayId,
       segment_id,
-      replay_type: this.session?.sampled,
+      replay_type: this.session.sampled,
     };
 
     const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });

@@ -1,4 +1,4 @@
-import { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
 
 import type { eventWithTime, recordOptions } from './types/rrweb';
 
@@ -8,8 +8,6 @@ export type RecordingOptions = recordOptions;
 export type RecordedEvents = Uint8Array | string;
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
-
-export type ReplayRecordingMode = 'session' | 'error';
 
 export interface SendReplay {
   events: RecordedEvents;
