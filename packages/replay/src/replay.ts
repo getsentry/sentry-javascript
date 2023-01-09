@@ -29,17 +29,21 @@ import type {
   ReplayPluginOptions,
   Session,
 } from './types';
+import { FlushState } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
+import { clearPendingReplay } from './util/clearPendingReplay';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { getPendingReplay } from './util/getPendingReplay';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
-import { RateLimitError } from './util/sendReplayRequest';
+import { RateLimitError,sendReplayRequest } from './util/sendReplayRequest';
+import { setFlushState } from './util/setFlushState';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -151,7 +155,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
-  public start(): void {
+  public async start(): Promise<void> {
     this._setInitialState();
 
     this._loadSession({ expiry: SESSION_IDLE_DURATION });
@@ -160,6 +164,23 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (!this.session) {
       this._handleException(new Error('No session found'));
       return;
+    }
+
+    const useCompression = Boolean(this._options.useCompression);
+
+    // Flush any pending events that were previously unable to be sent
+    try {
+      const pendingEvent = await getPendingReplay({ useCompression });
+      if (pendingEvent) {
+        await sendReplayRequest({
+          ...pendingEvent,
+          session: this.session,
+          options: this._options,
+        });
+        clearPendingReplay();
+      }
+    } catch {
+      // ignore
     }
 
     if (!this.session.sampled) {
@@ -178,7 +199,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._updateSessionActivity();
 
     this.eventBuffer = createEventBuffer({
-      useCompression: Boolean(this._options.useCompression),
+      useCompression,
     });
 
     this._addListeners();
@@ -366,6 +387,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // enable flag to create the root replay
     if (type === 'new') {
       this._setInitialState();
+      clearPendingReplay();
     }
 
     const currentSessionId = this.getSessionId();
@@ -801,24 +823,21 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    await this._addPerformanceEntries();
-
-    // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
-      return;
-    }
-
-    // Only attach memory event if eventBuffer is not empty
-    await addMemoryEntry(this);
-
-    // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer) {
-      return;
-    }
-
     try {
-      // Note this empties the event buffer regardless of outcome of sending replay
-      const recordingData = await this.eventBuffer.finish();
+      const promises: Promise<any>[] = [];
+
+      promises.push(this._addPerformanceEntries());
+
+      // Do not continue if there are no pending events in buffer
+      if (!this.eventBuffer?.pendingLength) {
+        return;
+      }
+
+      // Only attach memory entry if eventBuffer is not empty
+      promises.push(addMemoryEntry(this));
+
+      // This empties the event buffer regardless of outcome of sending replay
+      promises.push(this.eventBuffer.finish());
 
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
@@ -826,9 +845,23 @@ export class ReplayContainer implements ReplayContainerInterface {
       const eventContext = this._popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
+
+      // Write to local storage before flushing, in case flush request never starts
+      setFlushState(FlushState.START, {
+        recordingData: this.eventBuffer.pendingEvents,
+        replayId,
+        eventContext,
+        segmentId,
+        includeReplayStartTimestamp: segmentId === 0,
+        timestamp: new Date().getTime(),
+      });
+
+      // Save session (new segment id) after we save flush data assuming
       this._maybeSaveSession();
 
-      await sendReplay({
+      const [, , recordingData] = await Promise.all(promises);
+
+      const sendReplayPromise = sendReplay({
         replayId,
         recordingData,
         segmentId,
@@ -838,8 +871,16 @@ export class ReplayContainer implements ReplayContainerInterface {
         options: this.getOptions(),
         timestamp: new Date().getTime(),
       });
+
+      // If replay request starts, optimistically update some states
+      setFlushState(FlushState.SENT_REQUEST);
+
+      await sendReplayPromise;
+
+      setFlushState(FlushState.SENT_REQUEST);
     } catch (err) {
       this._handleException(err);
+      setFlushState(FlushState.ERROR);
 
       if (err instanceof RateLimitError) {
         this._handleRateLimit(err.rateLimits);

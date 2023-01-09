@@ -69,6 +69,10 @@ export async function sendReplayRequest({
     errorSampleRate: options.errorSampleRate,
   };
 
+  // Replays have separate set of breadcrumbs, do not include breadcrumbs
+  // from core SDK
+  delete replayEvent.breadcrumbs;
+
   /*
   For reference, the fully built event looks something like this:
   {

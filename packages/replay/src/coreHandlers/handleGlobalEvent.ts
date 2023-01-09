@@ -13,9 +13,6 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
   return (event: Event) => {
     // Do not apply replayId to the root event
     if (event.type === REPLAY_EVENT_NAME) {
-      // Replays have separate set of breadcrumbs, do not include breadcrumbs
-      // from core SDK
-      delete event.breadcrumbs;
       return event;
     }
 

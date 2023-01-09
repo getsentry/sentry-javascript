@@ -18,6 +18,17 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
+export enum FlushState {
+  START = 'start',
+  SENT_REQUEST = 'sent-request',
+  COMPLETE = 'complete',
+  ERROR = 'error',
+}
+
+export type PendingReplayData = Omit<SendReplayData, 'recordingData'|'session'|'options'> & {
+  recordingData: RecordingEvent[];
+};
+
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
 
 /**
