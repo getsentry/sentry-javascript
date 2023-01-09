@@ -920,7 +920,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
-      timestamp,
+      timestamp: timestamp / 1000,
       error_ids: errorIds,
       trace_ids: traceIds,
       urls,
