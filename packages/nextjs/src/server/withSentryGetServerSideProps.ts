@@ -2,8 +2,12 @@ import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { GetServerSideProps } from 'next';
 
-import { isBuild } from '../../utils/isBuild';
-import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
+import { isBuild } from './utils/isBuild';
+import {
+  getTransactionFromRequest,
+  withErrorInstrumentation,
+  withTracedServerSideDataFetcher,
+} from './utils/wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function

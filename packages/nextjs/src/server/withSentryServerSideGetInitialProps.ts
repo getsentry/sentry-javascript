@@ -2,8 +2,12 @@ import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { NextPage } from 'next';
 
-import { isBuild } from '../../utils/isBuild';
-import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
+import { isBuild } from './utils/isBuild';
+import {
+  getTransactionFromRequest,
+  withErrorInstrumentation,
+  withTracedServerSideDataFetcher,
+} from './utils/wrapperUtils';
 
 type GetInitialProps = Required<NextPage>['getInitialProps'];
 

@@ -11,9 +11,9 @@ import {
 } from '@sentry/utils';
 import * as domain from 'domain';
 
-import { formatAsCode, nextLogger } from '../../utils/nextLogger';
-import { platformSupportsStreaming } from '../../utils/platformSupportsStreaming';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler, WrappedNextApiHandler } from './types';
+import { formatAsCode, nextLogger } from './utils/nextLogger';
+import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from './utils/responseEnd';
 
 /**

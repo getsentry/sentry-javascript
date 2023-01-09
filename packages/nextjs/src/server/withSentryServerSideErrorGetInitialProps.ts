@@ -3,8 +3,12 @@ import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { NextPageContext } from 'next';
 import { ErrorProps } from 'next/error';
 
-import { isBuild } from '../../utils/isBuild';
-import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
+import { isBuild } from './utils/isBuild';
+import {
+  getTransactionFromRequest,
+  withErrorInstrumentation,
+  withTracedServerSideDataFetcher,
+} from './utils/wrapperUtils';
 
 type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 

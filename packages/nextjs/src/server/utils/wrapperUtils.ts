@@ -5,8 +5,8 @@ import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@
 import * as domain from 'domain';
 import { IncomingMessage, ServerResponse } from 'http';
 
-import { platformSupportsStreaming } from '../../utils/platformSupportsStreaming';
-import { autoEndTransactionOnResponseEnd, flushQueue } from './utils/responseEnd';
+import { platformSupportsStreaming } from './platformSupportsStreaming';
+import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';
 
 declare module 'http' {
   interface IncomingMessage {
