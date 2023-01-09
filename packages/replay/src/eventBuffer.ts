@@ -45,8 +45,16 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public get length(): number {
+  public get pendingLength(): number {
     return this._events.length;
+  }
+
+  /**
+   * Returns the raw events that are buffered. In `EventBufferArray`, this is the
+   * same as `this._events`.
+   */
+  public get pendingEvents(): RecordingEvent[] {
+    return this._events;
   }
 
   public destroy(): void {
@@ -80,6 +88,13 @@ class EventBufferArray implements EventBuffer {
  * Exported only for testing.
  */
 export class EventBufferCompressionWorker implements EventBuffer {
+  /**
+   * Keeps track of the list of events since the last flush that have not been compressed.
+   * For example, page is reloaded and a flush attempt is made, but
+   * `finish()` (and thus the flush), does not complete.
+   */
+  public _pendingEvents: RecordingEvent[] = [];
+
   private _worker: null | Worker;
   private _eventBufferItemLength: number = 0;
   private _id: number = 0;
@@ -89,11 +104,19 @@ export class EventBufferCompressionWorker implements EventBuffer {
   }
 
   /**
-   * Note that this may not reflect what is actually in the event buffer. This
-   * is only a local count of the buffer size since `addEvent` is async.
+   * The number of raw events that are buffered. This may not be the same as
+   * the number of events that have been compresed in the worker because
+   * `addEvent` is async.
    */
-  public get length(): number {
+  public get pendingLength(): number {
     return this._eventBufferItemLength;
+  }
+
+  /**
+   * Returns a list of the raw recording events that are being compressed.
+   */
+  public get pendingEvents(): RecordingEvent[] {
+    return this._pendingEvents;
   }
 
   /**
@@ -119,6 +142,11 @@ export class EventBufferCompressionWorker implements EventBuffer {
         method: 'init',
         args: [],
       });
+    }
+
+    // Don't store checkout events in `_pendingEvents` because they are too large
+    if (!isCheckout) {
+      this._pendingEvents.push(event);
     }
 
     return this._sendEventToWorker(event);
@@ -201,6 +229,10 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
     // XXX: See note in `get length()`
     this._eventBufferItemLength = 0;
+
+    await promise;
+
+    this._pendingEvents = [];
 
     return promise;
   }

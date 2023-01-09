@@ -211,7 +211,15 @@ export interface Session {
 }
 
 export interface EventBuffer {
-  readonly length: number;
+  /**
+   * The number of raw events that are buffered
+   */
+  readonly pendingLength: number;
+
+  /**
+   * The raw events that are buffered.
+   */
+  readonly pendingEvents: RecordingEvent[];
 
   /**
    * Destroy the event buffer.
@@ -226,7 +234,7 @@ export interface EventBuffer {
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 
   /**
-   * Clears and returns the contents and the buffer.
+   * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
 }
