@@ -939,7 +939,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       replay_type: this.session?.sampled,
     };
 
-    const replayEvent = await getReplayEvent({ scope, client, event: baseEvent });
+    const replayEvent = await getReplayEvent({ scope, client, replayId, event: baseEvent });
 
     if (!replayEvent) {
       // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
@@ -972,7 +972,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         "segment_id": 3,
         "replay_type": "error",
         "platform": "javascript",
-        "event_id": "generated-uuid",
+        "event_id": "eventId",
         "environment": "production",
         "sdk": {
             "integrations": [
