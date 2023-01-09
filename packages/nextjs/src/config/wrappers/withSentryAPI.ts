@@ -130,7 +130,7 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
           );
           currentScope.setSpan(transaction);
 
-          if (platformSupportsStreaming()) {
+          if (platformSupportsStreaming() && !origHandler.__sentry_test_doesnt_support_streaming__) {
             autoEndTransactionOnResponseEnd(transaction, res);
           } else {
             // If we're not on a platform that supports streaming, we're blocking res.end() until the queue is flushed.
@@ -203,7 +203,7 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
         // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
         // deployed serverlessly will run into this cleanup code again in `res.end(), but the transaction will already
         // be finished and the queue will already be empty, so effectively it'll just no-op.)
-        if (platformSupportsStreaming()) {
+        if (platformSupportsStreaming() && !origHandler.__sentry_test_doesnt_support_streaming__) {
           void finishTransaction(transaction, res);
         } else {
           await finishTransaction(transaction, res);
