@@ -34,6 +34,7 @@ describe('getReplayEvent', () => {
       urls: ['https://sentry.io/'],
       replay_id: replayId,
       event_id: replayId,
+      replay_type: 'session',
       segment_id: 3,
     };
 
@@ -46,6 +47,7 @@ describe('getReplayEvent', () => {
       trace_ids: ['trace-ID'],
       urls: ['https://sentry.io/'],
       replay_id: 'replay-ID',
+      replay_type: 'session',
       segment_id: 3,
       platform: 'javascript',
       event_id: 'replay-ID',
