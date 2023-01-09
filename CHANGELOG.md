@@ -21,7 +21,6 @@
 - fix(utils): Ignore stack frames over 1kb (#6627)
 - ref(angular) Add error-like objects handling (#6446)
 - ref(nextjs): Remove `instrumentSever` (#6592)
-- ref(vue): Use `string.repeat()` (#6663)
 
 Work in this release contributed by @rjoonas, @Naddiseo, and @theofidry. Thank you for your contributions!
 
