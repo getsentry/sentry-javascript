@@ -15,7 +15,7 @@
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-typescript-*.tgz",
-    "build:npm": "npm pack"
+    "build:tarball": "npm pack"
   },
   "volta": {
     "extends": "../../package.json"

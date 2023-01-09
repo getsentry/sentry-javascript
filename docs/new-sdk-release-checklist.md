@@ -21,7 +21,7 @@ This page serves as a checklist of what to do when releasing a new SDK for the f
 - [ ]  Make sure that the `LICENSE` file exists and has the correct license (We default to the `MIT` license)
     - [ ]  Also check, that the same license is mentioned in `package.json`
 
-- [ ]  Make sure that the tarball (`yarn build:npm`) has all the necessary contents
+- [ ]  Make sure that the tarball (`yarn build:tarball`) has all the necessary contents
 
     For basic SDKs, this means that the tarball has at least these files:
 

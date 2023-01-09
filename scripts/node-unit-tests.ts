@@ -3,25 +3,9 @@ import * as fs from 'fs';
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
 
-// We run ember tests in their own job.
-const DEFAULT_SKIP_TESTS_PACKAGES = ['@sentry/ember'];
-
-// These packages don't support Node 8 for syntax or dependency reasons.
-const NODE_8_SKIP_TESTS_PACKAGES = [
+const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry-internal/eslint-plugin-sdk',
-  '@sentry/react',
-  '@sentry/wasm',
-  '@sentry/gatsby',
-  '@sentry/serverless',
-  '@sentry/nextjs',
-  '@sentry/angular',
-  '@sentry/remix',
-  '@sentry/svelte', // svelte testing library requires Node >= 10
-  '@sentry/replay',
-];
-
-// These can be skipped when running tests in different Node environments.
-const SKIP_BROWSER_TESTS_PACKAGES = [
+  '@sentry/ember',
   '@sentry/browser',
   '@sentry/vue',
   '@sentry/react',
@@ -31,15 +15,8 @@ const SKIP_BROWSER_TESTS_PACKAGES = [
   '@sentry/wasm',
 ];
 
-// These can be skipped when running tests independently of the Node version.
-const SKIP_NODE_TESTS_PACKAGES = [
-  '@sentry/node',
-  '@sentry/opentelemetry-node',
-  '@sentry/serverless',
-  '@sentry/nextjs',
-  '@sentry/remix',
-  '@sentry/gatsby',
-];
+// These packages don't support Node 8 for syntax or dependency reasons.
+const NODE_8_SKIP_TESTS_PACKAGES = ['@sentry/gatsby', '@sentry/serverless', '@sentry/nextjs', '@sentry/remix'];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
 const NODE_8_LEGACY_DEPENDENCIES = [
@@ -48,12 +25,14 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'jest-environment-jsdom@25.x',
   'jest-environment-node@25.x',
   'ts-jest@25.x',
+  'lerna@3.13.4',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/replay'];
-const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x'];
+const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
+const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x', 'lerna@3.13.4'];
 
 const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
+const NODE_12_LEGACY_DEPENDENCIES = ['lerna@3.13.4'];
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
@@ -70,8 +49,8 @@ interface TSConfigJSON extends JSONObject {
  * Run the given shell command, piping the shell process's `stdin`, `stdout`, and `stderr` to that of the current
  * process. Returns contents of `stdout`.
  */
-function run(cmd: string, options?: childProcess.ExecSyncOptions) {
-  return childProcess.execSync(cmd, { stdio: 'inherit', ...options });
+function run(cmd: string, options?: childProcess.ExecSyncOptions): void {
+  childProcess.execSync(cmd, { stdio: 'inherit', ...options });
 }
 
 /**
@@ -135,14 +114,6 @@ function runTests(): void {
 
   DEFAULT_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
 
-  if (process.env.TESTS_SKIP === 'browser') {
-    SKIP_BROWSER_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-  }
-
-  if (process.env.TESTS_SKIP === 'node') {
-    SKIP_NODE_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
-  }
-
   switch (CURRENT_NODE_VERSION) {
     case '8':
       NODE_8_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
@@ -157,6 +128,7 @@ function runTests(): void {
       break;
     case '12':
       NODE_12_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
+      installLegacyDeps(NODE_12_LEGACY_DEPENDENCIES);
       es6ifyTestTSConfig('utils');
       break;
   }

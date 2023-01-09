@@ -64,7 +64,7 @@ export async function ensureBundleBuildPrereqs(options: {
   // dependencies. Either way, it's on us to fix the problem.
   //
   // TODO: This actually *doesn't* work for package-level `build`, not because of a flaw in this logic, but because
-  // `build:rollup` has similar dependency needs (it needs types rather than npm builds). We should do something like
+  // `build:pack` has similar dependency needs (it needs types rather than npm builds). We should do something like
   // this for that at some point.
 
   if (isTopLevelBuild && yarnScript === 'build') {
@@ -95,7 +95,7 @@ export async function ensureBundleBuildPrereqs(options: {
 
     for (const dependencyDir of dependencyDirs) {
       console.log(`\nBuilding \`${dependencyDir}\` package...`);
-      run('yarn build:rollup', { cwd: `${packagesDir}/${dependencyDir}` });
+      run('yarn build:pack', { cwd: `${packagesDir}/${dependencyDir}` });
     }
 
     console.log('\nAll dependencies built successfully. Beginning bundle build...');
