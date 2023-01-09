@@ -224,7 +224,7 @@ export interface EventBuffer {
    * Returns true if event was successfully added.
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse>;
-  
+
   /**
    * Clears and returns the contents and the buffer.
    */

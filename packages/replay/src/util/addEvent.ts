@@ -1,11 +1,14 @@
-
 import { SESSION_IDLE_DURATION } from '../constants';
 import type { RecordingEvent, ReplayContainer, WorkerAddEventResponse } from '../types';
 
 /**
  * Add an event to the event buffer
  */
-export async function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse|null> {
+export async function addEvent(
+  replay: ReplayContainer,
+  event: RecordingEvent,
+  isCheckout?: boolean,
+): Promise<WorkerAddEventResponse | null> {
   if (!replay.eventBuffer) {
     // This implies that `_isEnabled` is false
     return null;
