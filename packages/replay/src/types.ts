@@ -48,8 +48,10 @@ export interface WorkerResponse {
   id: number;
   method: string;
   success: boolean;
-  response: ReplayRecordingData;
+  response: unknown;
 }
+
+export type WorkerAddEventResponse = boolean;
 
 export interface SampleRates {
   /**
@@ -210,8 +212,22 @@ export interface Session {
 
 export interface EventBuffer {
   readonly length: number;
+
+  /**
+   * Destroy the event buffer.
+   */
   destroy(): void;
-  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
+
+  /**
+   * Add an event to the event buffer.
+   *
+   * Returns true if event was successfully added.
+   */
+  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse>;
+  
+  /**
+   * Clears and returns the contents and the buffer.
+   */
   finish(): Promise<ReplayRecordingData>;
 }
 

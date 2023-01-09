@@ -25,9 +25,9 @@ export class Compressor {
     return;
   }
 
-  public addEvent(data: Record<string, unknown>): void {
+  public addEvent(data: Record<string, unknown>): boolean {
     if (!data) {
-      return;
+      return false;
     }
     // If the event is not the first event, we need to prefix it with a `,` so
     // that we end up with a list of events
@@ -35,10 +35,11 @@ export class Compressor {
     // TODO: We may want Z_SYNC_FLUSH or Z_FULL_FLUSH (not sure the difference)
     // Using NO_FLUSH here for now as we can create many attachments that our
     // web UI will get API rate limited.
-    this.deflate.push(prefix + JSON.stringify(data), constants.Z_NO_FLUSH);
+    this.deflate.push(prefix + JSON.stringify(data), constants.Z_SYNC_FLUSH);
+
     this.added++;
 
-    return;
+    return true;
   }
 
   public finish(): Uint8Array {

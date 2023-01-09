@@ -2,10 +2,9 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
-import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
+import type { EventBuffer, RecordingEvent, WorkerAddEventResponse,WorkerRequest, WorkerResponse } from './types';
 import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
@@ -54,13 +53,14 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<boolean> {
     if (isCheckout) {
       this._events = [event];
-      return;
+      return true;
     }
 
     this._events.push(event);
+    return true
   }
 
   public finish(): Promise<string> {
@@ -107,8 +107,10 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
   /**
    * Add an event to the event buffer.
+   *
+   * Returns true if event was successfuly received and processed by worker.
    */
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -178,7 +180,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Send the event to the worker.
    */
-  private _sendEventToWorker(event: RecordingEvent): Promise<ReplayRecordingData> {
+  private async _sendEventToWorker(event: RecordingEvent): Promise<WorkerAddEventResponse> {
     const promise = this._postMessage({
       id: this._getAndIncrementId(),
       method: 'addEvent',
@@ -188,7 +190,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
     // XXX: See note in `get length()`
     this._eventBufferItemLength++;
 
-    return promise;
+    return promise as Promise<WorkerAddEventResponse>;
   }
 
   /**
