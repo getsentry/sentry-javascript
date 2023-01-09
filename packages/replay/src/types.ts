@@ -15,6 +15,7 @@ export interface SendReplay {
   segmentId: number;
   includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
+  timestamp?: number;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
