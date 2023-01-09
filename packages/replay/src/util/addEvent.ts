@@ -10,11 +10,6 @@ export function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheck
     return;
   }
 
-  if (replay.isPaused()) {
-    // Do not add to event buffer when recording is paused
-    return;
-  }
-
   // TODO: sadness -- we will want to normalize timestamps to be in ms -
   // requires coordination with frontend
   const isMs = event.timestamp > 9999999999;

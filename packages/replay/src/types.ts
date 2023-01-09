@@ -222,7 +222,6 @@ export interface ReplayContainer {
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   isEnabled(): boolean;
-  isPaused(): boolean;
   getContext(): InternalEventContext;
   start(): void;
   stop(): void;

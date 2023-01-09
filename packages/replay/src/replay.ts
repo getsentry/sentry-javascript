@@ -102,13 +102,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _isEnabled: boolean = false;
 
   /**
-   * Paused is a state where:
-   * - DOM Recording is not listening at all
-   * - Nothing will be added to event buffer (e.g. core SDK events)
-   */
-  private _isPaused: boolean = false;
-
-  /**
    * Have we attached listeners to the core SDK?
    * Note we have to track this as there is no way to remove instrumentation handlers.
    */
@@ -145,11 +138,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** If recording is currently enabled. */
   public isEnabled(): boolean {
     return this._isEnabled;
-  }
-
-  /** If recording is currently paused. */
-  public isPaused(): boolean {
-    return this._isPaused;
   }
 
   /** Get the replay integration options. */
@@ -251,34 +239,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     } catch (err) {
       this.handleException(err);
     }
-  }
-
-  /**
-   * Pause some replay functionality. See comments for `_isPaused`.
-   * This differs from stop as this only stops DOM recording, it is
-   * not as thorough of a shutdown as `stop()`.
-   */
-  pause(): void {
-    this._isPaused = true;
-    try {
-      if (this._stopRecording) {
-        this._stopRecording();
-        this._stopRecording = undefined;
-      }
-    } catch (err) {
-      this.handleException(err);
-    }
-  }
-
-  /**
-   * Resumes recording, see notes for `pause().
-   *
-   * Note that calling `startRecording()` here will cause a
-   * new DOM checkout.`
-   */
-  resume(): void {
-    this._isPaused = false;
-    this.startRecording();
   }
 
   /** A wrapper to conditionally capture exceptions. */
