@@ -177,9 +177,11 @@ jobs:
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+
       - name: Check build cache
         uses: actions/cache@v3
         id: cache_built_packages
+        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
