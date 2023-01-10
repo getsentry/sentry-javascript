@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "7.29.0",
+  "version": "7.30.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
