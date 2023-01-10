@@ -120,6 +120,7 @@ jobs:
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
+      # Note: These next three have to be checked as strings ('true'/'false')!
       is_master: ${{ github.ref == 'refs/heads/master' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       force_skip_cache:
@@ -290,7 +291,7 @@ jobs:
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v5
         # Don't run size check on release branches - at that point, we're already committed
-        if: needs.job_get_metadata.outputs.is_release == false
+        if: needs.job_get_metadata.outputs.is_release == 'false'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
@@ -352,7 +353,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     # Build artifacts are only needed for releasing workflow.
-    if: needs.job_get_metadata.outputs.is_release
+    if: needs.job_get_metadata.outputs.is_release === 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3

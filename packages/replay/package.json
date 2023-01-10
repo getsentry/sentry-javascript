@@ -8,9 +8,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "run-s build:worker && run-p build:core build:types build:bundle",
-    "build:pack": "run-s build:worker build:core",
+    "build:transpile": "run-s build:worker build:core",
     "build:bundle": "rollup -c rollup.bundle.config.js",
-    "build:dev": "run-p build:worker build:pack build:types",
+    "build:dev": "run-p build:worker build:transpile build:types",
     "build:worker": "rollup -c rollup.config.worker.js",
     "build:core": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",

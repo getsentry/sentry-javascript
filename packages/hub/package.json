@@ -22,13 +22,13 @@
     "tslib": "^1.9.3"
   },
   "scripts": {
-    "build": "run-p build:pack build:types",
+    "build": "run-p build:transpile build:types",
     "build:dev": "run-s build",
-    "build:pack": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:pack:watch build:types:watch",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-s build:watch",
-    "build:pack:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",

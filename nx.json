@@ -5,7 +5,7 @@
       "options": {
         "cacheableOperations": [
           "build:bundle",
-          "build:pack",
+          "build:transpile",
           "build:tarball",
           "build:types"
         ]
@@ -21,15 +21,15 @@
     },
     "build:tarball": {
       "dependsOn": [
-        "build:pack"
+        "build:transpile"
       ],
       "outputs": []
     },
-    "build:pack": {
+    "build:transpile": {
       "dependsOn": [
-        "build:pack:uncached",
-        "^build:pack",
-        "^build:pack:uncached"
+        "build:transpile:uncached",
+        "^build:transpile",
+        "^build:transpile:uncached"
       ],
       "outputs": [
         "{projectRoot}/build/npm",
