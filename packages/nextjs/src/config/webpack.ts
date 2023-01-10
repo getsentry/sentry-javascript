@@ -92,6 +92,18 @@ export function constructWebpackConfigFunction(
       );
     }
 
+    newConfig.module.rules.push({
+      test: /node_modules\/@sentry\/nextjs/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/sdkMultiplexerLoader.js'),
+          options: {
+            importTarget: buildContext.nextRuntime === 'edge' ? './edge' : './client',
+          },
+        },
+      ],
+    });
+
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
         const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
