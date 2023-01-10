@@ -29,9 +29,7 @@ export function withSentryConfig(
       userNextConfigObject = exportedUserNextConfig;
     }
     // If there are addons from the Wizard, add them to existing config
-    if (sentryWizardAddon) {
-      userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
-    }
+    userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
     return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
   };
 }
