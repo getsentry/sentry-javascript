@@ -9,6 +9,7 @@
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
 import * as origModule from '__SENTRY_WRAPPING_TARGET__';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
