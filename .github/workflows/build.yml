@@ -697,7 +697,7 @@ jobs:
     if:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_bui^ld]
+    needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
