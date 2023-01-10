@@ -546,6 +546,7 @@ jobs:
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/integration-tests
+          sudo apt-get update
           sudo apt-get install libicu70 libwebp6
           yarn run playwright install-deps webkit
           yarn test:ci
