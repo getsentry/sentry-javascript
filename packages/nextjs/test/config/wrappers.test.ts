@@ -2,16 +2,7 @@ import * as SentryCore from '@sentry/core';
 import * as SentryTracing from '@sentry/tracing';
 import { IncomingMessage, ServerResponse } from 'http';
 
-import {
-  withSentryGetServerSideProps,
-  withSentryServerSideGetInitialProps,
-  // TODO: Leaving `withSentryGetStaticProps` out for now until we figure out what to do with it
-  // withSentryGetStaticProps,
-  // TODO: Leaving these out for now until we figure out pages with no data fetchers
-  // withSentryServerSideAppGetInitialProps,
-  // withSentryServerSideDocumentGetInitialProps,
-  // withSentryServerSideErrorGetInitialProps,
-} from '../../src/config/wrappers';
+import { withSentryGetServerSideProps, withSentryServerSideGetInitialProps } from '../../src/server';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
 

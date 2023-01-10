@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
-import { nextRouterInstrumentation } from '../../src/performance/client';
+import { nextRouterInstrumentation } from '../../src/client/performance';
 
 const globalObject = WINDOW as typeof WINDOW & {
   __BUILD_MANIFEST?: {

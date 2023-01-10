@@ -1,4 +1,5 @@
-import { NEXT_PHASE_DEVELOPMENT_SERVER, NEXT_PHASE_PRODUCTION_BUILD } from '../utils/phases';
+import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
+
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -50,7 +51,7 @@ function getFinalConfigObject(
   // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
   // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
   // make sure that we only require it at build time or in development mode.
-  if (phase === NEXT_PHASE_PRODUCTION_BUILD || phase === NEXT_PHASE_DEVELOPMENT_SERVER) {
+  if (phase === PHASE_PRODUCTION_BUILD || phase === PHASE_DEVELOPMENT_SERVER) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { constructWebpackConfigFunction } = require('./webpack');
     return {

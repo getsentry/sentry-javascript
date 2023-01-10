@@ -1,24 +1,18 @@
 import { Carrier, getHubFromCarrier, getMainCarrier } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
+import { configureScope, getCurrentHub, init as nodeInit, Integrations, NodeOptions } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { buildMetadata } from '../common/metadata';
+import { addOrUpdateIntegration, IntegrationWithExclusionOption } from '../common/userIntegrations';
 import { isBuild } from './utils/isBuild';
-import { buildMetadata } from './utils/metadata';
-import { NextjsOptions } from './utils/nextjsOptions';
-import { addOrUpdateIntegration, IntegrationWithExclusionOption } from './utils/userIntegrations';
 
 export * from '@sentry/node';
-export { captureUnderscoreErrorException } from './utils/_error';
-
-// Exporting the Replay integration also from index.server.ts because TS only recognizes types from index.server.ts
-// If we didn't export this, TS would complain that it can't find `Sentry.Replay` in the package,
-// causing a build failure, when users initialize Replay in their sentry.client.config.js/ts file.
-export { Replay } from './index.client';
+export { captureUnderscoreErrorException } from '../common/_error';
 
 // Here we want to make sure to only include what doesn't have browser specifics
 // because or SSR of next.js we can only use this.
@@ -40,7 +34,7 @@ export const IS_BUILD = isBuild();
 const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
-export function init(options: NextjsOptions): void {
+export function init(options: NodeOptions): void {
   if (__DEBUG_BUILD__ && options.debug) {
     logger.enable();
   }
@@ -107,7 +101,7 @@ function sdkAlreadyInitialized(): boolean {
   return !!hub.getClient();
 }
 
-function addServerIntegrations(options: NextjsOptions): void {
+function addServerIntegrations(options: NodeOptions): void {
   let integrations = options.integrations || [];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
@@ -152,15 +146,10 @@ const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
 export { deprecatedIsBuild as isBuild };
 
-export type { SentryWebpackPluginOptions } from './config/types';
-export { withSentryConfig } from './config/withSentryConfig';
-export {
-  withSentryGetServerSideProps,
-  withSentryGetStaticProps,
-  withSentryServerSideGetInitialProps,
-  withSentryServerSideAppGetInitialProps,
-  withSentryServerSideDocumentGetInitialProps,
-  withSentryServerSideErrorGetInitialProps,
-  withSentryAPI,
-  withSentry,
-} from './config/wrappers';
+export { withSentryGetStaticProps } from './withSentryGetStaticProps';
+export { withSentryServerSideGetInitialProps } from './withSentryServerSideGetInitialProps';
+export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAppGetInitialProps';
+export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerSideDocumentGetInitialProps';
+export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
+export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
+export { withSentry, withSentryAPI } from './withSentryAPI';

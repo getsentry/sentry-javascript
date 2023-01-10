@@ -4,7 +4,7 @@ import { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import * as domain from 'domain';
 
-import { init } from '../src/index.server';
+import { init } from '../src/index';
 
 const { Integrations } = SentryNode;
 

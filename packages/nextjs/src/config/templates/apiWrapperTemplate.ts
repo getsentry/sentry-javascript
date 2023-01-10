@@ -9,12 +9,13 @@
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
 import * as origModule from '__SENTRY_WRAPPING_TARGET__';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
 // We import this from `wrappers` rather than directly from `next` because our version can work simultaneously with
 // multiple versions of next. See note in `wrappers/types` for more.
-import type { NextApiHandler } from '../wrappers';
+import type { NextApiHandler } from '../../server/types';
 
 type NextApiModule = (
   | {

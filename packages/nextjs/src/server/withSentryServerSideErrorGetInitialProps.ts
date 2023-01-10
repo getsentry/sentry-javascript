@@ -1,29 +1,37 @@
 import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
-import { NextPage } from 'next';
+import { NextPageContext } from 'next';
+import { ErrorProps } from 'next/error';
 
-import { isBuild } from '../../utils/isBuild';
-import { getTransactionFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './wrapperUtils';
+import { isBuild } from './utils/isBuild';
+import {
+  getTransactionFromRequest,
+  withErrorInstrumentation,
+  withTracedServerSideDataFetcher,
+} from './utils/wrapperUtils';
 
-type GetInitialProps = Required<NextPage>['getInitialProps'];
+type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 
 /**
- * Create a wrapped version of the user's exported `getInitialProps` function
+ * Create a wrapped version of the user's exported `getInitialProps` function in
+ * a custom error page ("_error.js").
  *
- * @param origGetInitialProps The user's `getInitialProps` function
+ * @param origErrorGetInitialProps The user's `getInitialProps` function
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInitialProps): GetInitialProps {
-  return async function (this: unknown, ...args: Parameters<GetInitialProps>): Promise<ReturnType<GetInitialProps>> {
+export function withSentryServerSideErrorGetInitialProps(
+  origErrorGetInitialProps: ErrorGetInitialProps,
+): ErrorGetInitialProps {
+  return async function (this: unknown, ...args: Parameters<ErrorGetInitialProps>): ReturnType<ErrorGetInitialProps> {
     if (isBuild()) {
-      return origGetInitialProps.apply(this, args);
+      return origErrorGetInitialProps.apply(this, args);
     }
 
     const [context] = args;
     const { req, res } = context;
 
-    const errorWrappedGetInitialProps = withErrorInstrumentation(origGetInitialProps);
+    const errorWrappedGetInitialProps = withErrorInstrumentation(origErrorGetInitialProps);
 
     // Generally we can assume that `req` and `res` are always defined on the server:
     // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -31,25 +39,25 @@ export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInit
     // span with each other when there are no req or res objects, we simply do not trace them at all here.
     if (hasTracingEnabled() && req && res) {
       const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
-        dataFetcherRouteName: context.pathname,
+        dataFetcherRouteName: '/_error',
         requestedRouteName: context.pathname,
         dataFetchingMethodName: 'getInitialProps',
       });
 
-      const initialProps: {
+      const errorGetInitialProps: ErrorProps & {
         _sentryTraceData?: string;
         _sentryBaggage?: string;
       } = await tracedGetInitialProps.apply(this, args);
 
       const requestTransaction = getTransactionFromRequest(req);
       if (requestTransaction) {
-        initialProps._sentryTraceData = requestTransaction.toTraceparent();
+        errorGetInitialProps._sentryTraceData = requestTransaction.toTraceparent();
 
         const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
-        initialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+        errorGetInitialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }
 
-      return initialProps;
+      return errorGetInitialProps;
     } else {
       return errorWrappedGetInitialProps.apply(this, args);
     }

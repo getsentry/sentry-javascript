@@ -1,6 +1,5 @@
+import { BrowserOptions } from '@sentry/react';
 import { dsnFromString, logger } from '@sentry/utils';
-
-import { NextjsOptions } from './nextjsOptions';
 
 const globalWithInjectedValues = global as typeof global & {
   __sentryRewritesTunnelPath__?: string;
@@ -9,7 +8,7 @@ const globalWithInjectedValues = global as typeof global & {
 /**
  * Applies the `tunnel` option to the Next.js SDK options based on `withSentryConfig`'s `tunnelRoute` option.
  */
-export function applyTunnelRouteOption(options: NextjsOptions): void {
+export function applyTunnelRouteOption(options: BrowserOptions): void {
   const tunnelRouteOption = globalWithInjectedValues.__sentryRewritesTunnelPath__;
   if (tunnelRouteOption && options.dsn) {
     const dsnComponents = dsnFromString(options.dsn);

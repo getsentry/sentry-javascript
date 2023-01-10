@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next';
 
-import { isBuild } from '../../utils/isBuild';
-import { callDataFetcherTraced, withErrorInstrumentation } from './wrapperUtils';
+import { isBuild } from './utils/isBuild';
+import { callDataFetcherTraced, withErrorInstrumentation } from './utils/wrapperUtils';
 
 type Props = { [key: string]: unknown };
 

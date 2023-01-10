@@ -1,17 +1,16 @@
 import { RewriteFrames } from '@sentry/integrations';
-import { configureScope, init as reactInit, Integrations } from '@sentry/react';
+import { BrowserOptions, configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import { EventProcessor } from '@sentry/types';
 
-import { nextRouterInstrumentation } from './performance/client';
-import { buildMetadata } from './utils/metadata';
-import { NextjsOptions } from './utils/nextjsOptions';
-import { applyTunnelRouteOption } from './utils/tunnelRoute';
-import { addOrUpdateIntegration } from './utils/userIntegrations';
+import { buildMetadata } from '../common/metadata';
+import { addOrUpdateIntegration } from '../common/userIntegrations';
+import { nextRouterInstrumentation } from './performance';
+import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
-export { nextRouterInstrumentation } from './performance/client';
-export { captureUnderscoreErrorException } from './utils/_error';
+export { nextRouterInstrumentation } from './performance';
+export { captureUnderscoreErrorException } from '../common/_error';
 
 export { Integrations };
 
@@ -35,7 +34,7 @@ const globalWithInjectedValues = global as typeof global & {
 };
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: NextjsOptions): void {
+export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
   options.environment = options.environment || process.env.NODE_ENV;
@@ -52,7 +51,7 @@ export function init(options: NextjsOptions): void {
   });
 }
 
-function addClientIntegrations(options: NextjsOptions): void {
+function addClientIntegrations(options: BrowserOptions): void {
   let integrations = options.integrations || [];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
