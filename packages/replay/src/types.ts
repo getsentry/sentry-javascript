@@ -51,7 +51,7 @@ export interface WorkerResponse {
   response: unknown;
 }
 
-export type WorkerAddEventResponse = void;
+export type AddEventResult = void;
 
 export interface SampleRates {
   /**
@@ -223,7 +223,7 @@ export interface EventBuffer {
    *
    * Returns true if event was successfully added.
    */
-  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse>;
+  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 
   /**
    * Clears and returns the contents and the buffer.

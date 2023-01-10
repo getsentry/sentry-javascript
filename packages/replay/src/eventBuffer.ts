@@ -4,7 +4,7 @@
 import { captureException } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import type { EventBuffer, RecordingEvent, WorkerAddEventResponse, WorkerRequest } from './types';
+import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest } from './types';
 import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
@@ -53,7 +53,7 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<void> {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
     if (isCheckout) {
       this._events = [event];
       return;
@@ -110,7 +110,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    *
    * Returns true if event was successfuly received and processed by worker.
    */
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<WorkerAddEventResponse> {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -180,7 +180,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Send the event to the worker.
    */
-  private async _sendEventToWorker(event: RecordingEvent): Promise<WorkerAddEventResponse> {
+  private async _sendEventToWorker(event: RecordingEvent): Promise<AddEventResult> {
     const promise = this._postMessage<void>({
       id: this._getAndIncrementId(),
       method: 'addEvent',

@@ -34,7 +34,7 @@ import type {
   ReplayPluginOptions,
   SendReplay,
   Session,
-  WorkerAddEventResponse,
+  AddEventResult,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -690,7 +690,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): Promise<Array<WorkerAddEventResponse | null>> {
+  addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];

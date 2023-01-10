@@ -1,5 +1,5 @@
 import { WINDOW } from '../constants';
-import type { ReplayContainer, ReplayPerformanceEntry, WorkerAddEventResponse } from '../types';
+import type { AddEventResult, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from './createPerformanceSpans';
 
 type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
@@ -14,7 +14,7 @@ interface MemoryInfo {
  * Create a "span" for the total amount of memory being used by JS objects
  * (including v8 internal objects).
  */
-export async function addMemoryEntry(replay: ReplayContainer): Promise<Array<WorkerAddEventResponse | null>> {
+export async function addMemoryEntry(replay: ReplayContainer): Promise<Array<AddEventResult | null>> {
   // window.performance.memory is a non-standard API and doesn't work on all browsers, so we try-catch this
   try {
     return Promise.all(
