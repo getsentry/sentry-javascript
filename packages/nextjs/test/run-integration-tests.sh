@@ -138,13 +138,17 @@ for NEXTJS_VERSION in 10 11 12 13; do
       exit 1
     fi
 
-    echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
-    (cd .. && yarn test:integration:client) || EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 0 ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
+    if [ "$NODE_MAJOR" -lt "14" ]; then
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Skipping client tests on Node $NODE_MAJOR"
     else
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
-      exit 1
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
+      (cd .. && yarn test:integration:client) || EXIT_CODE=$?
+      if [ $EXIT_CODE -eq 0 ]; then
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
+      else
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
+        exit 1
+      fi
     fi
   done
 done
