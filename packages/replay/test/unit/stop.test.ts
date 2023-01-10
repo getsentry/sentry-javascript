@@ -3,6 +3,7 @@ import * as SentryUtils from '@sentry/utils';
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
+import { clearSession } from '../utils/clearSession';
 import { Replay } from './../../src';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
@@ -42,7 +43,7 @@ describe('Replay - stop', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
-    replay.clearSession();
+    clearSession(replay);
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();

@@ -14,6 +14,7 @@ import { ReplayContainer } from '../../src/replay';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -128,7 +129,7 @@ describe('Replay', () => {
 
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
-    replay.clearSession();
+    clearSession(replay);
     replay.loadSession({ expiry: 0 });
     mockTransportSend.mockClear();
     mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
@@ -142,7 +143,7 @@ describe('Replay', () => {
       value: prevLocation,
       writable: true,
     });
-    replay.clearSession();
+    clearSession(replay);
     jest.clearAllMocks();
     mockSendReplayRequest.mockRestore();
     mockRecord.takeFullSnapshot.mockClear();
@@ -159,7 +160,7 @@ describe('Replay', () => {
   });
 
   it('clears session', () => {
-    replay.clearSession();
+    clearSession(replay);
     expect(WINDOW.sessionStorage.getItem(REPLAY_SESSION_KEY)).toBe(null);
     expect(replay.session).toBe(undefined);
   });
@@ -750,7 +751,7 @@ describe('Replay', () => {
   });
 
   it('has correct timestamps when there events earlier than initial timestamp', async function () {
-    replay.clearSession();
+    clearSession(replay);
     replay.loadSession({ expiry: 0 });
     mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
