@@ -140,7 +140,7 @@ function addServerIntegrations(options: NodeOptions): void {
 
 // TODO (v8): Remove this
 /**
- * @deprecated
+ * @deprecated Use the constant `IS_BUILD` instead.
  */
 const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
