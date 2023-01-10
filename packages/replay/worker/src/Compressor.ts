@@ -25,9 +25,9 @@ export class Compressor {
     return;
   }
 
-  public addEvent(data: Record<string, unknown>): boolean {
+  public addEvent(data: Record<string, unknown>): void {
     if (!data) {
-      return false;
+      throw new Error('Adding invalid event');
     }
     // If the event is not the first event, we need to prefix it with a `,` so
     // that we end up with a list of events
@@ -38,8 +38,6 @@ export class Compressor {
     this.deflate.push(prefix + JSON.stringify(data), constants.Z_SYNC_FLUSH);
 
     this.added++;
-
-    return true;
   }
 
   public finish(): Uint8Array {

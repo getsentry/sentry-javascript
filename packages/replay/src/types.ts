@@ -51,7 +51,7 @@ export interface WorkerResponse {
   response: unknown;
 }
 
-export type WorkerAddEventResponse = boolean;
+export type WorkerAddEventResponse = void;
 
 export interface SampleRates {
   /**
