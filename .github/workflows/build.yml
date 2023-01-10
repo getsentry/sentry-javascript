@@ -503,7 +503,7 @@ jobs:
     name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         bundle:
@@ -546,7 +546,6 @@ jobs:
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/integration-tests
-          sudo apt-get update
           yarn run playwright install-deps webkit
           yarn test:ci
 
