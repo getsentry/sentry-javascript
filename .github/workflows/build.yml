@@ -505,6 +505,7 @@ jobs:
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         bundle:
           - esm
