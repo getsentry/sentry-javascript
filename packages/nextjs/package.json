@@ -11,6 +11,7 @@
   },
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
+  "browser": "build/esm/client/index.js",
   "types": "build/types/index.types.d.ts",
   "publishConfig": {
     "access": "public"
