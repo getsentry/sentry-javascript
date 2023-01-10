@@ -5,6 +5,7 @@ import type {
   NextConfigObject,
   NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
+  UserSentryOptions,
 } from './types';
 
 /**
@@ -12,18 +13,36 @@ import type {
  *
  * @param exportedUserNextConfig The existing config to be exported prior to adding Sentry
  * @param userSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
+ * @param sentryWizardAddon Addons from automatic config.next.js merging from Sentry Wizard
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
+  sentryWizardAddon?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    if (typeof exportedUserNextConfig === 'function') {
-      const userNextConfigObject = exportedUserNextConfig(phase, defaults);
+    // If there are addons from the Wizard, add them to existing config
+    if (sentryWizardAddon) {
+      let userNextConfigObject;
+      if (typeof exportedUserNextConfig === 'function') {
+        userNextConfigObject = exportedUserNextConfig(phase, defaults);
+      } else {
+        userNextConfigObject = exportedUserNextConfig;
+      }
+      if (userNextConfigObject.sentry) {
+        userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
+      } else {
+        userNextConfigObject.sentry = sentryWizardAddon;
+      }
       return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
     } else {
-      return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
+      if (typeof exportedUserNextConfig === 'function') {
+        const userNextConfigObject = exportedUserNextConfig(phase, defaults);
+        return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
+      } else {
+        return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
+      }
     }
   };
 }
