@@ -139,7 +139,7 @@ for NEXTJS_VERSION in 10 11 12 13; do
     fi
 
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
-    node test/client.js $args || EXIT_CODE=$?
+    (cd .. && yarn test:integration:client) || EXIT_CODE=$?
     if [ $EXIT_CODE -eq 0 ]; then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
     else

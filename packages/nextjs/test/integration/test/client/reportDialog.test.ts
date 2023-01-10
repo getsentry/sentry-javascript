@@ -1,7 +1,7 @@
-const assert = require('assert');
+import { test, expect } from '@playwright/test';
 
-module.exports = async ({ page, url }) => {
-  await page.goto(`${url}/reportDialog`);
+test('should show a dialog', async ({ page }) => {
+  await page.goto('/reportDialog');
 
   await page.click('button');
 
@@ -10,5 +10,5 @@ module.exports = async ({ page, url }) => {
   const dialogScript = await page.waitForSelector(dialogScriptSelector, { state: 'attached' });
   const dialogScriptSrc = await (await dialogScript.getProperty('src')).jsonValue();
 
-  assert(dialogScriptSrc.startsWith('https://dsn.ingest.sentry.io/api/embed/error-page/?'));
-};
+  expect(dialogScriptSrc).toMatch(/^https:\/\/dsn\.ingest\.sentry\.io\/api\/embed\/error-page\/\?.*/);
+});

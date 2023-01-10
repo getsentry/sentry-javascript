@@ -5,11 +5,13 @@
     "dev": "next",
     "build": "next build",
     "predebug": "source ../integration_test_utils.sh && link_monorepo_packages '../../..' && yarn build",
-    "start": "next start"
+    "start": "next start",
+    "pretest": "run-s build",
+    "test": "playwright test"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
-    "next": "latest",
+    "next": "10.x",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
