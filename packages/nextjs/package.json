@@ -56,7 +56,7 @@
     "build:rollup:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:npm": "ts-node ../../scripts/prepack.ts && npm pack ./build",
-    "circularDepCheck": "madge --circular src/index.client.ts && madge --circular --exclude 'config/types\\.ts' src/index.server.ts # see https://github.com/pahen/madge/issues/306",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/client/index.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
