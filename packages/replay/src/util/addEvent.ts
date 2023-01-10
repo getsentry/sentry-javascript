@@ -1,5 +1,5 @@
 import { SESSION_IDLE_DURATION } from '../constants';
-import type { AddEventResult,RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
 
 /**
  * Add an event to the event buffer

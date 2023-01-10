@@ -22,6 +22,7 @@ import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
+  AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
@@ -34,7 +35,6 @@ import type {
   ReplayPluginOptions,
   SendReplay,
   Session,
-  AddEventResult,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
