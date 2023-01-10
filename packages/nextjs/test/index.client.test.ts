@@ -6,8 +6,8 @@ import { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { init, Integrations, nextRouterInstrumentation } from '../src/index.client';
-import { UserIntegrationsFunction } from '../src/utils/userIntegrations';
+import { init, Integrations, nextRouterInstrumentation } from '../src/client';
+import { UserIntegrationsFunction } from '../src/common/userIntegrations';
 
 const { BrowserTracing } = TracingIntegrations;
 

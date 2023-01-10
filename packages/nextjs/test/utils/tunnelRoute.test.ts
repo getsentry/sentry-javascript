@@ -1,5 +1,6 @@
-import { NextjsOptions } from '../../src/utils/nextjsOptions';
-import { applyTunnelRouteOption } from '../../src/utils/tunnelRoute';
+import { BrowserOptions } from '@sentry/react';
+
+import { applyTunnelRouteOption } from '../../src/client/tunnelRoute';
 
 const globalWithInjectedValues = global as typeof global & {
   __sentryRewritesTunnelPath__?: string;
@@ -14,7 +15,7 @@ describe('applyTunnelRouteOption()', () => {
     globalWithInjectedValues.__sentryRewritesTunnelPath__ = '/my-error-monitoring-route';
     const options: any = {
       dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as NextjsOptions;
+    } as BrowserOptions;
 
     applyTunnelRouteOption(options);
 
@@ -25,7 +26,7 @@ describe('applyTunnelRouteOption()', () => {
     globalWithInjectedValues.__sentryRewritesTunnelPath__ = '/my-error-monitoring-route';
     const options: any = {
       // no dsn
-    } as NextjsOptions;
+    } as BrowserOptions;
 
     applyTunnelRouteOption(options);
 
@@ -35,7 +36,7 @@ describe('applyTunnelRouteOption()', () => {
   it("should not apply `tunnelRoute` option when `tunnelRoute` option wasn't injected", () => {
     const options: any = {
       dsn: 'https://11111111111111111111111111111111@o2222222.ingest.sentry.io/3333333',
-    } as NextjsOptions;
+    } as BrowserOptions;
 
     applyTunnelRouteOption(options);
 
@@ -46,7 +47,7 @@ describe('applyTunnelRouteOption()', () => {
     globalWithInjectedValues.__sentryRewritesTunnelPath__ = '/my-error-monitoring-route';
     const options: any = {
       dsn: 'https://11111111111111111111111111111111@example.com/3333333',
-    } as NextjsOptions;
+    } as BrowserOptions;
 
     applyTunnelRouteOption(options);
 
