@@ -32,6 +32,14 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es6: 'build/bundles/bundle.tracing.js',
     bundle_es6_min: 'build/bundles/bundle.tracing.min.js',
   },
+  integrations: {
+    cjs: 'build/npm/cjs/index.js',
+    esm: 'build/npm/esm/index.js',
+    bundle_es5: 'build/bundles/[INTEGRATION_NAME].es5.js',
+    bundle_es5_min: 'build/bundles/[INTEGRATION_NAME].es5.min.js',
+    bundle_es6: 'build/bundles/[INTEGRATION_NAME].js',
+    bundle_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
+  },
 };
 
 /*
@@ -78,6 +86,7 @@ function generateSentryAlias(): Record<string, string> {
 
 class SentryScenarioGenerationPlugin {
   public requiresTracing: boolean = false;
+  public requiredIntegrations: string[] = [];
 
   private _name: string = 'SentryScenarioGenerationPlugin';
 
@@ -89,18 +98,24 @@ class SentryScenarioGenerationPlugin {
             // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
             '@sentry/browser': 'Sentry',
             '@sentry/tracing': 'Sentry',
+            '@sentry/integrations': 'Sentry.Integrations',
           }
         : {};
 
-    // Checking if the current scenario has imported `@sentry/tracing`.
+    // Checking if the current scenario has imported `@sentry/tracing` or `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        parser.hooks.import.tap(this._name, (_statement: unknown, source: string) => {
-          if (source === '@sentry/tracing') {
-            this.requiresTracing = true;
-          }
-        });
+        parser.hooks.import.tap(
+          this._name,
+          (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
+            if (source === '@sentry/tracing') {
+              this.requiresTracing = true;
+            } else if (source === '@sentry/integrations') {
+              this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
+            }
+          },
+        );
       });
     });
 
@@ -111,6 +126,18 @@ class SentryScenarioGenerationPlugin {
           const bundleName = useTracingBundle ? 'tracing' : 'browser';
           const bundleObject = createHtmlTagObject('script', {
             src: path.resolve(PACKAGES_DIR, bundleName, BUNDLE_PATHS[bundleName][bundleKey]),
+          });
+
+          this.requiredIntegrations.forEach(integration => {
+            const integrationObject = createHtmlTagObject('script', {
+              src: path.resolve(
+                PACKAGES_DIR,
+                'integrations',
+                BUNDLE_PATHS['integrations'][bundleKey].replace('[INTEGRATION_NAME]', integration),
+              ),
+            });
+
+            data.assetTags.scripts.unshift(integrationObject);
           });
 
           data.assetTags.scripts.unshift(bundleObject);

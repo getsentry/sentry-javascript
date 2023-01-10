@@ -24,6 +24,7 @@ import {
   ContextLines,
   Http,
   LinkedErrors,
+  LocalVariables,
   Modules,
   OnUncaughtException,
   OnUnhandledRejection,
@@ -45,6 +46,7 @@ export const defaultIntegrations = [
   new OnUnhandledRejection(),
   // Event Info
   new ContextLines(),
+  new LocalVariables(),
   new Context(),
   new Modules(),
   new RequestData(),

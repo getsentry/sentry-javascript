@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import { captureException } from '@sentry/browser';
-import { addExceptionMechanism } from '@sentry/utils';
+import { addExceptionMechanism, isString } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
 
@@ -32,7 +32,7 @@ function tryToUnwrapZonejsError(error: unknown): unknown | Error {
 
 function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   // The `error` property of http exception can be either an `Error` object, which we can use directly...
-  if (error.error instanceof Error) {
+  if (isErrorOrErrorLikeObject(error.error)) {
     return error.error;
   }
 
@@ -48,6 +48,31 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
 
   // If we don't have any detailed information, fallback to the request message itself.
   return error.message;
+}
+
+type ErrorCandidate = {
+  name?: unknown;
+  message?: unknown;
+  stack?: unknown;
+};
+
+function isErrorOrErrorLikeObject(value: unknown): value is Error {
+  if (value instanceof Error) {
+    return true;
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as ErrorCandidate;
+
+  return (
+    isString(candidate.name) &&
+    isString(candidate.name) &&
+    isString(candidate.message) &&
+    (undefined === candidate.stack || isString(candidate.stack))
+  );
 }
 
 /**
@@ -117,14 +142,14 @@ class SentryErrorHandler implements AngularErrorHandler {
   protected _defaultExtractor(errorCandidate: unknown): unknown {
     const error = tryToUnwrapZonejsError(errorCandidate);
 
-    // We can handle messages and Error objects directly.
-    if (typeof error === 'string' || error instanceof Error) {
-      return error;
-    }
-
     // If it's http module error, extract as much information from it as we can.
     if (error instanceof HttpErrorResponse) {
       return extractHttpModuleError(error);
+    }
+
+    // We can handle messages and Error objects directly.
+    if (typeof error === 'string' || isErrorOrErrorLikeObject(error)) {
+      return error;
     }
 
     // Nothing was extracted, fallback to default error message.
