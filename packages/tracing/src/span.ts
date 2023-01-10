@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Instrumenter, Primitive, Span as SpanInterface, SpanContext, Transaction } from '@sentry/types';
+import { Instrumenter, Primitive, Span as SpanInterface, SpanContext, TraceContext, Transaction } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 /**
@@ -305,17 +305,7 @@ export class Span implements SpanInterface {
   /**
    * @inheritDoc
    */
-  public getTraceContext(): {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data?: { [key: string]: any };
-    description?: string;
-    op?: string;
-    parent_span_id?: string;
-    span_id: string;
-    status?: string;
-    tags?: { [key: string]: Primitive };
-    trace_id: string;
-  } {
+  public getTraceContext(): TraceContext {
     return dropUndefinedKeys({
       data: Object.keys(this.data).length > 0 ? this.data : undefined,
       description: this.description,

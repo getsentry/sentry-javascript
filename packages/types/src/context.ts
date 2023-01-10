@@ -1,3 +1,5 @@
+import { Primitive } from './misc';
+
 export type Context = Record<string, unknown>;
 
 export interface Contexts extends Record<string, Context | undefined> {
@@ -78,4 +80,15 @@ export interface ResponseContext extends Record<string, unknown> {
   headers?: Record<string, string>;
   status_code?: number;
   body_size?: number; // in bytes
+}
+
+export interface TraceContext extends Record<string, unknown> {
+  data?: { [key: string]: any };
+  description?: string;
+  op?: string;
+  parent_span_id?: string;
+  span_id: string;
+  status?: string;
+  tags?: { [key: string]: Primitive };
+  trace_id: string;
 }
