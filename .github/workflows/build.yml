@@ -547,7 +547,6 @@ jobs:
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/integration-tests
-          yarn run playwright install-deps webkit
           yarn test:ci
 
   job_browser_integration_tests:
