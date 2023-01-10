@@ -23,27 +23,16 @@ export function withSentryConfig(
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
     // If there are addons from the Wizard, add them to existing config
-    if (sentryWizardAddon) {
-      let userNextConfigObject;
-      if (typeof exportedUserNextConfig === 'function') {
-        userNextConfigObject = exportedUserNextConfig(phase, defaults);
-      } else {
-        userNextConfigObject = exportedUserNextConfig;
-      }
-      if (userNextConfigObject.sentry) {
-        userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
-      } else {
-        userNextConfigObject.sentry = sentryWizardAddon;
-      }
-      return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
+    let userNextConfigObject;
+    if (typeof exportedUserNextConfig === 'function') {
+      userNextConfigObject = exportedUserNextConfig(phase, defaults);
     } else {
-      if (typeof exportedUserNextConfig === 'function') {
-        const userNextConfigObject = exportedUserNextConfig(phase, defaults);
-        return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
-      } else {
-        return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
-      }
+      userNextConfigObject = exportedUserNextConfig;
     }
+    if (sentryWizardAddon) {
+      userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
+    }
+    return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
   };
 }
 
