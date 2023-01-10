@@ -31,7 +31,6 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/nextjs": "7.29.0",
     "@types/webpack": "^4.41.31",
     "eslint-plugin-react": "^7.31.11",
     "next": "10.1.3"
