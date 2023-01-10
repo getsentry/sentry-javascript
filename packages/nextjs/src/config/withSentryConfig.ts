@@ -22,13 +22,13 @@ export function withSentryConfig(
   sentryWizardAddon?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    // If there are addons from the Wizard, add them to existing config
     let userNextConfigObject;
     if (typeof exportedUserNextConfig === 'function') {
       userNextConfigObject = exportedUserNextConfig(phase, defaults);
     } else {
       userNextConfigObject = exportedUserNextConfig;
     }
+    // If there are addons from the Wizard, add them to existing config
     if (sentryWizardAddon) {
       userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
     }
