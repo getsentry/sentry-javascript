@@ -1,5 +1,7 @@
 /* eslint-disable import/export */
 
+// We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
+// which is not allowed, unless we redifine the colliding exports in this file - which we do below.
 export * from './config';
 export * from './client';
 export * from './server';
@@ -11,13 +13,18 @@ import * as clientSdk from './client';
 import type { NodeOptions } from './server';
 import * as serverSdk from './server';
 
+/** Initializes Sentry Next.js SDK */
 export declare function init(options: Options | BrowserOptions | NodeOptions): void;
 
+// We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
 export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integrations };
 
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
 
+// This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
+// from the client SDK or from the server SDK. TypeScript is smart enough to understand that these resolve to the same
+// methods from `@sentry/core`.
 declare const runtime: 'client' | 'server';
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
