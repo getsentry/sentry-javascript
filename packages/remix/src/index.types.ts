@@ -11,6 +11,7 @@ import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';
 import { RemixOptions } from './utils/remixOptions';
 
+/** Initializes Sentry Remix SDK */
 export declare function init(options: RemixOptions): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
