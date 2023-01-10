@@ -22,12 +22,8 @@ export function withSentryConfig(
   sentryWizardAddon?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    let userNextConfigObject;
-    if (typeof exportedUserNextConfig === 'function') {
-      userNextConfigObject = exportedUserNextConfig(phase, defaults);
-    } else {
-      userNextConfigObject = exportedUserNextConfig;
-    }
+    const userNextConfigObject =
+      typeof exportedUserNextConfig === 'function' ? exportedUserNextConfig(phase, defaults) : exportedUserNextConfig;
     // If there are addons from the Wizard, add them to existing config
     userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
     return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
