@@ -7,7 +7,6 @@ import type {
   NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
 } from './types';
-import { constructWebpackConfigFunction } from './webpack';
 
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
@@ -53,6 +52,8 @@ function getFinalConfigObject(
   // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
   // make sure that we only require it at build time or in development mode.
   if (phase === PHASE_PRODUCTION_BUILD || phase === PHASE_DEVELOPMENT_SERVER) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { constructWebpackConfigFunction } = require('./webpack');
     return {
       ...userNextConfigObject,
       webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
