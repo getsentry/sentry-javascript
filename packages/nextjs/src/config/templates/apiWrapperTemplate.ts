@@ -8,7 +8,7 @@
 
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-import * as origModule from '__RESOURCE_PATH__';
+import * as origModule from '__SENTRY_WRAPPING_TARGET__';
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
@@ -59,4 +59,4 @@ export default userProvidedHandler ? Sentry.withSentryAPI(userProvidedHandler, '
 // not include anything whose name matchs something we've explicitly exported above.
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-export * from '__RESOURCE_PATH__';
+export * from '__SENTRY_WRAPPING_TARGET__';

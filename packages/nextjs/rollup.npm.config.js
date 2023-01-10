@@ -14,10 +14,7 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: [
-        'src/config/templates/pageProxyLoaderTemplate.ts',
-        'src/config/templates/apiProxyLoaderTemplate.ts',
-      ],
+      entrypoints: ['src/config/templates/pageWrapperTemplate.ts', 'src/config/templates/apiWrapperTemplate.ts'],
 
       packageSpecificConfig: {
         output: {
@@ -32,15 +29,13 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__RESOURCE_PATH__'],
+        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET__'],
       },
     }),
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/config/loaders/index.ts'],
-      // Needed in order to successfully import sucrase
-      esModuleInterop: true,
 
       packageSpecificConfig: {
         output: {
@@ -50,7 +45,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@rollup/plugin-sucrase', 'rollup'],
+        external: ['@rollup/plugin-commonjs', 'rollup'],
       },
     }),
   ),
