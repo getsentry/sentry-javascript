@@ -846,7 +846,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
 
-      // Write to local storage before flushing, in case flush request never starts
+      // Write to local storage before flushing, in case flush request never starts.
+      // Ensure that this happens before *any* `await` happens, otherwise we
+      // will lose data.
       setFlushState(FlushState.START, {
         recordingData: this.eventBuffer.pendingEvents,
         replayId,
@@ -856,9 +858,13 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp: new Date().getTime(),
       });
 
-      // Save session (new segment id) after we save flush data assuming
+      // Save session (new segment id) after we save flush data assuming either
+      // 1) request succeeds or 2) it fails or never happens, in which case we
+      // need to retry this segment.
       this._maybeSaveSession();
 
+      // NOTE: Be mindful that nothing after this point (the first `await`)
+      // will run after when the page is unloaded.
       const [, , recordingData] = await Promise.all(promises);
 
       const sendReplayPromise = sendReplay({
