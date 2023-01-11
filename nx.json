@@ -14,14 +14,22 @@
   },
   "targetDefaults": {
     "build:bundle": {
-      "dependsOn": [],
+      "dependsOn": [
+        "^build:transpile",
+        "build:transpile",
+        "^build:types",
+        "build:types"
+      ],
       "outputs": [
         "{projectRoot}/build/bundles"
       ]
     },
     "build:tarball": {
       "dependsOn": [
-        "build:transpile"
+        "^build:transpile",
+        "build:transpile",
+        "^build:types",
+        "build:types"
       ],
       "outputs": []
     },
