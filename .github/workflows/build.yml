@@ -40,6 +40,15 @@ env:
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
+  # GH will use the first restore-key it finds that matches
+  # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
+  # We want to prefer the cache from the current master branch, if we don't find any on the current branch
+  NX_CACHE_RESTORE_KEYS: |
+    nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
+    nx-Linux-${{ github.ref }}
+    nx-Linux-refs/heads/master
+    nx-Linux
+
 jobs:
   job_get_metadata:
     name: Get Metadata
@@ -194,18 +203,14 @@ jobs:
         # - on release branches
         # - when PR has `ci-skip-cache` label
         if: |
-          needs.job_get_metadata.outputs.is_master == 'false' &&
           needs.job_get_metadata.outputs.is_release == 'false' &&
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: node_modules/.cache/nx
-          key: nx-${{ runner.os }}-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-          # GH will use the first restore-key it finds that matches
-          # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
-          restore-keys: |
-            nx-${{ runner.os }}-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-            nx-${{ runner.os }}-${{ github.ref }}
-            nx-${{ runner.os }}
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          # On master branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          restore-keys:
+            ${{needs.job_get_metadata.outputs.is_master == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
