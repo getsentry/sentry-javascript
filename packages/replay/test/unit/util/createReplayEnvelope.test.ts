@@ -20,7 +20,7 @@ describe('Unit | util | createReplayEnvelope', () => {
     environment: 'production',
     sdk: {
       integrations: ['BrowserTracing', 'Replay'],
-      name: 'sentry.javascript.browser',
+      name: 'sentry.javascript.unknown',
       version: '7.25.0',
     },
     replay_type: 'error',
@@ -47,7 +47,7 @@ describe('Unit | util | createReplayEnvelope', () => {
     expect(envelope).toEqual([
       {
         event_id: REPLAY_ID,
-        sdk: { name: 'sentry.javascript.browser', version: '7.25.0' },
+        sdk: { name: 'sentry.javascript.unknown', version: '7.25.0' },
         sent_at: expect.any(String),
       },
       [
@@ -60,7 +60,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             platform: 'javascript',
             replay_id: REPLAY_ID,
             replay_type: 'error',
-            sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.browser', version: '7.25.0' },
+            sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             tags: { errorSampleRate: 0, sessionSampleRate: 1 },
             timestamp: 1670837008.634,
@@ -80,7 +80,7 @@ describe('Unit | util | createReplayEnvelope', () => {
     expect(envelope).toEqual([
       {
         event_id: REPLAY_ID,
-        sdk: { name: 'sentry.javascript.browser', version: '7.25.0' },
+        sdk: { name: 'sentry.javascript.unknown', version: '7.25.0' },
         sent_at: expect.any(String),
         dsn: 'https://abc@sentry.io:1234/123',
       },
@@ -93,7 +93,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
-            sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.browser', version: '7.25.0' },
+            sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             replay_type: 'error',
             tags: { errorSampleRate: 0, sessionSampleRate: 1 },
