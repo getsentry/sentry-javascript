@@ -50,6 +50,8 @@ describe('Integration | rate-limiting behaviour', () => {
     replay.loadSession({ expiry: 0 });
 
     mockSendReplayRequest.mockClear();
+
+    replay['_rateLimits'] = {};
   });
 
   afterEach(async () => {
@@ -171,4 +173,87 @@ describe('Integration | rate-limiting behaviour', () => {
       expect(replay.eventBuffer?.length).toBe(0);
     },
   );
+
+  it('handles rate-limits from a plain 429 response without any retry time', async () => {
+    expect(replay.session?.segmentId).toBe(0);
+    jest.spyOn(replay, 'sendReplay');
+    jest.spyOn(replay, 'pause');
+    jest.spyOn(replay, 'resume');
+    // @ts-ignore private API
+    jest.spyOn(replay, '_handleRateLimit');
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+
+    mockTransportSend.mockImplementationOnce(() => {
+      return Promise.resolve({ statusCode: 429 });
+    });
+
+    mockRecord._emitter(TEST_EVENT);
+
+    // T = base + 5
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+
+    expect(replay['_handleRateLimit']).toHaveBeenCalledTimes(1);
+    // resume() was called once before we even started
+    expect(replay.resume).not.toHaveBeenCalled();
+    expect(replay.pause).toHaveBeenCalledTimes(1);
+
+    // No user activity to trigger an update
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+    expect(replay.session?.segmentId).toBe(1);
+
+    // let's simulate the rate-limit time of inactivity (60secs) and check that we don't do anything in the meantime
+    // 60secs are the default we fall back to in the plain 429 case in updateRateLimits()
+    const TEST_EVENT2 = { data: {}, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY, type: 3 };
+    for (let i = 0; i < 11; i++) {
+      const ev = {
+        ...TEST_EVENT2,
+        timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * (i + 1),
+      };
+      mockRecord._emitter(ev);
+      await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+      expect(replay.isPaused()).toBe(true);
+      expect(replay.sendReplay).toHaveBeenCalledTimes(1);
+      expect(mockTransportSend).toHaveBeenCalledTimes(1);
+    }
+
+    // T = base + 60
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    // now, recording should resume and first, we expect a checkout event to be sent, as resume()
+    // should trigger a full snapshot
+    expect(replay.resume).toHaveBeenCalledTimes(1);
+    expect(replay.isPaused()).toBe(false);
+
+    expect(replay.sendReplay).toHaveBeenCalledTimes(2);
+    expect(replay).toHaveLastSentReplay({
+      events: '[{"data":{"isCheckout":true},"timestamp":1580598065000,"type":2}]',
+    });
+
+    // and let's also emit a new event and check that it is recorded
+    const TEST_EVENT3 = {
+      data: {},
+      timestamp: BASE_TIMESTAMP + 7 * DEFAULT_FLUSH_MIN_DELAY,
+      type: 3,
+    };
+    mockRecord._emitter(TEST_EVENT3);
+
+    // T = base + 65
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
+
+    // nothing should happen afterwards
+    // T = base + 85
+    await advanceTimers(20_000);
+    expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
+
+    // events array should be empty
+    expect(replay.eventBuffer?.length).toBe(0);
+  });
 });
