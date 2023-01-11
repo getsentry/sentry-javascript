@@ -21,7 +21,8 @@ export function createReplayEnvelope(
           // If string then we need to encode to UTF8, otherwise will have
           // wrong size. TextEncoder has similar browser support to
           // MutationObserver, although it does not accept IE11.
-          length: typeof recordingData === 'string' ? new TextEncoder().encode(recordingData).length : recordingData.length,
+          length:
+            typeof recordingData === 'string' ? new TextEncoder().encode(recordingData).length : recordingData.length,
         },
         recordingData,
       ],
