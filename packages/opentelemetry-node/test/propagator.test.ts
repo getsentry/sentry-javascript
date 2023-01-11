@@ -1,10 +1,10 @@
 import {
   defaultTextMapGetter,
   defaultTextMapSetter,
+  propagation,
   ROOT_CONTEXT,
   trace,
   TraceFlags,
-  propagation,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { Hub, makeMain } from '@sentry/core';
