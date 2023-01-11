@@ -6,11 +6,23 @@
         "cacheableOperations": [
           "build:bundle",
           "build:transpile",
-          "build:tarball",
           "build:types"
         ]
       }
     }
+  },
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/*.js",
+      "{workspaceRoot}/*.json",
+      "{workspaceRoot}/yarn.lock"
+    ],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals",
+      "!{projectRoot}/test/**/*",
+      "!{projectRoot}/**/*.md"
+    ]
   },
   "targetDefaults": {
     "build:bundle": {
@@ -58,7 +70,12 @@
   "targets": {
     "@sentry/serverless": {
       "build:bundle": {
-        "dependsOn": [],
+        "dependsOn": [
+          "^build:transpile",
+          "build:transpile",
+          "^build:types",
+          "build:types"
+        ],
         "outputs": [
           "{projectRoot}/build/aws"
         ]
