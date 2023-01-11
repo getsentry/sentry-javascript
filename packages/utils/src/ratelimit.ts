@@ -1,4 +1,4 @@
-import { TransportMakeRequestResponse } from '@sentry/types';
+import type { TransportMakeRequestResponse } from '@sentry/types';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;

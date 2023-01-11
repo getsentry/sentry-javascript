@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';

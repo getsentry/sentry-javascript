@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
 import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,

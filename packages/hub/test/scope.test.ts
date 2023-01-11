@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 
-import { Event, EventHint, RequestSessionStatus } from '@sentry/types';
+import type { Event, EventHint, RequestSessionStatus } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { addGlobalEventProcessor, Scope } from '../src';

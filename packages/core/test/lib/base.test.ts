@@ -1,4 +1,4 @@
-import { Event, Span } from '@sentry/types';
+import type { Event, Span } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';

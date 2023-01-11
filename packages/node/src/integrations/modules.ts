@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 

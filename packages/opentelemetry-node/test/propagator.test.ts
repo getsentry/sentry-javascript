@@ -9,7 +9,7 @@ import {
 import { suppressTracing } from '@opentelemetry/core';
 import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Transaction } from '@sentry/tracing';
-import { TransactionContext } from '@sentry/types';
+import type { TransactionContext } from '@sentry/types';
 
 import {
   SENTRY_BAGGAGE_HEADER,

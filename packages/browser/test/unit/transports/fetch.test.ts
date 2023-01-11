@@ -1,10 +1,10 @@
-import { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
 import { makeFetchTransport } from '../../../src/transports/fetch';
-import { BrowserTransportOptions } from '../../../src/transports/types';
-import { FetchImpl } from '../../../src/transports/utils';
+import type { BrowserTransportOptions } from '../../../src/transports/types';
+import type { FetchImpl } from '../../../src/transports/utils';
 
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',

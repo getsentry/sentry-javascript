@@ -1,4 +1,4 @@
-import { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData } from '@sentry/types';
 
 import type { RecordedEvents } from '../types';
 

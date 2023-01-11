@@ -1,4 +1,4 @@
-import { GetStaticProps } from 'next';
+import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';
 import { callDataFetcherTraced, withErrorInstrumentation } from './utils/wrapperUtils';

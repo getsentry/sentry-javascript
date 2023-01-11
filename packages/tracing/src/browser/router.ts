@@ -1,4 +1,4 @@
-import { Transaction, TransactionContext } from '@sentry/types';
+import type { Transaction, TransactionContext } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
 import { WINDOW } from './types';

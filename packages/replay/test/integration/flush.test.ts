@@ -1,7 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
-import { ReplayContainer } from '../../src/replay';
+import type { ReplayContainer } from '../../src/replay';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';

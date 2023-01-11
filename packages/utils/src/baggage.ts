@@ -1,4 +1,4 @@
-import { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/types';
 
 import { isString } from './is';
 import { logger } from './logger';

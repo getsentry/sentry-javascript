@@ -1,5 +1,5 @@
 import { addBreadcrumb } from '@sentry/core';
-import { Event } from '@sentry/types';
+import type { Event } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';

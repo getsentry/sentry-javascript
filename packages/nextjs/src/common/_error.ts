@@ -1,6 +1,6 @@
 import { captureException, getCurrentHub, withScope } from '@sentry/core';
 import { addExceptionMechanism } from '@sentry/utils';
-import { NextPageContext } from 'next';
+import type { NextPageContext } from 'next';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];

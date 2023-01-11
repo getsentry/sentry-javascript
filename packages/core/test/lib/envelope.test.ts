@@ -1,4 +1,4 @@
-import { DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
+import type { DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
 
 import { createEventEnvelope } from '../../src/envelope';
 

@@ -2,12 +2,12 @@ import { BaseClient, getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import { WINDOW } from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/client';
-import { UserIntegrationsFunction } from '../src/common/userIntegrations';
+import type { UserIntegrationsFunction } from '../src/common/userIntegrations';
 
 const { BrowserTracing } = TracingIntegrations;
 

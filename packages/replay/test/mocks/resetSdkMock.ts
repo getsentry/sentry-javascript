@@ -1,7 +1,9 @@
 import type { ReplayContainer } from '../../src/replay';
-import { BASE_TIMESTAMP, RecordMock } from './../index';
+import type { RecordMock } from './../index';
+import { BASE_TIMESTAMP } from './../index';
 import type { DomHandler } from './../types';
-import { mockSdk, MockSdkParams } from './mockSdk';
+import type { MockSdkParams } from './mockSdk';
+import { mockSdk } from './mockSdk';
 
 export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkParams): Promise<{
   domHandler: DomHandler;

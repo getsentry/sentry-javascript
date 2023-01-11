@@ -1,4 +1,5 @@
-import { addGlobalEventProcessor, BrowserOptions, init as browserInit, SDK_VERSION } from '@sentry/browser';
+import type { BrowserOptions } from '@sentry/browser';
+import { addGlobalEventProcessor, init as browserInit, SDK_VERSION } from '@sentry/browser';
 import type { EventProcessor } from '@sentry/types';
 import { getDomElement } from '@sentry/utils';
 /**

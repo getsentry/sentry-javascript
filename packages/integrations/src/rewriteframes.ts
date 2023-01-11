@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;

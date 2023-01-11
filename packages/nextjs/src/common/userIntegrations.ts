@@ -1,4 +1,4 @@
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 
 export type UserIntegrationsFunction = (integrations: Integration[]) => Integration[];
 export type UserIntegrations = Integration[] | UserIntegrationsFunction;

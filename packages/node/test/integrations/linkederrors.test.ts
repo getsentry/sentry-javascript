@@ -1,6 +1,7 @@
-import { ExtendedError } from '@sentry/types';
+import type { ExtendedError } from '@sentry/types';
 
-import { Event, NodeClient } from '../../src';
+import type { Event } from '../../src';
+import { NodeClient } from '../../src';
 import { LinkedErrors } from '../../src/integrations/linkederrors';
 import { defaultStackParser as stackParser } from '../../src/sdk';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';

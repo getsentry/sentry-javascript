@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event, Hub, Scope } from '@sentry/types';
+import type { Event, Hub, Scope } from '@sentry/types';
 
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';

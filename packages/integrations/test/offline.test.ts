@@ -1,7 +1,8 @@
 import { WINDOW } from '@sentry/browser';
-import { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
 
-import { Item, Offline } from '../src/offline';
+import type { Item } from '../src/offline';
+import { Offline } from '../src/offline';
 
 // mock localforage methods
 jest.mock('localforage', () => ({

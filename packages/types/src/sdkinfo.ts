@@ -1,4 +1,4 @@
-import { Package } from './package';
+import type { Package } from './package';
 
 export interface SdkInfo {
   name?: string;

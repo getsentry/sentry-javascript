@@ -1,4 +1,4 @@
-import { Integration, WrappedFunction } from '@sentry/types';
+import type { Integration, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
 import { WINDOW, wrap } from '../helpers';

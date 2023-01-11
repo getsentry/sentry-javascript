@@ -1,5 +1,5 @@
-import { Hub } from '@sentry/core';
-import { EventProcessor, Integration } from '@sentry/types';
+import type { Hub } from '@sentry/core';
+import type { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';

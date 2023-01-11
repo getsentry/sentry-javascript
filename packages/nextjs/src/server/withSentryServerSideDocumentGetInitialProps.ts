@@ -1,5 +1,5 @@
 import { hasTracingEnabled } from '@sentry/tracing';
-import Document from 'next/document';
+import type Document from 'next/document';
 
 import { isBuild } from './utils/isBuild';
 import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';

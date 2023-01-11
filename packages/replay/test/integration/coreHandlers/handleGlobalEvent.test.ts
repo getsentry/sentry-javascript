@@ -1,9 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { Event } from '@sentry/types';
+import type { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
-import { ReplayContainer } from '../../../src/replay';
+import type { ReplayContainer } from '../../../src/replay';
 import {
   overwriteRecordDroppedEvent,
   restoreRecordDroppedEvent,

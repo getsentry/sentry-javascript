@@ -1,4 +1,4 @@
-import { Hub } from '@sentry/types';
+import type { Hub } from '@sentry/types';
 
 /**
  * Check if Sentry auto-instrumentation should be disabled.

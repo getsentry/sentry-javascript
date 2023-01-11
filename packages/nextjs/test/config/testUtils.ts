@@ -1,6 +1,6 @@
-import { WebpackPluginInstance } from 'webpack';
+import type { WebpackPluginInstance } from 'webpack';
 
-import {
+import type {
   BuildContext,
   EntryPropertyFunction,
   ExportedNextConfig,
@@ -9,7 +9,8 @@ import {
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
 } from '../../src/config/types';
-import { constructWebpackConfigFunction, SentryWebpackPlugin } from '../../src/config/webpack';
+import type { SentryWebpackPlugin } from '../../src/config/webpack';
+import { constructWebpackConfigFunction } from '../../src/config/webpack';
 import { withSentryConfig } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject } from './fixtures';
 

@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/types';
 
 import {
   DEFAULT_FLUSH_MIN_DELAY,
@@ -8,11 +8,11 @@ import {
   VISIBILITY_CHANGE_TIMEOUT,
   WINDOW,
 } from '../../src/constants';
-import { ReplayContainer } from '../../src/replay';
+import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { BASE_TIMESTAMP } from '../index';
-import { RecordMock } from '../mocks/mockRrweb';
+import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';

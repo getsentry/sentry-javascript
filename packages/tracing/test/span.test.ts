@@ -1,6 +1,6 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/core';
-import { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
+import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, Transaction } from '../src';
 import { TRACEPARENT_REGEXP } from '../src/utils';

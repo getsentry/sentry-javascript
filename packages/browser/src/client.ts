@@ -1,13 +1,21 @@
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, Scope, SDK_VERSION } from '@sentry/core';
-import type { BrowserClientReplayOptions } from '@sentry/types';
-import { ClientOptions, Event, EventHint, Options, Severity, SeverityLevel } from '@sentry/types';
+import type { Scope } from '@sentry/core';
+import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, SDK_VERSION } from '@sentry/core';
+import type {
+  BrowserClientReplayOptions,
+  ClientOptions,
+  Event,
+  EventHint,
+  Options,
+  Severity,
+  SeverityLevel,
+} from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
-import { Breadcrumbs } from './integrations';
+import type { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
-import { BrowserTransportOptions } from './transports/types';
+import type { BrowserTransportOptions } from './transports/types';
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.

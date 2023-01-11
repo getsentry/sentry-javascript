@@ -1,7 +1,7 @@
-import { IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'http';
-import { RequestOptions as HTTPSRequestOptions } from 'https';
-import { Writable } from 'stream';
-import { URL } from 'url';
+import type { IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'http';
+import type { RequestOptions as HTTPSRequestOptions } from 'https';
+import type { Writable } from 'stream';
+import type { URL } from 'url';
 
 export type HTTPModuleRequestOptions = HTTPRequestOptions | HTTPSRequestOptions | string | URL;
 

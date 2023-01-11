@@ -15,7 +15,7 @@
  */
 
 import { WINDOW } from '../../types';
-import { NavigationTimingPolyfillEntry } from '../types';
+import type { NavigationTimingPolyfillEntry } from '../types';
 
 const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntry => {
   // eslint-disable-next-line deprecation/deprecation

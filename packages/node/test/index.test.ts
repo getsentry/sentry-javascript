@@ -1,22 +1,21 @@
 import { getMainCarrier, initAndBind, SDK_VERSION } from '@sentry/core';
-import { EventHint, Integration } from '@sentry/types';
+import type { EventHint, Integration } from '@sentry/types';
 import * as domain from 'domain';
 
+import type { Event, Scope } from '../src';
 import {
   addBreadcrumb,
   captureEvent,
   captureException,
   captureMessage,
   configureScope,
-  Event,
   getCurrentHub,
   init,
   NodeClient,
-  Scope,
 } from '../src';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
-import { NodeClientOptions } from '../src/types';
+import type { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 jest.mock('@sentry/core', () => {

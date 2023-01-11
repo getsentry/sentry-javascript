@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Client, DataCategory, Event, EventDropReason } from '@sentry/types';
+import type { Client, DataCategory, Event, EventDropReason } from '@sentry/types';
 
 let _originalRecordDroppedEvent: Client['recordDroppedEvent'] | undefined;
 

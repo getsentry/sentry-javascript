@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ErrorHandler as AngularErrorHandler, Inject, Injectable } from '@angular/core';
+import type { ErrorHandler as AngularErrorHandler } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import { captureException } from '@sentry/browser';
 import { addExceptionMechanism, isString } from '@sentry/utils';

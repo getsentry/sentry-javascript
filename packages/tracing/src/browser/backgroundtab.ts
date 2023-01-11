@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 
-import { IdleTransaction } from '../idletransaction';
-import { SpanStatusType } from '../span';
+import type { IdleTransaction } from '../idletransaction';
+import type { SpanStatusType } from '../span';
 import { getActiveTransaction } from '../utils';
 import { WINDOW } from './types';
 

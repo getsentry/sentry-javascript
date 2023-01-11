@@ -1,5 +1,5 @@
-import { NodeOptions } from '@sentry/node';
-import { BrowserOptions } from '@sentry/react';
-import { Options } from '@sentry/types';
+import type { NodeOptions } from '@sentry/node';
+import type { BrowserOptions } from '@sentry/react';
+import type { Options } from '@sentry/types';
 
 export type RemixOptions = Options | BrowserOptions | NodeOptions;

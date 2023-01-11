@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { FirstInputPolyfillCallback } from './types/polyfills';
+import type { FirstInputPolyfillCallback } from './types/polyfills';
 
 export * from './types/base';
 export * from './types/polyfills';

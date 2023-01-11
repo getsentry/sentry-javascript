@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 
+import type { Scope } from '../src';
 import {
   captureEvent,
   captureException,
@@ -7,7 +8,6 @@ import {
   configureScope,
   getCurrentHub,
   getHubFromCarrier,
-  Scope,
   setContext,
   setExtra,
   setExtras,

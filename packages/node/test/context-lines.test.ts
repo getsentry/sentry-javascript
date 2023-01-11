@@ -1,4 +1,4 @@
-import { StackFrame } from '@sentry/types';
+import type { StackFrame } from '@sentry/types';
 import * as fs from 'fs';
 
 import { parseStackFrames } from '../src/eventbuilder';

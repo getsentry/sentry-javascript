@@ -1,4 +1,4 @@
-import { Integration, Options } from '@sentry/types';
+import type { Integration, Options } from '@sentry/types';
 
 import { getIntegrationsToSetup } from '../../src/integration';
 

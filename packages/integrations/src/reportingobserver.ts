@@ -1,4 +1,4 @@
-import { EventProcessor, Hub, Integration } from '@sentry/types';
+import type { EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;

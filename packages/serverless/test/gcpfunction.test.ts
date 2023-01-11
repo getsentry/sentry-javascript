@@ -3,7 +3,7 @@ import * as domain from 'domain';
 
 import * as Sentry from '../src';
 import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
-import {
+import type {
   CloudEventFunction,
   CloudEventFunctionWithCallback,
   EventFunction,

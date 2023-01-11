@@ -1,5 +1,5 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../../src/constants';
-import { ReplayContainer } from '../../src/types';
+import type { ReplayContainer } from '../../src/types';
 
 export function clearSession(replay: ReplayContainer) {
   deleteSession();

@@ -1,8 +1,8 @@
 import { createTransport } from '@sentry/core';
-import { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
-import { BrowserTransportOptions } from './types';
+import type { BrowserTransportOptions } from './types';
 
 /**
  * The DONE ready state for XmlHttpRequest

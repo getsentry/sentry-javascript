@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Severity, SeverityLevel } from '@sentry/types';
+import type { Severity, SeverityLevel } from '@sentry/types';
 
 // Note: Ideally the `SeverityLevel` type would be derived from `validSeverityLevels`, but that would mean either
 //

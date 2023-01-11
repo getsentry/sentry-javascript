@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { TestEnv } from '../../../../utils/index';
-import { TestAPIResponse } from '../server';
+import type { TestAPIResponse } from '../server';
 
 test('Includes transaction in baggage if the transaction name is parameterized', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);

@@ -1,10 +1,11 @@
 import { getCurrentHub } from '@sentry/core';
 
 import { WINDOW } from '../../src/constants';
-import { ReplayContainer } from '../../src/replay';
+import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
-import { BASE_TIMESTAMP, RecordMock } from '../index';
+import type { RecordMock } from '../index';
+import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';

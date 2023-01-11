@@ -1,9 +1,10 @@
-import { AddRequestDataToEventOptions, captureException, flush, getCurrentHub } from '@sentry/node';
+import type { AddRequestDataToEventOptions } from '@sentry/node';
+import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import { baggageHeaderToDynamicSamplingContext, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
-import { HttpFunction, WrapperOptions } from './general';
+import type { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff
 type ParseRequestOptions = AddRequestDataToEventOptions['include'] & {

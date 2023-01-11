@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
-import { Span } from '@sentry/types';
+import type { Span } from '@sentry/types';
+import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
-  AddRequestDataToEventOptions,
   addRequestDataToTransaction,
   baggageHeaderToDynamicSamplingContext,
   dropUndefinedKeys,
@@ -12,9 +12,9 @@ import {
   logger,
 } from '@sentry/utils';
 import * as domain from 'domain';
-import * as http from 'http';
+import type * as http from 'http';
 
-import { NodeClient } from './client';
+import type { NodeClient } from './client';
 import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';

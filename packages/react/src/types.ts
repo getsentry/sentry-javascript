@@ -1,6 +1,6 @@
 // Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Transaction, TransactionContext } from '@sentry/types';
+import type { Transaction, TransactionContext } from '@sentry/types';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 

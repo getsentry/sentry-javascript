@@ -1,6 +1,6 @@
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import * as domain from 'domain';
 

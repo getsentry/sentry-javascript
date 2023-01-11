@@ -1,4 +1,4 @@
-import { SpanContext } from '@sentry/types';
+import type { SpanContext } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import * as React from 'react';

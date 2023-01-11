@@ -1,4 +1,4 @@
-import { Client } from '@sentry/types';
+import type { Client } from '@sentry/types';
 
 import { defaultStackParser } from '../../src';
 import { eventFromPlainObject } from '../../src/eventbuilder';

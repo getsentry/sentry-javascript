@@ -1,5 +1,5 @@
-import { EventProcessor } from './eventprocessor';
-import { Hub } from './hub';
+import type { EventProcessor } from './eventprocessor';
+import type { Hub } from './hub';
 
 /** Integration Class Interface */
 export interface IntegrationClass<T> {

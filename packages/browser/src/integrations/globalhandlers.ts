@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
+import type { Event, EventHint, Hub, Integration, Primitive, StackParser } from '@sentry/types';
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
@@ -11,7 +11,7 @@ import {
   logger,
 } from '@sentry/utils';
 
-import { BrowserClient } from '../client';
+import type { BrowserClient } from '../client';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { shouldIgnoreOnError } from '../helpers';
 

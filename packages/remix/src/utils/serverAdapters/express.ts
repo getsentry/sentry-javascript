@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 import { extractRequestData, isString, logger } from '@sentry/utils';
 import { cwd } from 'process';
 
@@ -12,7 +12,7 @@ import {
   isRequestHandlerWrapped,
   startRequestHandlerTransaction,
 } from '../instrumentServer';
-import {
+import type {
   ExpressCreateRequestHandler,
   ExpressCreateRequestHandlerOptions,
   ExpressNextFunction,

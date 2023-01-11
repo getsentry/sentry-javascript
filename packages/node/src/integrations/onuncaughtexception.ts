@@ -1,8 +1,9 @@
-import { getCurrentHub, Scope } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import type { Scope } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { NodeClient } from '../client';
+import type { NodeClient } from '../client';
 import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;

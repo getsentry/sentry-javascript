@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { fill, severityLevelFromString } from '@sentry/utils';
 import * as util from 'util';
 

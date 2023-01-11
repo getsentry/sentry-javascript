@@ -1,4 +1,4 @@
-import { Primitive } from './misc';
+import type { Primitive } from './misc';
 
 export type Context = Record<string, unknown>;
 

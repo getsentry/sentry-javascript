@@ -1,5 +1,6 @@
-import { ErrorBoundaryProps, WINDOW, withErrorBoundary } from '@sentry/react';
-import { Transaction, TransactionContext } from '@sentry/types';
+import type { ErrorBoundaryProps} from '@sentry/react';
+import { WINDOW, withErrorBoundary } from '@sentry/react';
+import type { Transaction, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as React from 'react';
 

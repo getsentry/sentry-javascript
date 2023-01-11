@@ -1,7 +1,7 @@
 import * as hub from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { Client, ClientOptions } from '@sentry/types';
-import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+import type { Client, ClientOptions } from '@sentry/types';
+import type { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 
 import { withSentry } from '../../src/server';
 import type { AugmentedNextApiResponse, WrappedNextApiHandler } from '../../src/server/types';

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { createTransport, Scope } from '@sentry/core';
 import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
-import { Client, Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
-import { BrowserOptions } from '../../src';
+import type { BrowserOptions } from '../../src';
 import { init } from '../../src/sdk';
 
 const PUBLIC_DSN = 'https://username@domain/123';

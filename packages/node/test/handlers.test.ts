@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { Hub, makeMain, Scope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
-import { Event } from '@sentry/types';
+import type { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 

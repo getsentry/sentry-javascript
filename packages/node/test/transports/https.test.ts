@@ -1,12 +1,12 @@
 import { createTransport } from '@sentry/core';
-import { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import { TextEncoder } from 'util';
 
 import { makeNodeTransport } from '../../src/transports';
-import { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
+import type { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
 import testServerCerts from './test-server-certs';
 
 const textEncoder = new TextEncoder();

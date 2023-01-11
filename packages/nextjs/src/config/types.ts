@@ -1,6 +1,6 @@
-import { GLOBAL_OBJ } from '@sentry/utils';
-import { SentryCliPluginOptions } from '@sentry/webpack-plugin';
-import { WebpackPluginInstance } from 'webpack';
+import type { GLOBAL_OBJ } from '@sentry/utils';
+import type { SentryCliPluginOptions } from '@sentry/webpack-plugin';
+import type { WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
 export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };

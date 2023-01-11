@@ -1,5 +1,5 @@
-import { SeverityLevel } from '@sentry/browser';
-import { Event } from '@sentry/types';
+import type { SeverityLevel } from '@sentry/browser';
+import type { Event } from '@sentry/types';
 
 export function Error(obj?: Event): any {
   const timestamp = new Date().getTime() / 1000;

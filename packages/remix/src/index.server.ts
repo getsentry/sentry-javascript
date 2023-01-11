@@ -4,7 +4,7 @@ import { logger } from '@sentry/utils';
 
 import { instrumentServer } from './utils/instrumentServer';
 import { buildMetadata } from './utils/metadata';
-import { RemixOptions } from './utils/remixOptions';
+import type { RemixOptions } from './utils/remixOptions';
 
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './performance/client';

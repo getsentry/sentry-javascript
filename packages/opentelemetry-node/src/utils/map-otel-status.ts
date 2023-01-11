@@ -1,6 +1,6 @@
-import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { SpanStatusType as SentryStatus } from '@sentry/tracing';
+import type { SpanStatusType as SentryStatus } from '@sentry/tracing';
 
 // canonicalCodesHTTPMap maps some HTTP codes to Sentry's span statuses. See possible mapping in https://develop.sentry.dev/sdk/event-payloads/span/
 const canonicalCodesHTTPMap: Record<string, SentryStatus> = {
