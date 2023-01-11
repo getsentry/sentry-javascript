@@ -13,19 +13,20 @@ import type {
  *
  * @param exportedUserNextConfig The existing config to be exported prior to adding Sentry
  * @param userSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
- * @param sentryWizardAddon Addons from automatic config.next.js merging from Sentry Wizard
+ * @param sentryOptions Optional additional options to add as alternative to `sentry` property of config
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-  sentryWizardAddon?: UserSentryOptions,
+  sentryOptions?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
     const userNextConfigObject =
       typeof exportedUserNextConfig === 'function' ? exportedUserNextConfig(phase, defaults) : exportedUserNextConfig;
-    // If there are addons from the Wizard, add them to existing config
-    userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryWizardAddon };
+    // Inserts additional `sentry` options into the existing config, allows for backwards compatability
+    // in case nothing is passed into the optional `sentryOptions` argument
+    userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryOptions };
     return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
   };
 }
