@@ -53,7 +53,7 @@ export function forEachEnvelopeItem<E extends Envelope>(
   });
 }
 
-function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
+export function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
   const utf8 = textEncoder || new TextEncoder();
   return utf8.encode(input);
 }

@@ -1,5 +1,5 @@
 import type { DsnComponents, ReplayEnvelope, ReplayEvent, ReplayRecordingData } from '@sentry/types';
-import { createEnvelope, createEventEnvelopeHeaders, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
+import { createEnvelope, createEventEnvelopeHeaders, encodeUTF8, getSdkMetadataForEnvelopeHeader } from '@sentry/utils';
 
 /**
  * Create a replay envelope ready to be sent.
@@ -18,7 +18,10 @@ export function createReplayEnvelope(
       [
         {
           type: 'replay_recording',
-          length: recordingData.length,
+          // If string then we need to encode to UTF8, otherwise will have
+          // wrong size. TextEncoder has similar browser support to
+          // MutationObserver, although it does not accept IE11.
+          length: typeof recordingData === 'string' ? encodeUTF8(recordingData).length : recordingData.length,
         },
         recordingData,
       ],
