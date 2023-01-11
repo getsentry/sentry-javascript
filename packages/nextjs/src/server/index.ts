@@ -24,13 +24,12 @@ const globalWithInjectedValues = global as typeof global & {
 
 const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
 
-// Exporting this constant means we can compute it without the linter complaining, even if we stop directly using it in
-// this file. It's important that it be computed as early as possible, because one of its indicators is seeing 'build'
-// (as in the CLI command `next build`) in `process.argv`. Later on in the build process, everything's been spun out
-// into child threads and `argv` turns into ['node', 'path/to/childProcess.js'], so the original indicator is lost. We
-// thus want to compute it as soon as the SDK is loaded for the first time, which is normally when the user imports
-// `withSentryConfig` into `next.config.js`.
+// TODO (v8): Remove this
+/**
+ * @deprecated This constant will be removed in the next major update.
+ */
 export const IS_BUILD = isBuild();
+
 const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -140,7 +139,7 @@ function addServerIntegrations(options: NodeOptions): void {
 
 // TODO (v8): Remove this
 /**
- * @deprecated Use the constant `IS_BUILD` instead.
+ * @deprecated This constant will be removed in the next major update.
  */
 const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
