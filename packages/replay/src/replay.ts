@@ -1001,7 +1001,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       const response = await transport.send(envelope);
-      // TODO (v8): we can remove this guard once transport.end's type signature doesn't include void anymore
+      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
       if (response) {
         this._rateLimits = updateRateLimits(this._rateLimits, response);
         if (isRateLimited(this._rateLimits, 'replay')) {
