@@ -1108,7 +1108,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       setTimeout(() => {
         __DEBUG_BUILD__ && logger.info('[Replay]', 'Resuming replay after rate limit');
         this.resume();
-        this._debouncedFlush();
       }, rateLimitDuration);
     }
   }
