@@ -1,4 +1,11 @@
-import { defaultTextMapGetter, defaultTextMapSetter, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
+import {
+  defaultTextMapGetter,
+  defaultTextMapSetter,
+  ROOT_CONTEXT,
+  trace,
+  TraceFlags,
+  propagation,
+} from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import { Hub, makeMain } from '@sentry/core';
 import { addExtensionMethods, Transaction } from '@sentry/tracing';
@@ -136,6 +143,27 @@ describe('SentryPropagator', () => {
           propagator.inject(context, carrier, defaultTextMapSetter);
           expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(baggage);
           expect(carrier[SENTRY_TRACE_HEADER]).toBe(sentryTrace);
+        });
+
+        it('should include existing baggage', () => {
+          const transactionContext = {
+            name: 'sampled-transaction',
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            sampled: true,
+          };
+          const spanContext = {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.SAMPLED,
+          };
+          createTransactionAndMaybeSpan(type, transactionContext);
+          const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+          const baggage = propagation.createBaggage({ foo: { value: 'bar' } });
+          propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(
+            'foo=bar,sentry-environment=production,sentry-release=1.0.0,sentry-transaction=sampled-transaction,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          );
         });
 
         it('should NOT set baggage and sentry-trace header if instrumentation is supressed', () => {
