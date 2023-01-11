@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "ember build --environment=production",
-    "build:npm": "ember ts:precompile && npm pack && ember ts:clean",
+    "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
     "clean": "yarn rimraf sentry-ember-*.tgz",
     "lint": "run-p lint:js lint:hbs lint:ts",
     "lint:hbs": "ember-template-lint .",

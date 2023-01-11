@@ -33,7 +33,7 @@
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test}/**/*.js\"",
     "test": "mocha test --recursive",
-    "build:npm": "npm pack",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
   },
   "volta": {

@@ -41,13 +41,12 @@
     "zone.js": "^0.11.8"
   },
   "scripts": {
-    "build": "yarn build:ngc",
-    "build:ngc": "ng build --prod",
+    "build": "yarn build:transpile",
+    "build:transpile": "ng build --prod",
     "build:dev": "run-s build",
-    "build:extras": "yarn build",
-    "build:watch": "run-p build:ngc:watch",
-    "build:ngc:watch": "ng build --prod --watch",
-    "build:npm": "npm pack ./build",
+    "build:watch": "run-p build:transpile:watch",
+    "build:transpile:watch": "ng build --prod --watch",
+    "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
