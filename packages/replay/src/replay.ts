@@ -1004,7 +1004,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // TODO (v8): we can remove this guard once transport.end's type signature doesn't include void anymore
       if (response) {
         this._rateLimits = updateRateLimits(this._rateLimits, response);
-        if (isRateLimited(this._rateLimits, 'replay_event') || isRateLimited(this._rateLimits, 'replay_recording')) {
+        if (isRateLimited(this._rateLimits, 'replay')) {
           this._handleRateLimit();
         }
       }
@@ -1093,11 +1093,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Pauses the replay and resumes it after the rate-limit duration is over.
    */
   private _handleRateLimit(): void {
-    const rateLimitEnd = Math.max(
-      disabledUntil(this._rateLimits, 'replay_event'),
-      disabledUntil(this._rateLimits, 'replay_recording'),
-    );
-
+    const rateLimitEnd = disabledUntil(this._rateLimits, 'replay');
     const rateLimitDuration = rateLimitEnd - Date.now();
 
     if (rateLimitDuration > 0) {

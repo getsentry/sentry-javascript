@@ -76,14 +76,7 @@ describe('Integration | rate-limiting behaviour', () => {
     {
       statusCode: 429,
       headers: {
-        'x-sentry-rate-limits': '30:replay_event',
-        'retry-after': null,
-      },
-    },
-    {
-      statusCode: 429,
-      headers: {
-        'x-sentry-rate-limits': '30:replay_recording',
+        'x-sentry-rate-limits': '30:replay',
         'retry-after': null,
       },
     },
