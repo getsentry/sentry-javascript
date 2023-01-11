@@ -53,9 +53,9 @@ describe('Unit | eventBuffer', () => {
     }) as EventBufferCompressionWorker;
 
     buffer.addEvent(TEST_EVENT);
-    // @ts-ignore make sure it handles invalid data
-    buffer.addEvent(undefined);
     buffer.addEvent(TEST_EVENT);
+
+    expect(buffer.pendingEvents).toEqual([TEST_EVENT, TEST_EVENT]);
 
     const result = await buffer.finish();
     const restored = pako.inflate(result, { to: 'string' });

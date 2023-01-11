@@ -102,7 +102,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
   it('update last activity when user clicks mouse', async () => {
@@ -141,7 +141,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
   it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
@@ -169,7 +169,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
 
     // Let's make sure it continues to work
     mockTransportSend.mockClear();
@@ -214,7 +214,7 @@ describe('Integration | sendReplayEvent', () => {
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
   it('uploads a replay event when document becomes hidden', async () => {
@@ -242,7 +242,7 @@ describe('Integration | sendReplayEvent', () => {
     // visibilitystate as user being active
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
@@ -261,7 +261,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
   it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
@@ -290,7 +290,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
 
     // Let's make sure it continues to work
     mockTransportSend.mockClear();
