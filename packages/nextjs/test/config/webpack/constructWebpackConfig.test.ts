@@ -6,6 +6,8 @@ import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
   clientWebpackConfig,
+  EDGE_SDK_CONFIG_FILE,
+  edgeBuildContext,
   exportedNextConfig,
   SERVER_SDK_CONFIG_FILE,
   serverBuildContext,
@@ -87,6 +89,7 @@ describe('constructWebpackConfigFunction()', () => {
   describe('webpack `entry` property config', () => {
     const serverConfigFilePath = `./${SERVER_SDK_CONFIG_FILE}`;
     const clientConfigFilePath = `./${CLIENT_SDK_CONFIG_FILE}`;
+    const edgeConfigFilePath = `./${EDGE_SDK_CONFIG_FILE}`;
 
     it('handles various entrypoint shapes', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
@@ -207,17 +210,16 @@ describe('constructWebpackConfigFunction()', () => {
       );
     });
 
-    it('does not inject user config file into API middleware', async () => {
+    it('injects user config file into API middleware', async () => {
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
-        incomingWebpackBuildContext: serverBuildContext,
+        incomingWebpackBuildContext: edgeBuildContext,
       });
 
       expect(finalWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          // no injected file
-          'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
+          middleware: [edgeConfigFilePath, 'private-next-pages/middleware.js'],
         }),
       );
     });
