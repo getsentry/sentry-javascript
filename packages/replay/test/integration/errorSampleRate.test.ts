@@ -1,4 +1,5 @@
 import { captureException } from '@sentry/core';
+import { TextEncoder } from 'util';
 
 import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -22,6 +23,10 @@ describe('Integration | errorSampleRate', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let domHandler: DomHandler;
+
+  beforeAll(() => {
+    (global as any).TextEncoder = TextEncoder;
+  });
 
   beforeEach(async () => {
     ({ mockRecord, domHandler, replay } = await resetSdkMock({

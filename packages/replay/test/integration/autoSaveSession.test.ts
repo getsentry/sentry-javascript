@@ -1,4 +1,5 @@
 import { EventType } from 'rrweb';
+import { TextEncoder } from 'util';
 
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
@@ -8,6 +9,10 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 useFakeTimers();
 
 describe('Integration | autoSaveSession', () => {
+  beforeAll(() => {
+    (global as any).TextEncoder = TextEncoder;
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });

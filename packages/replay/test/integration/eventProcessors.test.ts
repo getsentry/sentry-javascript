@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Event, Hub, Scope } from '@sentry/types';
+import { TextEncoder } from 'util';
 
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -10,6 +11,10 @@ useFakeTimers();
 describe('Integration | eventProcessors', () => {
   let hub: Hub;
   let scope: Scope;
+
+  beforeAll(() => {
+    (global as any).TextEncoder = TextEncoder;
+  });
 
   beforeEach(() => {
     hub = getCurrentHub();
