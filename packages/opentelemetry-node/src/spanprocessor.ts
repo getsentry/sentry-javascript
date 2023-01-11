@@ -22,25 +22,22 @@ export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = 
 export class SentrySpanProcessor implements OtelSpanProcessor {
   public constructor() {
     addGlobalEventProcessor(event => {
-      const otelSpan = trace.getActiveSpan();
+      const otelSpan = trace.getActiveSpan() as OtelSpan;
       if (!otelSpan) {
         return event;
       }
 
-      const otelSpanId = otelSpan.spanContext().spanId;
-      const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
-
-      if (!sentrySpan) {
-        return event;
-      }
+      const otelSpanContext = otelSpan.spanContext();
 
       // If event has already set `trace` context, use that one.
-      // This happens in the case of transaction events.
-      event.contexts = { trace: sentrySpan.getTraceContext(), ...event.contexts };
-      const transactionName = sentrySpan.transaction && sentrySpan.transaction.name;
-      if (transactionName) {
-        event.tags = { transaction: transactionName, ...event.tags };
-      }
+      event.contexts = {
+        trace: {
+          trace_id: otelSpanContext.traceId,
+          span_id: otelSpanContext.spanId,
+          parent_span_id: otelSpan.parentSpanId,
+        },
+        ...event.contexts,
+      };
 
       return event;
     });
