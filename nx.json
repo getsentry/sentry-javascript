@@ -36,7 +36,7 @@
     "build:transpile": {
       "dependsOn": [
         "^build:transpile:uncached",
-        "build:transpile",
+        "^build:transpile",
         "build:transpile:uncached"
       ],
       "outputs": [
@@ -47,7 +47,7 @@
     },
     "build:types": {
       "dependsOn": [
-        "build:types"
+        "^build:types"
       ],
       "outputs": [
         "{projectRoot}/build/types",
