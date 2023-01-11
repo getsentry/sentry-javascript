@@ -1,4 +1,4 @@
 export * from './config';
 export * from './server';
 
-// __SENTRY_FAILSAFE_STRING__
+// __SENTRY_SDK_MULTIPLEXER__
