@@ -744,7 +744,6 @@ describe('SentrySpanProcessor', () => {
     expect(sentryEvent).toBeDefined();
     expect(sentryEvent.exception).toBeDefined();
     expect(sentryEvent.contexts.trace).toEqual({
-      description: otelSpan.name,
       parent_span_id: otelSpan.parentSpanId,
       span_id: otelSpan.spanContext().spanId,
       trace_id: otelSpan.spanContext().traceId,
