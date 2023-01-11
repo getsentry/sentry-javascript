@@ -22,6 +22,7 @@ import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
+  AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
@@ -450,7 +451,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      addEvent(this, event, isCheckout);
+      void addEvent(this, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -556,7 +557,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       }
 
       this.addUpdate(() => {
-        addEvent(this, {
+        void addEvent(this, {
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
@@ -674,7 +675,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      addEvent(this, {
+      void addEvent(this, {
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -689,12 +690,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): void {
+  addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    createPerformanceSpans(this, createPerformanceEntries(entries));
+    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
   }
 
   /**

@@ -16,8 +16,7 @@ const handlers: Handlers = {
   },
 
   addEvent: (data: Record<string, unknown>) => {
-    compressor.addEvent(data);
-    return '';
+    return compressor.addEvent(data);
   },
 
   finish: () => {
@@ -48,7 +47,7 @@ export function handleMessage(e: MessageEvent): void {
         id,
         method,
         success: false,
-        response: err,
+        response: err.message,
       });
 
       // eslint-disable-next-line no-console
