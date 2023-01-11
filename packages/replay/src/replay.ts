@@ -20,7 +20,6 @@ import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createPerformanceEntries } from './createPerformanceEntry';
 import { createEventBuffer } from './eventBuffer';
-import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
@@ -287,16 +286,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
       captureException(error);
-    }
-  }
-
-  /** for tests only */
-  clearSession(): void {
-    try {
-      deleteSession();
-      this.session = undefined;
-    } catch (err) {
-      this.handleException(err);
     }
   }
 

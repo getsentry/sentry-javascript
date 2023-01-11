@@ -3,6 +3,7 @@ import * as SentryUtils from '@sentry/utils';
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { clearSession } from '../utils/clearSession';
 import { createPerformanceEntries } from './../../src/createPerformanceEntry';
 import { ReplayContainer } from './../../src/replay';
 import { useFakeTimers } from './../../test/utils/use-fake-timers';
@@ -89,7 +90,7 @@ afterEach(async () => {
   await new Promise(process.nextTick);
   jest.setSystemTime(new Date(BASE_TIMESTAMP));
   sessionStorage.clear();
-  replay.clearSession();
+  clearSession(replay);
   replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   mockRecord.takeFullSnapshot.mockClear();
   Object.defineProperty(WINDOW, 'location', {

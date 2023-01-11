@@ -4,6 +4,7 @@ import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
+import { clearSession } from '../utils/clearSession';
 import { ReplayContainer } from './../../src/replay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
 import { useFakeTimers } from './../utils/use-fake-timers';
@@ -50,7 +51,7 @@ describe('Replay (no sticky)', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    replay.clearSession();
+    clearSession(replay);
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
   });
 

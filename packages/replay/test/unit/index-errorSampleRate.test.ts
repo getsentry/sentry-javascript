@@ -2,6 +2,7 @@ import { captureException } from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
 import { addEvent } from '../../src/util/addEvent';
+import { clearSession } from '../utils/clearSession';
 import { ReplayContainer } from './../../src/replay';
 import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
 import { BASE_TIMESTAMP, RecordMock } from './../index';
@@ -34,7 +35,7 @@ describe('Replay (errorSampleRate)', () => {
   });
 
   afterEach(async () => {
-    replay.clearSession();
+    clearSession(replay);
     replay.stop();
   });
 
