@@ -182,7 +182,7 @@ describe('Integration | flush', () => {
     });
 
     // Add this to test that segment ID increases
-    mockAddPerformanceEntries.mockImplementationOnce(() => {
+    mockAddPerformanceEntries.mockImplementationOnce(() =>
       createPerformanceSpans(
         replay,
         createPerformanceEntries([
@@ -211,8 +211,8 @@ describe('Integration | flush', () => {
             serverTiming: [],
           } as unknown as PerformanceResourceTiming,
         ]),
-      );
-    });
+      ),
+    );
     // flush #5 @ t=25s - debounced flush calls `flush`
     // 20s + `flushMinDelay` which is 5 seconds
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
