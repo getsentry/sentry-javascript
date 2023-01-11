@@ -55,7 +55,7 @@ describe('Unit | eventBuffer', () => {
     buffer.addEvent(TEST_EVENT);
     buffer.addEvent(TEST_EVENT);
 
-    expect(buffer.pendingEvents).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
+    expect(buffer.pendingEvents).toEqual([TEST_EVENT, TEST_EVENT]);
 
     const result = await buffer.finish();
     const restored = pako.inflate(result, { to: 'string' });
