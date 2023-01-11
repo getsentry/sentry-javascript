@@ -1,4 +1,5 @@
 import { filesize } from 'filesize';
+import { Metrics } from '../collector.js';
 
 import { Analysis, AnalyzerItemMetric } from '../results/analyzer.js';
 import { MetricsStats } from '../results/metrics-stats.js';
@@ -11,13 +12,13 @@ export async function consoleGroup<T>(code: () => Promise<T>): Promise<T> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PrintableTable = { [k: string]: any };
 
-export function printStats(stats: MetricsStats): void {
+export function printStats(items: Metrics[]): void {
   console.table({
-    lcp: `${stats.mean(MetricsStats.lcp)?.toFixed(2)} ms`,
-    cls: `${stats.mean(MetricsStats.cls)?.toFixed(2)} ms`,
-    cpu: `${((stats.mean(MetricsStats.cpu) || 0) * 100).toFixed(2)} %`,
-    memoryMean: filesize(stats.mean(MetricsStats.memoryMean)),
-    memoryMax: filesize(stats.max(MetricsStats.memoryMax)),
+    lcp: `${MetricsStats.mean(items, MetricsStats.lcp)?.toFixed(2)} ms`,
+    cls: `${MetricsStats.mean(items, MetricsStats.cls)?.toFixed(2)} ms`,
+    cpu: `${((MetricsStats.mean(items, MetricsStats.cpu) || 0) * 100).toFixed(2)} %`,
+    memoryMean: filesize(MetricsStats.mean(items, MetricsStats.memoryMean)),
+    memoryMax: filesize(MetricsStats.max(items, MetricsStats.memoryMax)),
   });
 }
 
@@ -25,9 +26,9 @@ export function printAnalysis(analysis: Analysis): void {
   const table: PrintableTable = {};
   for (const item of analysis.items) {
     table[AnalyzerItemMetric[item.metric]] = {
-      value: item.value.diff,
-      ...((item.other == undefined) ? {} : {
-        previous: item.other.diff
+      value: item.values.diff(0, 1),
+      ...((item.others == undefined) ? {} : {
+        previous: item.others.diff(0, 1)
       })
     };
   }

@@ -8,8 +8,7 @@ export class Result {
   constructor(
     public readonly name: string, public readonly cpuThrottling: number,
     public readonly networkConditions: string,
-    public readonly aResults: Metrics[],
-    public readonly bResults: Metrics[]) { }
+    public readonly scenarioResults: Metrics[][]) { }
 
   public static readFromFile(filePath: string): Result {
     const json = fs.readFileSync(filePath, { encoding: 'utf-8' });
@@ -18,8 +17,7 @@ export class Result {
       data.name as string,
       data.cpuThrottling as number,
       data.networkConditions as string,
-      (data.aResults as Partial<Metrics>[] || []).map(Metrics.fromJSON.bind(Metrics)),
-      (data.bResults as Partial<Metrics>[] || []).map(Metrics.fromJSON.bind(Metrics)),
+      (data.scenarioResults as Partial<Metrics>[][] || []).map(list => list.map(Metrics.fromJSON.bind(Metrics)))
     );
   }
 

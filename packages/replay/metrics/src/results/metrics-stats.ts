@@ -3,34 +3,32 @@ import * as ss from 'simple-statistics'
 import { Metrics } from '../collector';
 
 export type NumberProvider = (metrics: Metrics) => number;
+export type AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => number | undefined;
 
 export class MetricsStats {
-  constructor(private _items: Metrics[]) { }
-
   static lcp: NumberProvider = metrics => metrics.vitals.lcp;
   static cls: NumberProvider = metrics => metrics.vitals.cls;
   static cpu: NumberProvider = metrics => metrics.cpu.average;
   static memoryMean: NumberProvider = metrics => ss.mean(Array.from(metrics.memory.snapshots.values()));
   static memoryMax: NumberProvider = metrics => ss.max(Array.from(metrics.memory.snapshots.values()));
 
-  public mean(dataProvider: NumberProvider): number | undefined {
-    const numbers = this._filteredValues(dataProvider);
+  static mean: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
+    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
     return numbers.length > 0 ? ss.mean(numbers) : undefined;
   }
 
-  public max(dataProvider: NumberProvider): number | undefined {
-    const numbers = this._filteredValues(dataProvider);
+  static max: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
+    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
     return numbers.length > 0 ? ss.max(numbers) : undefined;
   }
 
-  public stddev(dataProvider: NumberProvider): number | undefined {
-    const numbers = this._filteredValues(dataProvider);
+  static stddev: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
+    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
     return numbers.length > 0 ? ss.standardDeviation(numbers) : undefined;
   }
 
   // See https://en.wikipedia.org/wiki/Interquartile_range#Outliers for details on filtering.
-  private _filteredValues(dataProvider: NumberProvider): number[] {
-    const numbers = this._items.map(dataProvider);
+  private static _filteredValues(numbers: number[]): number[] {
     numbers.sort((a, b) => a - b)
 
     const q1 = ss.quantileSorted(numbers, 0.25);

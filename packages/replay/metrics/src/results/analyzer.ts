@@ -1,7 +1,7 @@
 import { filesize } from 'filesize';
 
 import { GitHash } from '../util/git.js';
-import { MetricsStats } from './metrics-stats.js';
+import { AnalyticsFunction, MetricsStats, NumberProvider } from './metrics-stats.js';
 import { Result } from './result.js';
 import { ResultsSet } from './results-set.js';
 
@@ -24,7 +24,7 @@ export class ResultsAnalyzer {
       for (const base of baseItems) {
         for (const item of items) {
           if (item.metric == base.metric) {
-            item.other = base.value;
+            item.others = base.values;
             otherHash = baseline[0];
           }
         }
@@ -40,21 +40,26 @@ export class ResultsAnalyzer {
   private _collect(): AnalyzerItem[] {
     const items = new Array<AnalyzerItem>();
 
-    const aStats = new MetricsStats(this._result.aResults);
-    const bStats = new MetricsStats(this._result.bResults);
+    const scenarioResults = this._result.scenarioResults;
 
-    const pushIfDefined = function (metric: AnalyzerItemMetric, unit: AnalyzerItemUnit, valueA?: number, valueB?: number): void {
-      if (valueA == undefined || valueB == undefined) return;
-      items.push({ metric: metric, value: new AnalyzerItemNumberValue(unit, valueA, valueB) })
+    const pushIfDefined = function (metric: AnalyzerItemMetric, unit: AnalyzerItemUnit, source: NumberProvider, fn: AnalyticsFunction): void {
+      const values = scenarioResults.map(items => fn(items, source));
+      // only push if at least one value is defined
+      if (values.findIndex(v => v != undefined) >= 0) {
+        items.push({
+          metric: metric,
+          values: new AnalyzerItemNumberValues(unit, values)
+        });
+      }
     }
 
-    pushIfDefined(AnalyzerItemMetric.lcp, AnalyzerItemUnit.ms, aStats.mean(MetricsStats.lcp), bStats.mean(MetricsStats.lcp));
-    pushIfDefined(AnalyzerItemMetric.cls, AnalyzerItemUnit.ms, aStats.mean(MetricsStats.cls), bStats.mean(MetricsStats.cls));
-    pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, aStats.mean(MetricsStats.cpu), bStats.mean(MetricsStats.cpu));
-    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, aStats.mean(MetricsStats.memoryMean), bStats.mean(MetricsStats.memoryMean));
-    pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, aStats.max(MetricsStats.memoryMax), bStats.max(MetricsStats.memoryMax));
+    pushIfDefined(AnalyzerItemMetric.lcp, AnalyzerItemUnit.ms, MetricsStats.lcp, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.cls, AnalyzerItemUnit.ms, MetricsStats.cls, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, MetricsStats.cpu, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, MetricsStats.memoryMean, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, MetricsStats.memoryMax, MetricsStats.max);
 
-    return items.filter((item) => item.value != undefined);
+    return items;
   }
 }
 
@@ -64,35 +69,42 @@ export enum AnalyzerItemUnit {
   bytes,
 }
 
-export interface AnalyzerItemValue {
-  readonly a: string;
-  readonly b: string;
-  readonly diff: string;
-  readonly percent: string;
+export interface AnalyzerItemValues {
+  value(index: number): string;
+  diff(aIndex: number, bIndex: number): string;
+  percent(aIndex: number, bIndex: number): string;
 }
 
-class AnalyzerItemNumberValue implements AnalyzerItemValue {
-  constructor(private _unit: AnalyzerItemUnit, private _a: number, private _b: number) { }
+const AnalyzerItemValueNotAvailable = 'n/a';
 
-  public get a(): string {
-    return this._withUnit(this._a);
+class AnalyzerItemNumberValues implements AnalyzerItemValues {
+  constructor(private _unit: AnalyzerItemUnit, private _values: (number | undefined)[]) { }
+
+  private _has(index: number): boolean {
+    return index >= 0 && index < this._values.length && this._values[index] != undefined;
   }
 
-  public get b(): string {
-    return this._withUnit(this._b);
+  private _get(index: number): number {
+    return this._values[index]!;
   }
 
-  public get diff(): string {
-    const diff = this._b - this._a;
+  public value(index: number): string {
+    if (!this._has(index)) return AnalyzerItemValueNotAvailable;
+    return this._withUnit(this._get(index));
+  }
+
+  public diff(aIndex: number, bIndex: number): string {
+    if (!this._has(aIndex) || !this._has(bIndex)) return AnalyzerItemValueNotAvailable;
+    const diff = this._get(bIndex) - this._get(aIndex);
     const str = this._withUnit(diff, true);
     return diff > 0 ? `+${str}` : str;
   }
 
-  public get percent(): string {
-    if (this._a == 0) return 'n/a';
-    const diff = this._b / this._a * 100 - 100;
-    const str = `${diff.toFixed(2)} %`;
-    return diff > 0 ? `+${str}` : str;
+  public percent(aIndex: number, bIndex: number): string {
+    if (!this._has(aIndex) || !this._has(bIndex) || this._get(aIndex) == 0.0) return AnalyzerItemValueNotAvailable;
+    const percent = this._get(bIndex) / this._get(aIndex) * 100 - 100;
+    const str = `${percent.toFixed(2)} %`;
+    return percent > 0 ? `+${str}` : str;
   }
 
   private _withUnit(value: number, isDiff: boolean = false): string {
@@ -119,10 +131,10 @@ export interface AnalyzerItem {
   metric: AnalyzerItemMetric;
 
   // Current (latest) result.
-  value: AnalyzerItemValue;
+  values: AnalyzerItemValues;
 
   // Previous or baseline results, depending on the context.
-  other?: AnalyzerItemValue;
+  others?: AnalyzerItemValues;
 }
 
 export interface Analysis {

@@ -1,5 +1,5 @@
 import { Git } from '../util/git.js';
-import { Analysis, AnalyzerItemMetric, ResultsAnalyzer } from './analyzer.js';
+import { Analysis, AnalyzerItemMetric, AnalyzerItemValues, ResultsAnalyzer } from './analyzer.js';
 import { Result } from './result.js';
 import { ResultSetItem } from './results-set.js';
 
@@ -44,54 +44,70 @@ export class PrCommentBuilder {
   }
 
   public async addCurrentResult(analysis: Analysis, otherName: string): Promise<void> {
-    // Decides whether to print the "Other" depending on it being set in the input data.
+    // Decides whether to print the "Other" for comparison depending on it being set in the input data.
+    const hasOther = analysis.otherHash != undefined;
     const maybeOther = function (content: () => string): string {
-      if (analysis.otherHash == undefined) {
-        return '';
-      }
-      return content();
+      return hasOther ? content() : '';
     }
 
-    this._buffer += `
-      <h2>${this.title}</h2>
-      <table>
-        <thead>`;
+    const currentHash = await Git.hash
 
-    const headerCols = '<th align="right">Plain</th><th align="right">+Replay</th><th align="right">Diff</th><th align="right">Ratio</th>';
-    if (analysis.otherHash != undefined) {
-      // If "other" is defined, add an aditional row of headers.
-      this._buffer += `
+    this._buffer += `<h2>${this.title}</h2>`;
+    if (!hasOther) {
+      this._buffer += `Latest data for: ${currentHash}`;
+    }
+    this._buffer += `
+      <table border="1">
+        <thead>
         <tr>
           <th rowspan="2">&nbsp;</th>
-          <th colspan="4" align="center">This PR (${await Git.hash})</th>
-          <th colspan="4" align="center">${otherName} (${analysis.otherHash})</a></th>
+          ${maybeOther(() => `<th align="left">&nbsp;</th>`)}
+          <th align="center">Plain</th>
+          <th colspan="3" align="center">+Sentry</th>
+          <th colspan="3" align="center">+Replay</th>
         </tr>
         <tr>
-          ${headerCols}
-          ${headerCols}
+          ${maybeOther(() => `<th align="left">Revision</th>`)}
+          <th align="right">Value</th>
+          <th align="right">Value</th>
+          <th align="right">Diff</th>
+          <th align="right">Ratio</th>
+          <th align="right">Value</th>
+          <th align="right">Diff</th>
+          <th align="right">Ratio</th>
         </tr>`;
-    } else {
-      this._buffer += `
-        <tr>
-          <th>&nbsp;</th>
-          ${headerCols}
-        </tr>`;
+
+    const valueColumns = function (values: AnalyzerItemValues): string {
+      return `
+        <td align="right">${values.value(0)}</td>
+        <td align="right">${values.value(1)}</td>
+        <td align="right"><strong>${values.diff(0, 1)}</strong></td>
+        <td align="right"><strong>${values.percent(0, 1)}</strong></td>
+        <td align="right">${values.value(2)}</td>
+        <td align="right"><strong>${values.diff(1, 2)}</strong></td>
+        <td align="right"><strong>${values.percent(1, 2)}</strong></td>
+      `;
     }
 
     for (const item of analysis.items) {
-      this._buffer += `
+      if (hasOther) {
+        this._buffer += `
         <tr>
-          <th align="right">${printableMetricName(item.metric)}</th>
-          <td align="right">${item.value.a}</td>
-          <td align="right">${item.value.b}</td>
-          <td align="right"><strong>${item.value.diff}</strong></td>
-          <td align="right"><strong>${item.value.percent}</strong></td>
-          ${maybeOther(() => `
-            <td align="right">${item.other!.a}</td>
-            <td align="right">${item.other!.b}</td>
-            <td align="right"><strong>${item.other!.diff}</strong></td>
-            <td align="right"><strong>${item.other!.percent}</strong></td>`)}
+          <th rowspan="2" align="left">${printableMetricName(item.metric)}</th>
+          <th align="left">This PR ${currentHash}</td>
+          ${valueColumns(item.values)}
+        </tr>
+        <tr>
+          <th align="left">${otherName} ${analysis.otherHash}</td>
+          ${valueColumns(item.others!)}
         </tr>`
+      } else {
+        this._buffer += `
+        <tr>
+          <th align="left">${printableMetricName(item.metric)}</th>
+          ${valueColumns(item.values)}
+        </tr>`
+      }
     }
 
     this._buffer += `
@@ -104,7 +120,7 @@ export class PrCommentBuilder {
     this._buffer += `
       <details>
         <summary><h3>${name}</h3></summary>
-        <table>`;
+        <table border="1">`;
 
     // Each `resultFile` will be printed as a single row - with metrics as table columns.
     for (let i = 0; i < resultFiles.length; i++) {
@@ -124,7 +140,8 @@ export class PrCommentBuilder {
       // Add table row
       this._buffer += `<tr><th>${resultFile.hash}</th>`;
       for (const item of analysis.items) {
-        this._buffer += `<td align="right">${item.value.diff}</td>`;
+        // TODO maybe find a better way of showing this. After the change to multiple scenarios, this shows diff between "With Sentry" and "With Sentry + Replay"
+        this._buffer += `<td align="right">${item.values.diff(1, 2)}</td>`;
       }
       this._buffer += '</tr>';
     }

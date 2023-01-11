@@ -4,8 +4,8 @@ import { JankTestScenario } from '../../src/scenarios.js';
 import { printStats } from '../../src/util/console.js';
 import { latestResultFile } from './env.js';
 
-function checkStdDev(stats: MetricsStats, name: string, provider: NumberProvider, max: number): boolean {
-  const value = stats.stddev(provider);
+function checkStdDev(results: Metrics[], name: string, provider: NumberProvider, max: number): boolean {
+  const value = MetricsStats.stddev(results, provider);
   if (value == undefined) {
     console.warn(`✗ | Discarding results because StandardDeviation(${name}) is undefined`);
     return false;
@@ -21,23 +21,25 @@ function checkStdDev(stats: MetricsStats, name: string, provider: NumberProvider
 const collector = new MetricsCollector({ headless: true, cpuThrottling: 2 });
 const result = await collector.execute({
   name: 'jank',
-  a: new JankTestScenario(false), // No sentry
-  b: new JankTestScenario(true),  // Sentry + Replay
+  scenarios: [
+    new JankTestScenario('index.html'),
+    new JankTestScenario('with-sentry.html'),
+    new JankTestScenario('with-replay.html'),
+  ],
   runs: 10,
   tries: 10,
   async shouldAccept(results: Metrics[]): Promise<boolean> {
-    const stats = new MetricsStats(results);
-    await printStats(stats);
+    await printStats(results);
 
-    if (!checkStdDev(stats, 'lcp', MetricsStats.lcp, 50)
-      || !checkStdDev(stats, 'cls', MetricsStats.cls, 0.1)
-      || !checkStdDev(stats, 'cpu', MetricsStats.cpu, 1)
-      || !checkStdDev(stats, 'memory-mean', MetricsStats.memoryMean, 1000 * 1024)
-      || !checkStdDev(stats, 'memory-max', MetricsStats.memoryMax, 1000 * 1024)) {
+    if (!checkStdDev(results, 'lcp', MetricsStats.lcp, 50)
+      || !checkStdDev(results, 'cls', MetricsStats.cls, 0.1)
+      || !checkStdDev(results, 'cpu', MetricsStats.cpu, 1)
+      || !checkStdDev(results, 'memory-mean', MetricsStats.memoryMean, 1000 * 1024)
+      || !checkStdDev(results, 'memory-max', MetricsStats.memoryMax, 1000 * 1024)) {
       return false;
     }
 
-    const cpuUsage = stats.mean(MetricsStats.cpu)!;
+    const cpuUsage = MetricsStats.mean(results, MetricsStats.cpu)!;
     if (cpuUsage > 0.85) {
       // Note: complexity on the "JankTest" is defined by the `minimum = ...,` setting in app.js - specifying the number of animated elements.
       console.warn(`✗ | Discarding results because CPU usage is too high and may be inaccurate: ${(cpuUsage * 100).toFixed(2)} %.`,

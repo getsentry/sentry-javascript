@@ -13,8 +13,7 @@ export interface Scenario {
 // Two scenarios that are compared to each other.
 export interface TestCase {
   name: string;
-  a: Scenario;
-  b: Scenario;
+  scenarios: Scenario[];
   runs: number;
   tries: number;
 
@@ -35,10 +34,10 @@ export class LoadPageScenario implements Scenario {
 
 // Loads test-apps/jank/ as a page source & waits for a short time before quitting.
 export class JankTestScenario implements Scenario {
-  public constructor(private _withSentry: boolean) { }
+  public constructor(private _indexFile: string) { }
 
   public async run(_: playwright.Browser, page: playwright.Page): Promise<void> {
-    let url = path.resolve(`./test-apps/jank/${this._withSentry ? 'with-sentry' : 'index'}.html`);
+    let url = path.resolve(`./test-apps/jank/${this._indexFile}`);
     assert(fs.existsSync(url));
     url = `file:///${url.replace('\\', '/')}`;
     console.log('Navigating to ', url);

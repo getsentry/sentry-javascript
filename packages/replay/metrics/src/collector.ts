@@ -58,9 +58,11 @@ export class MetricsCollector {
   public async execute(testCase: TestCase): Promise<Result> {
     console.log(`Executing test case ${testCase.name}`);
     return consoleGroup(async () => {
-      const aResults = await this._collect(testCase, 'A', testCase.a);
-      const bResults = await this._collect(testCase, 'B', testCase.b);
-      return new Result(testCase.name, this._options.cpuThrottling, networkConditions, aResults, bResults);
+      const scenarioResults: Metrics[][] = [];
+      for (let s = 0; s < testCase.scenarios.length; s++) {
+        scenarioResults.push(await this._collect(testCase, s.toString(), testCase.scenarios[s]));
+      }
+      return new Result(testCase.name, this._options.cpuThrottling, networkConditions, scenarioResults);
     });
   }
 
