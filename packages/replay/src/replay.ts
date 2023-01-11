@@ -178,10 +178,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    // Modify recording options to checkoutEveryNthSecond if
-    // sampling for error replay. This is because we don't know
-    // when an error will occur, so we need to keep a buffer of
-    // replay events.
+    // If session is sampled for errors, then we need to set the recordingMode
+    // to 'error', which will configure recording with different options.
     if (this.session.sampled === 'error') {
       this.recordingMode = 'error';
     }
@@ -211,10 +209,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     try {
       this._stopRecording = record({
         ...this._recordingOptions,
-        // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
+        // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'error' && { checkoutEveryNth: 60000 }),
+        ...(this.recordingMode === 'error' && { checkoutEveryNms: 60000 }),
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
