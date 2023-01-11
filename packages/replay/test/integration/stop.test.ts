@@ -1,17 +1,17 @@
 import * as SentryUtils from '@sentry/utils';
 
+import { Replay } from '../../src';
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
-import { clearSession } from '../utils/clearSession';
-import { Replay } from './../../src';
 // mock functions need to be imported first
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
-import { useFakeTimers } from './../utils/use-fake-timers';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { clearSession } from '../utils/clearSession';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-describe('Replay - stop', () => {
+describe('Integration | stop', () => {
   let replay: ReplayContainer;
   let integration: Replay;
   const prevLocation = WINDOW.location;

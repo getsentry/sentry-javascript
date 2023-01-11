@@ -1,14 +1,14 @@
 import { captureException } from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
+import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
+import { BASE_TIMESTAMP, RecordMock } from '../index';
+import { resetSdkMock } from '../mocks/resetSdkMock';
+import { DomHandler } from '../types';
 import { clearSession } from '../utils/clearSession';
-import { ReplayContainer } from './../../src/replay';
-import { PerformanceEntryResource } from './../fixtures/performanceEntry/resource';
-import { BASE_TIMESTAMP, RecordMock } from './../index';
-import { resetSdkMock } from './../mocks/resetSdkMock';
-import { DomHandler } from './../types';
-import { useFakeTimers } from './../utils/use-fake-timers';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
@@ -17,7 +17,7 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('Replay (errorSampleRate)', () => {
+describe('Integration | errorSampleRate', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let domHandler: DomHandler;

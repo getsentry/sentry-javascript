@@ -12,18 +12,20 @@ function createSession(extra?: Record<string, any>) {
   });
 }
 
-it('session last activity is older than expiry time', function () {
-  expect(isSessionExpired(createSession(), 100, 200)).toBe(true); // Session expired at ts = 100
-});
+describe('Unit | util | isSessionExpired', () => {
+  it('session last activity is older than expiry time', function () {
+    expect(isSessionExpired(createSession(), 100, 200)).toBe(true); // Session expired at ts = 100
+  });
 
-it('session last activity is not older than expiry time', function () {
-  expect(isSessionExpired(createSession({ lastActivity: 100 }), 150, 200)).toBe(false); // Session expires at ts >= 250
-});
+  it('session last activity is not older than expiry time', function () {
+    expect(isSessionExpired(createSession({ lastActivity: 100 }), 150, 200)).toBe(false); // Session expires at ts >= 250
+  });
 
-it('session age is not older than max session life', function () {
-  expect(isSessionExpired(createSession(), 1_800_000, 50_000)).toBe(false);
-});
+  it('session age is not older than max session life', function () {
+    expect(isSessionExpired(createSession(), 1_800_000, 50_000)).toBe(false);
+  });
 
-it('session age is older than max session life', function () {
-  expect(isSessionExpired(createSession(), 1_800_000, 1_800_001)).toBe(true); // Session expires at ts >= 1_800_000
+  it('session age is older than max session life', function () {
+    expect(isSessionExpired(createSession(), 1_800_000, 1_800_001)).toBe(true); // Session expires at ts >= 1_800_000
+  });
 });
