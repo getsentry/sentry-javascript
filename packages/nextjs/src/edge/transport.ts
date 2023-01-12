@@ -1,5 +1,5 @@
 import { createTransport } from '@sentry/core';
-import { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 
 export interface EdgeTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. Used by the FetchTransport */

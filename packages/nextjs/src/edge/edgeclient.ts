@@ -1,4 +1,5 @@
-import { BaseClient, Scope, SDK_VERSION } from '@sentry/core';
+import type { Scope } from '@sentry/core';
+import { BaseClient, SDK_VERSION } from '@sentry/core';
 import type { ClientOptions, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
