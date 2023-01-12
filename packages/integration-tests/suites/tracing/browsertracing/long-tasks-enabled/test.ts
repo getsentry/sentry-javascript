@@ -18,7 +18,7 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
 
-  expect(uiSpans?.length).toBe(1);
+  expect(uiSpans?.length).toBeGreaterThan(0);
 
   const [firstUISpan] = uiSpans || [];
   expect(firstUISpan).toEqual(

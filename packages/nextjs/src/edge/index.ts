@@ -57,7 +57,7 @@ export function init(options: EdgeOptions = {}): void {
   if (options.instrumenter === undefined) {
     options.instrumenter = 'sentry';
   }
-  // TODO(v7): Refactor this to reduce the logic above
+
   const clientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
