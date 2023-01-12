@@ -7,7 +7,6 @@ import * as http from 'http';
 
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
-import * as SDK from '../src/index';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 describe('requestHandler', () => {
@@ -111,7 +110,7 @@ describe('requestHandler', () => {
   });
 
   it('patches `res.end` when `flushTimeout` is specified', done => {
-    const flush = jest.spyOn(SDK, 'flush').mockResolvedValue(true);
+    const flush = jest.spyOn(sentryCore, 'flush').mockResolvedValue(true);
 
     const sentryRequestMiddleware = requestHandler({ flushTimeout: 1337 });
     sentryRequestMiddleware(req, res, next);
@@ -125,7 +124,7 @@ describe('requestHandler', () => {
   });
 
   it('prevents errors thrown during `flush` from breaking the response', done => {
-    jest.spyOn(SDK, 'flush').mockRejectedValue(new SentryError('HTTP Error (429)'));
+    jest.spyOn(sentryCore, 'flush').mockRejectedValue(new SentryError('HTTP Error (429)'));
 
     const sentryRequestMiddleware = requestHandler({ flushTimeout: 1337 });
     sentryRequestMiddleware(req, res, next);
