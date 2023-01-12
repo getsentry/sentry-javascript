@@ -25,7 +25,4 @@ export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integratio
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;

@@ -19,12 +19,3 @@ export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integratio
 
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
-
-// This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
-// from the client SDK or from the server SDK. TypeScript is smart enough to understand that these resolve to the same
-// methods from `@sentry/core`.
-declare const runtime: 'client' | 'server';
-
-export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
-export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
-export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;
