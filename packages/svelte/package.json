@@ -20,7 +20,7 @@
     "@sentry/types": "7.30.0",
     "@sentry/utils": "7.30.0",
     "magic-string": "^0.26.2",
-    "tslib": "^1.9.3"
+    "tslib": "2.4.1"
   },
   "peerDependencies": {
     "svelte": "3.x"

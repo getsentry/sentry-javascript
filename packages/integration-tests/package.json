@@ -33,7 +33,7 @@
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "playwright": "^1.29.2",
-    "typescript": "^4.5.2",
+    "typescript": "4.9.3",
     "webpack": "^5.52.0"
   },
   "volta": {
