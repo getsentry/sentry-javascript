@@ -15,7 +15,7 @@ async function advanceTimers(time: number) {
 }
 
 type MockTransportSend = jest.MockedFunction<Transport['send']>;
-type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['sendReplayRequest']>;
+type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['_sendReplayRequest']>;
 
 describe('Integration | rate-limiting behaviour', () => {
   let replay: ReplayContainer;
@@ -32,11 +32,12 @@ describe('Integration | rate-limiting behaviour', () => {
       },
     }));
 
-    jest.spyOn(replay, 'sendReplayRequest');
+    // @ts-ignore private API
+    jest.spyOn(replay, '_sendReplayRequest');
 
     jest.runAllTimers();
     mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
+    mockSendReplayRequest = replay['_sendReplayRequest'] as MockSendReplayRequest;
   });
 
   beforeEach(() => {
@@ -47,7 +48,7 @@ describe('Integration | rate-limiting behaviour', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay.loadSession({ expiry: 0 });
+    replay['_loadSession']({ expiry: 0 });
 
     mockSendReplayRequest.mockClear();
 
@@ -60,7 +61,7 @@ describe('Integration | rate-limiting behaviour', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
     jest.clearAllMocks();
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
   });
 
   afterAll(() => {
@@ -93,11 +94,12 @@ describe('Integration | rate-limiting behaviour', () => {
     'pauses recording and flushing a rate limit is hit and resumes both after the rate limit duration is over',
     async rateLimitResponse => {
       expect(replay.session?.segmentId).toBe(0);
-      jest.spyOn(replay, 'sendReplay');
       jest.spyOn(replay, 'pause');
       jest.spyOn(replay, 'resume');
       // @ts-ignore private API
       jest.spyOn(replay, '_handleRateLimit');
+      // @ts-ignore private API
+      jest.spyOn(replay, '_sendReplay');
 
       const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
@@ -133,7 +135,7 @@ describe('Integration | rate-limiting behaviour', () => {
         mockRecord._emitter(ev);
         await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
         expect(replay.isPaused()).toBe(true);
-        expect(replay.sendReplay).toHaveBeenCalledTimes(1);
+        expect(replay['_sendReplay']).toHaveBeenCalledTimes(1);
         expect(mockTransportSend).toHaveBeenCalledTimes(1);
       }
 
@@ -145,7 +147,7 @@ describe('Integration | rate-limiting behaviour', () => {
       expect(replay.resume).toHaveBeenCalledTimes(1);
       expect(replay.isPaused()).toBe(false);
 
-      expect(replay.sendReplay).toHaveBeenCalledTimes(2);
+      expect(replay['_sendReplay']).toHaveBeenCalledTimes(2);
       expect(replay).toHaveLastSentReplay({
         events: '[{"data":{"isCheckout":true},"timestamp":1580598035000,"type":2}]',
       });
@@ -160,27 +162,28 @@ describe('Integration | rate-limiting behaviour', () => {
 
       // T = base + 40
       await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-      expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+      expect(replay['_sendReplay']).toHaveBeenCalledTimes(3);
       expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
 
       // nothing should happen afterwards
       // T = base + 60
       await advanceTimers(20_000);
-      expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+      expect(replay['_sendReplay']).toHaveBeenCalledTimes(3);
       expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
 
       // events array should be empty
-      expect(replay.eventBuffer?.length).toBe(0);
+      expect(replay.eventBuffer?.pendingLength).toBe(0);
     },
   );
 
   it('handles rate-limits from a plain 429 response without any retry time', async () => {
     expect(replay.session?.segmentId).toBe(0);
-    jest.spyOn(replay, 'sendReplay');
     jest.spyOn(replay, 'pause');
     jest.spyOn(replay, 'resume');
     // @ts-ignore private API
     jest.spyOn(replay, '_handleRateLimit');
+    // @ts-ignore private API
+    jest.spyOn(replay, '_sendReplay');
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
 
@@ -217,7 +220,7 @@ describe('Integration | rate-limiting behaviour', () => {
       mockRecord._emitter(ev);
       await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
       expect(replay.isPaused()).toBe(true);
-      expect(replay.sendReplay).toHaveBeenCalledTimes(1);
+      expect(replay['_sendReplay']).toHaveBeenCalledTimes(1);
       expect(mockTransportSend).toHaveBeenCalledTimes(1);
     }
 
@@ -229,7 +232,7 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay.resume).toHaveBeenCalledTimes(1);
     expect(replay.isPaused()).toBe(false);
 
-    expect(replay.sendReplay).toHaveBeenCalledTimes(2);
+    expect(replay['_sendReplay']).toHaveBeenCalledTimes(2);
     expect(replay).toHaveLastSentReplay({
       events: '[{"data":{"isCheckout":true},"timestamp":1580598065000,"type":2}]',
     });
@@ -244,16 +247,16 @@ describe('Integration | rate-limiting behaviour', () => {
 
     // T = base + 65
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+    expect(replay['_sendReplay']).toHaveBeenCalledTimes(3);
     expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
 
     // nothing should happen afterwards
     // T = base + 85
     await advanceTimers(20_000);
-    expect(replay.sendReplay).toHaveBeenCalledTimes(3);
+    expect(replay['_sendReplay']).toHaveBeenCalledTimes(3);
     expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT3]) });
 
     // events array should be empty
-    expect(replay.eventBuffer?.length).toBe(0);
+    expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 });
