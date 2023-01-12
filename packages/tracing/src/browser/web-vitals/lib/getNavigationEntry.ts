@@ -31,6 +31,7 @@ const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntr
 
   for (const key in timing) {
     if (key !== 'navigationStart' && key !== 'toJSON') {
+      // eslint-disable-next-line deprecation/deprecation
       navigationEntry[key] = Math.max((timing[key as keyof PerformanceTiming] as number) - timing.navigationStart, 0);
     }
   }
