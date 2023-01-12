@@ -4,15 +4,15 @@ import { logger } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
-import { createRecordingData } from './createRecordingData';
 import { createReplayEnvelope } from './createReplayEnvelope';
+import { prepareRecordingData } from './prepareRecordingData';
 import { prepareReplayEvent } from './prepareReplayEvent';
 
 /**
  * Send replay attachment using `fetch()`
  */
 export async function sendReplayRequest({
-  events,
+  recordingData,
   replayId,
   segmentId: segment_id,
   includeReplayStartTimestamp,
@@ -21,8 +21,8 @@ export async function sendReplayRequest({
   session,
   options,
 }: SendReplayData): Promise<void | TransportMakeRequestResponse> {
-  const recordingData = createRecordingData({
-    events,
+  const preparedRecordingData = prepareRecordingData({
+    recordingData,
     headers: {
       segment_id,
     },
@@ -104,7 +104,7 @@ export async function sendReplayRequest({
   }
   */
 
-  const envelope = createReplayEnvelope(replayEvent, recordingData, dsn, client.getOptions().tunnel);
+  const envelope = createReplayEnvelope(replayEvent, preparedRecordingData, dsn, client.getOptions().tunnel);
 
   try {
     return await transport.send(envelope);

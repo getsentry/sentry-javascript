@@ -176,7 +176,7 @@ describe('Integration | events', () => {
         // Make sure the old performance event is thrown out
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
       }),
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         TEST_EVENT,
         {
           type: 5,

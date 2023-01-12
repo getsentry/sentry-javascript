@@ -177,7 +177,7 @@ describe('Integration | flush', () => {
     // sendReplay is called with replayId, events, segment
 
     expect(mockSendReplay).toHaveBeenLastCalledWith({
-      events: expect.any(String),
+      recordingData: expect.any(String),
       replayId: expect.any(String),
       includeReplayStartTimestamp: true,
       segmentId: 0,
@@ -227,7 +227,7 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(5);
     expect(mockRunFlush).toHaveBeenCalledTimes(2);
     expect(mockSendReplay).toHaveBeenLastCalledWith({
-      events: expect.any(String),
+      recordingData: expect.any(String),
       replayId: expect.any(String),
       includeReplayStartTimestamp: false,
       segmentId: 1,

@@ -14,10 +14,10 @@ export async function sendReplay(
     interval: RETRY_BASE_INTERVAL,
   },
 ): Promise<unknown> {
-  const { events, options } = replayData;
+  const { recordingData, options } = replayData;
 
   // short circuit if there's no events to upload (this shouldn't happen as _runFlush makes this check)
-  if (!events.length) {
+  if (!recordingData.length) {
     return;
   }
 

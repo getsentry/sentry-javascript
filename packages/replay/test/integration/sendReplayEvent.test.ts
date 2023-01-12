@@ -96,7 +96,7 @@ describe('Integration | sendReplayEvent', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
     // visibilitystate as user being active
@@ -136,7 +136,7 @@ describe('Integration | sendReplayEvent', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -160,7 +160,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
+      recordingData: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
@@ -177,7 +177,7 @@ describe('Integration | sendReplayEvent', () => {
     mockTransportSend.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
   });
 
   it('uploads a replay event when WINDOW is blurred', async () => {
@@ -211,7 +211,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
+      recordingData: JSON.stringify([TEST_EVENT, hiddenBreadcrumb]),
     });
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -238,7 +238,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
 
     // Session's last activity is not updated because we do not consider
     // visibilitystate as user being active
@@ -256,7 +256,7 @@ describe('Integration | sendReplayEvent', () => {
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
 
     // No user activity to trigger an update
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
@@ -280,7 +280,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
+      recordingData: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
     });
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
@@ -298,7 +298,7 @@ describe('Integration | sendReplayEvent', () => {
     mockTransportSend.mockClear();
     mockRecord._emitter(TEST_EVENT);
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
@@ -311,7 +311,7 @@ describe('Integration | sendReplayEvent', () => {
     await advanceTimers(ELAPSED);
 
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         {
           type: 5,
           timestamp: BASE_TIMESTAMP,
@@ -369,7 +369,7 @@ describe('Integration | sendReplayEvent', () => {
         urls: ['http://localhost/'],
       }),
       recordingPayloadHeader: { segment_id: 0 },
-      events: JSON.stringify([TEST_EVENT]),
+      recordingData: JSON.stringify([TEST_EVENT]),
     });
 
     mockTransportSend.mockClear();

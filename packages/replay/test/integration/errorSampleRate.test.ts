@@ -68,7 +68,7 @@ describe('Integration | errorSampleRate', () => {
           sessionSampleRate: 0,
         }),
       }),
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
         TEST_EVENT,
         {
@@ -98,7 +98,7 @@ describe('Integration | errorSampleRate', () => {
           sessionSampleRate: 0,
         }),
       }),
-      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
     });
 
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
@@ -106,7 +106,7 @@ describe('Integration | errorSampleRate', () => {
     // New checkout when we call `startRecording` again after uploading segment
     // after an error occurs
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         {
           data: { isCheckout: true },
           timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 20,
@@ -124,7 +124,7 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         {
           type: 5,
           timestamp: BASE_TIMESTAMP + 10000 + 40,
@@ -304,7 +304,7 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
+      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // the exception happens roughly 10 seconds after BASE_TIMESTAMP
@@ -360,7 +360,7 @@ describe('Integration | errorSampleRate', () => {
         // Make sure the old performance event is thrown out
         replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
       }),
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         {
           data: { isCheckout: true },
           timestamp: BASE_TIMESTAMP + ELAPSED + 20,
@@ -406,12 +406,12 @@ it('sends a replay after loading the session multiple times', async () => {
   await new Promise(process.nextTick);
 
   expect(replay).toHaveSentReplay({
-    events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
+    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
   // Latest checkout when we call `startRecording` again after uploading segment
   // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
-    events: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
   });
 });

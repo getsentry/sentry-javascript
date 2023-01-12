@@ -818,7 +818,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       await sendReplay({
         replayId,
-        events: recordingData,
+        recordingData,
         segmentId,
         includeReplayStartTimestamp: segmentId === 0,
         eventContext,
