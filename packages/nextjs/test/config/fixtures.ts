@@ -9,6 +9,7 @@ import type {
 
 export const SERVER_SDK_CONFIG_FILE = 'sentry.server.config.js';
 export const CLIENT_SDK_CONFIG_FILE = 'sentry.client.config.js';
+export const EDGE_SDK_CONFIG_FILE = 'sentry.edge.config.js';
 
 /** Mock next config object */
 export const userNextConfig: NextConfigObject = {
@@ -43,7 +44,7 @@ export const serverWebpackConfig: WebpackConfigObject = {
       'pages/_error': 'private-next-pages/_error.js',
       'pages/_app': 'private-next-pages/_app.js',
       'pages/sniffTour': ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'],
-      'pages/api/_middleware': 'private-next-pages/api/_middleware.js',
+      middleware: 'private-next-pages/middleware.js',
       'pages/api/simulator/dogStats/[name]': { import: 'private-next-pages/api/simulator/dogStats/[name].js' },
       'pages/simulator/leaderboard': {
         import: ['./node_modules/dogPoints/converter.js', 'private-next-pages/simulator/leaderboard.js'],
@@ -84,7 +85,7 @@ export const clientWebpackConfig: WebpackConfigObject = {
  * @returns A mock build context for the given target
  */
 export function getBuildContext(
-  buildTarget: 'server' | 'client',
+  buildTarget: 'server' | 'client' | 'edge',
   materializedNextConfig: ExportedNextConfig,
   webpackVersion: string = '5.4.15',
 ): BuildContext {
@@ -101,9 +102,11 @@ export function getBuildContext(
     webpack: { version: webpackVersion },
     defaultLoaders: true,
     totalPages: 2,
-    isServer: buildTarget === 'server',
+    isServer: buildTarget === 'server' || buildTarget === 'edge',
+    nextRuntime: ({ server: 'nodejs', client: undefined, edge: 'edge' } as const)[buildTarget],
   };
 }
 
 export const serverBuildContext = getBuildContext('server', exportedNextConfig);
 export const clientBuildContext = getBuildContext('client', exportedNextConfig);
+export const edgeBuildContext = getBuildContext('edge', exportedNextConfig);
