@@ -7,7 +7,7 @@ import * as http from 'http';
 
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
-import * as SDK from '../src/sdk';
+import * as SDK from '../src/index';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 describe('requestHandler', () => {

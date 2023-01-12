@@ -95,7 +95,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    *
    * @inheritdoc
    */
-  public close(timeout?: number): PromiseLike<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     this._sessionFlusher?.close();
     return super.close(timeout);
   }

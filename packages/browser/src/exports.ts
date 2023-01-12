@@ -43,6 +43,9 @@ export {
   withScope,
   FunctionToString,
   InboundFilters,
+  close,
+  flush,
+  lastEventId,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -58,5 +61,5 @@ export {
   winjsStackLineParser,
 } from './stack-parsers';
 export { eventFromException, eventFromMessage } from './eventbuilder';
-export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
+export { defaultIntegrations, forceLoad, init, onLoad, showReportDialog, wrap } from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

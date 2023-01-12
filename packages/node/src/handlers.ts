@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { captureException, flush, getCurrentHub, startTransaction, withScope } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
@@ -18,7 +18,7 @@ import type { NodeClient } from './client';
 import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
-import { flush, isAutoSessionTrackingEnabled } from './sdk';
+import { isAutoSessionTrackingEnabled } from './sdk';
 
 /**
  * Express-compatible tracing handler.

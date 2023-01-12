@@ -30,9 +30,7 @@ import {
   logger,
   makeDsn,
   rejectedSyncPromise,
-  resolvedSyncPromise,
   SentryError,
-  SyncPromise,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -240,21 +238,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public flush(timeout?: number): PromiseLike<boolean> {
+  public flush(timeout?: number): Promise<boolean> {
     const transport = this._transport;
     if (transport) {
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
     } else {
-      return resolvedSyncPromise(true);
+      return Promise.resolve(true);
     }
   }
 
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): PromiseLike<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
       return result;
@@ -394,8 +392,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
    * `false` otherwise
    */
-  protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise(resolve => {
+  protected _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    return new Promise(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 

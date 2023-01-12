@@ -22,7 +22,7 @@ export { SessionFlusher } from './sessionflusher';
 export { addGlobalEventProcessor, Scope } from './scope';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
-export { initAndBind } from './sdk';
+export { initAndBind, flush, close, lastEventId } from './sdk';
 export { createTransport } from './transports/base';
 export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';

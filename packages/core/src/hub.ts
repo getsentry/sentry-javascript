@@ -160,7 +160,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  public getClient<C extends Client>(): C | undefined {
+  public getClient<C extends Client = Client>(): C | undefined {
     return this.getStackTop().client as C;
   }
 

@@ -93,7 +93,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
    * it doesn't.
    */
-  close(timeout?: number): PromiseLike<boolean>;
+  close(timeout?: number): Promise<boolean>;
 
   /**
    * Wait for all events to be sent or the timeout to expire, whichever comes first.
@@ -103,7 +103,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
    * still events in the queue when the timeout is reached.
    */
-  flush(timeout?: number): PromiseLike<boolean>;
+  flush(timeout?: number): Promise<boolean>;
 
   /** Returns the client's instance of the given integration class, it any. */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
