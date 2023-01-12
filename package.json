@@ -23,7 +23,7 @@
     "lint": "lerna run lint",
     "lint:eslint": "lerna run lint:eslint",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore @sentry-internal/* test",
+    "test": "lerna run --ignore @sentry-internal/* --ignore @sentry/wasm test",
     "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby}\" --ignore @sentry-internal/*",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
     "postinstall": "patch-package"
