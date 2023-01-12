@@ -20,7 +20,7 @@
     "@sentry/types": "7.30.0",
     "@sentry/utils": "7.30.0",
     "hoist-non-react-statics": "^3.3.2",
-    "tslib": "2.4.1"
+    "tslib": "2.4.1 || 1.9.3"
   },
   "peerDependencies": {
     "react": "15.x || 16.x || 17.x || 18.x"

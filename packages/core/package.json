@@ -18,7 +18,7 @@
   "dependencies": {
     "@sentry/types": "7.30.0",
     "@sentry/utils": "7.30.0",
-    "tslib": "2.4.1"
+    "tslib": "2.4.1 || 1.9.3"
   },
   "scripts": {
     "build": "run-s build:transpile build:types",

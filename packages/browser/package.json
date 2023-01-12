@@ -20,7 +20,7 @@
     "@sentry/replay": "7.30.0",
     "@sentry/types": "7.30.0",
     "@sentry/utils": "7.30.0",
-    "tslib": "2.4.1"
+    "tslib": "2.4.1 || 1.9.3"
   },
   "devDependencies": {
     "@types/md5": "2.1.33",
