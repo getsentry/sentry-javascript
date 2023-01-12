@@ -26,7 +26,11 @@ export function parseRetryAfterHeader(header: string, now: number = Date.now()):
 }
 
 /**
- * Gets the time that given category is disabled until for rate limiting
+ * Gets the time that the given category is disabled until for rate limiting.
+ * In case no category-specific limit is set but a general rate limit across all categories is active,
+ * that time is returned.
+ *
+ * @return the time in ms that the category is disabled until or 0 if there's no active rate limit.
  */
 export function disabledUntil(limits: RateLimits, category: string): number {
   return limits[category] || limits.all || 0;
@@ -41,7 +45,8 @@ export function isRateLimited(limits: RateLimits, category: string, now: number 
 
 /**
  * Update ratelimits from incoming headers.
- * Returns true if headers contains a non-empty rate limiting header.
+ *
+ * @return the updated RateLimits object.
  */
 export function updateRateLimits(
   limits: RateLimits,
