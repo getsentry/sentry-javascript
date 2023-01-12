@@ -1,10 +1,11 @@
-import { getCurrentHub } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
+import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
@@ -17,12 +18,11 @@ async function advanceTimers(time: number) {
 }
 
 type MockTransportSend = jest.MockedFunction<Transport['send']>;
-type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['_sendReplayRequest']>;
 
 describe('Integration | sendReplayEvent', () => {
   let replay: ReplayContainer;
   let mockTransportSend: MockTransportSend;
-  let mockSendReplayRequest: MockSendReplayRequest;
+  let mockSendReplayRequest: jest.SpyInstance<any>;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
 
@@ -37,14 +37,16 @@ describe('Integration | sendReplayEvent', () => {
     ({ replay } = await mockSdk({
       replayOptions: {
         stickySession: false,
+        _experiments: {
+          captureExceptions: true,
+        },
       },
     }));
 
-    // @ts-ignore private API
-    mockSendReplayRequest = jest.spyOn(replay, '_sendReplayRequest');
+    mockSendReplayRequest = jest.spyOn(SendReplayRequest, 'sendReplayRequest');
 
     jest.runAllTimers();
-    mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
+    mockTransportSend = SentryCore.getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
   });
 
   beforeEach(() => {
@@ -330,7 +332,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
   });
 
-  it('fails to upload data on first two calls and succeeds on the third', async () => {
+  it('fails to upload data on first two calls and succeeds on the third xxx', async () => {
     expect(replay.session?.segmentId).toBe(0);
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
@@ -383,20 +385,15 @@ describe('Integration | sendReplayEvent', () => {
   it('fails to upload data and hits retry max and stops', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
-    // @ts-ignore private API
-    const spySendReplay = jest.spyOn(replay, '_sendReplay');
+    const spyHandleException = jest.spyOn(SentryCore, 'captureException');
 
     // Suppress console.errors
     const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
-    // @ts-ignore privaye api - Check errors
-    const spyHandleException = jest.spyOn(replay, '_handleException');
-
     expect(replay.session?.segmentId).toBe(0);
 
-    // fail the first and second requests and pass the third one
-    mockSendReplayRequest.mockReset();
-    mockSendReplayRequest.mockImplementation(() => {
+    // fail all requests
+    mockSendReplayRequest.mockImplementation(async () => {
       throw new Error('Something bad happened');
     });
     mockRecord._emitter(TEST_EVENT);
@@ -414,14 +411,12 @@ describe('Integration | sendReplayEvent', () => {
 
     await advanceTimers(30000);
     expect(mockSendReplayRequest).toHaveBeenCalledTimes(4);
-    expect(spySendReplay).toHaveBeenCalledTimes(4);
 
     mockConsole.mockReset();
 
     // Make sure it doesn't retry again
     jest.runAllTimers();
     expect(mockSendReplayRequest).toHaveBeenCalledTimes(4);
-    expect(spySendReplay).toHaveBeenCalledTimes(4);
 
     // Retries = 3 (total tries = 4 including initial attempt)
     // + last exception is max retries exceeded

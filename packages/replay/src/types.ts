@@ -16,6 +16,8 @@ export interface SendReplay {
   includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
   timestamp?: number;
+  session: Session;
+  options: ReplayPluginOptions;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
