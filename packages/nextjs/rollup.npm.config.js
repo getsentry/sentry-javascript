@@ -5,7 +5,7 @@ export default [
     makeBaseNPMConfig({
       // We need to include `instrumentServer.ts` separately because it's only conditionally required, and so rollup
       // doesn't automatically include it when calculating the module dependency tree.
-      entrypoints: ['src/index.ts', 'src/client/index.ts', 'src/config/webpack.ts'],
+      entrypoints: ['src/index.ts', 'src/client/index.ts', 'src/edge/index.ts', 'src/config/webpack.ts'],
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
       // the name doesn't match an SDK dependency)

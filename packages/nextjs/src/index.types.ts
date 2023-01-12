@@ -5,28 +5,27 @@
 export * from './config';
 export * from './client';
 export * from './server';
+export * from './edge';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type { BrowserOptions } from './client';
 import * as clientSdk from './client';
+import type { EdgeOptions } from './edge';
+import * as edgeSdk from './edge';
 import type { NodeOptions } from './server';
 import * as serverSdk from './server';
 
 /** Initializes Sentry Next.js SDK */
-export declare function init(options: Options | BrowserOptions | NodeOptions): void;
+export declare function init(options: Options | BrowserOptions | NodeOptions | EdgeOptions): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integrations };
+export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integrations, ...edgeSdk.Integrations };
 
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
 
-// This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
-// from the client SDK or from the server SDK. TypeScript is smart enough to understand that these resolve to the same
-// methods from `@sentry/core`.
-declare const runtime: 'client' | 'server';
-
-export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
-export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
-export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;
+export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
+export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+export declare function lastEventId(): string | undefined;
+export declare function getSentryRelease(fallback?: string): string | undefined;
