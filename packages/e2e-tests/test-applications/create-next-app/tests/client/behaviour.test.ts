@@ -7,7 +7,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 30_000;
 
 test('Sends an exception to Sentry', async ({ page, baseURL }) => {
-  await page.goto('/client');
+  await page.goto('/');
 
   const exceptionButton = page.locator('id=exception-button');
   await exceptionButton.click();
@@ -47,7 +47,7 @@ test('Sends an exception to Sentry', async ({ page, baseURL }) => {
 });
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  await page.goto('/client');
+  await page.goto('/');
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
     if (window.recordedTransactions && window.recordedTransactions?.length >= 1) {
@@ -106,7 +106,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 });
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
-  await page.goto('/client');
+  await page.goto('/');
 
   // Give pageload transaction time to finish
   await page.waitForTimeout(4000);
