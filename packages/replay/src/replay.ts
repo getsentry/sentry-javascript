@@ -128,11 +128,17 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialUrl: '',
   };
 
-  constructor({ options, recordingOptions }: { options: ReplayPluginOptions; recordingOptions: RecordingOptions }) {
+  public constructor({
+    options,
+    recordingOptions,
+  }: {
+    options: ReplayPluginOptions;
+    recordingOptions: RecordingOptions;
+  }) {
     this._recordingOptions = recordingOptions;
     this._options = options;
 
-    this._debouncedFlush = debounce(() => this.flush(), this._options.flushMinDelay, {
+    this._debouncedFlush = debounce(() => this._flush(), this._options.flushMinDelay, {
       maxWait: this._options.flushMaxDelay,
     });
   }
@@ -163,14 +169,14 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
-  start(): void {
-    this.setInitialState();
+  public start(): void {
+    this._setInitialState();
 
-    this.loadSession({ expiry: SESSION_IDLE_DURATION });
+    this._loadSession({ expiry: SESSION_IDLE_DURATION });
 
     // If there is no session, then something bad has happened - can't continue
     if (!this.session) {
-      this.handleException(new Error('No session found'));
+      this._handleException(new Error('No session found'));
       return;
     }
 
@@ -187,13 +193,13 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // setup() is generally called on page load or manually - in both cases we
     // should treat it as an activity
-    this.updateSessionActivity();
+    this._updateSessionActivity();
 
     this.eventBuffer = createEventBuffer({
       useCompression: Boolean(this._options.useCompression),
     });
 
-    this.addListeners();
+    this._addListeners();
 
     // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
     this._isEnabled = true;
@@ -206,7 +212,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * Note that this will cause a new DOM checkout
    */
-  startRecording(): void {
+  public startRecording(): void {
     try {
       this._stopRecording = record({
         ...this._recordingOptions,
@@ -214,10 +220,10 @@ export class ReplayContainer implements ReplayContainerInterface {
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: 60000 }),
-        emit: this.handleRecordingEmit,
+        emit: this._handleRecordingEmit,
       });
     } catch (err) {
-      this.handleException(err);
+      this._handleException(err);
     }
   }
 
@@ -238,16 +244,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  stop(): void {
+  public stop(): void {
     try {
       __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
       this._isEnabled = false;
-      this.removeListeners();
+      this._removeListeners();
       this._stopRecording?.();
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
     } catch (err) {
-      this.handleException(err);
+      this._handleException(err);
     }
   }
 
@@ -256,7 +262,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This differs from stop as this only stops DOM recording, it is
    * not as thorough of a shutdown as `stop()`.
    */
-  pause(): void {
+  public pause(): void {
     this._isPaused = true;
     try {
       if (this._stopRecording) {
@@ -264,7 +270,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._stopRecording = undefined;
       }
     } catch (err) {
-      this.handleException(err);
+      this._handleException(err);
     }
   }
 
@@ -274,124 +280,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Note that calling `startRecording()` here will cause a
    * new DOM checkout.`
    */
-  resume(): void {
+  public resume(): void {
     this._isPaused = false;
     this.startRecording();
-  }
-
-  /** A wrapper to conditionally capture exceptions. */
-  handleException(error: unknown): void {
-    __DEBUG_BUILD__ && logger.error('[Replay]', error);
-
-    if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
-      captureException(error);
-    }
-  }
-
-  /**
-   * Loads a session from storage, or creates a new one if it does not exist or
-   * is expired.
-   */
-  loadSession({ expiry }: { expiry: number }): void {
-    const { type, session } = getSession({
-      expiry,
-      stickySession: Boolean(this._options.stickySession),
-      currentSession: this.session,
-      sessionSampleRate: this._options.sessionSampleRate,
-      errorSampleRate: this._options.errorSampleRate,
-    });
-
-    // If session was newly created (i.e. was not loaded from storage), then
-    // enable flag to create the root replay
-    if (type === 'new') {
-      this.setInitialState();
-    }
-
-    if (session.id !== this.session?.id) {
-      session.previousSessionId = this.session?.id;
-    }
-
-    this.session = session;
-  }
-
-  /**
-   * Capture some initial state that can change throughout the lifespan of the
-   * replay. This is required because otherwise they would be captured at the
-   * first flush.
-   */
-  setInitialState(): void {
-    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
-    const url = `${WINDOW.location.origin}${urlPath}`;
-
-    this.performanceEvents = [];
-
-    // Reset _context as well
-    this.clearContext();
-
-    this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
-    this._context.urls.push(url);
-  }
-
-  /**
-   * Adds listeners to record events for the replay
-   */
-  addListeners(): void {
-    try {
-      WINDOW.document.addEventListener('visibilitychange', this.handleVisibilityChange);
-      WINDOW.addEventListener('blur', this.handleWindowBlur);
-      WINDOW.addEventListener('focus', this.handleWindowFocus);
-
-      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      overwriteRecordDroppedEvent(this._context.errorIds);
-
-      // There is no way to remove these listeners, so ensure they are only added once
-      if (!this._hasInitializedCoreListeners) {
-        // Listeners from core SDK //
-        const scope = getCurrentHub().getScope();
-        scope?.addScopeListener(this.handleCoreBreadcrumbListener('scope'));
-        addInstrumentationHandler('dom', this.handleCoreBreadcrumbListener('dom'));
-        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
-        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
-        addInstrumentationHandler('history', handleHistorySpanListener(this));
-
-        // Tag all (non replay) events that get sent to Sentry with the current
-        // replay ID so that we can reference them later in the UI
-        addGlobalEventProcessor(handleGlobalEventListener(this));
-
-        this._hasInitializedCoreListeners = true;
-      }
-    } catch (err) {
-      this.handleException(err);
-    }
-
-    // _performanceObserver //
-    if (!('_performanceObserver' in WINDOW)) {
-      return;
-    }
-
-    this._performanceObserver = setupPerformanceObserver(this);
-  }
-
-  /**
-   * Cleans up listeners that were created in `addListeners`
-   */
-  removeListeners(): void {
-    try {
-      WINDOW.document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-
-      WINDOW.removeEventListener('blur', this.handleWindowBlur);
-      WINDOW.removeEventListener('focus', this.handleWindowFocus);
-
-      restoreRecordDroppedEvent();
-
-      if (this._performanceObserver) {
-        this._performanceObserver.disconnect();
-        this._performanceObserver = null;
-      }
-    } catch (err) {
-      this.handleException(err);
-    }
   }
 
   /**
@@ -402,7 +293,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Accepts a callback to perform side-effects and returns true to stop batch
    * processing and hand back control to caller.
    */
-  addUpdate(cb: AddUpdateCallback): void {
+  public addUpdate(cb: AddUpdateCallback): void {
     // We need to always run `cb` (e.g. in the case of `this.recordingMode == 'error'`)
     const cbResult = cb?.();
 
@@ -424,16 +315,169 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Updates the user activity timestamp and resumes recording. This should be
+   * called in an event handler for a user action that we consider as the user
+   * being "active" (e.g. a mouse click).
+   */
+  public triggerUserActivity(): void {
+    this._updateUserActivity();
+
+    // This case means that recording was once stopped due to inactivity.
+    // Ensure that recording is resumed.
+    if (!this._stopRecording) {
+      // Create a new session, otherwise when the user action is flushed, it
+      // will get rejected due to an expired session.
+      this._loadSession({ expiry: SESSION_IDLE_DURATION });
+
+      // Note: This will cause a new DOM checkout
+      this.resume();
+      return;
+    }
+
+    // Otherwise... recording was never suspended, continue as normalish
+    this._checkAndHandleExpiredSession();
+
+    this._updateSessionActivity();
+  }
+
+  /**
+   *
+   * Always flush via `_debouncedFlush` so that we do not have flushes triggered
+   * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
+   * cases of mulitple flushes happening closely together.
+   */
+  public flushImmediate(): Promise<void> {
+    this._debouncedFlush();
+    // `.flush` is provided by the debounced function, analogously to lodash.debounce
+    return this._debouncedFlush.flush() as Promise<void>;
+  }
+
+  /** A wrapper to conditionally capture exceptions. */
+  private _handleException(error: unknown): void {
+    __DEBUG_BUILD__ && logger.error('[Replay]', error);
+
+    if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
+      captureException(error);
+    }
+  }
+
+  /**
+   * Loads a session from storage, or creates a new one if it does not exist or
+   * is expired.
+   */
+  private _loadSession({ expiry }: { expiry: number }): void {
+    const { type, session } = getSession({
+      expiry,
+      stickySession: Boolean(this._options.stickySession),
+      currentSession: this.session,
+      sessionSampleRate: this._options.sessionSampleRate,
+      errorSampleRate: this._options.errorSampleRate,
+    });
+
+    // If session was newly created (i.e. was not loaded from storage), then
+    // enable flag to create the root replay
+    if (type === 'new') {
+      this._setInitialState();
+    }
+
+    if (session.id !== this.session?.id) {
+      session.previousSessionId = this.session?.id;
+    }
+
+    this.session = session;
+  }
+
+  /**
+   * Capture some initial state that can change throughout the lifespan of the
+   * replay. This is required because otherwise they would be captured at the
+   * first flush.
+   */
+  private _setInitialState(): void {
+    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
+    const url = `${WINDOW.location.origin}${urlPath}`;
+
+    this.performanceEvents = [];
+
+    // Reset _context as well
+    this._clearContext();
+
+    this._context.initialUrl = url;
+    this._context.initialTimestamp = new Date().getTime();
+    this._context.urls.push(url);
+  }
+
+  /**
+   * Adds listeners to record events for the replay
+   */
+  private _addListeners(): void {
+    try {
+      WINDOW.document.addEventListener('visibilitychange', this._handleVisibilityChange);
+      WINDOW.addEventListener('blur', this._handleWindowBlur);
+      WINDOW.addEventListener('focus', this._handleWindowFocus);
+
+      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
+      overwriteRecordDroppedEvent(this._context.errorIds);
+
+      // There is no way to remove these listeners, so ensure they are only added once
+      if (!this._hasInitializedCoreListeners) {
+        // Listeners from core SDK //
+        const scope = getCurrentHub().getScope();
+        scope?.addScopeListener(this._handleCoreBreadcrumbListener('scope'));
+        addInstrumentationHandler('dom', this._handleCoreBreadcrumbListener('dom'));
+        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
+        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
+        addInstrumentationHandler('history', handleHistorySpanListener(this));
+
+        // Tag all (non replay) events that get sent to Sentry with the current
+        // replay ID so that we can reference them later in the UI
+        addGlobalEventProcessor(handleGlobalEventListener(this));
+
+        this._hasInitializedCoreListeners = true;
+      }
+    } catch (err) {
+      this._handleException(err);
+    }
+
+    // _performanceObserver //
+    if (!('_performanceObserver' in WINDOW)) {
+      return;
+    }
+
+    this._performanceObserver = setupPerformanceObserver(this);
+  }
+
+  /**
+   * Cleans up listeners that were created in `_addListeners`
+   */
+  private _removeListeners(): void {
+    try {
+      WINDOW.document.removeEventListener('visibilitychange', this._handleVisibilityChange);
+
+      WINDOW.removeEventListener('blur', this._handleWindowBlur);
+      WINDOW.removeEventListener('focus', this._handleWindowFocus);
+
+      restoreRecordDroppedEvent();
+
+      if (this._performanceObserver) {
+        this._performanceObserver.disconnect();
+        this._performanceObserver = null;
+      }
+    } catch (err) {
+      this._handleException(err);
+    }
+  }
+
+  /**
    * Handler for recording events.
    *
    * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
    */
-  handleRecordingEmit: (event: RecordingEvent, isCheckout?: boolean) => void = (
+  private _handleRecordingEmit: (event: RecordingEvent, isCheckout?: boolean) => void = (
     event: RecordingEvent,
     isCheckout?: boolean,
   ) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
-    if (!this.checkAndHandleExpiredSession()) {
+    if (!this._checkAndHandleExpiredSession()) {
       __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
 
       return;
@@ -446,7 +490,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
       if (this.recordingMode === 'error' && event.type === 2) {
-        this.setInitialState();
+        this._setInitialState();
       }
 
       // We need to clear existing events on a checkout, otherwise they are
@@ -494,38 +538,38 @@ export class ReplayContainer implements ReplayContainerInterface {
    * be hidden. Likewise, moving a different window to cover the contents of the
    * page will also trigger a change to a hidden state.
    */
-  handleVisibilityChange: () => void = () => {
+  private _handleVisibilityChange: () => void = () => {
     if (WINDOW.document.visibilityState === 'visible') {
-      this.doChangeToForegroundTasks();
+      this._doChangeToForegroundTasks();
     } else {
-      this.doChangeToBackgroundTasks();
+      this._doChangeToBackgroundTasks();
     }
   };
 
   /**
    * Handle when page is blurred
    */
-  handleWindowBlur: () => void = () => {
+  private _handleWindowBlur: () => void = () => {
     const breadcrumb = createBreadcrumb({
       category: 'ui.blur',
     });
 
     // Do not count blur as a user action -- it's part of the process of them
     // leaving the page
-    this.doChangeToBackgroundTasks(breadcrumb);
+    this._doChangeToBackgroundTasks(breadcrumb);
   };
 
   /**
    * Handle when page is focused
    */
-  handleWindowFocus: () => void = () => {
+  private _handleWindowFocus: () => void = () => {
     const breadcrumb = createBreadcrumb({
       category: 'ui.focus',
     });
 
     // Do not count focus as a user action -- instead wait until they focus and
     // interactive with page
-    this.doChangeToForegroundTasks(breadcrumb);
+    this._doChangeToForegroundTasks(breadcrumb);
   };
 
   /**
@@ -533,7 +577,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * These events will create breadcrumb-like objects in the recording.
    */
-  handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
+  private _handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
     (type: InstrumentationTypeBreadcrumb) =>
     (handlerData: unknown): void => {
       if (!this._isEnabled) {
@@ -553,7 +597,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       if (result.category === 'ui.click') {
         this.triggerUserActivity();
       } else {
-        this.checkAndHandleExpiredSession();
+        this._checkAndHandleExpiredSession();
       }
 
       this.addUpdate(() => {
@@ -576,7 +620,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
-  doChangeToBackgroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToBackgroundTasks(breadcrumb?: Breadcrumb): void {
     if (!this.session) {
       return;
     }
@@ -584,24 +628,24 @@ export class ReplayContainer implements ReplayContainerInterface {
     const expired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
 
     if (breadcrumb && !expired) {
-      this.createCustomBreadcrumb(breadcrumb);
+      this._createCustomBreadcrumb(breadcrumb);
     }
 
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
-    this.conditionalFlush();
+    this._conditionalFlush();
   }
 
   /**
    * Tasks to run when we consider a page to be visible (via focus and/or visibility)
    */
-  doChangeToForegroundTasks(breadcrumb?: Breadcrumb): void {
+  private _doChangeToForegroundTasks(breadcrumb?: Breadcrumb): void {
     if (!this.session) {
       return;
     }
 
-    const isSessionActive = this.checkAndHandleExpiredSession({
+    const isSessionActive = this._checkAndHandleExpiredSession({
       expiry: VISIBILITY_CHANGE_TIMEOUT,
     });
 
@@ -614,7 +658,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (breadcrumb) {
-      this.createCustomBreadcrumb(breadcrumb);
+      this._createCustomBreadcrumb(breadcrumb);
     }
   }
 
@@ -622,7 +666,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Trigger rrweb to take a full snapshot which will cause this plugin to
    * create a new Replay event.
    */
-  triggerFullSnapshot(): void {
+  private _triggerFullSnapshot(): void {
     __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
     record.takeFullSnapshot(true);
   }
@@ -630,14 +674,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Update user activity (across session lifespans)
    */
-  updateUserActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateUserActivity(_lastActivity: number = new Date().getTime()): void {
     this._lastActivity = _lastActivity;
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
     if (this.session) {
       this.session.lastActivity = _lastActivity;
       this._maybeSaveSession();
@@ -645,35 +689,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Updates the user activity timestamp and resumes recording. This should be
-   * called in an event handler for a user action that we consider as the user
-   * being "active" (e.g. a mouse click).
-   */
-  triggerUserActivity(): void {
-    this.updateUserActivity();
-
-    // This case means that recording was once stopped due to inactivity.
-    // Ensure that recording is resumed.
-    if (!this._stopRecording) {
-      // Create a new session, otherwise when the user action is flushed, it
-      // will get rejected due to an expired session.
-      this.loadSession({ expiry: SESSION_IDLE_DURATION });
-
-      // Note: This will cause a new DOM checkout
-      this.resume();
-      return;
-    }
-
-    // Otherwise... recording was never suspended, continue as normalish
-    this.checkAndHandleExpiredSession();
-
-    this.updateSessionActivity();
-  }
-
-  /**
    * Helper to create (and buffer) a replay breadcrumb from a core SDK breadcrumb
    */
-  createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
+  private _createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
       void addEvent(this, {
         type: EventType.Custom,
@@ -690,7 +708,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
+  private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
@@ -705,7 +723,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * Returns true if session is not expired, false otherwise.
    */
-  checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
+  private _checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
     const oldSessionId = this.session?.id;
 
     // Prevent starting a new session if the last user activity is older than
@@ -720,7 +738,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    this.loadSession({ expiry });
+    this._loadSession({ expiry });
 
     // Session was expired if session ids do not match
     const expired = oldSessionId !== this.session?.id;
@@ -730,7 +748,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Session is expired, trigger a full snapshot (which will create a new session)
-    this.triggerFullSnapshot();
+    this._triggerFullSnapshot();
 
     return false;
   }
@@ -738,7 +756,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Only flush if `this.recordingMode === 'session'`
    */
-  conditionalFlush(): void {
+  private _conditionalFlush(): void {
     if (this.recordingMode === 'error') {
       return;
     }
@@ -749,7 +767,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Clear _context
    */
-  clearContext(): void {
+  private _clearContext(): void {
     // XXX: `initialTimestamp` and `initialUrl` do not get cleared
     this._context.errorIds.clear();
     this._context.traceIds.clear();
@@ -760,7 +778,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Return and clear _context
    */
-  popEventContext(): PopEventContext {
+  private _popEventContext(): PopEventContext {
     if (this._context.earliestEvent && this._context.earliestEvent < this._context.initialTimestamp) {
       this._context.initialTimestamp = this._context.earliestEvent;
     }
@@ -773,7 +791,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       urls: this._context.urls,
     };
 
-    this.clearContext();
+    this._clearContext();
 
     return _context;
   }
@@ -786,13 +804,13 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * Should never be called directly, only by `flush`
    */
-  async runFlush(): Promise<void> {
+  private async _runFlush(): Promise<void> {
     if (!this.session) {
       __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
       return;
     }
 
-    await this.addPerformanceEntries();
+    await this._addPerformanceEntries();
 
     if (!this.eventBuffer?.pendingLength) {
       return;
@@ -808,12 +826,12 @@ export class ReplayContainer implements ReplayContainerInterface {
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
       const replayId = this.session.id;
-      const eventContext = this.popEventContext();
+      const eventContext = this._popEventContext();
       // Always increment segmentId regardless of outcome of sending replay
       const segmentId = this.session.segmentId++;
       this._maybeSaveSession();
 
-      await this.sendReplay({
+      await this._sendReplay({
         replayId,
         events: recordingData,
         segmentId,
@@ -821,7 +839,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
       });
     } catch (err) {
-      this.handleException(err);
+      this._handleException(err);
     }
   }
 
@@ -829,14 +847,14 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Flush recording data to Sentry. Creates a lock so that only a single flush
    * can be active at a time. Do not call this directly.
    */
-  flush: () => Promise<void> = async () => {
+  private _flush: () => Promise<void> = async () => {
     if (!this._isEnabled) {
       // This is just a precaution, there should be no listeners that would
       // cause a flush.
       return;
     }
 
-    if (!this.checkAndHandleExpiredSession()) {
+    if (!this._checkAndHandleExpiredSession()) {
       __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
       return;
     }
@@ -849,16 +867,16 @@ export class ReplayContainer implements ReplayContainerInterface {
     // A flush is about to happen, cancel any queued flushes
     this._debouncedFlush?.cancel();
 
-    // this._flushLock acts as a lock so that future calls to `flush()`
+    // this._flushLock acts as a lock so that future calls to `_flush()`
     // will be blocked until this promise resolves
     if (!this._flushLock) {
-      this._flushLock = this.runFlush();
+      this._flushLock = this._runFlush();
       await this._flushLock;
       this._flushLock = null;
       return;
     }
 
-    // Wait for previous flush to finish, then call the debounced `flush()`.
+    // Wait for previous flush to finish, then call the debounced `_flush()`.
     // It's possible there are other flush requests queued and waiting for it
     // to resolve. We want to reduce all outstanding requests (as well as any
     // new flush requests that occur within a second of the locked flush
@@ -874,21 +892,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   };
 
   /**
-   *
-   * Always flush via `_debouncedFlush` so that we do not have flushes triggered
-   * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
-   * cases of mulitple flushes happening closely together.
-   */
-  flushImmediate(): Promise<void> {
-    this._debouncedFlush();
-    // `.flush` is provided by the debounced function, analogously to lodash.debounce
-    return this._debouncedFlush.flush() as Promise<void>;
-  }
-
-  /**
    * Send replay attachment using `fetch()`
    */
-  async sendReplayRequest({
+  private async _sendReplayRequest({
     events,
     replayId,
     segmentId: segment_id,
@@ -991,7 +997,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Reset the counter of retries for sending replays.
    */
-  resetRetries(): void {
+  private _resetRetries(): void {
     this._retryCount = 0;
     this._retryInterval = BASE_RETRY_INTERVAL;
   }
@@ -999,34 +1005,34 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Finalize and send the current replay event to Sentry
    */
-  async sendReplay({
+  private async _sendReplay({
     replayId,
     events,
     segmentId,
     includeReplayStartTimestamp,
     eventContext,
   }: SendReplay): Promise<unknown> {
-    // short circuit if there's no events to upload (this shouldn't happen as runFlush makes this check)
+    // short circuit if there's no events to upload (this shouldn't happen as _runFlush makes this check)
     if (!events.length) {
       return;
     }
 
     try {
-      await this.sendReplayRequest({
+      await this._sendReplayRequest({
         events,
         replayId,
         segmentId,
         includeReplayStartTimestamp,
         eventContext,
       });
-      this.resetRetries();
+      this._resetRetries();
       return true;
     } catch (err) {
       // Capture error for every failed replay
       setContext('Replays', {
         _retryCount: this._retryCount,
       });
-      this.handleException(err);
+      this._handleException(err);
 
       // If an error happened here, it's likely that uploading the attachment
       // failed, we'll can retry with the same events payload
@@ -1041,7 +1047,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return await new Promise((resolve, reject) => {
         setTimeout(async () => {
           try {
-            await this.sendReplay({
+            await this._sendReplay({
               replayId,
               events,
               segmentId,

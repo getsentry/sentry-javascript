@@ -17,7 +17,7 @@ async function advanceTimers(time: number) {
 }
 
 type MockTransportSend = jest.MockedFunction<Transport['send']>;
-type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['sendReplayRequest']>;
+type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['_sendReplayRequest']>;
 
 describe('Integration | sendReplayEvent', () => {
   let replay: ReplayContainer;
@@ -40,11 +40,11 @@ describe('Integration | sendReplayEvent', () => {
       },
     }));
 
-    jest.spyOn(replay, 'sendReplayRequest');
+    // @ts-ignore private API
+    mockSendReplayRequest = jest.spyOn(replay, '_sendReplayRequest');
 
     jest.runAllTimers();
     mockTransportSend = getCurrentHub()?.getClient()?.getTransport()?.send as MockTransportSend;
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
   });
 
   beforeEach(() => {
@@ -55,7 +55,7 @@ describe('Integration | sendReplayEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay.loadSession({ expiry: 0 });
+    replay['_loadSession']({ expiry: 0 });
 
     mockSendReplayRequest.mockClear();
   });
@@ -65,7 +65,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
   });
 
   afterAll(() => {
@@ -382,13 +382,15 @@ describe('Integration | sendReplayEvent', () => {
 
   it('fails to upload data and hits retry max and stops', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    jest.spyOn(replay, 'sendReplay');
+
+    // @ts-ignore private API
+    const spySendReplay = jest.spyOn(replay, '_sendReplay');
 
     // Suppress console.errors
     const mockConsole = jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
-    // Check errors
-    const spyHandleException = jest.spyOn(replay, 'handleException');
+    // @ts-ignore privaye api - Check errors
+    const spyHandleException = jest.spyOn(replay, '_handleException');
 
     expect(replay.session?.segmentId).toBe(0);
 
@@ -402,24 +404,24 @@ describe('Integration | sendReplayEvent', () => {
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(1);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(1);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(2);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(2);
 
     await advanceTimers(10000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(3);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(3);
 
     await advanceTimers(30000);
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
-    expect(replay.sendReplay).toHaveBeenCalledTimes(4);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(4);
+    expect(spySendReplay).toHaveBeenCalledTimes(4);
 
     mockConsole.mockReset();
 
     // Make sure it doesn't retry again
     jest.runAllTimers();
-    expect(replay.sendReplayRequest).toHaveBeenCalledTimes(4);
-    expect(replay.sendReplay).toHaveBeenCalledTimes(4);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(4);
+    expect(spySendReplay).toHaveBeenCalledTimes(4);
 
     // Retries = 3 (total tries = 4 including initial attempt)
     // + last exception is max retries exceeded
