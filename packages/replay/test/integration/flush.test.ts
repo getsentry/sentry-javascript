@@ -2,6 +2,7 @@ import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import type { EventBuffer } from '../../src/types';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
@@ -16,12 +17,12 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockSendReplay = jest.MockedFunction<typeof ReplayContainer.prototype.sendReplay>;
-type MockAddPerformanceEntries = jest.MockedFunction<typeof ReplayContainer.prototype.addPerformanceEntries>;
+type MockSendReplay = jest.MockedFunction<ReplayContainer['_sendReplay']>;
+type MockAddPerformanceEntries = jest.MockedFunction<ReplayContainer['_addPerformanceEntries']>;
 type MockAddMemoryEntry = jest.SpyInstance;
-type MockEventBufferFinish = jest.MockedFunction<Exclude<typeof ReplayContainer.prototype.eventBuffer, null>['finish']>;
-type MockFlush = jest.MockedFunction<typeof ReplayContainer.prototype.flush>;
-type MockRunFlush = jest.MockedFunction<typeof ReplayContainer.prototype.runFlush>;
+type MockEventBufferFinish = jest.MockedFunction<EventBuffer['finish']>;
+type MockFlush = jest.MockedFunction<ReplayContainer['_flush']>;
+type MockRunFlush = jest.MockedFunction<ReplayContainer['_runFlush']>;
 
 const prevLocation = WINDOW.location;
 
@@ -46,22 +47,23 @@ describe('Integration | flush', () => {
     });
 
     ({ replay } = await mockSdk());
-    jest.spyOn(replay, 'sendReplay');
-    mockSendReplay = replay.sendReplay as MockSendReplay;
+
+    // @ts-ignore private API
+    mockSendReplay = jest.spyOn(replay, '_sendReplay');
     mockSendReplay.mockImplementation(
       jest.fn(async () => {
         return;
       }),
     );
 
-    jest.spyOn(replay, 'flush');
-    mockFlush = replay.flush as MockFlush;
+    // @ts-ignore private API
+    mockFlush = jest.spyOn(replay, '_flush');
 
-    jest.spyOn(replay, 'runFlush');
-    mockRunFlush = replay.runFlush as MockRunFlush;
+    // @ts-ignore private API
+    mockRunFlush = jest.spyOn(replay, '_runFlush');
 
-    jest.spyOn(replay, 'addPerformanceEntries');
-    mockAddPerformanceEntries = replay.addPerformanceEntries as MockAddPerformanceEntries;
+    // @ts-ignore private API
+    mockAddPerformanceEntries = jest.spyOn(replay, '_addPerformanceEntries');
 
     mockAddPerformanceEntries.mockImplementation(async () => {
       return [];
@@ -93,7 +95,7 @@ describe('Integration | flush', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
@@ -116,19 +118,19 @@ describe('Integration | flush', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     WINDOW.dispatchEvent(new Event('blur'));
 
-    expect(replay.flush).toHaveBeenCalledTimes(4);
+    expect(mockFlush).toHaveBeenCalledTimes(4);
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay.runFlush).toHaveBeenCalledTimes(1);
+    expect(mockRunFlush).toHaveBeenCalledTimes(1);
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay.runFlush).toHaveBeenCalledTimes(2);
+    expect(mockRunFlush).toHaveBeenCalledTimes(2);
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(replay.runFlush).toHaveBeenCalledTimes(2);
+    expect(mockRunFlush).toHaveBeenCalledTimes(2);
   });
 
   it('long first flush enqueues following events', async () => {
@@ -141,8 +143,8 @@ describe('Integration | flush', () => {
 
     // flush #1 @ t=0s - due to blur
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.flush).toHaveBeenCalledTimes(1);
-    expect(replay.runFlush).toHaveBeenCalledTimes(1);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    expect(mockRunFlush).toHaveBeenCalledTimes(1);
 
     // This will attempt to flush in 5 seconds (flushMinDelay)
     domHandler({
@@ -150,28 +152,28 @@ describe('Integration | flush', () => {
     });
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
     // flush #2 @ t=5s - due to click
-    expect(replay.flush).toHaveBeenCalledTimes(2);
+    expect(mockFlush).toHaveBeenCalledTimes(2);
 
     await advanceTimers(1000);
     // flush #3 @ t=6s - due to blur
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.flush).toHaveBeenCalledTimes(3);
+    expect(mockFlush).toHaveBeenCalledTimes(3);
 
     // NOTE: Blur also adds a breadcrumb which calls `addUpdate`, meaning it will
     // flush after `flushMinDelay`, but this gets cancelled by the blur
     await advanceTimers(8000);
-    expect(replay.flush).toHaveBeenCalledTimes(3);
+    expect(mockFlush).toHaveBeenCalledTimes(3);
 
     // flush #4 @ t=14s - due to blur
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.flush).toHaveBeenCalledTimes(4);
+    expect(mockFlush).toHaveBeenCalledTimes(4);
 
-    expect(replay.runFlush).toHaveBeenCalledTimes(1);
+    expect(mockRunFlush).toHaveBeenCalledTimes(1);
     await advanceTimers(6000);
     // t=20s
     // addPerformanceEntries is finished, `flushLock` promise is resolved, calls
     // debouncedFlush, which will call `flush` in 1 second
-    expect(replay.flush).toHaveBeenCalledTimes(4);
+    expect(mockFlush).toHaveBeenCalledTimes(4);
     // sendReplay is called with replayId, events, segment
     expect(mockSendReplay).toHaveBeenLastCalledWith({
       events: expect.any(String),
@@ -218,8 +220,8 @@ describe('Integration | flush', () => {
     // flush #5 @ t=25s - debounced flush calls `flush`
     // 20s + `flushMinDelay` which is 5 seconds
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay.flush).toHaveBeenCalledTimes(5);
-    expect(replay.runFlush).toHaveBeenCalledTimes(2);
+    expect(mockFlush).toHaveBeenCalledTimes(5);
+    expect(mockRunFlush).toHaveBeenCalledTimes(2);
     expect(mockSendReplay).toHaveBeenLastCalledWith({
       events: expect.any(String),
       replayId: expect.any(String),
@@ -245,10 +247,10 @@ describe('Integration | flush', () => {
     mockRecord._emitter(TEST_EVENT);
 
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay.flush).toHaveBeenCalledTimes(1);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
 
     // Make sure there's nothing queued up after
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay.flush).toHaveBeenCalledTimes(1);
+    expect(mockFlush).toHaveBeenCalledTimes(1);
   });
 });

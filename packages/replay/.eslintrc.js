@@ -23,8 +23,6 @@ module.exports = {
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
       rules: {
-        // TODO (high-prio): Re-enable this after migration
-        '@typescript-eslint/explicit-member-accessibility': 'off',
         // Since we target only es6 here, we can leave this off
         '@sentry-internal/sdk/no-async-await': 'off',
       },
