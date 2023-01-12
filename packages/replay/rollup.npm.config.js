@@ -1,6 +1,7 @@
 import path from 'path';
 
 import replace from '@rollup/plugin-replace';
+import renameNodeModules from 'rollup-plugin-rename-node-modules';
 
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index';
 
@@ -18,6 +19,7 @@ export default makeNPMConfigVariants(
             __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
           },
         }),
+        renameNodeModules('ext'),
       ],
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn about
