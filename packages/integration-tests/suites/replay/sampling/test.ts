@@ -4,6 +4,11 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getReplaySnapshot } from '../../../utils/helpers';
 
 sentryTest('sampling', async ({ getLocalTestPath, page }) => {
+  // Currently bundle tests are not supported for replay
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+    sentryTest.skip();
+  }
+
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     // This should never be called!
     expect(true).toBe(false);
