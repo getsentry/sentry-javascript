@@ -1,14 +1,8 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
 import type { Breadcrumb, ReplayEvent, ReplayRecordingMode, TransportMakeRequestResponse } from '@sentry/types';
-import {
-  addInstrumentationHandler,
-  disabledUntil,
-  isRateLimited,
-  logger,
-  RateLimits,
-  updateRateLimits,
-} from '@sentry/utils';
+import type { RateLimits } from '@sentry/utils';
+import { addInstrumentationHandler, disabledUntil, isRateLimited, logger, updateRateLimits } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -275,10 +269,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    * not as thorough of a shutdown as `stop()`.
    */
   public pause(): void {
-    console.log('I was called');
-
-    console.trace();
-
     this._isPaused = true;
     try {
       if (this._stopRecording) {

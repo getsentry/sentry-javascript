@@ -1,11 +1,12 @@
-import { Transport, TransportMakeRequestResponse } from '@sentry/types';
-import { ReplayContainer } from '../../src/replay';
+import { getCurrentHub } from '@sentry/core';
+import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
+
+import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION } from '../../src/constants';
+import type { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
 import { mockRrweb } from '../mocks/mockRrweb';
-import { useFakeTimers } from '../utils/use-fake-timers';
-import { getCurrentHub } from '@sentry/core';
 import { clearSession } from '../utils/clearSession';
-import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION } from '../../src/constants';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
