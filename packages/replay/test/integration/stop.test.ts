@@ -1,5 +1,4 @@
 import * as SentryUtils from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import type { Replay } from '../../src';
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
@@ -23,7 +22,6 @@ describe('Integration | stop', () => {
   let mockAddInstrumentationHandler: MockAddInstrumentationHandler;
 
   beforeAll(async () => {
-    (global as any).TextEncoder = TextEncoder;
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     mockAddInstrumentationHandler = jest.spyOn(
       SentryUtils,

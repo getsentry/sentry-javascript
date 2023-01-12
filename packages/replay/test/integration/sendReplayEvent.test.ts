@@ -1,7 +1,6 @@
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -28,7 +27,6 @@ describe('Integration | sendReplayEvent', () => {
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
-    (global as any).TextEncoder = TextEncoder;
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest.spyOn(SentryUtils, 'addInstrumentationHandler').mockImplementation((type, handler: (args: any) => any) => {
       if (type === 'dom') {

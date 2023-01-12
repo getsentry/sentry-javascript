@@ -1,6 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Transport } from '@sentry/types';
-import { TextEncoder } from 'util';
 
 import {
   DEFAULT_FLUSH_MIN_DELAY,
@@ -31,10 +30,6 @@ describe('Integration | session', () => {
   let replay: ReplayContainer;
   let domHandler: (args: any) => any;
   let mockRecord: RecordMock;
-
-  beforeAll(() => {
-    (global as any).TextEncoder = TextEncoder;
-  });
 
   beforeEach(async () => {
     ({ mockRecord, domHandler, replay } = await resetSdkMock({

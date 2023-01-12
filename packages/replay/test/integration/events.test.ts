@@ -1,5 +1,4 @@
 import { getCurrentHub } from '@sentry/core';
-import { TextEncoder } from 'util';
 
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -25,7 +24,6 @@ describe('Integration | events', () => {
   const prevLocation = WINDOW.location;
 
   beforeAll(async () => {
-    (global as any).TextEncoder = TextEncoder;
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     jest.runAllTimers();
   });

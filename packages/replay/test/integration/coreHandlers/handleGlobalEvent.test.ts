@@ -1,6 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Event } from '@sentry/types';
-import { TextEncoder } from 'util';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
@@ -18,10 +17,6 @@ useFakeTimers();
 let replay: ReplayContainer;
 
 describe('Integration | coreHandlers | handleGlobalEvent', () => {
-  beforeAll(() => {
-    (global as any).TextEncoder = TextEncoder;
-  });
-
   beforeEach(async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {

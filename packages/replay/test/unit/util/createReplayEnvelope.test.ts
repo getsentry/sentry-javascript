@@ -1,6 +1,5 @@
 import type { ReplayEvent } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
-import { TextEncoder } from 'util';
 
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 
@@ -40,10 +39,6 @@ describe('Unit | util | createReplayEnvelope', () => {
     projectId: '123',
     protocol: 'https',
     publicKey: 'abc',
-  });
-
-  beforeAll(() => {
-    (global as any).TextEncoder = TextEncoder;
   });
 
   it('creates an envelope for a given Replay event', () => {
