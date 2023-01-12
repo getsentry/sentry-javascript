@@ -22,7 +22,7 @@ export default makeNPMConfigVariants(
         // this renames the path under which rrweb is pulled into the build output directory
         // from `node_modules/rrweb/...` to `ext/rrweb/...`
         // see https://github.com/getsentry/sentry-javascript/issues/6690
-        renameNodeModules('ext'),
+        renameNodeModules('ext', false),
       ],
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn about
