@@ -1,6 +1,7 @@
 import { filesize } from 'filesize';
 
 import { GitHash } from '../util/git.js';
+import { JsonStringify } from '../util/json.js';
 import { AnalyticsFunction, MetricsStats, NumberProvider } from './metrics-stats.js';
 import { Result } from './result.js';
 import { ResultsSet } from './results-set.js';
@@ -13,19 +14,20 @@ export class ResultsAnalyzer {
     const items = new ResultsAnalyzer(currentResult)._collect();
 
     const baseline = baselineResults?.find(
-      (other) => other.cpuThrottling == currentResult.cpuThrottling &&
-        other.name == currentResult.name &&
-        other.networkConditions == currentResult.networkConditions);
+      (other) => other.cpuThrottling == currentResult.cpuThrottling
+        && other.name == currentResult.name
+        && other.networkConditions == currentResult.networkConditions
+        && JsonStringify(other) != JsonStringify(currentResult));
 
     let otherHash: GitHash | undefined
     if (baseline != undefined) {
+      otherHash = baseline[0];
       const baseItems = new ResultsAnalyzer(baseline[1])._collect();
       // update items with baseline results
       for (const base of baseItems) {
         for (const item of items) {
           if (item.metric == base.metric) {
             item.others = base.values;
-            otherHash = baseline[0];
           }
         }
       }

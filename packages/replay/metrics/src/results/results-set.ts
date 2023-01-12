@@ -49,7 +49,7 @@ export class ResultsSet {
   public items(): ResultSetItem[] {
     return this._files().map((file) => {
       return new ResultSetItem(path.join(this._directory, file.name));
-    }).filter((item) => !isNaN(item.number));
+    }).filter((item) => !isNaN(item.number)).sort((a, b) => a.number - b.number);
   }
 
   public async add(newFile: string, onlyIfDifferent: boolean = false): Promise<void> {

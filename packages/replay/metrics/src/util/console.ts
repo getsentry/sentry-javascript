@@ -26,9 +26,13 @@ export function printAnalysis(analysis: Analysis): void {
   const table: PrintableTable = {};
   for (const item of analysis.items) {
     table[AnalyzerItemMetric[item.metric]] = {
-      value: item.values.diff(0, 1),
+      value: item.values.value(0),
+      withSentry: item.values.diff(0, 1),
+      withReplay: item.values.diff(1, 2),
       ...((item.others == undefined) ? {} : {
-        previous: item.others.diff(0, 1)
+        previous: item.others.value(0),
+        previousWithSentry: item.others.diff(0, 1),
+        previousWithReplay: item.others.diff(1, 2)
       })
     };
   }
