@@ -23,7 +23,7 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
   await page.goto(url);
 
   await page.click('button');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
 
   const replayEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

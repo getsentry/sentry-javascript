@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub, setContext } from '@sentry/core';
 import type { Breadcrumb, ReplayEvent, ReplayRecordingMode, TransportMakeRequestResponse } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import type { RateLimits } from '@sentry/utils';
+import { addInstrumentationHandler, disabledUntil, isRateLimited, logger, updateRateLimits } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import {
@@ -127,6 +128,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialTimestamp: new Date().getTime(),
     initialUrl: '',
   };
+
+  /**
+   * A RateLimits object holding the rate-limit durations in case a sent replay event was rate-limited.
+   */
+  private _rateLimits: RateLimits = {};
 
   public constructor({
     options,
@@ -988,7 +994,15 @@ export class ReplayContainer implements ReplayContainerInterface {
     const envelope = createReplayEnvelope(replayEvent, recordingData, dsn, client.getOptions().tunnel);
 
     try {
-      return await transport.send(envelope);
+      const response = await transport.send(envelope);
+      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+      if (response) {
+        this._rateLimits = updateRateLimits(this._rateLimits, response);
+        if (isRateLimited(this._rateLimits, 'replay')) {
+          this._handleRateLimit();
+        }
+      }
+      return response;
     } catch {
       throw new Error(UNABLE_TO_SEND_REPLAY);
     }
@@ -1040,9 +1054,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         throw new Error(`${UNABLE_TO_SEND_REPLAY} - max retries exceeded`);
       }
 
-      this._retryCount = this._retryCount + 1;
       // will retry in intervals of 5, 10, 30
-      this._retryInterval = this._retryCount * this._retryInterval;
+      this._retryInterval = ++this._retryCount * this._retryInterval;
 
       return await new Promise((resolve, reject) => {
         setTimeout(async () => {
@@ -1067,6 +1080,31 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _maybeSaveSession(): void {
     if (this.session && this._options.stickySession) {
       saveSession(this.session);
+    }
+  }
+
+  /**
+   * Pauses the replay and resumes it after the rate-limit duration is over.
+   */
+  private _handleRateLimit(): void {
+    // in case recording is already paused, we don't need to do anything, as we might have already paused because of a
+    // rate limit
+    if (this.isPaused()) {
+      return;
+    }
+
+    const rateLimitEnd = disabledUntil(this._rateLimits, 'replay');
+    const rateLimitDuration = rateLimitEnd - Date.now();
+
+    if (rateLimitDuration > 0) {
+      __DEBUG_BUILD__ && logger.warn('[Replay]', `Rate limit hit, pausing replay for ${rateLimitDuration}ms`);
+      this.pause();
+      this._debouncedFlush && this._debouncedFlush.cancel();
+
+      setTimeout(() => {
+        __DEBUG_BUILD__ && logger.info('[Replay]', 'Resuming replay after rate limit');
+        this.resume();
+      }, rateLimitDuration);
     }
   }
 }
