@@ -85,12 +85,17 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
-    if (buildContext.nextRuntime === 'edge') {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[@sentry/nextjs] You are using edge functions or middleware. Please note that Sentry does not yet support error monitoring for these features.',
-      );
-    }
+    newConfig.module.rules.push({
+      test: /node_modules\/@sentry\/nextjs/,
+      use: [
+        {
+          loader: path.resolve(__dirname, 'loaders/sdkMultiplexerLoader.js'),
+          options: {
+            importTarget: buildContext.nextRuntime === 'edge' ? './edge' : './client',
+          },
+        },
+      ],
+    });
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
@@ -301,28 +306,25 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, dev: isDev } = buildContext;
+  const { isServer, dir: projectDir, dev: isDev, nextRuntime } = buildContext;
 
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
   // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
-  const userConfigFile = isServer ? getUserConfigFile(projectDir, 'server') : getUserConfigFile(projectDir, 'client');
+  const userConfigFile =
+    nextRuntime === 'edge'
+      ? getUserConfigFile(projectDir, 'edge')
+      : isServer
+      ? getUserConfigFile(projectDir, 'server')
+      : getUserConfigFile(projectDir, 'client');
 
   // we need to turn the filename into a path so webpack can find it
-  const filesToInject = [`./${userConfigFile}`];
+  const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (
-      shouldAddSentryToEntryPoint(
-        entryPointName,
-        isServer,
-        userSentryOptions.excludeServerRoutes,
-        isDev,
-        buildContext.nextRuntime === 'edge',
-      )
-    ) {
+    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev)) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     } else {
       if (
@@ -348,7 +350,7 @@ async function addSentryToEntryProperty(
  * @param platform Either "server" or "client", so that we know which file to look for
  * @returns The name of the relevant file. If no file is found, this method throws an error.
  */
-export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string {
+export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
 
   for (const filename of possibilities) {
@@ -357,7 +359,16 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
     }
   }
 
-  throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
+  // Edge config file is optional
+  if (platform === 'edge') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You are using Next.js features that run on the Edge Runtime. Please add a "sentry.edge.config.js" or a "sentry.edge.config.ts" file to your project root in which you initialize the Sentry SDK with "Sentry.init()".',
+    );
+    return;
+  } else {
+    throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
+  }
 }
 
 /**
@@ -449,11 +460,9 @@ function shouldAddSentryToEntryPoint(
   isServer: boolean,
   excludeServerRoutes: Array<string | RegExp> = [],
   isDev: boolean,
-  isEdgeRuntime: boolean,
 ): boolean {
-  // We don't support the Edge runtime yet
-  if (isEdgeRuntime) {
-    return false;
+  if (entryPointName === 'middleware') {
+    return true;
   }
 
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
@@ -479,9 +488,6 @@ function shouldAddSentryToEntryPoint(
       // versions.)
       entryPointRoute === '/_app' ||
       entryPointRoute === '/_document' ||
-      // While middleware was in beta, it could be anywhere (at any level) in the `pages` directory, and would be called
-      // `_middleware.js`. Until the SDK runs successfully in the lambda edge environment, we have to exclude these.
-      entryPointName.includes('_middleware') ||
       // Newer versions of nextjs are starting to introduce things outside the `pages/` folder (middleware, an `app/`
       // directory, etc), but until those features are stable and we know how we want to support them, the safest bet is
       // not to inject anywhere but inside `pages/`.
@@ -552,13 +558,7 @@ export function getWebpackPluginOptions(
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
     entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(
-        entryPointName,
-        isServer,
-        userSentryOptions.excludeServerRoutes,
-        isDev,
-        buildContext.nextRuntime === 'edge',
-      ),
+      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });

@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 
-import { CLIENT_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
+import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 
 // We use `fs.existsSync()` in `getUserConfigFile()`. When we're not testing `getUserConfigFile()` specifically, all we
 // need is for it to give us any valid answer, so make it always find what it's looking for. Since this is a core node
@@ -14,7 +14,11 @@ import { CLIENT_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 // function also lets us restore the original when we do want to test `getUserConfigFile()`.
 export const realExistsSync = jest.requireActual('fs').existsSync;
 export const mockExistsSync = (path: fs.PathLike): ReturnType<typeof realExistsSync> => {
-  if ((path as string).endsWith(SERVER_SDK_CONFIG_FILE) || (path as string).endsWith(CLIENT_SDK_CONFIG_FILE)) {
+  if (
+    (path as string).endsWith(SERVER_SDK_CONFIG_FILE) ||
+    (path as string).endsWith(CLIENT_SDK_CONFIG_FILE) ||
+    (path as string).endsWith(EDGE_SDK_CONFIG_FILE)
+  ) {
     return true;
   }
 
