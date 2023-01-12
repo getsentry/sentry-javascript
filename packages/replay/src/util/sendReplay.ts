@@ -2,7 +2,7 @@ import { captureException, setContext } from '@sentry/core';
 
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
-import { sendReplayRequest } from './sendReplayRequest';
+import { RateLimitError, sendReplayRequest } from './sendReplayRequest';
 
 /**
  * Finalize and send the current replay event to Sentry
@@ -25,6 +25,10 @@ export async function sendReplay(
     await sendReplayRequest(replayData);
     return true;
   } catch (err) {
+    if (err instanceof RateLimitError) {
+      throw err;
+    }
+
     // Capture error for every failed replay
     setContext('Replays', {
       _retryCount: retryConfig.count,

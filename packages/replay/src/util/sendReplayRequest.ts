@@ -1,6 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { RateLimits } from '@sentry/utils';
+import { isRateLimited, logger, updateRateLimits } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
@@ -106,9 +107,32 @@ export async function sendReplayRequest({
 
   const envelope = createReplayEnvelope(replayEvent, preparedRecordingData, dsn, client.getOptions().tunnel);
 
+  let response: void | TransportMakeRequestResponse;
+
   try {
-    return await transport.send(envelope);
+    response = await transport.send(envelope);
   } catch {
     throw new Error(UNABLE_TO_SEND_REPLAY);
+  }
+
+  // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+  if (response) {
+    const rateLimits = updateRateLimits({}, response);
+    if (isRateLimited(rateLimits, 'replay')) {
+      throw new RateLimitError(rateLimits);
+    }
+  }
+  return response;
+}
+
+/**
+ * This error indicates that we hit a rate limit API error.
+ */
+export class RateLimitError extends Error {
+  public rateLimits: RateLimits;
+
+  public constructor(rateLimits: RateLimits) {
+    super('Rate limit hit');
+    this.rateLimits = rateLimits;
   }
 }

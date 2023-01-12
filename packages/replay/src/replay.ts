@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import type { RateLimits } from '@sentry/utils';
+import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from './constants';
@@ -38,6 +39,7 @@ import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
+import { RateLimitError } from './util/sendReplayRequest';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -107,11 +109,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialTimestamp: new Date().getTime(),
     initialUrl: '',
   };
-
-  /**
-   * A RateLimits object holding the rate-limit durations in case a sent replay event was rate-limited.
-   */
-  private _rateLimits: RateLimits = {};
 
   public constructor({
     options,
@@ -827,6 +824,9 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp: new Date().getTime(),
       });
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        this._handleRateLimit(err.rateLimits);
+      }
       this._handleException(err);
     }
   }
@@ -889,14 +889,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Pauses the replay and resumes it after the rate-limit duration is over.
    */
-  private _handleRateLimit(): void {
+  private _handleRateLimit(rateLimits: RateLimits): void {
     // in case recording is already paused, we don't need to do anything, as we might have already paused because of a
     // rate limit
     if (this.isPaused()) {
       return;
     }
 
-    const rateLimitEnd = disabledUntil(this._rateLimits, 'replay');
+    const rateLimitEnd = disabledUntil(rateLimits, 'replay');
     const rateLimitDuration = rateLimitEnd - Date.now();
 
     if (rateLimitDuration > 0) {
