@@ -6,6 +6,7 @@ import type {
   NextConfigObject,
   NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
+  UserSentryOptions,
 } from './types';
 
 /**
@@ -13,19 +14,21 @@ import type {
  *
  * @param exportedUserNextConfig The existing config to be exported prior to adding Sentry
  * @param userSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
+ * @param sentryOptions Optional additional options to add as alternative to `sentry` property of config
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
   exportedUserNextConfig: ExportedNextConfig = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
+  sentryOptions?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
   return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    if (typeof exportedUserNextConfig === 'function') {
-      const userNextConfigObject = exportedUserNextConfig(phase, defaults);
-      return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
-    } else {
-      return getFinalConfigObject(phase, exportedUserNextConfig, userSentryWebpackPluginOptions);
-    }
+    const userNextConfigObject =
+      typeof exportedUserNextConfig === 'function' ? exportedUserNextConfig(phase, defaults) : exportedUserNextConfig;
+    // Inserts additional `sentry` options into the existing config, allows for backwards compatability
+    // in case nothing is passed into the optional `sentryOptions` argument
+    userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryOptions };
+    return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
   };
 }
 
