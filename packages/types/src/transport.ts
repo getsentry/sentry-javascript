@@ -1,6 +1,6 @@
-import { Client } from './client';
-import { Envelope } from './envelope';
-import { TextEncoderInternal } from './textencoder';
+import type { Client } from './client';
+import type { Envelope } from './envelope';
+import type { TextEncoderInternal } from './textencoder';
 
 export type TransportRequest = {
   body: string | Uint8Array;

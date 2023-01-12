@@ -18,7 +18,7 @@ import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { CLSMetric, ReportCallback } from './types';
+import type { CLSMetric, ReportCallback } from './types';
 
 /**
  * Calculates the [CLS](https://web.dev/cls/) value for the current page and

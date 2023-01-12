@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import {
+import type {
   Client,
   ClientOptions,
   DataCategory,
@@ -37,8 +37,9 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { IntegrationIndex, setupIntegration, setupIntegrations } from './integration';
-import { Scope } from './scope';
+import type { IntegrationIndex } from './integration';
+import { setupIntegration, setupIntegrations } from './integration';
+import type { Scope } from './scope';
 import { updateSession } from './session';
 import { prepareEvent } from './utils/prepareEvent';
 

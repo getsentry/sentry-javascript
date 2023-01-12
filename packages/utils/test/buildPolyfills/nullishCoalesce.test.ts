@@ -1,5 +1,5 @@
 import { _nullishCoalesce } from '../../src/buildPolyfills';
-import { Value } from '../../src/buildPolyfills/types';
+import type { Value } from '../../src/buildPolyfills/types';
 import { _nullishCoalesce as _nullishCoalesceOrig } from './originals';
 
 const dogStr = 'dogs are great!';

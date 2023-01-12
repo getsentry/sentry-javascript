@@ -18,12 +18,11 @@ import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from './coreHandlers/handleHistory';
 import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
-import { createPerformanceEntries } from './createPerformanceEntry';
 import { createEventBuffer } from './eventBuffer';
-import { deleteSession } from './session/deleteSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
+  AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
@@ -40,6 +39,7 @@ import type {
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
+import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { createRecordingData } from './util/createRecordingData';
 import { createReplayEnvelope } from './util/createReplayEnvelope';
@@ -179,10 +179,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    // Modify recording options to checkoutEveryNthSecond if
-    // sampling for error replay. This is because we don't know
-    // when an error will occur, so we need to keep a buffer of
-    // replay events.
+    // If session is sampled for errors, then we need to set the recordingMode
+    // to 'error', which will configure recording with different options.
     if (this.session.sampled === 'error') {
       this.recordingMode = 'error';
     }
@@ -212,10 +210,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     try {
       this._stopRecording = record({
         ...this._recordingOptions,
-        // When running in error sampling mode, we need to overwrite `checkoutEveryNth`
+        // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'error' && { checkoutEveryNth: 60000 }),
+        ...(this.recordingMode === 'error' && { checkoutEveryNms: 60000 }),
         emit: this.handleRecordingEmit,
       });
     } catch (err) {
@@ -287,16 +285,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (__DEBUG_BUILD__ && this._options._experiments && this._options._experiments.captureExceptions) {
       captureException(error);
-    }
-  }
-
-  /** for tests only */
-  clearSession(): void {
-    try {
-      deleteSession();
-      this.session = undefined;
-    } catch (err) {
-      this.handleException(err);
     }
   }
 
@@ -463,7 +451,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      addEvent(this, event, isCheckout);
+      void addEvent(this, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -569,7 +557,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       }
 
       this.addUpdate(() => {
-        addEvent(this, {
+        void addEvent(this, {
           type: EventType.Custom,
           // TODO: We were converting from ms to seconds for breadcrumbs, spans,
           // but maybe we should just keep them as milliseconds
@@ -687,7 +675,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      addEvent(this, {
+      void addEvent(this, {
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {
@@ -702,12 +690,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  addPerformanceEntries(): void {
+  addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    createPerformanceSpans(this, createPerformanceEntries(entries));
+    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
   }
 
   /**
@@ -806,7 +794,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     await this.addPerformanceEntries();
 
-    if (!this.eventBuffer?.length) {
+    if (!this.eventBuffer?.pendingLength) {
       return;
     }
 
@@ -906,6 +894,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     segmentId: segment_id,
     includeReplayStartTimestamp,
     eventContext,
+    timestamp = new Date().getTime(),
   }: SendReplay): Promise<void | TransportMakeRequestResponse> {
     const recordingData = createRecordingData({
       events,
@@ -915,8 +904,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     });
 
     const { urls, errorIds, traceIds, initialTimestamp } = eventContext;
-
-    const currentTimestamp = new Date().getTime();
 
     const hub = getCurrentHub();
     const client = hub.getClient();
@@ -932,7 +919,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // @ts-ignore private api
       type: REPLAY_EVENT_NAME,
       ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
-      timestamp: currentTimestamp / 1000,
+      timestamp: timestamp / 1000,
       error_ids: errorIds,
       trace_ids: traceIds,
       urls,

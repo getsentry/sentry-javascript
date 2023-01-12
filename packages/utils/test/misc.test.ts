@@ -1,4 +1,4 @@
-import { Event, Mechanism, StackFrame } from '@sentry/types';
+import type { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import {
   addContextToFrame,

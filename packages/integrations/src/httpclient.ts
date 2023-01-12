@@ -1,4 +1,4 @@
-import { Event as SentryEvent, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event as SentryEvent, EventProcessor, Hub, Integration } from '@sentry/types';
 import { addExceptionMechanism, fill, GLOBAL_OBJ, logger, supportsNativeFetch } from '@sentry/utils';
 
 export type HttpStatusCodeRange = [number, number] | number;

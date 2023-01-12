@@ -1,19 +1,16 @@
 import { BrowserClient, WINDOW } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
-import { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
+import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { BrowserTracing, BrowserTracingOptions, getMetaContent } from '../../src/browser/browsertracing';
+import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
+import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import * as hubExtensions from '../../src/hubextensions';
-import {
-  DEFAULT_FINAL_TIMEOUT,
-  DEFAULT_HEARTBEAT_INTERVAL,
-  DEFAULT_IDLE_TIMEOUT,
-  IdleTransaction,
-} from '../../src/idletransaction';
+import type { IdleTransaction } from '../../src/idletransaction';
+import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../../src/idletransaction';
 import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 

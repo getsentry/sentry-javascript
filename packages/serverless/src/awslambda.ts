@@ -1,12 +1,13 @@
 /* eslint-disable max-lines */
+import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
-import { captureException, captureMessage, flush, getCurrentHub, Scope, withScope } from '@sentry/node';
+import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, dsnFromString, dsnToString, isString, logger } from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
-import { Context, Handler } from 'aws-lambda';
+import type { Context, Handler } from 'aws-lambda';
 import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';

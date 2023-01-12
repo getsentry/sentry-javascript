@@ -1,4 +1,4 @@
-import { DataCategory } from './datacategory';
+import type { DataCategory } from './datacategory';
 
 export type EventDropReason =
   | 'before_send'

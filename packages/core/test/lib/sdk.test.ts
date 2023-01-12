@@ -1,5 +1,5 @@
 import { Scope } from '@sentry/core';
-import { Client, Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';

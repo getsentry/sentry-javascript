@@ -1,4 +1,4 @@
-import { NextConfig } from 'next';
+import type { NextConfig } from 'next';
 
 import { withSentryConfig } from '../../src/config/withSentryConfig';
 

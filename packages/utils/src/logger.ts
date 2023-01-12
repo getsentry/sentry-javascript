@@ -1,4 +1,4 @@
-import { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '@sentry/types';
 
 import { getGlobalSingleton, GLOBAL_OBJ } from './worldwide';
 

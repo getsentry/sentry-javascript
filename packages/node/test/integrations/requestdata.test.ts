@@ -1,10 +1,11 @@
 import { getCurrentHub, Hub, makeMain } from '@sentry/core';
-import { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
+import type { Event, EventProcessor, PolymorphicRequest } from '@sentry/types';
 import * as http from 'http';
 
 import { NodeClient } from '../../src/client';
 import { requestHandler } from '../../src/handlers';
-import { RequestData, RequestDataIntegrationOptions } from '../../src/integrations/requestdata';
+import type { RequestDataIntegrationOptions } from '../../src/integrations/requestdata';
+import { RequestData } from '../../src/integrations/requestdata';
 import * as requestDataModule from '../../src/requestdata';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 

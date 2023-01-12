@@ -1,5 +1,6 @@
 import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
 
+import type { Event } from '../../src';
 import {
   addBreadcrumb,
   BrowserClient,
@@ -7,7 +8,6 @@ import {
   captureException,
   captureMessage,
   configureScope,
-  Event,
   flush,
   getCurrentHub,
   init,

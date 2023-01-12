@@ -19,7 +19,7 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { FIDMetric, PerformanceEventTiming, ReportCallback } from './types';
+import type { FIDMetric, PerformanceEventTiming, ReportCallback } from './types';
 
 /**
  * Calculates the [FID](https://web.dev/fid/) value for the current page and

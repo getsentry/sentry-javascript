@@ -1,4 +1,4 @@
-import { TraceparentData } from '@sentry/types';
+import type { TraceparentData } from '@sentry/types';
 
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace

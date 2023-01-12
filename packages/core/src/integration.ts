@@ -1,4 +1,4 @@
-import { Integration, Options } from '@sentry/types';
+import type { Integration, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';

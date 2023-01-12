@@ -1,5 +1,5 @@
 import { createTransport } from '@sentry/core';
-import { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/types';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
 import * as http from 'http';
 import { TextEncoder } from 'util';

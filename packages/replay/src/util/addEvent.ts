@@ -1,18 +1,22 @@
 import { SESSION_IDLE_DURATION } from '../constants';
-import type { RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
 
 /**
  * Add an event to the event buffer
  */
-export function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheckout?: boolean): void {
+export async function addEvent(
+  replay: ReplayContainer,
+  event: RecordingEvent,
+  isCheckout?: boolean,
+): Promise<AddEventResult | null> {
   if (!replay.eventBuffer) {
     // This implies that `_isEnabled` is false
-    return;
+    return null;
   }
 
   if (replay.isPaused()) {
     // Do not add to event buffer when recording is paused
-    return;
+    return null;
   }
 
   // TODO: sadness -- we will want to normalize timestamps to be in ms -
@@ -25,7 +29,7 @@ export function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheck
   // comes back to trigger a new session. The performance entries rely on
   // `performance.timeOrigin`, which is when the page first opened.
   if (timestampInMs + SESSION_IDLE_DURATION < new Date().getTime()) {
-    return;
+    return null;
   }
 
   // Only record earliest event if a new session was created, otherwise it
@@ -35,5 +39,5 @@ export function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheck
     replay.getContext().earliestEvent = timestampInMs;
   }
 
-  replay.eventBuffer.addEvent(event, isCheckout);
+  return replay.eventBuffer.addEvent(event, isCheckout);
 }

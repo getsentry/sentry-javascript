@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import {
+import type {
   AppContext,
   Contexts,
   CultureContext,

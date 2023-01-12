@@ -1,4 +1,4 @@
-import { Primitive } from '@sentry/types';
+import type { Primitive } from '@sentry/types';
 
 export type GenericObject = { [key: string]: Value };
 export type GenericFunction = (...args: unknown[]) => Value;

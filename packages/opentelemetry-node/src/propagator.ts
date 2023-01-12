@@ -1,17 +1,10 @@
-import {
-  Context,
-  isSpanContextValid,
-  TextMapGetter,
-  TextMapPropagator,
-  TextMapSetter,
-  trace,
-  TraceFlags,
-} from '@opentelemetry/api';
-import { isTracingSuppressed } from '@opentelemetry/core';
+import type { Baggage, Context, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { isSpanContextValid, propagation, trace, TraceFlags } from '@opentelemetry/api';
+import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import {
   baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
   extractTraceparentData,
+  SENTRY_BAGGAGE_KEY_PREFIX,
 } from '@sentry/utils';
 
 import {
@@ -25,7 +18,7 @@ import { SENTRY_SPAN_PROCESSOR_MAP } from './spanprocessor';
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
  */
-export class SentryPropagator implements TextMapPropagator {
+export class SentryPropagator extends W3CBaggagePropagator {
   /**
    * @inheritDoc
    */
@@ -41,10 +34,18 @@ export class SentryPropagator implements TextMapPropagator {
 
       if (span.transaction) {
         const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
-        const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-        if (sentryBaggageHeader) {
-          setter.set(carrier, SENTRY_BAGGAGE_HEADER, sentryBaggageHeader);
-        }
+
+        const baggage = propagation.getBaggage(context) || propagation.createBaggage({});
+        const baggageWithSentryInfo = Object.entries(dynamicSamplingContext).reduce<Baggage>(
+          (b, [dscKey, dscValue]) => {
+            if (dscValue) {
+              return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });
+            }
+            return b;
+          },
+          baggage,
+        );
+        super.inject(propagation.setBaggage(context, baggageWithSentryInfo), carrier, setter);
       }
     }
   }

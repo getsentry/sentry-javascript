@@ -1,5 +1,5 @@
 import { addGlobalEventProcessor, init as browserInit, SDK_VERSION } from '@sentry/browser';
-import { EventProcessor } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 
 import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 

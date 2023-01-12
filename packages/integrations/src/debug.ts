@@ -1,4 +1,4 @@
-import { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event, EventHint, EventProcessor, Hub, Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 interface DebugOptions {

@@ -1,9 +1,9 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/tracing';
-import { Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
-import { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
 import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';

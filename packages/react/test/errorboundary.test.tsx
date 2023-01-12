@@ -3,9 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 
+import type {
+  ErrorBoundaryProps} from '../src/errorboundary';
 import {
   ErrorBoundary,
-  ErrorBoundaryProps,
   isAtLeastReact17,
   UNKNOWN_COMPONENT,
   withErrorBoundary,

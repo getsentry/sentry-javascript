@@ -1,12 +1,13 @@
-import * as OpenTelemetry from '@opentelemetry/api';
+import type * as OpenTelemetry from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
-import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { createTransport, Hub, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
-import { addExtensionMethods, Span as SentrySpan, SpanStatusType, Transaction } from '@sentry/tracing';
+import type { SpanStatusType } from '@sentry/tracing';
+import { addExtensionMethods, Span as SentrySpan, Transaction } from '@sentry/tracing';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';

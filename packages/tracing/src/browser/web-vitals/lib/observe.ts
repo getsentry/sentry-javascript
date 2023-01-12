@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry, PerformancePaintTiming } from '../types';
+import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry, PerformancePaintTiming } from '../types';
 
 export interface PerformanceEntryHandler {
   (entry: PerformanceEntry): void;

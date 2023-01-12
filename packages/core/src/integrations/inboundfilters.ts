@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 // "Script error." is hard coded into browsers for errors that it can't read.

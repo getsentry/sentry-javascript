@@ -1,4 +1,4 @@
-import { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
+import type { Event as SentryEvent, Exception, ExtendedError } from '@sentry/types';
 
 import { BrowserClient } from '../../../src/client';
 import * as LinkedErrorsModule from '../../../src/integrations/linkederrors';

@@ -1,12 +1,13 @@
 import { BrowserClient } from '@sentry/browser';
-import { getCurrentHub, Hub, Scope } from '@sentry/core';
-import { Client, ReplayEvent } from '@sentry/types';
+import type { Hub, Scope } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import type { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
 import { getDefaultBrowserClientOptions } from '../../utils/getDefaultBrowserClientOptions';
 
-describe('prepareReplayEvent', () => {
+describe('Unit | util | prepareReplayEvent', () => {
   let hub: Hub;
   let client: Client;
   let scope: Scope;

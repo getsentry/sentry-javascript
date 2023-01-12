@@ -1,9 +1,15 @@
-import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
+import { REPLAY_SESSION_KEY, WINDOW } from '../../src/constants';
+import type { ReplayContainer } from '../../src/types';
+
+export function clearSession(replay: ReplayContainer) {
+  deleteSession();
+  replay.session = undefined;
+}
 
 /**
  * Deletes a session from storage
  */
-export function deleteSession(): void {
+function deleteSession(): void {
   const hasSessionStorage = 'sessionStorage' in WINDOW;
 
   if (!hasSessionStorage) {

@@ -1,7 +1,8 @@
-import { AttributeValue, SpanKind } from '@opentelemetry/api';
-import { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
+import type { AttributeValue } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
+import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { TransactionSource } from '@sentry/types';
+import type { TransactionSource } from '@sentry/types';
 
 interface SpanDescription {
   op: string | undefined;

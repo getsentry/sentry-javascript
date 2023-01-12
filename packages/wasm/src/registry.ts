@@ -1,4 +1,4 @@
-import { DebugImage } from '@sentry/types';
+import type { DebugImage } from '@sentry/types';
 
 export const IMAGES: Array<DebugImage> = [];
 

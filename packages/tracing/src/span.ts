@@ -1,5 +1,12 @@
 /* eslint-disable max-lines */
-import { Instrumenter, Primitive, Span as SpanInterface, SpanContext, TraceContext, Transaction } from '@sentry/types';
+import type {
+  Instrumenter,
+  Primitive,
+  Span as SpanInterface,
+  SpanContext,
+  TraceContext,
+  Transaction,
+} from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
 
 /**

@@ -20,7 +20,7 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import { LCPMetric, ReportCallback } from './types';
+import type { LCPMetric, ReportCallback } from './types';
 
 const reportedMetricIDs: Record<string, boolean> = {};
 

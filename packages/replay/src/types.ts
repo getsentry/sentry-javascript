@@ -15,6 +15,7 @@ export interface SendReplay {
   segmentId: number;
   includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
+  timestamp?: number;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
@@ -47,8 +48,10 @@ export interface WorkerResponse {
   id: number;
   method: string;
   success: boolean;
-  response: ReplayRecordingData;
+  response: unknown;
 }
+
+export type AddEventResult = void;
 
 export interface SampleRates {
   /**
@@ -208,9 +211,31 @@ export interface Session {
 }
 
 export interface EventBuffer {
-  readonly length: number;
+  /**
+   * The number of raw events that are buffered
+   */
+  readonly pendingLength: number;
+
+  /**
+   * The raw events that are buffered.
+   */
+  readonly pendingEvents: RecordingEvent[];
+
+  /**
+   * Destroy the event buffer.
+   */
   destroy(): void;
-  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
+
+  /**
+   * Add an event to the event buffer.
+   *
+   * Returns true if event was successfully added.
+   */
+  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
+
+  /**
+   * Clears and returns the contents of the buffer.
+   */
   finish(): Promise<ReplayRecordingData>;
 }
 

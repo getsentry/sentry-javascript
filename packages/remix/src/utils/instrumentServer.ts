@@ -1,7 +1,8 @@
 /* eslint-disable max-lines */
-import { captureException, getCurrentHub, Hub } from '@sentry/node';
+import type { Hub } from '@sentry/node';
+import { captureException, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
-import { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
@@ -14,7 +15,7 @@ import {
 } from '@sentry/utils';
 import * as domain from 'domain';
 
-import {
+import type {
   AppData,
   CreateRequestHandlerFunction,
   DataFunction,

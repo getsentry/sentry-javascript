@@ -1,6 +1,6 @@
 import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
-import { NextPage } from 'next';
+import type { NextPage } from 'next';
 
 import { isBuild } from './utils/isBuild';
 import {

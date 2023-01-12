@@ -1,8 +1,8 @@
-import { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
-import { BrowserTransportOptions } from '../../../src/transports/types';
+import type { BrowserTransportOptions } from '../../../src/transports/types';
 import { makeXHRTransport } from '../../../src/transports/xhr';
 
 const DEFAULT_XHR_TRANSPORT_OPTIONS: BrowserTransportOptions = {

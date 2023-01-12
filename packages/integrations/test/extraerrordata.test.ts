@@ -1,4 +1,4 @@
-import { Event as SentryEvent, ExtendedError } from '@sentry/types';
+import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
 import { ExtraErrorData } from '../src/extraerrordata';
 

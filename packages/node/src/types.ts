@@ -1,6 +1,6 @@
-import { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 
-import { NodeTransportOptions } from './transports';
+import type { NodeTransportOptions } from './transports';
 
 export interface BaseNodeOptions {
   /**

@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
+import type { Event, EventProcessor, Integration, StackFrame } from '@sentry/types';
 import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';

@@ -1,4 +1,4 @@
-import { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 import { record } from 'rrweb';
 

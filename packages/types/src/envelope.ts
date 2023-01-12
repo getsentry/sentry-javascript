@@ -1,11 +1,11 @@
-import { ClientReport } from './clientreport';
-import { DsnComponents } from './dsn';
-import { Event } from './event';
-import { ReplayEvent, ReplayRecordingData } from './replay';
-import { SdkInfo } from './sdkinfo';
-import { Session, SessionAggregates } from './session';
-import { Transaction } from './transaction';
-import { UserFeedback } from './user';
+import type { ClientReport } from './clientreport';
+import type { DsnComponents } from './dsn';
+import type { Event } from './event';
+import type { ReplayEvent, ReplayRecordingData } from './replay';
+import type { SdkInfo } from './sdkinfo';
+import type { Session, SessionAggregates } from './session';
+import type { Transaction } from './transaction';
+import type { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 

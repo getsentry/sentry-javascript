@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { LoadState, Metric, ReportCallback } from './base';
+import type { LoadState, Metric, ReportCallback } from './base';
 
 /**
  * A CLS-specific version of the Metric object.

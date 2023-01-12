@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { Metric, ReportCallback } from './base';
-import { NavigationTimingPolyfillEntry } from './polyfills';
+import type { Metric, ReportCallback } from './base';
+import type { NavigationTimingPolyfillEntry } from './polyfills';
 
 /**
  * An LCP-specific version of the Metric object.

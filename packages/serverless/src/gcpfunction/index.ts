@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 
 import { GoogleCloudGrpc } from '../google-cloud-grpc';
 import { GoogleCloudHttp } from '../google-cloud-http';

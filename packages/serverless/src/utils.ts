@@ -1,4 +1,4 @@
-import { Event } from '@sentry/node';
+import type { Event } from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
 import * as domain from 'domain';
 

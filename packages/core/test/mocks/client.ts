@@ -1,4 +1,13 @@
-import { ClientOptions, Event, EventHint, Integration, Outcome, Session, Severity, SeverityLevel } from '@sentry/types';
+import type {
+  ClientOptions,
+  Event,
+  EventHint,
+  Integration,
+  Outcome,
+  Session,
+  Severity,
+  SeverityLevel,
+} from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 import { TextEncoder } from 'util';
 

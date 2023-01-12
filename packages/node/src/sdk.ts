@@ -7,7 +7,7 @@ import {
   Integrations as CoreIntegrations,
   setHubOnCarrier,
 } from '@sentry/core';
-import { SessionStatus, StackParser } from '@sentry/types';
+import type { SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
   GLOBAL_OBJ,
@@ -32,7 +32,7 @@ import {
 } from './integrations';
 import { getModule } from './module';
 import { makeNodeTransport } from './transports';
-import { NodeClientOptions, NodeOptions } from './types';
+import type { NodeClientOptions, NodeOptions } from './types';
 
 export const defaultIntegrations = [
   // Common

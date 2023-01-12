@@ -1,4 +1,4 @@
-import { QueryParams } from './request';
+import type { QueryParams } from './request';
 
 /**
  * Data extracted from an incoming request to a node server

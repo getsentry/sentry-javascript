@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import { ConsoleMessage, expect } from '@playwright/test';
+import type { ConsoleMessage } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
 

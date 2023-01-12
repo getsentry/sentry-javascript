@@ -1,5 +1,6 @@
-import { expect, Route } from '@playwright/test';
-import { SessionContext } from '@sentry/types';
+import type { Route } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { SessionContext } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';

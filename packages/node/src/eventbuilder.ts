@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import {
+import type {
   Event,
   EventHint,
   Exception,

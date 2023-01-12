@@ -1,16 +1,17 @@
 import * as SentryUtils from '@sentry/utils';
 
+import type { Replay } from '../../src';
 import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
-import { ReplayContainer } from '../../src/replay';
+import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
-import { Replay } from './../../src';
 // mock functions need to be imported first
-import { BASE_TIMESTAMP, mockRrweb, mockSdk } from './../index';
-import { useFakeTimers } from './../utils/use-fake-timers';
+import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
+import { clearSession } from '../utils/clearSession';
+import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-describe('Replay - stop', () => {
+describe('Integration | stop', () => {
   let replay: ReplayContainer;
   let integration: Replay;
   const prevLocation = WINDOW.location;
@@ -42,7 +43,7 @@ describe('Replay - stop', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
-    replay.clearSession();
+    clearSession(replay);
     replay.loadSession({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
@@ -127,17 +128,17 @@ describe('Replay - stop', () => {
 
   it('does not buffer events when stopped', async function () {
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.eventBuffer?.length).toBe(1);
+    expect(replay.eventBuffer?.pendingLength).toBe(1);
 
     // stop replays
     integration.stop();
 
-    expect(replay.eventBuffer?.length).toBe(undefined);
+    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
 
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
-    expect(replay.eventBuffer?.length).toBe(undefined);
+    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
     expect(replay).not.toHaveLastSentReplay();
   });
 

@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { TestEnv } from '../../../../utils/index';
-import { TestAPIResponse } from '../server';
+import type { TestAPIResponse } from '../server';
 
 test('should attach a `baggage` header to an outgoing request.', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);

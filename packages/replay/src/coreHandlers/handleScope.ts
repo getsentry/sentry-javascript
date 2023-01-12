@@ -1,4 +1,4 @@
-import { Breadcrumb, Scope } from '@sentry/types';
+import type { Breadcrumb, Scope } from '@sentry/types';
 
 import { createBreadcrumb } from '../util/createBreadcrumb';
 

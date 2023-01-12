@@ -1,14 +1,14 @@
-import { EventDropReason } from './clientreport';
-import { DataCategory } from './datacategory';
-import { DsnComponents } from './dsn';
-import { Event, EventHint } from './event';
-import { Integration, IntegrationClass } from './integration';
-import { ClientOptions } from './options';
-import { Scope } from './scope';
-import { SdkMetadata } from './sdkmetadata';
-import { Session, SessionAggregates } from './session';
-import { Severity, SeverityLevel } from './severity';
-import { Transport } from './transport';
+import type { EventDropReason } from './clientreport';
+import type { DataCategory } from './datacategory';
+import type { DsnComponents } from './dsn';
+import type { Event, EventHint } from './event';
+import type { Integration, IntegrationClass } from './integration';
+import type { ClientOptions } from './options';
+import type { Scope } from './scope';
+import type { SdkMetadata } from './sdkmetadata';
+import type { Session, SessionAggregates } from './session';
+import type { Severity, SeverityLevel } from './severity';
+import type { Transport } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.

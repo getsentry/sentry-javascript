@@ -1,4 +1,4 @@
-import { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
+import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
 // global reference to slice

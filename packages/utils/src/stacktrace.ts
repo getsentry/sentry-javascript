@@ -1,4 +1,4 @@
-import { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
+import type { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
 

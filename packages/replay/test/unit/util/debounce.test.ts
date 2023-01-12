@@ -1,6 +1,6 @@
 import { debounce } from '../../../src/util/debounce';
 
-describe('debounce', () => {
+describe('Unit | util | debounce', () => {
   jest.useFakeTimers();
   it('delay the execution of the passed callback function by the passed minDelay', () => {
     const callback = jest.fn();

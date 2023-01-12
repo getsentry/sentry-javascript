@@ -1,13 +1,13 @@
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { record } from 'rrweb';
 
-import { WINDOW } from './constants';
+import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
   PerformanceNavigationTiming,
   PerformancePaintTiming,
   ReplayPerformanceEntry,
-} from './types';
+} from '../types';
 
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type
@@ -18,7 +18,7 @@ const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayP
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
   navigation: createNavigationEntry,
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
-  'largest-contentful-paint': createLargestContentfulPaint,
+  ['largest-contentful-paint']: createLargestContentfulPaint,
 };
 
 /**
@@ -42,7 +42,9 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry {
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function createPaintEntry(entry: PerformancePaintTiming) {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -54,7 +56,9 @@ function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry
   };
 }
 
-function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry | null {
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function createNavigationEntry(entry: PerformanceNavigationTiming) {
   // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
   const { entryType, name, duration, domComplete, startTime, transferSize, type } = entry;
 
@@ -75,7 +79,9 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
   };
 }
 
-function createResourceEntry(entry: PerformanceResourceTiming): ReplayPerformanceEntry | null {
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function createResourceEntry(entry: PerformanceResourceTiming) {
   const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
 
   // Core SDK handles these
@@ -95,9 +101,9 @@ function createResourceEntry(entry: PerformanceResourceTiming): ReplayPerformanc
   };
 }
 
-function createLargestContentfulPaint(
-  entry: PerformanceEntry & { size: number; element: Node },
-): ReplayPerformanceEntry {
+// TODO: type definition!
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
   const { duration, entryType, startTime, size } = entry;
 
   const start = getAbsoluteTime(startTime);

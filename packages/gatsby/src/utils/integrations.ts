@@ -1,7 +1,7 @@
 import * as Tracing from '@sentry/tracing';
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 
-import { GatsbyOptions } from './types';
+import type { GatsbyOptions } from './types';
 
 type UserFnIntegrations = (integrations: Integration[]) => Integration[];
 export type UserIntegrations = Integration[] | UserFnIntegrations;

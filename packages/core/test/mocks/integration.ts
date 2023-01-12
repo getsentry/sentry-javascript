@@ -1,4 +1,4 @@
-import { Event, EventProcessor, Integration } from '@sentry/types';
+import type { Event, EventProcessor, Integration } from '@sentry/types';
 
 import { configureScope, getCurrentHub } from '../../src';
 

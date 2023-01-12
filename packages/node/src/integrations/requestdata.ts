@@ -1,10 +1,11 @@
 // TODO (v8 or v9): Whenever this becomes a default integration for `@sentry/browser`, move this to `@sentry/core`. For
 // now, we leave it in `@sentry/integrations` so that it doesn't contribute bytes to our CDN bundles.
 
-import { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Event, EventProcessor, Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction } from '@sentry/utils';
 
-import { addRequestDataToEvent, AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
+import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '../requestdata';
+import { addRequestDataToEvent } from '../requestdata';
 
 export type RequestDataIntegrationOptions = {
   /**

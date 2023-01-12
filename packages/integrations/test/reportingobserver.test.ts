@@ -1,4 +1,4 @@
-import { Hub, Integration } from '@sentry/types';
+import type { Hub, Integration } from '@sentry/types';
 
 import { ReportingObserver } from '../src/reportingobserver';
 

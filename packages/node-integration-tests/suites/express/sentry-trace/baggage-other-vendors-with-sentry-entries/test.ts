@@ -1,7 +1,7 @@
 import * as path from 'path';
 
 import { TestEnv } from '../../../../utils/index';
-import { TestAPIResponse } from '../server';
+import type { TestAPIResponse } from '../server';
 
 test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with incoming DSC', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '.')}/server.ts`);

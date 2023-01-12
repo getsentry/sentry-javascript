@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';

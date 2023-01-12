@@ -2,10 +2,9 @@
 // TODO: figure out member access types and remove the line above
 
 import { captureException } from '@sentry/core';
-import { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import type { EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from './types';
+import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest } from './types';
 import workerString from './worker/worker.js';
 
 interface CreateEventBufferParams {
@@ -46,21 +45,30 @@ class EventBufferArray implements EventBuffer {
     this._events = [];
   }
 
-  public get length(): number {
+  public get pendingLength(): number {
     return this._events.length;
+  }
+
+  /**
+   * Returns the raw events that are buffered. In `EventBufferArray`, this is the
+   * same as `this._events`.
+   */
+  public get pendingEvents(): RecordingEvent[] {
+    return this._events;
   }
 
   public destroy(): void {
     this._events = [];
   }
 
-  public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
     if (isCheckout) {
       this._events = [event];
       return;
     }
 
     this._events.push(event);
+    return;
   }
 
   public finish(): Promise<string> {
@@ -80,6 +88,13 @@ class EventBufferArray implements EventBuffer {
  * Exported only for testing.
  */
 export class EventBufferCompressionWorker implements EventBuffer {
+  /**
+   * Keeps track of the list of events since the last flush that have not been compressed.
+   * For example, page is reloaded and a flush attempt is made, but
+   * `finish()` (and thus the flush), does not complete.
+   */
+  public _pendingEvents: RecordingEvent[] = [];
+
   private _worker: null | Worker;
   private _eventBufferItemLength: number = 0;
   private _id: number = 0;
@@ -89,11 +104,19 @@ export class EventBufferCompressionWorker implements EventBuffer {
   }
 
   /**
-   * Note that this may not reflect what is actually in the event buffer. This
-   * is only a local count of the buffer size since `addEvent` is async.
+   * The number of raw events that are buffered. This may not be the same as
+   * the number of events that have been compresed in the worker because
+   * `addEvent` is async.
    */
-  public get length(): number {
+  public get pendingLength(): number {
     return this._eventBufferItemLength;
+  }
+
+  /**
+   * Returns a list of the raw recording events that are being compressed.
+   */
+  public get pendingEvents(): RecordingEvent[] {
+    return this._pendingEvents;
   }
 
   /**
@@ -107,8 +130,10 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
   /**
    * Add an event to the event buffer.
+   *
+   * Returns true if event was successfuly received and processed by worker.
    */
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<ReplayRecordingData> {
+  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
@@ -117,6 +142,11 @@ export class EventBufferCompressionWorker implements EventBuffer {
         method: 'init',
         args: [],
       });
+    }
+
+    // Don't store checkout events in `_pendingEvents` because they are too large
+    if (!isCheckout) {
+      this._pendingEvents.push(event);
     }
 
     return this._sendEventToWorker(event);
@@ -132,7 +162,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Post message to worker and wait for response before resolving promise.
    */
-  private _postMessage({ id, method, args }: WorkerRequest): Promise<WorkerResponse['response']> {
+  private _postMessage<T>({ id, method, args }: WorkerRequest): Promise<T> {
     return new Promise((resolve, reject) => {
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
       const listener = ({ data }: MessageEvent) => {
@@ -178,8 +208,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Send the event to the worker.
    */
-  private _sendEventToWorker(event: RecordingEvent): Promise<ReplayRecordingData> {
-    const promise = this._postMessage({
+  private async _sendEventToWorker(event: RecordingEvent): Promise<AddEventResult> {
+    const promise = this._postMessage<void>({
       id: this._getAndIncrementId(),
       method: 'addEvent',
       args: [event],
@@ -195,12 +225,16 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * Finish the request and return the compressed data from the worker.
    */
   private async _finishRequest(id: number): Promise<Uint8Array> {
-    const promise = this._postMessage({ id, method: 'finish', args: [] });
+    const promise = this._postMessage<Uint8Array>({ id, method: 'finish', args: [] });
 
     // XXX: See note in `get length()`
     this._eventBufferItemLength = 0;
 
-    return promise as Promise<Uint8Array>;
+    await promise;
+
+    this._pendingEvents = [];
+
+    return promise;
   }
 
   /** Get the current ID and increment it for the next call. */

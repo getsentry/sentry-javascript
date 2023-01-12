@@ -1,12 +1,12 @@
-import { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import { ErrorEvent, Event, EventHint, TransactionEvent } from './event';
-import { Instrumenter } from './instrumenter';
-import { Integration } from './integration';
-import { CaptureContext } from './scope';
-import { SdkMetadata } from './sdkmetadata';
-import { StackLineParser, StackParser } from './stacktrace';
-import { SamplingContext } from './transaction';
-import { BaseTransportOptions, Transport } from './transport';
+import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+import type { ErrorEvent, Event, EventHint, TransactionEvent } from './event';
+import type { Instrumenter } from './instrumenter';
+import type { Integration } from './integration';
+import type { CaptureContext } from './scope';
+import type { SdkMetadata } from './sdkmetadata';
+import type { StackLineParser, StackParser } from './stacktrace';
+import type { SamplingContext } from './transaction';
+import type { BaseTransportOptions, Transport } from './transport';
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**

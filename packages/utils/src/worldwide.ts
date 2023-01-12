@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 
 /** Internal global with common properties and Sentry extensions  */
 export interface InternalGlobal {

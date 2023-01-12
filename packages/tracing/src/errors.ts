@@ -1,6 +1,6 @@
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
-import { SpanStatusType } from './span';
+import type { SpanStatusType } from './span';
 import { getActiveTransaction } from './utils';
 
 /**
