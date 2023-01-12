@@ -19,6 +19,9 @@ export default makeNPMConfigVariants(
             __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
           },
         }),
+        // this renames the path under which rrweb is pulled into the build output directory
+        // from `node_modules/rrweb/...` to `ext/rrweb/...`
+        // see https://github.com/getsentry/sentry-javascript/issues/6690
         renameNodeModules('ext'),
       ],
       output: {
