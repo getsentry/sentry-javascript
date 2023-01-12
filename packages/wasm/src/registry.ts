@@ -50,7 +50,7 @@ export function registerModule(module: WebAssembly.Module, url: string): void {
       code_id: buildId,
       code_file: url,
       debug_file: debugFile ? new URL(debugFile, url).href : null,
-      debug_id: `${buildId.padEnd(32, '0').substr(0, 32)}0`,
+      debug_id: `${buildId.padEnd(32, '0').slice(0, 32)}0`,
     });
   }
 }

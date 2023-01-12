@@ -27,14 +27,14 @@ export function getModule(filename: string | undefined): string | undefined {
   let n = path.lastIndexOf('/node_modules/');
   if (n > -1) {
     // /node_modules/ is 14 chars
-    return `${path.substr(n + 14).replace(/\//g, '.')}:${file}`;
+    return `${path.slice(n + 14).replace(/\//g, '.')}:${file}`;
   }
   // Let's see if it's a part of the main module
   // To be a part of main module, it has to share the same base
   n = `${path}/`.lastIndexOf(base, 0);
 
   if (n === 0) {
-    let moduleName = path.substr(base.length).replace(/\//g, '.');
+    let moduleName = path.slice(base.length).replace(/\//g, '.');
     if (moduleName) {
       moduleName += ':';
     }
