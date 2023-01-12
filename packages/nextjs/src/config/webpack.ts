@@ -347,8 +347,9 @@ async function addSentryToEntryProperty(
  * TypeScript or JavaScript file.
  *
  * @param projectDir The root directory of the project, where the file should be located
- * @param platform Either "server" or "client", so that we know which file to look for
- * @returns The name of the relevant file. If no file is found, this method throws an error.
+ * @param platform Either "server", "client" or "edge", so that we know which file to look for
+ * @returns The name of the relevant file. If the server or client file is not found, this method throws an error. The
+ * edge file is optional, if it is not found this function will return `undefined`.
  */
 export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
