@@ -1,14 +1,14 @@
 import { captureException, setContext } from '@sentry/core';
 
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
-import type { SendReplay } from '../types';
+import type { SendReplayData } from '../types';
 import { sendReplayRequest } from './sendReplayRequest';
 
 /**
  * Finalize and send the current replay event to Sentry
  */
 export async function sendReplay(
-  replayData: SendReplay,
+  replayData: SendReplayData,
   retryConfig = {
     count: 0,
     interval: RETRY_BASE_INTERVAL,

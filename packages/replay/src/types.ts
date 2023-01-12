@@ -9,7 +9,7 @@ export type RecordedEvents = Uint8Array | string;
 
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
-export interface SendReplay {
+export interface SendReplayData {
   events: RecordedEvents;
   replayId: string;
   segmentId: number;

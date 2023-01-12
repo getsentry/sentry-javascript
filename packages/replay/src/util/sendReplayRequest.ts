@@ -3,7 +3,7 @@ import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
-import type { SendReplay } from '../types';
+import type { SendReplayData } from '../types';
 import { createRecordingData } from './createRecordingData';
 import { createReplayEnvelope } from './createReplayEnvelope';
 import { prepareReplayEvent } from './prepareReplayEvent';
@@ -20,7 +20,7 @@ export async function sendReplayRequest({
   timestamp,
   session,
   options,
-}: SendReplay): Promise<void | TransportMakeRequestResponse> {
+}: SendReplayData): Promise<void | TransportMakeRequestResponse> {
   const recordingData = createRecordingData({
     events,
     headers: {
