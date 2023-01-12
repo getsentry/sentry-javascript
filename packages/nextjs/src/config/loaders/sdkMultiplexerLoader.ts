@@ -5,7 +5,12 @@ type LoaderOptions = {
 };
 
 /**
- * TODO
+ * This loader allows us to multiplex SDKs depending on what is passed to the `importTarget` loader option.
+ * If this loader encounters a file that contains the string "__SENTRY_SDK_MULTIPLEXER__" it will replace it's entire
+ * content with an "export all"-statement that points to `importTarget`.
+ *
+ * In our case we use this to multiplex different SDKs depending on whether we're bundling browser code, server code,
+ * or edge-runtime code.
  */
 export default function sdkMultiplexerLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
   if (!userCode.includes('__SENTRY_SDK_MULTIPLEXER__')) {
