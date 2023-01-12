@@ -275,6 +275,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * not as thorough of a shutdown as `stop()`.
    */
   public pause(): void {
+    console.log('I was called');
+
+    console.trace();
+
     this._isPaused = true;
     try {
       if (this._stopRecording) {
@@ -1093,6 +1097,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Pauses the replay and resumes it after the rate-limit duration is over.
    */
   private _handleRateLimit(): void {
+    // in case recording is already paused, we don't need to do anything, as we might have already paused because of a
+    // rate limit
+    if (this.isPaused()) {
+      return;
+    }
+
     const rateLimitEnd = disabledUntil(this._rateLimits, 'replay');
     const rateLimitDuration = rateLimitEnd - Date.now();
 

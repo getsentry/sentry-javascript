@@ -259,4 +259,38 @@ describe('Integration | rate-limiting behaviour', () => {
     // events array should be empty
     expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
+
+  it("doesn't do anything, if a rate limit is hit and recording is already paused", async () => {
+    let paused = false;
+    expect(replay.session?.segmentId).toBe(0);
+    jest.spyOn(replay, 'isPaused').mockImplementation(() => {
+      return paused;
+    });
+    jest.spyOn(replay, 'pause');
+    jest.spyOn(replay, 'resume');
+    // @ts-ignore private API
+    jest.spyOn(replay, '_handleRateLimit');
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+
+    mockTransportSend.mockImplementationOnce(() => {
+      return Promise.resolve({ statusCode: 429 });
+    });
+
+    mockRecord._emitter(TEST_EVENT);
+    paused = true;
+
+    // T = base + 5
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(mockTransportSend).toHaveBeenCalledTimes(1);
+
+    expect(replay).toHaveLastSentReplay({ events: JSON.stringify([TEST_EVENT]) });
+
+    expect(replay['_handleRateLimit']).toHaveBeenCalledTimes(1);
+    expect(replay.resume).not.toHaveBeenCalled();
+    expect(replay.isPaused).toHaveBeenCalledTimes(2);
+    expect(replay.pause).not.toHaveBeenCalled();
+  });
 });
