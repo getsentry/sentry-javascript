@@ -15,7 +15,7 @@ export interface SendReplay {
   segmentId: number;
   includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
-  timestamp?: number;
+  timestamp: number;
   session: Session;
   options: ReplayPluginOptions;
 }

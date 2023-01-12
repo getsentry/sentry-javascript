@@ -332,7 +332,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
   });
 
-  it('fails to upload data on first two calls and succeeds on the third xxx', async () => {
+  it('fails to upload data on first two calls and succeeds on the third', async () => {
     expect(replay.session?.segmentId).toBe(0);
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
@@ -363,8 +363,8 @@ describe('Integration | sendReplayEvent', () => {
         error_ids: [],
         replay_id: expect.any(String),
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
-        // 20seconds = Add up all of the previous `advanceTimers()`
-        timestamp: (BASE_TIMESTAMP + 20000) / 1000 + 0.02,
+        // timestamp is set on first try, after 5s flush
+        timestamp: (BASE_TIMESTAMP + 5000) / 1000,
         trace_ids: [],
         urls: ['http://localhost/'],
       }),

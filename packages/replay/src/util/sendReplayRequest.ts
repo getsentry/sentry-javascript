@@ -17,7 +17,7 @@ export async function sendReplayRequest({
   segmentId: segment_id,
   includeReplayStartTimestamp,
   eventContext,
-  timestamp = new Date().getTime(),
+  timestamp,
   session,
   options,
 }: SendReplay): Promise<void | TransportMakeRequestResponse> {

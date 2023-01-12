@@ -8,27 +8,21 @@ import { sendReplayRequest } from './sendReplayRequest';
  * Finalize and send the current replay event to Sentry
  */
 export async function sendReplay(
-  { replayId, events, segmentId, includeReplayStartTimestamp, eventContext, session, options }: SendReplay,
+  replayData: SendReplay,
   retryConfig = {
     count: 0,
     interval: RETRY_BASE_INTERVAL,
   },
 ): Promise<unknown> {
+  const { events, options } = replayData;
+
   // short circuit if there's no events to upload (this shouldn't happen as _runFlush makes this check)
   if (!events.length) {
     return;
   }
 
   try {
-    await sendReplayRequest({
-      events,
-      replayId,
-      segmentId,
-      includeReplayStartTimestamp,
-      eventContext,
-      session,
-      options,
-    });
+    await sendReplayRequest(replayData);
     return true;
   } catch (err) {
     // Capture error for every failed replay
@@ -52,18 +46,7 @@ export async function sendReplay(
     return await new Promise((resolve, reject) => {
       setTimeout(async () => {
         try {
-          await sendReplay(
-            {
-              replayId,
-              events,
-              segmentId,
-              includeReplayStartTimestamp,
-              eventContext,
-              session,
-              options,
-            },
-            retryConfig,
-          );
+          await sendReplay(replayData, retryConfig);
           resolve(true);
         } catch (err) {
           reject(err);

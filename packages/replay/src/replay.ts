@@ -824,6 +824,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
+        timestamp: new Date().getTime(),
       });
     } catch (err) {
       this._handleException(err);
