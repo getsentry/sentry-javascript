@@ -1,4 +1,5 @@
 import type { Page, Request } from '@playwright/test';
+import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -8,7 +9,13 @@ const envelopeRequestParser = (request: Request | null): Event => {
   const envelope = request?.postData() || '';
 
   // Third row of the envelop is the event payload.
-  return envelope.split('\n').map(line => JSON.parse(line))[2];
+  return envelope.split('\n').map(line => {
+    try {
+      return JSON.parse(line);
+    } catch (error) {
+      return line;
+    }
+  })[2];
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
@@ -47,23 +54,33 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
+ * This returns the replay container (assuming it exists).
+ * Note that due to how this works with playwright, this is a POJO copy of replay.
+ * This means that we cannot access any methods on it, and also not mutate it in any way.
+ */
+export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
+  const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
+  return replayIntegration._replay;
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
  * amount of requests, and returns all the events recieved up to that point in time.
  */
-async function getMultipleRequests(
+async function getMultipleRequests<T>(
   page: Page,
   count: number,
   urlRgx: RegExp,
-  requestParser: (req: Request) => Event,
+  requestParser: (req: Request) => T,
   options?: {
     url?: string;
     timeout?: number;
   },
-): Promise<Event[]> {
-  const requests: Promise<Event[]> = new Promise((resolve, reject) => {
+): Promise<T[]> {
+  const requests: Promise<T[]> = new Promise((resolve, reject) => {
     let reqCount = count;
-    const requestData: Event[] = [];
+    const requestData: T[] = [];
     let timeoutId: NodeJS.Timeout | undefined = undefined;
 
     function requestHandler(request: Request): void {
@@ -115,7 +132,7 @@ async function getMultipleSentryEnvelopeRequests<T>(
 ): Promise<T[]> {
   // TODO: This is not currently checking the type of envelope, just casting for now.
   // We can update this to include optional type-guarding when we have types for Envelope.
-  return getMultipleRequests(page, count, envelopeUrlRegex, requestParser, options) as Promise<T[]>;
+  return getMultipleRequests<T>(page, count, envelopeUrlRegex, requestParser, options) as Promise<T[]>;
 }
 
 /**

@@ -1,14 +1,14 @@
-import type { BrowserOptions } from '@sentry/browser';
-import { init } from '@sentry/browser';
 import type { Envelope, Transport } from '@sentry/types';
 
 import type { Replay as ReplayIntegration } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';
+import type { TestClientOptions } from '../utils/TestClient';
+import { getDefaultClientOptions, init } from '../utils/TestClient';
 
 export interface MockSdkParams {
   replayOptions?: ReplayConfiguration;
-  sentryOptions?: BrowserOptions;
+  sentryOptions?: Partial<TestClientOptions>;
   autoStart?: boolean;
 }
 
@@ -64,13 +64,13 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
   });
 
   init({
+    ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',
     autoSessionTracking: false,
     sendClientReports: false,
     transport: () => new MockTransport(),
     replaysSessionSampleRate: 1.0,
     replaysOnErrorSampleRate: 0.0,
-    defaultIntegrations: false,
     ...sentryOptions,
     integrations: [replayIntegration],
   });

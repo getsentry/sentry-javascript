@@ -24,7 +24,7 @@ module.exports = {
         '@sentry-internal/sdk/no-eq-empty': 'error',
 
         // Unused variables should be removed unless they are marked with and underscore (ex. _varName).
-        '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+        '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 
         // Make sure that all ts-ignore comments are given a description.
         '@typescript-eslint/ban-ts-comment': [

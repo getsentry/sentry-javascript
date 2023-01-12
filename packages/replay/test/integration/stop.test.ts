@@ -44,7 +44,7 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay.loadSession({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {

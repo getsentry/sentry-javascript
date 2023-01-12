@@ -34,13 +34,13 @@ export class Replay implements Integration {
   /**
    * Options to pass to `rrweb.record()`
    */
-  readonly recordingOptions: RecordingOptions;
+  private readonly _recordingOptions: RecordingOptions;
 
-  readonly options: ReplayPluginOptions;
+  private readonly _options: ReplayPluginOptions;
 
   private _replay?: ReplayContainer;
 
-  constructor({
+  public constructor({
     flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
     initialFlushDelay = INITIAL_FLUSH_DELAY,
@@ -57,19 +57,19 @@ export class Replay implements Integration {
     ignoreClass = 'sentry-ignore',
     maskTextClass = 'sentry-mask',
     blockSelector = '[data-sentry-block]',
-    ...recordingOptions
+    ..._recordingOptions
   }: ReplayConfiguration = {}) {
-    this.recordingOptions = {
+    this._recordingOptions = {
       maskAllInputs,
       blockClass,
       ignoreClass,
       maskTextClass,
       maskTextSelector,
       blockSelector,
-      ...recordingOptions,
+      ..._recordingOptions,
     };
 
-    this.options = {
+    this._options = {
       flushMinDelay,
       flushMaxDelay,
       stickySession,
@@ -91,7 +91,7 @@ Instead, configure \`replaysSessionSampleRate\` directly in the SDK init options
 Sentry.init({ replaysSessionSampleRate: ${sessionSampleRate} })`,
       );
 
-      this.options.sessionSampleRate = sessionSampleRate;
+      this._options.sessionSampleRate = sessionSampleRate;
     }
 
     if (typeof errorSampleRate === 'number') {
@@ -103,22 +103,22 @@ Instead, configure \`replaysOnErrorSampleRate\` directly in the SDK init options
 Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       );
 
-      this.options.errorSampleRate = errorSampleRate;
+      this._options.errorSampleRate = errorSampleRate;
     }
 
-    if (this.options.maskAllText) {
+    if (this._options.maskAllText) {
       // `maskAllText` is a more user friendly option to configure
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
-      this.recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
+      this._recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
-    if (this.options.blockAllMedia) {
+    if (this._options.blockAllMedia) {
       // `blockAllMedia` is a more user friendly option to configure blocking
       // embedded media elements
-      this.recordingOptions.blockSelector = !this.recordingOptions.blockSelector
+      this._recordingOptions.blockSelector = !this._recordingOptions.blockSelector
         ? MEDIA_SELECTORS
-        : `${this.recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
+        : `${this._recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
     }
 
     if (this._isInitialized && isBrowser()) {
@@ -148,7 +148,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * global event processors to finish. This is no longer needed, but keeping it
    * here to avoid any future issues.
    */
-  setupOnce(): void {
+  public setupOnce(): void {
     if (!isBrowser()) {
       return;
     }
@@ -165,7 +165,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * PerformanceObserver, Recording, Sentry SDK, etc)
    */
-  start(): void {
+  public start(): void {
     if (!this._replay) {
       return;
     }
@@ -177,7 +177,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  stop(): void {
+  public stop(): void {
     if (!this._replay) {
       return;
     }
@@ -191,8 +191,8 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     this._loadReplayOptionsFromClient();
 
     this._replay = new ReplayContainer({
-      options: this.options,
-      recordingOptions: this.recordingOptions,
+      options: this._options,
+      recordingOptions: this._recordingOptions,
     });
   }
 
@@ -202,11 +202,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     const opt = client && (client.getOptions() as BrowserClientReplayOptions | undefined);
 
     if (opt && typeof opt.replaysSessionSampleRate === 'number') {
-      this.options.sessionSampleRate = opt.replaysSessionSampleRate;
+      this._options.sessionSampleRate = opt.replaysSessionSampleRate;
     }
 
     if (opt && typeof opt.replaysOnErrorSampleRate === 'number') {
-      this.options.errorSampleRate = opt.replaysOnErrorSampleRate;
+      this._options.errorSampleRate = opt.replaysOnErrorSampleRate;
     }
   }
 }

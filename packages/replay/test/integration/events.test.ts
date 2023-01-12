@@ -23,7 +23,7 @@ describe('Integration | events', () => {
   let mockTransportSend: jest.SpyInstance<any>;
   const prevLocation = WINDOW.location;
 
-  type MockSendReplayRequest = jest.MockedFunction<typeof replay.sendReplayRequest>;
+  type MockSendReplayRequest = jest.MockedFunction<ReplayContainer['_sendReplayRequest']>;
   let mockSendReplayRequest: MockSendReplayRequest;
 
   beforeAll(async () => {
@@ -40,16 +40,14 @@ describe('Integration | events', () => {
 
     mockTransportSend = jest.spyOn(getCurrentHub().getClient()!.getTransport()!, 'send');
 
-    jest.spyOn(replay, 'flush');
-    jest.spyOn(replay, 'runFlush');
-    jest.spyOn(replay, 'sendReplayRequest');
+    // @ts-ignore private API
+    mockSendReplayRequest = jest.spyOn(replay, '_sendReplayRequest');
 
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay.loadSession({ expiry: 0 });
+    replay['_loadSession']({ expiry: 0 });
     mockTransportSend.mockClear();
-    mockSendReplayRequest = replay.sendReplayRequest as MockSendReplayRequest;
     mockSendReplayRequest.mockClear();
   });
 
@@ -103,7 +101,7 @@ describe('Integration | events', () => {
 
   it('has correct timestamps when there are events earlier than initial timestamp', async function () {
     clearSession(replay);
-    replay.loadSession({ expiry: 0 });
+    replay['_loadSession']({ expiry: 0 });
     mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,

@@ -16,8 +16,8 @@ describe('Integration | sampling', () => {
       },
     });
 
-    jest.spyOn(replay, 'loadSession');
-    jest.spyOn(replay, 'addListeners');
+    // @ts-ignore private API
+    const spyAddListeners = jest.spyOn(replay, '_addListeners');
     jest.runAllTimers();
 
     expect(replay.session?.sampled).toBe(false);
@@ -28,6 +28,6 @@ describe('Integration | sampling', () => {
       }),
     );
     expect(mockRecord).not.toHaveBeenCalled();
-    expect(replay.addListeners).not.toHaveBeenCalled();
+    expect(spyAddListeners).not.toHaveBeenCalled();
   });
 });

@@ -57,9 +57,6 @@
     "@sentry/types": "7.30.0",
     "@sentry/utils": "7.30.0"
   },
-  "peerDependencies": {
-    "@sentry/browser": ">=7.24.0"
-  },
   "engines": {
     "node": ">=12"
   },

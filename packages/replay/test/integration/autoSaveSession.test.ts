@@ -35,7 +35,7 @@ describe('Integration | autoSaveSession', () => {
     // Initially called up to three times: once for start, then once for replay.updateSessionActivity & once for segmentId increase
     expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 3);
 
-    replay.updateSessionActivity();
+    replay['_updateSessionActivity']();
 
     expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 4);
 
@@ -50,7 +50,7 @@ describe('Integration | autoSaveSession', () => {
 
     addEvent(replay, event);
 
-    await replay.runFlush();
+    await replay['_runFlush']();
 
     expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 5);
   });
