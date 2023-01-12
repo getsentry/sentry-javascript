@@ -150,7 +150,9 @@ describe('Integration | rate-limiting behaviour', () => {
 
       expect(replay['_sendReplay']).toHaveBeenCalledTimes(2);
       expect(replay).toHaveLastSentReplay({
-        events: '[{"data":{"isCheckout":true},"timestamp":1580598035000,"type":2}]',
+        events: JSON.stringify([
+          { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 7, type: 2 },
+        ]),
       });
 
       // and let's also emit a new event and check that it is recorded
@@ -235,7 +237,9 @@ describe('Integration | rate-limiting behaviour', () => {
 
     expect(replay['_sendReplay']).toHaveBeenCalledTimes(2);
     expect(replay).toHaveLastSentReplay({
-      events: '[{"data":{"isCheckout":true},"timestamp":1580598065000,"type":2}]',
+      events: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 13, type: 2 },
+      ]),
     });
 
     // and let's also emit a new event and check that it is recorded
