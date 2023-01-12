@@ -20,6 +20,7 @@ import type {
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
+  EntryContext,
   HandleDocumentRequestFunction,
   ReactRouterDomPkg,
   RemixRequest,
@@ -87,7 +88,7 @@ async function extractResponseError(response: Response): Promise<unknown> {
   return responseData;
 }
 
-async function captureRemixServerException(err: Error, name: string, request: Request): Promise<void> {
+async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) && err.status < 500) {
@@ -141,7 +142,7 @@ function makeWrappedDocumentRequestFunction(
     request: Request,
     responseStatusCode: number,
     responseHeaders: Headers,
-    context: Record<symbol, unknown>,
+    context: EntryContext,
   ): Promise<Response> {
     let res: Response;
 

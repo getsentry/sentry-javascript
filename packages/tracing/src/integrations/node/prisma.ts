@@ -39,7 +39,7 @@ interface PrismaClient {
 }
 
 function isValidPrismaClient(possibleClient: unknown): possibleClient is PrismaClient {
-  return possibleClient && !!(possibleClient as PrismaClient)['$use'];
+  return !!possibleClient && !!(possibleClient as PrismaClient)['$use'];
 }
 
 /** Tracing integration for @prisma/client package */

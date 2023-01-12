@@ -208,7 +208,7 @@ export function eventFromUnknownInput(
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMError
   // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
   // https://webidl.spec.whatwg.org/#es-DOMException-specialness
-  if (isDOMError(exception as DOMError) || isDOMException(exception as DOMException)) {
+  if (isDOMError(exception) || isDOMException(exception as DOMException)) {
     const domException = exception as DOMException;
 
     if ('stack' in (exception as Error)) {

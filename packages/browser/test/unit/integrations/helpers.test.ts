@@ -157,7 +157,7 @@ describe('internal wrap()', () => {
     try {
       wrapped();
     } catch (error) {
-      expect(error.message).toBe('boom');
+      expect((error as Error).message).toBe('boom');
     }
   });
 

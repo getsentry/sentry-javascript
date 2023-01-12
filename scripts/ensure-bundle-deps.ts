@@ -129,7 +129,7 @@ function checkForBundleDeps(packagesDir: string, dependencyDirs: string[]): bool
  * Wait the given number of milliseconds before continuing.
  */
 async function sleep(ms: number): Promise<void> {
-  await new Promise(resolve =>
+  await new Promise<void>(resolve =>
     setTimeout(() => {
       resolve();
     }, ms),

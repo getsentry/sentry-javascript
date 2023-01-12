@@ -3,6 +3,7 @@ import type { ErrorHandler as AngularErrorHandler } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import { captureException } from '@sentry/browser';
+import type { Scope } from '@sentry/types';
 import { addExceptionMechanism, isString } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
@@ -98,7 +99,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
     // Capture handled exception and send it to Sentry.
     const eventId = runOutsideAngular(() =>
-      captureException(extractedError, scope => {
+      captureException(extractedError, (scope: Scope) => {
         scope.addEventProcessor(event => {
           addExceptionMechanism(event, {
             type: 'angular',

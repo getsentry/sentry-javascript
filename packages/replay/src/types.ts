@@ -33,14 +33,6 @@ declare global {
   const __SENTRY_REPLAY_VERSION__: string;
 }
 
-// PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
-// Therefore, we're exporting them here to make them available in older TS versions
-export type PerformancePaintTiming = PerformanceEntry;
-export type PerformanceNavigationTiming = PerformanceEntry & {
-  type: string;
-  transferSize: number;
-  domComplete: number;
-};
 /**
  * The response from the worker
  */

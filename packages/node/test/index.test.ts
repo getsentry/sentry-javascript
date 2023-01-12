@@ -239,7 +239,7 @@ describe('SentryNode', () => {
         try {
           throw new Error('cause');
         } catch (c) {
-          e.cause = c;
+          (e as any).cause = c;
           captureException(e);
         }
       }

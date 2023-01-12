@@ -14,6 +14,7 @@ describe('_addMeasureSpans', () => {
       name: 'measure-1',
       duration: 10,
       startTime: 12,
+      detail: undefined,
     };
 
     const timeOrigin = 100;

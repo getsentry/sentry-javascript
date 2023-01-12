@@ -113,7 +113,7 @@ describe('CaptureConsole setup', () => {
 
   it('setup should fail gracefully when console is not available', () => {
     const consoleRef = global.console;
-    // remove console
+    // @ts-ignore remove console
     delete global.console;
 
     expect(() => {

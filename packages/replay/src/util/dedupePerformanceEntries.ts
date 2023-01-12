@@ -1,5 +1,3 @@
-import type { PerformanceNavigationTiming, PerformancePaintTiming } from '../types';
-
 const NAVIGATION_ENTRY_KEYS: Array<keyof PerformanceNavigationTiming> = [
   'name',
   'type',
