@@ -1,11 +1,10 @@
-import { BrowserClient } from '@sentry/browser';
 import type { Hub, Scope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import type { Client, ReplayEvent } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { prepareReplayEvent } from '../../../src/util/prepareReplayEvent';
-import { getDefaultBrowserClientOptions } from '../../utils/getDefaultBrowserClientOptions';
+import { getDefaultClientOptions, TestClient } from '../../utils/TestClient';
 
 describe('Unit | util | prepareReplayEvent', () => {
   let hub: Hub;
@@ -14,7 +13,7 @@ describe('Unit | util | prepareReplayEvent', () => {
 
   beforeEach(() => {
     hub = getCurrentHub();
-    client = new BrowserClient(getDefaultBrowserClientOptions());
+    client = new TestClient(getDefaultClientOptions());
     hub.bindClient(client);
 
     client = hub.getClient()!;
@@ -53,7 +52,7 @@ describe('Unit | util | prepareReplayEvent', () => {
       event_id: 'replay-ID',
       environment: 'production',
       sdk: {
-        name: 'sentry.javascript.browser',
+        name: 'sentry.javascript.unknown',
         version: 'version:Test',
       },
       sdkProcessingMetadata: {},

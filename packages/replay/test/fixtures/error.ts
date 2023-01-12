@@ -1,4 +1,3 @@
-import type { SeverityLevel } from '@sentry/browser';
 import type { Event } from '@sentry/types';
 
 export function Error(obj?: Event): any {
@@ -31,7 +30,7 @@ export function Error(obj?: Event): any {
         },
       ],
     },
-    level: 'error' as SeverityLevel,
+    level: 'error',
     event_id: 'event_id',
     platform: 'javascript',
     timestamp,
