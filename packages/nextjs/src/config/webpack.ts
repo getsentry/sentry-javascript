@@ -361,6 +361,10 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
 
   // Edge config file is optional
   if (platform === 'edge') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You are using Next.js features that run on the Edge Runtime. Please add a "sentry.edge.config.js" or a "sentry.edge.config.ts" file to your project root in which you initialize the Sentry SDK with "Sentry.init()".',
+    );
     return;
   } else {
     throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
