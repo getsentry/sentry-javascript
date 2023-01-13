@@ -1,9 +1,13 @@
 /* eslint-disable max-lines */
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
+import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as glob from 'glob';
 import * as path from 'path';
+
+// Load environment variables from .env file locally
+dotenv.config();
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 
@@ -51,6 +55,7 @@ if (missingEnvVar) {
 
 const envVarsToInject = {
   REACT_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
+  NEXT_PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
 };
 
 // https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#grouping-log-lines

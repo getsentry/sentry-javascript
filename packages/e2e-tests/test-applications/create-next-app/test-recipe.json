@@ -1,0 +1,15 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "create-next-app",
+  "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
+  "tests": [
+    {
+      "testName": "Playwright tests - Build Mode",
+      "testCommand": "yarn test"
+    },
+    {
+      "testName": "Playwright tests - Dev Mode",
+      "testCommand": "yarn test:dev"
+    }
+  ]
+}
