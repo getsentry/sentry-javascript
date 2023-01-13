@@ -679,7 +679,9 @@ jobs:
           yarn test:package
 
   job_node_integration_tests:
-    name: Node (${{ matrix.node }}) Integration Tests
+    name:
+      Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
+      Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -688,6 +690,12 @@ jobs:
       fail-fast: false
       matrix:
         node: [10, 12, 14, 16, 18]
+        typescript:
+          - false
+        include:
+          # Only check typescript for latest version (to streamline CI)
+          - node: 18
+            typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -702,6 +710,11 @@ jobs:
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Overwrite typescript version
+        if: matrix.typescript
+        run: yarn add --dev --ignore-workspace-root-check typescript@${{ matrix.typescript }}
+
       - name: Check build cache
         uses: actions/cache@v3
         with:
