@@ -1,8 +1,8 @@
-/**
+/*
  * This file is a template for the code which will be substituted when our webpack loader handles non-API files in the
  * `pages/` directory.
  *
- * We use `__RESOURCE_PATH__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
+ * We use `__SENTRY_WRAPPING_TARGET__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
