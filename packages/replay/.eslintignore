@@ -3,3 +3,4 @@ build/
 demo/build/
 # TODO: Check if we can re-introduce linting in demo
 demo
+src/types/

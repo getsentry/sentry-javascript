@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
 type blockClass = string | RegExp;
 type maskTextClass = string | RegExp;
 
