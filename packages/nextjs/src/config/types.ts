@@ -164,7 +164,7 @@ export type EntryPointObject = { import: string | Array<string> };
  */
 
 export type WebpackModuleRule = {
-  test?: string | RegExp;
+  test?: string | RegExp | ((resourcePath: string) => boolean);
   include?: Array<string | RegExp> | RegExp;
   exclude?: (filepath: string) => boolean;
   use?: ModuleRuleUseProperty | Array<ModuleRuleUseProperty>;

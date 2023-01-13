@@ -14,7 +14,11 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/templates/pageWrapperTemplate.ts', 'src/config/templates/apiWrapperTemplate.ts'],
+      entrypoints: [
+        'src/config/templates/pageWrapperTemplate.ts',
+        'src/config/templates/apiWrapperTemplate.ts',
+        'src/config/templates/middlewareWrapperTemplate.ts',
+      ],
 
       packageSpecificConfig: {
         output: {

@@ -99,23 +99,61 @@ export function constructWebpackConfigFunction(
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
-        const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
+        let pagesDirPath: string;
+        if (
+          fs.existsSync(path.join(projectDir, 'pages')) &&
+          fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()
+        ) {
+          pagesDirPath = path.join(projectDir, 'pages');
+        } else {
+          pagesDirPath = path.join(projectDir, 'src', 'pages');
+        }
+
+        const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
+        const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
 
         // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
         const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+        const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
         const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
         // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
         newConfig.module.rules.unshift({
-          test: new RegExp(`^${escapeStringForRegex(pagesDir)}.*\\.(${pageExtensionRegex})$`),
+          test: resourcePath => {
+            // We generally want to apply the loader to all API routes, pages and to the middleware file.
+
+            // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
+            let absoluteResourcePath: string;
+            if (path.isAbsolute(resourcePath)) {
+              absoluteResourcePath = resourcePath;
+            } else {
+              absoluteResourcePath = path.join(projectDir, resourcePath);
+            }
+            const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+
+            if (
+              // Match everything inside pages/ with the appropriate file extension
+              normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
+              dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+            ) {
+              return true;
+            } else if (
+              // Match middleware.js and middleware.ts
+              normalizedAbsoluteResourcePath === middlewareJsPath ||
+              normalizedAbsoluteResourcePath === middlewareTsPath
+            ) {
+              return true;
+            } else {
+              return false;
+            }
+          },
           use: [
             {
               loader: path.resolve(__dirname, 'loaders/wrappingLoader.js'),
               options: {
-                pagesDir,
+                pagesDir: pagesDirPath,
                 pageExtensionRegex,
                 excludeServerRoutes: userSentryOptions.excludeServerRoutes,
-                isEdgeRuntime: buildContext.nextRuntime === 'edge',
               },
             },
           ],
