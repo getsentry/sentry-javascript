@@ -147,7 +147,20 @@ export class MetricsCollector {
       });
     } finally {
       console.log('Disposing of browser and resources');
-      disposeCallbacks.reverse().forEach((cb) => cb().catch(() => { /* silent */ }));
+      disposeCallbacks.reverse();
+      const errors = [];
+      for (const cb of disposeCallbacks) {
+        try {
+          await cb();
+        } catch (e) {
+          errors.push(e instanceof Error ? `${e.name}: ${e.message}` : `${e}`);
+        }
+      }
+      if (errors.length > 0) {
+        console.warn(`All disposose callbacks have finished. Errors: ${errors}`);
+      } else {
+        console.warn(`All disposose callbacks have finished.`);
+      }
     }
   }
 }
