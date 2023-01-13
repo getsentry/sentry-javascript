@@ -5,6 +5,30 @@ import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
 
 jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
 
+// @ts-ignore Request does not exist on type Global
+const origRequest = global.Request;
+// @ts-ignore Response does not exist on type Global
+const origResponse = global.Response;
+
+// @ts-ignore Request does not exist on type Global
+global.Request = class Request {
+  headers = {
+    get() {
+      return null;
+    },
+  };
+};
+
+// @ts-ignore Response does not exist on type Global
+global.Response = class Request {};
+
+afterAll(() => {
+  // @ts-ignore Request does not exist on type Global
+  global.Request = origRequest;
+  // @ts-ignore Response does not exist on type Global
+  global.Response = origResponse;
+});
+
 describe('withEdgeWrapping', () => {
   it('should return a function that calls the passed function', async () => {
     const origFunctionReturnValue = new Response();
