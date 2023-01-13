@@ -22,6 +22,7 @@ export type ExportedNextConfig = NextConfigObjectWithSentry | NextConfigFunction
 export type NextConfigObjectWithSentry = NextConfigObject & {
   sentry?: UserSentryOptions;
 };
+
 export type NextConfigFunctionWithSentry = (
   phase: string,
   defaults: { defaultConfig: NextConfigObject },
@@ -60,39 +61,62 @@ export type NextConfigObject = {
 };
 
 export type UserSentryOptions = {
-  // Override the SDK's default decision about whether or not to enable to the webpack plugin. Note that `false` forces
-  // the plugin to be enabled, even in situations where it's not recommended.
+  /**
+   * Override the SDK's default decision about whether or not to enable to the Sentry webpack plugin for server files.
+   * Note that `false` forces the plugin to be enabled, even in situations where it's not recommended.
+   */
   disableServerWebpackPlugin?: boolean;
+
+  /**
+   * Override the SDK's default decision about whether or not to enable to the Sentry webpack plugin for client files.
+   * Note that `false` forces the plugin to be enabled, even in situations where it's not recommended.
+   */
   disableClientWebpackPlugin?: boolean;
 
-  // Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
-  // JS files
+  /**
+   * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
+   * JS files.
+   */
   hideSourceMaps?: boolean;
 
-  // Force webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when targeting
-  // older browsers which don't support ES6 (or ES6+ features like object spread).
+  /**
+   * Instructs webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when
+   * targeting older browsers which don't support ES6 (or ES6+ features like object spread).
+   */
   transpileClientSDK?: boolean;
 
-  // Upload files from `<distDir>/static/chunks` rather than `<distDir>/static/chunks/pages`. Usually files outside of
-  // `pages/` only contain third-party code, but in cases where they contain user code, restricting the webpack
-  // plugin's upload breaks sourcemaps for those user-code-containing files, because it keeps them from being
-  // uploaded. At the same time, we don't want to widen the scope if we don't have to, because we're guaranteed to end
-  // up uploading too many files, which is why this defaults to `false`.
+  /**
+   * Instructs the Sentry webpack plugin to upload source files from `<distDir>/static/chunks` rather than
+   * `<distDir>/static/chunks/pages`. Usually files outside of `pages/` only contain third-party code, but in cases
+   * where they contain user code, restricting the webpack plugin's upload breaks sourcemaps for those
+   * user-code-containing files, because it keeps them from being uploaded. Defaults to `false`.
+   */
+  // We don't want to widen the scope if we don't have to, because we're guaranteed to end up uploading too many files,
+  // which is why this defaults to`false`.
   widenClientFileUpload?: boolean;
 
-  // Automatically instrument Next.js data fetching methods and Next.js API routes
+  /**
+   * Automatically instrument Next.js data fetching methods and Next.js API routes with error and performance monitoring.
+   * Defaults to `true`.
+   */
   autoInstrumentServerFunctions?: boolean;
 
-  // Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
-  // strings or regular expressions.
-  //
-  // NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
-  // (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
-  // exact match.
+  /**
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
+   * strings or regular expressions.
+   *
+   * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
+   * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
+   * exact match.
+   */
   excludeServerRoutes?: Array<RegExp | string>;
 
-  // Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events from being sent.
-  // This option should be a path (for example: '/error-monitoring').
+  /**
+   * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
+   * from being sent. This option should be a path (for example: '/error-monitoring').
+   *
+   * NOTE: This feature only works with Next.js 11+
+   */
   tunnelRoute?: string;
 };
 
