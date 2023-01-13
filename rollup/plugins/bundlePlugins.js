@@ -107,6 +107,8 @@ export function makeTerserPlugin() {
           '_driver',
           '_initStorage',
           '_support',
+          // We want to keept he _replay variable unmangled to enable integration tests to access it
+          '_replay',
         ],
       },
     },

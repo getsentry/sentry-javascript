@@ -6,8 +6,8 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
-  // Currently bundle tests are not supported for replay
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+  // Replay bundles are es6 only
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
   }
 
