@@ -751,7 +751,7 @@ jobs:
           yarn test:integration:ci
 
   job_e2e_tests:
-    name: E2E Tests
+    name: E2E${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Tests
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
     if:
@@ -760,6 +760,13 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        typescript:
+          - false
+          - '3.8'
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -772,6 +779,11 @@ jobs:
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Overwrite typescript version
+        if: matrix.typescript
+        run: yarn add --dev --ignore-workspace-root-check typescript@${{ matrix.typescript }}
+
       - name: Check build cache
         uses: actions/cache@v3
         with:
