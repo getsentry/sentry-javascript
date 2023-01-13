@@ -9,6 +9,7 @@
     "lib": ["dom", "es2017"],
     "module": "esnext",
     "moduleResolution": "node",
+    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -16,7 +17,6 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "esnext",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
