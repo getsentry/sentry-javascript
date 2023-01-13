@@ -142,7 +142,7 @@ export function constructWebpackConfigFunction(
               normalizedAbsoluteResourcePath === middlewareJsPath ||
               normalizedAbsoluteResourcePath === middlewareTsPath
             ) {
-              return true;
+              return userSentryOptions.autoInstrumentMiddleware ?? true;
             } else {
               return false;
             }

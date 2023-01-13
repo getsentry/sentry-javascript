@@ -102,6 +102,11 @@ export type UserSentryOptions = {
   autoInstrumentServerFunctions?: boolean;
 
   /**
+   * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
+   */
+  autoInstrumentMiddleware?: boolean;
+
+  /**
    * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
    * strings or regular expressions.
    *
