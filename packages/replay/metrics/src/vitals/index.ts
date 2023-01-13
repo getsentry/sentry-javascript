@@ -7,7 +7,7 @@ import { LCP } from './lcp.js';
 export { WebVitals, WebVitalsCollector };
 
 class WebVitals {
-  constructor(public lcp: number, public cls: number, public fid: number) { }
+  constructor(public lcp: number | undefined, public cls: number | undefined, public fid: number | undefined) { }
 
   public static fromJSON(data: Partial<WebVitals>): WebVitals {
     return new WebVitals(data.lcp as number, data.cls as number, data.fid as number);

@@ -34,7 +34,7 @@ class CLS {
     }`);
   }
 
-  public async collect(): Promise<number> {
+  public async collect(): Promise<number | undefined> {
     const result = await this._page.evaluate('window.cumulativeLayoutShiftScore');
     return result as number;
   }

@@ -2,7 +2,7 @@ import * as ss from 'simple-statistics'
 
 import { Metrics } from '../collector';
 
-export type NumberProvider = (metrics: Metrics) => number;
+export type NumberProvider = (metrics: Metrics) => number | undefined;
 export type AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => number | undefined;
 
 export class MetricsStats {
@@ -13,18 +13,22 @@ export class MetricsStats {
   static memoryMax: NumberProvider = metrics => ss.max(Array.from(metrics.memory.snapshots.values()));
 
   static mean: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
-    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
+    const numbers = MetricsStats._filteredValues(MetricsStats._collect(items, dataProvider));
     return numbers.length > 0 ? ss.mean(numbers) : undefined;
   }
 
   static max: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
-    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
+    const numbers = MetricsStats._filteredValues(MetricsStats._collect(items, dataProvider));
     return numbers.length > 0 ? ss.max(numbers) : undefined;
   }
 
   static stddev: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
-    const numbers = MetricsStats._filteredValues(items.map(dataProvider));
+    const numbers = MetricsStats._filteredValues(MetricsStats._collect(items, dataProvider));
     return numbers.length > 0 ? ss.standardDeviation(numbers) : undefined;
+  }
+
+  private static _collect(items: Metrics[], dataProvider: NumberProvider): number[] {
+    return items.map(dataProvider).filter(v => v != undefined && !Number.isNaN(v)) as number[];
   }
 
   // See https://en.wikipedia.org/wiki/Interquartile_range#Outliers for details on filtering.

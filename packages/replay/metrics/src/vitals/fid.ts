@@ -28,7 +28,7 @@ class FID {
     }`);
   }
 
-  public async collect(): Promise<number> {
+  public async collect(): Promise<number | undefined> {
     const result = await this._page.evaluate('window.firstInputDelay');
     return result as number;
   }
