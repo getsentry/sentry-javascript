@@ -1,15 +1,13 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
-import type { RecordedEvents } from '../types';
-
 /**
- * Create the recording data ready to be sent.
+ * Prepare the recording data ready to be sent.
  */
-export function createRecordingData({
-  events,
+export function prepareRecordingData({
+  recordingData,
   headers,
 }: {
-  events: RecordedEvents;
+  recordingData: ReplayRecordingData;
   headers: Record<string, unknown>;
 }): ReplayRecordingData {
   let payloadWithSequence;
@@ -18,16 +16,16 @@ export function createRecordingData({
   const replayHeaders = `${JSON.stringify(headers)}
 `;
 
-  if (typeof events === 'string') {
-    payloadWithSequence = `${replayHeaders}${events}`;
+  if (typeof recordingData === 'string') {
+    payloadWithSequence = `${replayHeaders}${recordingData}`;
   } else {
     const enc = new TextEncoder();
     // XXX: newline is needed to separate sequence id from events
     const sequence = enc.encode(replayHeaders);
     // Merge the two Uint8Arrays
-    payloadWithSequence = new Uint8Array(sequence.length + events.length);
+    payloadWithSequence = new Uint8Array(sequence.length + recordingData.length);
     payloadWithSequence.set(sequence);
-    payloadWithSequence.set(events, sequence.length);
+    payloadWithSequence.set(recordingData, sequence.length);
   }
 
   return payloadWithSequence;

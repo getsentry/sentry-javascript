@@ -149,7 +149,7 @@ describe('Integration | session', () => {
     const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
 
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
@@ -309,7 +309,7 @@ describe('Integration | session', () => {
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
@@ -420,7 +420,7 @@ describe('Integration | session', () => {
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,

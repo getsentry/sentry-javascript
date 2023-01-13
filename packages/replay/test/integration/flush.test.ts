@@ -6,6 +6,7 @@ import type { EventBuffer } from '../../src/types';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
@@ -17,7 +18,7 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockSendReplay = jest.MockedFunction<ReplayContainer['_sendReplay']>;
+type MockSendReplay = jest.MockedFunction<any>;
 type MockAddPerformanceEntries = jest.MockedFunction<ReplayContainer['_addPerformanceEntries']>;
 type MockAddMemoryEntry = jest.SpyInstance;
 type MockEventBufferFinish = jest.MockedFunction<EventBuffer['finish']>;
@@ -48,8 +49,7 @@ describe('Integration | flush', () => {
 
     ({ replay } = await mockSdk());
 
-    // @ts-ignore private API
-    mockSendReplay = jest.spyOn(replay, '_sendReplay');
+    mockSendReplay = jest.spyOn(SendReplay, 'sendReplay');
     mockSendReplay.mockImplementation(
       jest.fn(async () => {
         return;
@@ -175,12 +175,16 @@ describe('Integration | flush', () => {
     // debouncedFlush, which will call `flush` in 1 second
     expect(mockFlush).toHaveBeenCalledTimes(4);
     // sendReplay is called with replayId, events, segment
+
     expect(mockSendReplay).toHaveBeenLastCalledWith({
-      events: expect.any(String),
+      recordingData: expect.any(String),
       replayId: expect.any(String),
       includeReplayStartTimestamp: true,
       segmentId: 0,
       eventContext: expect.anything(),
+      session: expect.any(Object),
+      options: expect.any(Object),
+      timestamp: expect.any(Number),
     });
 
     // Add this to test that segment ID increases
@@ -223,11 +227,14 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(5);
     expect(mockRunFlush).toHaveBeenCalledTimes(2);
     expect(mockSendReplay).toHaveBeenLastCalledWith({
-      events: expect.any(String),
+      recordingData: expect.any(String),
       replayId: expect.any(String),
       includeReplayStartTimestamp: false,
       segmentId: 1,
       eventContext: expect.anything(),
+      session: expect.any(Object),
+      options: expect.any(Object),
+      timestamp: expect.any(Number),
     });
 
     // Make sure there's no other calls

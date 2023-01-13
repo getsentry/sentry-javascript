@@ -110,7 +110,7 @@ describe('Integration | stop', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).toHaveLastSentReplay({
-      events: JSON.stringify([
+      recordingData: JSON.stringify([
         // This event happens when we call `replay.start`
         {
           data: { isCheckout: true },

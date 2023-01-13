@@ -5,17 +5,17 @@ import type { eventWithTime, recordOptions } from './types/rrweb';
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
 
-export type RecordedEvents = Uint8Array | string;
-
 export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
-export interface SendReplay {
-  events: RecordedEvents;
+export interface SendReplayData {
+  recordingData: ReplayRecordingData;
   replayId: string;
   segmentId: number;
   includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
-  timestamp?: number;
+  timestamp: number;
+  session: Session;
+  options: ReplayPluginOptions;
 }
 
 export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';

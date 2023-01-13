@@ -33,3 +33,6 @@ export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style), body *:not(script)';
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
 export const DEFAULT_FLUSH_MAX_DELAY = 15_000;
 export const INITIAL_FLUSH_DELAY = 5_000;
+
+export const RETRY_BASE_INTERVAL = 5000;
+export const RETRY_MAX_COUNT = 3;

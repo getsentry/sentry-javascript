@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
-import type { ReplayRecordingData,Transport } from '@sentry/types';
+import type { ReplayRecordingData, Transport } from '@sentry/types';
 
 import type { ReplayContainer, Session } from './src/types';
 
@@ -34,7 +34,7 @@ type SentReplayExpected = {
   replayEventPayload?: ReplayEventPayload;
   recordingHeader?: RecordingHeader;
   recordingPayloadHeader?: RecordingPayloadHeader;
-  events?: ReplayRecordingData;
+  recordingData?: ReplayRecordingData;
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -79,7 +79,7 @@ function checkCallForSentReplay(
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
   // @ts-ignore recordingPayload is always a string in our tests
-  const [recordingPayloadHeader, events] = recordingPayload?.split('\n') || [];
+  const [recordingPayloadHeader, recordingData] = recordingPayload?.split('\n') || [];
 
   const actualObj: Required<SentReplayExpected> = {
     // @ts-ignore Custom envelope
@@ -91,7 +91,7 @@ function checkCallForSentReplay(
     // @ts-ignore Custom envelope
     recordingHeader: recordingHeader,
     recordingPayloadHeader: recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
-    events,
+    recordingData,
   };
 
   const isObjectContaining = expected && 'sample' in expected && 'inverse' in expected;
