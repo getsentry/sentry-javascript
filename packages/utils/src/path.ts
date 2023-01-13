@@ -95,8 +95,8 @@ function trim(arr: string[]): string[] {
 /** JSDoc */
 export function relative(from: string, to: string): string {
   /* eslint-disable no-param-reassign */
-  from = resolve(from).substr(1);
-  to = resolve(to).substr(1);
+  from = resolve(from).slice(1);
+  to = resolve(to).slice(1);
   /* eslint-enable no-param-reassign */
 
   const fromParts = trim(from.split('/'));
@@ -126,7 +126,7 @@ export function relative(from: string, to: string): string {
 /** JSDoc */
 export function normalizePath(path: string): string {
   const isPathAbsolute = isAbsolute(path);
-  const trailingSlash = path.substr(-1) === '/';
+  const trailingSlash = path.slice(-1) === '/';
 
   // Normalize the path
   let normalizedPath = normalizeArray(
@@ -169,7 +169,7 @@ export function dirname(path: string): string {
 
   if (dir) {
     // It has a dirname, strip trailing slash
-    dir = dir.substr(0, dir.length - 1);
+    dir = dir.slice(0, dir.length - 1);
   }
 
   return root + dir;
@@ -178,8 +178,8 @@ export function dirname(path: string): string {
 /** JSDoc */
 export function basename(path: string, ext?: string): string {
   let f = splitPath(path)[2];
-  if (ext && f.substr(ext.length * -1) === ext) {
-    f = f.substr(0, f.length - ext.length);
+  if (ext && f.slice(ext.length * -1) === ext) {
+    f = f.slice(0, f.length - ext.length);
   }
   return f;
 }

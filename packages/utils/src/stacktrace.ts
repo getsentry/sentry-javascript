@@ -142,12 +142,12 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
       }
 
       if (methodStart > 0) {
-        object = functionName.substr(0, methodStart);
-        method = functionName.substr(methodStart + 1);
+        object = functionName.slice(0, methodStart);
+        method = functionName.slice(methodStart + 1);
         const objectEnd = object.indexOf('.Module');
         if (objectEnd > 0) {
-          functionName = functionName.substr(objectEnd + 1);
-          object = object.substr(0, objectEnd);
+          functionName = functionName.slice(objectEnd + 1);
+          object = object.slice(0, objectEnd);
         }
       }
       typeName = undefined;
@@ -168,7 +168,7 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
       functionName = typeName ? `${typeName}.${methodName}` : methodName;
     }
 
-    const filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].substr(7) : lineMatch[2];
+    const filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
     const isNative = lineMatch[5] === 'native';
     const isInternal =
       isNative || (filename && !filename.startsWith('/') && !filename.startsWith('.') && filename.indexOf(':\\') !== 1);
