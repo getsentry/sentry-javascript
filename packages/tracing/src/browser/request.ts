@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { getCurrentHub } from '@sentry/core';
 import type { DynamicSamplingContext, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -8,7 +9,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { getActiveTransaction, hasTracingEnabled } from '../utils';
+import { hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 
@@ -186,9 +187,12 @@ export function fetchCallback(
     return;
   }
 
-  const activeTransaction = getActiveTransaction();
-  if (activeTransaction) {
-    const span = activeTransaction.startChild({
+  const currentScope = getCurrentHub().getScope();
+  const currentSpan = currentScope ? currentScope.getSpan() : undefined;
+  const activeTransaction = currentSpan ? currentSpan.transaction : undefined;
+
+  if (currentSpan && activeTransaction) {
+    const span = currentSpan.startChild({
       data: {
         ...handlerData.fetchData,
         type: 'fetch',
@@ -320,10 +324,12 @@ export function xhrCallback(
     return;
   }
 
-  // if not, create a new span to track it
-  const activeTransaction = getActiveTransaction();
-  if (activeTransaction) {
-    const span = activeTransaction.startChild({
+  const currentScope = getCurrentHub().getScope();
+  const currentSpan = currentScope ? currentScope.getSpan() : undefined;
+  const activeTransaction = currentSpan ? currentSpan.transaction : undefined;
+
+  if (currentSpan && activeTransaction) {
+    const span = currentSpan.startChild({
       data: {
         ...xhr.data,
         type: 'xhr',
