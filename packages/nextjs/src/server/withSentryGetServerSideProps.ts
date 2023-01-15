@@ -37,18 +37,25 @@ export function withSentryGetServerSideProps(
         dataFetchingMethodName: 'getServerSideProps',
       });
 
-      const serverSideProps = await (tracedGetServerSideProps.apply(this, args) as ReturnType<
-        typeof tracedGetServerSideProps
-      >);
+      const {
+        dataFetcherResult: serverSidePropsPromise,
+        pageloadSpanId,
+        pageloadTraceId,
+        pageloadTransactionSampled,
+      } = await (tracedGetServerSideProps.apply(this, args) as ReturnType<typeof tracedGetServerSideProps>);
+
+      const serverSideProps = await serverSidePropsPromise;
 
       if ('props' in serverSideProps) {
         const requestTransaction = getTransactionFromRequest(req);
         if (requestTransaction) {
-          serverSideProps.props._sentryTraceData = requestTransaction.toTraceparent();
-
           const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
-          serverSideProps.props._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          serverSideProps.props._sentryPageloadBaggage =
+            dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }
+        serverSideProps.props._sentryPageloadSpanId = pageloadSpanId;
+        serverSideProps.props._sentryPageloadTraceId = pageloadTraceId;
+        serverSideProps.props._sentryPageloadTraceSampled = pageloadTransactionSampled;
       }
 
       return serverSideProps;

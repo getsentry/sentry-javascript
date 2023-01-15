@@ -40,18 +40,20 @@ export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInit
         dataFetchingMethodName: 'getInitialProps',
       });
 
-      const initialProps: {
-        _sentryTraceData?: string;
-        _sentryBaggage?: string;
-      } = await tracedGetInitialProps.apply(this, args);
+      const { dataFetcherResult, pageloadSpanId, pageloadTraceId, pageloadTransactionSampled } =
+        await (tracedGetInitialProps.apply(this, args) as ReturnType<typeof tracedGetInitialProps>);
+
+      const initialProps: Record<string, unknown> = await dataFetcherResult;
 
       const requestTransaction = getTransactionFromRequest(req);
       if (requestTransaction) {
-        initialProps._sentryTraceData = requestTransaction.toTraceparent();
-
         const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
-        initialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+        initialProps._sentryPageloadBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }
+
+      initialProps._sentryPageloadSpanId = pageloadSpanId;
+      initialProps._sentryPageloadTraceId = pageloadTraceId;
+      initialProps._sentryPageloadTraceSampled = pageloadTransactionSampled;
 
       return initialProps;
     } else {

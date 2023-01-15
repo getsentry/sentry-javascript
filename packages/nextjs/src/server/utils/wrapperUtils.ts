@@ -1,7 +1,7 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
 import { getActiveTransaction } from '@sentry/tracing';
-import type { Transaction } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
+import type { Span, Transaction } from '@sentry/types';
+import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, uuid4 } from '@sentry/utils';
 import * as domain from 'domain';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -11,6 +11,8 @@ import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';
 declare module 'http' {
   interface IncomingMessage {
     _sentryTransaction?: Transaction;
+    _sentryPageloadSpanId?: string;
+    _sentryTraceId?: string;
   }
 }
 
@@ -27,6 +29,21 @@ export function getTransactionFromRequest(req: IncomingMessage): Transaction | u
 
 function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage): void {
   req._sentryTransaction = transaction;
+}
+
+function setPageloadSpanDataOnRequestIfNotExists(
+  req: IncomingMessage,
+  data: { pageloadSpanId: string; traceId: string },
+): void {
+  req._sentryPageloadSpanId = req._sentryPageloadSpanId ?? data.pageloadSpanId;
+  req._sentryTraceId = req._sentryTraceId ?? data.traceId;
+}
+
+function getPageloadSpanDataOnRequest(req: IncomingMessage): {
+  pageloadSpanId: string | undefined;
+  traceId: string | undefined;
+} {
+  return { pageloadSpanId: req._sentryPageloadSpanId, traceId: req._sentryTraceId };
 }
 
 /**
@@ -47,6 +64,8 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
     }
   };
 }
+
+type Awaited<T> = T extends PromiseLike<infer U> ? { 0: Awaited<U>; 1: U }[U extends PromiseLike<any> ? 0 : 1] : T;
 
 /**
  * Calls a server-side data fetching function (that takes a `req` and `res` object in its context) with tracing
@@ -74,22 +93,32 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     /** Name of the data fetching method - will be used for describing the data fetcher's span. */
     dataFetchingMethodName: string;
   },
-): (...params: Parameters<F>) => Promise<ReturnType<F>> {
-  return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
+): (...params: Parameters<F>) => Promise<{
+  dataFetcherResult: Awaited<ReturnType<F>>;
+  pageloadSpanId?: string;
+  pageloadTraceId?: string;
+  pageloadTransactionSampled?: boolean;
+}> {
+  return async function (this: unknown, ...args: Parameters<F>) {
     return domain.create().bind(async () => {
-      let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
-      let dataFetcherSpan;
+      let requestTransaction = getTransactionFromRequest(req);
+      let dataFetcherSpan: Span;
+
+      setPageloadSpanDataOnRequestIfNotExists(req, { pageloadSpanId: uuid4().substring(16), traceId: uuid4() });
+      const { pageloadSpanId, traceId } = getPageloadSpanDataOnRequest(req);
 
       const sentryTraceHeader = req.headers['sentry-trace'];
       const rawBaggageString = req.headers && req.headers.baggage;
       const traceparentData =
-        typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
+        typeof sentryTraceHeader === 'string'
+          ? extractTraceparentData(sentryTraceHeader)
+          : { traceId, parentSpanId: pageloadSpanId };
 
       const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
       if (platformSupportsStreaming()) {
         if (requestTransaction === undefined) {
-          const newTransaction = startTransaction(
+          requestTransaction = startTransaction(
             {
               op: 'http.server',
               name: options.requestedRouteName,
@@ -104,16 +133,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
             { request: req },
           );
 
-          requestTransaction = newTransaction;
-
-          if (platformSupportsStreaming()) {
-            // On platforms that don't support streaming, doing things after res.end() is unreliable.
-            autoEndTransactionOnResponseEnd(newTransaction, res);
-          }
+          autoEndTransactionOnResponseEnd(requestTransaction, res);
 
           // Link the transaction and the request together, so that when we would normally only have access to one, it's
           // still possible to grab the other.
-          setTransactionOnRequest(newTransaction, req);
+          setTransactionOnRequest(requestTransaction, req);
         }
 
         dataFetcherSpan = requestTransaction.startChild({
@@ -122,17 +146,25 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           status: 'ok',
         });
       } else {
-        dataFetcherSpan = startTransaction({
+        const dataFetcherTransaction = startTransaction({
           op: 'function.nextjs',
           name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
           ...traceparentData,
           status: 'ok',
+          sampled: requestTransaction?.sampled,
           metadata: {
             request: req,
             source: 'route',
             dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
         });
+
+        dataFetcherSpan = dataFetcherTransaction;
+
+        if (requestTransaction === undefined) {
+          requestTransaction = dataFetcherTransaction;
+          setTransactionOnRequest(requestTransaction, req);
+        }
       }
 
       const currentScope = getCurrentHub().getScope();
@@ -142,12 +174,20 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       }
 
       try {
-        return await origDataFetcher.apply(this, args);
+        const dataFetcherResult = await origDataFetcher.apply(this, args);
+        const pageloadSpanData = getPageloadSpanDataOnRequest(req);
+
+        return {
+          dataFetcherResult,
+          pageloadSpanId: pageloadSpanData.pageloadSpanId,
+          pageloadTraceId: pageloadSpanData.traceId,
+          pageloadTransactionSampled: requestTransaction.sampled,
+        };
       } catch (e) {
         // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
         // that set the transaction status, we need to manually set the status of the span & transaction
         dataFetcherSpan.setStatus('internal_error');
-        requestTransaction?.setStatus('internal_error');
+        requestTransaction.setStatus('internal_error');
         throw e;
       } finally {
         dataFetcherSpan.finish();

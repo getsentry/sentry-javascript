@@ -41,12 +41,12 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
         dataFetchingMethodName: 'getInitialProps',
       });
 
-      const appGetInitialProps: {
-        pageProps: {
-          _sentryTraceData?: string;
-          _sentryBaggage?: string;
-        };
-      } = await tracedGetInitialProps.apply(this, args);
+      const {
+        dataFetcherResult: appInitialProps,
+        pageloadSpanId,
+        pageloadTraceId,
+        pageloadTransactionSampled,
+      } = await (tracedGetInitialProps.apply(this, args) as ReturnType<typeof tracedGetInitialProps>);
 
       const requestTransaction = getTransactionFromRequest(req);
 
@@ -54,19 +54,25 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
       // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
       // https://nextjs.org/docs/advanced-features/custom-app - resulting in missing `pageProps`.
       // For this reason, we just handle the case where `pageProps` doesn't exist explicitly.
-      if (!appGetInitialProps.pageProps) {
-        appGetInitialProps.pageProps = {};
+      if (!appInitialProps.pageProps) {
+        appInitialProps.pageProps = {};
       }
 
       if (requestTransaction) {
-        appGetInitialProps.pageProps._sentryTraceData = requestTransaction.toTraceparent();
-
         const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
-        appGetInitialProps.pageProps._sentryBaggage =
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        appInitialProps.pageProps._sentryPageloadBaggage =
           dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
       }
 
-      return appGetInitialProps;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      appInitialProps.pageProps._sentryPageloadSpanId = pageloadSpanId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      appInitialProps.pageProps._sentryPageloadTraceId = pageloadTraceId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      appInitialProps.pageProps._sentryPageloadTraceSampled = pageloadTransactionSampled;
+
+      return appInitialProps;
     } else {
       return errorWrappedAppGetInitialProps.apply(this, args);
     }

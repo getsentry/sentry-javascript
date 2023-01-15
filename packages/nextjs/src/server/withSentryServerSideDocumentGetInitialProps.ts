@@ -41,7 +41,11 @@ export function withSentryServerSideDocumentGetInitialProps(
         dataFetchingMethodName: 'getInitialProps',
       });
 
-      return await tracedGetInitialProps.apply(this, args);
+      const { dataFetcherResult: documentInitialProps } = await (tracedGetInitialProps.apply(this, args) as ReturnType<
+        typeof tracedGetInitialProps
+      >);
+
+      return documentInitialProps;
     } else {
       return errorWrappedGetInitialProps.apply(this, args);
     }

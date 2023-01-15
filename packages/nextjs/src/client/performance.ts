@@ -1,12 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, TraceparentData, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import {
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  logger,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import { baggageHeaderToDynamicSamplingContext, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 import type { ParsedUrlQuery } from 'querystring';
@@ -25,8 +20,10 @@ type StartTransactionCb = (context: TransactionContext) => Transaction | undefin
 interface SentryEnhancedNextData extends NextData {
   props: {
     pageProps?: {
-      _sentryTraceData?: string; // trace parent info, if injected by a data-fetcher
-      _sentryBaggage?: string; // baggage, if injected by a data-fetcher
+      _sentryPageloadSpanId?: string; // Suggested pageload spanId
+      _sentryPageloadTraceId?: string; // Suggested traceId
+      _sentryPageloadTraceSampled?: boolean; // Whether the pageload transaction should be sampled or not
+      _sentryPageloadBaggage?: string; // baggage, if injected by a data-fetcher
       // These two values are only injected by `getStaticProps` in a very special case with the following conditions:
       // 1. The page's `getStaticPaths` method must have returned `fallback: 'blocking'`.
       // 2. The requested page must be a "miss" in terms of "Incremental Static Regeneration", meaning the requested page has not been generated before.
@@ -37,8 +34,10 @@ interface SentryEnhancedNextData extends NextData {
 
 interface NextDataTagInfo {
   route?: string;
-  traceParentData?: TraceparentData;
-  baggage?: string;
+  pageloadSpanId?: string;
+  pageloadTraceId?: string;
+  pageloadTraceSampled?: boolean;
+  pageloadBaggage?: string;
   params?: ParsedUrlQuery;
 }
 
@@ -83,12 +82,20 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   nextDataTagInfo.params = query;
 
   if (props && props.pageProps) {
-    if (props.pageProps._sentryBaggage) {
-      nextDataTagInfo.baggage = props.pageProps._sentryBaggage;
+    if (props.pageProps._sentryPageloadBaggage) {
+      nextDataTagInfo.pageloadBaggage = props.pageProps._sentryPageloadBaggage;
     }
 
-    if (props.pageProps._sentryTraceData) {
-      nextDataTagInfo.traceParentData = extractTraceparentData(props.pageProps._sentryTraceData);
+    if (props.pageProps._sentryPageloadSpanId) {
+      nextDataTagInfo.pageloadSpanId = props.pageProps._sentryPageloadSpanId;
+    }
+
+    if (props.pageProps._sentryPageloadTraceId) {
+      nextDataTagInfo.pageloadTraceId = props.pageProps._sentryPageloadTraceId;
+    }
+
+    if (props.pageProps._sentryPageloadTraceSampled) {
+      nextDataTagInfo.pageloadTraceSampled = props.pageProps._sentryPageloadTraceSampled;
     }
   }
 
@@ -121,22 +128,25 @@ export function nextRouterInstrumentation(
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
 ): void {
-  const { route, traceParentData, baggage, params } = extractNextDataTagInformation();
+  const { route, pageloadBaggage, params, pageloadSpanId, pageloadTraceId, pageloadTraceSampled } =
+    extractNextDataTagInformation();
   prevLocationName = route || globalObject.location.pathname;
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
+    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(pageloadBaggage);
 
     activeTransaction = startTransactionCb({
       name: prevLocationName,
       op: 'pageload',
       tags: DEFAULT_TAGS,
+      spanId: pageloadSpanId,
+      traceId: pageloadTraceId,
+      sampled: pageloadTraceSampled,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      ...traceParentData,
       metadata: {
         source,
-        dynamicSamplingContext: traceParentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        dynamicSamplingContext,
       },
     });
   }
