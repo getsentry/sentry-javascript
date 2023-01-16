@@ -90,7 +90,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _experiments?: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
+  _experiments: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -170,7 +170,7 @@ export class BrowserTracing implements Integration {
     }
 
     startTrackingWebVitals();
-    if (this.options._experiments?.enableLongTask) {
+    if (this.options._experiments.enableLongTask) {
       startTrackingLongTasks();
     }
   }
@@ -203,7 +203,7 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    if (_experiments?.enableInteractions) {
+    if (_experiments.enableInteractions) {
       this._registerInteractionListener();
     }
 
@@ -258,7 +258,7 @@ export class BrowserTracing implements Integration {
         : finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = finalContext.metadata?.source;
+    this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
 
     if (finalContext.sampled === false) {
       __DEBUG_BUILD__ &&

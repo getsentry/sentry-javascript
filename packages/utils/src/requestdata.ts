@@ -295,13 +295,13 @@ export function addRequestDataToEvent(
 ): Event {
   const include = {
     ...DEFAULT_INCLUDES,
-    ...options?.include,
+    ...(options ? options.include : undefined),
   };
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options?.deps })
-      : extractRequestData(req, { deps: options?.deps });
+      ? extractRequestData(req, { include: include.request, deps: options ? options.deps : undefined })
+      : extractRequestData(req, { deps: options ? options.deps : undefined });
 
     event.request = {
       ...event.request,
