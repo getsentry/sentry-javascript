@@ -116,12 +116,20 @@ export async function sendReplayRequest({
   }
 
   // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-  if (response) {
-    const rateLimits = updateRateLimits({}, response);
-    if (isRateLimited(rateLimits, 'replay')) {
-      throw new RateLimitError(rateLimits);
-    }
+  if (!response) {
+    return response;
   }
+
+  const rateLimits = updateRateLimits({}, response);
+  if (isRateLimited(rateLimits, 'replay')) {
+    throw new RateLimitError(rateLimits);
+  }
+
+  // If the status code is invalid, we want to immediately stop & not retry
+  if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+    throw new TransportStatusCodeError(response.statusCode);
+  }
+
   return response;
 }
 
@@ -134,5 +142,14 @@ export class RateLimitError extends Error {
   public constructor(rateLimits: RateLimits) {
     super('Rate limit hit');
     this.rateLimits = rateLimits;
+  }
+}
+
+/**
+ * This error indicates that the transport returned an invalid status code.
+ */
+export class TransportStatusCodeError extends Error {
+  public constructor(statusCode: number) {
+    super(`Transport returned status code ${statusCode}`);
   }
 }

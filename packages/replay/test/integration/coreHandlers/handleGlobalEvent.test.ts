@@ -26,7 +26,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         replaysSessionSampleRate: 0.0,
         replaysOnErrorSampleRate: 1.0,
       },
-      autoStart: false,
     }));
   });
 
