@@ -6,6 +6,58 @@
 
 ## 7.31.0
 
+### Next.js SDK Updates
+
+This update introduces changes in the Next.js SDK that are worth mentioning.
+
+#### Next.js middleware and Edge API route support
+
+The Next.js SDK now supports error and performance monitoring for Next.js [middleware](https://nextjs.org/docs/advanced-features/middleware) and [Edge API routes](https://nextjs.org/docs/api-routes/edge-api-routes).
+To set it up, add a `sentry.edge.config.js` or `sentry.edge.config.ts` file to the root of your project and initialize the SDK:
+
+```js
+// sentry.edge.config.js or sentry.edge.config.ts
+
+import * as Sentry from "@sentry/nextjs";
+
+const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+
+Sentry.init({
+  dsn: SENTRY_DSN || "YOUR DSN HERE",
+  tracesSampleRate: 1.0,
+});
+```
+
+The Next.js will automatically instrument Edge API routes and middleware.
+If you want to opt out of automatic instrumentation of middleware can use the `autoInstrumentMiddleware` option in the `sentry` object of your Next.js configuration:
+
+```javascript
+const moduleExports = {
+  sentry: {
+    autoInstrumentMiddleware: false,
+  },
+};
+```
+
+Middleware can be manually instrumented by using the `wrapMiddlewareWithSentry` function.
+
+#### Renaming of Next.js wrapper methods
+
+We updated the names of the functions to wrap data fetchers and API routes to better reflect what they are doing.
+The old methods can still be used but are deprecated and will be removed in the next major update of the SDK.
+
+Following function names were updated:
+
+- `withSentryAPI` was renamed to `wrapApiHandlerWithSentry`
+- `withSentryGetServerSideProps` was renamed to `wrapGetServerSidePropsWithSentry`
+- `withSentryGetStaticProps` was renamed to `wrapGetStaticPropsWithSentry`
+- `withSentryServerSideGetInitialProps` was renamed to `wrapGetInitialPropsWithSentry`
+- `withSentryServerSideAppGetInitialProps` was renamed to `wrapAppGetInitialPropsWithSentry`
+- `withSentryServerSideDocumentGetInitialProps` was renamed to `wrapDocumentGetInitialPropsWithSentry`
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+
+### Complete list of changes:
+
 - feat(nextjs): Add Edge Runtime SDK (#6752)
 - feat(nextjs): Add optional options argument to `withSentryConfig` as an alternative to the `sentry` property (#6721)
 - feat(nextjs): Add edge route and middleware wrappers (#6771)
