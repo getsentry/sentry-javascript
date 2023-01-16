@@ -234,6 +234,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._stopRecording?.();
       this.eventBuffer?.destroy();
       this.eventBuffer = null;
+      this._debouncedFlush.cancel();
     } catch (err) {
       this._handleException(err);
     }
@@ -907,7 +908,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (rateLimitDuration > 0) {
       __DEBUG_BUILD__ && logger.warn('[Replay]', `Rate limit hit, pausing replay for ${rateLimitDuration}ms`);
       this.pause();
-      this._debouncedFlush && this._debouncedFlush.cancel();
+      this._debouncedFlush.cancel();
 
       setTimeout(() => {
         __DEBUG_BUILD__ && logger.info('[Replay]', 'Resuming replay after rate limit');

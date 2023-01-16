@@ -5,7 +5,7 @@ import type { DomHandler } from './../types';
 import type { MockSdkParams } from './mockSdk';
 import { mockSdk } from './mockSdk';
 
-export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkParams): Promise<{
+export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: MockSdkParams): Promise<{
   domHandler: DomHandler;
   mockRecord: RecordMock;
   replay: ReplayContainer;
@@ -30,6 +30,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions }: MockSdkPara
   const { replay } = await mockSdk({
     replayOptions,
     sentryOptions,
+    autoStart,
   });
 
   // XXX: This is needed to ensure `domHandler` is set
