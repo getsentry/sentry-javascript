@@ -14,27 +14,14 @@
 
 ## Pre-requisites
 
-For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.24.0`.
-
-Make sure to use the exact same version of `@sentry/replay` as your other Sentry package(s), e.g. `@sentry/browser` or `@sentry/react`.
-
 `@sentry/replay` requires Node 12+, and browsers newer than IE11.
 
 ## Installation
 
-Install the Replay package with NPM or your favourite package manager. Alternatively, you can load the Replay integration via a [CDN bundle](#loading-replay-as-a-cdn-bundle).
+Replay can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or `@sentry/vue`.
+You don't need to install anything in order to use Session Replay. The minimum version that includes Replay is 7.27.0.
 
-with npm:
-
-```shell
-npm install --save @sentry/browser @sentry/replay
-```
-
-with yarn:
-
-```shell
-yarn add @sentry/browser @sentry/replay
-```
+For details on using Replay when using Sentry via the CDN bundles, see [CDN bundle](#loading-replay-as-a-cdn-bundle).
 
 ## Setup
 
@@ -43,7 +30,7 @@ See the [configuration section](#configuration) below for more details.
 
 ```javascript
 import * as Sentry from '@sentry/browser';
-import { Replay } from '@sentry/replay';
+// or e.g. import * as Sentry from '@sentry/react';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -57,7 +44,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   integrations: [
-    new Replay({
+    new Sentry.Replay({
       // Additional SDK configuration goes in here, for example:
       maskAllText: true,
       blockAllMedia: true
@@ -66,6 +53,23 @@ Sentry.init({
   ],
   // ...
 });
+```
+
+### Lazy loading Replay
+
+Replay will start automatically when you add the integration.
+If you do not want to start Replay immediately (e.g. if you want to lazy-load it),
+you can also use `addIntegration` to load it later:
+
+```js
+Sentry.init({
+  // Do not load it initially
+  integrations: []
+});
+
+// Sometime later
+const { Replay } = await import('@sentry/browser');
+getCurrentHub().getClient().addIntegration(new Replay());
 ```
 
 ### Identifying Users
@@ -77,16 +81,19 @@ import * as Sentry from "@sentry/browser";
 Sentry.setUser({ email: "jane.doe@example.com" });
 ```
 
-### Start and Stop Recording
+### Stopping & re-starting replays
 
-Replay recording only starts automatically when it is included in the `integrations` key when calling `Sentry.init`. Otherwise you can initialize the plugin and manually call the `start()` method on the integration instance. To stop recording you can call the `stop()`.
+You can manually stop/re-start Replay capture via `.stop()` & `.start()`:
 
-```javascript
-const replay = new Replay(); // This will *NOT* begin recording replays
+```js
+const replay = new Replay();
+Sentry.init({
+  integrations: [replay]
+});
 
-replay.start(); // Start recording
-
-replay.stop(); // Stop recording
+// sometime later
+replay.stop();
+replay.start();
 ```
 
 ## Loading Replay as a CDN Bundle
