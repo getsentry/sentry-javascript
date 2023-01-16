@@ -1,14 +1,11 @@
-import { parseSemver } from '@sentry/utils';
 const assert = require('assert');
 const { getAsync } = require('../utils/server');
-
-const NODE_VERSION = parseInt(process.env.NODE_VERSION, 10);
 
 // This test asserts that our wrapping of `res.end` doesn't break API routes on Vercel if people call `res.json` or
 // `res.send` multiple times in one request handler.
 //  https://github.com/getsentry/sentry-javascript/issues/6670
 module.exports = async ({ url: urlBase }) => {
-  if (NODE_VERSION <= 10) {
+  if (process.env.NODE_MAJOR === '10') {
     console.log('not running doubleEndMethodOnVercel test on Node 10');
     return;
   }
