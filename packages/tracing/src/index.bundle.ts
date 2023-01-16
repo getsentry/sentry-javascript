@@ -53,6 +53,7 @@ export {
 export { SDK_VERSION } from '@sentry/browser';
 
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
+import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { BrowserTracing } from './browser';
@@ -67,7 +68,11 @@ if (GLOBAL_OBJ.Sentry && GLOBAL_OBJ.Sentry.Integrations) {
   windowIntegrations = GLOBAL_OBJ.Sentry.Integrations;
 }
 
-const INTEGRATIONS: Record<string, unknown> = {
+// For whatever reason, it does not recognize BrowserTracing or some of the BrowserIntegrations as Integration
+const INTEGRATIONS: Record<
+  string,
+  Integration | typeof BrowserTracing | typeof BrowserIntegrations[keyof typeof BrowserIntegrations]
+> = {
   ...windowIntegrations,
   ...BrowserIntegrations,
   BrowserTracing,
