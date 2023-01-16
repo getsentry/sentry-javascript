@@ -1,5 +1,5 @@
 import type { Page, Request } from '@playwright/test';
-import { ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
