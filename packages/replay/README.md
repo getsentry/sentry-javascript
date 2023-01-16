@@ -105,13 +105,7 @@ You have to add it in addition to the Sentry Browser SDK bundle:
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.1/bundle.tracing.min.js"
-  crossorigin="anonymous"
-></script>
-
-// Replay integration bundle
-<script
-  src="https://browser.sentry-cdn.com/7.24.1/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
   crossorigin="anonymous"
 ></script>
 

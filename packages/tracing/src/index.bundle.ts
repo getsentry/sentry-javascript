@@ -67,7 +67,7 @@ if (GLOBAL_OBJ.Sentry && GLOBAL_OBJ.Sentry.Integrations) {
   windowIntegrations = GLOBAL_OBJ.Sentry.Integrations;
 }
 
-const INTEGRATIONS = {
+const INTEGRATIONS: Record<string, unknown> = {
   ...windowIntegrations,
   ...BrowserIntegrations,
   BrowserTracing,
