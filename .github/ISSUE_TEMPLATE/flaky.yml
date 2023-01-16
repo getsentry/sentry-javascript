@@ -1,7 +1,7 @@
 name: ❅ Flaky Test
 description: Report a flaky test in CI
 title: '[Flaky CI]: '
-labels: ['Type: CI Flakiness']
+labels: ['Type: Tests']
 body:
   - type: dropdown
     id: type
@@ -26,7 +26,7 @@ body:
     id: test-name
     attributes:
       label: Name of Test
-      placeholder: tests/js/spec/views/settings/projectDebugFiles/customRepositories.spec.tsx
+      placeholder: suites/replay/captureReplay/test.ts
       description: file name or function name of failing test
     validations:
       required: false
