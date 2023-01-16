@@ -239,5 +239,11 @@ describe('SentryPropagator', () => {
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(context.getValue(SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY)).toEqual(undefined);
     });
+
+    it('handles when sentry-trace is an empty array', () => {
+      carrier[SENTRY_TRACE_HEADER] = [];
+      const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(context.getValue(SENTRY_TRACE_PARENT_CONTEXT_KEY)).toEqual(undefined);
+    });
   });
 });

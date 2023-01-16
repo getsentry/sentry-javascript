@@ -59,7 +59,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const maybeSentryTraceHeader: string | string[] | undefined = getter.get(carrier, SENTRY_TRACE_HEADER);
     if (maybeSentryTraceHeader) {
       const header = Array.isArray(maybeSentryTraceHeader) ? maybeSentryTraceHeader[0] : maybeSentryTraceHeader;
-      const traceparentData = extractTraceparentData(header);
+      const traceparentData = extractTraceparentData(header || '');
       newContext = newContext.setValue(SENTRY_TRACE_PARENT_CONTEXT_KEY, traceparentData);
       if (traceparentData) {
         const spanContext = {
