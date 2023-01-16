@@ -8,7 +8,7 @@ export function withSentryMiddleware<H extends EdgeRouteHandler>(
   middleware: H,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return withEdgeWrapping(middleware, {
-    spanLabel: 'middleware',
+    spanDescription: 'middleware',
     spanOp: 'middleware.nextjs',
     mechanismFunctionName: 'withSentryMiddleware',
   });

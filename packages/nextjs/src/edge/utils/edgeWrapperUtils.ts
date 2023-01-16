@@ -17,7 +17,7 @@ import { flush } from './flush';
  */
 export function withEdgeWrapping<H extends EdgeRouteHandler>(
   handler: H,
-  options: { spanLabel: string; spanOp: string; mechanismFunctionName: string },
+  options: { spanDescription: string; spanOp: string; mechanismFunctionName: string },
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
     const req = args[0];
@@ -29,7 +29,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
     if (hasTracingEnabled()) {
       if (prevSpan) {
         span = prevSpan.startChild({
-          description: options.spanLabel,
+          description: options.spanDescription,
           op: options.spanOp,
         });
       } else if (req instanceof Request) {
@@ -46,7 +46,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 
         span = startTransaction(
           {
-            name: options.spanLabel,
+            name: options.spanDescription,
             op: options.spanOp,
             ...traceparentData,
             metadata: {

@@ -16,7 +16,7 @@ export function withSentryAPI<H extends EdgeRouteHandler>(
     const isCalledByUser = getCurrentHub().getScope()?.getTransaction();
 
     const wrappedHandler = withEdgeWrapping(handler, {
-      spanLabel:
+      spanDescription:
         isCalledByUser || !(req instanceof Request)
           ? `handler (${parameterizedRoute})`
           : `${req.method} ${parameterizedRoute}`,
