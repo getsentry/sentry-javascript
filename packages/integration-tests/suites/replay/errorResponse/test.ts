@@ -31,6 +31,12 @@ sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
   await page.waitForTimeout(5001);
 
   expect(called).toBe(1);
+
+  await page.waitForFunction(() => {
+    // @ts-ignore private API
+    return window.Replay._replay !== undefined;
+  });
+
   const replay = await getReplaySnapshot(page);
 
   // @ts-ignore private API
