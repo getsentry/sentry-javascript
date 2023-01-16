@@ -1,8 +1,8 @@
-const { parseSemvar } = require('@sentry/utils');
+import { parseSemver } from '@sentry/utils';
 const assert = require('assert');
 const { getAsync } = require('../utils/server');
 
-const NODE_VERSION = parseSemvar(process.versions.node);
+const NODE_VERSION = parseSemver(process.versions.node);
 
 // This test asserts that our wrapping of `res.end` doesn't break API routes on Vercel if people call `res.json` or
 // `res.send` multiple times in one request handler.
