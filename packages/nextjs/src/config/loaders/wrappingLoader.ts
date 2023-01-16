@@ -19,7 +19,7 @@ const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplateP
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
-const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET__.cjs';
+const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 type LoaderOptions = {
   pagesDir: string;
@@ -84,7 +84,7 @@ export default function wrappingLoader(
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
-  templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET__/g, WRAPPING_TARGET_MODULE_NAME);
+  templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, WRAPPING_TARGET_MODULE_NAME);
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
