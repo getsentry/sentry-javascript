@@ -6,7 +6,7 @@ import { withEdgeWrapping } from './utils/edgeWrapperUtils';
 /**
  * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
  */
-export function withSentryAPI<H extends EdgeRouteHandler>(
+export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
   handler: H,
   parameterizedRoute: string,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
@@ -27,3 +27,5 @@ export function withSentryAPI<H extends EdgeRouteHandler>(
     return await wrappedHandler.apply(this, args);
   };
 }
+
+export const withSentryAPI = wrapApiHandlerWithSentry;

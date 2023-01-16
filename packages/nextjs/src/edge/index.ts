@@ -131,5 +131,5 @@ export function lastEventId(): string | undefined {
 export { flush } from './utils/flush';
 
 export * from '@sentry/core';
-export { withSentryAPI } from './withSentryAPI';
-export { withSentryMiddleware } from './withSentryMiddleware';
+export { withSentryAPI, wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
+export { withSentryMiddleware } from './wrapMiddlewareWithSentry';

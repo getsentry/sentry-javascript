@@ -154,4 +154,6 @@ export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAp
 export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerSideDocumentGetInitialProps';
 export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
 export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
-export { withSentry, withSentryAPI } from './withSentryAPI';
+
+// eslint-disable-next-line deprecation/deprecation
+export { withSentry, withSentryAPI, wrapApiWithSentry } from './wrapApiHandlerWithSentry';
