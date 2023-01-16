@@ -12,7 +12,6 @@ import { _asyncOptionalChain } from './_asyncOptionalChain';
  * property (one which can't be deleted or turned into an accessor, and whose enumerability can't be changed), in which
  * case `false`.
  */
-// eslint-disable-next-line @sentry-internal/sdk/no-async-await
 export async function _asyncOptionalChainDelete(ops: unknown[]): Promise<boolean> {
   const result = (await _asyncOptionalChain(ops)) as Promise<boolean | null>;
   // If `result` is `null`, it means we didn't get to the end of the chain and so nothing was deleted (in which case,

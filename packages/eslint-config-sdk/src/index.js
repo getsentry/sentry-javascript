@@ -143,10 +143,13 @@ module.exports = {
           },
         ],
 
+<<<<<<< HEAD
         // We want to prevent async await & optional chaining usage in our files to prevent uncessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-async-await': 'error',
         '@sentry-internal/sdk/no-optional-chaining': 'error',
 
+=======
+>>>>>>> 9316b9981 (build: Remove `@sentry-internal/sdk/no-async-await` rule)
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
         'jsdoc/require-jsdoc': [
@@ -178,7 +181,6 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-empty-function': 'off',
-        '@sentry-internal/sdk/no-async-await': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
       },
     },

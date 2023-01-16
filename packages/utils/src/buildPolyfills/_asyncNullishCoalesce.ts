@@ -15,7 +15,6 @@ import { _nullishCoalesce } from './_nullishCoalesce';
  * @param rhsFn A function returning the value of the expression to the right of the `??`
  * @returns The LHS value, unless it's `null` or `undefined`, in which case, the RHS value
  */
-// eslint-disable-next-line @sentry-internal/sdk/no-async-await
 export async function _asyncNullishCoalesce(lhs: unknown, rhsFn: () => unknown): Promise<unknown> {
   return _nullishCoalesce(lhs, rhsFn);
 }
