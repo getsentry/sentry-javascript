@@ -3,6 +3,15 @@ import { test, expect } from '@playwright/test';
 import { Transaction } from '@sentry/types';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
+  await page.route('http://example.com/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        foo: 'bar',
+      }),
+    });
+  });
+
   const transaction = await getMultipleSentryEnvelopeRequests<Transaction>(page, 1, {
     url: '/fetch',
     envelopeType: 'transaction',
