@@ -132,4 +132,4 @@ export { flush } from './utils/flush';
 
 export * from '@sentry/core';
 export { withSentryAPI, wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
-export { withSentryMiddleware } from './wrapMiddlewareWithSentry';
+export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
