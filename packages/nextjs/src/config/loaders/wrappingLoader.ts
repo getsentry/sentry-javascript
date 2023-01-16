@@ -25,7 +25,6 @@ type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  isEdgeRuntime: boolean;
 };
 
 /**
