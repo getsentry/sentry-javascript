@@ -14,7 +14,11 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/templates/pageWrapperTemplate.ts', 'src/config/templates/apiWrapperTemplate.ts'],
+      entrypoints: [
+        'src/config/templates/pageWrapperTemplate.ts',
+        'src/config/templates/apiWrapperTemplate.ts',
+        'src/config/templates/middlewareWrapperTemplate.ts',
+      ],
 
       packageSpecificConfig: {
         output: {
@@ -29,7 +33,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET__'],
+        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET_FILE__'],
       },
     }),
   ),

@@ -238,7 +238,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public updateWithContext(transactionContext: TransactionContext): this {
     super.updateWithContext(transactionContext);
 
-    this.name = transactionContext.name ?? '';
+    this.name = transactionContext.name || '';
 
     this._trimEnd = transactionContext.trimEnd;
 

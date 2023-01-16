@@ -428,5 +428,17 @@ describe('Integration | sendReplayEvent', () => {
 
     // segmentId increases despite error
     expect(replay.session?.segmentId).toBe(1);
+
+    // Replay should be completely stopped now
+    expect(replay.isEnabled()).toBe(false);
+
+    // Events are ignored now, because we stopped
+    mockRecord._emitter(TEST_EVENT);
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    expect(mockSendReplayRequest).toHaveBeenCalledTimes(4);
   });
+
+  // NOTE: If you add a test after the last one, make sure to adjust the test setup
+  // As this ends with a `stopped()` replay, which may prevent future tests from working
+  // Sadly, fixing this turned out to be much more annoying than expected, so leaving this warning here for now
 });

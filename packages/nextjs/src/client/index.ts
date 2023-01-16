@@ -92,3 +92,25 @@ function addClientIntegrations(options: BrowserOptions): void {
 
   options.integrations = integrations;
 }
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideGetInitialProps,
+  wrapGetInitialPropsWithSentry,
+} from './wrapGetInitialPropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideAppGetInitialProps,
+  wrapAppGetInitialPropsWithSentry,
+} from './wrapAppGetInitialPropsWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideDocumentGetInitialProps,
+  wrapDocumentGetInitialPropsWithSentry,
+} from './wrapDocumentGetInitialPropsWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideErrorGetInitialProps,
+  wrapErrorGetInitialPropsWithSentry,
+} from './wrapErrorGetInitialPropsWithSentry';

@@ -12,7 +12,7 @@ type Props = { [key: string]: unknown };
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryGetStaticProps(
+export function wrapGetStaticPropsWithSentry(
   origGetStaticProps: GetStaticProps<Props>,
   parameterizedRoute: string,
 ): GetStaticProps<Props> {
@@ -31,3 +31,8 @@ export function withSentryGetStaticProps(
     });
   };
 }
+
+/**
+ * @deprecated Use `wrapGetStaticPropsWithSentry` instead.
+ */
+export const withSentryGetStaticProps = wrapGetStaticPropsWithSentry;

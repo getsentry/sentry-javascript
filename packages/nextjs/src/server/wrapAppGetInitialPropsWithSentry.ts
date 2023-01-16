@@ -19,7 +19,7 @@ type AppGetInitialProps = typeof App['getInitialProps'];
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: AppGetInitialProps): AppGetInitialProps {
+export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetInitialProps): AppGetInitialProps {
   return async function (this: unknown, ...args: Parameters<AppGetInitialProps>): ReturnType<AppGetInitialProps> {
     if (isBuild()) {
       return origAppGetInitialProps.apply(this, args);
@@ -78,3 +78,8 @@ export function withSentryServerSideAppGetInitialProps(origAppGetInitialProps: A
     }
   };
 }
+
+/**
+ * @deprecated Use `wrapAppGetInitialPropsWithSentry` instead.
+ */
+export const withSentryServerSideAppGetInitialProps = wrapAppGetInitialPropsWithSentry;

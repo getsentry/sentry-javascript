@@ -4,7 +4,7 @@ const { sleep } = require('../utils/common');
 const { getAsync, interceptTracingRequest } = require('../utils/server');
 
 module.exports = async ({ url: urlBase, argv }) => {
-  const unwrappedRoute = '/api/withSentryAPI/unwrapped/cjsExport';
+  const unwrappedRoute = '/api/wrapApiHandlerWithSentry/unwrapped/cjsExport';
   const interceptedUnwrappedRequest = interceptTracingRequest(
     {
       contexts: {
@@ -26,7 +26,7 @@ module.exports = async ({ url: urlBase, argv }) => {
   const responseUnwrapped = await getAsync(`${urlBase}${unwrappedRoute}`);
   assert.equal(responseUnwrapped, '{"success":true}');
 
-  const wrappedRoute = '/api/withSentryAPI/wrapped/cjsExport';
+  const wrappedRoute = '/api/wrapApiHandlerWithSentry/wrapped/cjsExport';
   const interceptedWrappedRequest = interceptTracingRequest(
     {
       contexts: {

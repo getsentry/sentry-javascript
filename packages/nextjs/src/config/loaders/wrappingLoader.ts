@@ -12,17 +12,19 @@ const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encodin
 const pageWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'pageWrapperTemplate.js');
 const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encoding: 'utf8' });
 
+const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
+const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
+
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
-const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET__.cjs';
+const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 type LoaderOptions = {
   pagesDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  isEdgeRuntime: boolean;
 };
 
 /**
@@ -40,13 +42,7 @@ export default function wrappingLoader(
     pagesDir,
     pageExtensionRegex,
     excludeServerRoutes = [],
-    isEdgeRuntime,
   } = 'getOptions' in this ? this.getOptions() : this.query;
-
-  // We currently don't support the edge runtime
-  if (isEdgeRuntime) {
-    return userCode;
-  }
 
   this.async();
 
@@ -71,13 +67,23 @@ export default function wrappingLoader(
     return;
   }
 
-  let templateCode = parameterizedRoute.startsWith('/api') ? apiWrapperTemplateCode : pageWrapperTemplateCode;
+  const middlewareJsPath = path.join(pagesDir, '..', 'middleware.js');
+  const middlewareTsPath = path.join(pagesDir, '..', 'middleware.js');
+
+  let templateCode: string;
+  if (parameterizedRoute.startsWith('/api')) {
+    templateCode = apiWrapperTemplateCode;
+  } else if (this.resourcePath === middlewareJsPath || this.resourcePath === middlewareTsPath) {
+    templateCode = middlewareWrapperTemplateCode;
+  } else {
+    templateCode = pageWrapperTemplateCode;
+  }
 
   // Inject the route and the path to the file we're wrapping into the template
   templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
-  templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET__/g, WRAPPING_TARGET_MODULE_NAME);
+  templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, WRAPPING_TARGET_MODULE_NAME);
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).

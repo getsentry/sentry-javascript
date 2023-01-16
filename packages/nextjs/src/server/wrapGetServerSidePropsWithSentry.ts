@@ -16,7 +16,7 @@ import {
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryGetServerSideProps(
+export function wrapGetServerSidePropsWithSentry(
   origGetServerSideProps: GetServerSideProps,
   parameterizedRoute: string,
 ): GetServerSideProps {
@@ -64,3 +64,8 @@ export function withSentryGetServerSideProps(
     }
   };
 }
+
+/**
+ * @deprecated Use `withSentryGetServerSideProps` instead.
+ */
+export const withSentryGetServerSideProps = wrapGetServerSidePropsWithSentry;

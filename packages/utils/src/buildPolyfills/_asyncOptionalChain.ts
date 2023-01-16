@@ -10,7 +10,6 @@ import type { GenericFunction } from './types';
  * @param ops Array result of expression conversion
  * @returns The value of the expression
  */
-// eslint-disable-next-line @sentry-internal/sdk/no-async-await
 export async function _asyncOptionalChain(ops: unknown[]): Promise<unknown> {
   let lastAccessLHS: unknown = undefined;
   let value = ops[0];

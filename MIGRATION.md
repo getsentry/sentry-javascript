@@ -1,18 +1,33 @@
- # Deprecations in 7.x
+# Deprecations in 7.x
 
- ## Deprecated `tracingOrigins` (since 7.19.0) - #6176
+## Renaming of Next.js wrapper methods (since 7.31.0) - #6790
 
- The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+We updated the names of the functions to wrap data fetchers and API routes to better reflect what they are doing.
+The old methods can still be used but are deprecated and will be removed in the next major update of the SDK.
 
- ## Deprecate `componentTrackingPreprocessor` in Svelte SDK (since 7.16.0) - #5936
+Following function names were updated:
 
- This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.
+- `withSentryAPI` was renamed to `wrapApiHandlerWithSentry`
+- `withSentryGetServerSideProps` was renamed to `wrapGetServerSidePropsWithSentry`
+- `withSentryGetStaticProps` was renamed to `wrapGetStaticPropsWithSentry`
+- `withSentryServerSideGetInitialProps` was renamed to `wrapGetInitialPropsWithSentry`
+- `withSentryServerSideAppGetInitialProps` was renamed to `wrapAppGetInitialPropsWithSentry`
+- `withSentryServerSideDocumentGetInitialProps` was renamed to `wrapDocumentGetInitialPropsWithSentry`
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+
+## Deprecated `tracingOrigins` (since 7.19.0) - #6176
+
+The `tracingOrigins` option is deprecated in favor of using `shouldCreateSpanForRequest` and `tracePropagationTargets`.
+
+## Deprecate `componentTrackingPreprocessor` in Svelte SDK (since 7.16.0) - #5936
+
+This release adds the `withSentryConfig` feature to the Svelte SDK. It replaces the now deprecated Svelte `componentTrackingPreprocessor` which will be removed in the next major release.
 
 ## Deprecate `getGlobalObject` in `@sentry/utils` (since 7.16.0) - #5949
 
 This is no longer used.
 
- ## Deprecate @sentry/hub (since 7.15.0) - #5823
+## Deprecate @sentry/hub (since 7.15.0) - #5823
 
 This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to `@sentry/core`. `@sentry/hub` will be removed in the next major release.
 

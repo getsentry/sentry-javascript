@@ -231,9 +231,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
       this._isEnabled = false;
       this._removeListeners();
-      this._stopRecording?.();
-      this.eventBuffer?.destroy();
+      this._stopRecording && this._stopRecording();
+      this.eventBuffer && this.eventBuffer.destroy();
       this.eventBuffer = null;
+      this._debouncedFlush.cancel();
     } catch (err) {
       this._handleException(err);
     }
@@ -277,7 +278,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public addUpdate(cb: AddUpdateCallback): void {
     // We need to always run `cb` (e.g. in the case of `this.recordingMode == 'error'`)
-    const cbResult = cb?.();
+    const cbResult = cb();
 
     // If this option is turned on then we will only want to call `flush`
     // explicitly
@@ -334,6 +335,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._debouncedFlush.flush() as Promise<void>;
   }
 
+  /** Get the current sesion (=replay) ID */
+  public getSessionId(): string | undefined {
+    return this.session && this.session.id;
+  }
+
   /** A wrapper to conditionally capture exceptions. */
   private _handleException(error: unknown): void {
     __DEBUG_BUILD__ && logger.error('[Replay]', error);
@@ -362,8 +368,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._setInitialState();
     }
 
-    if (session.id !== this.session?.id) {
-      session.previousSessionId = this.session?.id;
+    const currentSessionId = this.getSessionId();
+    if (session.id !== currentSessionId) {
+      session.previousSessionId = currentSessionId;
     }
 
     this.session = session;
@@ -404,7 +411,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       if (!this._hasInitializedCoreListeners) {
         // Listeners from core SDK //
         const scope = getCurrentHub().getScope();
-        scope?.addScopeListener(this._handleCoreBreadcrumbListener('scope'));
+        if (scope) {
+          scope.addScopeListener(this._handleCoreBreadcrumbListener('scope'));
+        }
         addInstrumentationHandler('dom', this._handleCoreBreadcrumbListener('dom'));
         addInstrumentationHandler('fetch', handleFetchSpanListener(this));
         addInstrumentationHandler('xhr', handleXhrSpanListener(this));
@@ -491,7 +500,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // of the previous session. Do not immediately flush in this case
       // to avoid capturing only the checkout and instead the replay will
       // be captured if they perform any follow-up actions.
-      if (this.session?.previousSessionId) {
+      if (this.session && this.session.previousSessionId) {
         return true;
       }
 
@@ -706,7 +715,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if session is not expired, false otherwise.
    */
   private _checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
-    const oldSessionId = this.session?.id;
+    const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
     // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
@@ -723,7 +732,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._loadSession({ expiry });
 
     // Session was expired if session ids do not match
-    const expired = oldSessionId !== this.session?.id;
+    const expired = oldSessionId !== this.getSessionId();
 
     if (!expired) {
       return true;
@@ -787,19 +796,25 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Should never be called directly, only by `flush`
    */
   private async _runFlush(): Promise<void> {
-    if (!this.session) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
+    if (!this.session || !this.eventBuffer) {
+      __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
       return;
     }
 
     await this._addPerformanceEntries();
 
-    if (!this.eventBuffer?.pendingLength) {
+    // Check eventBuffer again, as it could have been stopped in the meanwhile
+    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
       return;
     }
 
     // Only attach memory event if eventBuffer is not empty
     await addMemoryEntry(this);
+
+    // Check eventBuffer again, as it could have been stopped in the meanwhile
+    if (!this.eventBuffer) {
+      return;
+    }
 
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
@@ -824,10 +839,16 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp: new Date().getTime(),
       });
     } catch (err) {
+      this._handleException(err);
+
       if (err instanceof RateLimitError) {
         this._handleRateLimit(err.rateLimits);
+        return;
       }
-      this._handleException(err);
+
+      // This means we retried 3 times, and all of them failed
+      // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
+      this.stop();
     }
   }
 
@@ -837,8 +858,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _flush: () => Promise<void> = async () => {
     if (!this._isEnabled) {
-      // This is just a precaution, there should be no listeners that would
-      // cause a flush.
+      // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
     }
 
@@ -847,13 +867,13 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    if (!this.session?.id) {
+    if (!this.session) {
       __DEBUG_BUILD__ && logger.error('[Replay] No session found to flush.');
       return;
     }
 
     // A flush is about to happen, cancel any queued flushes
-    this._debouncedFlush?.cancel();
+    this._debouncedFlush.cancel();
 
     // this._flushLock acts as a lock so that future calls to `_flush()`
     // will be blocked until this promise resolves
@@ -902,7 +922,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (rateLimitDuration > 0) {
       __DEBUG_BUILD__ && logger.warn('[Replay]', `Rate limit hit, pausing replay for ${rateLimitDuration}ms`);
       this.pause();
-      this._debouncedFlush && this._debouncedFlush.cancel();
+      this._debouncedFlush.cancel();
 
       setTimeout(() => {
         __DEBUG_BUILD__ && logger.info('[Replay]', 'Resuming replay after rate limit');

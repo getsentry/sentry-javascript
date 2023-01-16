@@ -14,7 +14,7 @@ type DocumentGetInitialProps = typeof Document.getInitialProps;
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideDocumentGetInitialProps(
+export function wrapDocumentGetInitialPropsWithSentry(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
   return async function (
@@ -51,3 +51,8 @@ export function withSentryServerSideDocumentGetInitialProps(
     }
   };
 }
+
+/**
+ * @deprecated Use `wrapDocumentGetInitialPropsWithSentry` instead.
+ */
+export const withSentryServerSideDocumentGetInitialProps = wrapDocumentGetInitialPropsWithSentry;

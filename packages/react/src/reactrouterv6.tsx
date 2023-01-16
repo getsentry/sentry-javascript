@@ -226,7 +226,7 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
 
       // A value with stable identity to either pick `locationArg` if available or `location` if not
       const stableLocationParam =
-        typeof locationArg === 'string' || locationArg?.pathname !== undefined
+        typeof locationArg === 'string' || (locationArg && locationArg.pathname)
           ? (locationArg as { pathname: string })
           : location;
 

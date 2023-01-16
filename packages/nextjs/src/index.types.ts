@@ -29,3 +29,95 @@ export declare function close(timeout?: number | undefined): PromiseLike<boolean
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;
+
+/**
+ * @deprecated Use `wrapApiHandlerWithSentry` instead
+ */
+export declare function withSentryAPI<APIHandler extends (...args: any[]) => any>(
+  handler: APIHandler,
+  parameterizedRoute: string,
+): (
+  ...args: Parameters<APIHandler>
+) => ReturnType<APIHandler> extends Promise<unknown> ? ReturnType<APIHandler> : Promise<ReturnType<APIHandler>>;
+
+/**
+ * Wraps a Next.js API handler with Sentry error and performance instrumentation.
+ *
+ * @param handler The handler exported from the API route file.
+ * @param parameterizedRoute The page's parameterized route.
+ * @returns The wrapped handler.
+ */
+export declare function wrapApiHandlerWithSentry<APIHandler extends (...args: any[]) => any>(
+  handler: APIHandler,
+  parameterizedRoute: string,
+): (
+  ...args: Parameters<APIHandler>
+) => ReturnType<APIHandler> extends Promise<unknown> ? ReturnType<APIHandler> : Promise<ReturnType<APIHandler>>;
+
+/**
+ * Wraps a `getInitialProps` function with Sentry error and performance instrumentation.
+ *
+ * @param getInitialProps The `getInitialProps` function
+ * @returns A wrapped version of the function
+ */
+export declare function wrapGetInitialPropsWithSentry<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapGetInitialPropsWithSentry` instead.
+ */
+export declare function withSentryServerSideGetInitialProps<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps a `getInitialProps` function of a custom `_app` page with Sentry error and performance instrumentation.
+ *
+ * @param getInitialProps The `getInitialProps` function
+ * @returns A wrapped version of the function
+ */
+export declare function wrapAppGetInitialPropsWithSentry<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapAppGetInitialPropsWithSentry` instead.
+ */
+export declare function withSentryServerSideAppGetInitialProps<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps a `getInitialProps` function of a custom `_document` page with Sentry error and performance instrumentation.
+ *
+ * @param getInitialProps The `getInitialProps` function
+ * @returns A wrapped version of the function
+ */
+export declare function wrapDocumentGetInitialPropsWithSentry<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapDocumentGetInitialPropsWithSentry` instead.
+ */
+export declare function withSentryServerSideDocumentGetInitialProps<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps a `getInitialProps` function of a custom `_error` page with Sentry error and performance instrumentation.
+ *
+ * @param getInitialProps The `getInitialProps` function
+ * @returns A wrapped version of the function
+ */
+export declare function wrapErrorGetInitialPropsWithSentry<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapErrorGetInitialPropsWithSentry` instead.
+ */
+export declare function withSentryServerSideErrorGetInitialProps<F extends (...args: any[]) => any>(
+  getInitialProps: F,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
