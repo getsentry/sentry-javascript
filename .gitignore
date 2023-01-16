@@ -47,4 +47,4 @@ tmp.js
 
 # eslint
 .eslintcache
-eslintcache/*
+**/eslintcache/*
