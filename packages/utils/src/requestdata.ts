@@ -295,7 +295,7 @@ export function addRequestDataToEvent(
 ): Event {
   const include = {
     ...DEFAULT_INCLUDES,
-    ...(options ? options.include : undefined),
+    ...(options && options.include),
   };
 
   if (include.request) {
