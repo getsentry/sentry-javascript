@@ -9,7 +9,7 @@ START_TIME=$(date -R)
 function cleanup {
   echo "[nextjs] Cleaning up..."
   mv next.config.js.bak next.config.js 2>/dev/null || true
-  mv package.json.bak package.json || true
+  mv -f package.json.bak package.json 2>/dev/null || true
   rm -rf node_modules 2>/dev/null || true
 
   # Delete yarn's cached versions of sentry packages added during this test run, since every test run installs multiple
