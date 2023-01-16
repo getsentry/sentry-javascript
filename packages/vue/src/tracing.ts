@@ -41,7 +41,7 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }
 
   vm.$_sentryRootSpanTimer = setTimeout(() => {
-    if (vm.$root.$_sentryRootSpan) {
+    if (vm.$root && vm.$root.$_sentryRootSpan) {
       vm.$root.$_sentryRootSpan.finish(timestamp);
       vm.$root.$_sentryRootSpan = undefined;
     }
@@ -97,7 +97,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
         if (internalHook == internalHooks[0]) {
-          const activeTransaction = this.$root.$_sentryRootSpan || getActiveTransaction();
+          const activeTransaction = (this.$root && this.$root.$_sentryRootSpan) || getActiveTransaction();
           if (activeTransaction) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
             // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
