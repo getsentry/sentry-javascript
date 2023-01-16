@@ -20,7 +20,7 @@ type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideErrorGetInitialProps(
+export function wrapErrorGetInitialPropsWithSentry(
   origErrorGetInitialProps: ErrorGetInitialProps,
 ): ErrorGetInitialProps {
   return async function (this: unknown, ...args: Parameters<ErrorGetInitialProps>): ReturnType<ErrorGetInitialProps> {
@@ -63,3 +63,8 @@ export function withSentryServerSideErrorGetInitialProps(
     }
   };
 }
+
+/**
+ * @deprecated Use `wrapErrorGetInitialPropsWithSentry` instead.
+ */
+export const withSentryServerSideErrorGetInitialProps = wrapErrorGetInitialPropsWithSentry;

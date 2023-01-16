@@ -148,12 +148,44 @@ const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
 export { deprecatedIsBuild as isBuild };
 
-export { withSentryGetStaticProps } from './withSentryGetStaticProps';
-export { withSentryServerSideGetInitialProps } from './withSentryServerSideGetInitialProps';
-export { withSentryServerSideAppGetInitialProps } from './withSentryServerSideAppGetInitialProps';
-export { withSentryServerSideDocumentGetInitialProps } from './withSentryServerSideDocumentGetInitialProps';
-export { withSentryServerSideErrorGetInitialProps } from './withSentryServerSideErrorGetInitialProps';
-export { withSentryGetServerSideProps } from './withSentryGetServerSideProps';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetStaticProps,
+  wrapGetStaticPropsWithSentry,
+} from './wrapGetStaticPropsWithSentry';
 
-// eslint-disable-next-line deprecation/deprecation
-export { withSentry, withSentryAPI, wrapApiWithSentry } from './wrapApiHandlerWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideGetInitialProps,
+  wrapGetInitialPropsWithSentry,
+} from './wrapGetInitialPropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideAppGetInitialProps,
+  wrapAppGetInitialPropsWithSentry,
+} from './wrapAppGetInitialPropsWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideDocumentGetInitialProps,
+  wrapDocumentGetInitialPropsWithSentry,
+} from './wrapDocumentGetInitialPropsWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryServerSideErrorGetInitialProps,
+  wrapErrorGetInitialPropsWithSentry,
+} from './wrapErrorGetInitialPropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetServerSideProps,
+  wrapGetServerSidePropsWithSentry,
+} from './wrapGetServerSidePropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentry,
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryAPI,
+  wrapApiWithSentry,
+} from './wrapApiHandlerWithSentry';
