@@ -36,6 +36,7 @@ for NEXTJS_VERSION in 10 11 12 13; do
   # having to pass this value from function to function to function to the one spot, deep in some callstack, where we
   # actually need it
   export NEXTJS_VERSION=$NEXTJS_VERSION
+  export NODE_VERSION=$NODE_VERSION
 
   # Next 10 requires at least Node v10
   if [ "$NODE_MAJOR" -lt "10" ]; then
