@@ -304,7 +304,7 @@ function _addPerformanceNavigationTiming(
   }
   _startChild(transaction, {
     op: 'browser',
-    description: description ?? event,
+    description: description || event,
     startTimestamp: timeOrigin + msToSec(start),
     endTimestamp: timeOrigin + msToSec(end),
   });
