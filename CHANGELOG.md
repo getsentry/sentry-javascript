@@ -10,6 +10,7 @@
 - feat(nextjs): Add optional options argument to `withSentryConfig` as an alternative to the `sentry` property (#6721)
 - feat(nextjs): Add edge route and middleware wrappers (#6771)
 - feat(nextjs): Auto-wrap edge-routes and middleware (#6746)
+- fix(nextjs): Export isomorphic data fetching wrappers from client SDK (#6790)
 - feat(replay): Update rrweb & rrweb-snapshot (#6749)
 - feat(replay): Stop recording when retry fails (#6765)
 - feat(replay): Stop without retry when receiving bad API response (#6773)
