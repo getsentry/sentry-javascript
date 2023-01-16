@@ -29,3 +29,10 @@ export declare function close(timeout?: number | undefined): PromiseLike<boolean
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;
+
+export declare function withSentryAPI<APIHandler extends (...args: any[]) => any>(
+  handler: APIHandler,
+  parameterizedRoute: string,
+): (
+  ...args: Parameters<APIHandler>
+) => ReturnType<APIHandler> extends Promise<unknown> ? ReturnType<APIHandler> : Promise<ReturnType<APIHandler>>;

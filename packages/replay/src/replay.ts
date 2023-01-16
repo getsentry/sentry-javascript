@@ -824,10 +824,16 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp: new Date().getTime(),
       });
     } catch (err) {
+      this._handleException(err);
+
       if (err instanceof RateLimitError) {
         this._handleRateLimit(err.rateLimits);
+        return;
       }
-      this._handleException(err);
+
+      // This means we retried 3 times, and all of them failed
+      // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
+      this.stop();
     }
   }
 
@@ -837,8 +843,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _flush: () => Promise<void> = async () => {
     if (!this._isEnabled) {
-      // This is just a precaution, there should be no listeners that would
-      // cause a flush.
+      // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
     }
 
