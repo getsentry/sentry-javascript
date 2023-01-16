@@ -188,8 +188,8 @@ export function fetchCallback(
   }
 
   const currentScope = getCurrentHub().getScope();
-  const currentSpan = currentScope ? currentScope.getSpan() : undefined;
-  const activeTransaction = currentSpan ? currentSpan.transaction : undefined;
+  const currentSpan = currentScope && currentScope.getSpan();
+  const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {
     const span = currentSpan.startChild({
@@ -325,8 +325,8 @@ export function xhrCallback(
   }
 
   const currentScope = getCurrentHub().getScope();
-  const currentSpan = currentScope ? currentScope.getSpan() : undefined;
-  const activeTransaction = currentSpan ? currentSpan.transaction : undefined;
+  const currentSpan = currentScope && currentScope.getSpan();
+  const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {
     const span = currentSpan.startChild({
