@@ -31,9 +31,7 @@ sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
   await page.waitForTimeout(5001);
 
   expect(called).toBe(1);
-  debugger;
   const replay = await getReplaySnapshot(page);
-  debugger;
 
   // @ts-ignore private API
   expect(replay._isEnabled).toBe(false);
