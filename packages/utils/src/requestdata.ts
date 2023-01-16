@@ -300,8 +300,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options ? options.deps : undefined })
-      : extractRequestData(req, { deps: options ? options.deps : undefined });
+      ? extractRequestData(req, { include: include.request, deps: options && options.deps })
+      : extractRequestData(req, { deps: options && options.deps });
 
     event.request = {
       ...event.request,

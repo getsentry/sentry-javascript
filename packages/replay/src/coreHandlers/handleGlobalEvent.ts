@@ -44,8 +44,8 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       replay.getContext().errorIds.add(event.event_id as string);
     }
 
-    const exc = getEventExceptionValues(event);
     if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals) {
+      const exc = getEventExceptionValues(event);
       addInternalBreadcrumb({
         message: `Tagging event (${event.event_id}) - ${event.message} - ${exc.type}: ${exc.value}`,
       });
