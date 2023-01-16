@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way we (probably) intend.
-labels: ["Type: Bug"]
+labels: ['Type: Bug']
 body:
   - type: checkboxes
     attributes:
@@ -27,19 +27,19 @@ body:
     attributes:
       label: Which package are you using?
       options:
-        - "@sentry/angular"
-        - "@sentry/browser"
-        - "@sentry/ember"
-        - "@sentry/gatsby"
-        - "@sentry/nextjs"
-        - "@sentry/node"
-        - "@sentry/opentelemetry-node"
-        - "@sentry/react"
-        - "@sentry/remix"
-        - "@sentry/serverless"
-        - "@sentry/svelte"
-        - "@sentry/vue"
-        - "@sentry/wasm"
+        - '@sentry/angular'
+        - '@sentry/browser'
+        - '@sentry/ember'
+        - '@sentry/gatsby'
+        - '@sentry/nextjs'
+        - '@sentry/node'
+        - '@sentry/opentelemetry-node'
+        - '@sentry/react'
+        - '@sentry/remix'
+        - '@sentry/serverless'
+        - '@sentry/svelte'
+        - '@sentry/vue'
+        - '@sentry/wasm'
     validations:
       required: true
   - type: input
@@ -54,14 +54,32 @@ body:
     id: framework-version
     attributes:
       label: Framework Version
-      description: If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the _framework_ (not SDK) are you using?
+      description:
+        If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
+        _framework_ (not SDK) are you using?
       placeholder: ex. React 17.0.0
   - type: input
     id: link-to-sentry
     attributes:
       label: Link to Sentry event
-      description: If applicable, provide a link to the affected event from your Sentry account. The event will only be viewable by Sentry staff.
+      description:
+        If applicable, provide a link to the affected event from your Sentry account. The event will only be viewable by
+        Sentry staff.
       placeholder: https://sentry.io/organizations/<org-slug>/issues/<issue-id>/events/<event-id>/?project=<project-id>
+  - type: textarea
+    id: sdk-setup
+    attributes:
+      label: SDK Setup
+      description: How do you set up your Sentry SDK? Please show us your `Sentry.init` options.
+      placeholder: |-
+        ```javascript
+        Sentry.init({
+          dsn: __YOUR_DSN__
+          ...
+        });
+        ```
+    validations:
+      required: false
   - type: textarea
     id: repro
     attributes:

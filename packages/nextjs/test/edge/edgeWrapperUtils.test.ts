@@ -3,8 +3,6 @@ import * as sentryTracing from '@sentry/tracing';
 
 import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
 
-jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
-
 // @ts-ignore Request does not exist on type Global
 const origRequest = global.Request;
 // @ts-ignore Response does not exist on type Global
@@ -29,13 +27,19 @@ afterAll(() => {
   global.Response = origResponse;
 });
 
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.resetAllMocks();
+  jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
+});
+
 describe('withEdgeWrapping', () => {
   it('should return a function that calls the passed function', async () => {
     const origFunctionReturnValue = new Response();
     const origFunction = jest.fn(_req => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -54,7 +58,7 @@ describe('withEdgeWrapping', () => {
     });
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -70,7 +74,7 @@ describe('withEdgeWrapping', () => {
     const origFunction = jest.fn(_req => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -89,7 +93,7 @@ describe('withEdgeWrapping', () => {
     const origFunction = jest.fn(() => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
