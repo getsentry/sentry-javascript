@@ -187,5 +187,5 @@ export {
   withSentry,
   // eslint-disable-next-line deprecation/deprecation
   withSentryAPI,
-  wrapApiWithSentry,
+  wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';

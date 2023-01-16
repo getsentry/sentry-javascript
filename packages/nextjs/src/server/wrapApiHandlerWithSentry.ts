@@ -25,7 +25,7 @@ import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from '
  * @param parameterizedRoute The page's route, passed in via the proxy loader
  * @returns The wrapped handler
  */
-export function wrapApiWithSentry(
+export function wrapApiHandlerWithSentry(
   maybeWrappedHandler: NextApiHandler | WrappedNextApiHandler,
   parameterizedRoute: string,
 ): WrappedNextApiHandler {
@@ -52,9 +52,9 @@ export function wrapApiWithSentry(
 }
 
 /**
- * @deprecated Use `wrapApiWithSentry()` instead
+ * @deprecated Use `wrapApiHandlerWithSentry()` instead
  */
-export const withSentryAPI = wrapApiWithSentry;
+export const withSentryAPI = wrapApiHandlerWithSentry;
 
 /**
  * Legacy function for manually wrapping API route handlers, now used as the innards of `wrapApiHandlerWithSentry`.
