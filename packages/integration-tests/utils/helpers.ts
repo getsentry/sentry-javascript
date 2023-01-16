@@ -60,12 +60,6 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
  */
 export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
   const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
-  debugger;
-  console.log(replayIntegration._replay);
-  console.log(typeof replayIntegration);
-  console.log(Object.getPrototypeOf(replayIntegration._replay));
-  console.log('isenabled', replayIntegration._replay.isEnabled);
-
   return replayIntegration._replay;
 }
 
