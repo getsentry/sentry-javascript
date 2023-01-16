@@ -13,14 +13,14 @@ export function withSentryAPI<H extends EdgeRouteHandler>(
   return async function (this: unknown, ...args: Parameters<H>): Promise<ReturnType<H>> {
     const req = args[0];
 
-    const isCalledByUser = getCurrentHub().getScope()?.getTransaction();
+    const activeSpan = !!getCurrentHub().getScope()?.getSpan();
 
     const wrappedHandler = withEdgeWrapping(handler, {
       spanDescription:
-        isCalledByUser || !(req instanceof Request)
+        activeSpan || !(req instanceof Request)
           ? `handler (${parameterizedRoute})`
           : `${req.method} ${parameterizedRoute}`,
-      spanOp: isCalledByUser ? 'function' : 'http.server',
+      spanOp: activeSpan ? 'function' : 'http.server',
       mechanismFunctionName: 'withSentryAPI',
     });
 

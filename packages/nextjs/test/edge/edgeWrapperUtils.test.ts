@@ -3,8 +3,6 @@ import * as sentryTracing from '@sentry/tracing';
 
 import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
 
-jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
-
 // @ts-ignore Request does not exist on type Global
 const origRequest = global.Request;
 // @ts-ignore Response does not exist on type Global
@@ -27,6 +25,12 @@ afterAll(() => {
   global.Request = origRequest;
   // @ts-ignore Response does not exist on type Global
   global.Response = origResponse;
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.resetAllMocks();
+  jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
 });
 
 describe('withEdgeWrapping', () => {
