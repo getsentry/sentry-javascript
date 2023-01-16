@@ -77,20 +77,22 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       // store a seen flag on it.
       const objectifiedErr = objectify(e);
 
-      currentScope?.addEventProcessor(event => {
-        addExceptionMechanism(event, {
-          type: 'instrument',
-          handled: false,
-          data: {
-            function: options.mechanismFunctionName,
-          },
-        });
-        return event;
-      });
-
       span?.setStatus('internal_error');
 
-      captureException(objectifiedErr);
+      captureException(objectifiedErr, scope => {
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            type: 'instrument',
+            handled: false,
+            data: {
+              function: options.mechanismFunctionName,
+            },
+          });
+          return event;
+        });
+
+        return scope;
+      });
 
       throw objectifiedErr;
     } finally {
