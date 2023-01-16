@@ -30,7 +30,24 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;
 
+/**
+ * @deprecated Use `wrapApiHandlerWithSentry` instead
+ */
 export declare function withSentryAPI<APIHandler extends (...args: any[]) => any>(
+  handler: APIHandler,
+  parameterizedRoute: string,
+): (
+  ...args: Parameters<APIHandler>
+) => ReturnType<APIHandler> extends Promise<unknown> ? ReturnType<APIHandler> : Promise<ReturnType<APIHandler>>;
+
+/**
+ * Wraps a Next.js API handler with Sentry error and performance instrumentation.
+ *
+ * @param handler The handler exported from the API route file.
+ * @param parameterizedRoute The page's parameterized route.
+ * @returns The wrapped handler.
+ */
+export declare function wrapApiHandlerWithSentry<APIHandler extends (...args: any[]) => any>(
   handler: APIHandler,
   parameterizedRoute: string,
 ): (

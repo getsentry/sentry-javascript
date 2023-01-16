@@ -6,12 +6,27 @@ const { getAsync, interceptTracingRequest } = require('../utils/server');
 module.exports = async ({ url: urlBase, argv }) => {
   const urls = {
     // testName: [url, route]
-    unwrappedNoParamURL: [`/api/withSentryAPI/unwrapped/noParams`, '/api/withSentryAPI/unwrapped/noParams'],
-    unwrappedDynamicURL: [`/api/withSentryAPI/unwrapped/dog`, '/api/withSentryAPI/unwrapped/[animal]'],
-    unwrappedCatchAllURL: [`/api/withSentryAPI/unwrapped/dog/facts`, '/api/withSentryAPI/unwrapped/[...pathParts]'],
-    wrappedNoParamURL: [`/api/withSentryAPI/wrapped/noParams`, '/api/withSentryAPI/wrapped/noParams'],
-    wrappedDynamicURL: [`/api/withSentryAPI/wrapped/dog`, '/api/withSentryAPI/wrapped/[animal]'],
-    wrappedCatchAllURL: [`/api/withSentryAPI/wrapped/dog/facts`, '/api/withSentryAPI/wrapped/[...pathParts]'],
+    unwrappedNoParamURL: [
+      `/api/wrapApiHandlerWithSentry/unwrapped/noParams`,
+      '/api/wrapApiHandlerWithSentry/unwrapped/noParams',
+    ],
+    unwrappedDynamicURL: [
+      `/api/wrapApiHandlerWithSentry/unwrapped/dog`,
+      '/api/wrapApiHandlerWithSentry/unwrapped/[animal]',
+    ],
+    unwrappedCatchAllURL: [
+      `/api/wrapApiHandlerWithSentry/unwrapped/dog/facts`,
+      '/api/wrapApiHandlerWithSentry/unwrapped/[...pathParts]',
+    ],
+    wrappedNoParamURL: [
+      `/api/wrapApiHandlerWithSentry/wrapped/noParams`,
+      '/api/wrapApiHandlerWithSentry/wrapped/noParams',
+    ],
+    wrappedDynamicURL: [`/api/wrapApiHandlerWithSentry/wrapped/dog`, '/api/wrapApiHandlerWithSentry/wrapped/[animal]'],
+    wrappedCatchAllURL: [
+      `/api/wrapApiHandlerWithSentry/wrapped/dog/facts`,
+      '/api/wrapApiHandlerWithSentry/wrapped/[...pathParts]',
+    ],
   };
 
   const interceptedRequests = {};

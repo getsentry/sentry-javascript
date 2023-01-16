@@ -18,7 +18,7 @@ type GetInitialProps = Required<NextPage>['getInitialProps'];
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInitialProps): GetInitialProps {
+export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialProps): GetInitialProps {
   return async function (this: unknown, ...args: Parameters<GetInitialProps>): Promise<ReturnType<GetInitialProps>> {
     if (isBuild()) {
       return origGetInitialProps.apply(this, args);
@@ -59,3 +59,8 @@ export function withSentryServerSideGetInitialProps(origGetInitialProps: GetInit
     }
   };
 }
+
+/**
+ * @deprecated Use `wrapGetInitialPropsWithSentry` instead.
+ */
+export const withSentryServerSideGetInitialProps = wrapGetInitialPropsWithSentry;

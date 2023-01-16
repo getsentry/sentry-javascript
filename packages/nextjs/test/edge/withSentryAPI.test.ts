@@ -1,7 +1,7 @@
 import * as coreSdk from '@sentry/core';
 import * as sentryTracing from '@sentry/tracing';
 
-import { withSentryAPI } from '../../src/edge';
+import { wrapApiHandlerWithSentry } from '../../src/edge';
 
 // @ts-ignore Request does not exist on type Global
 const origRequest = global.Request;
@@ -35,14 +35,14 @@ beforeEach(() => {
   jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
 });
 
-describe('withSentryAPI', () => {
+describe('wrapApiHandlerWithSentry', () => {
   it('should return a function that starts a transaction with the correct name when there is no active transaction and a request is being passed', async () => {
     const startTransactionSpy = jest.spyOn(coreSdk, 'startTransaction');
 
     const origFunctionReturnValue = new Response();
     const origFunction = jest.fn(_req => origFunctionReturnValue);
 
-    const wrappedFunction = withSentryAPI(origFunction, '/user/[userId]/post/[postId]');
+    const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
 
     const request = new Request('https://sentry.io/');
     await wrappedFunction(request);
@@ -63,7 +63,7 @@ describe('withSentryAPI', () => {
     const origFunctionReturnValue = new Response();
     const origFunction = jest.fn(() => origFunctionReturnValue);
 
-    const wrappedFunction = withSentryAPI(origFunction, '/user/[userId]/post/[postId]');
+    const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
 
     await wrappedFunction();
     expect(startTransactionSpy).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('withSentryAPI', () => {
     const origFunctionReturnValue = new Response();
     const origFunction = jest.fn(() => origFunctionReturnValue);
 
-    const wrappedFunction = withSentryAPI(origFunction, '/user/[userId]/post/[postId]');
+    const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
 
     await wrappedFunction();
     expect(startChildSpy).toHaveBeenCalledTimes(1);

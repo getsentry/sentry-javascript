@@ -131,5 +131,11 @@ export function lastEventId(): string | undefined {
 export { flush } from './utils/flush';
 
 export * from '@sentry/core';
-export { withSentryAPI } from './withSentryAPI';
-export { withSentryMiddleware } from './withSentryMiddleware';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryAPI,
+  wrapApiHandlerWithSentry,
+} from './wrapApiHandlerWithSentry';
+
+export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';

@@ -25,7 +25,7 @@ import { autoEndTransactionOnResponseEnd, finishTransaction, flushQueue } from '
  * @param parameterizedRoute The page's route, passed in via the proxy loader
  * @returns The wrapped handler
  */
-export function withSentryAPI(
+export function wrapApiHandlerWithSentry(
   maybeWrappedHandler: NextApiHandler | WrappedNextApiHandler,
   parameterizedRoute: string,
 ): WrappedNextApiHandler {
@@ -47,20 +47,28 @@ export function withSentryAPI(
     );
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return withSentry(maybeWrappedHandler, parameterizedRoute);
 }
 
 /**
- * Legacy function for manually wrapping API route handlers, now used as the innards of `withSentryAPI`.
+ * @deprecated Use `wrapApiHandlerWithSentry()` instead
+ */
+export const withSentryAPI = wrapApiHandlerWithSentry;
+
+/**
+ * Legacy function for manually wrapping API route handlers, now used as the innards of `wrapApiHandlerWithSentry`.
  *
  * @param origHandler The user's original API route handler
  * @param parameterizedRoute The route whose handler is being wrapped. Meant for internal use only.
  * @returns A wrapped version of the handler
+ *
+ * @deprecated Use `wrapApiWithSentry()` instead
  */
 export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: string): WrappedNextApiHandler {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return async function sentryWrappedHandler(req: AugmentedNextApiRequest, res: AugmentedNextApiResponse) {
-    // We're now auto-wrapping API route handlers using `withSentryAPI` (which uses `withSentry` under the hood), but
+    // We're now auto-wrapping API route handlers using `wrapApiHandlerWithSentry` (which uses `withSentry` under the hood), but
     // users still may have their routes manually wrapped with `withSentry`. This check makes `sentryWrappedHandler`
     // idempotent so that those cases don't break anything.
     if (req.__withSentry_applied__) {

@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import * as SentryTracing from '@sentry/tracing';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import { withSentryGetServerSideProps, withSentryServerSideGetInitialProps } from '../../src/server';
+import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/server';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
 
@@ -23,10 +23,10 @@ describe('data-fetching function wrappers', () => {
       jest.clearAllMocks();
     });
 
-    test('withSentryGetServerSideProps', async () => {
+    test('wrapGetServerSidePropsWithSentry', async () => {
       const origFunction = jest.fn(async () => ({ props: {} }));
 
-      const wrappedOriginal = withSentryGetServerSideProps(origFunction, route);
+      const wrappedOriginal = wrapGetServerSidePropsWithSentry(origFunction, route);
       await wrappedOriginal({ req, res } as any);
 
       expect(startTransactionSpy).toHaveBeenCalledWith(
@@ -43,10 +43,10 @@ describe('data-fetching function wrappers', () => {
       );
     });
 
-    test('withSentryServerSideGetInitialProps', async () => {
+    test('wrapGetInitialPropsWithSentry', async () => {
       const origFunction = jest.fn(async () => ({}));
 
-      const wrappedOriginal = withSentryServerSideGetInitialProps(origFunction);
+      const wrappedOriginal = wrapGetInitialPropsWithSentry(origFunction);
       await wrappedOriginal({ req, res, pathname: route } as any);
 
       expect(startTransactionSpy).toHaveBeenCalledWith(
