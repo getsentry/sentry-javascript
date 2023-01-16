@@ -96,7 +96,9 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const breadcrumbIntegration = this.getIntegrationById(BREADCRUMB_INTEGRATION_ID) as Breadcrumbs | undefined;
     // We check for definedness of `addSentryBreadcrumb` in case users provided their own integration with id
     // "Breadcrumbs" that does not have this function.
-    breadcrumbIntegration?.addSentryBreadcrumb?.(event);
+    if (breadcrumbIntegration && breadcrumbIntegration.addSentryBreadcrumb) {
+      breadcrumbIntegration.addSentryBreadcrumb(event);
+    }
 
     super.sendEvent(event, hint);
   }

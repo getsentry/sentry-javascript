@@ -118,7 +118,7 @@ export interface ReplayPluginOptions extends SessionOptions {
    *
    * Default: undefined
    */
-  _experiments?: Partial<{
+  _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
   }>;
@@ -259,6 +259,7 @@ export interface ReplayContainer {
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
+  getSessionId(): string | undefined;
 }
 
 export interface ReplayPerformanceEntry {
