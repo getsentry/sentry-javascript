@@ -40,8 +40,10 @@ if ('middleware' in userApiModule && typeof userApiModule.middleware === 'functi
   userProvidedDefaultHandler = userApiModule;
 }
 
-export const middleware = userProvidedNamedHandler ? Sentry.withSentryMiddleware(userProvidedNamedHandler) : undefined;
-export default userProvidedDefaultHandler ? Sentry.withSentryMiddleware(userProvidedDefaultHandler) : undefined;
+export const middleware = userProvidedNamedHandler
+  ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)
+  : undefined;
+export default userProvidedDefaultHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedDefaultHandler) : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.

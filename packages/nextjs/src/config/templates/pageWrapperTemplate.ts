@@ -28,12 +28,12 @@ const origGetStaticProps = userPageModule.getStaticProps;
 const origGetServerSideProps = userPageModule.getServerSideProps;
 
 const getInitialPropsWrappers: Record<string, any> = {
-  '/_app': Sentry.withSentryServerSideAppGetInitialProps,
-  '/_document': Sentry.withSentryServerSideDocumentGetInitialProps,
-  '/_error': Sentry.withSentryServerSideErrorGetInitialProps,
+  '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
+  '/_document': Sentry.wrapDocumentGetInitialPropsWithSentry,
+  '/_error': Sentry.wrapErrorGetInitialPropsWithSentry,
 };
 
-const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.withSentryServerSideGetInitialProps;
+const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.wrapGetInitialPropsWithSentry;
 
 if (typeof origGetInitialProps === 'function') {
   pageComponent.getInitialProps = getInitialPropsWrapper(origGetInitialProps) as NextPageComponent['getInitialProps'];
@@ -41,11 +41,11 @@ if (typeof origGetInitialProps === 'function') {
 
 export const getStaticProps =
   typeof origGetStaticProps === 'function'
-    ? Sentry.withSentryGetStaticProps(origGetStaticProps, '__ROUTE__')
+    ? Sentry.wrapGetStaticPropsWithSentry(origGetStaticProps, '__ROUTE__')
     : undefined;
 export const getServerSideProps =
   typeof origGetServerSideProps === 'function'
-    ? Sentry.withSentryGetServerSideProps(origGetServerSideProps, '__ROUTE__')
+    ? Sentry.wrapGetServerSidePropsWithSentry(origGetServerSideProps, '__ROUTE__')
     : undefined;
 
 export default pageComponent;
