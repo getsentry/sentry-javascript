@@ -35,7 +35,7 @@ describe('withEdgeWrapping', () => {
     const origFunction = jest.fn(_req => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -54,7 +54,7 @@ describe('withEdgeWrapping', () => {
     });
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -70,7 +70,7 @@ describe('withEdgeWrapping', () => {
     const origFunction = jest.fn(_req => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
@@ -89,7 +89,7 @@ describe('withEdgeWrapping', () => {
     const origFunction = jest.fn(() => origFunctionReturnValue);
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
-      spanLabel: 'some label',
+      spanDescription: 'some label',
       mechanismFunctionName: 'some name',
       spanOp: 'some op',
     });
