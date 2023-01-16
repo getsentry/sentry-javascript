@@ -8,8 +8,7 @@ import type {
   StackFrame,
   StackParser,
 } from '@sentry/types';
-import type { Debugger, InspectorNotification, Runtime } from 'inspector';
-import { Session } from 'inspector';
+import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
 export interface DebugSession {
@@ -28,14 +27,24 @@ export interface DebugSession {
  * https://nodejs.org/docs/latest-v19.x/api/inspector.html#promises-api
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
-class AsyncSession extends Session implements DebugSession {
+class AsyncSession implements DebugSession {
+  private readonly _session: Session;
+
+  /** Throws is inspector API is not available */
+  public constructor() {
+    // Node can be build without inspector support so this can throw
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Session } = require('inspector');
+    this._session = new Session();
+  }
+
   /** @inheritdoc */
   public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
-    this.connect();
-    this.on('Debugger.paused', onPause);
-    this.post('Debugger.enable');
+    this._session.connect();
+    this._session.on('Debugger.paused', onPause);
+    this._session.post('Debugger.enable');
     // We only want to pause on uncaught exceptions
-    this.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+    this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
   }
 
   /** @inheritdoc */
@@ -61,7 +70,7 @@ class AsyncSession extends Session implements DebugSession {
    */
   private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
-      this.post(
+      this._session.post(
         'Runtime.getProperties',
         {
           objectId,
@@ -100,6 +109,18 @@ class AsyncSession extends Session implements DebugSession {
         obj[key] = val;
         return obj;
       }, {} as Record<string, unknown>);
+  }
+}
+
+/**
+ * When using Vercel pkg, the inspector module is not available.
+ * https://github.com/getsentry/sentry-javascript/issues/6769
+ */
+function tryNewAsyncSession(): AsyncSession | undefined {
+  try {
+    return new AsyncSession();
+  } catch (e) {
+    return undefined;
   }
 }
 
@@ -162,7 +183,10 @@ export class LocalVariables implements Integration {
 
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
 
-  public constructor(_options: Options = {}, private readonly _session: DebugSession = new AsyncSession()) {}
+  public constructor(
+    _options: Options = {},
+    private readonly _session: DebugSession | undefined = tryNewAsyncSession(),
+  ) {}
 
   /**
    * @inheritDoc
@@ -176,7 +200,7 @@ export class LocalVariables implements Integration {
     addGlobalEventProcessor: (callback: EventProcessor) => void,
     clientOptions: ClientOptions | undefined,
   ): void {
-    if (clientOptions?._experiments?.includeStackLocals) {
+    if (this._session && clientOptions?._experiments?.includeStackLocals) {
       this._session.configureAndConnect(ev =>
         this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
       );
@@ -212,7 +236,7 @@ export class LocalVariables implements Integration {
         return { function: fn };
       }
 
-      const vars = await this._session.getLocalVariables(localScope.object.objectId);
+      const vars = await this._session?.getLocalVariables(localScope.object.objectId);
 
       return { function: fn, vars };
     });
