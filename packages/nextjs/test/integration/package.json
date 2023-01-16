@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
-    "next": "latest",
+    "next": "10.x",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
@@ -24,6 +24,7 @@
     "yargs": "^16.2.0"
   },
   "resolutions": {
+    "next": "./node_modules/next/dist",
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
     "@sentry/integrations": "file:../../../integrations",

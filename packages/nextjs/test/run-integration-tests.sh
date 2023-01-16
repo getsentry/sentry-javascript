@@ -92,16 +92,24 @@ for NEXTJS_VERSION in 10 11 12 13; do
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
 
-    # Node v18 only with Webpack 5 and above
-    # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
-    # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
-    if [ "$NODE_MAJOR" -gt "17" ] && [ "$WEBPACK_VERSION" -eq "4" ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
-      exit 0
-    fi
-    if [ "$NODE_MAJOR" -gt "17" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
-      exit 0
+    if [ "$NODE_MAJOR" -gt "17" ]; then
+      # Node v17+ does not work with NextJS 10 and 11 because of their legacy openssl use
+      # Ref: https://github.com/vercel/next.js/issues/30078
+      if [ "$NEXTJS_VERSION" -lt "12" ]; then
+        echo "[nextjs@$NEXTJS_VERSION Node $NODE_MAJOR not compatible with NextJS $NEXTJS_VERSION"
+        # Continues the 2nd enclosing loop, which is the outer loop that iterates over the NextJS version
+        continue 2
+      fi
+
+      # Node v18 only with Webpack 5 and above
+      # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
+      # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
+      if [ "$WEBPACK_VERSION" -eq "4" ]; then
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+        # Continues the 1st enclosing loop, which is the inner loop that iterates over the Webpack version
+        continue
+      fi
+
     fi
 
     # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
