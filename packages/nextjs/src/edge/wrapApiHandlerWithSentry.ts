@@ -21,7 +21,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
           ? `handler (${parameterizedRoute})`
           : `${req.method} ${parameterizedRoute}`,
       spanOp: activeSpan ? 'function' : 'http.server',
-      mechanismFunctionName: 'withSentryAPI',
+      mechanismFunctionName: 'wrapApiHandlerWithSentry',
     });
 
     return await wrappedHandler.apply(this, args);
