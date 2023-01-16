@@ -803,12 +803,18 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     await this._addPerformanceEntries();
 
-    if (!this.eventBuffer.pendingLength) {
+    // Check eventBuffer again, as it could have been stopped in the meanwhile
+    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
       return;
     }
 
     // Only attach memory event if eventBuffer is not empty
     await addMemoryEntry(this);
+
+    // Check eventBuffer again, as it could have been stopped in the meanwhile
+    if (!this.eventBuffer) {
+      return;
+    }
 
     try {
       // Note this empties the event buffer regardless of outcome of sending replay
