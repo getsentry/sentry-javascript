@@ -50,11 +50,15 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
     return null;
   }
 
+  const timestamp = handlerData.xhr.__sentry_xhr__
+    ? handlerData.xhr.__sentry_xhr__.startTimestamp || 0
+    : handlerData.endTimestamp;
+
   return {
     type: 'resource.xhr',
     name: url,
-    start: (handlerData.xhr.__sentry_xhr__?.startTimestamp || 0) / 1000 || handlerData.endTimestamp / 1000.0,
-    end: handlerData.endTimestamp / 1000.0,
+    start: timestamp / 1000,
+    end: handlerData.endTimestamp / 1000,
     data: {
       method,
       statusCode,

@@ -35,7 +35,7 @@ export async function sendReplayRequest({
   const client = hub.getClient();
   const scope = hub.getScope();
   const transport = client && client.getTransport();
-  const dsn = client?.getDsn();
+  const dsn = client && client.getDsn();
 
   if (!client || !scope || !transport || !dsn || !session.sampled) {
     return;

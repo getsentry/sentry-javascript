@@ -35,7 +35,7 @@ export async function addEvent(
   // Only record earliest event if a new session was created, otherwise it
   // shouldn't be relevant
   const earliestEvent = replay.getContext().earliestEvent;
-  if (replay.session?.segmentId === 0 && (!earliestEvent || timestampInMs < earliestEvent)) {
+  if (replay.session && replay.session.segmentId === 0 && (!earliestEvent || timestampInMs < earliestEvent)) {
     replay.getContext().earliestEvent = timestampInMs;
   }
 

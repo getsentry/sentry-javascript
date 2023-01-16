@@ -21,7 +21,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
     // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
-    if (isRrwebError(event) && !replay.getOptions()._experiments?.captureExceptions) {
+    if (isRrwebError(event) && !replay.getOptions()._experiments.captureExceptions) {
       __DEBUG_BUILD__ && logger.log('[Replay] Ignoring error from rrweb internals', event);
       return null;
     }
@@ -29,7 +29,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
     // Only tag transactions with replayId if not waiting for an error
     // @ts-ignore private
     if (!event.type || replay.recordingMode === 'session') {
-      event.tags = { ...event.tags, replayId: replay.session?.id };
+      event.tags = { ...event.tags, replayId: replay.getSessionId() };
     }
 
     // Collect traceIds in _context regardless of `recordingMode` - if it's true,
@@ -44,12 +44,10 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       replay.getContext().errorIds.add(event.event_id as string);
     }
 
-    const exc = event.exception?.values?.[0];
-    if (__DEBUG_BUILD__ && replay.getOptions()._experiments?.traceInternals) {
+    if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals) {
+      const exc = getEventExceptionValues(event);
       addInternalBreadcrumb({
-        message: `Tagging event (${event.event_id}) - ${event.message} - ${exc?.type || 'Unknown'}: ${
-          exc?.value || 'n/a'
-        }`,
+        message: `Tagging event (${event.event_id}) - ${event.message} - ${exc.type}: ${exc.value}`,
       });
     }
 
@@ -88,4 +86,12 @@ function addInternalBreadcrumb(arg: Parameters<typeof addBreadcrumb>[0]): void {
     message: `[debug]: ${message}`,
     ...rest,
   });
+}
+
+function getEventExceptionValues(event: Event): { type: string; value: string } {
+  return {
+    type: 'Unknown',
+    value: 'n/a',
+    ...(event.exception && event.exception.values && event.exception.values[0]),
+  };
 }

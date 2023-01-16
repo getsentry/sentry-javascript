@@ -95,7 +95,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public _pendingEvents: RecordingEvent[] = [];
 
-  private _worker: null | Worker;
+  private _worker: Worker;
   private _eventBufferItemLength: number = 0;
   private _id: number = 0;
 
@@ -124,8 +124,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public destroy(): void {
     __DEBUG_BUILD__ && logger.log('[Replay] Destroying compression worker');
-    this._worker?.terminate();
-    this._worker = null;
+    this._worker.terminate();
   }
 
   /**
@@ -177,7 +176,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
         }
 
         // At this point, we'll always want to remove listener regardless of result status
-        this._worker?.removeEventListener('message', listener);
+        this._worker.removeEventListener('message', listener);
 
         if (!data.success) {
           // TODO: Do some error handling, not sure what
@@ -200,8 +199,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
       // Note: we can't use `once` option because it's possible it needs to
       // listen to multiple messages
-      this._worker?.addEventListener('message', listener);
-      this._worker?.postMessage({ id, method, args: stringifiedArgs });
+      this._worker.addEventListener('message', listener);
+      this._worker.postMessage({ id, method, args: stringifiedArgs });
     });
   }
 
