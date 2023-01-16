@@ -4,6 +4,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.31.0
+
+- feat(nextjs): Add Edge Runtime SDK (#6752)
+- feat(nextjs): Add optional options argument to `withSentryConfig` as an alternative to the `sentry` property (#6721)
+- feat(nextjs): Add edge route and middleware wrappers (#6771)
+- feat(nextjs): Auto-wrap edge-routes and middleware (#6746)
+- feat(replay): Change `addEvent` to be async (#6695)
+- feat(replay): Update rrweb & rrweb-snapshot (#6749)
+- feat(replay): Stop recording when retry fails (#6765)
+- feat(replay): Stop without retry when receiving bad API response (#6773)
+- feat(types): Add Trace Context type (#6714)
+- fix(nextjs): Make Next.js types isomorphic (#6707)
+- fix(node): Handle node build without inspector in LocalVariables integration (#6780)
+- fix(otel): Set trace context via Otel Span instead of Sentry span (#6724)
+- fix(otel): Prevent baggage from being overwritten (#6709)
+- fix(otel): Make sure we handle when sentry-trace is an empty array (#6781)
+- fix(remix): Make remix SDK type exports isomorphic (#6715)
+- fix(replay): Fix `checkoutEveryNms` (#6722)
+- fix(replay): Fix incorrect uncompressed recording size due to encoding (#6740)
+- fix(tracing): Attach request instrumentation span to active span instead of current transaction (#6778)
+- ref: Replace string.substr with string.slice (#6760)
+- ref(nextjs): Deprecate `isBuild()` and `IS_BUILD` (#6727)
+
 ## 7.30.0
 
 - feat(core): Add `addIntegration` method to client (#6651)
