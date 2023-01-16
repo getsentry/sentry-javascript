@@ -294,17 +294,17 @@ export class Span implements SpanInterface {
    * @inheritDoc
    */
   public updateWithContext(spanContext: SpanContext): this {
-    this.data = spanContext.data ?? {};
+    this.data = spanContext.data || {};
     this.description = spanContext.description;
     this.endTimestamp = spanContext.endTimestamp;
     this.op = spanContext.op;
     this.parentSpanId = spanContext.parentSpanId;
     this.sampled = spanContext.sampled;
-    this.spanId = spanContext.spanId ?? this.spanId;
-    this.startTimestamp = spanContext.startTimestamp ?? this.startTimestamp;
+    this.spanId = spanContext.spanId || this.spanId;
+    this.startTimestamp = spanContext.startTimestamp || this.startTimestamp;
     this.status = spanContext.status;
-    this.tags = spanContext.tags ?? {};
-    this.traceId = spanContext.traceId ?? this.traceId;
+    this.tags = spanContext.tags || {};
+    this.traceId = spanContext.traceId || this.traceId;
 
     return this;
   }

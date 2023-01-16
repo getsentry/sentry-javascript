@@ -317,7 +317,7 @@ export class BrowserTracing implements Integration {
         op,
         trimEnd: true,
         metadata: {
-          source: this._latestRouteSource ?? 'url',
+          source: this._latestRouteSource || 'url',
         },
       };
 
