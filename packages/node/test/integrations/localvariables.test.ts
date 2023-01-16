@@ -244,7 +244,25 @@ describe('LocalVariables', () => {
     expect(eventProcessor).toBeUndefined();
   });
 
-  it.only('Should cache identical uncaught exception events', async () => {
+  it('Should not initialize when inspector not loaded', async () => {
+    expect.assertions(1);
+
+    const localVariables = new LocalVariables({}, undefined);
+    const options = getDefaultNodeClientOptions({
+      stackParser: defaultStackParser,
+      _experiments: { includeStackLocals: false },
+    });
+
+    let eventProcessor: EventProcessor | undefined;
+
+    (localVariables as unknown as LocalVariablesPrivate)._setup(callback => {
+      eventProcessor = callback;
+    }, options);
+
+    expect(eventProcessor).toBeUndefined();
+  });
+
+  it('Should cache identical uncaught exception events', async () => {
     expect.assertions(1);
 
     const session = new MockDebugSession({

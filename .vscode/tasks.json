@@ -7,7 +7,13 @@
 			"type": "npm",
 			"script": "predebug",
 			"path": "packages/nextjs/test/integration/",
-			"detail": "Link the SDK (if not already linked) and build test app"
+			"detail": "Link the SDK (if not already linked) and build test app",
+		},
+		{
+			"label": "Build Replay metrics script",
+			"type": "npm",
+			"script": "build",
+			"path": "packages/replay/metrics",
 		}
 	]
 }

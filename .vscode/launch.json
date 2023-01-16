@@ -37,6 +37,22 @@
       "internalConsoleOptions": "openOnSessionStart",
       "outputCapture": "std"
     },
+    {
+        "type": "node",
+        "name": "Debug replay metrics collection script",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/packages/replay/metrics/",
+        "program": "${workspaceFolder}/packages/replay/metrics/configs/dev/collect.ts",
+        "preLaunchTask": "Build Replay metrics script",
+    },
+    {
+        "type": "node",
+        "name": "Debug replay metrics processing script",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/packages/replay/metrics/",
+        "program": "${workspaceFolder}/packages/replay/metrics/configs/dev/process.ts",
+        "preLaunchTask": "Build Replay metrics script",
+    },
     // Run rollup using the config file which is in the currently active tab.
     {
       "name": "Debug rollup (config from open file)",
