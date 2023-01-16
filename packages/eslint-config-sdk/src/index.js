@@ -145,6 +145,7 @@ module.exports = {
 
         // We want to prevent async await usage in our files to prevent uncessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-async-await': 'error',
+        '@sentry-internal/sdk/no-nullish-coalescing': 'error',
 
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
@@ -178,6 +179,7 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/no-empty-function': 'off',
         '@sentry-internal/sdk/no-async-await': 'off',
+        '@sentry-internal/sdk/no-nullish-coalescing': 'off',
       },
     },
     {
