@@ -21,6 +21,7 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
+  await page.waitForRequest('https://dsn.ingest.sentry.io/**/*');
 
   await page.click('button');
   await page.waitForRequest('https://dsn.ingest.sentry.io/**/*');
