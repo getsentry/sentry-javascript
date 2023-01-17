@@ -199,28 +199,6 @@ The following options can be configured as options to the integration, in `new R
 | maskTextClass    | string \| RegExp         | `'sentry-mask'`                     | Mask all elements that match the class name. See [privacy](#masking) section for an example.                                                                                                                                                        |
 | maskTextSelector    | string         | `undefined`                     | Mask all elements that match the given DOM selector. See [privacy](#masking) section for an example.                                                                                                                                                        |
 
-### Optimization Configuration
-
-The following options can be configured as options to the integration, in `new Replay({})`:
-
-| key              | type                    | default | description                                                                                                                                                                                                                  |
-| ---------------- | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| collectFonts     | boolean                 | `false` | Should collect fonts used on the website                                                                                                                                                                                     |
-| inlineImages     | boolean                 | `false` | Should inline `<image>` content                                                                                                                                                                                              |
-| inlineStylesheet | boolean                 | `true`  | Should inline stylesheets used in the recording                                                                                                                                                                                                                                                                                                                                                                       |
-
-
-### rrweb Configuration
-
-In addition to the options described above, you can also directly pass configuration to [rrweb](https://github.com/rrweb-io/rrweb/blob/rrweb%401.1.3/guide.md), which is the underlying library used to make the recordings:
-
-```js
-new Replay({
-  // any further configuration here is passed directly to rrweb
-});
-```
-
-
 ## Privacy
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all media elements (`img, svg, video, object, picture, embed, map, audio`). This can be disabled by setting `maskAllText` to `false`. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: `sentry-block`, `sentry-ignore`, and `sentry-mask`. The following sections will show examples of how content is handled by the differing methods.
 
