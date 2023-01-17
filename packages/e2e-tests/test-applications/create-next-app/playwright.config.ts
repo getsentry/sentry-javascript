@@ -61,7 +61,7 @@ const config: PlaywrightTestConfig = {
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: process.env.TEST_MODE === 'build' ? 'yarn start' : 'yarn dev',
+    command: process.env.TEST_MODE === 'prod' ? 'yarn start' : 'yarn dev',
     port: 3000,
   },
 };
