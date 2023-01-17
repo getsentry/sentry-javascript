@@ -26,7 +26,7 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
     if (!postData) {
       return false;
     }
-    return postData.includes('replay_event');
+    return postData.includes('{"type":"replay_event"}');
   });
 
   await page.goto(url);
@@ -37,7 +37,7 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
     if (!postData) {
       return false;
     }
-    return postData.includes('replay_event');
+    return postData.includes('{"type":"replay_event"}');
   });
 
   await page.click('button');
