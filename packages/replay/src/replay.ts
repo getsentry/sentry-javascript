@@ -836,9 +836,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Only attach memory entry if eventBuffer is not empty
       promises.push(addMemoryEntry(this));
 
-      // This empties the event buffer regardless of outcome of sending replay
-      promises.push(this.eventBuffer.finish());
-
       // NOTE: Copy values from instance members, as it's possible they could
       // change before the flush finishes.
       const replayId = this.session.id;
@@ -865,7 +862,10 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // NOTE: Be mindful that nothing after this point (the first `await`)
       // will run after when the page is unloaded.
-      const [, , recordingData] = await Promise.all(promises);
+      await Promise.all(promises);
+
+      // This empties the event buffer regardless of outcome of sending replay
+      const recordingData = await this.eventBuffer.finish();
 
       const sendReplayPromise = sendReplay({
         replayId,
