@@ -23,6 +23,8 @@ export type ProfilerProps = {
   includeUpdates?: boolean;
   // props given to component being profiled.
   updateProps: { [key: string]: unknown };
+
+  children: React.ReactNode;
 };
 
 /**
@@ -120,7 +122,6 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 
   public render(): React.ReactNode {
-    // eslint-disable-next-line react/prop-types
     return this.props.children;
   }
 }
