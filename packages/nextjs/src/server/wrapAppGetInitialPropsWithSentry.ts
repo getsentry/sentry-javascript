@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
@@ -29,12 +30,13 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
     const { req, res } = context.ctx;
 
     const errorWrappedAppGetInitialProps = withErrorInstrumentation(origAppGetInitialProps);
+    const options = getCurrentHub().getClient()?.getOptions();
 
     // Generally we can assume that `req` and `res` are always defined on the server:
     // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
     // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
     // span with each other when there are no req or res objects, we simply do not trace them at all here.
-    if (hasTracingEnabled() && req && res) {
+    if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
       const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedAppGetInitialProps, req, res, {
         dataFetcherRouteName: '/_app',
         requestedRouteName: context.ctx.pathname,

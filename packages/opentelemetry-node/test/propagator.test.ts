@@ -166,6 +166,18 @@ describe('SentryPropagator', () => {
           );
         });
 
+        it('should create baggage without active transaction', () => {
+          const spanContext = {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.SAMPLED,
+          };
+          const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+          const baggage = propagation.createBaggage({ foo: { value: 'bar' } });
+          propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe('foo=bar');
+        });
+
         it('should NOT set baggage and sentry-trace header if instrumentation is supressed', () => {
           const spanContext = {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',

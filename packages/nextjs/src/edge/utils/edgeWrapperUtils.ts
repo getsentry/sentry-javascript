@@ -80,6 +80,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       span?.setStatus('internal_error');
 
       captureException(objectifiedErr, scope => {
+        scope.setSpan(span);
         scope.addEventProcessor(event => {
           addExceptionMechanism(event, {
             type: 'instrument',

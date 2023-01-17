@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { GetServerSideProps } from 'next';
@@ -29,8 +30,9 @@ export function wrapGetServerSidePropsWithSentry(
     const { req, res } = context;
 
     const errorWrappedGetServerSideProps = withErrorInstrumentation(origGetServerSideProps);
+    const options = getCurrentHub().getClient()?.getOptions();
 
-    if (hasTracingEnabled()) {
+    if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
       const tracedGetServerSideProps = withTracedServerSideDataFetcher(errorWrappedGetServerSideProps, req, res, {
         dataFetcherRouteName: parameterizedRoute,
         requestedRouteName: parameterizedRoute,

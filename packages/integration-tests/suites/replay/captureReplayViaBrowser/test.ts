@@ -6,8 +6,9 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  // For this test, we skip all bundle tests, as we're only interested in Replay being correctly
+  // exported from the `@sentry/browser` npm package.
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
     sentryTest.skip();
   }
 

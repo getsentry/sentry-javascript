@@ -5,7 +5,7 @@ import { getReplaySnapshot } from '../../../utils/helpers';
 
 sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
   // Currently bundle tests are not supported for replay
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
   }
 
@@ -31,7 +31,9 @@ sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
   await page.waitForTimeout(5001);
 
   expect(called).toBe(1);
+
   const replay = await getReplaySnapshot(page);
 
-  expect(replay['_isEnabled']).toBe(false);
+  // @ts-ignore private API
+  expect(replay._isEnabled).toBe(false);
 });
