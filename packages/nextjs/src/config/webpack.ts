@@ -500,12 +500,12 @@ function shouldAddSentryToEntryPoint(
   excludeServerRoutes: Array<string | RegExp> = [],
   isDev: boolean,
 ): boolean {
-  if (entryPointName === 'middleware') {
-    return true;
-  }
-
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
   if (isServer) {
+    if (entryPointName === 'middleware') {
+      return true;
+    }
+
     const entryPointRoute = entryPointName.replace(/^pages/, '');
 
     // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
@@ -527,9 +527,6 @@ function shouldAddSentryToEntryPoint(
       // versions.)
       entryPointRoute === '/_app' ||
       entryPointRoute === '/_document' ||
-      // Newer versions of nextjs are starting to introduce things outside the `pages/` folder (middleware, an `app/`
-      // directory, etc), but until those features are stable and we know how we want to support them, the safest bet is
-      // not to inject anywhere but inside `pages/`.
       !entryPointName.startsWith('pages/')
     ) {
       return false;
@@ -537,13 +534,11 @@ function shouldAddSentryToEntryPoint(
 
     // We want to inject Sentry into all other pages
     return true;
-  }
-
-  // On the client side, we only want to inject into `_app`, because that guarantees there'll be only one copy of the
-  // SDK in the eventual bundle. Since `_app` is the (effectively) the root component for every nextjs app, inclusing
-  // Sentry there means it will be available for every front end page.
-  else {
-    return entryPointName === 'pages/_app';
+  } else {
+    return (
+      entryPointName === 'pages/_app' || // entrypoint for `/pages` pages
+      entryPointName === 'main-app' // entrypoint for `/app` pages
+    );
   }
 }
 

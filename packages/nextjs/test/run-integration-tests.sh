@@ -107,8 +107,12 @@ for NEXTJS_VERSION in 10 11 12 13; do
     # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
     if [ "$NEXTJS_VERSION" -eq "10" ]; then
       sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next10.config.template >next.config.js
-    else
+    elif [ "$NEXTJS_VERSION" -eq "11" ]; then
       sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next11.config.template >next.config.js
+    elif [ "$NEXTJS_VERSION" -eq "12" ]; then
+      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next12.config.template >next.config.js
+    elif [ "$NEXTJS_VERSION" -eq "13" ]; then
+      sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.config.template >next.config.js
     fi
 
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
