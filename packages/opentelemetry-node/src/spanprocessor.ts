@@ -23,7 +23,7 @@ export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = 
 export class SentrySpanProcessor implements OtelSpanProcessor {
   public constructor() {
     addGlobalEventProcessor(event => {
-      const otelSpan = trace.getActiveSpan() as OtelSpan;
+      const otelSpan = trace && trace.getActiveSpan && (trace.getActiveSpan() as OtelSpan | undefined);
       if (!otelSpan) {
         return event;
       }
