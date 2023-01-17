@@ -21,11 +21,25 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const reqPromise = page.waitForRequest('https://dsn.ingest.sentry.io/**/*');
+  const reqPromise = page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+    return postData.includes('replay_event');
+  });
+
   await page.goto(url);
   await reqPromise;
 
-  const reqPromise2 = page.waitForRequest('https://dsn.ingest.sentry.io/**/*');
+  const reqPromise2 = page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+    return postData.includes('replay_event');
+  });
+
   await page.click('button');
   await reqPromise2;
 
