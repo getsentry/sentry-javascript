@@ -87,12 +87,14 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
     // eslint-disable-next-line complexity
     const boundHandler = local.bind(async () => {
       let transaction: Transaction | undefined;
-      const currentScope = getCurrentHub().getScope();
+      const hub = getCurrentHub();
+      const currentScope = hub.getScope();
+      const options = hub.getClient()?.getOptions();
 
       if (currentScope) {
         currentScope.setSDKProcessingMetadata({ request: req });
 
-        if (hasTracingEnabled()) {
+        if (hasTracingEnabled(options) && options?.instrumenter === 'sentry') {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {
@@ -137,7 +139,6 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
             { request: req },
           );
           currentScope.setSpan(transaction);
-
           if (platformSupportsStreaming() && !origHandler.__sentry_test_doesnt_support_streaming__) {
             autoEndTransactionOnResponseEnd(transaction, res);
           } else {
