@@ -7,6 +7,7 @@
 ## 7.31.1
 
 - build(replay): Provide full browser+tracing+replay bundle (#6793)
+- feat(nextjs): Disable NextJS perf monitoring when using otel (#6820)
 - fix(nextjs): Add back browser field in package.json (#6809)
 - fix(nextjs): Connect Edge API route errors to span (#6806)
 - fix(nextjs): Correctly handle ts middleware files (#6816)
