@@ -68,7 +68,7 @@ export default function wrappingLoader(
   }
 
   const middlewareJsPath = path.join(pagesDir, '..', 'middleware.js');
-  const middlewareTsPath = path.join(pagesDir, '..', 'middleware.js');
+  const middlewareTsPath = path.join(pagesDir, '..', 'middleware.ts');
 
   let templateCode: string;
   if (parameterizedRoute.startsWith('/api')) {

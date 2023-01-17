@@ -1,24 +1,27 @@
-const { waitForAll } = require('../utils/common');
-const { expectRequestCount, isSessionRequest, expectSession } = require('../utils/client');
+const { expectRequestCount, isSessionRequest, expectSession, extractEnvelopeFromRequest } = require('../utils/client');
 
 module.exports = async ({ page, url, requests }) => {
-  await waitForAll([
-    page.goto(`${url}/crashed`),
-    page.waitForRequest(isSessionRequest),
-    page.waitForRequest(isSessionRequest),
-  ]);
-
-  expectSession(requests.sessions[0], {
-    init: true,
-    status: 'ok',
-    errors: 0,
+  const sessionRequestPromise1 = page.waitForRequest(request => {
+    if (isSessionRequest(request)) {
+      const { item } = extractEnvelopeFromRequest(request);
+      return item.init === true && item.status === 'ok' && item.errors === 0;
+    } else {
+      return false;
+    }
   });
 
-  expectSession(requests.sessions[1], {
-    init: false,
-    status: 'crashed',
-    errors: 1,
+  const sessionRequestPromise2 = page.waitForRequest(request => {
+    if (isSessionRequest(request)) {
+      const { item } = extractEnvelopeFromRequest(request);
+      return item.init === false && item.status === 'crashed' && item.errors === 1;
+    } else {
+      return false;
+    }
   });
+
+  await page.goto(`${url}/crashed`);
+  await sessionRequestPromise1;
+  await sessionRequestPromise2;
 
   await expectRequestCount(requests, { sessions: 2 });
 };

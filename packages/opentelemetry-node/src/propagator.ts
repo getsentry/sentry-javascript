@@ -28,26 +28,23 @@ export class SentryPropagator extends W3CBaggagePropagator {
       return;
     }
 
+    let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
+
     const span = SENTRY_SPAN_PROCESSOR_MAP.get(spanContext.spanId);
     if (span) {
       setter.set(carrier, SENTRY_TRACE_HEADER, span.toTraceparent());
 
       if (span.transaction) {
         const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
-
-        const baggage = propagation.getBaggage(context) || propagation.createBaggage({});
-        const baggageWithSentryInfo = Object.entries(dynamicSamplingContext).reduce<Baggage>(
-          (b, [dscKey, dscValue]) => {
-            if (dscValue) {
-              return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });
-            }
-            return b;
-          },
-          baggage,
-        );
-        super.inject(propagation.setBaggage(context, baggageWithSentryInfo), carrier, setter);
+        baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
+          if (dscValue) {
+            return b.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}${dscKey}`, { value: dscValue });
+          }
+          return b;
+        }, baggage);
       }
     }
+    super.inject(propagation.setBaggage(context, baggage), carrier, setter);
   }
 
   /**

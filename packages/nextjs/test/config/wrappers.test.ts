@@ -1,4 +1,5 @@
 import * as SentryCore from '@sentry/core';
+import * as SentryNode from '@sentry/node';
 import * as SentryTracing from '@sentry/tracing';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -17,6 +18,12 @@ describe('data-fetching function wrappers', () => {
       res = { end: jest.fn() } as unknown as ServerResponse;
 
       jest.spyOn(SentryTracing, 'hasTracingEnabled').mockReturnValueOnce(true);
+      jest.spyOn(SentryNode, 'getCurrentHub').mockReturnValueOnce({
+        getClient: () =>
+          ({
+            getOptions: () => ({ instrumenter: 'sentry' }),
+          } as any),
+      } as any);
     });
 
     afterEach(() => {
