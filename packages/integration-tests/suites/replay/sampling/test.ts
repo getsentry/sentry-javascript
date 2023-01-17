@@ -24,7 +24,7 @@ sentryTest('sampling', async ({ getLocalTestPath, page }) => {
   await page.goto(url);
 
   await page.click('button');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(500);
 
   const replay = await getReplaySnapshot(page);
 
