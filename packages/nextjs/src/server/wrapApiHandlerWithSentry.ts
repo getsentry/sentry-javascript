@@ -94,7 +94,7 @@ export function withSentry(origHandler: NextApiHandler, parameterizedRoute?: str
       if (currentScope) {
         currentScope.setSDKProcessingMetadata({ request: req });
 
-        if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
+        if (hasTracingEnabled(options) && options?.instrumenter === 'sentry') {
           // If there is a trace header set, extract the data from it (parentSpanId, traceId, and sampling decision)
           let traceparentData;
           if (req.headers && isString(req.headers['sentry-trace'])) {

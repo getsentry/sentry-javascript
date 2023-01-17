@@ -66,9 +66,9 @@ describe('withSentry', () => {
 
   describe('tracing', () => {
     it('starts a transaction and sets metadata when tracing is enabled', async () => {
-      jest
-        .spyOn(hub.Hub.prototype, 'getClient')
-        .mockReturnValueOnce({ getOptions: () => ({ tracesSampleRate: 1 } as ClientOptions) } as Client);
+      jest.spyOn(hub.Hub.prototype, 'getClient').mockReturnValueOnce({
+        getOptions: () => ({ tracesSampleRate: 1, instrumenter: 'sentry' } as ClientOptions),
+      } as Client);
 
       await callWrappedHandler(wrappedHandlerNoError, req, res);
 
