@@ -126,6 +126,19 @@ Sentry.init({
 
 The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
 
+Alternatively, you can also load the Replay integration separately from other bundles:
+
+```html
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  crossorigin="anonymous"
+></script>
+```
+
 Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
 Note that the two bundle versions always have to match.
 
