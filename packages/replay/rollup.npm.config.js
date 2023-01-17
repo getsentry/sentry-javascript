@@ -1,5 +1,3 @@
-import path from 'path';
-
 import replace from '@rollup/plugin-replace';
 
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index';
@@ -23,12 +21,7 @@ export default makeNPMConfigVariants(
         // set exports to 'named' or 'auto' so that rollup doesn't warn about
         // the default export in `worker/worker.js`
         exports: 'named',
-
-        // As we are inlining the rrweb dependency here, we need to ensure the nested folders are correct
-        // Without this config, you get:
-        // * build/npm/esm/node_modules/rrweb/...
-        // * build/npm/esm/packages/replay/...
-        preserveModulesRoot: path.join(process.cwd(), 'src'),
+        preserveModules: false,
       },
     },
   }),
