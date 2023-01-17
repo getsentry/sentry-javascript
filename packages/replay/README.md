@@ -99,19 +99,11 @@ replay.start();
 ## Loading Replay as a CDN Bundle
 
 As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
-Note that the Replay bundle **only contains the Replay integration** and not the entire Sentry SDK.
-You have to add it in addition to the Sentry Browser SDK bundle:
 
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.1/bundle.tracing.min.js"
-  crossorigin="anonymous"
-></script>
-
-// Replay integration bundle
-<script
-  src="https://browser.sentry-cdn.com/7.24.1/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
   crossorigin="anonymous"
 ></script>
 
@@ -131,6 +123,19 @@ Sentry.init({
 ```
 
 The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
+
+Alternatively, you can also load the Replay integration separately from other bundles:
+
+```html
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  crossorigin="anonymous"
+></script>
+```
 
 Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
 Note that the two bundle versions always have to match.

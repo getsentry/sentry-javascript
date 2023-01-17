@@ -1,4 +1,7 @@
-import { Integrations } from '../src/index.bundle';
+import Sentry from '../src/index.bundle.replay';
+
+// Because of the way how we re-export stuff for the replay bundle, we only have a single default export
+const { Integrations } = Sentry;
 
 describe('Integrations export', () => {
   it('is exported correctly', () => {
@@ -10,7 +13,7 @@ describe('Integrations export', () => {
 
       expect((Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
-  });
 
-  expect(Integrations.Replay).toBeUndefined();
+    expect(Integrations.Replay).toBeDefined();
+  });
 });
