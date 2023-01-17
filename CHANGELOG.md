@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.31.1
+
+- build(replay): Provide full browser+tracing+replay bundle (#6793)
+- fix(nextjs): Add back browser field in package.json (#6809)
+- fix(nextjs): Connect Edge API route errors to span (#6806)
+- fix(nextjs): Correctly handle ts middleware files (#6816)
+
 ## 7.31.0
 
 The Next.js SDK now supports error and performance monitoring for Next.js [middleware](https://nextjs.org/docs/advanced-features/middleware) and [Edge API routes](https://nextjs.org/docs/api-routes/edge-api-routes).
