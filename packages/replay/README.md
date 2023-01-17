@@ -99,8 +99,6 @@ replay.start();
 ## Loading Replay as a CDN Bundle
 
 As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
-Note that the Replay bundle **only contains the Replay integration** and not the entire Sentry SDK.
-You have to add it in addition to the Sentry Browser SDK bundle:
 
 ```js
 // Browser SDK bundle
