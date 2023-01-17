@@ -1,4 +1,3 @@
-import { wrapApiHandlerWithSentry } from '@sentry/nextjs';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 import { sampleUserData } from '../../../utils/sample-data';
@@ -15,4 +14,4 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse): Promise<void
   }
 };
 
-export default wrapApiHandlerWithSentry(handler, '/api/users');
+export default handler;
