@@ -225,7 +225,7 @@ export interface EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfully added.
+   * Returns a promise that resolves if the event was successfully added, else rejects.
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 

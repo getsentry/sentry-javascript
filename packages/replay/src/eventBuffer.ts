@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // TODO: figure out member access types and remove the line above
 
-import { captureException } from '@sentry/core';
+import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest } from './types';
@@ -20,22 +20,88 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
     const workerBlob = new Blob([workerString]);
     const workerUrl = URL.createObjectURL(workerBlob);
 
-    try {
-      __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
-      const worker = new Worker(workerUrl);
-      if (worker) {
-        return new EventBufferCompressionWorker(worker);
-      } else {
-        captureException(new Error('Unable to create compression worker'));
-      }
-    } catch {
-      // catch and ignore, fallback to simple event buffer
-    }
-    __DEBUG_BUILD__ && logger.log('[Replay] Falling back to simple event buffer');
+    __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
+    const worker = new Worker(workerUrl);
+    return new EventBufferProxy(worker);
   }
 
   __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
   return new EventBufferArray();
+}
+
+/**
+ * This proxy will try to use the compression worker, and fall back to use the simple buffer if an error occurs there.
+ * This can happen e.g. if the worker cannot be loaded.
+ * Exported only for testing.
+ */
+export class EventBufferProxy implements EventBuffer {
+  private _fallback: EventBufferArray;
+  private _compression: EventBufferCompressionWorker;
+  private _used: EventBuffer;
+
+  public constructor(worker: Worker) {
+    this._fallback = new EventBufferArray();
+    this._compression = new EventBufferCompressionWorker(worker);
+    this._used = this._fallback;
+
+    void this._ensureWorkerIsLoaded();
+  }
+
+  /** @inheritDoc */
+  public get pendingLength(): number {
+    return this._used.pendingLength;
+  }
+
+  /** @inheritDoc */
+  public get pendingEvents(): RecordingEvent[] {
+    return this._used.pendingEvents;
+  }
+
+  /** @inheritDoc */
+  public destroy(): void {
+    return this._fallback.destroy();
+    return this._compression.destroy();
+  }
+
+  /**
+   * Add an event to the event buffer.
+   *
+   * Returns true if event was successfully added.
+   */
+  public addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
+    return this._used.addEvent(event, isCheckout);
+  }
+
+  /** @inheritDoc */
+  public finish(): Promise<ReplayRecordingData> {
+    return this._used.finish();
+  }
+
+  /** Ensure the worker has loaded. */
+  private async _ensureWorkerIsLoaded(): Promise<void> {
+    try {
+      await this._compression.ensureReady();
+    } catch (error) {
+      // If the worker fails to load, we fall back to the simple buffer.
+      // Nothing more to do from our side here
+      __DEBUG_BUILD__ && logger.log('[Replay] Failed to load the compression worker, falling back to simple buffer');
+      return;
+    }
+
+    // Compression worker is ready, we can use it
+    // Now we need to switch over the array buffer to the compression worker
+    const addEventPromises: Promise<void>[] = [];
+    for (const event of this._fallback.pendingEvents) {
+      addEventPromises.push(this._compression.addEvent(event));
+    }
+
+    // We switch over to the compression buffer immediately - any further events will be added
+    // after the previously buffered ones
+    this._used = this._compression;
+
+    // Wait for original events to be re-added before resolving
+    await Promise.all(addEventPromises);
+  }
 }
 
 class EventBufferArray implements EventBuffer {
@@ -117,6 +183,31 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public get pendingEvents(): RecordingEvent[] {
     return this._pendingEvents;
+  }
+
+  /**
+   * Ensure the worker is ready (or not).
+   * This will either resolve when the worker is ready, or reject if an error occured.
+   */
+  public ensureReady(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this._worker.addEventListener(
+        'message',
+        () => {
+          // We really don't care what is sent here, any message means it has loaded
+          resolve();
+        },
+        { once: true },
+      );
+
+      this._worker.addEventListener(
+        'error',
+        error => {
+          reject(error);
+        },
+        { once: true },
+      );
+    });
   }
 
   /**
