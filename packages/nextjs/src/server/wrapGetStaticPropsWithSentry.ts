@@ -1,3 +1,5 @@
+import { getCurrentHub } from '@sentry/node';
+import { hasTracingEnabled } from '@sentry/tracing';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';
@@ -24,11 +26,16 @@ export function wrapGetStaticPropsWithSentry(
     }
 
     const errorWrappedGetStaticProps = withErrorInstrumentation(origGetStaticProps);
+    const options = getCurrentHub().getClient()?.getOptions();
 
-    return callDataFetcherTraced(errorWrappedGetStaticProps, getStaticPropsArguments, {
-      parameterizedRoute,
-      dataFetchingMethodName: 'getStaticProps',
-    });
+    if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
+      return callDataFetcherTraced(errorWrappedGetStaticProps, getStaticPropsArguments, {
+        parameterizedRoute,
+        dataFetchingMethodName: 'getStaticProps',
+      });
+    }
+
+    return errorWrappedGetStaticProps(...getStaticPropsArguments);
   };
 }
 
