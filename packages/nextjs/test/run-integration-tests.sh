@@ -9,6 +9,7 @@ START_TIME=$(date -R)
 function cleanup {
   echo "[nextjs] Cleaning up..."
   mv next.config.js.bak next.config.js 2>/dev/null || true
+  mv -f package.json.bak package.json 2>/dev/null || true
   rm -rf node_modules 2>/dev/null || true
 
   # Delete yarn's cached versions of sentry packages added during this test run, since every test run installs multiple
@@ -92,16 +93,24 @@ for NEXTJS_VERSION in 10 11 12 13; do
       WEBPACK_VERSION=5 ||
       WEBPACK_VERSION=4
 
-    # Node v18 only with Webpack 5 and above
-    # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
-    # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
-    if [ "$NODE_MAJOR" -gt "17" ] && [ "$WEBPACK_VERSION" -eq "4" ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
-      exit 0
-    fi
-    if [ "$NODE_MAJOR" -gt "17" ] && [ "$NEXTJS_VERSION" -eq "10" ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
-      exit 0
+    if [ "$NODE_MAJOR" -gt "17" ]; then
+      # Node v17+ does not work with NextJS 10 and 11 because of their legacy openssl use
+      # Ref: https://github.com/vercel/next.js/issues/30078
+      if [ "$NEXTJS_VERSION" -lt "12" ]; then
+        echo "[nextjs@$NEXTJS_VERSION Node $NODE_MAJOR not compatible with NextJS $NEXTJS_VERSION"
+        # Continues the 2nd enclosing loop, which is the outer loop that iterates over the NextJS version
+        continue 2
+      fi
+
+      # Node v18 only with Webpack 5 and above
+      # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
+      # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
+      if [ "$WEBPACK_VERSION" -eq "4" ]; then
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
+        # Continues the 1st enclosing loop, which is the inner loop that iterates over the Webpack version
+        continue
+      fi
+
     fi
 
     # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
@@ -138,13 +147,17 @@ for NEXTJS_VERSION in 10 11 12 13; do
       exit 1
     fi
 
-    echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
-    node test/client.js $args || EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 0 ]; then
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
+    if [ "$NODE_MAJOR" -lt "14" ]; then
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Skipping client tests on Node $NODE_MAJOR"
     else
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
-      exit 1
+      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
+      (cd .. && yarn test:integration:client) || EXIT_CODE=$?
+      if [ $EXIT_CODE -eq 0 ]; then
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
+      else
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
+        exit 1
+      fi
     fi
   done
 done

@@ -17,7 +17,6 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "esnext",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
@@ -25,5 +24,5 @@
     ]
   },
   "exclude": ["node_modules"],
-  "include": ["**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "../../playwright.config.ts", ".next/types/**/*.ts"]
 }
