@@ -17,15 +17,18 @@
     "test": "tests"
   },
   "scripts": {
-    "build:uncached": "ember build --environment=production",
+    "build": "ember build --environment=test --output-path=build",
+    "build:dev": "yarn build",
+    "build:dev:watch": "ember build --environment=test --output-path=build --watch",
     "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
-    "clean": "yarn rimraf sentry-ember-*.tgz",
+    "clean": "yarn rimraf sentry-ember-*.tgz dist tmp build .node_modules.ember-try package.json.ember-try",
     "lint": "run-p lint:js lint:hbs lint:ts",
     "lint:hbs": "ember-template-lint .",
     "lint:js": "eslint . --cache --cache-location '../../eslintcache/'",
     "lint:ts": "tsc",
     "start": "ember serve",
-    "test": "ember test",
+    "test": "ember test --path=build",
+    "test:uncached": "ember test",
     "test:all": "ember try:each"
   },
   "dependencies": {
