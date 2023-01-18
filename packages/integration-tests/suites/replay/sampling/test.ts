@@ -25,9 +25,6 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
 
   await page.click('button');
 
-  // This waitForTimeout call should be okay, as we're not checking for any requests after it
-  await page.waitForTimeout(500);
-
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session?.sampled).toBe(false);
