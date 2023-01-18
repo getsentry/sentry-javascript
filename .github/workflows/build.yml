@@ -490,6 +490,7 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           cd packages/nextjs
+          yarn playwright install-deps
           yarn test:integration
 
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
