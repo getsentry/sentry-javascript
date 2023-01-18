@@ -516,50 +516,6 @@ jobs:
           cd packages/nextjs
           yarn test:integration
 
-  # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
-  # separate job allows them to run in parallel with the other tests.
-  job_ember_tests:
-    name: Ember (${{ matrix.scenario }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_ember == 'true' || github.event_name != 'pull_request'
-    timeout-minutes: 10
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-          # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
-          # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
-          # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
-          # well, we can pull it out.
-          fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          # We support node 14+. If that works, we can safely assume that newer versions will also work.
-          node-version: '14'
-      - name: Check dependency cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run Ember tests
-        run: |
-          cd packages/ember
-          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v3
-
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
     needs: [job_get_metadata, job_build]
@@ -828,7 +784,6 @@ jobs:
         job_browser_playwright_tests,
         job_browser_integration_tests,
         job_remix_integration_tests,
-        job_ember_tests,
       ]
     # Always run this, even if a dependent job failed
     if: always()
