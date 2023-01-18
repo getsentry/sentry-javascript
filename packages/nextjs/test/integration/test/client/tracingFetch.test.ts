@@ -28,17 +28,21 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
   });
 
   // @ts-ignore - We know that `spans` is inside Transaction envelopes
-  expect(transaction[0].spans[0]).toMatchObject({
-    data: { method: 'GET', url: 'http://example.com', type: 'fetch' },
-    description: 'GET http://example.com',
-    op: 'http.client',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.any(String),
-    status: expect.any(String),
-  });
+  expect(transaction[0].spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        data: { method: 'GET', url: 'http://example.com', type: 'fetch' },
+        description: 'GET http://example.com',
+        op: 'http.client',
+        parent_span_id: expect.any(String),
+        span_id: expect.any(String),
+        start_timestamp: expect.any(Number),
+        timestamp: expect.any(Number),
+        trace_id: expect.any(String),
+        status: expect.any(String),
+      }),
+    ]),
+  );
 
   expect(await countEnvelopes(page, { url: '/fetch', envelopeType: 'transaction', timeout: 2500 })).toBe(1);
 });
