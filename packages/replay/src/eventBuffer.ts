@@ -193,9 +193,12 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return new Promise((resolve, reject) => {
       this._worker.addEventListener(
         'message',
-        () => {
-          // We really don't care what is sent here, any message means it has loaded
-          resolve();
+        ({ data }: MessageEvent) => {
+          if (data.success) {
+            resolve();
+          } else {
+            reject();
+          }
         },
         { once: true },
       );
