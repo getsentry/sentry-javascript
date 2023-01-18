@@ -391,6 +391,11 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 
   return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
     const local = domain.create();
+
+    // Waiting for the next tick to make sure that the domain is active
+    // https://github.com/nodejs/node/issues/40999#issuecomment-1002719169
+    await new Promise(resolve => setImmediate(resolve));
+
     return local.bind(async () => {
       const hub = getCurrentHub();
       const options = hub.getClient()?.getOptions();
