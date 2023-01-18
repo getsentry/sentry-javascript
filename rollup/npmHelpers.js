@@ -95,12 +95,6 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
     ],
-
-    // TODO `'smallest'` will get rid of `isDebugBuild()` by evaluating it and inlining the result and then treeshaking
-    // from there. The current setting (false) prevents this, in case we want to leave it there for users to use in
-    // their own bundling. That said, we don't yet know for sure that that works, so come back to this.
-    // treeshake: 'smallest',
-    treeshake: false,
   };
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
