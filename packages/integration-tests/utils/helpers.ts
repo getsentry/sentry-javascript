@@ -4,7 +4,7 @@ import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/type
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
-const envelopeRequestParser = (request: Request | null): Event => {
+export const envelopeRequestParser = (request: Request | null): Event => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 
