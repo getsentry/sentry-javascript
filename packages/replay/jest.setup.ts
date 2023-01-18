@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
-import {TextEncoder} from 'util';
+import { TextEncoder } from 'util';
 
 import type { ReplayContainer, Session } from './src/types';
-
-// @ts-ignore TS error, this is replaced in prod builds bc of rollup
-global.__SENTRY_REPLAY_VERSION__ = 'version:Test';
 
 (global as any).TextEncoder = TextEncoder;
 

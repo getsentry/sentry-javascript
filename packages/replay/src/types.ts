@@ -29,10 +29,6 @@ export interface WorkerRequest {
   args: unknown[];
 }
 
-declare global {
-  const __SENTRY_REPLAY_VERSION__: string;
-}
-
 // PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
 // Therefore, we're exporting them here to make them available in older TS versions
 export type PerformancePaintTiming = PerformanceEntry;

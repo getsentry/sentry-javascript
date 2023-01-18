@@ -1,8 +1,4 @@
-import replace from '@rollup/plugin-replace';
-
 import { makeBaseBundleConfig, makeBundleConfigVariants } from '../../rollup/index.js';
-
-import pkg from './package.json';
 
 const builds = [];
 
@@ -26,16 +22,6 @@ const replayBaseBundleConfig = makeBaseBundleConfig({
   licenseTitle: '@sentry/tracing & @sentry/browser & @sentry/replay',
   outputFileBase: () => 'bundles/bundle.tracing.replay',
   includeReplay: true,
-  packageSpecificConfig: {
-    plugins: [
-      replace({
-        preventAssignment: true,
-        values: {
-          __SENTRY_REPLAY_VERSION__: JSON.stringify(pkg.version),
-        },
-      }),
-    ],
-  },
 });
 
 builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));
