@@ -28,11 +28,11 @@ export function printAnalysis(analysis: Analysis): void {
     table[AnalyzerItemMetric[item.metric]] = {
       value: item.values.value(0),
       withSentry: item.values.diff(0, 1),
-      withReplay: item.values.diff(1, 2),
+      withReplay: item.values.diff(0, 2),
       ...((item.others == undefined) ? {} : {
         previous: item.others.value(0),
         previousWithSentry: item.others.diff(0, 1),
-        previousWithReplay: item.others.diff(1, 2)
+        previousWithReplay: item.others.diff(0, 2)
       })
     };
   }
