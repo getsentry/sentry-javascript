@@ -84,10 +84,50 @@ describe('BrowserTracing', () => {
     const browserTracing = createBrowserTracing();
 
     expect(browserTracing.options).toEqual({
+      _experiments: {},
+      enableLongTask: true,
+      idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      finalTimeout: DEFAULT_FINAL_TIMEOUT,
+      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+      markBackgroundTransactions: true,
+      routingInstrumentation: instrumentRoutingWithDefaults,
+      startTransactionOnLocationChange: true,
+      startTransactionOnPageLoad: true,
+      ...defaultRequestInstrumentationOptions,
+    });
+  });
+
+  it('is allows to disable enableLongTask via _experiments', () => {
+    const browserTracing = createBrowserTracing(false, {
       _experiments: {
-        enableLongTask: true,
-        enableInteractions: false,
+        enableLongTask: false,
       },
+    });
+
+    expect(browserTracing.options).toEqual({
+      _experiments: {
+        enableLongTask: false,
+      },
+      enableLongTask: false,
+      idleTimeout: DEFAULT_IDLE_TIMEOUT,
+      finalTimeout: DEFAULT_FINAL_TIMEOUT,
+      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+      markBackgroundTransactions: true,
+      routingInstrumentation: instrumentRoutingWithDefaults,
+      startTransactionOnLocationChange: true,
+      startTransactionOnPageLoad: true,
+      ...defaultRequestInstrumentationOptions,
+    });
+  });
+
+  it('is allows to disable enableLongTask', () => {
+    const browserTracing = createBrowserTracing(false, {
+      enableLongTask: false,
+    });
+
+    expect(browserTracing.options).toEqual({
+      _experiments: {},
+      enableLongTask: false,
       idleTimeout: DEFAULT_IDLE_TIMEOUT,
       finalTimeout: DEFAULT_FINAL_TIMEOUT,
       heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
