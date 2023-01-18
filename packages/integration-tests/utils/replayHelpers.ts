@@ -54,3 +54,5 @@ export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
   const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
   return replayIntegration._replay;
 }
+
+export const REPLAY_DEFAULT_FLUSH_MAX_DELAY = 5_000;
