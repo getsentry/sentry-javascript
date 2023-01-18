@@ -1,5 +1,4 @@
 import type { Page, Request } from '@playwright/test';
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -103,16 +102,6 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
   const eventsHandle = await page.evaluateHandle<Array<Event>>('window.events');
 
   return eventsHandle.jsonValue();
-}
-
-/**
- * This returns the replay container (assuming it exists).
- * Note that due to how this works with playwright, this is a POJO copy of replay.
- * This means that we cannot access any methods on it, and also not mutate it in any way.
- */
-export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
-  const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
-  return replayIntegration._replay;
 }
 
 /**

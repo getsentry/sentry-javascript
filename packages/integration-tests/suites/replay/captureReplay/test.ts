@@ -1,11 +1,12 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
+import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
-import { waitForReplayRequest } from '../../../utils/replay';
+import { waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
   // Replay bundles are es6 only
   if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
@@ -25,10 +26,10 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayEvent0 = envelopeRequestParser(await reqPromise0);
+  const replayEvent0 = envelopeRequestParser(await reqPromise0) as ReplayEvent;
 
   await page.click('button');
-  const replayEvent1 = envelopeRequestParser(await reqPromise1);
+  const replayEvent1 = envelopeRequestParser(await reqPromise1) as ReplayEvent;
 
   expect(replayEvent0).toBeDefined();
   expect(replayEvent0).toEqual({
