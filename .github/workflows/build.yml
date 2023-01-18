@@ -485,6 +485,14 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+      - name: Get Playwright version
+        id: playwright-version
+        run: |
+          echo "::set-output name=version::$(node -p "require('@playwright/test/package.json').version")"
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
