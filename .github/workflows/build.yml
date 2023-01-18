@@ -485,12 +485,27 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - uses: actions/cache@v3
+        name: Check if Playwright browser is cached
+        id: playwright-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
+      - name: Install Playwright browser if not cached
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        continue-on-error: true # playwright needs node >= 14
+        run: npx playwright install --with-deps
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
+      - name: Install OS dependencies of Playwright if cache hit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        continue-on-error: true # playwright needs node >= 14
+        run: npx playwright install-deps
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           cd packages/nextjs
-          yarn playwright install-deps
           yarn test:integration
 
   # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
