@@ -1,9 +1,9 @@
-import type { Page, Request } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
+import { waitForReplayRequest } from '../../../utils/replay';
 
 sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
   // Replay bundles are es6 only
@@ -13,7 +13,6 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
 
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
-  const reqPromise2 = waitForReplayRequest(page, 2);
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
@@ -26,16 +25,10 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const req0 = await reqPromise0;
-  const replayEvent0 = envelopeRequestParser(req0);
+  const replayEvent0 = envelopeRequestParser(await reqPromise0);
 
   await page.click('button');
-  await reqPromise1;
-
-  await page.click('button');
-  const req2 = await reqPromise2;
-
-  const replayEvent2 = envelopeRequestParser(req2);
+  const replayEvent1 = envelopeRequestParser(await reqPromise1);
 
   expect(replayEvent0).toBeDefined();
   expect(replayEvent0).toEqual({
@@ -76,15 +69,15 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
     tags: { sessionSampleRate: 1, errorSampleRate: 0 },
   });
 
-  expect(replayEvent2).toBeDefined();
-  expect(replayEvent2).toEqual({
+  expect(replayEvent1).toBeDefined();
+  expect(replayEvent1).toEqual({
     type: 'replay_event',
     timestamp: expect.any(Number),
     error_ids: [],
     trace_ids: [],
     urls: [],
     replay_id: expect.stringMatching(/\w{32}/),
-    segment_id: 2,
+    segment_id: 1,
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
@@ -114,23 +107,3 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
     tags: { sessionSampleRate: 1, errorSampleRate: 0 },
   });
 });
-
-function waitForReplayRequest(page: Page, segmentId?: number): Promise<Request> {
-  return page.waitForRequest(
-    req => {
-      const postData = req.postData();
-      if (!postData) {
-        return false;
-      }
-      console.log(postData);
-
-      const isReplayRequest = postData.includes('{"type":"replay_event"}');
-
-      if (isReplayRequest && segmentId !== undefined) {
-        return postData.includes(`{"segment_id":${segmentId}}`);
-      }
-      return isReplayRequest;
-    },
-    { timeout: 30_000 },
-  );
-}
