@@ -233,6 +233,11 @@ export interface EventBuffer {
    * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
+
+  /**
+   * Clear & immediately return the contents of the buffer in a sync way.
+   */
+  finishImmediate(): ReplayRecordingData;
 }
 
 export type AddUpdateCallback = () => boolean | void;

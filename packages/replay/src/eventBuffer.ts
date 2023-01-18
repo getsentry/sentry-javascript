@@ -77,6 +77,11 @@ export class EventBufferProxy implements EventBuffer {
     return this._used.finish();
   }
 
+  /** @inheritDoc */
+  public finishImmediate(): ReplayRecordingData {
+    return this._used.finishImmediate();
+  }
+
   /** Ensure the worker has loaded. */
   private async _ensureWorkerIsLoaded(): Promise<void> {
     try {
@@ -139,13 +144,17 @@ class EventBufferArray implements EventBuffer {
 
   public finish(): Promise<string> {
     return new Promise<string>(resolve => {
-      // Make a copy of the events array reference and immediately clear the
-      // events member so that we do not lose new events while uploading
-      // attachment.
-      const eventsRet = this._events;
-      this._events = [];
-      resolve(JSON.stringify(eventsRet));
+      resolve(this.finishImmediate());
     });
+  }
+
+  public finishImmediate(): string {
+    // Make a copy of the events array reference and immediately clear the
+    // events member so that we do not lose new events while uploading
+    // attachment.
+    const eventsRet = this._events;
+    this._events = [];
+    return JSON.stringify(eventsRet);
   }
 }
 
@@ -250,6 +259,16 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public finish(): Promise<Uint8Array> {
     return this._finishRequest(this._getAndIncrementId());
+  }
+
+  /** @inheritdoc */
+  public finishImmediate(): string {
+    const events = this._pendingEvents;
+
+    // We want to finish this, but just ignore the result
+    void this._finishRequest(this._getAndIncrementId());
+
+    return JSON.stringify(events);
   }
 
   /**
