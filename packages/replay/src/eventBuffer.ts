@@ -59,8 +59,8 @@ export class EventBufferProxy implements EventBuffer {
 
   /** @inheritDoc */
   public destroy(): void {
-    return this._fallback.destroy();
-    return this._compression.destroy();
+    this._fallback.destroy();
+    this._compression.destroy();
   }
 
   /**
