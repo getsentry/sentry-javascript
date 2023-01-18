@@ -24,6 +24,7 @@ export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '
 export { BaseClient } from './baseclient';
 export { initAndBind } from './sdk';
 export { createTransport } from './transports/base';
+export { makeOfflineTransport } from './transports/offline';
 export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';
 export { FunctionToString, InboundFilters } from './integrations';
