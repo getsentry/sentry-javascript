@@ -49,14 +49,8 @@ describe('Unit | eventBuffer', () => {
   });
 
   describe('EventBufferCompressionWorker', () => {
-    let buffer: EventBufferProxy;
-
-    afterEach(() => {
-      buffer.destroy();
-    });
-
     it('adds events to event buffer with compression worker', async function () {
-      buffer = createEventBuffer({
+      const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
 
@@ -78,7 +72,7 @@ describe('Unit | eventBuffer', () => {
     });
 
     it('adds checkout events to event buffer with compression worker', async function () {
-      buffer = createEventBuffer({
+      const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
 
@@ -101,7 +95,7 @@ describe('Unit | eventBuffer', () => {
     });
 
     it('calling `finish()` multiple times does not result in duplicated events', async function () {
-      buffer = createEventBuffer({
+      const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
 
@@ -125,7 +119,7 @@ describe('Unit | eventBuffer', () => {
     });
 
     it('calling `finish()` multiple times, with events in between, does not result in duplicated or dropped events', async function () {
-      buffer = createEventBuffer({
+      const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
 
@@ -153,7 +147,6 @@ describe('Unit | eventBuffer', () => {
   });
 
   describe('EventBufferProxy fallback', () => {
-    let buffer: EventBufferProxy;
     let consoleErrorSpy: jest.SpyInstance<any>;
 
     beforeEach(() => {
@@ -162,12 +155,11 @@ describe('Unit | eventBuffer', () => {
     });
 
     afterEach(() => {
-      buffer.destroy();
       consoleErrorSpy.mockRestore();
     });
 
     it('first uses simple buffer, and switches over once worker is loaded', async function () {
-      buffer = createEventBuffer({
+      const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
 
@@ -205,7 +197,7 @@ describe('Unit | eventBuffer', () => {
       const workerBlob = new Blob([workerString]);
       const workerUrl = URL.createObjectURL(workerBlob);
       const worker = new Worker(workerUrl);
-      buffer = new EventBufferProxy(worker);
+      const buffer = new EventBufferProxy(worker);
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);
