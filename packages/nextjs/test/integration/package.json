@@ -6,7 +6,7 @@
     "build": "next build",
     "predebug": "source ../integration_test_utils.sh && link_monorepo_packages '../../..' && yarn build",
     "start": "next start",
-    "pretest": "run-s build",
+    "pretest": "yarn build",
     "test": "playwright test"
   },
   "dependencies": {

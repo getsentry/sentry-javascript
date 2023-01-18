@@ -43,8 +43,9 @@
   "scripts": {
     "build": "yarn build:transpile",
     "build:transpile": "ng build --prod",
-    "build:dev": "run-s build",
-    "build:watch": "run-p build:transpile:watch",
+    "build:dev": "yarn build",
+    "build:watch": "yarn build:transpile:watch",
+    "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "ng build --prod --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -55,7 +56,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
-    "test": "run-s test:unit",
+    "test": "yarn test:unit",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch"
   },

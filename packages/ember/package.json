@@ -17,7 +17,7 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "ember build --environment=production",
+    "build:uncached": "ember build --environment=production",
     "build:tarball": "ember ts:precompile && npm pack && ember ts:clean",
     "clean": "yarn rimraf sentry-ember-*.tgz",
     "lint": "run-p lint:js lint:hbs lint:ts",
