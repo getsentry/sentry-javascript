@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingMode, ReplayRecordingData } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
 import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
@@ -20,6 +20,7 @@ import type {
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
+  FlushOptions,
   InstrumentationTypeBreadcrumb,
   InternalEventContext,
   PopEventContext,
@@ -28,7 +29,6 @@ import type {
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   Session,
-  FlushOptions,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addMemoryEntry } from './util/addMemoryEntry';
@@ -152,7 +152,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
-  public async start(): Promise<void> {
+  public start(): void {
     this._setInitialState();
 
     this._loadSession({ expiry: SESSION_IDLE_DURATION });
@@ -625,7 +625,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
-    this._conditionalFlush({finishImmediate: true});
+    this._conditionalFlush({ finishImmediate: true });
   }
 
   /**
@@ -818,7 +818,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       promises.push(this._addPerformanceEntries());
 
       // Do not continue if there are no pending events in buffer
-      if (!this.eventBuffer?.pendingLength) {
+      if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
         return;
       }
 
@@ -857,7 +857,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         recordingData = await this.eventBuffer.finish();
       }
 
-      const sendReplayPromise = sendReplay({
+      await sendReplay({
         replayId,
         recordingData,
         segmentId,
@@ -867,10 +867,6 @@ export class ReplayContainer implements ReplayContainerInterface {
         options: this.getOptions(),
         timestamp: new Date().getTime(),
       });
-
-      await sendReplayPromise;
-
-      return;
     } catch (err) {
       this._handleException(err);
 

@@ -27,7 +27,7 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
-export type PendingReplayData = Omit<SendReplayData, 'recordingData'|'session'|'options'> & {
+export type PendingReplayData = Omit<SendReplayData, 'recordingData' | 'session' | 'options'> & {
   recordingData: RecordingEvent[];
 };
 
@@ -252,8 +252,8 @@ export interface EventBuffer {
   finish(): Promise<ReplayRecordingData>;
 
   /**
-* Clears and synchronously returns the pending contents of the buffer. This means no compression.
-*/
+   * Clears and synchronously returns the pending contents of the buffer. This means no compression.
+   */
   finishImmediate(): string;
 }
 

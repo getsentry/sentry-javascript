@@ -170,7 +170,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       return;
     }
 
-    void this._replay.start();
+    this._replay.start();
   }
 
   /**

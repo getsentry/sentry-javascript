@@ -73,8 +73,7 @@ class EventBufferArray implements EventBuffer {
 
   public finish(): Promise<string> {
     return new Promise<string>(resolve => {
-      resolve(
-        this._finish());
+      resolve(this._finish());
     });
   }
 
