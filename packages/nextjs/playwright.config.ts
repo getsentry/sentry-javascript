@@ -3,7 +3,6 @@ import * as path from 'path';
 
 const config: PlaywrightTestConfig = {
   retries: 0, // We do not accept flakes.
-  timeout: 12000,
   use: {
     baseURL: 'http://localhost:3000',
   },
