@@ -178,7 +178,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._updateSessionActivity();
 
     this.eventBuffer = createEventBuffer({
-      useCompression: Boolean(this._options.useCompression),
+      useCompression: this._options.useCompression,
     });
 
     this._addListeners();
