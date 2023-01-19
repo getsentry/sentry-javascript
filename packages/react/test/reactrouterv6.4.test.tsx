@@ -12,7 +12,7 @@ import {
   useNavigationType,
 } from 'react-router-6.4';
 
-import { reactRouterV6Instrumentation,wrapCreateBrowserRouter  } from '../src';
+import { reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
 import type { CreateRouterFunction } from '../src/types';
 
 beforeAll(() => {
