@@ -1,15 +1,19 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { Event } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import { envelopeRequestParser } from '../../../utils/helpers';
+import { waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
-  // Currently bundle tests are not supported for replay
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
+  // Replay bundles are es6 only
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
   }
+
+  const reqPromise0 = waitForReplayRequest(page, 0);
+  const reqPromise1 = waitForReplayRequest(page, 1);
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
@@ -20,22 +24,61 @@ sentryTest('captureReplay', async ({ getLocalTestPath, page }) => {
   });
 
   const url = await getLocalTestPath({ testDir: __dirname });
+
   await page.goto(url);
+  const replayEvent0 = envelopeRequestParser(await reqPromise0) as ReplayEvent;
 
   await page.click('button');
-  await page.waitForTimeout(300);
+  const replayEvent1 = envelopeRequestParser(await reqPromise1) as ReplayEvent;
 
-  const replayEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
-
-  expect(replayEvent).toBeDefined();
-  expect(replayEvent).toEqual({
+  expect(replayEvent0).toBeDefined();
+  expect(replayEvent0).toEqual({
     type: 'replay_event',
     timestamp: expect.any(Number),
     error_ids: [],
     trace_ids: [],
     urls: [expect.stringContaining('/dist/index.html')],
     replay_id: expect.stringMatching(/\w{32}/),
-    segment_id: 2,
+    replay_start_timestamp: expect.any(Number),
+    segment_id: 0,
+    replay_type: 'session',
+    event_id: expect.stringMatching(/\w{32}/),
+    environment: 'production',
+    sdk: {
+      integrations: [
+        'InboundFilters',
+        'FunctionToString',
+        'TryCatch',
+        'Breadcrumbs',
+        'GlobalHandlers',
+        'LinkedErrors',
+        'Dedupe',
+        'HttpContext',
+        'Replay',
+      ],
+      version: SDK_VERSION,
+      name: 'sentry.javascript.browser',
+    },
+    sdkProcessingMetadata: {},
+    request: {
+      url: expect.stringContaining('/dist/index.html'),
+      headers: {
+        'User-Agent': expect.stringContaining(''),
+      },
+    },
+    platform: 'javascript',
+    tags: { sessionSampleRate: 1, errorSampleRate: 0 },
+  });
+
+  expect(replayEvent1).toBeDefined();
+  expect(replayEvent1).toEqual({
+    type: 'replay_event',
+    timestamp: expect.any(Number),
+    error_ids: [],
+    trace_ids: [],
+    urls: [],
+    replay_id: expect.stringMatching(/\w{32}/),
+    segment_id: 1,
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',

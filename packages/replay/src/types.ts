@@ -29,10 +29,6 @@ export interface WorkerRequest {
   args: unknown[];
 }
 
-declare global {
-  const __SENTRY_REPLAY_VERSION__: string;
-}
-
 // PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
 // Therefore, we're exporting them here to make them available in older TS versions
 export type PerformancePaintTiming = PerformanceEntry;
@@ -118,7 +114,7 @@ export interface ReplayPluginOptions extends SessionOptions {
    *
    * Default: undefined
    */
-  _experiments?: Partial<{
+  _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
   }>;
@@ -229,7 +225,7 @@ export interface EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfully added.
+   * Returns a promise that resolves if the event was successfully added, else rejects.
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 
@@ -259,6 +255,7 @@ export interface ReplayContainer {
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
+  getSessionId(): string | undefined;
 }
 
 export interface ReplayPerformanceEntry {

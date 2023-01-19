@@ -30,12 +30,12 @@ export async function prepareReplayEvent({
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
   const metadata = client.getSdkMetadata && client.getSdkMetadata();
-  const name = (metadata && metadata.sdk && metadata.sdk.name) || 'sentry.javascript.unknown';
+  const { name, version } = (metadata && metadata.sdk) || {};
 
   preparedEvent.sdk = {
     ...preparedEvent.sdk,
-    version: __SENTRY_REPLAY_VERSION__,
-    name,
+    name: name || 'sentry.javascript.unknown',
+    version: version || '0.0.0',
   };
 
   return preparedEvent;

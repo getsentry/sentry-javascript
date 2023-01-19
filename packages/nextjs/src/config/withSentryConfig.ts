@@ -1,5 +1,3 @@
-import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
-
 import type {
   ExportedNextConfig,
   NextConfigFunction,
@@ -8,6 +6,7 @@ import type {
   SentryWebpackPluginOptions,
   UserSentryOptions,
 } from './types';
+import { constructWebpackConfigFunction } from './webpack';
 
 /**
  * Add Sentry options to the config to be exported from the user's `next.config.js` file.
@@ -22,49 +21,44 @@ export function withSentryConfig(
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
   sentryOptions?: UserSentryOptions,
 ): NextConfigFunction | NextConfigObject {
-  return function (phase: string, defaults: { defaultConfig: NextConfigObject }): NextConfigObject {
-    const userNextConfigObject =
-      typeof exportedUserNextConfig === 'function' ? exportedUserNextConfig(phase, defaults) : exportedUserNextConfig;
-    // Inserts additional `sentry` options into the existing config, allows for backwards compatability
-    // in case nothing is passed into the optional `sentryOptions` argument
-    userNextConfigObject.sentry = { ...userNextConfigObject.sentry, ...sentryOptions };
-    return getFinalConfigObject(phase, userNextConfigObject, userSentryWebpackPluginOptions);
-  };
+  if (typeof exportedUserNextConfig === 'function') {
+    return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): NextConfigObject {
+      const userNextConfigObject: NextConfigObjectWithSentry = exportedUserNextConfig.apply(
+        this,
+        webpackConfigFunctionArgs,
+      );
+
+      const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
+      return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
+    };
+  } else {
+    const userSentryOptions = { ...exportedUserNextConfig.sentry, ...sentryOptions };
+    return getFinalConfigObject(exportedUserNextConfig, userSentryOptions, userSentryWebpackPluginOptions);
+  }
 }
 
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
-  phase: string,
   incomingUserNextConfigObject: NextConfigObjectWithSentry,
+  userSentryOptions: UserSentryOptions,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
-  // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`, so grab and then remove the `sentry`
-  // property there. Where we actually need it is in the webpack config function we're going to create, so pass it
-  // to `constructWebpackConfigFunction` so that it can live in the returned function's closure.
-  const { sentry: userSentryOptions } = incomingUserNextConfigObject;
+  // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
   delete incomingUserNextConfigObject.sentry;
-  // Remind TS that there's now no `sentry` property
-  const userNextConfigObject = incomingUserNextConfigObject as NextConfigObject;
 
   if (userSentryOptions?.tunnelRoute) {
-    setUpTunnelRewriteRules(userNextConfigObject, userSentryOptions.tunnelRoute);
+    setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
   }
 
-  // In order to prevent all of our build-time code from being bundled in people's route-handling serverless functions,
-  // we exclude `webpack.ts` and all of its dependencies from nextjs's `@vercel/nft` filetracing. We therefore need to
-  // make sure that we only require it at build time or in development mode.
-  if (phase === PHASE_PRODUCTION_BUILD || phase === PHASE_DEVELOPMENT_SERVER) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { constructWebpackConfigFunction } = require('./webpack');
-    return {
-      ...userNextConfigObject,
-      webpack: constructWebpackConfigFunction(userNextConfigObject, userSentryWebpackPluginOptions, userSentryOptions),
-    };
-  }
-
-  // At runtime, we just return the user's config untouched.
-  return userNextConfigObject;
+  return {
+    ...incomingUserNextConfigObject,
+    webpack: constructWebpackConfigFunction(
+      incomingUserNextConfigObject,
+      userSentryWebpackPluginOptions,
+      userSentryOptions,
+    ),
+  };
 }
 
 /**

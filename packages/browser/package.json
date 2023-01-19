@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "7.30.0",
+  "version": "7.31.1",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,10 +16,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.30.0",
-    "@sentry/replay": "7.30.0",
-    "@sentry/types": "7.30.0",
-    "@sentry/utils": "7.30.0",
+    "@sentry/core": "7.31.1",
+    "@sentry/replay": "7.31.1",
+    "@sentry/types": "7.31.1",
+    "@sentry/utils": "7.31.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -45,10 +45,12 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
+    "build:dev": "yarn build",
     "build:bundle": "rollup --config rollup.bundle.config.js",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
     "build:bundle:watch": "rollup --config rollup.bundle.config.js --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",

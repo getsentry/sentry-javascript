@@ -4,6 +4,65 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.31.1
+
+- build(replay): Provide full browser+tracing+replay bundle (#6793)
+- feat(nextjs): Disable NextJS perf monitoring when using otel (#6820)
+- fix(nextjs): Add back browser field in package.json (#6809)
+- fix(nextjs): Connect Edge API route errors to span (#6806)
+- fix(nextjs): Correctly handle ts middleware files (#6816)
+
+## 7.31.0
+
+The Next.js SDK now supports error and performance monitoring for Next.js [middleware](https://nextjs.org/docs/advanced-features/middleware) and [Edge API routes](https://nextjs.org/docs/api-routes/edge-api-routes).
+To set it up, add a `sentry.edge.config.js` or `sentry.edge.config.ts` file to the root of your project and initialize the SDK:
+
+```js
+// sentry.edge.config.js or sentry.edge.config.ts
+
+import * as Sentry from "@sentry/nextjs";
+
+const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+
+Sentry.init({
+  dsn: SENTRY_DSN || "YOUR DSN HERE",
+  tracesSampleRate: 1.0,
+});
+```
+
+The Next.js will automatically instrument Edge API routes and middleware.
+If you want to opt out of automatic instrumentation of middleware can use the `autoInstrumentMiddleware` option in the `sentry` object of your Next.js configuration:
+
+```javascript
+const moduleExports = {
+  sentry: {
+    autoInstrumentMiddleware: false,
+  },
+};
+```
+
+Middleware can be manually instrumented by using the `wrapMiddlewareWithSentry` function.
+
+- feat(nextjs): Add Edge Runtime SDK (#6752)
+- feat(nextjs): Add optional options argument to `withSentryConfig` as an alternative to the `sentry` property (#6721)
+- feat(nextjs): Add edge route and middleware wrappers (#6771)
+- feat(nextjs): Auto-wrap edge-routes and middleware (#6746)
+- feat(replay): Update rrweb & rrweb-snapshot (#6749)
+- feat(replay): Stop recording when retry fails (#6765)
+- feat(replay): Stop without retry when receiving bad API response (#6773)
+- feat(types): Add Trace Context type (#6714)
+- fix(nextjs): Export isomorphic data fetching wrappers from client SDK (#6790)
+- fix(nextjs): Make Next.js types isomorphic (#6707)
+- fix(node): Handle node build without inspector in LocalVariables integration (#6780)
+- fix(otel): Set trace context via Otel Span instead of Sentry span (#6724)
+- fix(otel): Prevent baggage from being overwritten (#6709)
+- fix(otel): Make sure we handle when sentry-trace is an empty array (#6781)
+- fix(remix): Make remix SDK type exports isomorphic (#6715)
+- fix(replay): Fix `checkoutEveryNms` (#6722)
+- fix(replay): Fix incorrect uncompressed recording size due to encoding (#6740)
+- fix(tracing): Attach request instrumentation span to active span instead of current transaction (#6778)
+- ref(nextjs): Deprecate `isBuild()` and `IS_BUILD` (#6727)
+
 ## 7.30.0
 
 - feat(core): Add `addIntegration` method to client (#6651)

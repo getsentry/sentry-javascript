@@ -21,13 +21,6 @@ module.exports = {
       },
     },
     {
-      files: ['*.ts', '*.tsx', '*.d.ts'],
-      rules: {
-        // Since we target only es6 here, we can leave this off
-        '@sentry-internal/sdk/no-async-await': 'off',
-      },
-    },
-    {
       files: ['jest.setup.ts', 'jest.config.ts'],
       parserOptions: {
         project: ['tsconfig.test.json'],

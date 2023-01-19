@@ -14,27 +14,14 @@
 
 ## Pre-requisites
 
-For the sentry-replay integration to work, you must have the [Sentry browser SDK package](https://www.npmjs.com/package/@sentry/browser), or an equivalent framework SDK (e.g. [@sentry/react](https://www.npmjs.com/package/@sentry/react)) installed. The minimum version required for the SDK is `7.24.0`.
-
-Make sure to use the exact same version of `@sentry/replay` as your other Sentry package(s), e.g. `@sentry/browser` or `@sentry/react`.
-
 `@sentry/replay` requires Node 12+, and browsers newer than IE11.
 
 ## Installation
 
-Install the Replay package with NPM or your favourite package manager. Alternatively, you can load the Replay integration via a [CDN bundle](#loading-replay-as-a-cdn-bundle).
+Replay can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or `@sentry/vue`.
+You don't need to install anything in order to use Session Replay. The minimum version that includes Replay is 7.27.0.
 
-with npm:
-
-```shell
-npm install --save @sentry/browser @sentry/replay
-```
-
-with yarn:
-
-```shell
-yarn add @sentry/browser @sentry/replay
-```
+For details on using Replay when using Sentry via the CDN bundles, see [CDN bundle](#loading-replay-as-a-cdn-bundle).
 
 ## Setup
 
@@ -43,7 +30,7 @@ See the [configuration section](#configuration) below for more details.
 
 ```javascript
 import * as Sentry from '@sentry/browser';
-import { Replay } from '@sentry/replay';
+// or e.g. import * as Sentry from '@sentry/react';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -57,7 +44,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   integrations: [
-    new Replay({
+    new Sentry.Replay({
       // Additional SDK configuration goes in here, for example:
       maskAllText: true,
       blockAllMedia: true
@@ -66,6 +53,23 @@ Sentry.init({
   ],
   // ...
 });
+```
+
+### Lazy loading Replay
+
+Replay will start automatically when you add the integration.
+If you do not want to start Replay immediately (e.g. if you want to lazy-load it),
+you can also use `addIntegration` to load it later:
+
+```js
+Sentry.init({
+  // Do not load it initially
+  integrations: []
+});
+
+// Sometime later
+const { Replay } = await import('@sentry/browser');
+getCurrentHub().getClient().addIntegration(new Replay());
 ```
 
 ### Identifying Users
@@ -77,34 +81,29 @@ import * as Sentry from "@sentry/browser";
 Sentry.setUser({ email: "jane.doe@example.com" });
 ```
 
-### Start and Stop Recording
+### Stopping & re-starting replays
 
-Replay recording only starts automatically when it is included in the `integrations` key when calling `Sentry.init`. Otherwise you can initialize the plugin and manually call the `start()` method on the integration instance. To stop recording you can call the `stop()`.
+You can manually stop/re-start Replay capture via `.stop()` & `.start()`:
 
-```javascript
-const replay = new Replay(); // This will *NOT* begin recording replays
+```js
+const replay = new Replay();
+Sentry.init({
+  integrations: [replay]
+});
 
-replay.start(); // Start recording
-
-replay.stop(); // Stop recording
+// sometime later
+replay.stop();
+replay.start();
 ```
 
 ## Loading Replay as a CDN Bundle
 
 As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
-Note that the Replay bundle **only contains the Replay integration** and not the entire Sentry SDK.
-You have to add it in addition to the Sentry Browser SDK bundle:
 
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.24.1/bundle.tracing.min.js"
-  crossorigin="anonymous"
-></script>
-
-// Replay integration bundle
-<script
-  src="https://browser.sentry-cdn.com/7.24.1/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
   crossorigin="anonymous"
 ></script>
 
@@ -124,6 +123,19 @@ Sentry.init({
 ```
 
 The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
+
+Alternatively, you can also load the Replay integration separately from other bundles:
+
+```html
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  crossorigin="anonymous"
+></script>
+```
 
 Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
 Note that the two bundle versions always have to match.
@@ -187,28 +199,6 @@ The following options can be configured as options to the integration, in `new R
 | maskTextClass    | string \| RegExp         | `'sentry-mask'`                     | Mask all elements that match the class name. See [privacy](#masking) section for an example.                                                                                                                                                        |
 | maskTextSelector    | string         | `undefined`                     | Mask all elements that match the given DOM selector. See [privacy](#masking) section for an example.                                                                                                                                                        |
 
-### Optimization Configuration
-
-The following options can be configured as options to the integration, in `new Replay({})`:
-
-| key              | type                    | default | description                                                                                                                                                                                                                  |
-| ---------------- | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| collectFonts     | boolean                 | `false` | Should collect fonts used on the website                                                                                                                                                                                     |
-| inlineImages     | boolean                 | `false` | Should inline `<image>` content                                                                                                                                                                                              |
-| inlineStylesheet | boolean                 | `true`  | Should inline stylesheets used in the recording                                                                                                                                                                                                                                                                                                                                                                       |
-
-
-### rrweb Configuration
-
-In addition to the options described above, you can also directly pass configuration to [rrweb](https://github.com/rrweb-io/rrweb/blob/rrweb%401.1.3/guide.md), which is the underlying library used to make the recordings:
-
-```js
-new Replay({
-  // any further configuration here is passed directly to rrweb
-});
-```
-
-
 ## Privacy
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all media elements (`img, svg, video, object, picture, embed, map, audio`). This can be disabled by setting `maskAllText` to `false`. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: `sentry-block`, `sentry-ignore`, and `sentry-mask`. The following sections will show examples of how content is handled by the differing methods.
 
@@ -233,3 +223,9 @@ However, please note that it is _possible_ that the error count reported on the 
 does not match the actual errors that have been captured.
 The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
 This should not happen to often, but be aware that it is theoretically possible.
+
+## Manually sending replay data
+
+You can use `replay.flush()` to immediately send all currently captured replay data.
+This can be combined with `replaysOnErrorSampleRate: 1`
+in order to be able to send the last 60 seconds of replay data on-demand.

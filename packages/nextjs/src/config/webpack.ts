@@ -1,14 +1,7 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import {
-  arrayify,
-  dropUndefinedKeys,
-  escapeStringForRegex,
-  GLOBAL_OBJ,
-  logger,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
@@ -27,7 +20,6 @@ import type {
   WebpackConfigObjectWithModuleRules,
   WebpackEntryProperty,
   WebpackModuleRule,
-  WebpackPluginInstance,
 } from './types';
 
 export { SentryWebpackPlugin };
@@ -35,14 +27,6 @@ export { SentryWebpackPlugin };
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
-
-// In order to make sure that build-time code isn't getting bundled in runtime bundles (specifically, in the serverless
-// functions into which nextjs converts a user's routes), we exclude this module (and all of its dependencies) from the
-// nft file manifests nextjs generates. (See the code dealing with the `TraceEntryPointsPlugin` below.) So that we don't
-// crash people, we therefore need to make sure nothing tries to either require this file or import from it. Setting
-// this env variable allows us to test whether or not that's happened.
-const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryWebpackModuleLoaded?: true };
-_global._sentryWebpackModuleLoaded = true;
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
@@ -86,10 +70,10 @@ export function constructWebpackConfigFunction(
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
     newConfig.module.rules.push({
-      test: /node_modules\/@sentry\/nextjs/,
+      test: /node_modules[/\\]@sentry[/\\]nextjs/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/sdkMultiplexerLoader.js'),
+          loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
           options: {
             importTarget: buildContext.nextRuntime === 'edge' ? './edge' : './client',
           },
@@ -99,52 +83,65 @@ export function constructWebpackConfigFunction(
 
     if (isServer) {
       if (userSentryOptions.autoInstrumentServerFunctions !== false) {
-        const pagesDir = newConfig.resolve?.alias?.['private-next-pages'] as string;
+        let pagesDirPath: string;
+        if (
+          fs.existsSync(path.join(projectDir, 'pages')) &&
+          fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()
+        ) {
+          pagesDirPath = path.join(projectDir, 'pages');
+        } else {
+          pagesDirPath = path.join(projectDir, 'src', 'pages');
+        }
+
+        const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
+        const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
 
         // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
         const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+        const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
         const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
         // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
         newConfig.module.rules.unshift({
-          test: new RegExp(`^${escapeStringForRegex(pagesDir)}.*\\.(${pageExtensionRegex})$`),
+          test: resourcePath => {
+            // We generally want to apply the loader to all API routes, pages and to the middleware file.
+
+            // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
+            let absoluteResourcePath: string;
+            if (path.isAbsolute(resourcePath)) {
+              absoluteResourcePath = resourcePath;
+            } else {
+              absoluteResourcePath = path.join(projectDir, resourcePath);
+            }
+            const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+
+            if (
+              // Match everything inside pages/ with the appropriate file extension
+              normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
+              dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+            ) {
+              return true;
+            } else if (
+              // Match middleware.js and middleware.ts
+              normalizedAbsoluteResourcePath === middlewareJsPath ||
+              normalizedAbsoluteResourcePath === middlewareTsPath
+            ) {
+              return userSentryOptions.autoInstrumentMiddleware ?? true;
+            } else {
+              return false;
+            }
+          },
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders/wrappingLoader.js'),
+              loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
               options: {
-                pagesDir,
+                pagesDir: pagesDirPath,
                 pageExtensionRegex,
                 excludeServerRoutes: userSentryOptions.excludeServerRoutes,
-                isEdgeRuntime: buildContext.nextRuntime === 'edge',
               },
             },
           ],
         });
-      }
-
-      // Prevent `@vercel/nft` (which nextjs uses to determine which files are needed when packaging up a lambda) from
-      // including any of our build-time code or dependencies. (Otherwise it'll include files like this one and even the
-      // entirety of rollup and sucrase.) Since this file is the root of that dependency tree, it's enough to just
-      // exclude it and the rest will be excluded as well.
-      const nftPlugin = newConfig.plugins?.find((plugin: WebpackPluginInstance) => {
-        const proto = Object.getPrototypeOf(plugin) as WebpackPluginInstance;
-        return proto.constructor.name === 'TraceEntryPointsPlugin';
-      }) as WebpackPluginInstance & { excludeFiles: string[] };
-      if (nftPlugin) {
-        if (Array.isArray(nftPlugin.excludeFiles)) {
-          nftPlugin.excludeFiles.push(__filename);
-        } else {
-          __DEBUG_BUILD__ &&
-            logger.warn(
-              'Unable to exclude Sentry build-time helpers from nft files. `TraceEntryPointsPlugin.excludeFiles` is not ' +
-                'an array. This is a bug; please report this to Sentry:  https://github.com/getsentry/sentry-javascript/issues/.',
-            );
-        }
-      } else {
-        __DEBUG_BUILD__ &&
-          logger.warn(
-            'Unable to exclude Sentry build-time helpers from nft files. Could not find `TraceEntryPointsPlugin`.',
-          );
       }
     }
 
@@ -462,12 +459,12 @@ function shouldAddSentryToEntryPoint(
   excludeServerRoutes: Array<string | RegExp> = [],
   isDev: boolean,
 ): boolean {
-  if (entryPointName === 'middleware') {
-    return true;
-  }
-
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
   if (isServer) {
+    if (entryPointName === 'middleware') {
+      return true;
+    }
+
     const entryPointRoute = entryPointName.replace(/^pages/, '');
 
     // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
@@ -489,9 +486,6 @@ function shouldAddSentryToEntryPoint(
       // versions.)
       entryPointRoute === '/_app' ||
       entryPointRoute === '/_document' ||
-      // Newer versions of nextjs are starting to introduce things outside the `pages/` folder (middleware, an `app/`
-      // directory, etc), but until those features are stable and we know how we want to support them, the safest bet is
-      // not to inject anywhere but inside `pages/`.
       !entryPointName.startsWith('pages/')
     ) {
       return false;
@@ -499,13 +493,11 @@ function shouldAddSentryToEntryPoint(
 
     // We want to inject Sentry into all other pages
     return true;
-  }
-
-  // On the client side, we only want to inject into `_app`, because that guarantees there'll be only one copy of the
-  // SDK in the eventual bundle. Since `_app` is the (effectively) the root component for every nextjs app, inclusing
-  // Sentry there means it will be available for every front end page.
-  else {
-    return entryPointName === 'pages/_app';
+  } else {
+    return (
+      entryPointName === 'pages/_app' || // entrypoint for `/pages` pages
+      entryPointName === 'main-app' // entrypoint for `/app` pages
+    );
   }
 }
 

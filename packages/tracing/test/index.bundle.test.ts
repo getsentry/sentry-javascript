@@ -8,9 +8,9 @@ describe('Integrations export', () => {
         return;
       }
 
-      expect(Integrations[key as keyof Omit<typeof Integrations, 'BrowserTracing'>].id).toStrictEqual(
-        expect.any(String),
-      );
+      expect((Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
   });
+
+  expect(Integrations.Replay).toBeUndefined();
 });

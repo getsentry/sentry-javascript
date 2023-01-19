@@ -185,6 +185,17 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     this._replay.stop();
   }
 
+  /**
+   * Immediately send all pending events.
+   */
+  public flush(): Promise<void> | void {
+    if (!this._replay || !this._replay.isEnabled()) {
+      return;
+    }
+
+    return this._replay.flushImmediate();
+  }
+
   /** Setup the integration. */
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce

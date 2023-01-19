@@ -72,6 +72,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   markBackgroundTransactions: boolean;
 
   /**
+   * If true, Sentry will capture long tasks and add them to the corresponding transaction.
+   *
+   * Default: true
+   */
+  enableLongTask: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -87,10 +94,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * _experiments allows the user to send options to define how this integration works.
+   * Note that the `enableLongTask` options is deprecated in favor of the option at the top level, and will be removed in v8.
+   *
+   * TODO (v8): Remove enableLongTask
    *
    * Default: undefined
    */
-  _experiments?: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
+  _experiments: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -124,7 +134,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
   startTransactionOnPageLoad: true,
-  _experiments: { enableLongTask: true, enableInteractions: false },
+  enableLongTask: true,
+  _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
 
@@ -160,6 +171,12 @@ export class BrowserTracing implements Integration {
       ..._options,
     };
 
+    // Special case: enableLongTask can be set in _experiments
+    // TODO (v8): Remove this in v8
+    if (this.options._experiments.enableLongTask !== undefined) {
+      this.options.enableLongTask = this.options._experiments.enableLongTask;
+    }
+
     // TODO (v8): remove this block after tracingOrigins is removed
     // Set tracePropagationTargets to tracingOrigins if specified by the user
     // In case both are specified, tracePropagationTargets takes precedence
@@ -170,7 +187,7 @@ export class BrowserTracing implements Integration {
     }
 
     startTrackingWebVitals();
-    if (this.options._experiments?.enableLongTask) {
+    if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
   }
@@ -203,7 +220,7 @@ export class BrowserTracing implements Integration {
       registerBackgroundTabDetection();
     }
 
-    if (_experiments?.enableInteractions) {
+    if (_experiments.enableInteractions) {
       this._registerInteractionListener();
     }
 
@@ -258,7 +275,7 @@ export class BrowserTracing implements Integration {
         : finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = finalContext.metadata?.source;
+    this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
 
     if (finalContext.sampled === false) {
       __DEBUG_BUILD__ &&
@@ -317,7 +334,7 @@ export class BrowserTracing implements Integration {
         op,
         trimEnd: true,
         metadata: {
-          source: this._latestRouteSource ?? 'url',
+          source: this._latestRouteSource || 'url',
         },
       };
 

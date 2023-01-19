@@ -28,9 +28,7 @@
     "build:bundle": {
       "dependsOn": [
         "^build:transpile",
-        "build:transpile",
-        "^build:types",
-        "build:types"
+        "build:transpile"
       ],
       "outputs": [
         "{projectRoot}/build/bundles"

@@ -1,14 +1,14 @@
-/**
+/*
  * This file is a template for the code which will be substituted when our webpack loader handles non-API files in the
  * `pages/` directory.
  *
- * We use `__RESOURCE_PATH__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
+ * We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
  * this causes both TS and ESLint to complain, hence the pragma comments below.
  */
 
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__SENTRY_WRAPPING_TARGET__';
+import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
 import type { GetServerSideProps, GetStaticProps, NextPage as NextPageComponent } from 'next';
@@ -28,12 +28,12 @@ const origGetStaticProps = userPageModule.getStaticProps;
 const origGetServerSideProps = userPageModule.getServerSideProps;
 
 const getInitialPropsWrappers: Record<string, any> = {
-  '/_app': Sentry.withSentryServerSideAppGetInitialProps,
-  '/_document': Sentry.withSentryServerSideDocumentGetInitialProps,
-  '/_error': Sentry.withSentryServerSideErrorGetInitialProps,
+  '/_app': Sentry.wrapAppGetInitialPropsWithSentry,
+  '/_document': Sentry.wrapDocumentGetInitialPropsWithSentry,
+  '/_error': Sentry.wrapErrorGetInitialPropsWithSentry,
 };
 
-const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.withSentryServerSideGetInitialProps;
+const getInitialPropsWrapper = getInitialPropsWrappers['__ROUTE__'] || Sentry.wrapGetInitialPropsWithSentry;
 
 if (typeof origGetInitialProps === 'function') {
   pageComponent.getInitialProps = getInitialPropsWrapper(origGetInitialProps) as NextPageComponent['getInitialProps'];
@@ -41,11 +41,11 @@ if (typeof origGetInitialProps === 'function') {
 
 export const getStaticProps =
   typeof origGetStaticProps === 'function'
-    ? Sentry.withSentryGetStaticProps(origGetStaticProps, '__ROUTE__')
+    ? Sentry.wrapGetStaticPropsWithSentry(origGetStaticProps, '__ROUTE__')
     : undefined;
 export const getServerSideProps =
   typeof origGetServerSideProps === 'function'
-    ? Sentry.withSentryGetServerSideProps(origGetServerSideProps, '__ROUTE__')
+    ? Sentry.wrapGetServerSidePropsWithSentry(origGetServerSideProps, '__ROUTE__')
     : undefined;
 
 export default pageComponent;
@@ -54,4 +54,4 @@ export default pageComponent;
 // not include anything whose name matchs something we've explicitly exported above.
 // @ts-ignore See above
 // eslint-disable-next-line import/no-unresolved
-export * from '__SENTRY_WRAPPING_TARGET__';
+export * from '__SENTRY_WRAPPING_TARGET_FILE__';

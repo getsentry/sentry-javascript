@@ -21,6 +21,8 @@ export type ProfilerProps = {
   includeRender?: boolean;
   // If component updates should be displayed as spans. True by default.
   includeUpdates?: boolean;
+  // Component that is being profiled.
+  children?: React.ReactNode;
   // props given to component being profiled.
   updateProps: { [key: string]: unknown };
 };
@@ -120,7 +122,6 @@ class Profiler extends React.Component<ProfilerProps> {
   }
 
   public render(): React.ReactNode {
-    // eslint-disable-next-line react/prop-types
     return this.props.children;
   }
 }
@@ -136,7 +137,7 @@ class Profiler extends React.Component<ProfilerProps> {
 function withProfiler<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   // We do not want to have `updateProps` given in options, it is instead filled through the HOC.
-  options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps'>>,
+  options?: Pick<Partial<ProfilerProps>, Exclude<keyof ProfilerProps, 'updateProps' | 'children'>>,
 ): React.FC<P> {
   const componentDisplayName =
     (options && options.name) || WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;

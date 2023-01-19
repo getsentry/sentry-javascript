@@ -14,4 +14,16 @@ const builds = [];
   builds.push(...makeBundleConfigVariants(baseBundleConfig));
 });
 
+// Full bundle incl. replay only avaialable for es6
+const replayBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.replay.ts'],
+  jsVersion: 'es6',
+  licenseTitle: '@sentry/tracing & @sentry/browser & @sentry/replay',
+  outputFileBase: () => 'bundles/bundle.tracing.replay',
+  includeReplay: true,
+});
+
+builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));
+
 export default builds;

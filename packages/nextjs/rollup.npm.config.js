@@ -5,7 +5,7 @@ export default [
     makeBaseNPMConfig({
       // We need to include `instrumentServer.ts` separately because it's only conditionally required, and so rollup
       // doesn't automatically include it when calculating the module dependency tree.
-      entrypoints: ['src/index.ts', 'src/client/index.ts', 'src/edge/index.ts', 'src/config/webpack.ts'],
+      entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/edge/index.ts', 'src/config/webpack.ts'],
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
       // the name doesn't match an SDK dependency)
@@ -14,7 +14,11 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/templates/pageWrapperTemplate.ts', 'src/config/templates/apiWrapperTemplate.ts'],
+      entrypoints: [
+        'src/config/templates/pageWrapperTemplate.ts',
+        'src/config/templates/apiWrapperTemplate.ts',
+        'src/config/templates/middlewareWrapperTemplate.ts',
+      ],
 
       packageSpecificConfig: {
         output: {
@@ -29,7 +33,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET__'],
+        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET_FILE__'],
       },
     }),
   ),

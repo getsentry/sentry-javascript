@@ -168,7 +168,7 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
       functionName = typeName ? `${typeName}.${methodName}` : methodName;
     }
 
-    const filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
+    const filename = lineMatch[2] && lineMatch[2].startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
     const isNative = lineMatch[5] === 'native';
     const isInternal =
       isNative || (filename && !filename.startsWith('/') && !filename.startsWith('.') && filename.indexOf(':\\') !== 1);
@@ -180,7 +180,7 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
 
     return {
       filename,
-      module: getModule?.(filename),
+      module: getModule ? getModule(filename) : undefined,
       function: functionName,
       lineno: parseInt(lineMatch[3], 10) || undefined,
       colno: parseInt(lineMatch[4], 10) || undefined,

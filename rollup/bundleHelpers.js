@@ -23,7 +23,8 @@ import { mergePlugins } from './utils';
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig, includeReplay } =
+    options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -45,8 +46,12 @@ export function makeBaseBundleConfig(options) {
       name: 'Sentry',
     },
     context: 'window',
-    plugins: [markAsBrowserBuildPlugin, excludeReplayPlugin],
+    plugins: [markAsBrowserBuildPlugin],
   };
+
+  if (!includeReplay) {
+    standAloneBundleConfig.plugins.push(excludeReplayPlugin);
+  }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
   const addOnBundleConfig = {
