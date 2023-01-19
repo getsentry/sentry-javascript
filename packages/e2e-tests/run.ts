@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as path from 'path';
 
+import * as rootPkgJson from '../../package.json';
+
 // Load environment variables from .env file locally
 dotenv.config();
 
@@ -16,7 +18,8 @@ const VERDACCIO_VERSION = '5.15.3';
 
 const PUBLISH_PACKAGES_DOCKER_IMAGE_NAME = 'publish-packages';
 
-const publishScriptNodeVersion = process.env.E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+const publishScriptNodeVersion = rootPkgJson.volta.node;
 
 const DEFAULT_BUILD_TIMEOUT_SECONDS = 60 * 5;
 const DEFAULT_TEST_TIMEOUT_SECONDS = 60 * 2;
