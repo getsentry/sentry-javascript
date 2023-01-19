@@ -65,11 +65,6 @@ export function mapOtelStatus(otelSpan: OtelSpan): SentryStatus {
   }
 
   const statusCode = status.code;
-
-  if (statusCode < 0 || statusCode > 2) {
-    return 'unknown_error';
-  }
-
   if (statusCode === 0 || statusCode === 1) {
     return 'ok';
   }
