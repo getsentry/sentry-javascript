@@ -120,6 +120,10 @@ jobs:
             any_code:
               - '!**/*.md'
 
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.7
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       changed_nextjs: ${{ steps.changed.outputs.nextjs }}
@@ -133,7 +137,7 @@ jobs:
       is_master: ${{ github.ref == 'refs/heads/master' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       force_skip_cache:
-        ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-skip-cache') }}
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
 
   job_install_deps:
     name: Install Dependencies
