@@ -42,6 +42,6 @@ export class JankTestScenario implements Scenario {
     url = `file:///${url.replace('\\', '/')}`;
     console.log('Navigating to ', url);
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 12000));
   }
 }
