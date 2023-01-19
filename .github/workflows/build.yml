@@ -199,11 +199,8 @@ jobs:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-      - name: build without cache
-        run: |
-          yarn lerna run build:types --skip-nx-cache
-          yarn lerna run build:transpile --skip-nx-cache
-          yarn lerna run build:bundle --skip-nx-cache
+      - name: build
+        run: yarn build
 
       - run: yarn size-limit --json
 
