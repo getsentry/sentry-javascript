@@ -28,10 +28,10 @@
     "clean": "rimraf build sentry-types-*.tgz",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\""
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\""
   },
   "volta": {
     "extends": "../../package.json"
