@@ -71,17 +71,11 @@ class EventBufferArray implements EventBuffer {
     return;
   }
 
-  public finish(): Promise<string> {
-    return new Promise<string>(resolve => {
-      resolve(this._finish());
-    });
+  public async finish(): Promise<string> {
+    return this.finishSync();
   }
 
-  public finishImmediate(): string {
-    return this._finish();
-  }
-
-  private _finish(): string {
+  public finishSync(): string {
     // Make a copy of the events array reference and immediately clear the
     // events member so that we do not lose new events while uploading
     // attachment.
@@ -169,7 +163,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Finish the event buffer and return the pending events.
    */
-  public finishImmediate(): string {
+  public finishSync(): string {
     const events = this._pendingEvents;
 
     // Ensure worker is still in a good state and disregard the result

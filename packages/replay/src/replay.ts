@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
-import type { Breadcrumb, ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
 import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
@@ -625,7 +625,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Send replay when the page/tab becomes hidden. There is no reason to send
     // replay if it becomes visible, since no actions we care about were done
     // while it was hidden
-    this._conditionalFlush({ finishImmediate: true });
+    this._conditionalFlush({ sync: true });
   }
 
   /**
@@ -756,8 +756,8 @@ export class ReplayContainer implements ReplayContainerInterface {
      * Page is likely to unload so need to bypass debounce completely and
      * synchronously retrieve pending events from buffer and send request asap.
      */
-    if (options.finishImmediate) {
-      void this._runFlush(options);
+    if (options.sync) {
+      this._flushSync();
       return;
     }
 
@@ -804,58 +804,30 @@ export class ReplayContainer implements ReplayContainerInterface {
    *
    * Should never be called directly, only by `flush`
    */
-  private async _runFlush(options: FlushOptions = {}): Promise<void> {
-    if (!this.session || !this.eventBuffer) {
-      __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
-      return;
-    }
-
+  private async _runFlush(): Promise<void> {
     try {
-      this._debouncedFlush.cancel();
+      const flushData = this._prepareFlush();
 
-      const promises: Promise<any>[] = [];
-
-      promises.push(this._addPerformanceEntries());
-
-      // Do not continue if there are no pending events in buffer
-      if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
+      if (!flushData) {
         return;
       }
 
-      // Only attach memory entry if eventBuffer is not empty
-      promises.push(addMemoryEntry(this));
+      const { promises, replayId, segmentId, eventContext, eventBuffer, session } = flushData;
 
-      // NOTE: Copy values from instance members, as it's possible they could
-      // change before the flush finishes.
-      const replayId = this.session.id;
-      const eventContext = this._popEventContext();
-      // Always increment segmentId regardless of outcome of sending replay
-      const segmentId = this.session.segmentId++;
+      // NOTE: Be mindful that nothing after this point (the first `await`)
+      // will run after when the page is unloaded.
+      await Promise.all(promises);
 
-      // Save session (new segment id) after we save flush data assuming either
-      // 1) request succeeds or 2) it fails or never happens, in which case we
-      // need to retry this segment.
-      this._maybeSaveSession();
-
-      let recordingData: ReplayRecordingData;
-
-      if (options.finishImmediate && this.eventBuffer.pendingLength) {
-        recordingData = this.eventBuffer.finishImmediate();
-      } else {
-        // NOTE: Be mindful that nothing after this point (the first `await`)
-        // will run after when the page is unloaded.
-        await Promise.all(promises);
-
-        // This can be empty due to blur events calling `runFlush` directly. In
-        // the case where we have a snapshot checkout and a blur event
-        // happening near the same time, the blur event can end up emptying the
-        // buffer even if snapshot happens first.
-        if (!this.eventBuffer.pendingLength) {
-          return;
-        }
-        // This empties the event buffer regardless of outcome of sending replay
-        recordingData = await this.eventBuffer.finish();
+      // This can be empty due to blur events calling `runFlush` directly. In
+      // the case where we have a snapshot checkout and a blur event
+      // happening near the same time, the blur event can end up emptying the
+      // buffer even if snapshot happens first.
+      if (!eventBuffer.pendingLength) {
+        return;
       }
+
+      // This empties the event buffer regardless of outcome of sending replay
+      const recordingData = await eventBuffer.finish();
 
       await sendReplay({
         replayId,
@@ -863,22 +835,112 @@ export class ReplayContainer implements ReplayContainerInterface {
         segmentId,
         includeReplayStartTimestamp: segmentId === 0,
         eventContext,
-        session: this.session,
+        session,
         options: this.getOptions(),
         timestamp: new Date().getTime(),
       });
     } catch (err) {
-      this._handleException(err);
+      this._handleSendError(err);
+    }
+  }
 
-      if (err instanceof RateLimitError) {
-        this._handleRateLimit(err.rateLimits);
+  /**
+   * Flush event buffer synchonously.
+   * This is necessary e.g. when running flush on page unload or similar.
+   */
+  private _flushSync(): void {
+    try {
+      const flushData = this._prepareFlush();
+
+      if (!flushData) {
         return;
       }
 
-      // This means we retried 3 times, and all of them failed
-      // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      this.stop();
+      const { replayId, segmentId, eventContext, eventBuffer, session } = flushData;
+
+      const recordingData = eventBuffer.finishSync();
+
+      sendReplay({
+        replayId,
+        recordingData,
+        segmentId,
+        includeReplayStartTimestamp: segmentId === 0,
+        eventContext,
+        session,
+        options: this.getOptions(),
+        timestamp: new Date().getTime(),
+      }).catch(err => {
+        this._handleSendError(err);
+      });
+    } catch (err) {
+      this._handleSendError(err);
     }
+  }
+
+  /** Prepare flush data */
+  private _prepareFlush():
+    | {
+        replayId: string;
+        eventContext: PopEventContext;
+        segmentId: number;
+        promises: Promise<unknown>[];
+        eventBuffer: EventBuffer;
+        session: Session;
+      }
+    | undefined {
+    if (!this.session || !this.eventBuffer) {
+      __DEBUG_BUILD__ && logger.error('[Replay] No session or eventBuffer found to flush.');
+      return;
+    }
+
+    this._debouncedFlush.cancel();
+
+    const promises: Promise<unknown>[] = [];
+
+    promises.push(this._addPerformanceEntries());
+
+    // Do not continue if there are no pending events in buffer
+    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
+      return;
+    }
+
+    // Only attach memory entry if eventBuffer is not empty
+    promises.push(addMemoryEntry(this));
+
+    // NOTE: Copy values from instance members, as it's possible they could
+    // change before the flush finishes.
+    const replayId = this.session.id;
+    const eventContext = this._popEventContext();
+    // Always increment segmentId regardless of outcome of sending replay
+    const segmentId = this.session.segmentId++;
+
+    // Save session (new segment id) after we save flush data assuming either
+    // 1) request succeeds or 2) it fails or never happens, in which case we
+    // need to retry this segment.
+    this._maybeSaveSession();
+
+    return {
+      replayId,
+      eventContext,
+      segmentId,
+      promises,
+      eventBuffer: this.eventBuffer,
+      session: this.session,
+    };
+  }
+
+  /** Handle an error when sending a replay. */
+  private _handleSendError(error: unknown): void {
+    this._handleException(error);
+
+    if (error instanceof RateLimitError) {
+      this._handleRateLimit(error.rateLimits);
+      return;
+    }
+
+    // This means we retried 3 times, and all of them failed
+    // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
+    this.stop();
   }
 
   /**
