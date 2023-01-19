@@ -1,16 +1,17 @@
 import type {
+  Envelope,
   EventEnvelope,
   EventItem,
-  TransportMakeRequestResponse,
-  Envelope,
-  Transport,
   InternalBaseTransportOptions,
+  Transport,
+  TransportMakeRequestResponse,
 } from '@sentry/types';
 import { createEnvelope } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
-import { makeOfflineTransport, createTransport } from '../../../src';
-import { CreateOfflineStore, START_DELAY } from '../../../src/transports/offline';
+import { createTransport, makeOfflineTransport } from '../../../src';
+import type { CreateOfflineStore } from '../../../src/transports/offline';
+import { START_DELAY } from '../../../src/transports/offline';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -163,6 +164,7 @@ describe('makeOfflineTransport', () => {
     async () => {
       const { getCalls, store } = createTestStore(ERROR_ENVELOPE, ERROR_ENVELOPE);
       const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const _transport = makeOfflineTransport(baseTransport, store)({ ...transportOptions, flushAtStartup: true });
 
       await delay(START_DELAY + 1_000);

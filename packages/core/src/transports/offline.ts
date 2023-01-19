@@ -6,7 +6,7 @@ const MAX_DELAY = 2_000_000_000;
 const DEFAULT_QUEUE_SIZE = 30;
 
 function wasRateLimited(result: TransportMakeRequestResponse): boolean {
-  return !!(result.headers && 'x-sentry-rate-limits' in result.headers && result.headers['x-sentry-rate-limits']);
+  return !!(result.headers && result.headers['x-sentry-rate-limits']);
 }
 
 type BeforeSendResponse = 'send' | 'queue' | 'drop';
@@ -58,7 +58,7 @@ export function makeOfflineTransport<TO>(
   createTransport: (options: TO) => Transport,
   createStore: CreateOfflineStore,
 ): (options: TO & OfflineTransportOptions) => Transport {
-  return (options: TO & OfflineTransportOptions) => {
+  return options => {
     const baseTransport = createTransport(options);
     const maxQueueSize = options.maxQueueSize === undefined ? DEFAULT_QUEUE_SIZE : options.maxQueueSize;
     const store = createStore(maxQueueSize);
