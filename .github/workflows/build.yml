@@ -252,6 +252,9 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+
+      - run: npx size-limit --json
+
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@v5
         # Don't run size check on release branches - at that point, we're already committed
