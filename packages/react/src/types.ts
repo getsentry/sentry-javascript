@@ -148,7 +148,7 @@ export interface Path {
   hash: string;
 }
 
-export interface RouterSubscriber<TState extends RouterState> {
+export interface RouterSubscriber<TState extends RouterState = RouterState> {
   (state: TState): void;
 }
 export interface GetScrollPositionFunction {
@@ -205,7 +205,7 @@ export interface RouterState {
   historyAction: Action | HistoryAction | any;
   location: any;
 }
-export interface Router<TState extends RouterState> {
+export interface Router<TState extends RouterState = RouterState> {
   state: TState;
   subscribe(fn: RouterSubscriber<TState>): () => void;
 }
