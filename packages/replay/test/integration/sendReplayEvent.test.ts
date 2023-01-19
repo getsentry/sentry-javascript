@@ -36,6 +36,8 @@ describe('Integration | sendReplayEvent', () => {
 
     ({ replay } = await mockSdk({
       replayOptions: {
+        flushMinDelay: 5_000,
+        flushMaxDelay: 15_000,
         stickySession: false,
         _experiments: {
           captureExceptions: true,
@@ -146,13 +148,13 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
-  it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
+  it('uploads a replay event if maxFlushDelay is set 15 seconds have elapsed since the last replay upload', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     // Fire a new event every 4 seconds, 4 times
-    [...Array(4)].forEach(() => {
+    for (let i = 0; i < 4; i++) {
       mockRecord._emitter(TEST_EVENT);
-      jest.advanceTimersByTime(4000);
-    });
+      jest.advanceTimersByTime(4_000);
+    }
 
     // We are at time = +16seconds now (relative to BASE_TIMESTAMP)
     // The next event should cause an upload immediately
@@ -264,41 +266,6 @@ describe('Integration | sendReplayEvent', () => {
 
     // events array should be empty
     expect(replay.eventBuffer?.pendingLength).toBe(0);
-  });
-
-  it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    // Fire a new event every 4 seconds, 4 times
-    [...Array(4)].forEach(() => {
-      mockRecord._emitter(TEST_EVENT);
-      jest.advanceTimersByTime(4000);
-    });
-
-    // We are at time = +16seconds now (relative to BASE_TIMESTAMP)
-    // The next event should cause an upload immediately
-    mockRecord._emitter(TEST_EVENT);
-    await new Promise(process.nextTick);
-
-    expect(replay).toHaveLastSentReplay({
-      recordingData: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
-    });
-
-    // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockTransportSend.mockClear();
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-
-    expect(replay).not.toHaveLastSentReplay();
-
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
-    // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
-
-    // Let's make sure it continues to work
-    mockTransportSend.mockClear();
-    mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
