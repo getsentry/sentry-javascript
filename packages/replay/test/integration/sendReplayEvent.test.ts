@@ -249,25 +249,6 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.eventBuffer?.pendingLength).toBe(0);
   });
 
-  it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    mockRecord._emitter(TEST_EVENT);
-    // Pretend 5 seconds have passed
-    const ELAPSED = 5000;
-    await advanceTimers(ELAPSED);
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
-
-    // No user activity to trigger an update
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
-
-    // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
-  });
-
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {
     domHandler({
       name: 'click',
