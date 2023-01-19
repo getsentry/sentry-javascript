@@ -1,26 +1,35 @@
 import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import { logger } from '@sentry/utils';
+
+export const START_DELAY = 5_000;
+const MAX_DELAY = 2_000_000_000;
+const DEFAULT_QUEUE_SIZE = 30;
 
 function wasRateLimited(result: TransportMakeRequestResponse): boolean {
-  return !!(result.headers && 'x-sentry-rate-limits' in result.headers);
+  return !!(result.headers && 'x-sentry-rate-limits' in result.headers && result.headers['x-sentry-rate-limits']);
 }
 
 type BeforeSendResponse = 'send' | 'queue' | 'drop';
 
 interface OfflineTransportOptions extends InternalBaseTransportOptions {
   /**
-   * The maximum number of days to keep an event in the queue.
+   * The maximum number of events to keep in the offline queue.
+   *
+   * Defaults: 30
    */
-  maxQueueAgeDays?: number;
+  maxQueueSize?: number;
 
   /**
-   * The maximum number of events to keep in the queue.
+   * Flush the offline queue shortly after startup.
+   *
+   * Defaults: false
    */
-  maxQueueCount?: number;
+  flushAtStartup?: boolean;
 
   /**
-   * Called every time the number of requests in the queue changes.
+   * Called when an event is queued .
    */
-  queuedLengthChanged?: (length: number) => void;
+  eventQueued?: () => void;
 
   /**
    * Called before attempting to send an event to Sentry.
@@ -32,38 +41,42 @@ interface OfflineTransportOptions extends InternalBaseTransportOptions {
   beforeSend?: (request: Envelope) => BeforeSendResponse | Promise<BeforeSendResponse>;
 }
 
-interface OfflineTransportStore {
-  add(env: Envelope): Promise<number>;
-  pop(): Promise<[Envelope | undefined, number]>;
+interface OfflineStore {
+  insert(env: Envelope): Promise<void>;
+  pop(): Promise<Envelope | undefined>;
 }
 
-const START_DELAY = 5_000;
-const MAX_DELAY = 2_000_000_000;
+export type CreateOfflineStore = (maxQueueCount: number) => OfflineStore;
 
-/** */
+/**
+ * Wraps a transport and queues events when envelopes fail to send.
+ *
+ * @param createTransport The transport to wrap.
+ * @param createStore The store implementation to use.
+ */
 export function makeOfflineTransport<TO>(
-  transport: (options: TO) => Transport,
-  store: OfflineTransportStore,
+  createTransport: (options: TO) => Transport,
+  createStore: CreateOfflineStore,
 ): (options: TO & OfflineTransportOptions) => Transport {
   return (options: TO & OfflineTransportOptions) => {
-    const baseTransport = transport(options);
+    const baseTransport = createTransport(options);
+    const maxQueueSize = options.maxQueueSize === undefined ? DEFAULT_QUEUE_SIZE : options.maxQueueSize;
+    const store = createStore(maxQueueSize);
 
     let retryDelay = START_DELAY;
-    let lastQueueLength = -1;
 
-    function queueLengthChanged(length: number): void {
-      if (options.queuedLengthChanged && length !== lastQueueLength) {
-        lastQueueLength = length;
-        options.queuedLengthChanged(length);
+    function queued(): void {
+      if (options.eventQueued) {
+        options.eventQueued();
       }
     }
 
     function queueRequest(envelope: Envelope): Promise<void> {
-      return store.add(envelope).then(count => {
-        queueLengthChanged(count);
+      return store.insert(envelope).then(() => {
+        queued();
 
         setTimeout(() => {
-          flushQueue();
+          void flushQueue();
         }, retryDelay);
 
         retryDelay *= 3;
@@ -76,36 +89,40 @@ export function makeOfflineTransport<TO>(
       });
     }
 
-    function flushQueue(): void {
-      void store.pop().then(([found, count]) => {
-        if (found) {
-          // We have pending plus just found
-          queueLengthChanged(count + 1);
-          void send(found);
-        } else {
-          queueLengthChanged(0);
-        }
-      });
+    async function flushQueue(): Promise<void> {
+      const found = await store.pop();
+
+      if (found) {
+        __DEBUG_BUILD__ && logger.info('[Offline]: Attempting to send previously queued event');
+        void send(found);
+      }
     }
 
-    // eslint-disable-next-line @sentry-internal/sdk/no-async-await
     async function send(request: Envelope): Promise<void | TransportMakeRequestResponse> {
-      let action = (await options.beforeSend?.(request)) || 'send';
+      let action = 'send';
+
+      if (options.beforeSend) {
+        action = await options.beforeSend(request);
+      }
 
       if (action === 'send') {
         try {
           const result = await baseTransport.send(request);
-          if (!wasRateLimited(result || {})) {
+          if (wasRateLimited(result || {})) {
+            __DEBUG_BUILD__ && logger.info('[Offline]: Event queued due to rate limiting');
+            action = 'queue';
+          } else {
+            // Envelope was successfully sent
             // Reset the retry delay
             retryDelay = START_DELAY;
-            // We were successful so check the queue
-            flushQueue();
+            // Check if there are any more in the queue
+            void flushQueue();
             return result;
           }
-        } catch (_) {
-          //
+        } catch (e) {
+          __DEBUG_BUILD__ && logger.info('[Offline]: Event queued due to error', e);
+          action = 'queue';
         }
-        action = 'queue';
       }
 
       if (action == 'queue') {
@@ -113,6 +130,12 @@ export function makeOfflineTransport<TO>(
       }
 
       return {};
+    }
+
+    if (options.flushAtStartup) {
+      setTimeout(() => {
+        void flushQueue();
+      }, retryDelay);
     }
 
     return {
