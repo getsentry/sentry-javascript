@@ -272,7 +272,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    # Size Check will error out outside of the context of a PR
+    # Size Check will error out outside of the context of a PR or master branch
     if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_master == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -297,9 +297,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v5
-        # Don't run size check on release branches - at that point, we're already committed
-        if: needs.job_get_metadata.outputs.is_release == 'false'
+        uses: getsentry/size-limit-action@main-skip-step
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
