@@ -210,7 +210,7 @@ export interface Router<TState extends RouterState> {
   subscribe(fn: RouterSubscriber<TState>): () => void;
 }
 
-export type CreateRouterFunction<TState extends RouterState, TRouter extends Router<TState>> = (
-  routes: RouteObject[],
-  opts?: any,
-) => TRouter;
+export type CreateRouterFunction<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+> = (routes: RouteObject[], opts?: any) => TRouter;

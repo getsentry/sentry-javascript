@@ -13,7 +13,7 @@ import {
 } from 'react-router-6.4';
 
 import { reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
-import type { CreateRouterFunction, Router, RouterState } from '../src/types';
+import type { CreateRouterFunction } from '../src/types';
 
 beforeAll(() => {
   // @ts-ignore need to override global Request because it's not in the jest environment (even with an
@@ -49,9 +49,7 @@ describe('React Router v6.4', () => {
   describe('wrapCreateBrowserRouter', () => {
     it('starts a pageload transaction', () => {
       const [mockStartTransaction] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
@@ -82,9 +80,7 @@ describe('React Router v6.4', () => {
 
     it('starts a navigation transaction', () => {
       const [mockStartTransaction] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
@@ -115,9 +111,7 @@ describe('React Router v6.4', () => {
 
     it('works with nested routes', () => {
       const [mockStartTransaction] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
@@ -154,9 +148,7 @@ describe('React Router v6.4', () => {
 
     it('works with parameterized paths', () => {
       const [mockStartTransaction] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
@@ -193,9 +185,7 @@ describe('React Router v6.4', () => {
 
     it('works with paths with multiple parameters', () => {
       const [mockStartTransaction] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
@@ -244,9 +234,7 @@ describe('React Router v6.4', () => {
 
     it('updates pageload transaction to a parameterized route', () => {
       const [mockStartTransaction, { mockSetName }] = createInstrumentation();
-      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(
-        createMemoryRouter as CreateRouterFunction<RouterState, Router<RouterState>>,
-      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
         [
