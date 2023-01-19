@@ -46,16 +46,6 @@ const canonicalCodesGrpcMap: Record<string, SentryStatus> = {
 export function mapOtelStatus(otelSpan: OtelSpan): SentryStatus {
   const { status, attributes } = otelSpan;
 
-  const statusCode = status.code;
-
-  if (statusCode < 0 || statusCode > 2) {
-    return 'unknown_error';
-  }
-
-  if (statusCode === 0 || statusCode === 1) {
-    return 'ok';
-  }
-
   const httpCode = attributes[SemanticAttributes.HTTP_STATUS_CODE];
   const grpcCode = attributes[SemanticAttributes.RPC_GRPC_STATUS_CODE];
 
@@ -72,6 +62,16 @@ export function mapOtelStatus(otelSpan: OtelSpan): SentryStatus {
     if (sentryStatus) {
       return sentryStatus;
     }
+  }
+
+  const statusCode = status.code;
+
+  if (statusCode < 0 || statusCode > 2) {
+    return 'unknown_error';
+  }
+
+  if (statusCode === 0 || statusCode === 1) {
+    return 'ok';
   }
 
   return 'unknown_error';
