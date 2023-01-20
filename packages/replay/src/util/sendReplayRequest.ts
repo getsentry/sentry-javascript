@@ -58,7 +58,7 @@ export async function sendReplayRequest({
 
   if (!replayEvent) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
-    client.recordDroppedEvent('event_processor', 'replay_event', baseEvent);
+    client.recordDroppedEvent('event_processor', 'replay', baseEvent);
     __DEBUG_BUILD__ && logger.log('An event processor returned `null`, will not send event.');
     return;
   }

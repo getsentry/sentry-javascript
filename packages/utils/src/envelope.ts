@@ -190,8 +190,8 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   client_report: 'internal',
   user_report: 'default',
   profile: 'profile',
-  replay_event: 'replay_event',
-  replay_recording: 'replay_recording',
+  replay_event: 'replay',
+  replay_recording: 'replay',
 };
 
 /**
