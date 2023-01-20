@@ -86,11 +86,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   flushMaxDelay: number;
 
   /**
-   * The amount of time to buffer the initial snapshot
-   */
-  initialFlushDelay: number;
-
-  /**
    * Attempt to use compression when web workers are available
    *
    * (default is true)

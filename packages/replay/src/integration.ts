@@ -6,7 +6,6 @@ import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
   DEFAULT_SESSION_SAMPLE_RATE,
-  INITIAL_FLUSH_DELAY,
   MASK_ALL_TEXT_SELECTOR,
 } from './constants';
 import { ReplayContainer } from './replay';
@@ -43,7 +42,6 @@ export class Replay implements Integration {
   public constructor({
     flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
-    initialFlushDelay = INITIAL_FLUSH_DELAY,
     stickySession = true,
     useCompression = true,
     sessionSampleRate,
@@ -73,7 +71,6 @@ export class Replay implements Integration {
       flushMinDelay,
       flushMaxDelay,
       stickySession,
-      initialFlushDelay,
       sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
       errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
       useCompression,

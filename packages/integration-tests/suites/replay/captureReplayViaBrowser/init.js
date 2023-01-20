@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/browser';
 window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
-  initialFlushDelay: 200,
+  flushMaxDelay: 200,
 });
 
 Sentry.init({
