@@ -39,10 +39,10 @@
     "clean": "rimraf build coverage cjs esm sentry-utils-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js"
