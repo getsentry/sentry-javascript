@@ -1,17 +1,11 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
+import { captureException } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
-import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
+import { disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from './constants';
-import { handleDomListener } from './coreHandlers/handleDom';
-import { handleFetchSpanListener } from './coreHandlers/handleFetch';
-import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
-import { handleHistorySpanListener } from './coreHandlers/handleHistory';
-import { handleScopeListener } from './coreHandlers/handleScope';
-import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -30,6 +24,7 @@ import type {
   Session,
 } from './types';
 import { addEvent } from './util/addEvent';
+import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
@@ -447,19 +442,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
-        // Listeners from core SDK //
-        const scope = getCurrentHub().getScope();
-        if (scope) {
-          scope.addScopeListener(handleScopeListener(this));
-        }
-        addInstrumentationHandler('dom', handleDomListener(this));
-        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
-        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
-        addInstrumentationHandler('history', handleHistorySpanListener(this));
-
-        // Tag all (non replay) events that get sent to Sentry with the current
-        // replay ID so that we can reference them later in the UI
-        addGlobalEventProcessor(handleGlobalEventListener(this));
+        addGlobalListeners(this);
 
         this._hasInitializedCoreListeners = true;
       }
