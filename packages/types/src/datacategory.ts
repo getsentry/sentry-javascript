@@ -10,8 +10,6 @@ export type DataCategory =
   | 'error'
   // Transaction type event
   | 'transaction'
-  // Replay type event
-  | 'replay_event'
   // Events with `event_type` csp, hpkp, expectct, expectstaple
   | 'security'
   // Attachment bytes stored (unused for rate limiting
@@ -22,6 +20,11 @@ export type DataCategory =
   | 'internal'
   // Profile event type
   | 'profile'
-  // Replay event types
+  // Replay event types (see note below)
   | 'replay_event'
   | 'replay_recording';
+
+// Replay event types and categories are a little different in envelopes, client reports and rate limits
+// Hence, we're using a type alias to make it easier to use the correct category in the right place
+export type RateLimitDataCategory = Omit<DataCategory, 'replay_event' | 'replay_recording'> | 'replay';
+export type ClientReportDataCategory = RateLimitDataCategory;

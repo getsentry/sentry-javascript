@@ -2,6 +2,7 @@
 import type {
   Client,
   ClientOptions,
+  ClientReportDataCategory,
   DataCategory,
   DsnComponents,
   Envelope,
@@ -337,13 +338,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // Note: we use `event` in replay, where we overwrite this hook.
 
     if (this._options.sendClientReports) {
-      // We want to track each category (error, transaction, session, replay_event) separately
+      const clientReportCategory = dataCategoryToClientReportCategory(category);
+
+      // We want to track each category (error, transaction, session, replay) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
       // A correct type for map-based implementation if we want to go that route
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
-      const key = `${reason}:${category}`;
+      const key = `${reason}:${clientReportCategory}`;
       __DEBUG_BUILD__ && logger.log(`Adding outcome: "${key}"`);
 
       // The following works because undefined + 1 === NaN and NaN is falsy
@@ -687,4 +690,11 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+function dataCategoryToClientReportCategory(category: DataCategory): ClientReportDataCategory {
+  if (category === 'replay_event' || category === 'replay_recording') {
+    return 'replay';
+  }
+  return category;
 }

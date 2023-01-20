@@ -1,4 +1,4 @@
-import type { TransportMakeRequestResponse } from '@sentry/types';
+import type { RateLimitDataCategory, TransportMakeRequestResponse } from '@sentry/types';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
@@ -32,14 +32,19 @@ export function parseRetryAfterHeader(header: string, now: number = Date.now()):
  *
  * @return the time in ms that the category is disabled until or 0 if there's no active rate limit.
  */
-export function disabledUntil(limits: RateLimits, category: string): number {
-  return limits[category] || limits.all || 0;
+export function disabledUntil(limits: RateLimits, category: RateLimitDataCategory | string): number {
+  // type casting here because TS doesn't relaize that RateLimitDataCategory is a string literal type
+  return limits[category as string] || limits.all || 0;
 }
 
 /**
  * Checks if a category is rate limited
  */
-export function isRateLimited(limits: RateLimits, category: string, now: number = Date.now()): boolean {
+export function isRateLimited(
+  limits: RateLimits,
+  category: RateLimitDataCategory | string,
+  now: number = Date.now(),
+): boolean {
   return disabledUntil(limits, category) > now;
 }
 
