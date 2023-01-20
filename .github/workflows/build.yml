@@ -120,6 +120,10 @@ jobs:
             any_code:
               - '!**/*.md'
 
+      - name: Get PR labels
+        id: pr-labels
+        uses: mydea/pr-labels-action@update-core
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       changed_nextjs: ${{ steps.changed.outputs.nextjs }}
@@ -133,7 +137,7 @@ jobs:
       is_master: ${{ github.ref == 'refs/heads/master' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       force_skip_cache:
-        ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-skip-cache') }}
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
 
   job_install_deps:
     name: Install Dependencies
@@ -268,7 +272,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    # Size Check will error out outside of the context of a PR
+    # Size Check will error out outside of the context of a PR or master branch
     if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_master == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -293,9 +297,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v5
-        # Don't run size check on release branches - at that point, we're already committed
-        if: needs.job_get_metadata.outputs.is_release == 'false'
+        uses: getsentry/size-limit-action@main-skip-step
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
@@ -487,12 +489,10 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Get npm cache directory
         id: npm-cache-dir
-        run: |
-          echo "::set-output name=dir::$(npm config get cache)"
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Get Playwright version
         id: playwright-version
-        run: |
-          echo "::set-output name=version::$(node -p "require('@playwright/test/package.json').version")"
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
@@ -560,12 +560,10 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Get npm cache directory
         id: npm-cache-dir
-        run: |
-          echo "::set-output name=dir::$(npm config get cache)"
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Get Playwright version
         id: playwright-version
-        run: |
-          echo "::set-output name=version::$(node -p "require('@playwright/test/package.json').version")"
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache

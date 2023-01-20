@@ -1,9 +1,9 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getReplaySnapshot } from '../../../utils/helpers';
+import { getReplaySnapshot, REPLAY_DEFAULT_FLUSH_MAX_DELAY, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
+sentryTest('should stop recording after receiving an error response', async ({ getLocalTestPath, page }) => {
   // Currently bundle tests are not supported for replay
   if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
@@ -22,13 +22,15 @@ sentryTest('errorResponse', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
+  await waitForReplayRequest(page);
   await page.click('button');
-  await page.waitForTimeout(300);
 
   expect(called).toBe(1);
 
   // Should immediately skip retrying and just cancel, no backoff
-  await page.waitForTimeout(5001);
+  // This waitForTimeout call should be okay, as we're not checking for any
+  // further network requests afterwards.
+  await page.waitForTimeout(REPLAY_DEFAULT_FLUSH_MAX_DELAY + 1);
 
   expect(called).toBe(1);
 

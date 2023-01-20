@@ -223,3 +223,9 @@ However, please note that it is _possible_ that the error count reported on the 
 does not match the actual errors that have been captured.
 The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
 This should not happen to often, but be aware that it is theoretically possible.
+
+## Manually sending replay data
+
+You can use `replay.flush()` to immediately send all currently captured replay data.
+This can be combined with `replaysOnErrorSampleRate: 1`
+in order to be able to send the last 60 seconds of replay data on-demand.

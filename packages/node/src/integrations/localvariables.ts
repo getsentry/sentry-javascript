@@ -1,15 +1,8 @@
-import type {
-  ClientOptions,
-  Event,
-  EventProcessor,
-  Exception,
-  Hub,
-  Integration,
-  StackFrame,
-  StackParser,
-} from '@sentry/types';
+import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
+
+import type { NodeClientOptions } from '../types';
 
 export interface DebugSession {
   /** Configures and connects to the debug session */
@@ -211,12 +204,11 @@ export class LocalVariables implements Integration {
   /** Setup in a way that's easier to call from tests */
   private _setup(
     addGlobalEventProcessor: (callback: EventProcessor) => void,
-    clientOptions: ClientOptions | undefined,
+    clientOptions: NodeClientOptions | undefined,
   ): void {
-    if (this._session && clientOptions?._experiments?.includeStackLocals) {
-      this._session.configureAndConnect(
-        ev => this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
-        !!this._options.captureAllExceptions,
+    if (this._session && clientOptions?.includeLocalVariables) {
+      this._session.configureAndConnect(ev =>
+        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
       );
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));

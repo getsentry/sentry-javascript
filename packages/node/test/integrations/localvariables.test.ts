@@ -117,7 +117,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -213,7 +213,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);
@@ -235,7 +235,6 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: false },
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -253,7 +252,6 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, undefined);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: false },
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -275,7 +273,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);

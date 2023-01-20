@@ -86,11 +86,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   flushMaxDelay: number;
 
   /**
-   * The amount of time to buffer the initial snapshot
-   */
-  initialFlushDelay: number;
-
-  /**
    * Attempt to use compression when web workers are available
    *
    * (default is true)
@@ -225,7 +220,7 @@ export interface EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfully added.
+   * Returns a promise that resolves if the event was successfully added, else rejects.
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 

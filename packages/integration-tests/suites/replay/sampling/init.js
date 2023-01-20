@@ -4,7 +4,7 @@ import { Replay } from '@sentry/replay';
 window.Sentry = Sentry;
 window.Replay = new Replay({
   flushMinDelay: 200,
-  initialFlushDelay: 200,
+  flushMaxDelay: 200,
 });
 
 Sentry.init({
