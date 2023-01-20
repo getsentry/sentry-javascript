@@ -179,7 +179,7 @@ export interface FrameVariables {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface Options {
   /**
-   * Capture local variables for all exceptions
+   * Capture local variables for both handled and unhandled exceptions
    *
    * Default: false - Only captures local variables for uncaught exceptions
    */
