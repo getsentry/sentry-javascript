@@ -1728,7 +1728,7 @@ describe('BaseClient', () => {
           {
             reason: 'ratelimit_backoff',
             category: 'replay',
-            quantity: 2,
+            quantity: 1,
           },
         ]);
       },
