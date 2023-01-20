@@ -5,7 +5,7 @@ import * as HandleScope from '../../../src/coreHandlers/handleScope';
 describe('Unit | coreHandlers | handleScope', () => {
   const mockHandleScope = jest.spyOn(HandleScope, 'handleScope');
 
-  it('returns a breadcrumb only if last breadcrumb has changed (unit)', function () {
+  it('returns a breadcrumb only if last breadcrumb has changed', function () {
     const scope = {
       _breadcrumbs: [],
       getLastBreadcrumb() {
