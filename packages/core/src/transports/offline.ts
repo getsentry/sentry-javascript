@@ -1,44 +1,48 @@
 import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { forEachEnvelopeItem, logger, parseRetryAfterHeader } from '@sentry/utils';
 
-export const START_DELAY = 5_000;
-const MAX_DELAY = 2_000_000_000;
+export const MIN_DELAY = 100; // 100 ms
+export const START_DELAY = 5_000; // 5 seconds
+const MAX_DELAY = 3.6e6; // 1 hour
 const DEFAULT_QUEUE_SIZE = 30;
 
-function wasRateLimited(result: TransportMakeRequestResponse): boolean {
-  return !!(result.headers && result.headers['x-sentry-rate-limits']);
-}
+function isReplayEnvelope(envelope: Envelope): boolean {
+  let isReplay = false;
 
-type BeforeSendResponse = 'send' | 'queue' | 'drop';
+  forEachEnvelopeItem(envelope, (_, type) => {
+    if (type === 'replay_event') {
+      isReplay = true;
+    }
+  });
+
+  return isReplay;
+}
 
 interface OfflineTransportOptions extends InternalBaseTransportOptions {
   /**
-   * The maximum number of events to keep in the offline queue.
+   * The maximum number of events to keep in the offline store.
    *
    * Defaults: 30
    */
   maxQueueSize?: number;
 
   /**
-   * Flush the offline queue shortly after startup.
+   * Flush the offline store shortly after startup.
    *
    * Defaults: false
    */
   flushAtStartup?: boolean;
 
   /**
-   * Called when an event is queued .
-   */
-  eventQueued?: () => void;
-
-  /**
-   * Called before attempting to send an event to Sentry.
+   * Called before an event is stored.
    *
-   * Return 'send' to attempt to send the event.
-   * Return 'queue' to queue the event for sending later.
-   * Return 'drop' to drop the event.
+   * Return false to drop the envelope rather than store it.
+   *
+   * @param envelope The envelope that failed to send.
+   * @param error The error that occurred.
+   * @param retryDelay The current retry delay in milliseconds.
    */
-  beforeSend?: (request: Envelope) => BeforeSendResponse | Promise<BeforeSendResponse>;
+  shouldStore?: (envelope: Envelope, error: Error, retryDelay: number) => boolean | Promise<boolean>;
 }
 
 interface OfflineStore {
@@ -48,8 +52,10 @@ interface OfflineStore {
 
 export type CreateOfflineStore = (maxQueueCount: number) => OfflineStore;
 
+type Timer = number | { unref?: () => void };
+
 /**
- * Wraps a transport and queues events when envelopes fail to send.
+ * Wraps a transport and stores and retries events when they fail to send.
  *
  * @param createTransport The transport to wrap.
  * @param createStore The store implementation to use.
@@ -59,88 +65,104 @@ export function makeOfflineTransport<TO>(
   createStore: CreateOfflineStore,
 ): (options: TO & OfflineTransportOptions) => Transport {
   return options => {
-    const baseTransport = createTransport(options);
+    const transport = createTransport(options);
     const maxQueueSize = options.maxQueueSize === undefined ? DEFAULT_QUEUE_SIZE : options.maxQueueSize;
     const store = createStore(maxQueueSize);
 
     let retryDelay = START_DELAY;
+    let flushTimer: Timer | undefined;
 
-    function queued(): void {
-      if (options.eventQueued) {
-        options.eventQueued();
-      }
+    function log(msg: string, error?: Error): void {
+      __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
     }
 
-    function queueRequest(envelope: Envelope): Promise<void> {
-      return store.insert(envelope).then(() => {
-        queued();
+    function shouldQueue(env: Envelope, error: Error, retryDelay: number): boolean | Promise<boolean> {
+      if (isReplayEnvelope(env)) {
+        return false;
+      }
 
-        setTimeout(() => {
-          void flushQueue();
-        }, retryDelay);
+      if (options.shouldStore) {
+        return options.shouldStore(env, error, retryDelay);
+      }
 
-        retryDelay *= 3;
+      return true;
+    }
 
-        // If the delay is bigger than 2^31 (max signed 32-bit int), setTimeout throws
-        // an error on node.js and falls back to 1 which can cause a huge number of requests.
-        if (retryDelay > MAX_DELAY) {
-          retryDelay = MAX_DELAY;
+    function flushIn(delay: number): void {
+      if (flushTimer) {
+        clearTimeout(flushTimer as ReturnType<typeof setTimeout>);
+      }
+
+      flushTimer = setTimeout(async () => {
+        flushTimer = undefined;
+
+        const found = await store.pop();
+        if (found) {
+          log('Attempting to send previously queued event');
+          void send(found).catch(e => {
+            log('Failed to retry sending', e);
+          });
         }
-      });
-    }
+      }, delay) as Timer;
 
-    async function flushQueue(): Promise<void> {
-      const found = await store.pop();
-
-      if (found) {
-        __DEBUG_BUILD__ && logger.info('[Offline]: Attempting to send previously queued event');
-        void send(found);
+      // We need to unref the timer in node.js, otherwise the node process never exit.
+      if (typeof flushTimer !== 'number' && typeof flushTimer.unref === 'function') {
+        flushTimer.unref();
       }
     }
 
-    async function send(request: Envelope): Promise<void | TransportMakeRequestResponse> {
-      let action = 'send';
-
-      if (options.beforeSend) {
-        action = await options.beforeSend(request);
+    function flushWithBackOff(): void {
+      if (flushTimer) {
+        return;
       }
 
-      if (action === 'send') {
-        try {
-          const result = await baseTransport.send(request);
-          if (wasRateLimited(result || {})) {
-            __DEBUG_BUILD__ && logger.info('[Offline]: Event queued due to rate limiting');
-            action = 'queue';
-          } else {
-            // Envelope was successfully sent
-            // Reset the retry delay
-            retryDelay = START_DELAY;
-            // Check if there are any more in the queue
-            void flushQueue();
+      flushIn(retryDelay);
+
+      retryDelay *= 2;
+
+      if (retryDelay > MAX_DELAY) {
+        retryDelay = MAX_DELAY;
+      }
+    }
+
+    async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
+      try {
+        const result = await transport.send(envelope);
+
+        let delay = MIN_DELAY;
+
+        if (result) {
+          // If there's a retry-after header, use that as the next delay.
+          if (result.headers && result.headers['retry-after']) {
+            delay = parseRetryAfterHeader(result.headers['retry-after']);
+          } // If we have a server error, return now so we don't flush the queue.
+          else if ((result.statusCode || 0) >= 400) {
             return result;
           }
-        } catch (e) {
-          __DEBUG_BUILD__ && logger.info('[Offline]: Event queued due to error', e);
-          action = 'queue';
+        }
+
+        flushIn(delay);
+        retryDelay = START_DELAY;
+        return result;
+      } catch (e) {
+        if (await shouldQueue(envelope, e, retryDelay)) {
+          await store.insert(envelope);
+          flushWithBackOff();
+          log('Error sending. Event queued', e);
+          return {};
+        } else {
+          throw e;
         }
       }
-
-      if (action == 'queue') {
-        void queueRequest(request);
-      }
-
-      return {};
     }
 
     if (options.flushAtStartup) {
-      setTimeout(() => {
-        void flushQueue();
-      }, retryDelay);
+      flushWithBackOff();
     }
 
     return {
       send,
-      flush: (timeout?: number) => baseTransport.flush(timeout),
+      flush: (timeout?: number) => transport.flush(timeout),
     };
   };
 }
