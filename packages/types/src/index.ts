@@ -3,7 +3,7 @@ export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
-export type { DataCategory, ClientReportDataCategory, RateLimitDataCategory } from './datacategory';
+export type { DataCategory, ClientReportCategory, RateLimitCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
 export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
 export type {

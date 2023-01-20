@@ -26,5 +26,5 @@ export type DataCategory =
 
 // Replay event types and categories are a little different in envelopes, client reports and rate limits
 // Hence, we're using a type alias to make it easier to use the correct category in the right place
-export type RateLimitDataCategory = Omit<DataCategory, 'replay_event' | 'replay_recording'> | 'replay';
-export type ClientReportDataCategory = RateLimitDataCategory;
+export type RateLimitCategory = Omit<DataCategory, 'replay_event' | 'replay_recording'> | 'replay';
+export type ClientReportCategory = RateLimitCategory;

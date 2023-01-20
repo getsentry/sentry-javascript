@@ -2,7 +2,7 @@
 import type {
   Client,
   ClientOptions,
-  ClientReportDataCategory,
+  ClientReportCategory,
   DataCategory,
   DsnComponents,
   Envelope,
@@ -692,7 +692,7 @@ function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
 }
 
-function dataCategoryToClientReportCategory(category: DataCategory): ClientReportDataCategory {
+function dataCategoryToClientReportCategory(category: DataCategory): ClientReportCategory {
   if (category === 'replay_event' || category === 'replay_recording') {
     return 'replay';
   }
