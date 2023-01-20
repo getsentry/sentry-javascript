@@ -33,7 +33,7 @@ export function parseRetryAfterHeader(header: string, now: number = Date.now()):
  * @return the time in ms that the category is disabled until or 0 if there's no active rate limit.
  */
 export function disabledUntil(limits: RateLimits, category: RateLimitCategory | string): number {
-  // type casting here because TS doesn't relaize that RateLimitDataCategory is a string literal type
+  // type casting here because TS doesn't realize that RateLimitDataCategory is a string literal type
   return limits[category as string] || limits.all || 0;
 }
 
