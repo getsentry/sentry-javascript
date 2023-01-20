@@ -1,4 +1,4 @@
-import type { Event, Span } from '@sentry/types';
+import type { DataCategory, Event, Span } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
@@ -1714,5 +1714,24 @@ describe('BaseClient', () => {
       const clearedOutcomes4 = client._clearOutcomes();
       expect(clearedOutcomes4.length).toEqual(0);
     });
+
+    test.each(['replay_event', 'replay_recording'])(
+      'converts replay event types (%s) to replay client report category',
+      replayEventType => {
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+        const client = new TestClient(options);
+
+        client.recordDroppedEvent('ratelimit_backoff', replayEventType as DataCategory);
+
+        const clearedOutcomes = client._clearOutcomes();
+        expect(clearedOutcomes).toEqual([
+          {
+            reason: 'ratelimit_backoff',
+            category: 'replay',
+            quantity: 2,
+          },
+        ]);
+      },
+    );
   });
 });
