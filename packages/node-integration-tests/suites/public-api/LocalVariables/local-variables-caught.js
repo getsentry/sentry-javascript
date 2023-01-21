@@ -3,7 +3,7 @@ const Sentry = require('@sentry/node');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  _experiments: { includeStackLocals: true },
+  includeLocalVariables: true,
   integrations: [new Sentry.Integrations.LocalVariables({ captureAllExceptions: true })],
   beforeSend: event => {
     // eslint-disable-next-line no-console
