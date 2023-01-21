@@ -103,7 +103,7 @@ As an alternative to the NPM package, you can load the Replay integration bundle
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/bundle.tracing.replay.min.js"
   crossorigin="anonymous"
 ></script>
 
@@ -128,11 +128,11 @@ Alternatively, you can also load the Replay integration separately from other bu
 
 ```html
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/bundle.min.js"
   crossorigin="anonymous"
 ></script>
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/replay.min.js"
   crossorigin="anonymous"
 ></script>
 ```
