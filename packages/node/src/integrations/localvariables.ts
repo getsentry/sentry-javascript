@@ -207,8 +207,9 @@ export class LocalVariables implements Integration {
     clientOptions: NodeClientOptions | undefined,
   ): void {
     if (this._session && clientOptions?.includeLocalVariables) {
-      this._session.configureAndConnect(ev =>
-        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+      this._session.configureAndConnect(
+        ev => this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+        !!this._options.captureAllExceptions,
       );
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
