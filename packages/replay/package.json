@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "7.32.0",
+  "version": "7.32.1",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -53,9 +53,9 @@
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@sentry/core": "7.32.0",
-    "@sentry/types": "7.32.0",
-    "@sentry/utils": "7.32.0"
+    "@sentry/core": "7.32.1",
+    "@sentry/types": "7.32.1",
+    "@sentry/utils": "7.32.1"
   },
   "engines": {
     "node": ">=12"
