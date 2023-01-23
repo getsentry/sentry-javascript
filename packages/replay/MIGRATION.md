@@ -1,3 +1,13 @@
+# Upgrading Replay from 7.31.0 to 7.32.0
+
+In 7.32.0, we have removed the default values for the replay sample rates.
+Previously, they were:
+
+* `replaysSessionSampleRate: 0.1`
+* `replaysOnErrorSampleRate: 1.0`
+
+Now, you have to explicitly set the sample rates, otherwise they default to 0.
+
 # Upgrading Replay from 0.6.x to 7.24.0
 
 The Sentry Replay integration was moved to the Sentry JavaScript SDK monorepo. Hence we're jumping from version 0.x to the monorepo's 7.x version which is shared across all JS SDK packages.
