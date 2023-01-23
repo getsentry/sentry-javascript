@@ -6,7 +6,7 @@ const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 30_000;
 
-test('Sends an exception to Sentry', async ({ page, baseURL }) => {
+test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const exceptionButton = page.locator('id=exception-button');
