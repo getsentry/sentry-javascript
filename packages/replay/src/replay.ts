@@ -1,16 +1,11 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
-import { addGlobalEventProcessor, captureException, getCurrentHub } from '@sentry/core';
+import { captureException } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
-import { addInstrumentationHandler, disabledUntil, logger } from '@sentry/utils';
+import { disabledUntil, logger } from '@sentry/utils';
 import { EventType, record } from 'rrweb';
 
 import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from './constants';
-import { breadcrumbHandler } from './coreHandlers/breadcrumbHandler';
-import { handleFetchSpanListener } from './coreHandlers/handleFetch';
-import { handleGlobalEventListener } from './coreHandlers/handleGlobalEvent';
-import { handleHistorySpanListener } from './coreHandlers/handleHistory';
-import { handleXhrSpanListener } from './coreHandlers/handleXhr';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -20,7 +15,6 @@ import type {
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
-  InstrumentationTypeBreadcrumb,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
@@ -30,6 +24,7 @@ import type {
   Session,
 } from './types';
 import { addEvent } from './util/addEvent';
+import { addGlobalListeners } from './util/addGlobalListeners';
 import { addMemoryEntry } from './util/addMemoryEntry';
 import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
@@ -318,7 +313,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Otherwise... recording was never suspended, continue as normalish
-    this._checkAndHandleExpiredSession();
+    this.checkAndHandleExpiredSession();
 
     this._updateSessionActivity();
   }
@@ -338,6 +333,44 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Get the current sesion (=replay) ID */
   public getSessionId(): string | undefined {
     return this.session && this.session.id;
+  }
+
+  /**
+   * Checks if recording should be stopped due to user inactivity. Otherwise
+   * check if session is expired and create a new session if so. Triggers a new
+   * full snapshot on new session.
+   *
+   * Returns true if session is not expired, false otherwise.
+   * @hidden
+   */
+  public checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
+    const oldSessionId = this.getSessionId();
+
+    // Prevent starting a new session if the last user activity is older than
+    // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
+    // session+recording. This creates noisy replays that do not have much
+    // content in them.
+    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
+      // Pause recording
+      this.pause();
+      return;
+    }
+
+    // --- There is recent user activity --- //
+    // This will create a new session if expired, based on expiry length
+    this._loadSession({ expiry });
+
+    // Session was expired if session ids do not match
+    const expired = oldSessionId !== this.getSessionId();
+
+    if (!expired) {
+      return true;
+    }
+
+    // Session is expired, trigger a full snapshot (which will create a new session)
+    this._triggerFullSnapshot();
+
+    return false;
   }
 
   /** A wrapper to conditionally capture exceptions. */
@@ -409,19 +442,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
-        // Listeners from core SDK //
-        const scope = getCurrentHub().getScope();
-        if (scope) {
-          scope.addScopeListener(this._handleCoreBreadcrumbListener('scope'));
-        }
-        addInstrumentationHandler('dom', this._handleCoreBreadcrumbListener('dom'));
-        addInstrumentationHandler('fetch', handleFetchSpanListener(this));
-        addInstrumentationHandler('xhr', handleXhrSpanListener(this));
-        addInstrumentationHandler('history', handleHistorySpanListener(this));
-
-        // Tag all (non replay) events that get sent to Sentry with the current
-        // replay ID so that we can reference them later in the UI
-        addGlobalEventProcessor(handleGlobalEventListener(this));
+        addGlobalListeners(this);
 
         this._hasInitializedCoreListeners = true;
       }
@@ -468,7 +489,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     isCheckout?: boolean,
   ) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
-    if (!this._checkAndHandleExpiredSession()) {
+    if (!this.checkAndHandleExpiredSession()) {
       __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
 
       return;
@@ -564,51 +585,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   };
 
   /**
-   * Handler for Sentry Core SDK events.
-   *
-   * These events will create breadcrumb-like objects in the recording.
-   */
-  private _handleCoreBreadcrumbListener: (type: InstrumentationTypeBreadcrumb) => (handlerData: unknown) => void =
-    (type: InstrumentationTypeBreadcrumb) =>
-    (handlerData: unknown): void => {
-      if (!this._isEnabled) {
-        return;
-      }
-
-      const result = breadcrumbHandler(type, handlerData);
-
-      if (result === null) {
-        return;
-      }
-
-      if (result.category === 'sentry.transaction') {
-        return;
-      }
-
-      if (result.category === 'ui.click') {
-        this.triggerUserActivity();
-      } else {
-        this._checkAndHandleExpiredSession();
-      }
-
-      this.addUpdate(() => {
-        void addEvent(this, {
-          type: EventType.Custom,
-          // TODO: We were converting from ms to seconds for breadcrumbs, spans,
-          // but maybe we should just keep them as milliseconds
-          timestamp: (result.timestamp || 0) * 1000,
-          data: {
-            tag: 'breadcrumb',
-            payload: result,
-          },
-        });
-
-        // Do not flush after console log messages
-        return result.category === 'console';
-      });
-    };
-
-  /**
    * Tasks to run when we consider a page to be hidden (via blurring and/or visibility)
    */
   private _doChangeToBackgroundTasks(breadcrumb?: Breadcrumb): void {
@@ -636,7 +612,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const isSessionActive = this._checkAndHandleExpiredSession({
+    const isSessionActive = this.checkAndHandleExpiredSession({
       expiry: VISIBILITY_CHANGE_TIMEOUT,
     });
 
@@ -705,43 +681,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.performanceEvents = [];
 
     return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
-  }
-
-  /**
-   * Checks if recording should be stopped due to user inactivity. Otherwise
-   * check if session is expired and create a new session if so. Triggers a new
-   * full snapshot on new session.
-   *
-   * Returns true if session is not expired, false otherwise.
-   */
-  private _checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
-    const oldSessionId = this.getSessionId();
-
-    // Prevent starting a new session if the last user activity is older than
-    // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
-    // session+recording. This creates noisy replays that do not have much
-    // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
-      // Pause recording
-      this.pause();
-      return;
-    }
-
-    // --- There is recent user activity --- //
-    // This will create a new session if expired, based on expiry length
-    this._loadSession({ expiry });
-
-    // Session was expired if session ids do not match
-    const expired = oldSessionId !== this.getSessionId();
-
-    if (!expired) {
-      return true;
-    }
-
-    // Session is expired, trigger a full snapshot (which will create a new session)
-    this._triggerFullSnapshot();
-
-    return false;
   }
 
   /**
@@ -862,7 +801,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    if (!this._checkAndHandleExpiredSession()) {
+    if (!this.checkAndHandleExpiredSession()) {
       __DEBUG_BUILD__ && logger.error('[Replay] Attempting to finish replay event after session expired.');
       return;
     }

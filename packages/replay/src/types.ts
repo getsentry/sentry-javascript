@@ -18,8 +18,6 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
-export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
-
 /**
  * The request payload to worker
  */
@@ -251,6 +249,7 @@ export interface ReplayContainer {
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
+  checkAndHandleExpiredSession(): boolean | void;
 }
 
 export interface ReplayPerformanceEntry {
