@@ -2,8 +2,9 @@ import 'jsdom-worker';
 
 import pako from 'pako';
 
-import { createEventBuffer, EventBufferProxy } from './../../src/eventBuffer';
+import { createEventBuffer } from './../../src/eventBuffer';
 import { BASE_TIMESTAMP } from './../index';
+import { EventBufferProxy } from '../../src/eventBuffer/EventBufferProxy';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 describe('Unit | eventBuffer', () => {

@@ -1,153 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// TODO: figure out member access types and remove the line above
-
-import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest } from './types';
-import workerString from './worker/worker.js';
-
-interface CreateEventBufferParams {
-  useCompression: boolean;
-}
-
-/**
- * Create an event buffer for replays.
- */
-export function createEventBuffer({ useCompression }: CreateEventBufferParams): EventBuffer {
-  // eslint-disable-next-line no-restricted-globals
-  if (useCompression && window.Worker) {
-    const workerBlob = new Blob([workerString]);
-    const workerUrl = URL.createObjectURL(workerBlob);
-
-    __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
-    const worker = new Worker(workerUrl);
-    return new EventBufferProxy(worker);
-  }
-
-  __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
-  return new EventBufferArray();
-}
-
-/**
- * This proxy will try to use the compression worker, and fall back to use the simple buffer if an error occurs there.
- * This can happen e.g. if the worker cannot be loaded.
- * Exported only for testing.
- */
-export class EventBufferProxy implements EventBuffer {
-  private _fallback: EventBufferArray;
-  private _compression: EventBufferCompressionWorker;
-  private _used: EventBuffer;
-
-  public constructor(worker: Worker) {
-    this._fallback = new EventBufferArray();
-    this._compression = new EventBufferCompressionWorker(worker);
-    this._used = this._fallback;
-
-    void this._ensureWorkerIsLoaded();
-  }
-
-  /** @inheritDoc */
-  public get pendingLength(): number {
-    return this._used.pendingLength;
-  }
-
-  /** @inheritDoc */
-  public get pendingEvents(): RecordingEvent[] {
-    return this._used.pendingEvents;
-  }
-
-  /** @inheritDoc */
-  public destroy(): void {
-    this._fallback.destroy();
-    this._compression.destroy();
-  }
-
-  /**
-   * Add an event to the event buffer.
-   *
-   * Returns true if event was successfully added.
-   */
-  public addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
-    return this._used.addEvent(event, isCheckout);
-  }
-
-  /** @inheritDoc */
-  public finish(): Promise<ReplayRecordingData> {
-    return this._used.finish();
-  }
-
-  /** Ensure the worker has loaded. */
-  private async _ensureWorkerIsLoaded(): Promise<void> {
-    try {
-      await this._compression.ensureReady();
-    } catch (error) {
-      // If the worker fails to load, we fall back to the simple buffer.
-      // Nothing more to do from our side here
-      __DEBUG_BUILD__ && logger.log('[Replay] Failed to load the compression worker, falling back to simple buffer');
-      return;
-    }
-
-    // Compression worker is ready, we can use it
-    // Now we need to switch over the array buffer to the compression worker
-    const addEventPromises: Promise<void>[] = [];
-    for (const event of this._fallback.pendingEvents) {
-      addEventPromises.push(this._compression.addEvent(event));
-    }
-
-    // We switch over to the compression buffer immediately - any further events will be added
-    // after the previously buffered ones
-    this._used = this._compression;
-
-    // Wait for original events to be re-added before resolving
-    await Promise.all(addEventPromises);
-  }
-}
-
-class EventBufferArray implements EventBuffer {
-  private _events: RecordingEvent[];
-
-  public constructor() {
-    this._events = [];
-  }
-
-  public get pendingLength(): number {
-    return this._events.length;
-  }
-
-  /**
-   * Returns the raw events that are buffered. In `EventBufferArray`, this is the
-   * same as `this._events`.
-   */
-  public get pendingEvents(): RecordingEvent[] {
-    return this._events;
-  }
-
-  public destroy(): void {
-    this._events = [];
-  }
-
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
-    if (isCheckout) {
-      this._events = [event];
-      return;
-    }
-
-    this._events.push(event);
-    return;
-  }
-
-  public finish(): Promise<string> {
-    return new Promise<string>(resolve => {
-      // Make a copy of the events array reference and immediately clear the
-      // events member so that we do not lose new events while uploading
-      // attachment.
-      const eventsRet = this._events;
-      this._events = [];
-      resolve(JSON.stringify(eventsRet));
-    });
-  }
-}
+import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from '../types';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -194,7 +47,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
       this._worker.addEventListener(
         'message',
         ({ data }: MessageEvent) => {
-          if (data.success) {
+          if ((data as WorkerResponse).success) {
             resolve();
           } else {
             reject();
@@ -257,30 +110,30 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   private _postMessage<T>({ id, method, args }: WorkerRequest): Promise<T> {
     return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-      const listener = ({ data }: MessageEvent) => {
-        if (data.method !== method) {
+      const listener = ({ data }: MessageEvent): void => {
+        const response = data as WorkerResponse;
+        if (response.method !== method) {
           return;
         }
 
         // There can be multiple listeners for a single method, the id ensures
         // that the response matches the caller.
-        if (data.id !== id) {
+        if (response.id !== id) {
           return;
         }
 
         // At this point, we'll always want to remove listener regardless of result status
         this._worker.removeEventListener('message', listener);
 
-        if (!data.success) {
+        if (!response.success) {
           // TODO: Do some error handling, not sure what
-          __DEBUG_BUILD__ && logger.error('[Replay]', data.response);
+          __DEBUG_BUILD__ && logger.error('[Replay]', response.response);
 
           reject(new Error('Error in compression worker'));
           return;
         }
 
-        resolve(data.response);
+        resolve(response.response as T);
       };
 
       let stringifiedArgs;
