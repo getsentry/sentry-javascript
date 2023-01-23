@@ -17,7 +17,10 @@ class MockDebugSession implements DebugSession {
 
   constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
 
-  public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
+  public configureAndConnect(
+    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    _captureAll: boolean,
+  ): void {
     if (this._throwOn?.configureAndConnect) {
       throw new Error('configureAndConnect should not be called');
     }

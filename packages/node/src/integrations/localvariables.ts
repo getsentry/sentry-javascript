@@ -6,7 +6,10 @@ import type { NodeClientOptions } from '../types';
 
 export interface DebugSession {
   /** Configures and connects to the debug session */
-  configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void;
+  configureAndConnect(
+    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    captureAll: boolean,
+  ): void;
   /** Gets local variables for an objectId */
   getLocalVariables(objectId: string): Promise<Record<string, unknown>>;
 }
@@ -32,12 +35,15 @@ class AsyncSession implements DebugSession {
   }
 
   /** @inheritdoc */
-  public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
+  public configureAndConnect(
+    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    captureAll: boolean,
+  ): void {
     this._session.connect();
     this._session.on('Debugger.paused', onPause);
     this._session.post('Debugger.enable');
     // We only want to pause on uncaught exceptions
-    this._session.post('Debugger.setPauseOnExceptions', { state: 'uncaught' });
+    this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
   }
 
   /** @inheritdoc */
@@ -164,7 +170,14 @@ export interface FrameVariables {
 
 /** There are no options yet. This allows them to be added later without breaking changes */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface Options {}
+interface Options {
+  /**
+   * Capture local variables for both handled and unhandled exceptions
+   *
+   * Default: false - Only captures local variables for uncaught exceptions
+   */
+  captureAllExceptions?: boolean;
+}
 
 /**
  * Adds local variables to exception frames
@@ -177,7 +190,7 @@ export class LocalVariables implements Integration {
   private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
 
   public constructor(
-    _options: Options = {},
+    private readonly _options: Options = {},
     private readonly _session: DebugSession | undefined = tryNewAsyncSession(),
   ) {}
 
@@ -194,8 +207,9 @@ export class LocalVariables implements Integration {
     clientOptions: NodeClientOptions | undefined,
   ): void {
     if (this._session && clientOptions?.includeLocalVariables) {
-      this._session.configureAndConnect(ev =>
-        this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+      this._session.configureAndConnect(
+        ev => this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+        !!this._options.captureAllExceptions,
       );
 
       addGlobalEventProcessor(async event => this._addLocalVariables(event));
