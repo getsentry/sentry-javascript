@@ -138,7 +138,7 @@ for NEXTJS_VERSION in 10 11 12 13; do
     EXIT_CODE=0
 
     echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running server tests with options: $args"
-    node test/server.js $args || EXIT_CODE=$?
+    (cd .. && yarn test:integration:server) || EXIT_CODE=$?
 
     if [ $EXIT_CODE -eq 0 ]; then
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests passed"

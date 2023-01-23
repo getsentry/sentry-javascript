@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
+    "esModuleInterop": true
     // package-specific options
   }
 }
