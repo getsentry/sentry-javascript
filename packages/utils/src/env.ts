@@ -7,13 +7,15 @@
  *
  * Attention:
  * This file should not be used to define constants/flags that are intended to be used for tree-shaking conducted by
- * users. These fags should live in their respective packages, as we identified user tooling (specifically webpack)
+ * users. These flags should live in their respective packages, as we identified user tooling (specifically webpack)
  * having issues tree-shaking these constants across package boundaries.
  * An example for this is the __SENTRY_DEBUG__ constant. It is declared in each package individually because we want
  * users to be able to shake away expressions that it guards.
  */
 
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
+
+declare const __SENTRY_CDN_BUNDLE__: boolean | undefined;
 
 /**
  * Figures out if we're building a browser bundle.
@@ -22,4 +24,11 @@ declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
  */
 export function isBrowserBundle(): boolean {
   return typeof __SENTRY_BROWSER_BUNDLE__ !== 'undefined' && !!__SENTRY_BROWSER_BUNDLE__;
+}
+
+/**
+ * Figures out if we're a CDN or npm bundle.
+ */
+export function isCDNBundle(): 'cdn' | 'npm' {
+  return typeof __SENTRY_CDN_BUNDLE__ !== 'undefined' && !!__SENTRY_CDN_BUNDLE__ ? 'npm' : 'cdn';
 }

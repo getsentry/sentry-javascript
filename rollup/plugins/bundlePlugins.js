@@ -63,6 +63,14 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
   });
 }
 
+export function makeIsCDNBundlePlugin(isCDNBundle) {
+  return replace({
+    values: {
+      __SENTRY_CDN_BUNDLE__: isCDNBundle,
+    },
+  });
+}
+
 /**
  * Create a plugin to set the value of the `__SENTRY_BROWSER_BUNDLE__` magic string.
  *

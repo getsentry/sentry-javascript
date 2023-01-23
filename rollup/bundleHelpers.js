@@ -17,6 +17,7 @@ import {
   makeTerserPlugin,
   makeTSPlugin,
   makeExcludeReplayPlugin,
+  makeIsCDNBundlePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -141,6 +142,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
+  const isCDNBundlePlugin = makeIsCDNBundlePlugin(true);
 
   // The additional options to use for each variant we're going to create.
   const variantSpecificConfigMap = {
@@ -148,21 +150,21 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
-      plugins: [includeDebuggingPlugin],
+      plugins: [includeDebuggingPlugin, isCDNBundlePlugin],
     },
 
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
-      plugins: [stripDebuggingPlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, terserPlugin, isCDNBundlePlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
-      plugins: [includeDebuggingPlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, terserPlugin, isCDNBundlePlugin],
     },
   };
 

@@ -13,6 +13,7 @@ import {
   makeCleanupPlugin,
   makeSucrasePlugin,
   makeDebugBuildStatementReplacePlugin,
+  makeIsCDNBundlePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -31,6 +32,7 @@ export function makeBaseNPMConfig(options = {}) {
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
+  const isNPMBundlePlugin = makeIsCDNBundlePlugin(false);
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -87,6 +89,7 @@ export function makeBaseNPMConfig(options = {}) {
       debugBuildStatementReplacePlugin,
       cleanupPlugin,
       extractPolyfillsPlugin,
+      isNPMBundlePlugin,
     ],
 
     // don't include imported modules from outside the package in the final output
