@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.32.1
+
+- fix(nextjs): Make SDK multiplexer more resilient (#6905)
+
 ## 7.32.0
 
 - build(replay): Stop preserving modules (#6817)
