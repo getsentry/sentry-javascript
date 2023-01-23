@@ -9,6 +9,7 @@
 - build(replay): Stop preserving modules (#6817)
 - feat(nextjs): Add browser SDK to `app` directory browser bundle (#6812)
 - feat(node): Use `includeLocalVariables` option to enable `LocalVariables` integration (#6874)
+- feat(node): Add option to capture local variables for caught exceptions via LocalVariables integration (#6876)
 - feat(replay): Add `flush` method to integration (#6776)
 - feat(replay): Handle worker loading errors (#6827)
 - feat(replay): Lower the flush max delay from 15 seconds to 5 seconds (#6761)
