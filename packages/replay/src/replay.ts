@@ -209,12 +209,18 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if it was stopped, else false.
    */
   public stopRecording(): boolean {
-    if (this._stopRecording) {
-      this._stopRecording();
-      return true;
-    }
+    try {
+      if (this._stopRecording) {
+        this._stopRecording();
+        this._stopRecording = undefined;
+        return true;
+      }
 
-    return false;
+      return false;
+    } catch (err) {
+      this._handleException(err);
+      return false;
+    }
   }
 
   /**
@@ -226,7 +232,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
       this._isEnabled = false;
       this._removeListeners();
-      this._stopRecording && this._stopRecording();
+      this.stopRecording();
       this.eventBuffer && this.eventBuffer.destroy();
       this.eventBuffer = null;
       this._debouncedFlush.cancel();
@@ -242,14 +248,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public pause(): void {
     this._isPaused = true;
-    try {
-      if (this._stopRecording) {
-        this._stopRecording();
-        this._stopRecording = undefined;
-      }
-    } catch (err) {
-      this._handleException(err);
-    }
+    this.stopRecording();
   }
 
   /**
@@ -634,8 +633,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * create a new Replay event.
    */
   private _triggerFullSnapshot(): void {
-    __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
-    record.takeFullSnapshot(true);
+    try {
+      __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
+      record.takeFullSnapshot(true);
+    } catch (err) {
+      this._handleException(err);
+    }
   }
 
   /**
