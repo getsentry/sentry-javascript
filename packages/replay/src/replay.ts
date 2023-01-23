@@ -435,6 +435,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     try {
       WINDOW.document.addEventListener('visibilitychange', this._handleVisibilityChange);
       WINDOW.addEventListener('blur', this._handleWindowBlur);
+      WINDOW.addEventListener('beforeunload', this._handleWindowUnload);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
 
       // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
@@ -467,6 +468,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
+      WINDOW.removeEventListener('beforeunload', this._handleWindowUnload);
 
       restoreRecordDroppedEvent();
 
@@ -564,6 +566,19 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _handleWindowBlur: () => void = () => {
     const breadcrumb = createBreadcrumb({
       category: 'ui.blur',
+    });
+
+    // Do not count blur as a user action -- it's part of the process of them
+    // leaving the page
+    this._doChangeToBackgroundTasks(breadcrumb);
+  };
+
+  /**
+   * Handle when page is unloaded (=left).
+   */
+  private _handleWindowUnload: () => void = () => {
+    const breadcrumb = createBreadcrumb({
+      category: 'ui.unload',
     });
 
     // Do not count blur as a user action -- it's part of the process of them
