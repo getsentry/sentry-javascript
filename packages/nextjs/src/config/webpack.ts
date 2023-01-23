@@ -2,7 +2,7 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
-import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
+import { sentryWebpackPlugin, SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,22 +11,57 @@ import * as path from 'path';
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
   BuildContext,
-  EntryPropertyObject,
   NextConfigObject,
-  SentryWebpackPluginOptions,
   UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
-  WebpackEntryProperty,
   WebpackModuleRule,
 } from './types';
-
-export { SentryWebpackPlugin };
 
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
+
+function isPageFile(
+  absoluteResourcePath: string,
+  absolutePageDirPath: string,
+  dotPrefixedPageExtensions: string[],
+): boolean {
+  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+
+  // Match everything inside pages/ with the appropriate file extension
+  return (
+    normalizedAbsoluteResourcePath.startsWith(absolutePageDirPath + path.sep) &&
+    dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+  );
+}
+
+function isMiddlewareFile(absoluteResourcePath: string, absolutePagesDirPath: string): boolean {
+  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+  const middlewareJsPath = path.join(absolutePagesDirPath, '..', 'middleware.js');
+  const middlewareTsPath = path.join(absolutePagesDirPath, '..', 'middleware.ts');
+
+  // Match middleware.js and middleware.ts
+  return normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
+}
+
+function isAppDirFile(absoluteResourcePath: string, absoluteProjectDirPath: string): boolean {
+  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+  const appDirPath = path.join(absoluteProjectDirPath, 'app');
+  const appDirConventionFiles = ['page', 'layout', 'loading', 'error', 'head', 'not-found'];
+  const allowedFileExtensions = ['.js', '.ts', '.jsx', '.tsx'];
+
+  // Match all canonical files inside the app directory
+  return (
+    normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
+    appDirConventionFiles.some(conventionFile => {
+      return allowedFileExtensions.some(allowedExtension => {
+        return path.basename(normalizedAbsoluteResourcePath) === `${conventionFile}${allowedExtension}`;
+      });
+    })
+  );
+}
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
@@ -53,6 +88,7 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
+    const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -81,68 +117,100 @@ export function constructWebpackConfigFunction(
       ],
     });
 
-    if (isServer) {
-      if (userSentryOptions.autoInstrumentServerFunctions !== false) {
-        let pagesDirPath: string;
-        if (
-          fs.existsSync(path.join(projectDir, 'pages')) &&
-          fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()
-        ) {
-          pagesDirPath = path.join(projectDir, 'pages');
-        } else {
-          pagesDirPath = path.join(projectDir, 'src', 'pages');
-        }
+    const absoluteSdkConfigPath = path.join(
+      projectDir,
+      `sentry.${{ browser: 'client', node: 'server', edge: 'edge' }[runtime]}.config`,
+    );
+    const absoluteJsSdkConfigPath = `${absoluteSdkConfigPath}.js`;
+    const absoluteTsSdkConfigPath = `${absoluteSdkConfigPath}.ts`;
 
-        const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
-        const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
+    let pagesDirPath: string;
+    if (fs.existsSync(path.join(projectDir, 'pages')) && fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()) {
+      pagesDirPath = path.join(projectDir, 'pages');
+    } else {
+      pagesDirPath = path.join(projectDir, 'src', 'pages');
+    }
 
-        // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
-        const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
-        const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
-        const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
+    // Default page extensions per https://github.com/vercel/next.js/blob/f1dbc9260d48c7995f6c52f8fbcc65f08e627992/packages/next/server/config-shared.ts#L161
+    const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
+    const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
+    const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
-        // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
-        newConfig.module.rules.unshift({
-          test: resourcePath => {
-            // We generally want to apply the loader to all API routes, pages and to the middleware file.
+    const jsSdkConfigExists = fs.existsSync(absoluteJsSdkConfigPath);
+    const tsSdkConfigExists = fs.existsSync(absoluteTsSdkConfigPath);
 
-            // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
-            let absoluteResourcePath: string;
-            if (path.isAbsolute(resourcePath)) {
-              absoluteResourcePath = resourcePath;
-            } else {
-              absoluteResourcePath = path.join(projectDir, resourcePath);
-            }
-            const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+    if (jsSdkConfigExists || tsSdkConfigExists) {
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          // TODO: exclude server routes option
+          const allowedFileExtensions = ['.js', '.ts', '.jsx', '.tsx'];
 
-            if (
-              // Match everything inside pages/ with the appropriate file extension
-              normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
-              dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-            ) {
-              return true;
-            } else if (
-              // Match middleware.js and middleware.ts
-              normalizedAbsoluteResourcePath === middlewareJsPath ||
-              normalizedAbsoluteResourcePath === middlewareTsPath
-            ) {
-              return userSentryOptions.autoInstrumentMiddleware ?? true;
-            } else {
-              return false;
-            }
-          },
-          use: [
-            {
-              loader: path.resolve(__dirname, 'loaders/wrappingLoader.js'),
-              options: {
-                pagesDir: pagesDirPath,
-                pageExtensionRegex,
-                excludeServerRoutes: userSentryOptions.excludeServerRoutes,
-              },
+          if (isServer) {
+            return (
+              allowedFileExtensions.some(extension => resourcePath.endsWith(extension)) &&
+              !resourcePath.match(/[/\\]node_modules[/\\]/)
+            );
+          } else {
+            return allowedFileExtensions.some(extension => resourcePath.endsWith(extension));
+          }
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'sdkConfigInjectionLoader.js'),
+            options: {
+              absoluteSdkConfigPath: tsSdkConfigExists ? absoluteTsSdkConfigPath : absoluteJsSdkConfigPath,
+              server: isServer,
             },
-          ],
-        });
-      }
+          },
+        ],
+      });
+    }
+
+    if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
+      const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
+      const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
+
+      // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          // We generally want to apply the loader to all API routes, pages and to the middleware file.
+
+          // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
+          let absoluteResourcePath: string;
+          if (path.isAbsolute(resourcePath)) {
+            absoluteResourcePath = resourcePath;
+          } else {
+            absoluteResourcePath = path.join(projectDir, resourcePath);
+          }
+          const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
+
+          if (
+            // Match everything inside pages/ with the appropriate file extension
+            normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
+            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+          ) {
+            return true;
+          } else if (
+            // Match middleware.js and middleware.ts
+            normalizedAbsoluteResourcePath === middlewareJsPath ||
+            normalizedAbsoluteResourcePath === middlewareTsPath
+          ) {
+            return userSentryOptions.autoInstrumentMiddleware ?? true;
+          } else {
+            return false;
+          }
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              pagesDir: pagesDirPath,
+              pageExtensionRegex,
+              excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+            },
+          },
+        ],
+      });
     }
 
     // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
@@ -173,17 +241,6 @@ export function constructWebpackConfigFunction(
       });
     }
 
-    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
-    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
-    // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
-    // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
-    // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
-    // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
-    // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
-    // be fixed by using `bind`, but this is way simpler.)
-    const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userSentryOptions);
-
     // Enable the Sentry plugin (which uploads source maps to Sentry when not in dev) by default
     if (shouldEnableWebpackPlugin(buildContext, userSentryOptions)) {
       // TODO Handle possibility that user is using `SourceMapDevToolPlugin` (see
@@ -207,9 +264,7 @@ export function constructWebpackConfigFunction(
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        new SentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
-        ),
+        sentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions)),
       );
     }
 
@@ -284,62 +339,6 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 }
 
 /**
- * Modify the webpack `entry` property so that the code in `sentry.server.config.js` and `sentry.client.config.js` is
- * included in the the necessary bundles.
- *
- * @param currentEntryProperty The value of the property before Sentry code has been injected
- * @param buildContext Object passed by nextjs containing metadata about the build
- * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
- * the function, rather than the function's return value)
- */
-async function addSentryToEntryProperty(
-  currentEntryProperty: WebpackEntryProperty,
-  buildContext: BuildContext,
-  userSentryOptions: UserSentryOptions,
-): Promise<EntryPropertyObject> {
-  // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
-  // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
-  // someone else has come along before us and changed that, we need to check a few things along the way. The one thing
-  // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
-  // options. See https://webpack.js.org/configuration/entry-context/#entry.
-
-  const { isServer, dir: projectDir, dev: isDev, nextRuntime } = buildContext;
-
-  const newEntryProperty =
-    typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
-
-  // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
-  const userConfigFile =
-    nextRuntime === 'edge'
-      ? getUserConfigFile(projectDir, 'edge')
-      : isServer
-      ? getUserConfigFile(projectDir, 'server')
-      : getUserConfigFile(projectDir, 'client');
-
-  // we need to turn the filename into a path so webpack can find it
-  const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];
-
-  // inject into all entry points which might contain user's code
-  for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
-    } else {
-      if (
-        isServer &&
-        // If the user has asked to exclude pages, confirm for them that it's worked
-        userSentryOptions.excludeServerRoutes &&
-        // We always skip these, so it's not worth telling the user that we've done so
-        !['pages/_app', 'pages/_document'].includes(entryPointName)
-      ) {
-        __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
-      }
-    }
-  }
-
-  return newEntryProperty;
-}
-
-/**
  * Search the project directory for a valid user config file for the given platform, allowing for it to be either a
  * TypeScript or JavaScript file.
  *
@@ -370,58 +369,6 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
 }
 
 /**
- * Add files to a specific element of the given `entry` webpack config property.
- *
- * @param entryProperty The existing `entry` config object
- * @param entryPointName The key where the file should be injected
- * @param filepaths An array of paths to the injected files
- */
-function addFilesToExistingEntryPoint(
-  entryProperty: EntryPropertyObject,
-  entryPointName: string,
-  filepaths: string[],
-): void {
-  // can be a string, array of strings, or object whose `import` property is one of those two
-  const currentEntryPoint = entryProperty[entryPointName];
-  let newEntryPoint = currentEntryPoint;
-
-  if (typeof currentEntryPoint === 'string') {
-    newEntryPoint = [...filepaths, currentEntryPoint];
-  } else if (Array.isArray(currentEntryPoint)) {
-    newEntryPoint = [...filepaths, ...currentEntryPoint];
-  }
-  // descriptor object (webpack 5+)
-  else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
-    const currentImportValue = currentEntryPoint.import;
-    let newImportValue;
-
-    if (typeof currentImportValue === 'string') {
-      newImportValue = [...filepaths, currentImportValue];
-    } else {
-      newImportValue = [...filepaths, ...currentImportValue];
-    }
-
-    newEntryPoint = {
-      ...currentEntryPoint,
-      import: newImportValue,
-    };
-  }
-  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
-  // of SDK settings)
-  else {
-    // eslint-disable-next-line no-console
-    console.error(
-      'Sentry Logger [Error]:',
-      `Could not inject SDK initialization code into entry point ${entryPointName}, as its current value is not in a recognized format.\n`,
-      'Expected: string | Array<string> | { [key:string]: any, import: string | Array<string> }\n',
-      `Got: ${currentEntryPoint}`,
-    );
-  }
-
-  entryProperty[entryPointName] = newEntryPoint;
-}
-
-/**
  * Check the SentryWebpackPlugin options provided by the user against the options we set by default, and warn if any of
  * our default options are getting overridden. (Note: If any of our default values is undefined, it won't be included in
  * the warning.)
@@ -442,62 +389,6 @@ function checkWebpackPluginOverrides(
           `\t${sentryWebpackPluginOptionOverrides.toString()},\n` +
           "which has the possibility of breaking source map upload and application. This is only a good idea if you know what you're doing.",
       );
-  }
-}
-
-/**
- * Determine if this is an entry point into which both `Sentry.init()` code and the release value should be injected
- *
- * @param entryPointName The name of the entry point in question
- * @param isServer Whether or not this function is being called in the context of a server build
- * @param excludeServerRoutes A list of excluded serverside entrypoints provided by the user
- * @returns `true` if sentry code should be injected, and `false` otherwise
- */
-function shouldAddSentryToEntryPoint(
-  entryPointName: string,
-  isServer: boolean,
-  excludeServerRoutes: Array<string | RegExp> = [],
-  isDev: boolean,
-): boolean {
-  // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
-  if (isServer) {
-    if (entryPointName === 'middleware') {
-      return true;
-    }
-
-    const entryPointRoute = entryPointName.replace(/^pages/, '');
-
-    // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
-    // which don't have the `pages` prefix.)
-    if (stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true)) {
-      return false;
-    }
-
-    // In dev mode, page routes aren't considered entrypoints so we inject the init call in the `/_app` entrypoint which
-    // always exists, even if the user didn't add a `_app` page themselves
-    if (isDev) {
-      return entryPointRoute === '/_app';
-    }
-
-    if (
-      // All non-API pages contain both of these components, and we don't want to inject more than once, so as long as
-      // we're doing the individual pages, it's fine to skip these. (Note: Even if a given user doesn't have either or
-      // both of these in their `pages/` folder, they'll exist as entrypoints because nextjs will supply default
-      // versions.)
-      entryPointRoute === '/_app' ||
-      entryPointRoute === '/_document' ||
-      !entryPointName.startsWith('pages/')
-    ) {
-      return false;
-    }
-
-    // We want to inject Sentry into all other pages
-    return true;
-  } else {
-    return (
-      entryPointName === 'pages/_app' || // entrypoint for `/pages` pages
-      entryPointName === 'main-app' // entrypoint for `/app` pages
-    );
   }
 }
 
@@ -526,7 +417,10 @@ export function getWebpackPluginOptions(
 
   const serverInclude = isServerless
     ? [{ paths: [`${distDirAbsPath}/serverless/`], urlPrefix: `${urlPrefix}/serverless` }]
-    : [{ paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` }].concat(
+    : [
+        { paths: [`${distDirAbsPath}/server/pages/`], urlPrefix: `${urlPrefix}/server/pages` },
+        { paths: [`${distDirAbsPath}/server/app/`], urlPrefix: `${urlPrefix}/server/app` },
+      ].concat(
         isWebpack5 ? [{ paths: [`${distDirAbsPath}/server/chunks/`], urlPrefix: `${urlPrefix}/server/chunks` }] : [],
       );
 
@@ -550,8 +444,10 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    entries: (entryPointName: string) =>
-      shouldAddSentryToEntryPoint(entryPointName, isServer, userSentryOptions.excludeServerRoutes, isDev),
+    releaseInjectionTargets: (s: string) => {
+      // console.log('CCCCCC', isServer, s);
+      return false;
+    },
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
@@ -572,9 +468,11 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.
-  if (!SentryWebpackPlugin.cliBinaryExists()) {
-    return false;
-  }
+  // if (!SentryWebpackPlugin.cliBinaryExists()) {
+  //   return false;
+  // }
+
+  // TODO: ADD THIS BACK!!!
 
   /** User override */
 

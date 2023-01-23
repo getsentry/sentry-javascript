@@ -1,8 +1,9 @@
 import type { GLOBAL_OBJ } from '@sentry/utils';
-import type { SentryCliPluginOptions } from '@sentry/webpack-plugin';
+import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 import type { WebpackPluginInstance } from 'webpack';
 
-export type SentryWebpackPluginOptions = SentryCliPluginOptions;
+export type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+
 export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
 // Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
 // madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is

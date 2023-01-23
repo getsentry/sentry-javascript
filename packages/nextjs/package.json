@@ -25,9 +25,11 @@
     "@sentry/tracing": "7.31.1",
     "@sentry/types": "7.31.1",
     "@sentry/utils": "7.31.1",
-    "@sentry/webpack-plugin": "1.20.0",
+    "@sentry/webpack-plugin": "2.0.0-alpha.1",
     "chalk": "3.0.0",
     "rollup": "2.78.0",
+    "magic-string": "0.27.0",
+    "source-map": "0.7.4",
     "tslib": "^1.9.3"
   },
   "devDependencies": {

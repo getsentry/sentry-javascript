@@ -49,7 +49,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@rollup/plugin-commonjs', 'rollup'],
+        external: ['@rollup/plugin-commonjs', 'rollup', 'magic-string', 'source-map'],
       },
     }),
   ),
