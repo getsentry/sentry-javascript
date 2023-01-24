@@ -1,7 +1,5 @@
 import { NextTestEnv } from './utils/helpers';
 
-jest.spyOn(console, 'error').mockImplementation();
-
 describe('Error API Endpoints', () => {
   it('should capture an error event', async () => {
     const env = await NextTestEnv.init();

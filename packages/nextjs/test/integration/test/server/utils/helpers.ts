@@ -14,6 +14,11 @@ export class NextTestEnv extends TestEnv {
     const server = await createNextServer({
       dev: false,
       dir: path.resolve(__dirname, '../../..'),
+
+      // This needs to be explicitly passed to the server
+      // Otherwise it causes Segmentation Fault with NextJS >= 12
+      // https://github.com/vercel/next.js/issues/33008
+      conf: path.resolve(__dirname, '../../next.config.js'),
     });
 
     await startServer(server, port);

@@ -4,10 +4,5 @@
 {
   "extends": "../tsconfig.test.json",
 
-  "include": ["./**/*", "../playwright.config.ts"],
-
-  "compilerOptions": {
-    "types": ["node", "jest"],
-    "esModuleInterop": true
-  }
+  "include": ["./**/*", "../playwright.config.ts"]
 }

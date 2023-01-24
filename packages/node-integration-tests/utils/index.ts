@@ -269,7 +269,6 @@ export class TestEnv {
     url?: string;
     timeout?: number;
     envelopeType: EnvelopeItemType | EnvelopeItemType[];
-    endServer?: boolean;
   }): Promise<number> {
     return new Promise(resolve => {
       let reqCount = 0;
@@ -290,13 +289,11 @@ export class TestEnv {
       setTimeout(() => {
         nock.removeInterceptor(mock);
 
-        if (options.endServer) {
-          nock.cleanAll();
+        nock.cleanAll();
 
-          this.server.close(() => {
-            resolve(reqCount);
-          });
-        }
+        this.server.close(() => {
+          resolve(reqCount);
+        });
 
         resolve(reqCount);
       }, options.timeout || 1000);

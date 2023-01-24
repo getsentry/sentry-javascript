@@ -2,14 +2,12 @@ import { createServer, Server } from 'http';
 import { parse } from 'url';
 import { promises, PathLike } from 'fs';
 import next from 'next';
-import { NextServer } from 'next/dist/server/next';
 
 const { stat } = promises;
 
 // Type not exported from NextJS
-type NextServerConstructor = ConstructorParameters<typeof NextServer>[0];
-
-export const createNextServer = async (config: NextServerConstructor) => {
+// @ts-ignore
+export const createNextServer = async config => {
   const app = next(config);
   const handle = app.getRequestHandler();
   await app.prepare();

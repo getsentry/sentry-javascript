@@ -70,7 +70,7 @@
     "test:integration": "./test/run-integration-tests.sh && yarn test:types",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
     "test:integration:client": "yarn playwright test test/integration/test/client/",
-    "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && jest --config=test/integration/jest.config.js test/integration/test/server/",
+    "test:integration:server": "(cd test/integration && yarn test:server)",
     "test:types": "cd test/types && yarn test",
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
