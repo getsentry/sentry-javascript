@@ -67,12 +67,7 @@ export function constructWebpackConfigFunction(
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
     newConfig.module.rules.push({
-      test: m => {
-        if (m.match(/[/\\]nextjs([/\\].+)?[/\\]index\.(client|server)\.js/)) {
-          console.log('#####', runtime, m, require.resolve('@sentry/nextjs'));
-        }
-        return !!m.match(/[/\\]nextjs([/\\].+)?[/\\]index\.(client|server)\.js/);
-      },
+      test: /node_modules[/\\]@sentry[/\\]nextjs/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
