@@ -3,7 +3,7 @@
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
