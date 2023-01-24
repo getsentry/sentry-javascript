@@ -4,6 +4,12 @@
 
 import * as Sentry from '@sentry/nextjs';
 
+declare global {
+  namespace globalThis {
+    var transactionIds: string[];
+  }
+}
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   // Adjust this value in production, or use tracesSampler for greater control
@@ -12,4 +18,18 @@ Sentry.init({
   // Note: if you want to override the automatic release value, do not set a
   // `release` value here - use the environment variable `SENTRY_RELEASE`, so
   // that it will also get attached to your source maps
+});
+
+Sentry.addGlobalEventProcessor(event => {
+  global.transactionIds = global.transactionIds || [];
+
+  if (event.type === 'transaction') {
+    const eventId = event.event_id;
+
+    if (eventId) {
+      global.transactionIds.push(eventId);
+    }
+  }
+
+  return event;
 });

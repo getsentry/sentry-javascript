@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vue",
-  "version": "7.31.1",
+  "version": "7.32.1",
   "description": "Official Sentry SDK for Vue.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vue",
@@ -16,10 +16,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.31.1",
-    "@sentry/core": "7.31.1",
-    "@sentry/types": "7.31.1",
-    "@sentry/utils": "7.31.1",
+    "@sentry/browser": "7.32.1",
+    "@sentry/core": "7.32.1",
+    "@sentry/types": "7.32.1",
+    "@sentry/utils": "7.32.1",
     "tslib": "^1.9.3"
   },
   "peerDependencies": {
@@ -44,10 +44,10 @@
     "clean": "rimraf build coverage sentry-vue-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch"
   },

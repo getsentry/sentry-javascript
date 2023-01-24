@@ -17,7 +17,10 @@ class MockDebugSession implements DebugSession {
 
   constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
 
-  public configureAndConnect(onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void): void {
+  public configureAndConnect(
+    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    _captureAll: boolean,
+  ): void {
     if (this._throwOn?.configureAndConnect) {
       throw new Error('configureAndConnect should not be called');
     }
@@ -114,7 +117,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -210,7 +213,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);
@@ -232,7 +235,6 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: false },
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -250,7 +252,6 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, undefined);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: false },
     });
 
     let eventProcessor: EventProcessor | undefined;
@@ -272,7 +273,7 @@ describe('LocalVariables', () => {
     const localVariables = new LocalVariables({}, session);
     const options = getDefaultNodeClientOptions({
       stackParser: defaultStackParser,
-      _experiments: { includeStackLocals: true },
+      includeLocalVariables: true,
     });
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);

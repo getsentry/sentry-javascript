@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "7.31.1",
+  "version": "7.32.1",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -16,7 +16,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.31.1",
+    "@sentry/types": "7.32.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -39,10 +39,10 @@
     "clean": "rimraf build coverage cjs esm sentry-utils-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js"

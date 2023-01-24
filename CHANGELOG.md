@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.32.1
+
+- fix(nextjs): Make SDK multiplexer more resilient (#6905)
+
+## 7.32.0
+
+- build(replay): Stop preserving modules (#6817)
+- feat(nextjs): Add browser SDK to `app` directory browser bundle (#6812)
+- feat(node): Use `includeLocalVariables` option to enable `LocalVariables` integration (#6874)
+- feat(node): Add option to capture local variables for caught exceptions via LocalVariables integration (#6876)
+- feat(replay): Add `flush` method to integration (#6776)
+- feat(replay): Handle worker loading errors (#6827)
+- feat(replay): Lower the flush max delay from 15 seconds to 5 seconds (#6761)
+- feat(tracing): Promote `enableLongTask` to option of `BrowserTracing` (#6837)
+- fix(core): Fix replay client report data category (#6891)
+- fix(nextjs): Fix SDK multiplexer loader on Windows (#6866)
+- fix(otel): Use http/grpc status over span status (#6879)
+- fix(react): Add children prop for Profiler (#6828)
+- fix(react): Make wrapCreateBrowserRouter generic (#6862)
+- fix(remix): Make sure the domain is created before running. (#6852)
+- ref(nextjs): Remove NFT build time exclusions (#6846)
+- ref(replay): Avoid duplicate debounce timers (#6863)
+- ref(replay): Remove unused `initialFlushDelay` option (#6867)
+- ref(replay): Send SDK version in Replay events (#6814)
+
+Work in this release contributed by @h3rmanj. Thank you for your contribution!
+
 ## 7.31.1
 
 - build(replay): Provide full browser+tracing+replay bundle (#6793)

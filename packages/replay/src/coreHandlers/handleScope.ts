@@ -1,8 +1,26 @@
 import type { Breadcrumb, Scope } from '@sentry/types';
 
+import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
+import { addBreadcrumbEvent } from './addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
+
+export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) => void =
+  (replay: ReplayContainer) =>
+  (scope: Scope): void => {
+    if (!replay.isEnabled()) {
+      return;
+    }
+
+    const result = handleScope(scope);
+
+    if (!result) {
+      return;
+    }
+
+    addBreadcrumbEvent(replay, result);
+  };
 
 /**
  * An event handler to handle scope changes.

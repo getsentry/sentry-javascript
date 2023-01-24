@@ -4,14 +4,11 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   includeLocalVariables: true,
+  integrations: [new Sentry.Integrations.LocalVariables({ captureAllExceptions: true })],
   beforeSend: event => {
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(event));
   },
-});
-
-process.on('uncaughtException', () => {
-  // do nothing - this will prevent the Error below from closing this process
 });
 
 class Some {
@@ -32,4 +29,8 @@ function one(name) {
   ty.two(name);
 }
 
-one('some name');
+try {
+  one('some name');
+} catch (e) {
+  Sentry.captureException(e);
+}

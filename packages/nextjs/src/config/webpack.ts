@@ -106,10 +106,10 @@ export function constructWebpackConfigFunction(
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
 
     newConfig.module.rules.push({
-      test: /node_modules\/@sentry\/nextjs/,
+      test: /node_modules[/\\]@sentry[/\\]nextjs/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/sdkMultiplexerLoader.js'),
+          loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
           options: {
             importTarget: buildContext.nextRuntime === 'edge' ? './edge' : './client',
           },

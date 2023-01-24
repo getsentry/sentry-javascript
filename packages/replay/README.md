@@ -103,7 +103,7 @@ As an alternative to the NPM package, you can load the Replay integration bundle
 ```js
 // Browser SDK bundle
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/bundle.tracing.replay.min.js"
   crossorigin="anonymous"
 ></script>
 
@@ -128,11 +128,11 @@ Alternatively, you can also load the Replay integration separately from other bu
 
 ```html
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/bundle.min.js"
   crossorigin="anonymous"
 ></script>
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/replay.min.js"
   crossorigin="anonymous"
 ></script>
 ```
@@ -223,3 +223,9 @@ However, please note that it is _possible_ that the error count reported on the 
 does not match the actual errors that have been captured.
 The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
 This should not happen to often, but be aware that it is theoretically possible.
+
+## Manually sending replay data
+
+You can use `replay.flush()` to immediately send all currently captured replay data.
+This can be combined with `replaysOnErrorSampleRate: 1`
+in order to be able to send the last 60 seconds of replay data on-demand.

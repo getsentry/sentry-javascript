@@ -18,8 +18,6 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
-export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
-
 /**
  * The request payload to worker
  */
@@ -84,11 +82,6 @@ export interface ReplayPluginOptions extends SessionOptions {
    * The max amount of time to wait before sending a replay
    */
   flushMaxDelay: number;
-
-  /**
-   * The amount of time to buffer the initial snapshot
-   */
-  initialFlushDelay: number;
 
   /**
    * Attempt to use compression when web workers are available
@@ -225,7 +218,7 @@ export interface EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfully added.
+   * Returns a promise that resolves if the event was successfully added, else rejects.
    */
   addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
 
@@ -256,6 +249,7 @@ export interface ReplayContainer {
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
+  checkAndHandleExpiredSession(): boolean | void;
 }
 
 export interface ReplayPerformanceEntry {

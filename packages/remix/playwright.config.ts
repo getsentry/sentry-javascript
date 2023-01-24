@@ -1,8 +1,7 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
-  retries: 2,
-  timeout: 12000,
+  retries: 0,
   use: {
     baseURL: 'http://localhost:3000',
   },

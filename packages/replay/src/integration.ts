@@ -1,14 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
 
-import {
-  DEFAULT_ERROR_SAMPLE_RATE,
-  DEFAULT_FLUSH_MAX_DELAY,
-  DEFAULT_FLUSH_MIN_DELAY,
-  DEFAULT_SESSION_SAMPLE_RATE,
-  INITIAL_FLUSH_DELAY,
-  MASK_ALL_TEXT_SELECTOR,
-} from './constants';
+import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { isBrowser } from './util/isBrowser';
@@ -43,7 +36,6 @@ export class Replay implements Integration {
   public constructor({
     flushMinDelay = DEFAULT_FLUSH_MIN_DELAY,
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
-    initialFlushDelay = INITIAL_FLUSH_DELAY,
     stickySession = true,
     useCompression = true,
     sessionSampleRate,
@@ -73,9 +65,8 @@ export class Replay implements Integration {
       flushMinDelay,
       flushMaxDelay,
       stickySession,
-      initialFlushDelay,
-      sessionSampleRate: DEFAULT_SESSION_SAMPLE_RATE,
-      errorSampleRate: DEFAULT_ERROR_SAMPLE_RATE,
+      sessionSampleRate: 0,
+      errorSampleRate: 0,
       useCompression,
       maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
       blockAllMedia,
@@ -183,6 +174,17 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     this._replay.stop();
+  }
+
+  /**
+   * Immediately send all pending events.
+   */
+  public flush(): Promise<void> | void {
+    if (!this._replay || !this._replay.isEnabled()) {
+      return;
+    }
+
+    return this._replay.flushImmediate();
   }
 
   /** Setup the integration. */

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/integrations",
-  "version": "7.31.1",
+  "version": "7.32.1",
   "description": "Pluggable integrations that can be used to enhance JS SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
@@ -16,8 +16,8 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "dependencies": {
-    "@sentry/types": "7.31.1",
-    "@sentry/utils": "7.31.1",
+    "@sentry/types": "7.32.1",
+    "@sentry/utils": "7.32.1",
     "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
@@ -39,10 +39,10 @@
     "clean": "rimraf build coverage .rpt2_cache sentry-integrations-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch"
   },
