@@ -6,9 +6,9 @@
 
 ## 7.32.2
 
-- fix(nextjs): Mark multiplexer targets as entrypoints (#6919)
-- feat(replay): try/catch around stopRecording (#6856)
 - feat(replay): Remove default sample rates for replay (#6878)
+- feat(replay): try/catch around stopRecording (#6856)
+- fix(nextjs): Mark multiplexer targets as entrypoints (#6919)
 
 ## 7.32.1
 
