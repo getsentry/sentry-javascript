@@ -3753,17 +3753,6 @@
     semver "7.3.2"
     semver-intersect "1.4.0"
 
-"@sentry/bundler-plugin-core@2.0.0-alpha.1":
-  version "2.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-2.0.0-alpha.1.tgz#bf13b0ec3dd5ba832f79c9a23b57a220c3840500"
-  integrity sha512-DWksNUmRDskGpFLQj22fE9DyNVEEMJzJqqeJd/Q7Z4HCUTLHX7x09o8z+r1OoBXv8NT5iCSJiCR4wQ2QbbgbKA==
-  dependencies:
-    "@sentry/cli" "^2.10.0"
-    "@sentry/node" "^7.19.0"
-    "@sentry/tracing" "^7.19.0"
-    magic-string "0.27.0"
-    unplugin "1.0.1"
-
 "@sentry/cli@2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.2.0.tgz#0cf4d529d87e290dea54d7e58fa5ff87ea200e4e"
@@ -3776,7 +3765,7 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
-"@sentry/cli@^1.74.4":
+"@sentry/cli@^1.74.4", "@sentry/cli@^1.74.6":
   version "1.74.6"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-1.74.6.tgz#c4f276e52c6f5e8c8d692845a965988068ebc6f5"
   integrity sha512-pJ7JJgozyjKZSTjOGi86chIngZMLUlYt2HOog+OJn+WGvqEkVymu8m462j1DiXAnex9NspB4zLLNuZ/R6rTQHg==
@@ -3789,17 +3778,6 @@
     proxy-from-env "^1.1.0"
     which "^2.0.2"
 
-"@sentry/cli@^2.10.0":
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.11.0.tgz#a324cd1ae98e7d206f5ed739dc40c9728eb0fce8"
-  integrity sha512-qfCf/R0VhmlWcdfu2rntejqbIgovx7FQTwFreQpbISlB/JS9xHF8KEEJXZTdDFoPCi2H9KHg4CPUsCNAKbAdMA==
-  dependencies:
-    https-proxy-agent "^5.0.0"
-    node-fetch "^2.6.7"
-    progress "^2.0.3"
-    proxy-from-env "^1.1.0"
-    which "^2.0.2"
-
 "@sentry/webpack-plugin@1.19.0":
   version "1.19.0"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.19.0.tgz#2b134318f1552ba7f3e3f9c83c71a202095f7a44"
@@ -3807,12 +3785,13 @@
   dependencies:
     "@sentry/cli" "^1.74.4"
 
-"@sentry/webpack-plugin@2.0.0-alpha.1":
-  version "2.0.0-alpha.1"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-2.0.0-alpha.1.tgz#8527387564d5656e8e9d8ed2b17ea4724b124931"
-  integrity sha512-8w1OO8RgZpKqhPU8/tHuUQ3eLvtUsXokU0TkbqSA7pdzGLfd7eTk6oMPvzoniPf4uZkWXBs+G8h6zEYFgIYT1Q==
+"@sentry/webpack-plugin@1.20.0":
+  version "1.20.0"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-1.20.0.tgz#e7add76122708fb6b4ee7951294b521019720e58"
+  integrity sha512-Ssj1mJVFsfU6vMCOM2d+h+KQR7QHSfeIP16t4l20Uq/neqWXZUQ2yvQfe4S3BjdbJXz/X4Rw8Hfy1Sd0ocunYw==
   dependencies:
-    "@sentry/bundler-plugin-core" "2.0.0-alpha.1"
+    "@sentry/cli" "^1.74.6"
+    webpack-sources "^2.0.0 || ^3.0.0"
 
 "@simple-dom/interface@^1.4.0":
   version "1.4.0"
@@ -5507,11 +5486,6 @@ acorn@^8.0.4, acorn@^8.2.4, acorn@^8.4.1, acorn@^8.5.0, acorn@^8.7.0, acorn@^8.7
   version "8.8.0"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.8.0.tgz#88c0187620435c7f6015803f5539dae05a9dbea8"
   integrity sha512-QOxyigPVrpZ2GXT+PFyZTl6TtOFc5egxHIP9IlQ+RbupQuX4RkT/Bee4/kQuC02Xkzg84JcT7oLYtDIQxp+v7w==
-
-acorn@^8.8.1:
-  version "8.8.1"
-  resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.8.1.tgz#0a3f9cbecc4ec3bea6f0a80b66ae8dd2da250b73"
-  integrity sha512-7zFpHzhnqYKrkYdUjF1HI1bzd0VygEGX8lFk4k5zVMqHEoES+P+7TKI+EvLO9WVMJ8eekdO0aDEK044xTXwPPA==
 
 add-stream@^1.0.0:
   version "1.0.0"
@@ -8432,7 +8406,7 @@ chokidar@3.5.1:
   optionalDependencies:
     fsevents "~2.3.1"
 
-"chokidar@>=2.0.0 <4.0.0", "chokidar@>=3.0.0 <4.0.0", chokidar@^3.0.0, chokidar@^3.0.2, chokidar@^3.2.1, chokidar@^3.3.1, chokidar@^3.4.1, chokidar@^3.5.1, chokidar@^3.5.2, chokidar@^3.5.3:
+"chokidar@>=2.0.0 <4.0.0", "chokidar@>=3.0.0 <4.0.0", chokidar@^3.0.0, chokidar@^3.0.2, chokidar@^3.2.1, chokidar@^3.3.1, chokidar@^3.4.1, chokidar@^3.5.1, chokidar@^3.5.2:
   version "3.5.3"
   resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-3.5.3.tgz#1cf37c8707b932bd1af1ae22c0432e2acd1903bd"
   integrity sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==
@@ -24279,16 +24253,6 @@ unpipe@1.0.0, unpipe@~1.0.0:
   resolved "https://registry.yarnpkg.com/unpipe/-/unpipe-1.0.0.tgz#b2bf4ee8514aae6165b4817829d21b2ef49904ec"
   integrity sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=
 
-unplugin@1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/unplugin/-/unplugin-1.0.1.tgz#83b528b981cdcea1cad422a12cd02e695195ef3f"
-  integrity sha512-aqrHaVBWW1JVKBHmGo33T5TxeL0qWzfvjWokObHA9bYmN7eNDkwOxmLjhioHl9878qDFMAaT51XNroRyuz7WxA==
-  dependencies:
-    acorn "^8.8.1"
-    chokidar "^3.5.3"
-    webpack-sources "^3.2.3"
-    webpack-virtual-modules "^0.5.0"
-
 unquote@~1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/unquote/-/unquote-1.1.1.tgz#8fded7324ec6e88a0ff8b905e7c098cdc086d544"
@@ -24959,7 +24923,7 @@ webpack-sources@1.4.3, webpack-sources@^1.1.0, webpack-sources@^1.2.0, webpack-s
     source-list-map "^2.0.0"
     source-map "~0.6.1"
 
-webpack-sources@^3.2.3:
+"webpack-sources@^2.0.0 || ^3.0.0", webpack-sources@^3.2.3:
   version "3.2.3"
   resolved "https://registry.yarnpkg.com/webpack-sources/-/webpack-sources-3.2.3.tgz#2d4daab8451fd4b240cc27055ff6a0c2ccea0cde"
   integrity sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==
@@ -24970,11 +24934,6 @@ webpack-subresource-integrity@1.4.1:
   integrity sha512-XMLFInbGbB1HV7K4vHWANzc1CN0t/c4bBvnlvGxGwV45yE/S/feAXIm8dJsCkzqWtSKnmaEgTp/meyeThxG4Iw==
   dependencies:
     webpack-sources "^1.3.0"
-
-webpack-virtual-modules@^0.5.0:
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/webpack-virtual-modules/-/webpack-virtual-modules-0.5.0.tgz#362f14738a56dae107937ab98ea7062e8bdd3b6c"
-  integrity sha512-kyDivFZ7ZM0BVOUteVbDFhlRt7Ah/CSPwJdi8hBpkK7QLumUqdLtVfm/PX/hkcnrvr0i77fO5+TjZ94Pe+C9iw==
 
 webpack@4.44.1:
   version "4.44.1"
