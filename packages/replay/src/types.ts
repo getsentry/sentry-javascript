@@ -13,7 +13,7 @@ export interface FlushOptions {
    * (e.g. worker calls). This is not directly related to `flushImmediate` which
    * skips the debounced flush.
    */
-  finishImmediate?: boolean;
+  sync?: boolean;
 }
 
 export interface SendReplayData {
@@ -254,7 +254,7 @@ export interface EventBuffer {
   /**
    * Clears and synchronously returns the pending contents of the buffer. This means no compression.
    */
-  finishImmediate(): string;
+  finishSync(): string;
 }
 
 export type AddUpdateCallback = () => boolean | void;

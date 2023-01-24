@@ -108,23 +108,28 @@ describe('Integration | flush', () => {
   });
 
   it('flushes after each blur event', async () => {
+    // @ts-ignore privaye API
+    const mockFlushSync = jest.spyOn(replay, '_flushSync');
+
     // blur events cause an immediate flush that bypass the debounced flush
     // function and skip any async workers
-    expect(mockRunFlush).toHaveBeenCalledTimes(0);
+    expect(mockFlushSync).toHaveBeenCalledTimes(0);
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(mockRunFlush).toHaveBeenCalledTimes(1);
+    expect(mockFlushSync).toHaveBeenCalledTimes(1);
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(mockRunFlush).toHaveBeenCalledTimes(2);
+    expect(mockFlushSync).toHaveBeenCalledTimes(2);
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(mockRunFlush).toHaveBeenCalledTimes(3);
+    expect(mockFlushSync).toHaveBeenCalledTimes(3);
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(mockRunFlush).toHaveBeenCalledTimes(4);
+    expect(mockFlushSync).toHaveBeenCalledTimes(4);
 
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
     expect(mockFlush).toHaveBeenCalledTimes(0);
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
-    expect(mockRunFlush).toHaveBeenCalledTimes(4);
+    expect(mockFlushSync).toHaveBeenCalledTimes(4);
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
   });
 
   it('long first flush enqueues following events', async () => {
