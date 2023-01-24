@@ -4,6 +4,7 @@
   "include": ["test/**/*"],
 
   "compilerOptions": {
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "esModuleInterop": true
   }
 }
