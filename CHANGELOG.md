@@ -4,7 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.32.2
+## 7.33.0
+
+With this release, the sample rate for Session Replays will default to 0. We recommend explicitly setting the sample rate via the `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.
 
 - feat(replay): Remove default sample rates for replay (#6878)
 - feat(replay): try/catch around stopRecording (#6856)
