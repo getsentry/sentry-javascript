@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.32.2
+
+- fix(nextjs): Mark multiplexer targets as entrypoints (#6919)
+- feat(replay): try/catch around stopRecording (#6856)
+- feat(replay): Remove default sample rates for replay (#6878)
+
 ## 7.32.1
 
 - fix(nextjs): Make SDK multiplexer more resilient (#6905)
