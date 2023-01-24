@@ -1,4 +1,4 @@
-import { NextTestEnv } from '../utils/server';
+import { NextTestEnv } from './utils/helpers';
 
 describe('Tracing 500', () => {
   it('should capture an erroneous transaction', async () => {

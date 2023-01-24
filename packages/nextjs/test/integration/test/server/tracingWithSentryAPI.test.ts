@@ -1,4 +1,4 @@
-import { NextTestEnv } from '../utils/server';
+import { NextTestEnv } from './utils/helpers';
 
 const cases = [
   {

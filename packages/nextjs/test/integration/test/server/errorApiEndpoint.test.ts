@@ -1,4 +1,4 @@
-import { NextTestEnv } from '../utils/server';
+import { NextTestEnv } from './utils/helpers';
 
 jest.spyOn(console, 'error').mockImplementation();
 

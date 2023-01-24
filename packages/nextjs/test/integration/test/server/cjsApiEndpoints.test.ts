@@ -1,4 +1,4 @@
-import { NextTestEnv } from '../utils/server';
+import { NextTestEnv } from './utils/helpers';
 
 describe('CommonJS API Endpoints', () => {
   it('should not intercept unwrapped request', async () => {

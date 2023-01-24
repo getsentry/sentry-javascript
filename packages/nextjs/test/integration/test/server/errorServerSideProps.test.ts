@@ -1,4 +1,4 @@
-import { NextTestEnv } from '../utils/server';
+import { NextTestEnv } from './utils/helpers';
 
 describe('Error Server-side Props', () => {
   it('should capture an error event', async () => {
