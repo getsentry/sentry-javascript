@@ -18,6 +18,10 @@ function isReplayEnvelope(envelope: Envelope): boolean {
   return isReplay;
 }
 
+function log(msg: string, error?: Error): void {
+  __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
+}
+
 interface OfflineTransportOptions extends InternalBaseTransportOptions {
   /**
    * The maximum number of events to keep in the offline store.
@@ -72,11 +76,10 @@ export function makeOfflineTransport<TO>(
     let retryDelay = START_DELAY;
     let flushTimer: Timer | undefined;
 
-    function log(msg: string, error?: Error): void {
-      __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
-    }
-
     function shouldQueue(env: Envelope, error: Error, retryDelay: number): boolean | Promise<boolean> {
+      // We don't queue Session Replay envelopes because they are:
+      // - Ordered and Replay relies on the response status to know when they're successfully sent.
+      // - Likely to fill the queue quickly and block other events from being sent.
       if (isReplayEnvelope(env)) {
         return false;
       }
@@ -162,7 +165,7 @@ export function makeOfflineTransport<TO>(
 
     return {
       send,
-      flush: (timeout?: number) => transport.flush(timeout),
+      flush: t => transport.flush(t),
     };
   };
 }
