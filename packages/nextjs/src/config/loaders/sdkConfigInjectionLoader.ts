@@ -5,7 +5,6 @@ import type { LoaderThis } from './types';
 
 type LoaderOptions = {
   absoluteSdkConfigPath: string;
-  server: boolean;
 };
 
 /**
@@ -17,15 +16,13 @@ export default function (
   userModuleSourceMap: any,
 ): string | null | void {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { absoluteSdkConfigPath, server } = 'getOptions' in this ? this.getOptions() : this.query;
+  const { absoluteSdkConfigPath } = 'getOptions' in this ? this.getOptions() : this.query;
 
   if (!userCode) {
     return userCode;
   }
 
   this.async();
-
-  console.log(server, this.resourcePath);
 
   const ms = new MagicString(userCode, { filename: this.resourcePath });
   ms.append(`;import "${absoluteSdkConfigPath}";`);

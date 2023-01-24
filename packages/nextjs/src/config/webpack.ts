@@ -2,7 +2,8 @@
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
-import { sentryWebpackPlugin, SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -111,7 +112,7 @@ export function constructWebpackConfigFunction(
         {
           loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
           options: {
-            importTarget: buildContext.nextRuntime === 'edge' ? './edge' : './client',
+            importTarget: { browser: './client', node: './server', edge: './edge' }[runtime],
           },
         },
       ],
@@ -140,26 +141,21 @@ export function constructWebpackConfigFunction(
     const tsSdkConfigExists = fs.existsSync(absoluteTsSdkConfigPath);
 
     if (jsSdkConfigExists || tsSdkConfigExists) {
-      newConfig.module.rules.unshift({
+      newConfig.module.rules.push({
         test: resourcePath => {
-          // TODO: exclude server routes option
           const allowedFileExtensions = ['.js', '.ts', '.jsx', '.tsx'];
-
-          if (isServer) {
-            return (
-              allowedFileExtensions.some(extension => resourcePath.endsWith(extension)) &&
-              !resourcePath.match(/[/\\]node_modules[/\\]/)
-            );
-          } else {
-            return allowedFileExtensions.some(extension => resourcePath.endsWith(extension));
-          }
+          return (
+            allowedFileExtensions.some(extension => resourcePath.endsWith(extension)) &&
+            !resourcePath.match(/[/\\]node_modules[/\\]/) &&
+            resourcePath !== absoluteJsSdkConfigPath &&
+            resourcePath !== absoluteTsSdkConfigPath
+          );
         },
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'sdkConfigInjectionLoader.js'),
             options: {
               absoluteSdkConfigPath: tsSdkConfigExists ? absoluteTsSdkConfigPath : absoluteJsSdkConfigPath,
-              server: isServer,
             },
           },
         ],
@@ -264,7 +260,15 @@ export function constructWebpackConfigFunction(
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        sentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions)),
+        sentryWebpackPlugin(
+          getWebpackPluginOptions(
+            buildContext,
+            userSentryWebpackPluginOptions,
+            userSentryOptions,
+            absoluteJsSdkConfigPath,
+            absoluteTsSdkConfigPath,
+          ),
+        ),
       );
     }
 
@@ -404,6 +408,8 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
+  absoluteJsSdkConfigPath: string,
+  absoluteTsSdkConfigPath: string,
 ): SentryWebpackPluginOptions {
   const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
@@ -426,7 +432,10 @@ export function getWebpackPluginOptions(
 
   const clientInclude = userSentryOptions.widenClientFileUpload
     ? [{ paths: [`${distDirAbsPath}/static/chunks`], urlPrefix: `${urlPrefix}/static/chunks` }]
-    : [{ paths: [`${distDirAbsPath}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` }];
+    : [
+        { paths: [`${distDirAbsPath}/static/chunks/pages`], urlPrefix: `${urlPrefix}/static/chunks/pages` },
+        { paths: [`${distDirAbsPath}/static/chunks/app`], urlPrefix: `${urlPrefix}/static/chunks/app` },
+      ];
 
   const defaultPluginOptions = dropUndefinedKeys({
     include: isServer ? serverInclude : clientInclude,
@@ -444,9 +453,11 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    releaseInjectionTargets: (s: string) => {
-      // console.log('CCCCCC', isServer, s);
-      return false;
+    releaseInjectionTargets: (modulePath: string) => {
+      return (
+        path.normalize(modulePath) === path.normalize(absoluteJsSdkConfigPath) ||
+        path.normalize(modulePath) === path.normalize(absoluteTsSdkConfigPath)
+      );
     },
     release: getSentryRelease(buildId),
     dryRun: isDev,
