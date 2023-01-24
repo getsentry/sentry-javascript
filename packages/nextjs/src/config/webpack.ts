@@ -1,9 +1,8 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
-import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
+import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,6 +12,7 @@ import * as path from 'path';
 import type {
   BuildContext,
   NextConfigObject,
+  SentryWebpackPluginOptions,
   UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
@@ -23,46 +23,6 @@ import type {
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
-
-function isPageFile(
-  absoluteResourcePath: string,
-  absolutePageDirPath: string,
-  dotPrefixedPageExtensions: string[],
-): boolean {
-  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
-
-  // Match everything inside pages/ with the appropriate file extension
-  return (
-    normalizedAbsoluteResourcePath.startsWith(absolutePageDirPath + path.sep) &&
-    dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-  );
-}
-
-function isMiddlewareFile(absoluteResourcePath: string, absolutePagesDirPath: string): boolean {
-  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
-  const middlewareJsPath = path.join(absolutePagesDirPath, '..', 'middleware.js');
-  const middlewareTsPath = path.join(absolutePagesDirPath, '..', 'middleware.ts');
-
-  // Match middleware.js and middleware.ts
-  return normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath;
-}
-
-function isAppDirFile(absoluteResourcePath: string, absoluteProjectDirPath: string): boolean {
-  const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
-  const appDirPath = path.join(absoluteProjectDirPath, 'app');
-  const appDirConventionFiles = ['page', 'layout', 'loading', 'error', 'head', 'not-found'];
-  const allowedFileExtensions = ['.js', '.ts', '.jsx', '.tsx'];
-
-  // Match all canonical files inside the app directory
-  return (
-    normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-    appDirConventionFiles.some(conventionFile => {
-      return allowedFileExtensions.some(allowedExtension => {
-        return path.basename(normalizedAbsoluteResourcePath) === `${conventionFile}${allowedExtension}`;
-      });
-    })
-  );
-}
 
 /**
  * Construct the function which will be used as the nextjs config's `webpack` value.
@@ -104,10 +64,15 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
     newConfig.module.rules.push({
-      test: /node_modules[/\\]@sentry[/\\]nextjs/,
+      test: m => {
+        if (m.match(/[/\\]nextjs([/\\].+)?[/\\]index\.(client|server)\.js/)) {
+          console.log('#####', runtime, m, require.resolve('@sentry/nextjs'));
+        }
+        return !!m.match(/[/\\]nextjs([/\\].+)?[/\\]index\.(client|server)\.js/);
+      },
       use: [
         {
           loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
@@ -260,14 +225,8 @@ export function constructWebpackConfigFunction(
 
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
-        sentryWebpackPlugin(
-          getWebpackPluginOptions(
-            buildContext,
-            userSentryWebpackPluginOptions,
-            userSentryOptions,
-            absoluteJsSdkConfigPath,
-            absoluteTsSdkConfigPath,
-          ),
+        new SentryWebpackPlugin(
+          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
         ),
       );
     }
@@ -408,8 +367,6 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
-  absoluteJsSdkConfigPath: string,
-  absoluteTsSdkConfigPath: string,
 ): SentryWebpackPluginOptions {
   const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
@@ -453,12 +410,7 @@ export function getWebpackPluginOptions(
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     stripPrefix: ['webpack://_N_E/'],
     urlPrefix,
-    releaseInjectionTargets: (modulePath: string) => {
-      return (
-        path.normalize(modulePath) === path.normalize(absoluteJsSdkConfigPath) ||
-        path.normalize(modulePath) === path.normalize(absoluteTsSdkConfigPath)
-      );
-    },
+    entries: [], // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
     release: getSentryRelease(buildId),
     dryRun: isDev,
   });
@@ -479,11 +431,9 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // architecture-specific version of the `sentry-cli` binary. If `yarn install`, `npm install`, or `npm ci` are run
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.
-  // if (!SentryWebpackPlugin.cliBinaryExists()) {
-  //   return false;
-  // }
-
-  // TODO: ADD THIS BACK!!!
+  if (!SentryWebpackPlugin.cliBinaryExists()) {
+    return false;
+  }
 
   /** User override */
 
@@ -584,12 +534,14 @@ function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
   userSentryOptions: UserSentryOptions,
+  buildContext: BuildContext,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
+    SENTRY_RELEASE: { id: getSentryRelease(buildContext.buildId) },
   };
 
   const serverValues = {
