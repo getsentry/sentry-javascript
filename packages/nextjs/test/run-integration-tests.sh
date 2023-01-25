@@ -31,11 +31,10 @@ echo "Running integration tests on Node $NODE_VERSION"
 # make a backup of our config file so we can restore it when we're done
 mv next.config.js next.config.js.bak
 
-# for NEXTJS_VERSION in 10 11 12 13; do
-for NEXTJS_VERSION in 13; do
+for NEXTJS_VERSION in 10 11 12 13; do
   for USE_APPDIR in true false; do
     if ([ "$NEXTJS_VERSION" -lt "13" ] || [ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
-      # Next.js < 13 do not support appDir
+      # App dir doesn not work on Next.js < 13 or Node.js < 16
       continue
     fi
 
