@@ -20,7 +20,7 @@ export class EventBufferProxy implements EventBuffer {
     this._compression = new EventBufferCompressionWorker(worker);
     this._used = this._fallback;
 
-    void this._ensureWorkerIsLoaded();
+    void this.ensureWorkerIsLoaded();
   }
 
   /** @inheritDoc */
@@ -54,7 +54,7 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** Ensure the worker has loaded. */
-  private async _ensureWorkerIsLoaded(): Promise<void> {
+  public async ensureWorkerIsLoaded(): Promise<void> {
     try {
       await this._compression.ensureReady();
     } catch (error) {

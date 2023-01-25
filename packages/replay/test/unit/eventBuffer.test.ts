@@ -58,7 +58,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);
@@ -80,7 +80,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       await buffer.addEvent(TEST_EVENT);
       await buffer.addEvent(TEST_EVENT);
@@ -103,7 +103,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
 
@@ -127,7 +127,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
 
@@ -177,7 +177,7 @@ describe('Unit | eventBuffer', () => {
       expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
 
       // Now actually finish loading the worker
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);
@@ -211,7 +211,7 @@ describe('Unit | eventBuffer', () => {
       expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
 
       // Now actually finish loading the worker - which triggers an error
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);
