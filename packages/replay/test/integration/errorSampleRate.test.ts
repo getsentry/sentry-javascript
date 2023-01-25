@@ -63,8 +63,12 @@ describe('Integration | errorSampleRate', () => {
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'error',
-        error_sample_rate: 1,
-        session_sample_rate: 0,
+        contexts: {
+          replay: {
+            error_sample_rate: 1,
+            session_sample_rate: 0,
+          },
+        },
       }),
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
@@ -91,8 +95,12 @@ describe('Integration | errorSampleRate', () => {
       recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'error',
-        error_sample_rate: 1,
-        session_sample_rate: 0,
+        contexts: {
+          replay: {
+            error_sample_rate: 1,
+            session_sample_rate: 0,
+          },
+        },
       }),
       recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
     });

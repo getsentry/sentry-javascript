@@ -52,8 +52,6 @@ export async function sendReplayRequest({
     replay_id: replayId,
     segment_id,
     replay_type: session.sampled,
-    session_sample_rate: options.sessionSampleRate,
-    error_sample_rate: options.errorSampleRate,
   };
 
   const replayEvent = await prepareReplayEvent({ scope, client, replayId, event: baseEvent });
@@ -64,6 +62,15 @@ export async function sendReplayRequest({
     __DEBUG_BUILD__ && logger.log('An event processor returned `null`, will not send event.');
     return;
   }
+
+  replayEvent.contexts = {
+    ...replayEvent.contexts,
+    replay: {
+      ...(replayEvent.contexts && replayEvent.contexts.replay),
+      session_sample_rate: options.sessionSampleRate,
+      error_sample_rate: options.errorSampleRate,
+    },
+  };
 
   /*
   For reference, the fully built event looks something like this:
@@ -82,8 +89,6 @@ export async function sendReplayRequest({
       "replay_id": "eventId",
       "segment_id": 3,
       "replay_type": "error",
-      "session_sample_rate": 1,
-      "error_sample_rate": 0,
       "platform": "javascript",
       "event_id": "eventId",
       "environment": "production",
@@ -96,6 +101,12 @@ export async function sendReplayRequest({
           "version": "7.25.0"
       },
       "sdkProcessingMetadata": {},
+      "contexts": {
+        "replay": {
+          "session_sample_rate": 1,
+          "error_sample_rate": 0,
+        },
+      },
   }
   */
 

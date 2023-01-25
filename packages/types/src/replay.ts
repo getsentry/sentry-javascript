@@ -11,8 +11,6 @@ export interface ReplayEvent extends Event {
   replay_id: string;
   segment_id: number;
   replay_type: ReplayRecordingMode;
-  session_sample_rate: number;
-  error_sample_rate: number;
 }
 
 /**

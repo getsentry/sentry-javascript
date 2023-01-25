@@ -24,8 +24,12 @@ describe('Unit | util | createReplayEnvelope', () => {
       version: '7.25.0',
     },
     replay_type: 'error',
-    error_sample_rate: 0,
-    session_sample_rate: 1,
+    contexts: {
+      replay: {
+        error_sample_rate: 0,
+        session_sample_rate: 1,
+      },
+    },
     tags: {},
   };
 
@@ -53,16 +57,20 @@ describe('Unit | util | createReplayEnvelope', () => {
         [
           { type: 'replay_event' },
           {
+            contexts: {
+              replay: {
+                error_sample_rate: 0,
+                session_sample_rate: 1,
+              },
+            },
             environment: 'production',
             error_ids: ['errorId'],
-            error_sample_rate: 0,
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
             replay_type: 'error',
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
-            session_sample_rate: 1,
             tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
@@ -89,16 +97,20 @@ describe('Unit | util | createReplayEnvelope', () => {
         [
           { type: 'replay_event' },
           {
+            contexts: {
+              replay: {
+                error_sample_rate: 0,
+                session_sample_rate: 1,
+              },
+            },
             environment: 'production',
             error_ids: ['errorId'],
-            error_sample_rate: 0,
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             replay_type: 'error',
-            session_sample_rate: 1,
             tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
