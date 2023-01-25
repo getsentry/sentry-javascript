@@ -17,6 +17,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "esnext",
+    "incremental": true, // automatically set by Next.js 13
     "plugins": [
       {
         "name": "next"
