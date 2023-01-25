@@ -8,4 +8,5 @@ module.exports = {
   forceExit: true,
   testTimeout: 30000,
   setupFilesAfterEnv: [`${__dirname}/jest.setup.js`],
+  collectCoverage: false,
 };
