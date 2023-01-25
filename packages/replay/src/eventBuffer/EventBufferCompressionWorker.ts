@@ -1,7 +1,7 @@
+import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from '../types';
-import { ReplayRecordingData } from '@sentry/types';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -18,6 +18,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   private _worker: Worker;
   private _eventBufferItemLength: number = 0;
   private _id: number = 0;
+  private _ensureReadyPromise?: Promise<void>;
 
   public constructor(worker: Worker) {
     this._worker = worker;
@@ -44,7 +45,12 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * This will either resolve when the worker is ready, or reject if an error occured.
    */
   public ensureReady(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    // Ensure we only check once
+    if (this._ensureReadyPromise) {
+      return this._ensureReadyPromise;
+    }
+
+    this._ensureReadyPromise = new Promise((resolve, reject) => {
       this._worker.addEventListener(
         'message',
         ({ data }: MessageEvent) => {
@@ -65,6 +71,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
         { once: true },
       );
     });
+
+    return this._ensureReadyPromise;
   }
 
   /**
