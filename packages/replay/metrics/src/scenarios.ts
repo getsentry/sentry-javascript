@@ -39,7 +39,7 @@ export class JankTestScenario implements Scenario {
   public async run(_: playwright.Browser, page: playwright.Page): Promise<void> {
     let url = path.resolve(`./test-apps/jank/${this._indexFile}`);
     assert(fs.existsSync(url));
-    url = `file:///${url.replace('\\', '/')}`;
+    url = `file:///${url.replace(/\\/g, '/')}`;
     console.log('Navigating to ', url);
     await page.goto(url, { waitUntil: 'load', timeout: 60000 });
     await new Promise(resolve => setTimeout(resolve, 5000));
