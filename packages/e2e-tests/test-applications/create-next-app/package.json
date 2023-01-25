@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@next/font": "13.0.7",
-    "@sentry/nextjs": "*",
+    "@sentry/nextjs": "7.34.0-beta.0",
     "@types/node": "18.11.17",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
