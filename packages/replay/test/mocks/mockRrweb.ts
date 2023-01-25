@@ -1,4 +1,4 @@
-import type { record as rrwebRecord } from 'rrweb';
+import type { record as rrwebRecord } from '@sentry-internal/rrweb';
 
 import type { RecordingEvent } from '../../src/types';
 
@@ -41,8 +41,8 @@ export function mockRrweb(): { record: RecordMock } {
     mockRecordFn._emitter(createCheckoutPayload(isCheckout), isCheckout);
   });
 
-  jest.mock('rrweb', () => {
-    const ActualRrweb = jest.requireActual('rrweb');
+  jest.mock('@sentry-internal/rrweb', () => {
+    const ActualRrweb = jest.requireActual('@sentry-internal/rrweb');
 
     return {
       ...ActualRrweb,
