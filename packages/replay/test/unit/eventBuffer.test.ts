@@ -2,9 +2,9 @@ import 'jsdom-worker';
 
 import pako from 'pako';
 
+import { EventBufferProxy } from '../../src/eventBuffer/EventBufferProxy';
 import { createEventBuffer } from './../../src/eventBuffer';
 import { BASE_TIMESTAMP } from './../index';
-import { EventBufferProxy } from '../../src/eventBuffer/EventBufferProxy';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 describe('Unit | eventBuffer', () => {
@@ -144,6 +144,31 @@ describe('Unit | eventBuffer', () => {
 
       expect(restored1).toEqual(JSON.stringify([TEST_EVENT]));
       expect(restored2).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 5 }]));
+    });
+
+    it('handles an error when compressing the payload xxx', async function () {
+      const buffer = createEventBuffer({
+        useCompression: true,
+      }) as EventBufferProxy;
+
+      expect(buffer).toBeInstanceOf(EventBufferProxy);
+
+      // Ensure worker is ready
+      await buffer.ensureWorkerIsLoaded();
+
+      buffer.addEvent(TEST_EVENT);
+      buffer.addEvent(TEST_EVENT);
+
+      // @ts-ignore Mock this private so it triggers an error
+      const postMessageSpy = jest.spyOn(buffer._compression, '_postMessage').mockImplementation(() => {
+        return Promise.reject('test worker error');
+      });
+
+      const result = await buffer.finish();
+
+      expect(postMessageSpy).toHaveBeenCalledTimes(1);
+
+      expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
     });
   });
 

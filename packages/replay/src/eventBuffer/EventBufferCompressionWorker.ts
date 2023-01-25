@@ -1,6 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, RecordingEvent, WorkerRequest, WorkerResponse } from '../types';
+import { ReplayRecordingData } from '@sentry/types';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -101,8 +102,15 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Finish the event buffer and return the compressed data.
    */
-  public finish(): Promise<Uint8Array> {
-    return this._finishRequest(this._getAndIncrementId());
+  public async finish(): Promise<ReplayRecordingData> {
+    try {
+      return await this._finishRequest(this._getAndIncrementId());
+    } catch (error) {
+      __DEBUG_BUILD__ && logger.error('[Replay] Error when trying to compress events', error);
+      // fall back to uncompressed
+      const events = this.pendingEvents;
+      return JSON.stringify(events);
+    }
   }
 
   /**
