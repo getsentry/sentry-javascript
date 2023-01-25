@@ -22,6 +22,12 @@ import type {
   WebpackModuleRule,
 } from './types';
 
+const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
+  browser: './client',
+  node: './server',
+  edge: './edge',
+} as const;
+
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
@@ -74,7 +80,7 @@ export function constructWebpackConfigFunction(
         {
           loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
           options: {
-            importTarget: { browser: './client', node: './server', edge: './edge' }[runtime],
+            importTarget: RUNTIME_TO_SDK_ENTRYPOINT_MAP[runtime],
           },
         },
       ],
@@ -474,11 +480,7 @@ function shouldAddSentryToEntryPoint(
     // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
     // which don't have the `pages` prefix.)
     const entryPointRoute = entryPointName.replace(/^pages/, '');
-    if (stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true)) {
-      return false;
-    }
-
-    return true;
+    return !stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true);
   }
 }
 
@@ -668,6 +670,8 @@ function addValueInjectionLoader(
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
+
+    // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     SENTRY_RELEASE: { id: getSentryRelease(buildContext.buildId) },
   };
 
