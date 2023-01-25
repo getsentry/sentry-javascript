@@ -4,8 +4,7 @@ import { test, expect } from '@playwright/test';
 test('should create a pageload transaction when the `app` directory is used with a client component.', async ({
   page,
 }) => {
-  if (Number(process.env.NEXTJS_VERSION) < 13 || Number(process.env.NODE_MAJOR) < 16) {
-    // Next.js versions < 13 don't support the app directory and the app dir requires Node v16.8.0 or later.
+  if (process.env.USE_APPDIR !== 'true') {
     return;
   }
 
