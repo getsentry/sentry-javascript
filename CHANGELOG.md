@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.34.0-alpha.0
+
+This release is a preview build to test out SDK support for the server-side Next.js `app` directory.
+
 ## 7.33.0
 
 With this release, the sample rate for Session Replays will default to 0. We recommend explicitly setting the sample rate via the `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.
