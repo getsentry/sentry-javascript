@@ -1,7 +1,7 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger } from '@sentry/utils';
+import { arrayify, dropUndefinedKeys, escapeStringForRegex, logger, stringMatchesSomePattern } from '@sentry/utils';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
@@ -316,7 +316,7 @@ async function addSentryToEntryProperty(
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
+    if (shouldAddSentryToEntryPoint(entryPointName, runtime, userSentryOptions.excludeServerRoutes ?? [])) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
     } else {
       if (
@@ -448,9 +448,20 @@ function checkWebpackPluginOverrides(
  * @param excludeServerRoutes A list of excluded serverside entrypoints provided by the user
  * @returns `true` if sentry code should be injected, and `false` otherwise
  */
-function shouldAddSentryToEntryPoint(entryPointName: string, runtime: 'node' | 'browser' | 'edge'): boolean {
+function shouldAddSentryToEntryPoint(
+  entryPointName: string,
+  runtime: 'node' | 'browser' | 'edge',
+  excludeServerRoutes: Array<string | RegExp>,
+): boolean {
   // On the server side, by default we inject the `Sentry.init()` code into every page (with a few exceptions).
   if (runtime === 'node') {
+    // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
+    // which don't have the `pages` prefix.)
+    const entryPointRoute = entryPointName.replace(/^pages/, '');
+    if (stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true)) {
+      return false;
+    }
+
     // This expression will implicitly include `pages/_app` which is called for all serverside routes and pages
     // regardless whether or not the user has a`_app` file.
     return entryPointName.startsWith('pages/');
@@ -460,6 +471,13 @@ function shouldAddSentryToEntryPoint(entryPointName: string, runtime: 'node' | '
       entryPointName === 'main-app' // entrypoint for `/app` pages
     );
   } else {
+    // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,
+    // which don't have the `pages` prefix.)
+    const entryPointRoute = entryPointName.replace(/^pages/, '');
+    if (stringMatchesSomePattern(entryPointRoute, excludeServerRoutes, true)) {
+      return false;
+    }
+
     return true;
   }
 }
