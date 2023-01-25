@@ -2,7 +2,36 @@ import { getPortPromise } from 'portfinder';
 import { TestEnv } from '../../../../../../node-integration-tests/utils';
 import * as http from 'http';
 import * as path from 'path';
-import { createNextServer, startServer } from '../../utils/common';
+import { createServer, Server } from 'http';
+import { parse } from 'url';
+import next from 'next';
+
+// Type not exported from NextJS
+// @ts-ignore
+export const createNextServer = async config => {
+  const app = next(config);
+  const handle = app.getRequestHandler();
+  await app.prepare();
+
+  return createServer((req, res) => {
+    const { url } = req;
+
+    if (!url) {
+      throw new Error('No url');
+    }
+
+    handle(req, res, parse(url, true));
+  });
+};
+
+export const startServer = async (server: Server, port: string | number) => {
+  return new Promise(resolve => {
+    server.listen(port || 0, () => {
+      const url = `http://localhost:${port}`;
+      resolve({ server, url });
+    });
+  });
+};
 
 export class NextTestEnv extends TestEnv {
   private constructor(public readonly server: http.Server, public readonly url: string) {
