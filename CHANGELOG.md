@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.34.0-alpha.0
+## 7.34.0-beta.0
 
 This release is a preview build to test out SDK support for the server-side Next.js `app` directory.
 
