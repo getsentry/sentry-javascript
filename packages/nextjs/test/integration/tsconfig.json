@@ -7,10 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "lib": [
-      "dom",
-      "es2017"
-    ],
+    "lib": ["dom", "es2017"],
     "module": "esnext",
     "moduleResolution": "node",
     "noEmit": true,
@@ -21,6 +18,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "esnext",
+    "incremental": true, // automatically set by Next.js 13
     "plugins": [
       {
         "name": "next"
@@ -28,13 +26,6 @@
     ],
     "incremental": true
   },
-  "exclude": [
-    "node_modules"
-  ],
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "../../playwright.config.ts",
-    ".next/types/**/*.ts"
-  ]
+  "exclude": ["node_modules"],
+  "include": ["**/*.ts", "**/*.tsx", "../../playwright.config.ts", ".next/types/**/*.ts"]
 }

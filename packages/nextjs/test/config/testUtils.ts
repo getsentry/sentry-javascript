@@ -1,3 +1,4 @@
+import type { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import type { WebpackPluginInstance } from 'webpack';
 
 import type {
@@ -9,7 +10,6 @@ import type {
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
 } from '../../src/config/types';
-import type { SentryWebpackPlugin } from '../../src/config/webpack';
 import { constructWebpackConfigFunction } from '../../src/config/webpack';
 import { withSentryConfig } from '../../src/config/withSentryConfig';
 import { defaultRuntimePhase, defaultsObject } from './fixtures';
