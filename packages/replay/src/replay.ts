@@ -264,6 +264,11 @@ export class ReplayContainer implements ReplayContainerInterface {
    * new DOM checkout.`
    */
   public resume(): void {
+    if (!this.session || !this.session.sampled) {
+      this.stop();
+      return;
+    }
+
     this._isPaused = false;
     this.startRecording();
   }
@@ -311,6 +316,13 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Create a new session, otherwise when the user action is flushed, it
       // will get rejected due to an expired session.
       this._loadSession({ expiry: SESSION_IDLE_DURATION });
+
+      // We know this is set, because it is always set in _loadSession
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (!this.session!.sampled) {
+        this.stop();
+        return;
+      }
 
       // Note: This will cause a new DOM checkout
       this.resume();
@@ -364,6 +376,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
     this._loadSession({ expiry });
+
+    // We know this is set, because it is always set in _loadSession
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    if (!this.session!.sampled) {
+      this.stop();
+      return;
+    }
 
     // Session was expired if session ids do not match
     const expired = oldSessionId !== this.getSessionId();

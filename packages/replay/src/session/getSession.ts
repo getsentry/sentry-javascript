@@ -4,6 +4,7 @@ import type { Session, SessionOptions } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
+import { makeSession } from './Session';
 
 interface GetSessionParams extends SessionOptions {
   /**
@@ -38,6 +39,10 @@ export function getSession({
 
     if (!isExpired) {
       return { type: 'saved', session };
+    } else if (session.sampled === 'error') {
+      // Error samples should not be re-created when expired, but instead we stop when the replay is done
+      const discardedSession = makeSession({ sampled: false });
+      return { type: 'new', session: discardedSession };
     } else {
       __DEBUG_BUILD__ && logger.log('[Replay] Session has expired');
     }
