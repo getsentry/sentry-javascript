@@ -12,6 +12,7 @@ This release adds automatic injection of the Next.js SDK into serverside `app` d
 - fix(replay): Do not renew session in error mode (#6948)
 - fix(replay): Handle compression worker errors more gracefully (#6936)
 - fix(replay): fix path separator substitution to replay all `\` (#6932)
+- fix(replay): ignore errors in CSSStyleSheetObserver (getsentry/rrweb#16)
 
 Work in this release contributed by @mdtro. Thank you for your contribution!
 
