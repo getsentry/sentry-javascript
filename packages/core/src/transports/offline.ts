@@ -32,7 +32,7 @@ export interface OfflineTransportOptions extends InternalBaseTransportOptions {
   /**
    * A function that creates the offline store instance.
    */
-  createStore: CreateOfflineStore;
+  createStore?: CreateOfflineStore;
 
   /**
    * Flush the offline store shortly after startup.
@@ -66,7 +66,7 @@ export function makeOfflineTransport<TO>(
 ): (options: TO & OfflineTransportOptions) => Transport {
   return options => {
     const transport = createTransport(options);
-    const store = options.createStore(options);
+    const store = options.createStore ? options.createStore(options) : undefined;
 
     let retryDelay = START_DELAY;
     let flushTimer: Timer | undefined;
@@ -87,6 +87,10 @@ export function makeOfflineTransport<TO>(
     }
 
     function flushIn(delay: number): void {
+      if (!store) {
+        return;
+      }
+
       if (flushTimer) {
         clearTimeout(flushTimer as ReturnType<typeof setTimeout>);
       }
@@ -143,7 +147,7 @@ export function makeOfflineTransport<TO>(
         retryDelay = START_DELAY;
         return result;
       } catch (e) {
-        if (await shouldQueue(envelope, e, retryDelay)) {
+        if (store && (await shouldQueue(envelope, e, retryDelay))) {
           await store.insert(envelope);
           flushWithBackOff();
           log('Error sending. Event queued', e);
