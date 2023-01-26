@@ -49,7 +49,14 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritDoc */
-  public finish(): Promise<ReplayRecordingData> {
+  public async finish(): Promise<ReplayRecordingData> {
+    // Ensure the worker is loaded, so the sent event is compressed
+    try {
+      await this.ensureWorkerIsLoaded();
+    } catch (error) {
+      // If this fails, we'll just send uncompressed events
+    }
+
     return this._used.finish();
   }
 

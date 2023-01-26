@@ -14,7 +14,6 @@ import {
 } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
-import { EventBufferProxy } from './eventBuffer/EventBufferProxy';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
@@ -330,18 +329,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
    * cases of mulitple flushes happening closely together.
    */
-  public async flushImmediate(waitForCompression?: boolean): Promise<void> {
+  public flushImmediate(): Promise<void> {
     this._debouncedFlush();
     // `.flush` is provided by the debounced function, analogously to lodash.debounce
-
-    // Ensure the worker is loaded, so the sent event is compressed
-    if (waitForCompression && this.eventBuffer instanceof EventBufferProxy) {
-      try {
-        await this.eventBuffer.ensureWorkerIsLoaded();
-      } catch (error) {
-        // If this fails, we'll just send uncompressed events
-      }
-    }
     return this._debouncedFlush.flush() as Promise<void>;
   }
 
@@ -553,7 +543,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // filtered on the UI.
       if (this.recordingMode === 'session') {
         // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
-        void this.flushImmediate(true);
+        void this.flushImmediate();
       }
 
       return true;
