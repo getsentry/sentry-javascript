@@ -1,6 +1,6 @@
+import { record } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
-import { record } from 'rrweb';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
