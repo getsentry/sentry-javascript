@@ -12,6 +12,7 @@ export default [
         'src/server/index.ts',
         'src/edge/index.ts',
         'src/config/webpack.ts',
+        'src/appDirInfoInjector.ts',
       ],
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because

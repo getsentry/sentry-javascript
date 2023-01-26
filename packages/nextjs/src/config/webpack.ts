@@ -321,6 +321,7 @@ async function addSentryToEntryProperty(
   const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];
 
   // inject into all entry points which might contain user's code
+  // eslint-disable-next-line guard-for-in
   for (const entryPointName in newEntryProperty) {
     if (shouldAddSentryToEntryPoint(entryPointName, runtime, userSentryOptions.excludeServerRoutes ?? [])) {
       addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject);
@@ -334,6 +335,12 @@ async function addSentryToEntryProperty(
       ) {
         __DEBUG_BUILD__ && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
       }
+    }
+
+    if (runtime === 'browser' && entryPointName === 'main-app') {
+      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, [
+        path.resolve(__dirname, '..', 'appDirInfoInjector.js'),
+      ]);
     }
   }
 
