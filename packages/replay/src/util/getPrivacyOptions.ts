@@ -71,7 +71,7 @@ export function getPrivacyOptions({
   const maskSelector = getOption(mask, ['.sentry-mask', '[data-sentry-mask]'], maskTextClass, maskTextSelector);
   const unmaskSelector = getOption(unmask, ['.sentry-unmask', '[data-sentry-unmask]']);
 
-const options: GetPrivacyReturn = {
+  const options: GetPrivacyReturn = {
     // We are making the decision to make text and input selectors the same
     maskTextSelector: maskSelector,
     unmaskTextSelector: unmaskSelector,
@@ -83,7 +83,6 @@ const options: GetPrivacyReturn = {
     ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]'], ignoreClass),
   };
 
-
   if (blockClass instanceof RegExp) {
     options.blockClass = blockClass;
   }
@@ -92,5 +91,5 @@ const options: GetPrivacyReturn = {
     options.maskTextClass = maskTextClass;
   }
 
-  return options
+  return options;
 }
