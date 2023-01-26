@@ -4,7 +4,6 @@ import { forEachEnvelopeItem, logger, parseRetryAfterHeader } from '@sentry/util
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
 const MAX_DELAY = 3.6e6; // 1 hour
-const DEFAULT_QUEUE_SIZE = 30;
 
 function isReplayEnvelope(envelope: Envelope): boolean {
   let isReplay = false;
@@ -22,13 +21,18 @@ function log(msg: string, error?: Error): void {
   __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
 }
 
-interface OfflineTransportOptions extends InternalBaseTransportOptions {
+interface OfflineStore {
+  insert(env: Envelope): Promise<void>;
+  pop(): Promise<Envelope | undefined>;
+}
+
+export type CreateOfflineStore = (options: OfflineTransportOptions) => OfflineStore;
+
+export interface OfflineTransportOptions extends InternalBaseTransportOptions {
   /**
-   * The maximum number of events to keep in the offline store.
-   *
-   * Defaults: 30
+   * A function that creates the offline store instance.
    */
-  maxQueueSize?: number;
+  createStore: CreateOfflineStore;
 
   /**
    * Flush the offline store shortly after startup.
@@ -49,13 +53,6 @@ interface OfflineTransportOptions extends InternalBaseTransportOptions {
   shouldStore?: (envelope: Envelope, error: Error, retryDelay: number) => boolean | Promise<boolean>;
 }
 
-interface OfflineStore {
-  insert(env: Envelope): Promise<void>;
-  pop(): Promise<Envelope | undefined>;
-}
-
-export type CreateOfflineStore = (maxQueueCount: number) => OfflineStore;
-
 type Timer = number | { unref?: () => void };
 
 /**
@@ -66,12 +63,10 @@ type Timer = number | { unref?: () => void };
  */
 export function makeOfflineTransport<TO>(
   createTransport: (options: TO) => Transport,
-  createStore: CreateOfflineStore,
 ): (options: TO & OfflineTransportOptions) => Transport {
   return options => {
     const transport = createTransport(options);
-    const maxQueueSize = options.maxQueueSize === undefined ? DEFAULT_QUEUE_SIZE : options.maxQueueSize;
-    const store = createStore(maxQueueSize);
+    const store = options.createStore(options);
 
     let retryDelay = START_DELAY;
     let flushTimer: Timer | undefined;

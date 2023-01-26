@@ -17,7 +17,7 @@ import {
 import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src';
-import type { CreateOfflineStore } from '../../../src/transports/offline';
+import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
 import { makeOfflineTransport, MIN_DELAY, START_DELAY } from '../../../src/transports/offline';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -94,9 +94,9 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
 
   return {
     getCalls: () => calls,
-    store: (maxQueueCount: number) => ({
+    store: (_: OfflineTransportOptions) => ({
       insert: async env => {
-        if (popResults.length < maxQueueCount) {
+        if (popResults.length < 30) {
           popResults.push(env);
           calls.push('add');
         }
@@ -124,11 +124,9 @@ describe('makeOfflineTransport', () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 });
     let queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => {
         queuedCount += 1;
         return true;
@@ -149,7 +147,7 @@ describe('makeOfflineTransport', () => {
   it('After successfully sending, sends further envelopes found in the store', async () => {
     const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
-    const transport = makeOfflineTransport(baseTransport, store)(transportOptions);
+    const transport = makeOfflineTransport(baseTransport)({ ...transportOptions, createStore: store });
     const result = await transport.send(ERROR_ENVELOPE);
 
     expect(result).toEqual({ statusCode: 200 });
@@ -165,11 +163,9 @@ describe('makeOfflineTransport', () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
     let queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => {
         queuedCount += 1;
         return true;
@@ -190,11 +186,9 @@ describe('makeOfflineTransport', () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 500 });
     let queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => {
         queuedCount += 1;
         return true;
@@ -216,7 +210,7 @@ describe('makeOfflineTransport', () => {
     async () => {
       const { getCalls, store } = createTestStore();
       const { getSendCount, baseTransport } = createTestTransport(new Error(), { statusCode: 200 });
-      const transport = makeOfflineTransport(baseTransport, store)(transportOptions);
+      const transport = makeOfflineTransport(baseTransport)({ ...transportOptions, createStore: store });
       const result = await transport.send(ERROR_ENVELOPE);
       expect(result).toEqual({});
       expect(getCalls()).toEqual(['add']);
@@ -235,7 +229,11 @@ describe('makeOfflineTransport', () => {
       const { getCalls, store } = createTestStore(ERROR_ENVELOPE, ERROR_ENVELOPE);
       const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _transport = makeOfflineTransport(baseTransport, store)({ ...transportOptions, flushAtStartup: true });
+      const _transport = makeOfflineTransport(baseTransport)({
+        ...transportOptions,
+        createStore: store,
+        flushAtStartup: true,
+      });
 
       await delay(START_DELAY + 1_000);
 
@@ -249,11 +247,9 @@ describe('makeOfflineTransport', () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
     const queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => false,
     });
     const result = transport.send(ERROR_ENVELOPE);
@@ -268,11 +264,9 @@ describe('makeOfflineTransport', () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
     const queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => true,
     });
     const result = transport.send(RELAY_ENVELOPE);
@@ -294,11 +288,9 @@ describe('makeOfflineTransport', () => {
     );
 
     let queuedCount = 0;
-    const transport = makeOfflineTransport(
-      baseTransport,
-      store,
-    )({
+    const transport = makeOfflineTransport(baseTransport)({
       ...transportOptions,
+      createStore: store,
       shouldStore: () => {
         queuedCount += 1;
         return true;
