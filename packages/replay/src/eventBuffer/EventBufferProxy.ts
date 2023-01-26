@@ -14,13 +14,16 @@ export class EventBufferProxy implements EventBuffer {
   private _fallback: EventBufferArray;
   private _compression: EventBufferCompressionWorker;
   private _used: EventBuffer;
+  private _ensureWorkerIsLoadedPromise: Promise<void>;
 
   public constructor(worker: Worker) {
     this._fallback = new EventBufferArray();
     this._compression = new EventBufferCompressionWorker(worker);
     this._used = this._fallback;
 
-    void this.ensureWorkerIsLoaded();
+    this._ensureWorkerIsLoadedPromise = this._ensureWorkerIsLoaded().catch(() => {
+      // Ignore errors here
+    });
   }
 
   /** @inheritDoc */
@@ -51,17 +54,18 @@ export class EventBufferProxy implements EventBuffer {
   /** @inheritDoc */
   public async finish(): Promise<ReplayRecordingData> {
     // Ensure the worker is loaded, so the sent event is compressed
-    try {
-      await this.ensureWorkerIsLoaded();
-    } catch (error) {
-      // If this fails, we'll just send uncompressed events
-    }
+    await this.ensureWorkerIsLoaded();
 
     return this._used.finish();
   }
 
   /** Ensure the worker has loaded. */
-  public async ensureWorkerIsLoaded(): Promise<void> {
+  public ensureWorkerIsLoaded(): Promise<void> {
+    return this._ensureWorkerIsLoadedPromise;
+  }
+
+  /** Actually check if the worker has been loaded. */
+  private async _ensureWorkerIsLoaded(): Promise<void> {
     try {
       await this._compression.ensureReady();
     } catch (error) {
