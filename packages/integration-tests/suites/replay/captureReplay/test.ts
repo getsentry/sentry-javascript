@@ -105,6 +105,6 @@ sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
       },
     },
     platform: 'javascript',
-    tags: { sessionSampleRate: 1, errorSampleRate: 0 },
+    contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
   });
 });
