@@ -5,7 +5,13 @@ import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
 import { disabledUntil, logger } from '@sentry/utils';
 
-import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from './constants';
+import {
+  ERROR_CHECKOUT_TIME,
+  MAX_SESSION_LIFE,
+  SESSION_IDLE_DURATION,
+  VISIBILITY_CHANGE_TIMEOUT,
+  WINDOW,
+} from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -196,7 +202,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'error' && { checkoutEveryNms: 60000 }),
+        ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: this._handleRecordingEmit,
       });
     } catch (err) {
@@ -536,6 +542,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // replays (e.g. opening and closing a tab quickly), but these can be
       // filtered on the UI.
       if (this.recordingMode === 'session') {
+        // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
         void this.flushImmediate();
       }
 

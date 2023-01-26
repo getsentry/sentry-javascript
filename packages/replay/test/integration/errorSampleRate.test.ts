@@ -1,6 +1,12 @@
 import { captureException } from '@sentry/core';
 
-import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import {
+  DEFAULT_FLUSH_MIN_DELAY,
+  ERROR_CHECKOUT_TIME,
+  REPLAY_SESSION_KEY,
+  VISIBILITY_CHANGE_TIMEOUT,
+  WINDOW,
+} from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
@@ -322,7 +328,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
-    const ELAPSED = 60000;
+    const ELAPSED = ERROR_CHECKOUT_TIME;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
