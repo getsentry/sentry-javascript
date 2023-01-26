@@ -155,7 +155,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   public start(): void {
     this._setInitialState();
 
-    this._loadSession({ expiry: SESSION_IDLE_DURATION });
+    if (!this._loadAndCheckSession()) {
+      return;
+    }
 
     // If there is no session, then something bad has happened - can't continue
     if (!this.session) {
@@ -234,6 +236,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * does not support a teardown
    */
   public stop(): void {
+    if (!this._isEnabled) {
+      return;
+    }
+
     try {
       __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
       this._isEnabled = false;
@@ -264,6 +270,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * new DOM checkout.`
    */
   public resume(): void {
+    if (!this._loadAndCheckSession()) {
+      return;
+    }
+
     this._isPaused = false;
     this.startRecording();
   }
@@ -310,7 +320,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (!this._stopRecording) {
       // Create a new session, otherwise when the user action is flushed, it
       // will get rejected due to an expired session.
-      this._loadSession({ expiry: SESSION_IDLE_DURATION });
+      if (!this._loadAndCheckSession()) {
+        return;
+      }
 
       // Note: This will cause a new DOM checkout
       this.resume();
@@ -348,7 +360,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if session is not expired, false otherwise.
    * @hidden
    */
-  public checkAndHandleExpiredSession({ expiry = SESSION_IDLE_DURATION }: { expiry?: number } = {}): boolean | void {
+  public checkAndHandleExpiredSession(expiry?: number): boolean | void {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
@@ -363,7 +375,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    this._loadSession({ expiry });
+    if (!this._loadAndCheckSession(expiry)) {
+      return;
+    }
 
     // Session was expired if session ids do not match
     const expired = oldSessionId !== this.getSessionId();
@@ -388,10 +402,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Loads a session from storage, or creates a new one if it does not exist or
-   * is expired.
+   * Loads (or refreshes) the current session.
+   * Returns false if session is not recorded.
    */
-  private _loadSession({ expiry }: { expiry: number }): void {
+  private _loadAndCheckSession(expiry = SESSION_IDLE_DURATION): boolean {
     const { type, session } = getSession({
       expiry,
       stickySession: Boolean(this._options.stickySession),
@@ -412,6 +426,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     this.session = session;
+
+    if (!this.session.sampled) {
+      this.stop();
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -618,9 +639,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const isSessionActive = this.checkAndHandleExpiredSession({
-      expiry: VISIBILITY_CHANGE_TIMEOUT,
-    });
+    const isSessionActive = this.checkAndHandleExpiredSession(VISIBILITY_CHANGE_TIMEOUT);
 
     if (!isSessionActive) {
       // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
