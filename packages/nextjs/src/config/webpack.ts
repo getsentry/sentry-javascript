@@ -350,7 +350,12 @@ async function addSentryToEntryProperty(
  * edge file is optional, if it is not found this function will return `undefined`.
  */
 export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
-  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
+  const possibilities = [
+    `sentry.${platform}.config.ts`, 
+    `sentry.${platform}.config.js`,
+    path.join("config", `sentry.${platform}.config.ts`),
+    path.join("config", `sentry.${platform}.config.js`)
+  ];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
