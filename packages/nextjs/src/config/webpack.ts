@@ -189,7 +189,7 @@ export function constructWebpackConfigFunction(
       });
     }
 
-    if (userSentryOptions.autoInstrumentAppDirectory) {
+    if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
       // Wrap page server components
       newConfig.module.rules.unshift({
         test: resourcePath => {
