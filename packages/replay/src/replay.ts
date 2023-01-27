@@ -36,6 +36,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { getFullURL } from './util/getFullUrl';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -110,6 +111,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialTimestamp: new Date().getTime(),
     initialUrl: '',
   };
+
+  private _startRecordingbreadcrumb: Breadcrumb | undefined;
 
   public constructor({
     options,
@@ -209,6 +212,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
     } catch (err) {
       this._handleException(err);
+      return;
     }
   }
 
@@ -441,8 +445,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * first flush.
    */
   private _setInitialState(): void {
-    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
-    const url = `${WINDOW.location.origin}${urlPath}`;
+    const url = getFullURL();
 
     this.performanceEvents = [];
 
@@ -539,6 +542,12 @@ export class ReplayContainer implements ReplayContainerInterface {
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
       if (event.type !== 2) {
         return false;
+      }
+
+      // We only do this for session mode, as error mode will be changed into session mode
+      // (which is when startRecording() is called again) once the error occurs.
+      if (this.recordingMode === 'session') {
+        this._addStartRecordingBreadcrumb();
       }
 
       // If there is a previousSessionId after a full snapshot occurs, then
@@ -897,5 +906,19 @@ export class ReplayContainer implements ReplayContainerInterface {
         this.resume();
       }, rateLimitDuration);
     }
+  }
+
+  /**
+   * Creates a breadcrumb indicating the start of a replay recording
+   */
+  private _addStartRecordingBreadcrumb(): void {
+    // if (this._startRecordingbreadcrumb) {
+    //   return;
+    // }
+    this._startRecordingbreadcrumb = createBreadcrumb({
+      category: 'replay.recording.start',
+      data: { url: getFullURL() },
+    });
+    this._createCustomBreadcrumb(this._startRecordingbreadcrumb);
   }
 }

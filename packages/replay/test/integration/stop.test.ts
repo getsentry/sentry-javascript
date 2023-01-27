@@ -109,13 +109,27 @@ describe('Integration | stop', () => {
     WINDOW.dispatchEvent(new Event('blur'));
     jest.runAllTimers();
     await new Promise(process.nextTick);
+    const checkoutTimestamp = BASE_TIMESTAMP + ELAPSED + EXTRA_TICKS;
     expect(replay).toHaveLastSentReplay({
       recordingData: JSON.stringify([
         // This event happens when we call `replay.start`
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + ELAPSED + EXTRA_TICKS,
+          timestamp: checkoutTimestamp,
           type: 2,
+        },
+        {
+          type: 5,
+          timestamp: checkoutTimestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: checkoutTimestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://localhost/' },
+            },
+          },
         },
         TEST_EVENT,
         hiddenBreadcrumb,

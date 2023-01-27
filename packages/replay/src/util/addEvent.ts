@@ -19,6 +19,8 @@ export async function addEvent(
     return null;
   }
 
+  console.log(event);
+
   // TODO: sadness -- we will want to normalize timestamps to be in ms -
   // requires coordination with frontend
   const isMs = event.timestamp > 9999999999;

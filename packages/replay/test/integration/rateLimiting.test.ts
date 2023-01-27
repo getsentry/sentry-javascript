@@ -95,7 +95,7 @@ describe('Integration | rate-limiting behaviour', () => {
       // @ts-ignore private API
       jest.spyOn(replay, '_handleRateLimit');
 
-      const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+      const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
       mockTransportSend.mockImplementationOnce(() => {
         return Promise.resolve(rateLimitResponse);
@@ -142,9 +142,23 @@ describe('Integration | rate-limiting behaviour', () => {
       expect(replay.isPaused()).toBe(false);
 
       expect(mockSendReplayRequest).toHaveBeenCalledTimes(2);
+      const checkoutTimestamp = BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 7;
       expect(replay).toHaveLastSentReplay({
         recordingData: JSON.stringify([
-          { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 7, type: 2 },
+          { data: { isCheckout: true }, timestamp: checkoutTimestamp, type: 2 },
+          {
+            type: 5,
+            timestamp: checkoutTimestamp / 1000,
+            data: {
+              tag: 'breadcrumb',
+              payload: {
+                timestamp: checkoutTimestamp / 1000,
+                type: 'default',
+                category: 'replay.recording.start',
+                data: { url: 'http://localhost/' },
+              },
+            },
+          },
         ]),
       });
 
@@ -179,7 +193,7 @@ describe('Integration | rate-limiting behaviour', () => {
     // @ts-ignore private API
     jest.spyOn(replay, '_handleRateLimit');
 
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 2 };
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
     mockTransportSend.mockImplementationOnce(() => {
       return Promise.resolve({ statusCode: 429 });
@@ -227,9 +241,24 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay.isPaused()).toBe(false);
 
     expect(mockSendReplayRequest).toHaveBeenCalledTimes(2);
+
+    const checkoutTimestamp = BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 13;
     expect(replay).toHaveLastSentReplay({
       recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY * 13, type: 2 },
+        { data: { isCheckout: true }, timestamp: checkoutTimestamp, type: 2 },
+        {
+          type: 5,
+          timestamp: checkoutTimestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: checkoutTimestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://localhost/' },
+            },
+          },
+        },
       ]),
     });
 
@@ -282,11 +311,28 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
 
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
+    expect(replay).toHaveLastSentReplay({
+      recordingData: JSON.stringify([
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://localhost/' },
+            },
+          },
+        },
+      ]),
+    });
 
     expect(replay['_handleRateLimit']).toHaveBeenCalledTimes(1);
     expect(replay.resume).not.toHaveBeenCalled();
-    expect(replay.isPaused).toHaveBeenCalledTimes(2);
+    expect(replay.isPaused).toHaveBeenCalledTimes(3);
     expect(replay.pause).not.toHaveBeenCalled();
   });
 });

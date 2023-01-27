@@ -109,19 +109,32 @@ describe('Integration | errorSampleRate', () => {
           },
         },
       }),
-      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
     });
 
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
     // New checkout when we call `startRecording` again after uploading segment
     // after an error occurs
+    const timestamp = BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 20;
     expect(replay).toHaveLastSentReplay({
       recordingData: JSON.stringify([
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 20,
+          timestamp,
           type: 2,
+        },
+        {
+          type: 5,
+          timestamp: timestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: timestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://localhost/' },
+            },
+          },
         },
       ]),
     });
@@ -460,9 +473,25 @@ it('sends a replay after loading the session multiple times', async () => {
     recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
+  const timestamp = BASE_TIMESTAMP + 5020;
   // Latest checkout when we call `startRecording` again after uploading segment
   // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
-    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+    recordingData: JSON.stringify([
+      { data: { isCheckout: true }, timestamp: timestamp, type: 2 },
+      {
+        type: 5,
+        timestamp: timestamp / 1000,
+        data: {
+          tag: 'breadcrumb',
+          payload: {
+            timestamp: timestamp / 1000,
+            type: 'default',
+            category: 'replay.recording.start',
+            data: { url: 'http://localhost/' },
+          },
+        },
+      },
+    ]),
   });
 });

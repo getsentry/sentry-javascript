@@ -153,6 +153,19 @@ describe('Integration | session', () => {
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
+          timestamp: newTimestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: newTimestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://localhost/' },
+            },
+          },
+        },
+        {
+          type: 5,
           timestamp: breadcrumbTimestamp,
           data: {
             tag: 'breadcrumb',
@@ -313,6 +326,19 @@ describe('Integration | session', () => {
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
+          timestamp: newTimestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: newTimestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://dummy/' },
+            },
+          },
+        },
+        {
+          type: 5,
           timestamp: breadcrumbTimestamp,
           data: {
             tag: 'breadcrumb',
@@ -422,6 +448,19 @@ describe('Integration | session', () => {
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        {
+          type: 5,
+          timestamp: newTimestamp / 1000,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: newTimestamp / 1000,
+              type: 'default',
+              category: 'replay.recording.start',
+              data: { url: 'http://dummy/' },
+            },
+          },
+        },
         {
           type: 5,
           timestamp: breadcrumbTimestamp,
