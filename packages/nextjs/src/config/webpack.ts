@@ -113,19 +113,19 @@ export function constructWebpackConfigFunction(
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
     };
 
+    const normalizeLoaderResourcePath = (resourcePath: string): string => {
+      // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
+      let absoluteResourcePath: string;
+      if (path.isAbsolute(resourcePath)) {
+        absoluteResourcePath = resourcePath;
+      } else {
+        absoluteResourcePath = path.join(projectDir, resourcePath);
+      }
+
+      return path.normalize(absoluteResourcePath);
+    };
+
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
-      const normalizeLoaderResourcePath = (resourcePath: string): string => {
-        // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
-        let absoluteResourcePath: string;
-        if (path.isAbsolute(resourcePath)) {
-          absoluteResourcePath = resourcePath;
-        } else {
-          absoluteResourcePath = path.join(projectDir, resourcePath);
-        }
-
-        return path.normalize(absoluteResourcePath);
-      };
-
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
       // Wrap pages
@@ -187,7 +187,9 @@ export function constructWebpackConfigFunction(
           },
         ],
       });
+    }
 
+    if (userSentryOptions.autoInstrumentAppDirectory) {
       // Wrap page server components
       newConfig.module.rules.unshift({
         test: resourcePath => {
