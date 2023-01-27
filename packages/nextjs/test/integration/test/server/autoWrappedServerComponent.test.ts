@@ -19,7 +19,7 @@ describe('Loading the throwing server component', () => {
         values: [
           {
             type: 'Error',
-            value: 'I am an Error thrown inside a server component',
+            value: 'I am an Error thrown inside a server componnt',
           },
         ],
       },
