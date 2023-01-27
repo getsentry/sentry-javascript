@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
@@ -191,6 +192,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce
     this._loadReplayOptionsFromClient();
+
+    if (!this._options.sessionSampleRate && !this._options.errorSampleRate) {
+      // eslint-disable-next-line no-console
+      console.warn('Replay is disabled because both `replaysSessionSampleRate` and `replaysOnErrorSampleRate` are 0');
+    }
 
     this._replay = new ReplayContainer({
       options: this._options,
