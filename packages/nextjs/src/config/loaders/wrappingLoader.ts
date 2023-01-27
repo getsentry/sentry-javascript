@@ -22,11 +22,11 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 type LoaderOptions = {
-  appDir: string;
   pagesDir: string;
+  appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'page-server-component';
 };
 
 /**
@@ -38,22 +38,28 @@ export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
   userModuleSourceMap: any,
-): void | string {
+): void {
   // We know one or the other will be defined, depending on the version of webpack being used
   const {
     pagesDir,
+    appDir,
     pageExtensionRegex,
     excludeServerRoutes = [],
     wrappingTargetKind,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
+  this.async();
+
   let templateCode: string;
 
   if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     // Get the parameterized route name from this page's filepath
-    const parameterizedPagesRoute = path
-      // Get the path of the file insde of the pages directory
-      .relative(pagesDir, this.resourcePath)
+    const parameterizedPagesRoute = path.posix
+      .normalize(
+        path
+          // Get the path of the file insde of the pages directory
+          .relative(pagesDir, this.resourcePath),
+      )
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file extension
@@ -67,7 +73,8 @@ export default function wrappingLoader(
 
     // Skip explicitly-ignored pages
     if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
-      return userCode;
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
     }
 
     if (wrappingTargetKind === 'page') {
@@ -80,6 +87,35 @@ export default function wrappingLoader(
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
+  } else if (wrappingTargetKind === 'page-server-component') {
+    // Get the parameterized route name from this page's filepath
+    const parameterizedPagesRoute = path.posix
+      .normalize(path.relative(appDir, this.resourcePath))
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file name
+      .replace(/\/page\.(js|jsx|tsx)$/, '')
+      // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
+      .replace(/\/(\(.*?\)\/)+/g, '/')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+
+    // Skip explicitly-ignored pages
+    if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    // Skip client components - TODO: Improve this detection by scanning the AST for directives
+    if (userCode.match(/"use client"|'use client'/g)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    console.log('FFF', parameterizedPagesRoute, this.resourcePath, userCode);
+    this.callback(null, userCode, userModuleSourceMap);
+    return;
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
   } else {
@@ -88,8 +124,6 @@ export default function wrappingLoader(
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
   templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, WRAPPING_TARGET_MODULE_NAME);
-
-  this.async();
 
   // Run the proxy module code through Rollup, in order to split the `export * from '<wrapped file>'` out into
   // individual exports (which nextjs seems to require).
