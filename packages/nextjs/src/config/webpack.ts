@@ -353,8 +353,8 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
   const possibilities = [
     `sentry.${platform}.config.ts`, 
     `sentry.${platform}.config.js`,
-    path.join("config", `sentry.${platform}.config.ts`),
-    path.join("config", `sentry.${platform}.config.js`)
+    path.join("config", `sentry.${platform}.ts`),
+    path.join("config", `sentry.${platform}.js`)
   ];
 
   for (const filename of possibilities) {
