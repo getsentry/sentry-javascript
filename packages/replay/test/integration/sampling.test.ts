@@ -5,6 +5,7 @@ useFakeTimers();
 
 describe('Integration | sampling', () => {
   it('does nothing if not sampled', async () => {
+    const mockConsole = jest.spyOn(console, 'warn').mockImplementation(jest.fn());
     const { record: mockRecord } = mockRrweb();
     const { replay } = await mockSdk({
       replayOptions: {
@@ -29,5 +30,6 @@ describe('Integration | sampling', () => {
     );
     expect(mockRecord).not.toHaveBeenCalled();
     expect(spyAddListeners).not.toHaveBeenCalled();
+    expect(mockConsole).toBeCalledTimes(1);
   });
 });

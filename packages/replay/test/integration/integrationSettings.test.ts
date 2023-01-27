@@ -53,14 +53,14 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(1);
     });
 
-    it('works with defining 0 in integration', async () => {
+    it('works with defining 0 in integration but logs warnings', async () => {
       const { replay } = await mockSdk({
         replayOptions: { sessionSampleRate: 0 },
         sentryOptions: { replaysSessionSampleRate: undefined },
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toBeCalledTimes(2);
     });
 
     it('works with defining settings in SDK', async () => {
@@ -70,11 +70,11 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(0);
     });
 
-    it('works with defining 0 in SDK', async () => {
+    it('works with defining 0 in SDK but a warning is logged', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toBeCalledTimes(1);
     });
 
     it('SDK option takes precedence', async () => {
@@ -87,14 +87,14 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(1);
     });
 
-    it('SDK option takes precedence even when 0', async () => {
+    it('SDK option takes precedence even when 0 but warnings are logged', async () => {
       const { replay } = await mockSdk({
         sentryOptions: { replaysSessionSampleRate: 0 },
         replayOptions: { sessionSampleRate: 0.1 },
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toBeCalledTimes(2);
     });
   });
 
