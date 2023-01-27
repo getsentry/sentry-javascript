@@ -88,11 +88,16 @@ export function constructWebpackConfigFunction(
 
     if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
       let pagesDirPath: string;
+      let appDirPath: string;
       if (fs.existsSync(path.join(projectDir, 'pages')) && fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()) {
         pagesDirPath = path.join(projectDir, 'pages');
+        appDirPath = path.join(projectDir, 'app');
       } else {
         pagesDirPath = path.join(projectDir, 'src', 'pages');
+        appDirPath = path.join(projectDir, 'src', 'app');
       }
+
+      const apiRoutesPath = path.join(pagesDirPath, 'api');
 
       const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
       const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
@@ -102,43 +107,82 @@ export function constructWebpackConfigFunction(
       const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
       const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
 
-      // It is very important that we insert our loader at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
+      const staticWrappingLoaderOptions = {
+        appDir: appDirPath,
+        pagesDir: pagesDirPath,
+        pageExtensionRegex,
+        excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+      };
+
+      const normalizeLoaderResourcePath = (resourcePath: string): string => {
+        // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
+        let absoluteResourcePath: string;
+        if (path.isAbsolute(resourcePath)) {
+          absoluteResourcePath = resourcePath;
+        } else {
+          absoluteResourcePath = path.join(projectDir, resourcePath);
+        }
+
+        return path.normalize(absoluteResourcePath);
+      };
+
+      // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
+
+      // Wrap pages
       newConfig.module.rules.unshift({
         test: resourcePath => {
-          // We generally want to apply the loader to all API routes, pages and to the middleware file.
-
-          // `resourcePath` may be an absolute path or a path relative to the context of the webpack config
-          let absoluteResourcePath: string;
-          if (path.isAbsolute(resourcePath)) {
-            absoluteResourcePath = resourcePath;
-          } else {
-            absoluteResourcePath = path.join(projectDir, resourcePath);
-          }
-          const normalizedAbsoluteResourcePath = path.normalize(absoluteResourcePath);
-
-          if (
-            // Match everything inside pages/ with the appropriate file extension
+          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+          return (
             normalizedAbsoluteResourcePath.startsWith(pagesDirPath) &&
+            !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath) &&
             dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-          ) {
-            return true;
-          } else if (
-            // Match middleware.js and middleware.ts
-            normalizedAbsoluteResourcePath === middlewareJsPath ||
-            normalizedAbsoluteResourcePath === middlewareTsPath
-          ) {
-            return userSentryOptions.autoInstrumentMiddleware ?? true;
-          } else {
-            return false;
-          }
+          );
         },
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
-              pagesDir: pagesDirPath,
-              pageExtensionRegex,
-              excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'page',
+            },
+          },
+        ],
+      });
+
+      // Wrap api routes
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+          return (
+            normalizedAbsoluteResourcePath.startsWith(apiRoutesPath) &&
+            dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+          );
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'api-route',
+            },
+          },
+        ],
+      });
+
+      // Wrap middleware
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+          return (
+            normalizedAbsoluteResourcePath === middlewareJsPath || normalizedAbsoluteResourcePath === middlewareTsPath
+          );
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'middleware',
             },
           },
         ],
