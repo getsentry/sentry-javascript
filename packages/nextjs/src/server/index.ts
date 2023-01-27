@@ -189,3 +189,5 @@ export {
   withSentryAPI,
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';
+
+export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';

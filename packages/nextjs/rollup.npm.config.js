@@ -11,7 +11,7 @@ export default [
         'src/client/index.ts',
         'src/server/index.ts',
         'src/edge/index.ts',
-        'src/config/webpack.ts',
+        'src/config/index.ts',
       ],
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
