@@ -15,6 +15,14 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
+const serverComponentWrapperTemplatePath = path.resolve(
+  __dirname,
+  '..',
+  'templates',
+  'serverComponentWrapperTemplate.js',
+);
+const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
+
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
@@ -107,15 +115,16 @@ export default function wrappingLoader(
       return;
     }
 
-    // Skip client components - TODO: Improve this detection by scanning the AST for directives
-    if (userCode.match(/"use client"|'use client'/g)) {
+    // The following string is what Next.js injects in order to mark client components:
+    // https://github.com/vercel/next.js/blob/295f9da393f7d5a49b0c2e15a2f46448dbdc3895/packages/next/build/analysis/get-page-static-info.ts#L37
+    // https://github.com/vercel/next.js/blob/a1c15d84d906a8adf1667332a3f0732be615afa0/packages/next-swc/crates/core/src/react_server_components.rs#L247
+    // We do not want to wrap client components
+    if (parameterizedPagesRoute.includes('/* __next_internal_client_entry_do_not_use__ */')) {
       this.callback(null, userCode, userModuleSourceMap);
       return;
     }
 
-    console.log('FFF', parameterizedPagesRoute, this.resourcePath, userCode);
-    this.callback(null, userCode, userModuleSourceMap);
-    return;
+    templateCode = serverComponentWrapperTemplateCode;
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
   } else {
@@ -137,7 +146,6 @@ export default function wrappingLoader(
         `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
       );
       this.callback(null, userCode, userModuleSourceMap);
-      return;
     });
 }
 
