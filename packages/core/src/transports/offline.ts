@@ -59,7 +59,6 @@ type Timer = number | { unref?: () => void };
  * Wraps a transport and stores and retries events when they fail to send.
  *
  * @param createTransport The transport to wrap.
- * @param createStore The store implementation to use.
  */
 export function makeOfflineTransport<TO>(
   createTransport: (options: TO) => Transport,
