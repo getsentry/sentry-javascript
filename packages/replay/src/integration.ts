@@ -55,7 +55,6 @@ export class Replay implements Integration {
     errorSampleRate,
     maskAllText,
     maskAllInputs = true,
-    maskInputOptions,
     blockAllMedia = true,
 
     mask = [],
@@ -69,6 +68,8 @@ export class Replay implements Integration {
     blockClass,
     // eslint-disable-next-line deprecation/deprecation
     blockSelector,
+    // eslint-disable-next-line deprecation/deprecation
+    maskInputOptions,
     // eslint-disable-next-line deprecation/deprecation
     maskTextClass,
     // eslint-disable-next-line deprecation/deprecation
