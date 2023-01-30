@@ -1,39 +1,32 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
 import type { EventBuffer, RecordingEvent } from '../types';
-
-interface EventsGroup {
-  checkoutTimestamp: number;
-  events: RecordingEvent[];
-}
+import { PartitionedQueue } from './PartitionedQueue';
 
 /**
  * A basic event buffer that does not do any compression.
  * Used as fallback if the compression worker cannot be loaded or is disabled.
  */
 export class EventBufferArray implements EventBuffer {
-  private _events: EventsGroup[];
-  private _eventsFlat: RecordingEvent[];
+  private _events: PartitionedQueue<RecordingEvent>;
 
   public constructor() {
-    this._events = [];
-    this._eventsFlat = [];
+    this._events = new PartitionedQueue<RecordingEvent>();
   }
 
   /** @inheritdoc */
   public get pendingLength(): number {
-    return this.pendingEvents.length;
+    return this._events.getLength();
   }
 
   /** @inheritdoc */
   public get pendingEvents(): RecordingEvent[] {
-    return this._eventsFlat;
-    // return this._events.reduce((acc, { events }) => [...events, ...acc], [] as RecordingEvent[]);
+    return this._events.getItems();
   }
 
   /** @inheritdoc */
-  public getFirstCheckoutTimestamp(): number | null {
-    return (this._events[0] && this._events[0].checkoutTimestamp) || null;
+  public getEarliestTimestamp(): number | null {
+    return this.pendingEvents.map(event => event.timestamp).sort()[0] || null;
   }
 
   /** @inheritdoc */
@@ -43,40 +36,17 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public addEvent(event: RecordingEvent, isCheckout?: boolean): void {
-    if (isCheckout || this._events.length === 0) {
-      const group: EventsGroup = {
-        checkoutTimestamp: event.timestamp,
-        events: [event],
-      };
-      this._events.unshift(group);
-    } else {
-      this._events[0].events.push(event);
-    }
-
-    this._eventsFlat.push(event);
+    this._events.add(event, isCheckout);
   }
 
   /** @inheritdoc */
   public clear(keepLastCheckout?: boolean): void {
-    if (keepLastCheckout) {
-      this._events.splice(1);
-
-      if (this._events.length === 0) {
-        this._eventsFlat = [];
-      } else {
-        // Remove all events from the flat array that are not in the first group
-        const firstGroup = this._events[0];
-        this._eventsFlat = this._eventsFlat.filter(event => firstGroup.events.includes(event));
-      }
-    } else {
-      this._events = [];
-      this._eventsFlat = [];
-    }
+    this._events.clear(keepLastCheckout);
   }
 
   /** @inheritdoc */
   public finish(): Promise<ReplayRecordingData> {
-    const pendingEvents = this.pendingEvents.slice();
+    const { pendingEvents } = this;
     this.clear();
 
     return Promise.resolve(this._finishRecording(pendingEvents));

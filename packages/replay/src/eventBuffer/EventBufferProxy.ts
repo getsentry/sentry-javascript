@@ -59,8 +59,8 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
-  public getFirstCheckoutTimestamp(): number | null {
-    return this._used.getFirstCheckoutTimestamp();
+  public getEarliestTimestamp(): number | null {
+    return this._used.getEarliestTimestamp();
   }
 
   /** Ensure the worker has loaded. */

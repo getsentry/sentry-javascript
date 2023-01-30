@@ -43,7 +43,7 @@ export function addEvent(replay: ReplayContainer, event: RecordingEvent, isCheck
 
       // Ensure we have the correct first checkout timestamp when an error occurs
       if (!session.segmentId) {
-        replay.getContext().earliestEvent = eventBuffer.getFirstCheckoutTimestamp();
+        replay.getContext().earliestEvent = eventBuffer.getEarliestTimestamp();
       }
     } else {
       eventBuffer.clear();

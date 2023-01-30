@@ -292,7 +292,7 @@ export interface EventBuffer {
   finish(): Promise<ReplayRecordingData>;
 
   /** Get the timestamp of the first checkout that is pending. */
-  getFirstCheckoutTimestamp(): number | null;
+  getEarliestTimestamp(): number | null;
 }
 
 export type AddUpdateCallback = () => boolean | void;
