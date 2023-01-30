@@ -277,6 +277,16 @@ describe('SentryBrowser initialization', () => {
       expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
+    it('uses SDK source from window', () => {
+      global.SENTRY_SDK_SOURCE = 'loader';
+      init({ dsn });
+
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+
+      expect(sdkData?.packages[0].name).toBe('loader:@sentry/browser');
+      delete global.SENTRY_SDK_SOURCE;
+    });
+
     it('should set SDK data when instantiating a client directly', () => {
       const options = getDefaultBrowserClientOptions({ dsn });
       const client = new BrowserClient(options);

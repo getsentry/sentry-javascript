@@ -17,8 +17,6 @@ import type { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import type { BrowserTransportOptions } from './transports/types';
 
-const sdkSource = getSDKSource();
-
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
@@ -44,6 +42,8 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserClientOptions) {
+    const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
+
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
