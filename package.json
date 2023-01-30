@@ -28,7 +28,7 @@
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts"
   },
   "volta": {
-    "node": "16.18.1",
+    "node": "16.19.0",
     "yarn": "1.22.19"
   },
   "workspaces": [
