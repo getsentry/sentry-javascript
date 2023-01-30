@@ -83,7 +83,7 @@ Sentry.setUser({ email: "jane.doe@example.com" });
 
 ### Stopping & re-starting replays
 
-You can manually stop/re-start Replay capture via `.stop()` & `.start()`:
+Replay recording only starts when it is included in the `integrations` array when calling `Sentry.init` or calling `addIntegration` from the a Sentry client instance. To stop recording you can call the `stop()`.
 
 ```js
 const replay = new Replay();
@@ -91,9 +91,12 @@ Sentry.init({
   integrations: [replay]
 });
 
-// sometime later
-replay.stop();
-replay.start();
+const client = getClient();
+
+// Add replay integration, will start recoring
+client.addIntegration(replay);
+
+replay.stop(); // Stop recording
 ```
 
 ## Loading Replay as a CDN Bundle
@@ -185,19 +188,29 @@ The following options can be configured as options to the integration, in `new R
 
 The following options can be configured as options to the integration, in `new Replay({})`:
 
-| key              | type                     | default                             | description                                                                                                                                                                                         |
-| ---------------- | ------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| maskAllText      | boolean                  | `true`                              | Mask _all_ text content. Will pass text content through `maskTextFn` before sending to server.                                                                                                       |
-| blockAllMedia    | boolean                  | `true`                              | Block _all_ media elements (`img, svg, video, object, picture, embed, map, audio`)
-| maskTextFn       | (text: string) => string | `(text) => '*'.repeat(text.length)` | Function to customize how text content is masked before sending to server. By default, masks text with `*`.                                                                                         |
-| maskAllInputs    | boolean                  | `true`                              | Mask values of `<input>` elements. Passes input values through `maskInputFn` before sending to server.                                                                                               |
-| maskInputOptions | Record<string, boolean>  | `{ password: true }`                | Customize which inputs `type` to mask. <br /> Available `<input>` types: `color, date, datetime-local, email, month, number, range, search, tel, text, time, url, week, textarea, select, password`. |
-| maskInputFn      | (text: string) => string | `(text) => '*'.repeat(text.length)` | Function to customize how form input values are masked before sending to server. By default, masks values with `*`.                                                                                 |
-| blockClass       | string \| RegExp         | `'sentry-block'`                    | Redact all elements that match the class name. See [privacy](#blocking) section for an example.                                                                                                                                                      |
-| blockSelector    | string                   | `'[data-sentry-block]'`               | Redact all elements that match the DOM selector. See [privacy](#blocking) section for an example.                                                                                                                                                     |
-| ignoreClass      | string \| RegExp         | `'sentry-ignore'`                   | Ignores all events on the matching input field. See [privacy](#ignoring) section for an example.                                                                                                                                                     |
-| maskTextClass    | string \| RegExp         | `'sentry-mask'`                     | Mask all elements that match the class name. See [privacy](#masking) section for an example.                                                                                                                                                        |
-| maskTextSelector    | string         | `undefined`                     | Mask all elements that match the given DOM selector. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| key              | type                     | default                                 | description                                                                                                                                                                                         |
+| ---------------- | ------------------------ | -----------------------------------     | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| maskAllText      | boolean                  | `true`                                  | Mask _all_ text content. Will pass text content through `maskTextFn` before sending to server.                                                                                                       |
+| maskAllInputs    | boolean                  | `true`                                  | Mask values of `<input>` elements. Passes input values through `maskInputFn` before sending to server.                                                                                               |
+| blockAllMedia    | boolean                  | `true`                                  | Block _all_ media elements (`img, svg, video, object, picture, embed, map, audio`)
+| maskTextFn       | (text: string) => string | `(text) => '*'.repeat(text.length)`     | Function to customize how text content is masked before sending to server. By default, masks text with `*`.                                                                                         |
+| block            | Array<string>            | `.sentry-block, [data-sentry-block]`    | Redact any elements that match the DOM selectors. See [privacy](#blocking) section for an example.                                                                                                                                                     |
+| unblock          | Array<string>            | `.sentry-unblock, [data-sentry-unblock]`| Do not redact any elements that match the DOM selectors. Useful when using `blockAllMedia`. See [privacy](#blocking) section for an example.                                                                                                                                                     |
+| mask             | Array<string>            | `.sentry-mask, [data-sentry-mask]`      | Mask all elements that match the given DOM selectors. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| unmask           | Array<string>            | `.sentry-unmask, [data-sentry-unmask]`  | Unmask all elements that match the given DOM selectors. Useful when using `maskAllText`. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| ignore           | Array<string>            | `.sentry-ignore, [data-sentry-ignore]`  | Ignores all events on the matching input fields. See [privacy](#ignoring) section for an example.                                                                                                                                                     |
+
+#### Deprecated options
+In order to streamline our privacy options, the following have been deprecated in favor for the respective options above.
+
+| deprecated key   | replaced by | description |
+| ---------------- | ----------- | ----------- |
+| maskInputOptions | mask        | Use CSS selectors in `mask` in order to mask all inputs of a certain type. For example, `input[type="address"]` |
+| blockSelector    | block       | The selector(s) can be moved directly in the `block` array. |
+| blockClass       | block       | Convert the class name to a CSS selector and add to `block` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
+| maskClass        | mask        | Convert the class name to a CSS selector and add to `mask` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
+| maskSelector     | mask        | The selector(s) can be moved directly in the `mask` array. |
+| ignoreClass      | ignore      | Convert the class name to a CSS selector and add to `ignore` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
 
 ## Privacy
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all media elements (`img, svg, video, object, picture, embed, map, audio`). This can be disabled by setting `maskAllText` to `false`. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: `sentry-block`, `sentry-ignore`, and `sentry-mask`. The following sections will show examples of how content is handled by the differing methods.

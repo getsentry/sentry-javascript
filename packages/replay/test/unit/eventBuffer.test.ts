@@ -2,7 +2,8 @@ import 'jsdom-worker';
 
 import pako from 'pako';
 
-import { createEventBuffer, EventBufferProxy } from './../../src/eventBuffer';
+import { EventBufferProxy } from '../../src/eventBuffer/EventBufferProxy';
+import { createEventBuffer } from './../../src/eventBuffer';
 import { BASE_TIMESTAMP } from './../index';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -57,7 +58,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);
@@ -79,7 +80,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       await buffer.addEvent(TEST_EVENT);
       await buffer.addEvent(TEST_EVENT);
@@ -102,7 +103,7 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
 
@@ -126,11 +127,12 @@ describe('Unit | eventBuffer', () => {
       expect(buffer).toBeInstanceOf(EventBufferProxy);
 
       // Ensure worker is ready
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
 
       const promise1 = buffer.finish();
+      await new Promise(process.nextTick);
 
       buffer.addEvent({ ...TEST_EVENT, type: 5 });
       const promise2 = buffer.finish();
@@ -143,6 +145,31 @@ describe('Unit | eventBuffer', () => {
 
       expect(restored1).toEqual(JSON.stringify([TEST_EVENT]));
       expect(restored2).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 5 }]));
+    });
+
+    it('handles an error when compressing the payload', async function () {
+      const buffer = createEventBuffer({
+        useCompression: true,
+      }) as EventBufferProxy;
+
+      expect(buffer).toBeInstanceOf(EventBufferProxy);
+
+      // Ensure worker is ready
+      await buffer.ensureWorkerIsLoaded();
+
+      buffer.addEvent(TEST_EVENT);
+      buffer.addEvent(TEST_EVENT);
+
+      // @ts-ignore Mock this private so it triggers an error
+      const postMessageSpy = jest.spyOn(buffer._compression, '_postMessage').mockImplementation(() => {
+        return Promise.reject('test worker error');
+      });
+
+      const result = await buffer.finish();
+
+      expect(postMessageSpy).toHaveBeenCalledTimes(1);
+
+      expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
     });
   });
 
@@ -158,7 +185,7 @@ describe('Unit | eventBuffer', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('first uses simple buffer, and switches over once worker is loaded', async function () {
+    it('waits for the worker to be loaded when calling finish', async function () {
       const buffer = createEventBuffer({
         useCompression: true,
       }) as EventBufferProxy;
@@ -170,26 +197,10 @@ describe('Unit | eventBuffer', () => {
 
       expect(buffer.pendingEvents).toEqual([TEST_EVENT, TEST_EVENT]);
 
-      // Finish before the worker is loaded
       const result = await buffer.finish();
-      expect(typeof result).toBe('string');
-      expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
-
-      // Now actually finish loading the worker
-      await buffer['_ensureWorkerIsLoaded']();
-
-      buffer.addEvent(TEST_EVENT);
-      buffer.addEvent(TEST_EVENT);
-      buffer.addEvent(TEST_EVENT);
-
-      expect(buffer.pendingEvents).toEqual([TEST_EVENT, TEST_EVENT, TEST_EVENT]);
-
-      const result2 = await buffer.finish();
-      expect(result2).toBeInstanceOf(Uint8Array);
-
-      const restored2 = pako.inflate(result2 as Uint8Array, { to: 'string' });
-
-      expect(restored2).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT, TEST_EVENT]));
+      expect(result).toBeInstanceOf(Uint8Array);
+      const restored = pako.inflate(result as Uint8Array, { to: 'string' });
+      expect(restored).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
     });
 
     it('keeps using simple buffer if worker cannot be loaded', async function () {
@@ -210,7 +221,7 @@ describe('Unit | eventBuffer', () => {
       expect(result).toEqual(JSON.stringify([TEST_EVENT, TEST_EVENT]));
 
       // Now actually finish loading the worker - which triggers an error
-      await buffer['_ensureWorkerIsLoaded']();
+      await buffer.ensureWorkerIsLoaded();
 
       buffer.addEvent(TEST_EVENT);
       buffer.addEvent(TEST_EVENT);

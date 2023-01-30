@@ -1,4 +1,3 @@
-import { MASK_ALL_TEXT_SELECTOR } from '../../src/constants';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -12,19 +11,27 @@ describe('Integration | rrweb', () => {
   it('calls rrweb.record with custom options', async () => {
     const { mockRecord } = await resetSdkMock({
       replayOptions: {
-        ignoreClass: 'sentry-test-ignore',
+        ignore: ['.sentry-test-ignore'],
         stickySession: false,
       },
     });
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
-        "blockClass": "sentry-block",
-        "blockSelector": "[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
+        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
+        "collectFonts": true,
         "emit": [Function],
-        "ignoreClass": "sentry-test-ignore",
+        "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore]",
+        "inlineImages": false,
+        "inlineStylesheet": true,
         "maskAllInputs": true,
-        "maskTextClass": "sentry-mask",
-        "maskTextSelector": "${MASK_ALL_TEXT_SELECTOR}",
+        "maskInputFn": undefined,
+        "maskInputSelector": ".sentry-mask,[data-sentry-mask]",
+        "maskTextFn": undefined,
+        "maskTextSelector": "body *:not(style), body *:not(script)",
+        "slimDOMOptions": "all",
+        "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
+        "unmaskInputSelector": ".sentry-unmask,[data-sentry-unmask]",
+        "unmaskTextSelector": ".sentry-unmask,[data-sentry-unmask]",
       }
     `);
   });

@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.34.0
+
+This release adds automatic injection of the Next.js SDK into serverside `app` directory bundles, allowing users to call the Sentry SDK in server components.
+
+- feat(nextjs): Add SDK to serverside `app` directory (#6927)
+- fix(replay): Do not renew session in error mode (#6948)
+- fix(replay): Handle compression worker errors more gracefully (#6936)
+- fix(replay): fix path separator substitution to replay all `\` (#6932)
+- fix(replay): ignore errors in CSSStyleSheetObserver (getsentry/rrweb#16)
+
+Work in this release contributed by @mdtro. Thank you for your contribution!
+
 ## 7.33.0
 
 With this release, the sample rate for Session Replays will default to 0. We recommend explicitly setting the sample rate via the `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.

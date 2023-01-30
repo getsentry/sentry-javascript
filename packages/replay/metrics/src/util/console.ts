@@ -19,6 +19,10 @@ export function printStats(items: Metrics[]): void {
     cpu: `${((MetricsStats.mean(items, MetricsStats.cpu) || 0) * 100).toFixed(2)} %`,
     memoryMean: filesize(MetricsStats.mean(items, MetricsStats.memoryMean)),
     memoryMax: filesize(MetricsStats.max(items, MetricsStats.memoryMax)),
+    netTx: filesize(MetricsStats.mean(items, MetricsStats.netTx)),
+    netRx: filesize(MetricsStats.mean(items, MetricsStats.netRx)),
+    netCount: MetricsStats.mean(items, MetricsStats.netCount),
+    netTime: `${MetricsStats.mean(items, MetricsStats.netTime)?.toFixed(2)} ms`,
   });
 }
 

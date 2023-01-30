@@ -34,5 +34,6 @@ export type recordOptions = {
   blockClass?: blockClass;
   ignoreClass?: string;
   maskTextClass?: maskTextClass;
+  maskTextSelector?: string;
   blockSelector?: string;
 } & Record<string, unknown>;

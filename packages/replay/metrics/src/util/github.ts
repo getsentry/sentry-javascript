@@ -59,7 +59,7 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
       ...defaultArgs,
       base: await Git.baseBranch,
       head: await Git.branch
-    })).data[0].number;
+    })).data[0]?.number;
     if (prNumber != undefined) {
       console.log(`Found PR number ${prNumber} based on base and head branches`);
     }

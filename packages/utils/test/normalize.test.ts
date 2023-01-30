@@ -286,6 +286,11 @@ describe('normalize()', () => {
       expect(normalize([{ a }, { b: new B() }, c])).toEqual([{ a: 1 }, { b: 2 }, 3]);
     });
 
+    test('should return a normalized object even if a property was created without a prototype', () => {
+      const subject = { a: 1, foo: Object.create(null), bar: Object.assign(Object.create(null), { baz: true }) } as any;
+      expect(normalize(subject)).toEqual({ a: 1, foo: {}, bar: { baz: true } });
+    });
+
     test('should return a normalized object even if toJSON throws', () => {
       const subject = { a: 1, foo: 'bar' } as any;
       subject.toJSON = () => {

@@ -60,6 +60,10 @@ export class ResultsAnalyzer {
     pushIfDefined(AnalyzerItemMetric.cpu, AnalyzerItemUnit.ratio, MetricsStats.cpu, MetricsStats.mean);
     pushIfDefined(AnalyzerItemMetric.memoryAvg, AnalyzerItemUnit.bytes, MetricsStats.memoryMean, MetricsStats.mean);
     pushIfDefined(AnalyzerItemMetric.memoryMax, AnalyzerItemUnit.bytes, MetricsStats.memoryMax, MetricsStats.max);
+    pushIfDefined(AnalyzerItemMetric.netTx, AnalyzerItemUnit.bytes, MetricsStats.netTx, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.netRx, AnalyzerItemUnit.bytes, MetricsStats.netRx, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.netCount, AnalyzerItemUnit.integer, MetricsStats.netCount, MetricsStats.mean);
+    pushIfDefined(AnalyzerItemMetric.netTime, AnalyzerItemUnit.ms, MetricsStats.netTime, MetricsStats.mean);
 
     return items;
   }
@@ -69,6 +73,7 @@ export enum AnalyzerItemUnit {
   ms,
   ratio, // 1.0 == 100 %
   bytes,
+  integer,
 }
 
 export interface AnalyzerItemValues {
@@ -115,6 +120,8 @@ class AnalyzerItemNumberValues implements AnalyzerItemValues {
         return filesize(value) as string;
       case AnalyzerItemUnit.ratio:
         return `${(value * 100).toFixed(2)} ${isDiff ? 'pp' : '%'}`;
+      case AnalyzerItemUnit.integer:
+        return `${value}`;
       default:
         return `${value.toFixed(2)} ${AnalyzerItemUnit[this._unit]}`;
     }
@@ -127,6 +134,10 @@ export enum AnalyzerItemMetric {
   cpu,
   memoryAvg,
   memoryMax,
+  netTx,
+  netRx,
+  netCount,
+  netTime,
 }
 
 export interface AnalyzerItem {

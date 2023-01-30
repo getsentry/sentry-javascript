@@ -59,7 +59,7 @@ describe('Integration | sendReplayEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
 
     mockSendReplayRequest.mockClear();
   });
@@ -69,7 +69,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
   });
 
   afterAll(() => {

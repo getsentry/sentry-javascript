@@ -4,6 +4,7 @@ import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
+import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
@@ -38,27 +39,57 @@ export class Replay implements Integration {
     flushMaxDelay = DEFAULT_FLUSH_MAX_DELAY,
     stickySession = true,
     useCompression = true,
+    _experiments = {},
     sessionSampleRate,
     errorSampleRate,
     maskAllText,
-    maskTextSelector,
     maskAllInputs = true,
     blockAllMedia = true,
-    _experiments = {},
-    blockClass = 'sentry-block',
-    ignoreClass = 'sentry-ignore',
-    maskTextClass = 'sentry-mask',
-    blockSelector = '[data-sentry-block]',
-    ..._recordingOptions
+
+    mask = [],
+    unmask = [],
+    block = [],
+    unblock = [],
+    ignore = [],
+    maskFn,
+
+    // eslint-disable-next-line deprecation/deprecation
+    blockClass,
+    // eslint-disable-next-line deprecation/deprecation
+    blockSelector,
+    // eslint-disable-next-line deprecation/deprecation
+    maskTextClass,
+    // eslint-disable-next-line deprecation/deprecation
+    maskTextSelector,
+    // eslint-disable-next-line deprecation/deprecation
+    ignoreClass,
   }: ReplayConfiguration = {}) {
     this._recordingOptions = {
       maskAllInputs,
-      blockClass,
-      ignoreClass,
-      maskTextClass,
-      maskTextSelector,
-      blockSelector,
-      ..._recordingOptions,
+      maskTextFn: maskFn,
+      maskInputFn: maskFn,
+
+      ...getPrivacyOptions({
+        mask,
+        unmask,
+        block,
+        unblock,
+        ignore,
+        blockClass,
+        blockSelector,
+        maskTextClass,
+        maskTextSelector,
+        ignoreClass,
+      }),
+
+      // Our defaults
+      slimDOMOptions: 'all',
+      inlineStylesheet: true,
+      // Disable inline images as it will increase segment/replay size
+      inlineImages: false,
+      // collect fonts, but be aware that `sentry.io` needs to be an allowed
+      // origin for playback
+      collectFonts: true,
     };
 
     this._options = {
