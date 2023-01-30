@@ -165,7 +165,7 @@ export interface DeprecatedPrivacyOptions {
   /**
    * @deprecated  Use `mask` which accepts an array of CSS selectors
    */
-  maskInputOptions: RecordingOptions['maskInputOptions'];
+  maskInputOptions?: RecordingOptions['maskInputOptions'];
   /**
    * @deprecated Use `mask` which accepts an array of CSS selectors
    */
