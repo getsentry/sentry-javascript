@@ -3,7 +3,7 @@ import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/type
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
-export const envelopeRequestParser = (request: Request | null): Event => {
+export const envelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 
@@ -14,7 +14,11 @@ export const envelopeRequestParser = (request: Request | null): Event => {
     } catch (error) {
       return line;
     }
-  })[2];
+  });
+};
+
+export const envelopeRequestParser = (request: Request | null): Event => {
+  return envelopeParser(request)[2] as Event;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
