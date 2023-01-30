@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
@@ -219,7 +219,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
 
   if (!opt) {
     // eslint-disable-next-line no-console
-    console.warn('Replay is disabled because SDK options are not available');
+    console.warn('SDK client is not available.');
     return finalOptions;
   }
 
