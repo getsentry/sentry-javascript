@@ -13,9 +13,11 @@ interface EventsGroup {
  */
 export class EventBufferArray implements EventBuffer {
   private _events: EventsGroup[];
+  private _eventsFlat: RecordingEvent[];
 
   public constructor() {
     this._events = [];
+    this._eventsFlat = [];
   }
 
   /** @inheritdoc */
@@ -25,7 +27,8 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public get pendingEvents(): RecordingEvent[] {
-    return this._events.reduce((acc, { events }) => [...events, ...acc], [] as RecordingEvent[]);
+    return this._eventsFlat;
+    // return this._events.reduce((acc, { events }) => [...events, ...acc], [] as RecordingEvent[]);
   }
 
   /** @inheritdoc */
@@ -49,14 +52,25 @@ export class EventBufferArray implements EventBuffer {
     } else {
       this._events[0].events.push(event);
     }
+
+    this._eventsFlat.push(event);
   }
 
   /** @inheritdoc */
   public clear(keepLastCheckout?: boolean): void {
     if (keepLastCheckout) {
       this._events.splice(1);
+
+      if (this._events.length === 0) {
+        this._eventsFlat = [];
+      } else {
+        // Remove all events from the flat array that are not in the first group
+        const firstGroup = this._events[0];
+        this._eventsFlat = this._eventsFlat.filter(event => firstGroup.events.includes(event));
+      }
     } else {
       this._events = [];
+      this._eventsFlat = [];
     }
   }
 
