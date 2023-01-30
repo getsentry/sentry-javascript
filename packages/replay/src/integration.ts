@@ -1,5 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
+import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
@@ -9,6 +10,9 @@ import { isBrowser } from './util/isBrowser';
 const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
 
 let _initialized = false;
+
+type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
+  Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
 
 /**
  * The main replay integration class, to be passed to `init({  integrations: [] })`.
@@ -29,7 +33,14 @@ export class Replay implements Integration {
    */
   private readonly _recordingOptions: RecordingOptions;
 
-  private readonly _options: ReplayPluginOptions;
+  /**
+   * Initial options passed to the replay integration, merged with default values.
+   * Note: `sessionSampleRate` and `errorSampleRate` are not required here, as they
+   * can only be finally set when setupOnce() is called.
+   *
+   * @private
+   */
+  private readonly _initialOptions: InitialReplayPluginOptions;
 
   private _replay?: ReplayContainer;
 
@@ -61,12 +72,12 @@ export class Replay implements Integration {
       ..._recordingOptions,
     };
 
-    this._options = {
+    this._initialOptions = {
       flushMinDelay,
       flushMaxDelay,
       stickySession,
-      sessionSampleRate: 0,
-      errorSampleRate: 0,
+      sessionSampleRate,
+      errorSampleRate,
       useCompression,
       maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
       blockAllMedia,
@@ -82,7 +93,7 @@ Instead, configure \`replaysSessionSampleRate\` directly in the SDK init options
 Sentry.init({ replaysSessionSampleRate: ${sessionSampleRate} })`,
       );
 
-      this._options.sessionSampleRate = sessionSampleRate;
+      this._initialOptions.sessionSampleRate = sessionSampleRate;
     }
 
     if (typeof errorSampleRate === 'number') {
@@ -94,17 +105,17 @@ Instead, configure \`replaysOnErrorSampleRate\` directly in the SDK init options
 Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       );
 
-      this._options.errorSampleRate = errorSampleRate;
+      this._initialOptions.errorSampleRate = errorSampleRate;
     }
 
-    if (this._options.maskAllText) {
+    if (this._initialOptions.maskAllText) {
       // `maskAllText` is a more user friendly option to configure
       // `maskTextSelector`. This means that all nodes will have their text
       // content masked.
       this._recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
-    if (this._options.blockAllMedia) {
+    if (this._initialOptions.blockAllMedia) {
       // `blockAllMedia` is a more user friendly option to configure blocking
       // embedded media elements
       this._recordingOptions.blockSelector = !this._recordingOptions.blockSelector
@@ -190,30 +201,45 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   /** Setup the integration. */
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce
-    this._loadReplayOptionsFromClient();
-
-    if (!this._options.sessionSampleRate && !this._options.errorSampleRate) {
-      // eslint-disable-next-line no-console
-      console.warn('Replay is disabled because both `replaysSessionSampleRate` and `replaysOnErrorSampleRate` are 0');
-    }
+    const finalOptions = this._loadReplayOptionsFromClient(this._initialOptions);
 
     this._replay = new ReplayContainer({
-      options: this._options,
+      options: finalOptions,
       recordingOptions: this._recordingOptions,
     });
   }
 
   /** Parse Replay-related options from SDK options */
-  private _loadReplayOptionsFromClient(): void {
+  private _loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
     const client = getCurrentHub().getClient();
     const opt = client && (client.getOptions() as BrowserClientReplayOptions | undefined);
 
-    if (opt && typeof opt.replaysSessionSampleRate === 'number') {
-      this._options.sessionSampleRate = opt.replaysSessionSampleRate;
+    const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };
+
+    if (!opt) {
+      return finalOptions;
     }
 
-    if (opt && typeof opt.replaysOnErrorSampleRate === 'number') {
-      this._options.errorSampleRate = opt.replaysOnErrorSampleRate;
+    if (
+      initialOptions.sessionSampleRate == null && // TODO remove once deprecated rates are removed
+      initialOptions.errorSampleRate == null && // TODO remove once deprecated rates are removed
+      opt.replaysSessionSampleRate == null &&
+      opt.replaysOnErrorSampleRate == null
+    ) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set',
+      );
     }
+
+    if (typeof opt.replaysSessionSampleRate === 'number') {
+      finalOptions.sessionSampleRate = opt.replaysSessionSampleRate;
+    }
+
+    if (typeof opt.replaysOnErrorSampleRate === 'number') {
+      finalOptions.errorSampleRate = opt.replaysOnErrorSampleRate;
+    }
+
+    return finalOptions;
   }
 }

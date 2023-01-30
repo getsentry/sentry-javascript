@@ -75,7 +75,7 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
     integrations: [replayIntegration],
   });
 
-  // Instead of `setupOnce`, which is tricky to test, we call this manually here)
+  // Instead of `setupOnce`, which is tricky to test, we call this manually here
   replayIntegration['_setup']();
 
   if (autoStart) {

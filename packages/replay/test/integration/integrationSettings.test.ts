@@ -60,7 +60,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(2);
+      expect(mockConsole).toBeCalledTimes(1);
     });
 
     it('works with defining settings in SDK', async () => {
@@ -70,11 +70,11 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(0);
     });
 
-    it('works with defining 0 in SDK but a warning is logged', async () => {
+    it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toBeCalledTimes(0);
     });
 
     it('SDK option takes precedence', async () => {
@@ -87,14 +87,14 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(1);
     });
 
-    it('SDK option takes precedence even when 0 but warnings are logged', async () => {
+    it('SDK option takes precedence even when 0', async () => {
       const { replay } = await mockSdk({
         sentryOptions: { replaysSessionSampleRate: 0 },
         replayOptions: { sessionSampleRate: 0.1 },
       });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(2);
+      expect(mockConsole).toBeCalledTimes(1);
     });
   });
 
@@ -159,6 +159,29 @@ describe('Integration | integrationSettings', () => {
         replayOptions: { errorSampleRate: 0.1 },
       });
 
+      expect(replay.getOptions().errorSampleRate).toBe(0);
+      expect(mockConsole).toBeCalledTimes(1);
+    });
+  });
+
+  describe('all sample rates', () => {
+    let mockConsole: jest.SpyInstance<void>;
+
+    beforeEach(() => {
+      mockConsole = jest.spyOn(console, 'warn').mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      mockConsole.mockRestore();
+    });
+
+    it('logs warning if no sample rates are set', async () => {
+      const { replay } = await mockSdk({
+        sentryOptions: { replaysOnErrorSampleRate: undefined, replaysSessionSampleRate: undefined },
+        replayOptions: {},
+      });
+
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
