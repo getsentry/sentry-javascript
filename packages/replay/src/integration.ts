@@ -1,6 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
 import { ReplayContainer } from './replay';
@@ -201,45 +201,47 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   /** Setup the integration. */
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce
-    const finalOptions = this._loadReplayOptionsFromClient(this._initialOptions);
+    const finalOptions = loadReplayOptionsFromClient(this._initialOptions);
 
     this._replay = new ReplayContainer({
       options: finalOptions,
       recordingOptions: this._recordingOptions,
     });
   }
+}
 
-  /** Parse Replay-related options from SDK options */
-  private _loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
-    const client = getCurrentHub().getClient();
-    const opt = client && (client.getOptions() as BrowserClientReplayOptions | undefined);
+/** Parse Replay-related options from SDK options */
+function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
+  const client = getCurrentHub().getClient();
+  const opt = client && (client.getOptions() as BrowserClientReplayOptions);
 
-    const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };
+  const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };
 
-    if (!opt) {
-      return finalOptions;
-    }
-
-    if (
-      initialOptions.sessionSampleRate == null && // TODO remove once deprecated rates are removed
-      initialOptions.errorSampleRate == null && // TODO remove once deprecated rates are removed
-      opt.replaysSessionSampleRate == null &&
-      opt.replaysOnErrorSampleRate == null
-    ) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set',
-      );
-    }
-
-    if (typeof opt.replaysSessionSampleRate === 'number') {
-      finalOptions.sessionSampleRate = opt.replaysSessionSampleRate;
-    }
-
-    if (typeof opt.replaysOnErrorSampleRate === 'number') {
-      finalOptions.errorSampleRate = opt.replaysOnErrorSampleRate;
-    }
-
+  if (!opt) {
+    // eslint-disable-next-line no-console
+    console.warn('Replay is disabled because SDK options are not available');
     return finalOptions;
   }
+
+  if (
+    initialOptions.sessionSampleRate == null && // TODO remove once deprecated rates are removed
+    initialOptions.errorSampleRate == null && // TODO remove once deprecated rates are removed
+    opt.replaysSessionSampleRate == null &&
+    opt.replaysOnErrorSampleRate == null
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'Replay is disabled because neither `replaysSessionSampleRate` nor `replaysOnErrorSampleRate` are set.',
+    );
+  }
+
+  if (typeof opt.replaysSessionSampleRate === 'number') {
+    finalOptions.sessionSampleRate = opt.replaysSessionSampleRate;
+  }
+
+  if (typeof opt.replaysOnErrorSampleRate === 'number') {
+    finalOptions.errorSampleRate = opt.replaysOnErrorSampleRate;
+  }
+
+  return finalOptions;
 }
