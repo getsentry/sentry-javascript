@@ -1,4 +1,5 @@
 import { getReportDialogEndpoint, SDK_VERSION } from '@sentry/core';
+import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
 import {
@@ -277,7 +278,7 @@ describe('SentryBrowser initialization', () => {
       expect(sdkData?.version).toBe(SDK_VERSION);
     });
 
-    it('uses SDK source from window', () => {
+    it('uses SDK source from window for package name', () => {
       global.SENTRY_SDK_SOURCE = 'loader';
       init({ dsn });
 
@@ -285,6 +286,17 @@ describe('SentryBrowser initialization', () => {
 
       expect(sdkData?.packages[0].name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
+    });
+
+    it('uses SDK source from global for package name', () => {
+      const spy = jest.spyOn(utils, 'getSDKSource').mockReturnValue('cdn');
+      init({ dsn });
+
+      const sdkData = (getCurrentHub().getClient() as any).getOptions()._metadata.sdk;
+
+      expect(sdkData?.packages[0].name).toBe('cdn:@sentry/browser');
+      expect(utils.getSDKSource).toBeCalledTimes(1);
+      spy.mockRestore();
     });
 
     it('should set SDK data when instantiating a client directly', () => {
