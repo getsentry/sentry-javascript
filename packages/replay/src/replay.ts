@@ -17,7 +17,6 @@ import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
-  AddEventResult,
   AddUpdateCallback,
   AllPerformanceEntry,
   EventBuffer,
@@ -704,12 +703,12 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Observed performance events are added to `this.performanceEvents`. These
    * are included in the replay event before it is finished and sent to Sentry.
    */
-  private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
+  private _addPerformanceEntries(): void {
     // Copy and reset entries before processing
     const entries = [...this.performanceEvents];
     this.performanceEvents = [];
 
-    return Promise.all(createPerformanceSpans(this, createPerformanceEntries(entries)));
+    createPerformanceSpans(this, createPerformanceEntries(entries));
   }
 
   /**

@@ -24,7 +24,7 @@ export interface SendReplayData {
 export interface WorkerRequest {
   id: number;
   method: string;
-  args: unknown[];
+  arg: string;
 }
 
 // PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
@@ -44,8 +44,6 @@ export interface WorkerResponse {
   success: boolean;
   response: unknown;
 }
-
-export type AddEventResult = void;
 
 export interface SampleRates {
   /**
@@ -280,12 +278,21 @@ export interface EventBuffer {
    *
    * Returns a promise that resolves if the event was successfully added, else rejects.
    */
-  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
+  addEvent(event: RecordingEvent, isCheckout?: boolean): void;
+
+  /**
+   * Clear any pending events from the buffer.
+   * If `keepLastCheckout` is set, we ensure to keep at all the events since the last checkout.
+   */
+  clear(keepLastCheckout?: boolean): void;
 
   /**
    * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
+
+  /** Get the timestamp of the first checkout that is pending. */
+  getFirstCheckoutTimestamp(): number | null;
 }
 
 export type AddUpdateCallback = () => boolean | void;
