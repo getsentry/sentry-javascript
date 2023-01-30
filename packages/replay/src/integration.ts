@@ -55,6 +55,7 @@ export class Replay implements Integration {
     errorSampleRate,
     maskAllText,
     maskAllInputs = true,
+    maskInputOptions,
     blockAllMedia = true,
 
     mask = [],
@@ -77,6 +78,7 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this._recordingOptions = {
       maskAllInputs,
+      maskInputOptions,
       maskTextFn: maskFn,
       maskInputFn: maskFn,
 

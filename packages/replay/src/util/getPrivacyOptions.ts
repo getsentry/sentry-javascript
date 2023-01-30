@@ -1,6 +1,6 @@
 import type { DeprecatedPrivacyOptions, ReplayIntegrationPrivacyOptions } from '../types';
 
-type GetPrivacyOptions = Required<Omit<ReplayIntegrationPrivacyOptions, 'maskFn'>> & DeprecatedPrivacyOptions;
+type GetPrivacyOptions = Required<Omit<ReplayIntegrationPrivacyOptions, 'maskFn'>> & Omit<DeprecatedPrivacyOptions, 'maskInputOptions'>;
 interface GetPrivacyReturn {
   maskTextSelector: string;
   unmaskTextSelector: string;
