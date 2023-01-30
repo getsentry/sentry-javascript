@@ -47,7 +47,7 @@ export {
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
-export { makeFetchTransport, makeXHRTransport } from './transports';
+export { makeFetchTransport, makeXHRTransport, makeOfflineTransport } from './transports';
 export {
   defaultStackParser,
   defaultStackLineParsers,

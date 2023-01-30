@@ -115,7 +115,7 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
   return merged;
 }
 
-interface TextDecoderInternal {
+export interface TextDecoderInternal {
   decode(input?: Uint8Array): string;
 }
 
