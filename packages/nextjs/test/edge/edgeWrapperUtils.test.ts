@@ -84,7 +84,6 @@ describe('withEdgeWrapping', () => {
     expect(startTransactionSpy).toHaveBeenCalledTimes(1);
     expect(startTransactionSpy).toHaveBeenCalledWith(
       expect.objectContaining({ metadata: { source: 'route' }, name: 'some label', op: 'some op' }),
-      { request },
     );
   });
 

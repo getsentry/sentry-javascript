@@ -51,6 +51,7 @@ describe('Edge Transport', () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
     await transport.send(ERROR_ENVELOPE);
+    await transport.flush();
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
@@ -77,6 +78,7 @@ describe('Edge Transport', () => {
 
     expect(headers.get).toHaveBeenCalledTimes(0);
     await transport.send(ERROR_ENVELOPE);
+    await transport.flush();
 
     expect(headers.get).toHaveBeenCalledTimes(2);
     expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
@@ -101,6 +103,7 @@ describe('Edge Transport', () => {
     const transport = makeEdgeTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetchOptions: REQUEST_OPTIONS });
 
     await transport.send(ERROR_ENVELOPE);
+    await transport.flush();
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
       body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
       method: 'POST',
