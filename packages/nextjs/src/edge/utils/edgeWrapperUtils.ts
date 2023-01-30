@@ -44,19 +44,15 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 
         const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(req.headers.get('baggage'));
 
-        span = startTransaction(
-          {
-            name: options.spanDescription,
-            op: options.spanOp,
-            ...traceparentData,
-            metadata: {
-              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-              source: 'route',
-            },
+        span = startTransaction({
+          name: options.spanDescription,
+          op: options.spanOp,
+          ...traceparentData,
+          metadata: {
+            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+            source: 'route',
           },
-          // extra context passed to the `tracesSampler`
-          { request: req },
-        );
+        });
       }
 
       currentScope?.setSpan(span);
