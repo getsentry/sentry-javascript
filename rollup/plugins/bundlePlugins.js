@@ -63,10 +63,10 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
   });
 }
 
-export function makeIsCDNBundlePlugin(isCDNBundle) {
+export function makeSetSDKSourcePlugin(sdkSource) {
   return replace({
     values: {
-      __SENTRY_CDN_BUNDLE__: isCDNBundle,
+      __SENTRY_SDK_SOURCE__: sdkSource,
     },
   });
 }

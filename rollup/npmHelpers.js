@@ -13,7 +13,7 @@ import {
   makeCleanupPlugin,
   makeSucrasePlugin,
   makeDebugBuildStatementReplacePlugin,
-  makeIsCDNBundlePlugin,
+  makeSetSDKSourcePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -32,7 +32,7 @@ export function makeBaseNPMConfig(options = {}) {
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
-  const isNPMBundlePlugin = makeIsCDNBundlePlugin(false);
+  const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -85,11 +85,11 @@ export function makeBaseNPMConfig(options = {}) {
 
     plugins: [
       nodeResolvePlugin,
+      setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
       cleanupPlugin,
       extractPolyfillsPlugin,
-      isNPMBundlePlugin,
     ],
 
     // don't include imported modules from outside the package in the final output
