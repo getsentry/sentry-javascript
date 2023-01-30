@@ -21,7 +21,7 @@ function log(msg: string, error?: Error): void {
   __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
 }
 
-interface OfflineStore {
+export interface OfflineStore {
   insert(env: Envelope): Promise<void>;
   pop(): Promise<Envelope | undefined>;
 }
@@ -107,7 +107,7 @@ export function makeOfflineTransport<TO>(
       }, delay) as Timer;
 
       // We need to unref the timer in node.js, otherwise the node process never exit.
-      if (typeof flushTimer !== 'number' && typeof flushTimer.unref === 'function') {
+      if (typeof flushTimer !== 'number' && flushTimer.unref) {
         flushTimer.unref();
       }
     }
@@ -119,11 +119,7 @@ export function makeOfflineTransport<TO>(
 
       flushIn(retryDelay);
 
-      retryDelay *= 2;
-
-      if (retryDelay > MAX_DELAY) {
-        retryDelay = MAX_DELAY;
-      }
+      retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
     }
 
     async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
