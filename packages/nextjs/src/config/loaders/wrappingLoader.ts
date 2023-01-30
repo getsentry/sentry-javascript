@@ -153,7 +153,7 @@ async function wrapUserCode(
       // People may use `module.exports` in their API routes or page files. Next.js allows that and we also need to
       // handle that correctly so we let a plugin to take care of bundling cjs exports for us.
       commonjs({
-        transformMixedEsModules: true,
+        strictRequires: true,
         sourceMap: true,
       }),
     ],
