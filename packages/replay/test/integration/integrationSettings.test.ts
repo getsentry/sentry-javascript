@@ -53,7 +53,7 @@ describe('Integration | integrationSettings', () => {
       expect(mockConsole).toBeCalledTimes(1);
     });
 
-    it('works with defining 0 in integration', async () => {
+    it('works with defining 0 in integration but logs warnings', async () => {
       const { replay } = await mockSdk({
         replayOptions: { sessionSampleRate: 0 },
         sentryOptions: { replaysSessionSampleRate: undefined },
@@ -159,6 +159,29 @@ describe('Integration | integrationSettings', () => {
         replayOptions: { errorSampleRate: 0.1 },
       });
 
+      expect(replay.getOptions().errorSampleRate).toBe(0);
+      expect(mockConsole).toBeCalledTimes(1);
+    });
+  });
+
+  describe('all sample rates', () => {
+    let mockConsole: jest.SpyInstance<void>;
+
+    beforeEach(() => {
+      mockConsole = jest.spyOn(console, 'warn').mockImplementation(jest.fn());
+    });
+
+    afterEach(() => {
+      mockConsole.mockRestore();
+    });
+
+    it('logs warning if no sample rates are set', async () => {
+      const { replay } = await mockSdk({
+        sentryOptions: { replaysOnErrorSampleRate: undefined, replaysSessionSampleRate: undefined },
+        replayOptions: {},
+      });
+
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(1);
     });
