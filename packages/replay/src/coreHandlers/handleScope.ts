@@ -26,6 +26,10 @@ export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) =>
  * An event handler to handle scope changes.
  */
 export function handleScope(scope: Scope): Breadcrumb | null {
+  if (typeof scope.getLastBreadcrumb !== 'function') {
+    return null;
+  }
+
   const newBreadcrumb = scope.getLastBreadcrumb();
 
   // Listener can be called when breadcrumbs have not changed, so we store the

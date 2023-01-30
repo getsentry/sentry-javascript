@@ -3,7 +3,12 @@ import type { Breadcrumb, Scope } from '@sentry/types';
 import * as HandleScope from '../../../src/coreHandlers/handleScope';
 
 describe('Unit | coreHandlers | handleScope', () => {
-  const mockHandleScope = jest.spyOn(HandleScope, 'handleScope');
+  let mockHandleScope: jest.SpyInstance;
+
+  beforeEach(() => {
+    mockHandleScope = jest.spyOn(HandleScope, 'handleScope');
+    mockHandleScope.mockClear();
+  });
 
   it('returns a breadcrumb only if last breadcrumb has changed', function () {
     const scope = {
@@ -46,5 +51,12 @@ describe('Unit | coreHandlers | handleScope', () => {
     HandleScope.handleScope(scope);
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ message: 'f00', category: 'console' }));
+  });
+
+  it('returns null if the method does not exist on the scope', () => {
+    const scope = {} as unknown as Scope;
+    HandleScope.handleScope(scope);
+    expect(mockHandleScope).toHaveBeenCalledTimes(1);
+    expect(mockHandleScope).toHaveReturnedWith(null);
   });
 });
