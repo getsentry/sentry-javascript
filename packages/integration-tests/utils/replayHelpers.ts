@@ -1,5 +1,5 @@
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
-import type { Event, ReplayEvent } from '@sentry/types';
+import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
 import type { Page, Request } from 'playwright';
 
 import { envelopeRequestParser } from './helpers';
@@ -56,3 +56,12 @@ export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
 }
 
 export const REPLAY_DEFAULT_FLUSH_MAX_DELAY = 5_000;
+
+export function getReplayBreadcrumbs(rrwebEvents: RecordingEvent[], category?: string): Breadcrumb[] {
+  return rrwebEvents
+    .filter(event => event.type === 5)
+    .map(event => event.data as { tag: string; payload: { category: string } })
+    .filter(data => data.tag === 'breadcrumb')
+    .map(data => data.payload)
+    .filter(payload => !category || payload.category === category);
+}
