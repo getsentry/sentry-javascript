@@ -17,9 +17,39 @@ import { isBuild } from './utils/isBuild';
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
 
-// Here we want to make sure to only include what doesn't have browser specifics
-// because or SSR of next.js we can only use this.
-export { ErrorBoundary, showReportDialog, withErrorBoundary } from '@sentry/react';
+/**
+ * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
+ * so they should simply be a passthrough.
+ */
+export const ErrorBoundary = (props: React.PropsWithChildren<unknown>): React.ReactNode => {
+  if (!props.children) {
+    return null;
+  }
+
+  if (typeof props.children === 'function') {
+    return (props.children as () => React.ReactNode)();
+  }
+
+  // since Next.js >= 10 requires React ^16.6.0 we are allowed to return children like this here
+  return props.children as React.ReactNode;
+};
+
+/**
+ * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch
+ * SSR errors so they should simply be a passthrough.
+ */
+export function withErrorBoundary<P extends Record<string, any>>(
+  WrappedComponent: React.ComponentType<P>,
+): React.FC<P> {
+  return WrappedComponent as React.FC<P>;
+}
+
+/**
+ * Just a passthrough since we're on the server and showing the report dialog on the server doesn't make any sense.
+ */
+export function showReportDialog(): void {
+  return;
+}
 
 const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesDistDir__: string;
