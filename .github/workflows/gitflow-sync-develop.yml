@@ -11,7 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  DEV_BRANCH: develop
+  SOURCE_BRANCH: master
+  TARGET_BRANCH: develop
 
 jobs:
   main:
@@ -29,9 +30,10 @@ jobs:
         id: open-pr
         uses: repo-sync/pull-request@v2
         with:
-          destination_branch: ${{ env.DEV_BRANCH }}
-          pr_title: '[Gitflow] Merge ${{ github.ref_name }} into ${{ env.DEV_BRANCH }}'
-          pr_body: 'Merge ${{ github.ref_name }} branch into ${{ env.DEV_BRANCH }}'
+          source_branch: ${{ env.SOURCE_BRANCH }}
+          destination_branch: ${{ env.TARGET_BRANCH }}
+          pr_title: '[Gitflow] Merge ${{ env.SOURCE_BRANCH }} into ${{ env.TARGET_BRANCH }}'
+          pr_body: 'Merge ${{ env.SOURCE_BRANCH }} branch into ${{ env.TARGET_BRANCH }}'
           pr_label: 'Dev: Gitflow'
 
       # https://github.com/marketplace/actions/enable-pull-request-automerge
