@@ -9,13 +9,14 @@ import type {
   Severity,
   SeverityLevel,
 } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, logger, serializeEnvelope } from '@sentry/utils';
+import { createClientReportEnvelope, dsnToString, getSDKSource, logger, serializeEnvelope } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import type { BrowserTransportOptions } from './transports/types';
+
 /**
  * Configuration options for the Sentry Browser SDK.
  * @see @sentry/types Options for more information.
@@ -41,12 +42,14 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserClientOptions) {
+    const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
+
     options._metadata = options._metadata || {};
     options._metadata.sdk = options._metadata.sdk || {
       name: 'sentry.javascript.browser',
       packages: [
         {
-          name: 'npm:@sentry/browser',
+          name: `${sdkSource}:@sentry/browser`,
           version: SDK_VERSION,
         },
       ],
