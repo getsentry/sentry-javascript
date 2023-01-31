@@ -13,6 +13,7 @@ import {
   makeCleanupPlugin,
   makeSucrasePlugin,
   makeDebugBuildStatementReplacePlugin,
+  makeSetSDKSourcePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -31,6 +32,7 @@ export function makeBaseNPMConfig(options = {}) {
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
+  const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -83,6 +85,7 @@ export function makeBaseNPMConfig(options = {}) {
 
     plugins: [
       nodeResolvePlugin,
+      setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
       cleanupPlugin,

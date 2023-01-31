@@ -24,10 +24,13 @@ describe('Unit | util | createReplayEnvelope', () => {
       version: '7.25.0',
     },
     replay_type: 'error',
-    tags: {
-      sessionSampleRate: 1,
-      errorSampleRate: 0,
+    contexts: {
+      replay: {
+        error_sample_rate: 0,
+        session_sample_rate: 1,
+      },
     },
+    tags: {},
   };
 
   const payloadWithSequence = 'payload';
@@ -54,6 +57,12 @@ describe('Unit | util | createReplayEnvelope', () => {
         [
           { type: 'replay_event' },
           {
+            contexts: {
+              replay: {
+                error_sample_rate: 0,
+                session_sample_rate: 1,
+              },
+            },
             environment: 'production',
             error_ids: ['errorId'],
             event_id: REPLAY_ID,
@@ -62,7 +71,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             replay_type: 'error',
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
-            tags: { errorSampleRate: 0, sessionSampleRate: 1 },
+            tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
             type: 'replay_event',
@@ -88,6 +97,12 @@ describe('Unit | util | createReplayEnvelope', () => {
         [
           { type: 'replay_event' },
           {
+            contexts: {
+              replay: {
+                error_sample_rate: 0,
+                session_sample_rate: 1,
+              },
+            },
             environment: 'production',
             error_ids: ['errorId'],
             event_id: REPLAY_ID,
@@ -96,7 +111,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             replay_type: 'error',
-            tags: { errorSampleRate: 0, sessionSampleRate: 1 },
+            tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
             type: 'replay_event',

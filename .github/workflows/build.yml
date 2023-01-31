@@ -2,7 +2,7 @@ name: 'Build & Test'
 on:
   push:
     branches:
-      - master
+      - develop
       - release/**
   pull_request:
   workflow_dispatch:
@@ -42,11 +42,11 @@ env:
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
-  # We want to prefer the cache from the current master branch, if we don't find any on the current branch
+  # We want to prefer the cache from the current develop branch, if we don't find any on the current branch
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
     nx-Linux-${{ github.ref }}
-    nx-Linux-refs/heads/master
+    nx-Linux-refs/heads/develop
     nx-Linux
 
 jobs:
@@ -134,7 +134,7 @@ jobs:
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_master: ${{ github.ref == 'refs/heads/master' }}
+      is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       force_skip_cache:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
@@ -202,7 +202,7 @@ jobs:
       - name: NX cache
         uses: actions/cache@v3
         # Disable cache when:
-        # - on master
+        # - on develop
         # - on release branches
         # - when PR has `ci-skip-cache` label
         if: |
@@ -211,9 +211,9 @@ jobs:
         with:
           path: node_modules/.cache/nx
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-          # On master branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_master == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
@@ -272,8 +272,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    # Size Check will error out outside of the context of a PR or master branch
-    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_master == 'true'
+    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -283,7 +282,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
-          # `master`. We can't change this without making changes to the action, so we'll
           # use Node 14 for now.
           node-version: '14'
       - name: Check dependency cache
@@ -301,6 +299,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
+          main_branch: develop
 
   job_lint:
     name: Lint

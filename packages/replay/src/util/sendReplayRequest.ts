@@ -63,10 +63,13 @@ export async function sendReplayRequest({
     return;
   }
 
-  replayEvent.tags = {
-    ...replayEvent.tags,
-    sessionSampleRate: options.sessionSampleRate,
-    errorSampleRate: options.errorSampleRate,
+  replayEvent.contexts = {
+    ...replayEvent.contexts,
+    replay: {
+      ...(replayEvent.contexts && replayEvent.contexts.replay),
+      session_sample_rate: options.sessionSampleRate,
+      error_sample_rate: options.errorSampleRate,
+    },
   };
 
   /*
@@ -98,10 +101,12 @@ export async function sendReplayRequest({
           "version": "7.25.0"
       },
       "sdkProcessingMetadata": {},
-      "tags": {
-          "sessionSampleRate": 1,
-          "errorSampleRate": 0,
-      }
+      "contexts": {
+        "replay": {
+          "session_sample_rate": 1,
+          "error_sample_rate": 0,
+        },
+      },
   }
   */
 
