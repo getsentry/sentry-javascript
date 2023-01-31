@@ -4,6 +4,53 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.34.0
+
+This release adds automatic injection of the Next.js SDK into serverside `app` directory bundles, allowing users to call the Sentry SDK in server components.
+
+- feat(nextjs): Add SDK to serverside `app` directory (#6927)
+- fix(replay): Do not renew session in error mode (#6948)
+- fix(replay): Handle compression worker errors more gracefully (#6936)
+- fix(replay): fix path separator substitution to replay all `\` (#6932)
+- fix(replay): ignore errors in CSSStyleSheetObserver (getsentry/rrweb#16)
+
+Work in this release contributed by @mdtro. Thank you for your contribution!
+
+## 7.33.0
+
+With this release, the sample rate for Session Replays will default to 0. We recommend explicitly setting the sample rate via the `replaysSessionSampleRate` and `replaysOnErrorSampleRate` options.
+
+- feat(replay): Remove default sample rates for replay (#6878)
+- feat(replay): try/catch around stopRecording (#6856)
+- fix(nextjs): Mark multiplexer targets as entrypoints (#6919)
+
+## 7.32.1
+
+- fix(nextjs): Make SDK multiplexer more resilient (#6905)
+
+## 7.32.0
+
+- build(replay): Stop preserving modules (#6817)
+- feat(nextjs): Add browser SDK to `app` directory browser bundle (#6812)
+- feat(node): Use `includeLocalVariables` option to enable `LocalVariables` integration (#6874)
+- feat(node): Add option to capture local variables for caught exceptions via LocalVariables integration (#6876)
+- feat(replay): Add `flush` method to integration (#6776)
+- feat(replay): Handle worker loading errors (#6827)
+- feat(replay): Lower the flush max delay from 15 seconds to 5 seconds (#6761)
+- feat(tracing): Promote `enableLongTask` to option of `BrowserTracing` (#6837)
+- fix(core): Fix replay client report data category (#6891)
+- fix(nextjs): Fix SDK multiplexer loader on Windows (#6866)
+- fix(otel): Use http/grpc status over span status (#6879)
+- fix(react): Add children prop for Profiler (#6828)
+- fix(react): Make wrapCreateBrowserRouter generic (#6862)
+- fix(remix): Make sure the domain is created before running. (#6852)
+- ref(nextjs): Remove NFT build time exclusions (#6846)
+- ref(replay): Avoid duplicate debounce timers (#6863)
+- ref(replay): Remove unused `initialFlushDelay` option (#6867)
+- ref(replay): Send SDK version in Replay events (#6814)
+
+Work in this release contributed by @h3rmanj. Thank you for your contribution!
+
 ## 7.31.1
 
 - build(replay): Provide full browser+tracing+replay bundle (#6793)

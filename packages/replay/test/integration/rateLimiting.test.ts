@@ -46,7 +46,7 @@ describe('Integration | rate-limiting behaviour', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
 
     mockSendReplayRequest.mockClear();
   });
@@ -57,7 +57,7 @@ describe('Integration | rate-limiting behaviour', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
     jest.clearAllMocks();
-    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
   });
 
   afterAll(() => {

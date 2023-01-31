@@ -3,6 +3,7 @@ import * as playwright from 'playwright';
 
 import { CpuUsage, CpuUsageSampler, CpuUsageSerialized } from './perf/cpu.js';
 import { JsHeapUsage, JsHeapUsageSampler, JsHeapUsageSerialized } from './perf/memory.js';
+import { NetworkUsage, NetworkUsageCollector, NetworkUsageSerialized } from './perf/network.js';
 import { PerfMetricsSampler } from './perf/sampler.js';
 import { Result } from './results/result.js';
 import { Scenario, TestCase } from './scenarios.js';
@@ -28,13 +29,24 @@ const PredefinedNetworkConditions = Object.freeze({
 });
 
 export class Metrics {
-  constructor(public readonly vitals: WebVitals, public readonly cpu: CpuUsage, public readonly memory: JsHeapUsage) { }
+  constructor(
+    public readonly vitals: WebVitals,
+    public readonly cpu: CpuUsage,
+    public readonly memory: JsHeapUsage,
+    public readonly network: NetworkUsage) { }
 
-  public static fromJSON(data: Partial<{ vitals: Partial<WebVitals>, cpu: CpuUsageSerialized, memory: JsHeapUsageSerialized }>): Metrics {
+  public static fromJSON(
+    data: Partial<{
+      vitals: Partial<WebVitals>,
+      cpu: CpuUsageSerialized,
+      memory: JsHeapUsageSerialized,
+      network: NetworkUsageSerialized
+    }>): Metrics {
     return new Metrics(
       WebVitals.fromJSON(data.vitals || {}),
       CpuUsage.fromJSON(data.cpu || {}),
       JsHeapUsage.fromJSON(data.memory || {}),
+      NetworkUsage.fromJSON(data.network || {}),
     );
   }
 }
@@ -131,7 +143,9 @@ export class MetricsCollector {
         const cpuSampler = new CpuUsageSampler(perfSampler);
         const memSampler = new JsHeapUsageSampler(perfSampler);
 
+        const networkCollector = await NetworkUsageCollector.create(page);
         const vitalsCollector = await WebVitalsCollector.create(page);
+
         await scenario.run(browser, page);
 
         // NOTE: FID needs some interaction to actually show a value
@@ -141,7 +155,11 @@ export class MetricsCollector {
           throw `Error logs in browser console:\n\t\t${errorLogs.join('\n\t\t')}`;
         }
 
-        return new Metrics(vitals, cpuSampler.getData(), memSampler.getData());
+        return new Metrics(
+          vitals,
+          cpuSampler.getData(),
+          memSampler.getData(),
+          networkCollector.getData());
       })(), {
         milliseconds: 60 * 1000,
       });

@@ -1,9 +1,10 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../../tsconfig.test.json",
 
   "include": ["test/**/*"],
 
   "compilerOptions": {
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "esModuleInterop": true
   }
 }

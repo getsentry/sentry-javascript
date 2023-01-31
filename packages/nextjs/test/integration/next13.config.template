@@ -1,23 +1,15 @@
 const { withSentryConfig } = require('@sentry/nextjs');
 
-// NOTE: This will be used by integration tests to distinguish between Webpack 4 and Webpack 5
 const moduleExports = {
-  webpack5: %RUN_WEBPACK_5%,
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  experimental: {
-    appDir: Number(process.env.NODE_MAJOR) >= 16, // experimental.appDir requires Node v16.8.0 or later.
   },
   pageExtensions: ['jsx', 'js', 'tsx', 'ts', 'page.tsx'],
   sentry: {
     // Suppress the warning message from `handleSourcemapHidingOptionWarning` in `src/config/webpack.ts`
     // TODO (v8): This can come out in v8, because this option will get a default value
     hideSourceMaps: false,
-    excludeServerRoutes: [
-      '/api/excludedEndpoints/excludedWithString',
-      /\/api\/excludedEndpoints\/excludedWithRegExp/,
-    ],
+    excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
   },
 };
 
@@ -27,3 +19,4 @@ const SentryWebpackPluginOptions = {
 };
 
 module.exports = withSentryConfig(moduleExports, SentryWebpackPluginOptions);
+

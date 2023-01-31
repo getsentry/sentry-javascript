@@ -18,8 +18,6 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
-export type InstrumentationTypeBreadcrumb = 'dom' | 'scope';
-
 /**
  * The request payload to worker
  */
@@ -86,11 +84,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   flushMaxDelay: number;
 
   /**
-   * The amount of time to buffer the initial snapshot
-   */
-  initialFlushDelay: number;
-
-  /**
    * Attempt to use compression when web workers are available
    *
    * (default is true)
@@ -120,10 +113,70 @@ export interface ReplayPluginOptions extends SessionOptions {
   }>;
 }
 
+export interface ReplayIntegrationPrivacyOptions {
+  /**
+   * Mask text content for elements that match the CSS selectors in the list.
+   */
+  mask?: string[];
+
+  /**
+   * Unmask text content for elements that match the CSS selectors in the list.
+   */
+  unmask?: string[];
+
+  /**
+   * Block elements that match the CSS selectors in the list. Blocking replaces
+   * the element with an empty placeholder with the same dimensions.
+   */
+  block?: string[];
+
+  /**
+   * Unblock elements that match the CSS selectors in the list. This is useful when using `blockAllMedia`.
+   */
+  unblock?: string[];
+
+  /**
+   * Ignore input events for elements that match the CSS selectors in the list.
+   */
+  ignore?: string[];
+
+  /**
+   * A callback function to customize how your text is masked.
+   */
+  maskFn?: Pick<RecordingOptions, 'maskTextFn'>;
+}
+
 // These are optional for ReplayPluginOptions because the plugin sets default values
 type OptionalReplayPluginOptions = Partial<ReplayPluginOptions>;
 
-export interface ReplayConfiguration extends OptionalReplayPluginOptions, RecordingOptions {}
+export interface DeprecatedPrivacyOptions {
+  /**
+   * @deprecated Use `block` which accepts an array of CSS selectors
+   */
+  blockSelector?: RecordingOptions['blockSelector'];
+  /**
+   * @deprecated Use `block` which accepts an array of CSS selectors
+   */
+  blockClass?: RecordingOptions['blockClass'];
+  /**
+   * @deprecated Use `mask` which accepts an array of CSS selectors
+   */
+  maskTextClass?: RecordingOptions['maskTextClass'];
+  /**
+   * @deprecated Use `mask` which accepts an array of CSS selectors
+   */
+  maskTextSelector?: RecordingOptions['maskTextSelector'];
+  /**
+   * @deprecated Use `ignore` which accepts an array of CSS selectors
+   */
+  ignoreClass?: RecordingOptions['ignoreClass'];
+}
+
+export interface ReplayConfiguration
+  extends ReplayIntegrationPrivacyOptions,
+    OptionalReplayPluginOptions,
+    DeprecatedPrivacyOptions,
+    Pick<RecordingOptions, 'maskAllInputs'> {}
 
 interface CommonEventContext {
   /**
@@ -256,6 +309,7 @@ export interface ReplayContainer {
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
+  checkAndHandleExpiredSession(): boolean | void;
 }
 
 export interface ReplayPerformanceEntry {

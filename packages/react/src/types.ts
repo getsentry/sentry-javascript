@@ -148,8 +148,8 @@ export interface Path {
   hash: string;
 }
 
-export interface RouterSubscriber {
-  (state: RouterState): void;
+export interface RouterSubscriber<TState extends RouterState = RouterState> {
+  (state: TState): void;
 }
 export interface GetScrollPositionFunction {
   (): number;
@@ -204,39 +204,13 @@ export declare enum HistoryAction {
 export interface RouterState {
   historyAction: Action | HistoryAction | any;
   location: any;
-  matches: AgnosticDataRouteMatch[];
-  initialized: boolean;
-  navigation: Navigation;
-  restoreScrollPosition: number | false | null;
-  preventScrollReset: boolean;
-  revalidation: any;
-  loaderData: RouteData;
-  actionData: RouteData | null;
-  errors: RouteData | null;
-  fetchers: Map<string, Fetcher>;
 }
-export interface Router {
-  basename: string | undefined;
-  state: RouterState;
-  routes: AgnosticDataRouteObject[];
-  _internalFetchControllers: any;
-  _internalActiveDeferreds: any;
-  initialize(): Router;
-  subscribe(fn: RouterSubscriber): () => void;
-  enableScrollRestoration(
-    savedScrollPositions: Record<string, number>,
-    getScrollPosition: GetScrollPositionFunction,
-    getKey?: any,
-  ): () => void;
-  navigate(to: number): void;
-  navigate(to: To, opts?: RouterNavigateOptions): void;
-  fetch(key: string, routeId: string, href: string, opts?: RouterNavigateOptions): void;
-  revalidate(): void;
-  createHref(location: Location | URL): string;
-  getFetcher(key?: string): any;
-  deleteFetcher(key?: string): void;
-  dispose(): void;
-  encodeLocation(to: To): Path;
+export interface Router<TState extends RouterState = RouterState> {
+  state: TState;
+  subscribe(fn: RouterSubscriber<TState>): () => void;
 }
 
-export type CreateRouterFunction = (routes: RouteObject[], opts?: any) => Router;
+export type CreateRouterFunction<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+> = (routes: RouteObject[], opts?: any) => TRouter;

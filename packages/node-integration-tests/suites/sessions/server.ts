@@ -22,9 +22,9 @@ let flusherIntervalId = flusher?._intervalId;
 clearInterval(flusherIntervalId);
 
 // @ts-ignore: need access to `_intervalId`
-flusherIntervalId = flusher?._intervalId = setInterval(() => flusher?.flush(), 1000);
+flusherIntervalId = flusher?._intervalId = setInterval(() => flusher?.flush(), 2000);
 
-setTimeout(() => clearInterval(flusherIntervalId), 2000);
+setTimeout(() => clearInterval(flusherIntervalId), 4000);
 
 app.get('/test/success', (_req, res) => {
   res.send('Success!');
@@ -36,7 +36,7 @@ app.get('/test/success_next', (_req, res, next) => {
 });
 
 app.get('/test/success_slow', async (_req, res) => {
-  await new Promise(res => setTimeout(res, 500));
+  await new Promise(res => setTimeout(res, 50));
 
   res.send('Success!');
 });

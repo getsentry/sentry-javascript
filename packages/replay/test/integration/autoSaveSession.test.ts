@@ -1,4 +1,4 @@
-import { EventType } from 'rrweb';
+import { EventType } from '@sentry-internal/rrweb';
 
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';

@@ -1,6 +1,13 @@
-import { captureException } from '@sentry/core';
+import { captureException, getCurrentHub } from '@sentry/core';
 
-import { DEFAULT_FLUSH_MIN_DELAY, REPLAY_SESSION_KEY, VISIBILITY_CHANGE_TIMEOUT, WINDOW } from '../../src/constants';
+import {
+  DEFAULT_FLUSH_MIN_DELAY,
+  ERROR_CHECKOUT_TIME,
+  MAX_SESSION_LIFE,
+  REPLAY_SESSION_KEY,
+  VISIBILITY_CHANGE_TIMEOUT,
+  WINDOW,
+} from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
@@ -258,12 +265,10 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
   });
 
-  it('does not upload if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
+  it('stops replay if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
     // Idle for 15 minutes
     jest.advanceTimersByTime(15 * 60000);
 
-    // TBD: We are currently deciding that this event will get dropped, but
-    // this could/should change in the future.
     const TEST_EVENT = {
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
@@ -275,15 +280,11 @@ describe('Integration | errorSampleRate', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // Instead of recording the above event, a full snapshot will occur.
-    //
-    // TODO: We could potentially figure out a way to save the last session,
-    // and produce a checkout based on a previous checkout + updates, and then
-    // replay the event on top. Or maybe replay the event on top of a refresh
-    // snapshot.
+    // We stop recording after 15 minutes of inactivity in error mode
 
     expect(replay).not.toHaveLastSentReplay();
-    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
+    expect(replay.isEnabled()).toBe(false);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
@@ -322,7 +323,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
-    const ELAPSED = 60000;
+    const ELAPSED = ERROR_CHECKOUT_TIME;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 
@@ -368,6 +369,52 @@ describe('Integration | errorSampleRate', () => {
         },
       ]),
     });
+  });
+
+  it('stops replay when session expires', async () => {
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    captureException(new Error('testing'));
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveLastSentReplay();
+
+    // Wait a bit, shortly before session expires
+    jest.advanceTimersByTime(MAX_SESSION_LIFE - 1000);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter(TEST_EVENT);
+    replay.triggerUserActivity();
+
+    expect(replay).toHaveLastSentReplay();
+
+    // Now wait after session expires - should stop recording
+    mockRecord.takeFullSnapshot.mockClear();
+    (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+
+    jest.advanceTimersByTime(10_000);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter(TEST_EVENT);
+    replay.triggerUserActivity();
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
   });
 });
 

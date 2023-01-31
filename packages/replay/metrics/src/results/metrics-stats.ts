@@ -11,6 +11,10 @@ export class MetricsStats {
   static cpu: NumberProvider = metrics => metrics.cpu.average;
   static memoryMean: NumberProvider = metrics => ss.mean(Array.from(metrics.memory.snapshots.values()));
   static memoryMax: NumberProvider = metrics => ss.max(Array.from(metrics.memory.snapshots.values()));
+  static netTx: NumberProvider = metrics => ss.sum(metrics.network.events.map(e => e.requestSize || 0));
+  static netRx: NumberProvider = metrics => ss.sum(metrics.network.events.map(e => e.responseSize || 0));
+  static netCount: NumberProvider = metrics => ss.sum(metrics.network.events.map(e => e.requestTimeNs && e.responseTimeNs ? 1 : 0));
+  static netTime: NumberProvider = metrics => ss.sum(metrics.network.events.map(e => e.requestTimeNs && e.responseTimeNs ? Number(e.responseTimeNs - e.requestTimeNs) / 1e6 : 0));
 
   static mean: AnalyticsFunction = (items: Metrics[], dataProvider: NumberProvider) => {
     const numbers = MetricsStats._filteredValues(MetricsStats._collect(items, dataProvider));

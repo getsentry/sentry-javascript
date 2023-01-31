@@ -13,7 +13,7 @@ type LoaderOptions = {
  * or edge-runtime code.
  */
 export default function sdkMultiplexerLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
-  if (!userCode.includes('__SENTRY_SDK_MULTIPLEXER__')) {
+  if (!userCode.includes('_SENTRY_SDK_MULTIPLEXER')) {
     return userCode;
   }
 

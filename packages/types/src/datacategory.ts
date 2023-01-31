@@ -11,7 +11,7 @@ export type DataCategory =
   // Transaction type event
   | 'transaction'
   // Replay type event
-  | 'replay_event'
+  | 'replay'
   // Events with `event_type` csp, hpkp, expectct, expectstaple
   | 'security'
   // Attachment bytes stored (unused for rate limiting
@@ -21,7 +21,4 @@ export type DataCategory =
   // SDK internal event, like client_reports
   | 'internal'
   // Profile event type
-  | 'profile'
-  // Replay event types
-  | 'replay_event'
-  | 'replay_recording';
+  | 'profile';

@@ -200,13 +200,20 @@ export class TestEnv {
    * @param {Record<string, string>} [headers]
    * @return {*}  {Promise<any>}
    */
-  public async getAPIResponse(url?: string, headers?: Record<string, string>): Promise<unknown> {
+  public async getAPIResponse(
+    url?: string,
+    headers?: Record<string, string>,
+    endServer: boolean = true,
+  ): Promise<unknown> {
     try {
       const { data } = await axios.get(url || this.url, { headers: headers || {} });
       return data;
     } finally {
       await Sentry.flush();
-      this.server.close();
+
+      if (endServer) {
+        this.server.close();
+      }
     }
   }
 
@@ -256,5 +263,40 @@ export class TestEnv {
 
   public setAxiosConfig(axiosConfig: AxiosRequestConfig): void {
     this._axiosConfig = axiosConfig;
+  }
+
+  public async countEnvelopes(options: {
+    url?: string;
+    timeout?: number;
+    envelopeType: EnvelopeItemType | EnvelopeItemType[];
+  }): Promise<number> {
+    return new Promise(resolve => {
+      let reqCount = 0;
+
+      const mock = nock('https://dsn.ingest.sentry.io')
+        .persist()
+        .post('/api/1337/envelope/', body => {
+          const envelope = parseEnvelope(body);
+
+          if (options.envelopeType.includes(envelope[1].type as EnvelopeItemType)) {
+            reqCount++;
+            return true;
+          }
+
+          return false;
+        });
+
+      setTimeout(() => {
+        nock.removeInterceptor(mock);
+
+        nock.cleanAll();
+
+        this.server.close(() => {
+          resolve(reqCount);
+        });
+
+        resolve(reqCount);
+      }, options.timeout || 1000);
+    });
   }
 }

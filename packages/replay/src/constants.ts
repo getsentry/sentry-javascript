@@ -20,19 +20,15 @@ export const VISIBILITY_CHANGE_TIMEOUT = SESSION_IDLE_DURATION;
 // The maximum length of a session
 export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes
 
-/**
- * Defaults for sampling rates
- */
-export const DEFAULT_SESSION_SAMPLE_RATE = 0.1;
-export const DEFAULT_ERROR_SAMPLE_RATE = 1.0;
-
 /** The select to use for the `maskAllText` option  */
 export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style), body *:not(script)';
 
 /** Default flush delays */
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
 export const DEFAULT_FLUSH_MAX_DELAY = 5_000;
-export const INITIAL_FLUSH_DELAY = 5_000;
+
+/* How long to wait for error checkouts */
+export const ERROR_CHECKOUT_TIME = 60_000;
 
 export const RETRY_BASE_INTERVAL = 5000;
 export const RETRY_MAX_COUNT = 3;

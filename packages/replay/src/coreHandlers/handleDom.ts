@@ -1,18 +1,36 @@
+import { record } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
-import { record } from 'rrweb';
 
+import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
+import { addBreadcrumbEvent } from './addBreadcrumbEvent';
 
-export interface DomHandlerData {
+interface DomHandlerData {
   name: string;
   event: Node | { target: Node };
 }
 
+export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void =
+  (replay: ReplayContainer) =>
+  (handlerData: DomHandlerData): void => {
+    if (!replay.isEnabled()) {
+      return;
+    }
+
+    const result = handleDom(handlerData);
+
+    if (!result) {
+      return;
+    }
+
+    addBreadcrumbEvent(replay, result);
+  };
+
 /**
  * An event handler to react to DOM events.
  */
-export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
+function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
   let target;
   let targetNode;
