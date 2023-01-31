@@ -11,7 +11,7 @@ import { createEnvelope } from '@sentry/utils';
 import { TextDecoder, TextEncoder } from 'util';
 
 import { MIN_DELAY } from '../../../../core/src/transports/offline';
-import { createStore, insert, makeOfflineTransport, pop } from '../../../src/transports/offline';
+import { createStore, insert, makeBrowserOfflineTransport, pop } from '../../../src/transports/offline';
 
 function deleteDatabase(name: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -83,7 +83,7 @@ describe('makeOfflineTransport', () => {
   it('Queues and retries envelope if wrapped transport throws error', async () => {
     const { getSendCount, baseTransport } = createTestTransport(new Error(), { statusCode: 200 }, { statusCode: 200 });
     let queuedCount = 0;
-    const transport = makeOfflineTransport(baseTransport)({
+    const transport = makeBrowserOfflineTransport(baseTransport)({
       ...transportOptions,
       shouldStore: () => {
         queuedCount += 1;

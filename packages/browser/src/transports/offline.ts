@@ -151,7 +151,7 @@ function makeIndexedDbOfflineTransport<T>(
 /**
  * Creates a transport that uses IndexedDb to store events when offline.
  */
-export function makeOfflineTransport<T extends InternalBaseTransportOptions>(
+export function makeBrowserOfflineTransport<T extends InternalBaseTransportOptions>(
   createTransport: (options: T) => Transport,
 ): (options: T & BrowserOfflineTransportOptions) => Transport {
   return makeIndexedDbOfflineTransport<T>(makeOfflineTransportBase(createTransport));
