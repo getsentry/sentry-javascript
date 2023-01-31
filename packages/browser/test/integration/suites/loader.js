@@ -60,9 +60,7 @@ if (IS_LOADER) {
         });
         undefinedMethod(); // trigger error
       }).then(function (summary) {
-        if (IS_LOADER) {
-          assert.equal(summary.events[0].sdk.packages[0].name, 'loader:@sentry/browser');
-        }
+        assert.equal(summary.events[0].sdk.packages[0].name, 'loader:@sentry/browser');
       });
     });
   });
