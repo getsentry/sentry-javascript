@@ -47,6 +47,7 @@ jobs:
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
         uses: hmarr/auto-approve-action@v3
+        if: steps.open-pr.outputs.pr_number != ''
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           review-message: 'Auto approved automated PR'
