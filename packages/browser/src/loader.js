@@ -70,6 +70,9 @@
         _window[_onerror] = _oldOnerror;
         _window[_onunhandledrejection] = _oldOnunhandledrejection;
 
+        // Add loader as SDK source
+        _window.SENTRY_SDK_SOURCE = 'loader';
+
         var SDK = _window[_namespace];
 
         var oldInit = SDK.init;
