@@ -379,7 +379,7 @@ jobs:
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{ github.sha }}
           path: |
@@ -833,7 +833,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.2
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: ${{ steps.process.outputs.artifactName }}
