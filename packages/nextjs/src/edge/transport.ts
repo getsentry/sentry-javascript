@@ -16,7 +16,7 @@ const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
  * We need this in the edge runtime because edge function invocations may not share I/O objects, like fetch requests
  * and responses, and the normal PromiseBuffer inherently buffers stuff inbetween incoming requests.
  */
-class IsolatedPromiseBuffer {
+export class IsolatedPromiseBuffer {
   // We just have this field because the promise buffer interface requires it.
   // If we ever remove it from the interface we should also remove it here.
   public $: Array<PromiseLike<TransportMakeRequestResponse>> = [];
@@ -25,6 +25,9 @@ class IsolatedPromiseBuffer {
 
   public constructor(private readonly _bufferSize: number = DEFAULT_TRANSPORT_BUFFER_SIZE) {}
 
+  /**
+   * @inheritdoc
+   */
   public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<void> {
     if (this._taskProducers.length > this._bufferSize) {
       return Promise.reject(new SentryError('Not adding Promise because buffer limit was reached.'));
@@ -34,6 +37,9 @@ class IsolatedPromiseBuffer {
     return Promise.resolve();
   }
 
+  /**
+   * @inheritdoc
+   */
   public drain(timeout?: number): PromiseLike<boolean> {
     const oldTaskProducers = [...this._taskProducers];
     this._taskProducers = [];
