@@ -9,12 +9,11 @@ type DocumentGetInitialProps = typeof Document.getInitialProps;
 export function wrapDocumentGetInitialPropsWithSentry(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
-  return async function (
-    this: unknown,
-    ...args: Parameters<DocumentGetInitialProps>
-  ): ReturnType<DocumentGetInitialProps> {
-    return await origDocumentGetInitialProps.apply(this, args);
-  };
+  return new Proxy(origDocumentGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
+      return await wrappingTarget.apply(thisArg, args);
+    },
+  });
 }
 
 /**

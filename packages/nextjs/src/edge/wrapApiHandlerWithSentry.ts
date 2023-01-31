@@ -10,22 +10,24 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
   handler: H,
   parameterizedRoute: string,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
-  return async function (this: unknown, ...args: Parameters<H>): Promise<ReturnType<H>> {
-    const req = args[0];
+  return new Proxy(handler, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+      const req = args[0];
 
-    const activeSpan = !!getCurrentHub().getScope()?.getSpan();
+      const activeSpan = !!getCurrentHub().getScope()?.getSpan();
 
-    const wrappedHandler = withEdgeWrapping(handler, {
-      spanDescription:
-        activeSpan || !(req instanceof Request)
-          ? `handler (${parameterizedRoute})`
-          : `${req.method} ${parameterizedRoute}`,
-      spanOp: activeSpan ? 'function' : 'http.server',
-      mechanismFunctionName: 'wrapApiHandlerWithSentry',
-    });
+      const wrappedHandler = withEdgeWrapping(wrappingTarget, {
+        spanDescription:
+          activeSpan || !(req instanceof Request)
+            ? `handler (${parameterizedRoute})`
+            : `${req.method} ${parameterizedRoute}`,
+        spanOp: activeSpan ? 'function' : 'http.server',
+        mechanismFunctionName: 'wrapApiHandlerWithSentry',
+      });
 
-    return await wrappedHandler.apply(this, args);
-  };
+      return await wrappedHandler.apply(thisArg, args);
+    },
+  });
 }
 
 /**

@@ -7,9 +7,11 @@ type AppGetInitialProps = typeof App['getInitialProps'];
  * so we are consistent with the serverside implementation.
  */
 export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetInitialProps): AppGetInitialProps {
-  return async function (this: unknown, ...args: Parameters<AppGetInitialProps>): ReturnType<AppGetInitialProps> {
-    return await origAppGetInitialProps.apply(this, args);
-  };
+  return new Proxy(origAppGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<AppGetInitialProps>) => {
+      return await wrappingTarget.apply(thisArg, args);
+    },
+  });
 }
 
 /**
