@@ -7,9 +7,11 @@ type GetInitialProps = Required<NextPage>['getInitialProps'];
  * so we are consistent with the serverside implementation.
  */
 export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialProps): GetInitialProps {
-  return async function (this: unknown, ...args: Parameters<GetInitialProps>): Promise<ReturnType<GetInitialProps>> {
-    return origGetInitialProps.apply(this, args);
-  };
+  return new Proxy(origGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetInitialProps>) => {
+      return await wrappingTarget.apply(thisArg, args);
+    },
+  });
 }
 
 /**
