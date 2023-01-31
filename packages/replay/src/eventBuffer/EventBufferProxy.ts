@@ -21,19 +21,12 @@ export class EventBufferProxy implements EventBuffer {
     this._compression = new EventBufferCompressionWorker(worker);
     this._used = this._fallback;
 
-    this._ensureWorkerIsLoadedPromise = this._ensureWorkerIsLoaded().catch(() => {
-      // Ignore errors here
-    });
+    this._ensureWorkerIsLoadedPromise = this._ensureWorkerIsLoaded();
   }
 
   /** @inheritDoc */
-  public get pendingLength(): number {
-    return this._used.pendingLength;
-  }
-
-  /** @inheritDoc */
-  public get pendingEvents(): RecordingEvent[] {
-    return this._used.pendingEvents;
+  public get hasEvents(): boolean {
+    return this._used.hasEvents;
   }
 
   /** @inheritDoc */
@@ -75,18 +68,28 @@ export class EventBufferProxy implements EventBuffer {
       return;
     }
 
-    // Compression worker is ready, we can use it
     // Now we need to switch over the array buffer to the compression worker
+    await this._switchToCompressionWorker();
+  }
+
+  /** Switch the used buffer to the compression worker. */
+  private async _switchToCompressionWorker(): Promise<void> {
+    const { events } = this._fallback;
+
     const addEventPromises: Promise<void>[] = [];
-    for (const event of this._fallback.pendingEvents) {
+    for (const event of events) {
       addEventPromises.push(this._compression.addEvent(event));
     }
 
-    // We switch over to the compression buffer immediately - any further events will be added
+    // We switch over to the new buffer immediately - any further events will be added
     // after the previously buffered ones
     this._used = this._compression;
 
     // Wait for original events to be re-added before resolving
-    await Promise.all(addEventPromises);
+    try {
+      await Promise.all(addEventPromises);
+    } catch (error) {
+      __DEBUG_BUILD__ && logger.warn('[Replay] Failed to add events when switching buffers.', error);
+    }
   }
 }
