@@ -1,5 +1,5 @@
 import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
-import { makeOfflineTransport as makeOfflineTransportBase } from '@sentry/core';
+import { makeOfflineTransport } from '@sentry/core';
 import type { Envelope, InternalBaseTransportOptions, Transport } from '@sentry/types';
 import type { TextDecoderInternal } from '@sentry/utils';
 import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
@@ -154,5 +154,5 @@ function makeIndexedDbOfflineTransport<T>(
 export function makeBrowserOfflineTransport<T extends InternalBaseTransportOptions>(
   createTransport: (options: T) => Transport,
 ): (options: T & BrowserOfflineTransportOptions) => Transport {
-  return makeIndexedDbOfflineTransport<T>(makeOfflineTransportBase(createTransport));
+  return makeIndexedDbOfflineTransport<T>(makeOfflineTransport(createTransport));
 }
