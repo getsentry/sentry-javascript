@@ -65,9 +65,9 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
 
 export function makeSetSDKSourcePlugin(sdkSource) {
   return replace({
-    preventAssignment: true,
+    preventAssignment: false,
     values: {
-      __SENTRY_SDK_SOURCE__: sdkSource,
+      __SENTRY_SDK_SOURCE__: JSON.stringify(sdkSource),
     },
   });
 }
