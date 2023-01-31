@@ -1,7 +1,5 @@
 import { expect } from '@playwright/test';
-import { SDK_VERSION } from '@sentry/browser';
 import type { RecordingEvent } from '@sentry/replay/build/npm/types/types';
-import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';

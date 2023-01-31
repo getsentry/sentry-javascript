@@ -112,8 +112,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     initialUrl: '',
   };
 
-  private _startRecordingbreadcrumb: Breadcrumb | undefined;
-
   public constructor({
     options,
     recordingOptions,
@@ -212,7 +210,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
     } catch (err) {
       this._handleException(err);
-      return;
     }
   }
 
@@ -910,15 +907,13 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /**
    * Creates a breadcrumb indicating the start of a replay recording
+   * and adds the current, full URL to the breadcrumb data.
    */
   private _addStartRecordingBreadcrumb(): void {
-    // if (this._startRecordingbreadcrumb) {
-    //   return;
-    // }
-    this._startRecordingbreadcrumb = createBreadcrumb({
+    const breadcrumb = createBreadcrumb({
       category: 'replay.recording.start',
       data: { url: getFullURL() },
     });
-    this._createCustomBreadcrumb(this._startRecordingbreadcrumb);
+    this._createCustomBreadcrumb(breadcrumb);
   }
 }
