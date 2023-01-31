@@ -79,7 +79,7 @@ export function pop(store: Store): Promise<Uint8Array | string | undefined> {
   });
 }
 
-interface IndexedDbOptions extends OfflineTransportOptions {
+interface BrowserOfflineTransportOptions extends OfflineTransportOptions {
   /**
    * Name of indexedDb database to store envelopes in
    * Default: 'sentry-offline'
@@ -102,7 +102,7 @@ interface IndexedDbOptions extends OfflineTransportOptions {
   textDecoder?: TextDecoderInternal;
 }
 
-function createIndexedDbStore(options: IndexedDbOptions): OfflineStore {
+function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineStore {
   let store: Store | undefined;
 
   // Lazily create the store only when it's needed
@@ -144,7 +144,7 @@ function createIndexedDbStore(options: IndexedDbOptions): OfflineStore {
 
 function makeIndexedDbOfflineTransport<T>(
   createTransport: (options: T) => Transport,
-): (options: T & IndexedDbOptions) => Transport {
+): (options: T & BrowserOfflineTransportOptions) => Transport {
   return options => createTransport({ ...options, createStore: createIndexedDbStore });
 }
 
@@ -153,6 +153,6 @@ function makeIndexedDbOfflineTransport<T>(
  */
 export function makeOfflineTransport<T extends InternalBaseTransportOptions>(
   createTransport: (options: T) => Transport,
-): (options: T & IndexedDbOptions) => Transport {
+): (options: T & BrowserOfflineTransportOptions) => Transport {
   return makeIndexedDbOfflineTransport<T>(makeOfflineTransportBase(createTransport));
 }
