@@ -36,3 +36,13 @@ export class AddAttachmentTestIntegration implements Integration {
     });
   }
 }
+
+export class AdHockIntegration implements Integration {
+  public static id: string = 'AdHockIntegration';
+
+  public name: string = 'AdHockIntegration';
+
+  public setupOnce(): void {
+    // Noop
+  }
+}
