@@ -23,8 +23,8 @@ export interface SendReplayData {
  */
 export interface WorkerRequest {
   id: number;
-  method: string;
-  args: unknown[];
+  method: 'clear' | 'addEvent' | 'finish';
+  arg?: string;
 }
 
 // PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
@@ -261,14 +261,9 @@ export interface Session {
 
 export interface EventBuffer {
   /**
-   * The number of raw events that are buffered
+   * If any events have been added to the buffer.
    */
-  readonly pendingLength: number;
-
-  /**
-   * The raw events that are buffered.
-   */
-  readonly pendingEvents: RecordingEvent[];
+  readonly hasEvents: boolean;
 
   /**
    * Destroy the event buffer.

@@ -4,6 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Session Replay is deprecating privacy options in favor of a more streamlined API. Please see the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
+Additionally, the following configuration options will no longer be configurable: `slimDOMOptions`, `recordCanvas`, `inlineStylesheet`, `collectFonts`, `inlineImages`.
+
 ## 7.34.0
 
 This release adds automatic injection of the Next.js SDK into serverside `app` directory bundles, allowing users to call the Sentry SDK in server components.
