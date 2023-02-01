@@ -1,5 +1,5 @@
 import { getCurrentHub } from '@sentry/core';
-import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Transport } from '@sentry/types';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
