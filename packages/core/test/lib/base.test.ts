@@ -53,7 +53,6 @@ jest.mock('@sentry/utils', () => {
 
 describe('BaseClient', () => {
   beforeEach(() => {
-    installedIntegrations.splice(0);
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
   });
@@ -678,6 +677,25 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.sdk).toEqual({
         integrations: ['TestIntegration'],
       });
+    });
+
+    test('send all installed integrations in event sdk metadata', () => {
+      expect.assertions(1);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
+      const client = new TestClient(options);
+      client.setupIntegrations();
+      client.addIntegration(new AdHocIntegration());
+
+      client.captureException(new Error('test exception'));
+
+      expect(TestClient.instance!.event).toEqual(
+        expect.objectContaining({
+          sdk: expect.objectContaining({
+            integrations: expect.arrayContaining(['TestIntegration', 'AdHockIntegration']),
+          }),
+        }),
+      );
     });
 
     test('normalizes event with default depth of 3', () => {
@@ -1515,25 +1533,6 @@ describe('BaseClient', () => {
       client.setupIntegrations();
 
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
-    });
-
-    test('send all installed integrations in event sdk metadata', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options);
-      client.setupIntegrations();
-      client.addIntegration(new AdHocIntegration());
-
-      client.captureException(new Error('test exception'));
-
-      expect(TestClient.instance!.event).toEqual(
-        expect.objectContaining({
-          sdk: expect.objectContaining({
-            integrations: expect.arrayContaining(['TestIntegration', 'AdHockIntegration']),
-          }),
-        }),
-      );
     });
   });
 

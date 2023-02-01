@@ -1,5 +1,6 @@
 import type { Scope } from '@sentry/core';
 import { prepareEvent } from '@sentry/core';
+import type { IntegrationIndex } from '@sentry/core/build/types/integration';
 import type { Client, ReplayEvent } from '@sentry/types';
 
 /**
@@ -11,12 +12,22 @@ export async function prepareReplayEvent({
   replayId: event_id,
   event,
 }: {
-  client: Client;
+  client: Client & { _integrations?: IntegrationIndex };
   scope: Scope;
   replayId: string;
   event: ReplayEvent;
 }): Promise<ReplayEvent | null> {
-  const preparedEvent = (await prepareEvent(client.getOptions(), event, { event_id }, scope)) as ReplayEvent | null;
+  const integrations =
+    typeof client._integrations === 'object' && !Array.isArray(client._integrations)
+      ? Object.keys(client._integrations)
+      : client.getOptions().integrations.map(i => i.name);
+  const preparedEvent = (await prepareEvent(
+    client.getOptions(),
+    integrations,
+    event,
+    { event_id },
+    scope,
+  )) as ReplayEvent | null;
 
   // If e.g. a global event processor returned null
   if (!preparedEvent) {

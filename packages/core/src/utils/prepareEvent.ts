@@ -1,7 +1,6 @@
 import type { ClientOptions, Event, EventHint } from '@sentry/types';
 import { dateTimestampInSeconds, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
-import { installedIntegrations } from '../integration';
 import { Scope } from '../scope';
 
 /**
@@ -23,6 +22,7 @@ import { Scope } from '../scope';
  */
 export function prepareEvent(
   options: ClientOptions,
+  integrations: string[],
   event: Event,
   hint: EventHint,
   scope?: Scope,
@@ -35,7 +35,7 @@ export function prepareEvent(
   };
 
   applyClientOptions(prepared, options);
-  applyIntegrationsMetadata(prepared, installedIntegrations);
+  applyIntegrationsMetadata(prepared, integrations);
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.

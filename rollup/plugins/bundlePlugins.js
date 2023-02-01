@@ -119,6 +119,8 @@ export function makeTerserPlugin() {
           // We want to keept he _replay and _isEnabled variable unmangled to enable integration tests to access it
           '_replay',
           '_isEnabled',
+          // We want to keep the _integrations variable unmangled to send all installed integrations from replay
+          '_integrations',
         ],
       },
     },
