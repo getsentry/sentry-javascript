@@ -473,8 +473,13 @@ function shouldAddSentryToEntryPoint(
     return entryPointName.startsWith('pages/');
   } else if (runtime === 'browser') {
     return (
-      entryPointName === 'main' || // entrypoint for `/pages` pages
-      entryPointName === 'main-app' // entrypoint for `/app` pages
+      // entrypoint for `/pages` pages - this is included on all clientside pages
+      // It's important that we inject the SDK into this file and not into 'main' because in 'main'
+      // some important Next.js code (like the setup code for getCongig()) is located and some users
+      // may need this code inside their Sentry configs
+      entryPointName === 'pages/_app' ||
+      // entrypoint for `/app` pages
+      entryPointName === 'main-app'
     );
   } else {
     // User-specified pages to skip. (Note: For ease of use, `excludeServerRoutes` is specified in terms of routes,

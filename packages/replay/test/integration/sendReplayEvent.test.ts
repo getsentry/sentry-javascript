@@ -106,7 +106,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('update last activity when user clicks mouse', async () => {
@@ -145,7 +145,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('uploads a replay event if maxFlushDelay is set 15 seconds have elapsed since the last replay upload', async () => {
@@ -173,7 +173,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
 
     // Let's make sure it continues to work
     mockTransportSend.mockClear();
@@ -218,7 +218,7 @@ describe('Integration | sendReplayEvent', () => {
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('uploads a replay event when document becomes hidden', async () => {
@@ -246,7 +246,7 @@ describe('Integration | sendReplayEvent', () => {
     // visibilitystate as user being active
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {

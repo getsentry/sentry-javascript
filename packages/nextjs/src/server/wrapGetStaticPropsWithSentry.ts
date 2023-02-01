@@ -15,28 +15,28 @@ type Props = { [key: string]: unknown };
  * @returns A wrapped version of the function
  */
 export function wrapGetStaticPropsWithSentry(
-  origGetStaticProps: GetStaticProps<Props>,
+  origGetStaticPropsa: GetStaticProps<Props>,
   parameterizedRoute: string,
 ): GetStaticProps<Props> {
-  return async function (
-    ...getStaticPropsArguments: Parameters<GetStaticProps<Props>>
-  ): ReturnType<GetStaticProps<Props>> {
-    if (isBuild()) {
-      return origGetStaticProps(...getStaticPropsArguments);
-    }
+  return new Proxy(origGetStaticPropsa, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
+      if (isBuild()) {
+        return wrappingTarget.apply(thisArg, args);
+      }
 
-    const errorWrappedGetStaticProps = withErrorInstrumentation(origGetStaticProps);
-    const options = getCurrentHub().getClient()?.getOptions();
+      const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
+      const options = getCurrentHub().getClient()?.getOptions();
 
-    if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
-      return callDataFetcherTraced(errorWrappedGetStaticProps, getStaticPropsArguments, {
-        parameterizedRoute,
-        dataFetchingMethodName: 'getStaticProps',
-      });
-    }
+      if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
+        return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
+          parameterizedRoute,
+          dataFetchingMethodName: 'getStaticProps',
+        });
+      }
 
-    return errorWrappedGetStaticProps(...getStaticPropsArguments);
-  };
+      return errorWrappedGetStaticProps.apply(thisArg, args);
+    },
+  });
 }
 
 /**

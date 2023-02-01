@@ -1,3 +1,5 @@
+import { logger } from '@sentry/utils';
+
 import { SESSION_IDLE_DURATION } from '../constants';
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
 
@@ -39,5 +41,10 @@ export async function addEvent(
     replay.getContext().earliestEvent = timestampInMs;
   }
 
-  return replay.eventBuffer.addEvent(event, isCheckout);
+  try {
+    return await replay.eventBuffer.addEvent(event, isCheckout);
+  } catch (error) {
+    __DEBUG_BUILD__ && logger.error(error);
+    replay.stop();
+  }
 }
