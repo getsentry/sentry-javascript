@@ -27,6 +27,8 @@ Additionally, the following configuration options will no longer be configurable
 - fix(utils): Account for null prototype during normalization (#6925)
 - ref(replay): Log warning if sample rates are all undefined (#6959)
 
+Work in this release contributed by @boblauer. Thank you for your contribution!
+
 ## 7.34.0
 
 This release adds automatic injection of the Next.js SDK into serverside `app` directory bundles, allowing users to call the Sentry SDK in server components.
