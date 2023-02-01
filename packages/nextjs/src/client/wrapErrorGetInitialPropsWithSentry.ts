@@ -10,9 +10,11 @@ type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 export function wrapErrorGetInitialPropsWithSentry(
   origErrorGetInitialProps: ErrorGetInitialProps,
 ): ErrorGetInitialProps {
-  return async function (this: unknown, ...args: Parameters<ErrorGetInitialProps>): ReturnType<ErrorGetInitialProps> {
-    return await origErrorGetInitialProps.apply(this, args);
-  };
+  return new Proxy(origErrorGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<ErrorGetInitialProps>) => {
+      return await wrappingTarget.apply(thisArg, args);
+    },
+  });
 }
 
 /**

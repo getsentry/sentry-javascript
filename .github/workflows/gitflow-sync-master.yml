@@ -34,6 +34,7 @@ jobs:
           destination_branch: ${{ env.MAIN_BRANCH }}
           pr_title: '[Gitflow] Merge ${{ github.ref_name }} into ${{ env.MAIN_BRANCH }}'
           pr_body: 'Merge ${{ github.ref_name }} branch into ${{ env.MAIN_BRANCH }}'
+          pr_label: 'Dev: Gitflow'
 
       # https://github.com/marketplace/actions/enable-pull-request-automerge
       - name: Enable automerge for PR

@@ -1,5 +1,10 @@
 # Deprecations in 7.x
 
+## Replay options changed (since 7.35.0) - #6645
+
+Some options for replay have been depracted in favor of new APIs.
+See [Replay Migration docs](./packages/replay/MIGRATION.md#upgrading-replay-from-7340-to-7350) for details.
+
 ## Renaming of Next.js wrapper methods (since 7.31.0) - #6790
 
 We updated the names of the functions to wrap data fetchers and API routes to better reflect what they are doing.
