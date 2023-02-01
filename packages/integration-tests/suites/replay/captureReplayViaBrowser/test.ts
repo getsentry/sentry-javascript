@@ -68,7 +68,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       },
     },
     platform: 'javascript',
-    tags: { sessionSampleRate: 1, errorSampleRate: 0 },
+    contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
   });
 
   expect(replayEvent1).toBeDefined();
@@ -106,6 +106,6 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       },
     },
     platform: 'javascript',
-    tags: { sessionSampleRate: 1, errorSampleRate: 0 },
+    contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
   });
 });

@@ -2,9 +2,9 @@ name: Enforce License Compliance
 
 on:
   push:
-    branches: [master, main, release/*]
+    branches: [master, develop, release/*]
   pull_request:
-    branches: [master, main]
+    branches: [master, develop]
 
 jobs:
   enforce-license-compliance:

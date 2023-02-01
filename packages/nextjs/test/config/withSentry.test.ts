@@ -1,10 +1,10 @@
 import * as hub from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { Client, ClientOptions } from '@sentry/types';
-import type { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { withSentry } from '../../src/server';
-import type { AugmentedNextApiResponse, WrappedNextApiHandler } from '../../src/server/types';
+import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/server/types';
 
 const FLUSH_DURATION = 200;
 
@@ -23,7 +23,7 @@ async function sleep(ms: number): Promise<void> {
  * @param req
  * @param res
  */
-async function callWrappedHandler(wrappedHandler: WrappedNextApiHandler, req: NextApiRequest, res: NextApiResponse) {
+async function callWrappedHandler(wrappedHandler: NextApiHandler, req: NextApiRequest, res: NextApiResponse) {
   await wrappedHandler(req, res);
 
   // we know we need to wait at least this long for `flush()` to finish

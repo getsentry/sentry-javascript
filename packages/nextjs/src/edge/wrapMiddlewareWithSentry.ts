@@ -10,9 +10,13 @@ import { withEdgeWrapping } from './utils/edgeWrapperUtils';
 export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
   middleware: H,
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
-  return withEdgeWrapping(middleware, {
-    spanDescription: 'middleware',
-    spanOp: 'middleware.nextjs',
-    mechanismFunctionName: 'withSentryMiddleware',
+  return new Proxy(middleware, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+      return withEdgeWrapping(wrappingTarget, {
+        spanDescription: 'middleware',
+        spanOp: 'middleware.nextjs',
+        mechanismFunctionName: 'withSentryMiddleware',
+      }).apply(thisArg, args);
+    },
   });
 }

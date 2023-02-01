@@ -30,6 +30,10 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare function lastEventId(): string | undefined;
 export declare function getSentryRelease(fallback?: string): string | undefined;
 
+export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
+export declare const showReportDialog: typeof clientSdk.showReportDialog;
+export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
+
 /**
  * @deprecated Use `wrapApiHandlerWithSentry` instead
  */

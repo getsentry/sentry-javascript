@@ -1,0 +1,54 @@
+name: Gitflow - Sync develop into master
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      # We want to trigger this when ONLY the changlog is changed on develop, but nothing else
+      - 'CHANGELOG.md'
+      - '!packages'
+      - '!**/*.js'
+      - '!**/*.json'
+      - '!**/*.ts'
+  workflow_dispatch:
+
+env:
+  MAIN_BRANCH: master
+
+jobs:
+  main:
+    name: Create PR develop->master
+    runs-on: ubuntu-20.04
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v3
+
+      # https://github.com/marketplace/actions/github-pull-request-action
+      - name: Create Pull Request
+        id: open-pr
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: ${{ env.MAIN_BRANCH }}
+          pr_title: '[Gitflow] Merge ${{ github.ref_name }} into ${{ env.MAIN_BRANCH }}'
+          pr_body: 'Merge ${{ github.ref_name }} branch into ${{ env.MAIN_BRANCH }}'
+          pr_label: 'Dev: Gitflow'
+
+      # https://github.com/marketplace/actions/enable-pull-request-automerge
+      - name: Enable automerge for PR
+        if: steps.open-pr.outputs.pr_number != ''
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
+          merge-method: merge
+
+      # https://github.com/marketplace/actions/auto-approve
+      - name: Auto approve PR
+        uses: hmarr/auto-approve-action@v3
+        with:
+          pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
+          review-message: 'Auto approved automated PR'
+          # TODO: Use the token of some user here??
+          # github-token: ${{ secrets.SOME_USERS_PAT }}
