@@ -51,3 +51,12 @@ jobs:
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           review-message: 'Auto approved automated PR'
+
+  skipped:
+    runs-on: ubuntu-20.04
+    if: |
+      github.event.pull_request.merged == false
+      || startsWith(github.event.pull_request.title, "meta(changelog):") == false
+    steps:
+      - name: Sync skipped
+        run: echo "OK"
