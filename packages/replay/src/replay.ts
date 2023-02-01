@@ -474,8 +474,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._handleException(err);
     }
 
-    // _performanceObserver //
-    if (!('_performanceObserver' in WINDOW)) {
+    // PerformanceObserver //
+    if (!('PerformanceObserver' in WINDOW)) {
       return;
     }
 
