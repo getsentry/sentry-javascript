@@ -4,18 +4,18 @@ import { Compressor } from './Compressor';
 const compressor = new Compressor();
 
 interface Handlers {
-  init: () => void;
-  addEvent: (data: Record<string, unknown>) => void;
+  clear: () => void;
+  addEvent: (data: string) => void;
   finish: () => void;
 }
 
 const handlers: Handlers = {
-  init: () => {
-    compressor.init();
+  clear: () => {
+    compressor.clear();
     return '';
   },
 
-  addEvent: (data: Record<string, unknown>) => {
+  addEvent: (data: string) => {
     return compressor.addEvent(data);
   },
 
@@ -27,7 +27,7 @@ const handlers: Handlers = {
 export function handleMessage(e: MessageEvent): void {
   const method = e.data.method as string;
   const id = e.data.id as number;
-  const [data] = e.data.args ? JSON.parse(e.data.args) : [];
+  const data = e.data.arg as string;
 
   // @ts-ignore this syntax is actually fine
   if (method in handlers && typeof handlers[method] === 'function') {
