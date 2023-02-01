@@ -1,4 +1,5 @@
-# Upgrading Replay from 7.34.0 to 7.35.0
+# Upgrading Replay from 7.34.0 to 7.35.0 - #6645
+
 This release will remove the ability to change the default rrweb recording options (outside of privacy options). The following are the new configuration values all replays will use:
 `slimDOMOptions: 'all'` - Removes `script`, comments, `favicon`, whitespace in `head`, and a few `meta` tags in `head`
 `recordCanvas: false` - This option did not do anything as playback of recorded canvas means we would have to remove the playback sandbox (which is a security concern).
