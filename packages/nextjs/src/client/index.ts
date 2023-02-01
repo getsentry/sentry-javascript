@@ -38,7 +38,7 @@ const globalWithInjectedValues = global as typeof global & {
 export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
-  options.environment = options.environment || process.env.NODE_ENV;
+  options.environment = options.environment || process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV;
   addClientIntegrations(options);
 
   reactInit(options);

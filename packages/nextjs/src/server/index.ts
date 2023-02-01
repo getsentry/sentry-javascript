@@ -79,7 +79,7 @@ export function init(options: NodeOptions): void {
   }
 
   buildMetadata(options, ['nextjs', 'node']);
-  options.environment = options.environment || process.env.NODE_ENV;
+  options.environment = options.environment || process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV;
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;

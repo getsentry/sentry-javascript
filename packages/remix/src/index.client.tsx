@@ -11,7 +11,7 @@ export { Integrations };
 
 export function init(options: RemixOptions): void {
   buildMetadata(options, ['remix', 'react']);
-  options.environment = options.environment || process.env.NODE_ENV;
+  options.environment = options.environment || process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV;
 
   reactInit(options);
 
