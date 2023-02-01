@@ -4,7 +4,7 @@ import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 import { Hub, makeSession, Scope } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
-import { AdHockIntegration, TestIntegration } from '../mocks/integration';
+import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -1521,7 +1521,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
       client.setupIntegrations();
-      client.addIntegration(new AdHockIntegration());
+      client.addIntegration(new AdHocIntegration());
 
       client.captureException(new Error('test exception'));
 
