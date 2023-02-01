@@ -69,6 +69,8 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     blockSelector,
     // eslint-disable-next-line deprecation/deprecation
+    maskInputOptions,
+    // eslint-disable-next-line deprecation/deprecation
     maskTextClass,
     // eslint-disable-next-line deprecation/deprecation
     maskTextSelector,
@@ -77,6 +79,7 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this._recordingOptions = {
       maskAllInputs,
+      maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
 

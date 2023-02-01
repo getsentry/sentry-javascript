@@ -25,6 +25,9 @@ describe('Integration | rrweb', () => {
         "inlineStylesheet": true,
         "maskAllInputs": true,
         "maskInputFn": undefined,
+        "maskInputOptions": Object {
+          "password": true,
+        },
         "maskInputSelector": ".sentry-mask,[data-sentry-mask]",
         "maskTextFn": undefined,
         "maskTextSelector": "body *:not(style), body *:not(script)",
