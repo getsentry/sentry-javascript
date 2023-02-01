@@ -147,8 +147,12 @@ for NEXTJS_VERSION in 10 11 12 13; do
       # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
       EXIT_CODE=0
 
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running server tests with options: $args"
-      (cd .. && yarn test:integration:server) || EXIT_CODE=$?
+      if [ "$USE_APPDIR" == true ]; then
+        echo "Skipping server tests for appdir"
+      else
+        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running server tests with options: $args"
+        (cd .. && yarn test:integration:server) || EXIT_CODE=$?
+      fi
 
       if [ $EXIT_CODE -eq 0 ]; then
         echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests passed"
