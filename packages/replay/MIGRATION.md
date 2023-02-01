@@ -1,3 +1,22 @@
+# Upgrading Replay from 7.34.0 to 7.35.0
+This release will remove the ability to change the default rrweb recording options (outside of privacy options). The following are the new configuration values all replays will use:
+`slimDOMOptions: 'all'` - Removes `script`, comments, `favicon`, whitespace in `head`, and a few `meta` tags in `head`
+`recordCanvas: false` - This option did not do anything as playback of recorded canvas means we would have to remove the playback sandbox (which is a security concern).
+`inlineStylesheet: true` - Inlines styles into the recording itself instead of attempting to fetch it remotely. This means that styles in the replay will reflect the styles at the time of recording and not the current styles of the remote stylesheet.
+`collectFonts: true` - Attempts to load custom fonts.
+`inlineImages: false` - Does not inline images to recording and instead loads the asset remotely. During playback, images may not load due to CORS (add sentry.io as an origin).
+
+Additionally, we have streamlined the privacy options. The following table lists the deprecated value, and what it is replaced by:
+
+| deprecated key   | replaced by | description                                                                                                                                      |
+| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| maskInputOptions | mask        | Use CSS selectors in `mask` in order to mask all inputs of a certain type. For example, `input[type="address"]`                                  |
+| blockSelector    | block       | The selector(s) can be moved directly in the `block` array.                                                                                      |
+| blockClass       | block       | Convert the class name to a CSS selector and add to `block` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is.  |
+| maskClass        | mask        | Convert the class name to a CSS selector and add to `mask` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is.   |
+| maskSelector     | mask        | The selector(s) can be moved directly in the `mask` array.                                                                                       |
+| ignoreClass      | ignore      | Convert the class name to a CSS selector and add to `ignore` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
+
 # Upgrading Replay from 7.31.0 to 7.32.0
 
 In 7.32.0, we have removed the default values for the replay sample rates.
