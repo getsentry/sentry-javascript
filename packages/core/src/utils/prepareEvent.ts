@@ -22,7 +22,6 @@ import { Scope } from '../scope';
  */
 export function prepareEvent(
   options: ClientOptions,
-  integrations: string[],
   event: Event,
   hint: EventHint,
   scope?: Scope,
@@ -33,6 +32,7 @@ export function prepareEvent(
     event_id: event.event_id || hint.event_id || uuid4(),
     timestamp: event.timestamp || dateTimestampInSeconds(),
   };
+  const integrations = hint.integrations || options.integrations.map(i => i.name);
 
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);

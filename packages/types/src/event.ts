@@ -80,4 +80,5 @@ export interface EventHint {
   originalException?: Error | string | null;
   attachments?: Attachment[];
   data?: any;
+  integrations?: string[];
 }

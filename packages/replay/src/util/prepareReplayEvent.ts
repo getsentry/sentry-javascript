@@ -18,14 +18,13 @@ export async function prepareReplayEvent({
   event: ReplayEvent;
 }): Promise<ReplayEvent | null> {
   const integrations =
-    typeof client._integrations === 'object' && !Array.isArray(client._integrations)
+    typeof client._integrations === 'object' && client._integrations !== null && !Array.isArray(client._integrations)
       ? Object.keys(client._integrations)
-      : client.getOptions().integrations.map(i => i.name);
+      : undefined;
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
-    integrations,
     event,
-    { event_id },
+    { event_id, integrations },
     scope,
   )) as ReplayEvent | null;
 

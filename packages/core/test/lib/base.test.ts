@@ -3,7 +3,6 @@ import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
 import * as integrationModule from '../../src/integration';
-import { installedIntegrations } from '../../src/integration';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
