@@ -168,7 +168,7 @@ describe('Integration | rate-limiting behaviour', () => {
       expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT3]) });
 
       // events array should be empty
-      expect(replay.eventBuffer?.pendingLength).toBe(0);
+      expect(replay.eventBuffer?.hasEvents).toBe(false);
     },
   );
 
@@ -253,7 +253,7 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT3]) });
 
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it("doesn't do anything, if a rate limit is hit and recording is already paused", async () => {

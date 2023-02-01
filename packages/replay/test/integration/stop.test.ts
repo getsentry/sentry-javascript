@@ -128,17 +128,17 @@ describe('Integration | stop', () => {
 
   it('does not buffer events when stopped', async function () {
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.eventBuffer?.pendingLength).toBe(1);
+    expect(replay.eventBuffer?.hasEvents).toBe(true);
 
     // stop replays
     integration.stop();
 
-    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
+    expect(replay.eventBuffer).toBe(null);
 
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
-    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
+    expect(replay.eventBuffer).toBe(null);
     expect(replay).not.toHaveLastSentReplay();
   });
 

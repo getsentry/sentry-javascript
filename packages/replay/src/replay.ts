@@ -772,7 +772,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     await this._addPerformanceEntries();
 
     // Check eventBuffer again, as it could have been stopped in the meanwhile
-    if (!this.eventBuffer || !this.eventBuffer.pendingLength) {
+    if (!this.eventBuffer || !this.eventBuffer.hasEvents) {
       return;
     }
 
