@@ -129,4 +129,4 @@ export declare function withSentryServerSideErrorGetInitialProps<F extends (...a
 /**
  * Wraps an `app` directory component with Sentry error instrumentation. (Currently only reports errors for server components)
  */
-export declare function wrapAppDirComponentWithSentry<C extends any>(WrappingTarget: C): C;
+export declare function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(WrappingTarget: F): F;
