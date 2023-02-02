@@ -14,8 +14,8 @@ jobs:
     name: Create PR develop->master
     runs-on: ubuntu-20.04
     if: |
-      github.event.pull_request.merged == true
-      && startsWith(github.event.pull_request.title, "meta(changelog):")
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.title, 'meta(changelog):')
     permissions:
       pull-requests: write
       contents: write
@@ -55,8 +55,8 @@ jobs:
   skipped:
     runs-on: ubuntu-20.04
     if: |
-      github.event.pull_request.merged == false
-      || startsWith(github.event.pull_request.title, "meta(changelog):") == false
+      github.event.pull_request.merged == false ||
+      startsWith(github.event.pull_request.title, 'meta(changelog):') == false
     steps:
       - name: Sync skipped
         run: echo "OK"
