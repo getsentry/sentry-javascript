@@ -5,7 +5,7 @@ import { captureException } from '@sentry/core';
  */
 export function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(appDirComponent: F): F {
   // Even though users may define server components as async functions, for the client bundles
-  // Next.js will turn them into synchronous functionsf and it will transform any`await`s into instances of the`use`
+  // Next.js will turn them into synchronous functions and it will transform any`await`s into instances of the`use`
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
