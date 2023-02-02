@@ -159,6 +159,14 @@ export interface DeprecatedPrivacyOptions {
    */
   blockClass?: RecordingOptions['blockClass'];
   /**
+   * @deprecated Use `ignore` which accepts an array of CSS selectors
+   */
+  ignoreClass?: RecordingOptions['ignoreClass'];
+  /**
+   * @deprecated  Use `mask` which accepts an array of CSS selectors
+   */
+  maskInputOptions?: RecordingOptions['maskInputOptions'];
+  /**
    * @deprecated Use `mask` which accepts an array of CSS selectors
    */
   maskTextClass?: RecordingOptions['maskTextClass'];
@@ -166,10 +174,6 @@ export interface DeprecatedPrivacyOptions {
    * @deprecated Use `mask` which accepts an array of CSS selectors
    */
   maskTextSelector?: RecordingOptions['maskTextSelector'];
-  /**
-   * @deprecated Use `ignore` which accepts an array of CSS selectors
-   */
-  ignoreClass?: RecordingOptions['ignoreClass'];
 }
 
 export interface ReplayConfiguration
