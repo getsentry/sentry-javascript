@@ -32,12 +32,10 @@ export function prepareEvent(
     event_id: event.event_id || hint.event_id || uuid4(),
     timestamp: event.timestamp || dateTimestampInSeconds(),
   };
+  const integrations = hint.integrations || options.integrations.map(i => i.name);
 
   applyClientOptions(prepared, options);
-  applyIntegrationsMetadata(
-    prepared,
-    options.integrations.map(i => i.name),
-  );
+  applyIntegrationsMetadata(prepared, integrations);
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.

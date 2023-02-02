@@ -2,8 +2,7 @@
 import { EventType, record } from '@sentry-internal/rrweb';
 import { captureException } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
-import type { RateLimits } from '@sentry/utils';
-import { disabledUntil, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import {
   ERROR_CHECKOUT_TIME,
@@ -40,7 +39,6 @@ import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
-import { RateLimitError } from './util/sendReplayRequest';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -476,8 +474,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._handleException(err);
     }
 
-    // _performanceObserver //
-    if (!('_performanceObserver' in WINDOW)) {
+    // PerformanceObserver //
+    if (!('PerformanceObserver' in WINDOW)) {
       return;
     }
 
@@ -809,11 +807,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     } catch (err) {
       this._handleException(err);
 
-      if (err instanceof RateLimitError) {
-        this._handleRateLimit(err.rateLimits);
-        return;
-      }
-
       // This means we retried 3 times, and all of them failed
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
       this.stop();
@@ -871,31 +864,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _maybeSaveSession(): void {
     if (this.session && this._options.stickySession) {
       saveSession(this.session);
-    }
-  }
-
-  /**
-   * Pauses the replay and resumes it after the rate-limit duration is over.
-   */
-  private _handleRateLimit(rateLimits: RateLimits): void {
-    // in case recording is already paused, we don't need to do anything, as we might have already paused because of a
-    // rate limit
-    if (this.isPaused()) {
-      return;
-    }
-
-    const rateLimitEnd = disabledUntil(rateLimits, 'replay');
-    const rateLimitDuration = rateLimitEnd - Date.now();
-
-    if (rateLimitDuration > 0) {
-      __DEBUG_BUILD__ && logger.warn('[Replay]', `Rate limit hit, pausing replay for ${rateLimitDuration}ms`);
-      this.pause();
-      this._debouncedFlush.cancel();
-
-      setTimeout(() => {
-        __DEBUG_BUILD__ && logger.info('[Replay]', 'Resuming replay after rate limit');
-        this.resume();
-      }, rateLimitDuration);
     }
   }
 }

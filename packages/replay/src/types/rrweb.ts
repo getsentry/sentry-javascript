@@ -36,4 +36,5 @@ export type recordOptions = {
   maskTextClass?: maskTextClass;
   maskTextSelector?: string;
   blockSelector?: string;
+  maskInputOptions?: Record<string, boolean>;
 } & Record<string, unknown>;
