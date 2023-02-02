@@ -137,10 +137,9 @@ jobs:
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      is_gitflow_sync: |
-        github.event_name == 'pull_request' &&
-        (github.head_ref == 'refs/heads/develop' || github.head_ref == 'refs/heads/master') &&
-        contains(steps.pr-labels.outputs.labels, ' Dev: Gitflow ')
+      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/develop' || github.head_ref == 'refs/heads/master' }}
+      has_gitflow_label:
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
 
@@ -150,7 +149,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
-      needs.job_get_metadata.outputs.is_gitflow_sync == 'false' &&
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false') &&
       (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
