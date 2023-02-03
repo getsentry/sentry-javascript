@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <button aria-label="Click me" onclick="console.log('Test log')">Click me</button>
+    <div>
+      This should be masked by default
+    </div>
+
+    <div data-sentry-unmask>
+      This should be unmasked due to data attribute
+    </div>
+
+    <input placeholder="Placeholder should be masked" />
+
+    <div title="Title should be masked">Title should be masked</div>
+  </body>
+</html>
