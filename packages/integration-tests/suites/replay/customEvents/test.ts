@@ -43,9 +43,10 @@ sentryTest('replay recording should contain default performance spans', async ({
 
   expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }));
 
+  // We can't guarantee the order of the performance spans, or in which of the two segments they are sent
+  // So we collect them all and check that they are all there
   const collectedPerformanceSpans = [...performanceSpans0, ...performanceSpans1];
 
-  expect(collectedPerformanceSpans.length).toBe(6);
   expect(collectedPerformanceSpans).toEqual(
     expect.arrayContaining([
       expectedNavigationPerformanceSpan,

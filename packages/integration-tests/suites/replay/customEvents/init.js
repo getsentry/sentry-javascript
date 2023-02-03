@@ -3,8 +3,8 @@ import { Replay } from '@sentry/replay';
 
 window.Sentry = Sentry;
 window.Replay = new Replay({
-  flushMinDelay: 200,
-  flushMaxDelay: 200,
+  flushMinDelay: 500,
+  flushMaxDelay: 500,
   useCompression: false,
 });
 
