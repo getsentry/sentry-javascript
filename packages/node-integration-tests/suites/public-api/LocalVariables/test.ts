@@ -1,6 +1,9 @@
 import type { Event } from '@sentry/node';
+import { parseSemver } from '@sentry/utils';
 import * as childProcess from 'child_process';
 import * as path from 'path';
+
+const nodeMajor = parseSemver(process.version).major || 1;
 
 describe('LocalVariables integration', () => {
   test('Should not include local variables by default', done => {
@@ -56,8 +59,9 @@ describe('LocalVariables integration', () => {
     expect.assertions(4);
 
     const testScriptPath = path.resolve(__dirname, 'local-variables-caught.mjs');
+    const arg = nodeMajor < 12 ? '--experimental-modules' : '';
 
-    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+    childProcess.exec(`node ${arg} ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
       const event = JSON.parse(stdout) as Event;
 
       const frames = event.exception?.values?.[0].stacktrace?.frames || [];
