@@ -35,7 +35,6 @@ sentryTest('replay recording should contain default performance spans', async ({
   const { performanceSpans: performanceSpans0 } = getCustomRecordingEvents(await reqPromise0);
 
   expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
-  expect(performanceSpans0).toEqual([expectedMemoryPerformanceSpan]);
 
   await page.click('button');
 
@@ -44,11 +43,17 @@ sentryTest('replay recording should contain default performance spans', async ({
 
   expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }));
 
-  expect(performanceSpans1).toEqual([
-    expectedNavigationPerformanceSpan,
-    expectedLCPPerformanceSpan,
-    expectedFPPerformanceSpan,
-    expectedFCPPerformanceSpan,
-    expectedMemoryPerformanceSpan,
-  ]);
+  const collectedPerformanceSpans = [...performanceSpans0, ...performanceSpans1];
+
+  expect(collectedPerformanceSpans.length).toBe(6);
+  expect(collectedPerformanceSpans).toEqual(
+    expect.arrayContaining([
+      expectedNavigationPerformanceSpan,
+      expectedLCPPerformanceSpan,
+      expectedFPPerformanceSpan,
+      expectedFCPPerformanceSpan,
+      expectedMemoryPerformanceSpan, // two memory spans - once per flush
+      expectedMemoryPerformanceSpan,
+    ]),
+  );
 });
