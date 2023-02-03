@@ -525,7 +525,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (this.recordingMode === 'error' && event.type === 2) {
+      if (this.recordingMode === 'error' && event.type === EventType.FullSnapshot) {
         this._setInitialState();
       }
 
@@ -535,7 +535,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-      if (event.type !== 2) {
+      if (event.type !== EventType.FullSnapshot) {
         return false;
       }
 
