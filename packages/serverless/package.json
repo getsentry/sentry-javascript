@@ -62,5 +62,18 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:bundle": {
+        "dependsOn": [
+          "build:transpile",
+          "build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build/aws"
+        ]
+      }
+    }
+  }
 }

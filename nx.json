@@ -12,22 +12,21 @@
     }
   },
   "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "sharedGlobals": [
       "{workspaceRoot}/*.js",
-      "{workspaceRoot}/*.json",
-      "{workspaceRoot}/yarn.lock"
+      "{workspaceRoot}/*.json"
     ],
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals",
+    "production": [
+      "default",
       "!{projectRoot}/test/**/*",
       "!{projectRoot}/**/*.md"
     ]
   },
   "targetDefaults": {
     "build:bundle": {
+      "inputs": ["production", "^production"],
       "dependsOn": [
-        "^build:transpile",
         "build:transpile"
       ],
       "outputs": [
@@ -35,15 +34,15 @@
       ]
     },
     "build:tarball": {
+      "inputs": ["production", "^production"],
       "dependsOn": [
-        "^build:transpile",
         "build:transpile",
-        "^build:types",
         "build:types"
       ],
       "outputs": []
     },
     "build:transpile": {
+      "inputs": ["production", "^production"],
       "dependsOn": [
         "^build:transpile:uncached",
         "^build:transpile",
@@ -56,6 +55,7 @@
       ]
     },
     "build:types": {
+      "inputs": ["production", "^production"],
       "dependsOn": [
         "^build:types"
       ],
@@ -63,21 +63,6 @@
         "{projectRoot}/build/types",
         "{projectRoot}/build/npm/types"
       ]
-    }
-  },
-  "targets": {
-    "@sentry/serverless": {
-      "build:bundle": {
-        "dependsOn": [
-          "^build:transpile",
-          "build:transpile",
-          "^build:types",
-          "build:types"
-        ],
-        "outputs": [
-          "{projectRoot}/build/aws"
-        ]
-      }
     }
   }
 }
