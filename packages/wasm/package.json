@@ -26,7 +26,7 @@
     "cross-env": "^7.0.3",
     "express": "^4.17.1",
     "jest-puppeteer": "^4.4.0",
-    "puppeteer": "^19.6.3"
+    "puppeteer": "12.0.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
