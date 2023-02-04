@@ -80,6 +80,8 @@ describe('Integration | errorSampleRate', () => {
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
         TEST_EVENT,
+      ]),
+      breadcrumbData: JSON.stringify([
         {
           type: 5,
           timestamp: BASE_TIMESTAMP,
@@ -135,7 +137,7 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveLastSentReplay({
-      recordingData: JSON.stringify([
+      breadcrumbData: JSON.stringify([
         {
           type: 5,
           timestamp: BASE_TIMESTAMP + 10000 + 40,

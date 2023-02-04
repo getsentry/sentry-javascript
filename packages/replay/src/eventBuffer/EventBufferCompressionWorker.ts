@@ -1,3 +1,4 @@
+import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayRecordingData } from '@sentry/types';
 
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
@@ -61,6 +62,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * Send the event to the worker.
    */
   private _sendEventToWorker(event: RecordingEvent): Promise<AddEventResult> {
+    const methodType = event.type === EventType.Custom ? 'addCustomEvent' : 'addEvent';
     return this._worker.postMessage<void>('addEvent', JSON.stringify(event));
   }
 

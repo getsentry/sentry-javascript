@@ -36,6 +36,7 @@ type SentReplayExpected = {
   recordingHeader?: RecordingHeader;
   recordingPayloadHeader?: RecordingPayloadHeader;
   recordingData?: ReplayRecordingData;
+  breadcrumbData?: ReplayRecordingData;
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -80,7 +81,7 @@ function checkCallForSentReplay(
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
   // @ts-ignore recordingPayload is always a string in our tests
-  const [recordingPayloadHeader, recordingData] = recordingPayload?.split('\n') || [];
+  const [recordingPayloadHeader, recordingData, breadcrumbData] = recordingPayload?.split('\n') || [];
 
   const actualObj: Required<SentReplayExpected> = {
     // @ts-ignore Custom envelope
@@ -93,6 +94,7 @@ function checkCallForSentReplay(
     recordingHeader: recordingHeader,
     recordingPayloadHeader: recordingPayloadHeader && JSON.parse(recordingPayloadHeader),
     recordingData,
+    breadcrumbData,
   };
 
   const isObjectContaining = expected && 'sample' in expected && 'inverse' in expected;

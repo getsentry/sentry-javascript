@@ -151,6 +151,8 @@ describe('Integration | session', () => {
     expect(replay).toHaveLastSentReplay({
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+      ]),
+      breadcrumbData: JSON.stringify([
         {
           type: 5,
           timestamp: breadcrumbTimestamp,
@@ -311,6 +313,8 @@ describe('Integration | session', () => {
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+      ]),
+      breadcrumbData: JSON.stringify([
         {
           type: 5,
           timestamp: breadcrumbTimestamp,
@@ -422,6 +426,9 @@ describe('Integration | session', () => {
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        NEW_TEST_EVENT,
+      ]),
+      breadcrumbData: JSON.stringify([
         {
           type: 5,
           timestamp: breadcrumbTimestamp,
@@ -436,8 +443,7 @@ describe('Integration | session', () => {
             },
           },
         },
-        NEW_TEST_EVENT,
-      ]),
+      ])
     });
 
     // `_context` should be reset when a new session is created
