@@ -3,9 +3,9 @@ import { parseSemver } from '@sentry/utils';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 
-const nodeMajor = parseSemver(process.version).major || 1;
+const nodeMajor = parseSemver(process.version.slice(1)).major || 1;
 
-const testIf = (condition: boolean, test: jest.It) => (condition ? test : test.skip);
+const testIf = (condition: boolean, t: jest.It) => (condition ? t : t.skip);
 
 describe('LocalVariables integration', () => {
   test('Should not include local variables by default', done => {
