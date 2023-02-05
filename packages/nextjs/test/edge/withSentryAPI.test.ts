@@ -53,7 +53,6 @@ describe('wrapApiHandlerWithSentry', () => {
         name: 'POST /user/[userId]/post/[postId]',
         op: 'http.server',
       }),
-      { request },
     );
   });
 

@@ -63,6 +63,15 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
   });
 }
 
+export function makeSetSDKSourcePlugin(sdkSource) {
+  return replace({
+    preventAssignment: false,
+    values: {
+      __SENTRY_SDK_SOURCE__: JSON.stringify(sdkSource),
+    },
+  });
+}
+
 /**
  * Create a plugin to set the value of the `__SENTRY_BROWSER_BUNDLE__` magic string.
  *
@@ -110,6 +119,10 @@ export function makeTerserPlugin() {
           // We want to keept he _replay and _isEnabled variable unmangled to enable integration tests to access it
           '_replay',
           '_isEnabled',
+          // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
+          '_cssText',
+          // We want to keep the _integrations variable unmangled to send all installed integrations from replay
+          '_integrations',
         ],
       },
     },

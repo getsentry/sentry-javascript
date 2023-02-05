@@ -61,7 +61,7 @@
     var _currentScriptTag = _document.scripts[0];
     var _newScriptTag = _document.createElement(_script);
     _newScriptTag.src = _sdkBundleUrl;
-    _newScriptTag.setAttribute('crossorigin', 'anonymous');
+    _newScriptTag.crossOrigin = 'anonymous';
 
     // Once our SDK is loaded
     _newScriptTag.addEventListener('load', function() {
@@ -69,6 +69,9 @@
         // Restore onerror/onunhandledrejection handlers
         _window[_onerror] = _oldOnerror;
         _window[_onunhandledrejection] = _oldOnunhandledrejection;
+
+        // Add loader as SDK source
+        _window.SENTRY_SDK_SOURCE = 'loader';
 
         var SDK = _window[_namespace];
 

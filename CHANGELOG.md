@@ -4,6 +4,42 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.36.0
+
+This Release re-introduces the accidentally removed but still deprecated `maskInputOptions` option for Session Replay.
+Furthermore, replays are now stopped instead of paused when a rate limit is encountered.
+
+- feat(replay): Add back deprecated `maskInputOptions` (#6981)
+- feat(replay): Stop recording when hitting a rate limit (#7018)
+- fix(integrations): Report `BaseClient` integrations added after init (#7011)
+- fix(replay): Don't mangle private rrweb property (#7033)
+- fix(replay): Fix feature detection of PerformanceObserver (#7029)
+
+## 7.35.0
+
+Session Replay is deprecating privacy options in favor of a more streamlined API. Please see the [Replay migration guide](https://github.com/getsentry/sentry-javascript/blob/master/packages/replay/MIGRATION.md) for further information.
+Additionally, the following configuration options will no longer be configurable: `slimDOMOptions`, `recordCanvas`, `inlineStylesheet`, `collectFonts`, `inlineImages`.
+
+- feat(browser): Track if cdn or npm bundle (#6976)
+- feat(core): Add aria label to breadcrumb attributes (#6955)
+- feat(core): Add Offline Transport wrapper (#6884)
+- feat(loader): Add SENTRY_SDK_SOURCE to track loader stats (#6985)
+- feat(loader): Sync loader with Sentry template (#7001)
+- feat(replay): Deprecate privacy options in favor of a new API, remove some recording options (#6645)
+- feat(replay): Move sample rate tags into event context (#6659)
+- fix(nextjs): Add isomorphic versions of `ErrorBoundary`, `withErrorBoundary` and `showReportDialog` (#6987)
+- fix(nextjs): Don't modify require calls in wrapping loader (#6979)
+- fix(nextjs): Don't share I/O resources in between requests (#6980)
+- fix(nextjs): Inject client config into `_app` instead of `main` (#7009)
+- fix(nextjs): Use Proxies to wrap to preserve static methods (#7002)
+- fix(replay): Catch style mutation handling & null events in rrweb (#7010)
+- fix(replay): Handle compression failures more robustly (#6988)
+- fix(replay): Only call `scope.getLastBreadcrumb` if available (#6969)
+- fix(utils): Account for null prototype during normalization (#6925)
+- ref(replay): Log warning if sample rates are all undefined (#6959)
+
+Work in this release contributed by @boblauer. Thank you for your contribution!
+
 ## 7.34.0
 
 This release adds automatic injection of the Next.js SDK into serverside `app` directory bundles, allowing users to call the Sentry SDK in server components.

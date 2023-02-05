@@ -17,7 +17,7 @@ describe('Unit | worker | Compressor', () => {
       },
     ];
 
-    events.forEach(event => compressor.addEvent(event));
+    events.forEach(event => compressor.addEvent(JSON.stringify(event)));
 
     const compressed = compressor.finish();
 

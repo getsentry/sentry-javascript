@@ -19,6 +19,7 @@
     "clean:all": "run-p clean:build clean:caches clean:deps",
     "codecov": "codecov",
     "fix": "lerna run fix",
+    "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "lerna run lint",
     "lint:eslint": "lerna run lint:eslint",
