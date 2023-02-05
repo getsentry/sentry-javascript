@@ -35,6 +35,7 @@ export {
   startTransaction,
   makeFetchTransport,
   makeXHRTransport,
+  makeBrowserOfflineTransport,
   withScope,
 } from '@sentry/browser';
 
