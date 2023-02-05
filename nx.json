@@ -6,7 +6,8 @@
         "cacheableOperations": [
           "build:bundle",
           "build:transpile",
-          "build:types"
+          "build:types",
+          "lint:eslint"
         ]
       }
     }
@@ -63,6 +64,10 @@
         "{projectRoot}/build/types",
         "{projectRoot}/build/npm/types"
       ]
+    },
+    "lint:eslint": {
+      "inputs": ["default"],
+      "outputs": []
     }
   }
 }

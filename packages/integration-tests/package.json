@@ -11,7 +11,7 @@
     "clean": "rimraf -g suites/**/dist",
     "install-browsers": "playwright install --with-deps",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
