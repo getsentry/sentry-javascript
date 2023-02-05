@@ -5,6 +5,8 @@ import * as path from 'path';
 
 const nodeMajor = parseSemver(process.version).major || 1;
 
+const testIf = (condition: boolean, test: jest.It) => (condition ? test : test.skip);
+
 describe('LocalVariables integration', () => {
   test('Should not include local variables by default', done => {
     expect.assertions(2);
@@ -55,13 +57,12 @@ describe('LocalVariables integration', () => {
     });
   });
 
-  test('Should include local variables with ESM', done => {
+  testIf(nodeMajor > 10, test)('Should include local variables with ESM', done => {
     expect.assertions(4);
 
     const testScriptPath = path.resolve(__dirname, 'local-variables-caught.mjs');
-    const arg = nodeMajor < 12 ? '--experimental-modules' : '';
 
-    childProcess.exec(`node ${arg} ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
+    childProcess.exec(`node ${testScriptPath}`, { encoding: 'utf8' }, (_, stdout) => {
       const event = JSON.parse(stdout) as Event;
 
       const frames = event.exception?.values?.[0].stacktrace?.frames || [];
