@@ -14,11 +14,18 @@ sentryTest('should queue and retry events when they fail to send', async ({ getL
   // This would be the obvious way to test offline support but it doesn't appear to work!
   // await context.setOffline(true);
 
+  let abortedCount = 0;
+
   // Abort all envelope requests so the event gets queued
-  await page.route(/ingest\.sentry\.io/, route => route.abort());
+  await page.route(/ingest\.sentry\.io/, route => {
+    abortedCount += 1;
+    return route.abort();
+  });
   await page.goto(url);
   await delay(1_000);
   await page.unroute(/ingest\.sentry\.io/);
+
+  expect(abortedCount).toBe(1);
 
   // The previous event should now be queued
 
