@@ -10,11 +10,11 @@ import {
 } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
+import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
 import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
-import { LRUMap } from 'lru_map';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
