@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
-import type { Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
+import type { Hub } from '..';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';

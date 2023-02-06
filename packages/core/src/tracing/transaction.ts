@@ -1,5 +1,3 @@
-import type { Hub } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
 import type {
   Context,
   Contexts,
@@ -13,6 +11,8 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
 
+import type { Hub } from '..';
+import { getCurrentHub } from '..';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
