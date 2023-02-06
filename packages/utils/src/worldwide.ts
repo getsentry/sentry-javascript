@@ -29,6 +29,7 @@ export interface InternalGlobal {
     id?: string;
   };
   SENTRY_SDK_SOURCE?: SdkSource;
+  _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
     globalEventProcessors: any;
     hub: any;

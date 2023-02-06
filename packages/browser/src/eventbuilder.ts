@@ -4,6 +4,7 @@ import {
   addExceptionMechanism,
   addExceptionTypeValue,
   extractExceptionKeysForMessage,
+  GLOBAL_OBJ,
   isDOMError,
   isDOMException,
   isError,
@@ -155,6 +156,25 @@ export function eventFromException(
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
+
+  if (GLOBAL_OBJ._sentryDebugIds) {
+    event?.exception?.values?.forEach(exception => {
+      exception.stacktrace?.frames?.forEach(eventFrame => {
+        let debugId: string | undefined;
+        Object.keys(GLOBAL_OBJ._sentryDebugIds!).forEach(sentryDebugIdStack => {
+          const stackFrames = stackParser(sentryDebugIdStack);
+          if (stackFrames[1] && stackFrames[1].filename === eventFrame.filename) {
+            debugId = GLOBAL_OBJ._sentryDebugIds![sentryDebugIdStack];
+          }
+        });
+
+        if (debugId) {
+          eventFrame.debug_id = debugId;
+        }
+      });
+    });
+  }
+
   event.level = 'error';
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
