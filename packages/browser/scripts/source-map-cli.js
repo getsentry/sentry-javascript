@@ -16,9 +16,9 @@ const writeFile = util.promisify(fs.writeFile);
 const exists = util.promisify(fs.exists);
 
 const INJECTOR_CODE =
-  '\n!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{},n=(new Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="__DEBUG_ID__")}catch(e){}}()';
+  '\n!function(){try{var e="undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{},n=(new Error).stack;n&&(e._sentryDebugIds=e._sentryDebugIds||{},e._sentryDebugIds[n]="__SENTRY_DEBUG_ID__")}catch(e){}}()';
 
-const DEBUG_COMMENT_CODE = '\n//# sentryDebugId=__DEBUG_ID__';
+const DEBUG_ID_COMMENT = '\n//# sentryDebugId=__SENTRY_DEBUG_ID__';
 
 yargs(hideBin(process.argv))
   .command(
@@ -93,12 +93,12 @@ yargs(hideBin(process.argv))
           }
 
           const debugID = uuidv4();
-          const codeToInject = `${INJECTOR_CODE}${DEBUG_COMMENT_CODE}`.replace(/__DEBUG_ID__/g, debugID);
+          const codeToInject = `${INJECTOR_CODE}${DEBUG_ID_COMMENT}`.replace(/__SENTRY_DEBUG_ID__/g, debugID);
 
           sourceMap.debugID = debugID;
 
           return await Promise.all([
-            writeFile(sourceMapPath, JSON.stringify(sourceMap), { encoding: 'utf8', flag: 'w' }),
+            writeFile(sourceMapPath, JSON.stringify(sourceMap), { encoding: 'utf8', flag: 'w' }), // w flag is for overriding existing file
             appendFile(filePath, codeToInject),
           ]);
         }),

@@ -1,6 +1,13 @@
 import type { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
+import { GLOBAL_OBJ } from './worldwide';
+
 const STACKTRACE_LIMIT = 50;
+
+type DebugIdFilename = string;
+type DebugId = string;
+
+const debugIdParserCache = new Map<StackLineParserFn, Map<DebugIdFilename, DebugId>>();
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -14,6 +21,26 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
   return (stack: string, skipFirst: number = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
+
+    for (const parser of sortedParsers) {
+      let debugIdCache = debugIdParserCache.get(parser);
+      if (!debugIdCache) {
+        debugIdCache = new Map();
+        debugIdParserCache.set(parser, debugIdCache);
+      }
+
+      if (GLOBAL_OBJ._sentryDebugIds) {
+        Object.keys(GLOBAL_OBJ._sentryDebugIds).forEach(debugIdStackTrace => {
+          debugIdStackTrace.split('\n').forEach(line => {
+            const frame = parser(line);
+            if (frame && frame.filename) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              debugIdCache!.set(frame.filename, GLOBAL_OBJ._sentryDebugIds![debugIdStackTrace]);
+            }
+          });
+        });
+      }
+    }
 
     for (const line of stack.split('\n').slice(skipFirst)) {
       // Ignore lines over 1kb as they are unlikely to be stack frames.
@@ -32,6 +59,14 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
         const frame = parser(cleanedLine);
 
         if (frame) {
+          const debugIdCache = debugIdParserCache.get(parser);
+          if (debugIdCache && frame.filename) {
+            const cachedDebugId = debugIdCache.get(frame.filename);
+            if (cachedDebugId) {
+              frame.debug_id = cachedDebugId;
+            }
+          }
+
           frames.push(frame);
           break;
         }
