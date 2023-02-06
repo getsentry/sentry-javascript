@@ -17,8 +17,8 @@ export const envelopeParser = (request: Request | null): unknown[] => {
   });
 };
 
-export const envelopeRequestParser = (request: Request | null, index = 2): Event => {
-  return envelopeParser(request)[index] as Event;
+export const envelopeRequestParser = <T = Event>(request: Request | null, index = 2): T => {
+  return envelopeParser(request)[index] as T;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {

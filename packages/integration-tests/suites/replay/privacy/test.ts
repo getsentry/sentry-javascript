@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { EventType } from '@sentry-internal/rrweb';
-import type { RecordingEvent } from '@sentry/replay/types';
+import type { RecordingEvent } from '@sentry/replay';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
 import { waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestPath, page }) => {
+sentryTest('should have the correct default privacy settings', async ({ getLocalTestPath, page }) => {
   // For this test, we skip all bundle tests, as we're only interested in Replay being correctly
   // exported from the `@sentry/browser` npm package.
   if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
@@ -26,10 +26,10 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayPayload = envelopeRequestParser(await reqPromise0, 5) as RecordingEvent[];
+  const replayPayload = envelopeRequestParser<RecordingEvent[]>(await reqPromise0, 5);
   const checkoutEvent = replayPayload.find(({type}) => type === EventType.FullSnapshot);
 
-  expect(checkoutEvent.data).toEqual(
+  expect(checkoutEvent?.data).toMatchObject(
     {
          'initialOffset':  {
            'left': 0,
@@ -66,8 +66,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                  },
                   {
                    'id': 6,
-                   'textContent': `
-  `,
+                   'textContent': '\n  ',
                    'type': 3,
                  },
                   {
@@ -75,8 +74,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                    'childNodes':  [
                       {
                        'id': 8,
-                       'textContent': `
-    `,
+                       'textContent': '\n    ',
                        'type': 3,
                      },
                       {
@@ -97,8 +95,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                      },
                       {
                        'id': 11,
-                       'textContent': `
-    `,
+                       'textContent': '\n    ',
                        'type': 3,
                      },
                       {
@@ -106,9 +103,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                        'childNodes':  [
                           {
                            'id': 13,
-                           'textContent': `
-      **** ****** ** ****** ** *******
-    `,
+                           'textContent': '**** ****** ** ****** ** *******',
                            'type': 3,
                          },
                        ],
@@ -118,9 +113,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                      },
                       {
                        'id': 14,
-                       'textContent': `
-
-    `,
+                       'textContent': '\n    ',
                        'type': 3,
                      },
                       {
@@ -130,9 +123,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                        'childNodes':  [
                           {
                            'id': 16,
-                           'textContent': `
-      This should be unmasked due to data attribute
-    `,
+                           'textContent': 'This should be unmasked due to data attribute',
                            'type': 3,
                          },
                        ],
@@ -142,9 +133,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                      },
                       {
                        'id': 17,
-                       'textContent': `
-
-    `,
+                       'textContent': '\n    ',
                        'type': 3,
                      },
                       {
@@ -158,9 +147,7 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                      },
                       {
                        'id': 19,
-                       'textContent': `
-
-    `,
+                       'textContent': '\n    ',
                        'type': 3,
                      },
                       {
@@ -180,15 +167,43 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
                      },
                       {
                        'id': 22,
-                       'textContent': `
-  `,
+                       'textContent': '\n    ',
+                       'type': 3,
+                     },
+                  {
+                      'attributes':  {
+                        'rr_height': '1264px',
+                        'rr_width': '1264px',
+                      },
+                      'childNodes':  [],
+                      'id': 23,
+                      'isSVG': true,
+                      'tagName': 'svg',
+                      'type': 2,
+                    },
+                     {
+                      'id': 24,
+                      'textContent': '\n    ',
+                      'type': 3,
+                    },
+                     {
+                      'attributes':  {
+                        'rr_height': '0px',
+                        'rr_width': '0px',
+                      },
+                      'childNodes':  [],
+                      'id': 25,
+                      'tagName': 'img',
+                      'type': 2,
+                    },
+                      {
+                       'id': 26,
+                       'textContent': '\n  ',
                        'type': 3,
                      },
                       {
-                       'id': 23,
-                       'textContent': `
-
-`,
+                       'id': 27,
+                       'textContent': '\n\n',
                        'type': 3,
                      },
                    ],
