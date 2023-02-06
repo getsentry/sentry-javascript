@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable deprecation/deprecation */
 import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger, normalize, uuid4 } from '@sentry/utils';
 import localForage from 'localforage';
@@ -20,6 +21,16 @@ export type Item = { key: string; value: Event };
 
 /**
  * cache offline errors and send when connected
+ * @deprecated The offline integration has been deprecated in favor of the offline transport wrapper.
+ *
+ * ```
+ * import { init, makeBrowserOfflineTransport, makeFetchTransport } from '@sentry/browser';
+ *
+ * init({
+ *   dsn: '__DSN__',
+ *   transport: makeBrowserOfflineTransport(makeFetchTransport),
+ * });
+ * ```
  */
 export class Offline implements Integration {
   /**
