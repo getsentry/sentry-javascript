@@ -4,6 +4,7 @@ const util = require('util');
 const path = require('path');
 const fs = require('fs');
 
+const { v4: uuidv4 } = require('uuid');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
@@ -91,7 +92,7 @@ yargs(hideBin(process.argv))
             return;
           }
 
-          const debugID = Math.floor(Math.random() * 100000000000);
+          const debugID = uuidv4();
           const codeToInject = `${INJECTOR_CODE}${DEBUG_COMMENT_CODE}`.replace(/__DEBUG_ID__/g, debugID);
 
           sourceMap.debugID = debugID;
