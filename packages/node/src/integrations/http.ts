@@ -14,6 +14,7 @@ import type * as https from 'https';
 import type { NodeClient } from '../client';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
 import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
+import { LRUMap } from 'lru_map';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -138,7 +139,7 @@ function _createWrappedRequestMethodFactory(
   tracingOptions: TracingOptions | undefined,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
-  const createSpanUrlMap: Record<string, boolean> = {};
+  const createSpanUrlMap = new LRUMap<string, boolean>(100);
   const headersUrlMap: Record<string, boolean> = {};
 
   const shouldCreateSpan = (url: string): boolean => {
@@ -146,13 +147,14 @@ function _createWrappedRequestMethodFactory(
       return true;
     }
 
-    if (createSpanUrlMap[url]) {
-      return createSpanUrlMap[url];
+    const cachedDecision = createSpanUrlMap.get(url);
+    if (cachedDecision !== undefined) {
+      return cachedDecision;
     }
 
-    createSpanUrlMap[url] = tracingOptions.shouldCreateSpanForRequest(url);
-
-    return createSpanUrlMap[url];
+    const decision = tracingOptions.shouldCreateSpanForRequest(url);
+    createSpanUrlMap.set(url, decision);
+    return decision;
   };
 
   const shouldAttachTraceData = (url: string): boolean => {
