@@ -29,13 +29,15 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
         debugIdParserCache.set(parser, debugIdCache);
       }
 
-      if (GLOBAL_OBJ._sentryDebugIds) {
-        Object.keys(GLOBAL_OBJ._sentryDebugIds).forEach(debugIdStackTrace => {
+      const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+      if (debugIdMap) {
+        Object.keys(debugIdMap).forEach(debugIdStackTrace => {
           debugIdStackTrace.split('\n').forEach(line => {
             const frame = parser(line);
             if (frame && frame.filename) {
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              debugIdCache!.set(frame.filename, GLOBAL_OBJ._sentryDebugIds![debugIdStackTrace]);
+              debugIdCache!.set(frame.filename, debugIdMap[debugIdStackTrace]);
             }
           });
         });
