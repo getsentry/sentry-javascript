@@ -110,3 +110,15 @@ export const expectedFPPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
 };
+
+/* Breadcrumbs */
+
+export const expectedClickBreadcrumb = {
+  timestamp: expect.any(Number),
+  type: 'default',
+  category: 'ui.click',
+  message: expect.any(String),
+  data: {
+    nodeId: expect.any(Number),
+  },
+};
