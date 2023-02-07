@@ -1,5 +1,6 @@
 import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
 import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
+import pako from 'pako';
 import type { Page, Request } from 'playwright';
 
 import { envelopeRequestParser } from './helpers';
@@ -11,6 +12,17 @@ type PerformanceSpan = {
   startTimestamp: number;
   endTimestamp: number;
   data: Record<string, number>;
+};
+
+export type RecordingSnapshot = {
+  node: SnapshotNode;
+  initialOffset: number;
+};
+
+type SnapshotNode = {
+  type: number;
+  id: number;
+  childNodes: SnapshotNode[];
 };
 
 /**
@@ -85,7 +97,7 @@ export function getCustomRecordingEvents(replayRequest: Request): {
   breadcrumbs: Breadcrumb[];
   performanceSpans: PerformanceSpan[];
 } {
-  const recordingEvents = envelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+  const recordingEvents = getDecompressedRecordingEvents(replayRequest);
 
   const breadcrumbs = getReplayBreadcrumbs(recordingEvents);
   const performanceSpans = getReplayPerformanceSpans(recordingEvents);
@@ -108,3 +120,60 @@ function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): Performan
     .filter(data => data.tag === 'performanceSpan')
     .map(data => data.payload) as PerformanceSpan[];
 }
+
+export function getFullRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
+  return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
+}
+
+function getDecompressedRecordingEvents(replayRequest: Request): RecordingEvent[] {
+  return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+}
+
+/**
+ * Copy of the envelopeParser from ./helpers.ts, but with the ability
+ * to decompress zlib-compressed envelope payloads which we need to inspect for replay recordings.
+ * This parser can handle uncompressed as well as compressed replay recordings.
+ */
+const replayEnvelopeRequestParser = (request: Request | null, envelopeIndex = 2): Event => {
+  const envelope = replayEnvelopeParser(request);
+  return envelope[envelopeIndex] as Event;
+};
+
+const replayEnvelopeParser = (request: Request | null): unknown[] => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelopeBytes = request?.postDataBuffer() || '';
+
+  // first, we convert the bugger to string to split and go through the uncompressed lines
+  const envelopeString = envelopeBytes.toString();
+
+  const lines = envelopeString.split('\n').map(line => {
+    try {
+      return JSON.parse(line);
+    } catch (error) {
+      // If we fail to parse a line, we _might_ have found a compressed payload,
+      // so let's check if this is actually the case.
+      // This is quite hacky but we can't go through `line` because the prior operations
+      // seem to have altered its binary content. Hence, we take the raw envelope and
+      // look up the place where the zlib compression header(0x78 0x9c) starts
+      for (let i = 0; i < envelopeBytes.length; i++) {
+        if (envelopeBytes[i] === 0x78 && envelopeBytes[i + 1] === 0x9c) {
+          try {
+            // We found a zlib-compressed payload - let's decompress it
+            const payload = envelopeBytes.slice(i);
+            // now we return the decompressed payload as JSON
+            const decompressedPayload = pako.inflate(payload as unknown as Uint8Array, { to: 'string' });
+            return JSON.parse(decompressedPayload);
+          } catch {
+            // Let's log that something went wrong
+            return line;
+          }
+        }
+      }
+
+      return line;
+    }
+  });
+
+  return lines;
+};
