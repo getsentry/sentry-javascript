@@ -13,7 +13,7 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "bin": {
-    "sentry-sourcemaps": "scripts/source-map-cli.js"
+    "experimental-sentry-sourcemaps": "scripts/source-map-cli.js"
   },
   "publishConfig": {
     "access": "public"
