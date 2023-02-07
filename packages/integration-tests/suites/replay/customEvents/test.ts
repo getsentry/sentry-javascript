@@ -67,9 +67,9 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
-  async ({ getLocalTestPath, page, browserName }) => {
-    // Replay bundles are es6 only and most performance entries are only available in chromium
-    if ((process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) || browserName !== 'chromium') {
+  async ({ getLocalTestPath, page }) => {
+    // Replay bundles are es6 only
+    if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
       sentryTest.skip();
     }
 
