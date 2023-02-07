@@ -237,7 +237,8 @@ export class LocalVariables implements Integration {
     const framePromises = callFrames.map(async ({ scopeChain, functionName, this: obj }) => {
       const localScope = scopeChain.find(scope => scope.type === 'local');
 
-      const fn = obj.className === 'global' ? functionName : `${obj.className}.${functionName}`;
+      // obj.className is undefined in ESM modules
+      const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
 
       if (localScope?.object.objectId === undefined) {
         return { function: fn };
