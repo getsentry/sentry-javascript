@@ -12,9 +12,6 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
-  "bin": {
-    "experimental-sentry-sourcemaps": "scripts/source-map-cli.js"
-  },
   "publishConfig": {
     "access": "public"
   },
@@ -23,9 +20,7 @@
     "@sentry/replay": "7.36.0",
     "@sentry/types": "7.36.0",
     "@sentry/utils": "7.36.0",
-    "tslib": "^1.9.3",
-    "yargs": "^17.6.2",
-    "uuid": "^9.0.0"
+    "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/md5": "2.1.33",
