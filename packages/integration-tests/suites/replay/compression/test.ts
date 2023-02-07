@@ -5,7 +5,7 @@ import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import { getFullRecordingSnapshots, getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('replay recording should be compressed by default', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only and most performance entries are only available in chromium
+  // Replay bundles are es6 only
   if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
   }
