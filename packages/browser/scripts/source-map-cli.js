@@ -105,6 +105,8 @@ yargs(hideBin(process.argv))
       );
     },
   )
+  .strictCommands()
+  .demandCommand(1)
   .parse();
 
 async function getFilesFromAbsolutePath(absolutePath) {
