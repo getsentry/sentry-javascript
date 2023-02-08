@@ -2,6 +2,7 @@ import { logger } from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION } from '../constants';
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { getCurrentHub } from '@sentry/core';
 
 /**
  * Add an event to the event buffer
@@ -46,5 +47,12 @@ export async function addEvent(
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
     replay.stop();
+
+    const hub = getCurrentHub();
+    const client = hub.getClient();
+
+    if (client) {
+      client.recordDroppedEvent('internal_sdk_error', 'replay');
+    }
   }
 }
