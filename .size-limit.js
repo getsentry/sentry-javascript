@@ -84,4 +84,10 @@ module.exports = [
     gzip: true,
     limit: '80 KB',
   },
+  {
+    name: '@sentry/browser + @sentry/replay - ES6 CDN Bundle (gzipped + minified)',
+    path: 'packages/browser/build/bundles/bundle.replay.min.js',
+    gzip: true,
+    limit: '80 KB',
+  },
 ];

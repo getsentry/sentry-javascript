@@ -14,7 +14,7 @@ const builds = [];
   builds.push(...makeBundleConfigVariants(baseBundleConfig));
 });
 
-// Full bundle incl. replay only avaialable for es6
+// Full bundle incl. replay only available for es6
 const replayBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.ts'],
