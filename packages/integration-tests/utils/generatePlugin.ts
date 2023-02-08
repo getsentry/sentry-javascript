@@ -7,6 +7,8 @@ import type { Compiler } from 'webpack';
 const PACKAGES_DIR = '../../packages';
 
 const tracingOnly = process.env.PW_TRACING_ONLY === 'true';
+const useReplay = process.env.PW_REPLAY === 'true';
+
 const bundleKey = process.env.PW_BUNDLE;
 
 // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
@@ -23,6 +25,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es5_min: 'build/bundles/bundle.es5.min.js',
     bundle_es6: 'build/bundles/bundle.js',
     bundle_es6_min: 'build/bundles/bundle.min.js',
+    bundle_replay_es6: 'build/bundles/bundle.replay.js',
+    bundle_replay_es6_min: 'build/bundles/bundle.replay.min.js',
   },
   tracing: {
     cjs: 'build/npm/cjs/index.js',
@@ -31,7 +35,10 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es5_min: 'build/bundles/bundle.tracing.es5.min.js',
     bundle_es6: 'build/bundles/bundle.tracing.js',
     bundle_es6_min: 'build/bundles/bundle.tracing.min.js',
+    bundle_replay_es6: 'build/bundles/bundle.tracing.replay.js',
+    bundle_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
   },
+  errorsAndReplay: {},
   integrations: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',

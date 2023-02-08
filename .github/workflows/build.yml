@@ -533,7 +533,12 @@ jobs:
           - bundle_es5_min
           - bundle_es6
           - bundle_es6_min
+          - bundle_replay_es6
+          - bundle_replay_es6_min
         tracing_only:
+          - true
+          - false
+        replay:
           - true
           - false
         exclude:
@@ -543,6 +548,16 @@ jobs:
             tracing_only: false
           - bundle: cjs
             tracing_only: false
+          # `replay` only makes a difference for bundles - tests of the esm and cjs builds always include replay
+          - bundle: esm
+            replay: false
+          - bundle: cjs
+            replay: false
+          # Replay is es6-only, so we can't and don't need to test agains ES5 bundles.
+          - bundle: bundle_es5
+            replay: true
+          - bundle: bundle_es5_min
+            replay: true
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -584,6 +599,7 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
+          PW_REPLAY: ${{ matrix.replay }}
         run: |
           cd packages/integration-tests
           yarn test:ci
