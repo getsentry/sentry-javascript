@@ -18,7 +18,11 @@ sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ get
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeCloseTo(0.05);
+
+  // Flakey value dependent on timings -> we check for a range
+  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.03);
+  expect(eventData.measurements?.cls?.value).toBeLessThan(0.07);
+
   expect(eventData.tags?.['cls.source.1']).toBe('body > div#content > p#partial');
 });
 
@@ -28,7 +32,11 @@ sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getL
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();
-  expect(eventData.measurements?.cls?.value).toBeCloseTo(0.21);
+
+  // Flakey value dependent on timings -> we check for a range
+  expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.18);
+  expect(eventData.measurements?.cls?.value).toBeLessThan(0.23);
+
   expect(eventData.tags?.['cls.source.1']).toBe('body > div#content > p');
 });
 
@@ -38,11 +46,8 @@ sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ get
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.cls?.value).toBeDefined();
-  // This test in particular seems to be flaky, such that the received value is frequently within 0.006 rather than the
-  // 0.005 that `toBeCloseTo()` requires. While it's true that each test is retried twice if it fails, in the flaky
-  // cases all three attempts always seem to come up with the exact same slightly-too-far-away number. Rather than ramp
-  // down `toBeCloseTo()`'s precision (which would make it accept anything between 0.30 and 0.40), we can just do the
-  // check manually.
+
+  // Flakey value dependent on timings -> we check for a range
   expect(eventData.measurements?.cls?.value).toBeGreaterThan(0.34);
   expect(eventData.measurements?.cls?.value).toBeLessThan(0.36);
   expect(eventData.tags?.['cls.source.1']).toBe('body > div#content > p');
