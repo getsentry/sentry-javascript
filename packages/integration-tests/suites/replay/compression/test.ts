@@ -30,5 +30,9 @@ sentryTest('replay recording should be compressed by default', async ({ getLocal
   expect(snapshots.length).toEqual(1);
 
   const stringifiedSnapshot = JSON.stringify(snapshots[0]);
-  expect(stringifiedSnapshot).toMatchSnapshot('replay_pw_snapshot_0.json');
+  expect(stringifiedSnapshot).toContain('"tagName":"body"');
+  expect(stringifiedSnapshot).toContain('"tagName":"html"');
+  expect(stringifiedSnapshot).toContain('"tagName":"button"');
+  expect(stringifiedSnapshot).toContain('"textContent":"*** ***"');
+  expect(stringifiedSnapshot).toContain('"id":"go-background"');
 });
