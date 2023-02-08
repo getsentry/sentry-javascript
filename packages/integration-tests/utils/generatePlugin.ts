@@ -7,7 +7,6 @@ import type { Compiler } from 'webpack';
 const PACKAGES_DIR = '../../packages';
 
 const tracingOnly = process.env.PW_TRACING_ONLY === 'true';
-const useReplay = process.env.PW_REPLAY === 'true';
 
 const bundleKey = process.env.PW_BUNDLE;
 
@@ -38,7 +37,6 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_replay_es6: 'build/bundles/bundle.tracing.replay.js',
     bundle_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
   },
-  errorsAndReplay: {},
   integrations: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
