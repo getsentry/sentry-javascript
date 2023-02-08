@@ -282,7 +282,7 @@ describe('makeOfflineTransport', () => {
     const { getSendCount, baseTransport } = createTestTransport(
       {
         statusCode: 429,
-        headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+        headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
       },
       { statusCode: 200 },
     );
@@ -300,14 +300,14 @@ describe('makeOfflineTransport', () => {
 
     expect(result).toEqual({
       statusCode: 429,
-      headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+      headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
     });
 
     await delay(MIN_DELAY * 2);
 
     expect(getSendCount()).toEqual(1);
 
-    await delay(4_000);
+    await delay(3_000);
 
     expect(getSendCount()).toEqual(2);
     expect(queuedCount).toEqual(0);
