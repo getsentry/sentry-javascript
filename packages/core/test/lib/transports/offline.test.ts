@@ -226,7 +226,7 @@ describe('makeOfflineTransport', () => {
       expect(result).toEqual({});
       expect(getCalls()).toEqual(['add']);
 
-      await waitUntil(() => getCalls().length === 3 && getSendCount() === 1, 7_000);
+      await waitUntil(() => getCalls().length === 3 && getSendCount() === 1, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(1);
       expect(getCalls()).toEqual(['add', 'pop', 'pop']);
@@ -246,7 +246,7 @@ describe('makeOfflineTransport', () => {
         flushAtStartup: true,
       });
 
-      await waitUntil(() => getCalls().length === 3 && getSendCount() === 2, 7_000);
+      await waitUntil(() => getCalls().length === 3 && getSendCount() === 2, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(2);
       expect(getCalls()).toEqual(['pop', 'pop', 'pop']);
@@ -288,40 +288,44 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
-  it('Follows the Retry-After header', async () => {
-    const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
-    const { getSendCount, baseTransport } = createTestTransport(
-      {
+  it(
+    'Follows the Retry-After header',
+    async () => {
+      const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
+      const { getSendCount, baseTransport } = createTestTransport(
+        {
+          statusCode: 429,
+          headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+        },
+        { statusCode: 200 },
+      );
+
+      let queuedCount = 0;
+      const transport = makeOfflineTransport(baseTransport)({
+        ...transportOptions,
+        createStore: store,
+        shouldStore: () => {
+          queuedCount += 1;
+          return true;
+        },
+      });
+      const result = await transport.send(ERROR_ENVELOPE);
+
+      expect(result).toEqual({
         statusCode: 429,
-        headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
-      },
-      { statusCode: 200 },
-    );
+        headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+      });
 
-    let queuedCount = 0;
-    const transport = makeOfflineTransport(baseTransport)({
-      ...transportOptions,
-      createStore: store,
-      shouldStore: () => {
-        queuedCount += 1;
-        return true;
-      },
-    });
-    const result = await transport.send(ERROR_ENVELOPE);
+      await waitUntil(() => getSendCount() === 1, 500);
 
-    expect(result).toEqual({
-      statusCode: 429,
-      headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
-    });
+      expect(getSendCount()).toEqual(1);
 
-    await waitUntil(() => getSendCount() === 1, 500);
+      await waitUntil(() => getCalls().length === 2, START_DELAY * 2);
 
-    expect(getSendCount()).toEqual(1);
-
-    await waitUntil(() => getCalls().length === 2, 6_000);
-
-    expect(getSendCount()).toEqual(2);
-    expect(queuedCount).toEqual(0);
-    expect(getCalls()).toEqual(['pop', 'pop']);
-  }, 7_000);
+      expect(getSendCount()).toEqual(2);
+      expect(queuedCount).toEqual(0);
+      expect(getCalls()).toEqual(['pop', 'pop']);
+    },
+    START_DELAY * 3,
+  );
 });
