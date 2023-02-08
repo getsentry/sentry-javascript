@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { EventType } from '@sentry-internal/rrweb';
-import type { RecordingEvent } from '@sentry/replay';
+import type { RecordingEvent } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
