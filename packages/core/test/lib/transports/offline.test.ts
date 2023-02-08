@@ -18,7 +18,7 @@ import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
-import { makeOfflineTransport, MIN_DELAY, START_DELAY } from '../../../src/transports/offline';
+import { makeOfflineTransport, START_DELAY } from '../../../src/transports/offline';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -116,7 +116,7 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
 }
 
 function waitUntil(fn: () => boolean, timeout: number): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     let runtime = 0;
 
     const interval = setInterval(() => {
