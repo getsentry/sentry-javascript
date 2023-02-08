@@ -7,9 +7,8 @@ import { envelopeRequestParser } from '../../../utils/helpers';
 import { waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should have the correct default privacy settings', async ({ getLocalTestPath, page }) => {
-  // For this test, we skip all bundle tests, as we're only interested in Replay being correctly
-  // exported from the `@sentry/browser` npm package.
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+  // Replay bundles are es6 only
+  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
     sentryTest.skip();
   }
 
