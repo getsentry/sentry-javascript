@@ -21,25 +21,13 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  CACHED_DEPENDENCY_PATHS: |
+  DEPENDENCY_CACHE_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ~/.cache/ms-playwright/
     ~/.cache/mongodb-binaries/
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
-
-  # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
-  CACHED_BUILD_PATHS: |
-    ${{ github.workspace }}/packages/*/build
-    ${{ github.workspace }}/packages/ember/*.d.ts
-    ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/core/src/version.ts
-    ${{ github.workspace }}/packages/serverless
-    ${{ github.workspace }}/packages/utils/cjs
-    ${{ github.workspace }}/packages/utils/esm
-
-  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -49,6 +37,8 @@ env:
     nx-Linux-${{ github.ref }}
     nx-Linux-refs/heads/develop
     nx-Linux
+
+  NX_CACHE_PATH: node_modules/.cache/nx
 
 jobs:
   job_get_metadata:
@@ -73,75 +63,18 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
-      - name: Determine changed packages
-        uses: getsentry/paths-filter@v2.11.1
-        id: changed
-        with:
-          filters: |
-            shared: &shared
-              - '*.{js,ts,json,yml,lock}'
-              - 'CHANGELOG.md'
-              - '.github/**'
-              - 'jest/**'
-              - 'rollup/**'
-              - 'scripts/**'
-              - 'packages/core/**'
-              - 'packages/tracing/**'
-              - 'packages/utils/**'
-              - 'packages/types/**'
-              - 'packages/integrations/**'
-            browser: &browser
-              - *shared
-              - 'packages/browser/**'
-              - 'packages/replay/**'
-            browser_integration:
-              - *shared
-              - *browser
-              - 'packages/integration-tests/**'
-            ember:
-              - *shared
-              - *browser
-              - 'packages/ember/**'
-            nextjs:
-              - *shared
-              - *browser
-              - 'packages/nextjs/**'
-              - 'packages/node/**'
-              - 'packages/react/**'
-            remix:
-              - *shared
-              - *browser
-              - 'packages/remix/**'
-              - 'packages/node/**'
-              - 'packages/react/**'
-            node:
-              - *shared
-              - 'packages/node/**'
-              - 'packages/node-integration-tests/**'
-            any_code:
-              - '!**/*.md'
-
       - name: Get PR labels
         id: pr-labels
         uses: mydea/pr-labels-action@update-core
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
-      changed_nextjs: ${{ steps.changed.outputs.nextjs }}
-      changed_ember: ${{ steps.changed.outputs.ember }}
-      changed_remix: ${{ steps.changed.outputs.remix }}
-      changed_node: ${{ steps.changed.outputs.node }}
-      changed_browser: ${{ steps.changed.outputs.browser }}
-      changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
-      changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       is_gitflow_sync: ${{ github.head_ref == 'refs/heads/develop' || github.head_ref == 'refs/heads/master' }}
       has_gitflow_label:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
-      force_skip_cache:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
 
   job_install_deps:
     name: Install Dependencies
@@ -149,8 +82,8 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false') &&
-      (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
+      needs.job_get_metadata.outputs.is_gitflow_sync == 'false' &&
+      needs.job_get_metadata.outputs.has_gitflow_label == 'false'
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v3
@@ -168,7 +101,7 @@ jobs:
         uses: actions/cache@v3
         id: cache_dependencies
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
@@ -191,39 +124,24 @@ jobs:
       - name: Check dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-      - name: Check build cache
-        uses: actions/cache@v3
-        id: cache_built_packages
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
-      - name: NX cache
+      - name: Nx cache
         uses: actions/cache@v3
         # Disable cache when:
-        # - on develop
         # - on release branches
-        # - when PR has `ci-skip-cache` label
-        if: |
-          needs.job_get_metadata.outputs.is_release == 'false' &&
-          needs.job_get_metadata.outputs.force_skip_cache == 'false'
+        if: needs.job_get_metadata.outputs.is_release == 'false'
         with:
-          path: node_modules/.cache/nx
+          path: ${{ env.NX_CACHE_PATH }}
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          # We always want to _store_ the cache (so it can be used by other branches), but when uncached, never _restore_ from it
           restore-keys:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
-        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
-        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
-        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
-        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
-        if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
+
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
@@ -234,6 +152,11 @@ jobs:
     needs: [job_get_metadata, job_build]
     # only upload the zipped layer file if we're about to release
     if: startsWith(github.ref, 'refs/heads/release/')
+    env:
+        # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
+        CACHED_BUILD_PATHS: |
+          ${{ github.workspace }}/packages/serverless
+        BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -242,16 +165,27 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
+        with:
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+
+      - name: Build Lambda
+        run: yarn lerna run build:bundle --scope @sentry/serverless --include-dependencies
+
+      - name: Cache build for artifact upload
+        uses: actions/cache@v3
+        id: cache_built_packages
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+
       - name: Get SDK version
         # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
         # equivalent of using >> rather than >.)
@@ -286,16 +220,16 @@ jobs:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # use Node 14 for now.
           node-version: '14'
-      - name: Check dependency cache
+     - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@main-skip-step
         with:
@@ -317,16 +251,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+     - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run linter
         run: yarn lint
 
@@ -342,16 +276,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -368,16 +302,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
@@ -405,16 +339,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run tests
         env:
           NODE_VERSION: 16
@@ -440,16 +374,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -462,7 +396,6 @@ jobs:
   job_nextjs_integration_test:
     name: Nextjs (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 30
     runs-on: ubuntu-20.04
     strategy:
@@ -478,16 +411,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -520,7 +453,6 @@ jobs:
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -549,16 +481,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -590,7 +522,6 @@ jobs:
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -607,16 +538,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -637,16 +568,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run browser build tests
         run: |
           cd packages/browser
@@ -659,7 +590,6 @@ jobs:
   job_node_integration_tests:
     name: Node (${{ matrix.node }}) Integration Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -675,16 +605,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -695,7 +625,6 @@ jobs:
   job_remix_integration_tests:
     name: Remix (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -711,16 +640,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -745,16 +674,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+     - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Get node version
         id: versions
         run: |
@@ -808,16 +737,16 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+     - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
+      - name: Nx cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          path: ${{ env.NX_CACHE_PATH }}
+          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
 
       - name: Setup
         run: yarn install
