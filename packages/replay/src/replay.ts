@@ -812,8 +812,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
       this.stop();
 
-      const hub = getCurrentHub();
-      const client = hub.getClient();
+      const client = getCurrentHub().getClient();
 
       if (client) {
         client.recordDroppedEvent('send_error', 'replay');

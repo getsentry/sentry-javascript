@@ -48,8 +48,7 @@ export async function addEvent(
     __DEBUG_BUILD__ && logger.error(error);
     replay.stop();
 
-    const hub = getCurrentHub();
-    const client = hub.getClient();
+    const client = getCurrentHub().getClient();
 
     if (client) {
       client.recordDroppedEvent('internal_sdk_error', 'replay');
