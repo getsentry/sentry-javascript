@@ -15,6 +15,9 @@ const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
 
 // Bundles need to be injected into HTML before Sentry initialization.
 const useBundle = bundleKey && !useCompiledModule;
+// `true` if we use an SDK bundle that supports Replay ootb,
+// without the need to add the additional addon replay integration bundle
+const useFullReplayBundle = useBundle && bundleKey.includes('replay');
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
@@ -126,7 +129,9 @@ class SentryScenarioGenerationPlugin {
               this.requiresTracing = true;
             } else if (source === '@sentry/integrations') {
               this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
-            } else if (source === '@sentry/replay') {
+            } else if (!useFullReplayBundle && source === '@sentry/replay') {
+              console.log('injecting replay addon bundle');
+
               this.requiresReplay = true;
             }
           },
