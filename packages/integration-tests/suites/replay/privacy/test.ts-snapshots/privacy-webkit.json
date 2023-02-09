@@ -143,8 +143,8 @@
                 "type": 2,
                 "tagName": "svg",
                 "attributes": {
-                  "rr_width": "1264px",
-                  "rr_height": "1264px"
+                  "rr_width": "200px",
+                  "rr_height": "200px"
                 },
                 "childNodes": [],
                 "isSVG": true,
@@ -159,6 +159,7 @@
                 "type": 2,
                 "tagName": "svg",
                 "attributes": {
+                  "style": "width:200px;height:200px",
                   "class": "sentry-unblock",
                   "viewBox": "0 0 80 80",
                   "data-sentry-unblock": ""
@@ -168,8 +169,8 @@
                     "type": 2,
                     "tagName": "path",
                     "attributes": {
-                      "rr_width": "1264.12109375px",
-                      "rr_height": "1126.56787109375px"
+                      "rr_width": "0px",
+                      "rr_height": "0px"
                     },
                     "childNodes": [],
                     "isSVG": true,
