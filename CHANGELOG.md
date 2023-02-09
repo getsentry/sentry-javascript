@@ -14,6 +14,8 @@
 - fix(node): `LocalVariables`, Improve frame matching for ESM (#7049)
 - fix(node): Add lru cache to http integration span map (#7064)
 
+Work in this release contributed by @JamesHenry. Thank you for your contribution!
+
 ## 7.36.0
 
 This Release re-introduces the accidentally removed but still deprecated `maskInputOptions` option for Session Replay.
