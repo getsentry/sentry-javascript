@@ -12,7 +12,8 @@
           "lint",
           "test",
           "test:unit"
-        ]
+        ],
+        "cacheDirectory": ".nxcache"
       }
     }
   },

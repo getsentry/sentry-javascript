@@ -38,7 +38,7 @@ env:
     nx-Linux-refs/heads/develop
     nx-Linux
 
-  NX_CACHE_PATH: node_modules/.cache/nx
+  NX_CACHE_PATH: .nxcache
 
 jobs:
   job_get_metadata:
