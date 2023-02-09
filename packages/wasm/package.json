@@ -1,6 +1,6 @@
 {
   "name": "@sentry/wasm",
-  "version": "7.34.0",
+  "version": "7.37.0",
   "description": "Support for WASM.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/wasm",
@@ -16,18 +16,17 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.34.0",
-    "@sentry/types": "7.34.0",
-    "@sentry/utils": "7.34.0",
+    "@sentry/browser": "7.37.0",
+    "@sentry/types": "7.37.0",
+    "@sentry/utils": "7.37.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
     "@types/jest-environment-puppeteer": "^4.4.0",
-    "@types/puppeteer": "^5.4.0",
     "cross-env": "^7.0.3",
     "express": "^4.17.1",
     "jest-puppeteer": "^4.4.0",
-    "puppeteer": "^5.5.0"
+    "puppeteer": "18.2.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
@@ -47,7 +46,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "node test/scripts/ensure-bundles.js && cross-env PORT=1337 jest",
     "test:watch": "jest --watch"

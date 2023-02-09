@@ -1,5 +1,5 @@
 import { addBreadcrumb } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
@@ -9,8 +9,8 @@ import { isRrwebError } from '../util/isRrwebError';
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
  */
-export function handleGlobalEventListener(replay: ReplayContainer): (event: Event) => Event | null {
-  return (event: Event) => {
+export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
+  return (event: Event, hint: EventHint) => {
     // Do not apply replayId to the root event
     if (event.type === REPLAY_EVENT_NAME) {
       // Replays have separate set of breadcrumbs, do not include breadcrumbs
@@ -21,7 +21,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
     // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
     // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
-    if (isRrwebError(event) && !replay.getOptions()._experiments.captureExceptions) {
+    if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
       __DEBUG_BUILD__ && logger.log('[Replay] Ignoring error from rrweb internals', event);
       return null;
     }

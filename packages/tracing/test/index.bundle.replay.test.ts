@@ -1,4 +1,4 @@
-import Sentry from '../src/index.bundle.replay';
+import * as Sentry from '../src/index.bundle.replay';
 
 // Because of the way how we re-export stuff for the replay bundle, we only have a single default export
 const { Integrations } = Sentry;
@@ -15,5 +15,6 @@ describe('Integrations export', () => {
     });
 
     expect(Integrations.Replay).toBeDefined();
+    expect(Sentry.Replay).toBeDefined();
   });
 });

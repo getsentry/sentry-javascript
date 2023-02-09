@@ -435,6 +435,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     const options = this.getOptions();
+    const integrations = Object.keys(this._integrations);
+    if (!hint.integrations && integrations.length > 0) {
+      hint.integrations = integrations;
+    }
     return prepareEvent(options, event, hint, scope);
   }
 

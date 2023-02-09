@@ -49,5 +49,19 @@ if (IS_LOADER) {
         assert.equal(summary.events[0].breadcrumbs[0].message, 'testing loader');
       });
     });
+
+    it('should set SENTRY_SDK_SOURCE value', () => {
+      return runInSandbox(sandbox, function () {
+        Sentry.onLoad(function () {
+          Sentry.init({ debug: true });
+        });
+        setTimeout(function () {
+          Sentry.captureMessage('test');
+        });
+        undefinedMethod(); // trigger error
+      }).then(function (summary) {
+        assert.equal(summary.events[0].sdk.packages[0].name, 'loader:@sentry/browser');
+      });
+    });
   });
 }

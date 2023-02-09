@@ -25,7 +25,9 @@ body:
   - type: dropdown
     id: package
     attributes:
-      label: Which package are you using?
+      label:
+        Which SDK are you using? If you use the CDN bundles, please specify the exact bundle (e.g.
+        `bundle.tracing.min.js`) in your SDK setup.
       options:
         - '@sentry/angular'
         - '@sentry/browser'
@@ -40,6 +42,8 @@ body:
         - '@sentry/svelte'
         - '@sentry/vue'
         - '@sentry/wasm'
+        - Sentry Browser CDN bundle
+        - Sentry Browser Loader
     validations:
       required: true
   - type: input

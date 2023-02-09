@@ -26,7 +26,11 @@ export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) =>
  * An event handler to handle scope changes.
  */
 export function handleScope(scope: Scope): Breadcrumb | null {
-  const newBreadcrumb = scope.getLastBreadcrumb();
+  // TODO (v8): Remove this guard. This was put in place because we introduced
+  // Scope.getLastBreadcrumb mid-v7 which caused incompatibilities with older SDKs.
+  // For now, we'll just return null if the method doesn't exist but we should eventually
+  // get rid of this guard.
+  const newBreadcrumb = scope.getLastBreadcrumb && scope.getLastBreadcrumb();
 
   // Listener can be called when breadcrumbs have not changed, so we store the
   // reference to the last crumb and only return a crumb if it has changed

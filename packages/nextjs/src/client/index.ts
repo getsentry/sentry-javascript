@@ -69,6 +69,22 @@ function addClientIntegrations(options: BrowserOptions): void {
         // Filename wasn't a properly formed URL, so there's nothing we can do
       }
 
+      if (frame.filename && frame.filename.startsWith('app:///_next')) {
+        // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.
+        // The corresponding sources that Next.js generates have proper brackets so we also need proper brackets in the frame so that source map resolving works.
+        frame.filename = decodeURI(frame.filename);
+      }
+
+      if (
+        frame.filename &&
+        frame.filename.match(
+          /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+        )
+      ) {
+        // We don't care about these frames. It's Next.js internal code.
+        frame.in_app = false;
+      }
+
       return frame;
     },
   });
@@ -114,3 +130,5 @@ export {
   withSentryServerSideErrorGetInitialProps,
   wrapErrorGetInitialPropsWithSentry,
 } from './wrapErrorGetInitialPropsWithSentry';
+
+export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';

@@ -48,6 +48,12 @@ describe('Unit | util | prepareReplayEvent', () => {
       replay_id: replayId,
       replay_type: 'session',
       segment_id: 3,
+      contexts: {
+        replay: {
+          error_sample_rate: 1.0,
+          session_sample_rate: 0.1,
+        },
+      },
     };
 
     const replayEvent = await prepareReplayEvent({ scope, client, replayId, event });
@@ -66,6 +72,12 @@ describe('Unit | util | prepareReplayEvent', () => {
       platform: 'javascript',
       event_id: 'replay-ID',
       environment: 'production',
+      contexts: {
+        replay: {
+          error_sample_rate: 1.0,
+          session_sample_rate: 0.1,
+        },
+      },
       sdk: {
         name: 'sentry.javascript.testSdk',
         version: '1.0.0',

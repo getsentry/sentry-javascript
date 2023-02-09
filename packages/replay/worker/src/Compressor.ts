@@ -7,37 +7,31 @@ export class Compressor {
   public deflate: Deflate;
 
   /**
-   * Number of added events
+   * If any events have been added.
    */
-  public added: number = 0;
+  private _hasEvents: boolean;
 
   public constructor() {
-    this.init();
+    this._init();
   }
 
-  public init(): void {
-    this.added = 0;
-    this.deflate = new Deflate();
-
-    // Fake an array by adding a `[`
-    this.deflate.push('[', constants.Z_NO_FLUSH);
-
-    return;
+  public clear(): void {
+    this._init();
   }
 
-  public addEvent(data: Record<string, unknown>): void {
+  public addEvent(data: string): void {
     if (!data) {
       throw new Error('Adding invalid event');
     }
     // If the event is not the first event, we need to prefix it with a `,` so
     // that we end up with a list of events
-    const prefix = this.added > 0 ? ',' : '';
+    const prefix = this._hasEvents ? ',' : '';
     // TODO: We may want Z_SYNC_FLUSH or Z_FULL_FLUSH (not sure the difference)
     // Using NO_FLUSH here for now as we can create many attachments that our
     // web UI will get API rate limited.
-    this.deflate.push(prefix + JSON.stringify(data), constants.Z_SYNC_FLUSH);
+    this.deflate.push(prefix + data, constants.Z_SYNC_FLUSH);
 
-    this.added++;
+    this._hasEvents = true;
   }
 
   public finish(): Uint8Array {
@@ -52,8 +46,16 @@ export class Compressor {
     // result
     const result = this.deflate.result;
 
-    this.init();
+    this._init();
 
     return result;
+  }
+
+  private _init(): void {
+    this._hasEvents = false;
+    this.deflate = new Deflate();
+
+    // Fake an array by adding a `[`
+    this.deflate.push('[', constants.Z_NO_FLUSH);
   }
 }

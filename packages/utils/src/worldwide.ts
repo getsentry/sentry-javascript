@@ -14,6 +14,8 @@
 
 import type { Integration } from '@sentry/types';
 
+import type { SdkSource } from './env';
+
 /** Internal global with common properties and Sentry extensions  */
 export interface InternalGlobal {
   navigator?: { userAgent?: string };
@@ -26,6 +28,8 @@ export interface InternalGlobal {
   SENTRY_RELEASE?: {
     id?: string;
   };
+  SENTRY_SDK_SOURCE?: SdkSource;
+  _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
     globalEventProcessors: any;
     hub: any;

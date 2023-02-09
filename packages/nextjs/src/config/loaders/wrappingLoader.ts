@@ -15,6 +15,14 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
+const serverComponentWrapperTemplatePath = path.resolve(
+  __dirname,
+  '..',
+  'templates',
+  'serverComponentWrapperTemplate.js',
+);
+const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
+
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
@@ -23,8 +31,10 @@ const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 type LoaderOptions = {
   pagesDir: string;
+  appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'page-server-component';
 };
 
 /**
@@ -36,51 +46,90 @@ export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
   userModuleSourceMap: any,
-): void | string {
+): void {
   // We know one or the other will be defined, depending on the version of webpack being used
   const {
     pagesDir,
+    appDir,
     pageExtensionRegex,
     excludeServerRoutes = [],
+    wrappingTargetKind,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
 
-  // Get the parameterized route name from this page's filepath
-  const parameterizedRoute = path
-    // Get the path of the file insde of the pages directory
-    .relative(pagesDir, this.resourcePath)
-    // Add a slash at the beginning
-    .replace(/(.*)/, '/$1')
-    // Pull off the file extension
-    .replace(new RegExp(`\\.(${pageExtensionRegex})`), '')
-    // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
-    // just `/xyz`
-    .replace(/\/index$/, '')
-    // In case all of the above have left us with an empty string (which will happen if we're dealing with the
-    // homepage), sub back in the root route
-    .replace(/^$/, '/');
-
-  // Skip explicitly-ignored pages
-  if (stringMatchesSomePattern(parameterizedRoute, excludeServerRoutes, true)) {
-    this.callback(null, userCode, userModuleSourceMap);
-    return;
-  }
-
-  const middlewareJsPath = path.join(pagesDir, '..', 'middleware.js');
-  const middlewareTsPath = path.join(pagesDir, '..', 'middleware.ts');
-
   let templateCode: string;
-  if (parameterizedRoute.startsWith('/api')) {
-    templateCode = apiWrapperTemplateCode;
-  } else if (this.resourcePath === middlewareJsPath || this.resourcePath === middlewareTsPath) {
+
+  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+    // Get the parameterized route name from this page's filepath
+    const parameterizedPagesRoute = path.posix
+      .normalize(
+        path
+          // Get the path of the file insde of the pages directory
+          .relative(pagesDir, this.resourcePath),
+      )
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file extension
+      .replace(new RegExp(`\\.(${pageExtensionRegex})`), '')
+      // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
+      // just `/xyz`
+      .replace(/\/index$/, '')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+
+    // Skip explicitly-ignored pages
+    if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    if (wrappingTargetKind === 'page') {
+      templateCode = pageWrapperTemplateCode;
+    } else if (wrappingTargetKind === 'api-route') {
+      templateCode = apiWrapperTemplateCode;
+    } else {
+      throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
+    }
+
+    // Inject the route and the path to the file we're wrapping into the template
+    templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
+  } else if (wrappingTargetKind === 'page-server-component') {
+    // Get the parameterized route name from this page's filepath
+    const parameterizedPagesRoute = path.posix
+      .normalize(path.relative(appDir, this.resourcePath))
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file name
+      .replace(/\/page\.(js|jsx|tsx)$/, '')
+      // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
+      .replace(/\/(\(.*?\)\/)+/g, '/')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+
+    // Skip explicitly-ignored pages
+    if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    // The following string is what Next.js injects in order to mark client components:
+    // https://github.com/vercel/next.js/blob/295f9da393f7d5a49b0c2e15a2f46448dbdc3895/packages/next/build/analysis/get-page-static-info.ts#L37
+    // https://github.com/vercel/next.js/blob/a1c15d84d906a8adf1667332a3f0732be615afa0/packages/next-swc/crates/core/src/react_server_components.rs#L247
+    // We do not want to wrap client components
+    if (userCode.includes('/* __next_internal_client_entry_do_not_use__ */')) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    templateCode = serverComponentWrapperTemplateCode;
+  } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
   } else {
-    templateCode = pageWrapperTemplateCode;
+    throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
   }
-
-  // Inject the route and the path to the file we're wrapping into the template
-  templateCode = templateCode.replace(/__ROUTE__/g, parameterizedRoute.replace(/\\/g, '\\\\'));
 
   // Replace the import path of the wrapping target in the template with a path that the `wrapUserCode` function will understand.
   templateCode = templateCode.replace(/__SENTRY_WRAPPING_TARGET_FILE__/g, WRAPPING_TARGET_MODULE_NAME);
@@ -97,7 +146,6 @@ export default function wrappingLoader(
         `[@sentry/nextjs] Could not instrument ${this.resourcePath}. An error occurred while auto-wrapping:\n${err}`,
       );
       this.callback(null, userCode, userModuleSourceMap);
-      return;
     });
 }
 
@@ -153,8 +201,15 @@ async function wrapUserCode(
       // People may use `module.exports` in their API routes or page files. Next.js allows that and we also need to
       // handle that correctly so we let a plugin to take care of bundling cjs exports for us.
       commonjs({
-        transformMixedEsModules: true,
         sourceMap: true,
+        strictRequires: true, // Don't hoist require statements that users may define
+        ignoreDynamicRequires: true, // Don't break dynamic requires and things like Webpack's `require.context`
+        ignore() {
+          // We want basically only want to use this plugin for handling the case where users export their handlers with module.exports.
+          // This plugin would also be able to convert any `require` into something esm compatible but webpack does that anyways so we just skip that part of the plugin.
+          // (Also, modifying require may break user code)
+          return true;
+        },
       }),
     ],
 

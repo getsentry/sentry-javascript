@@ -1,4 +1,5 @@
-import { stripSentryFramesAndReverse } from '../src/stacktrace';
+import { createStackParser, stripSentryFramesAndReverse } from '../src/stacktrace';
+import { GLOBAL_OBJ } from '../src/worldwide';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {
@@ -65,6 +66,44 @@ describe('Stacktrace', () => {
       expect(frames.length).toBe(2);
       expect(frames[0].function).toBe('bar');
       expect(frames[1].function).toBe('foo');
+    });
+  });
+});
+
+describe('Stack parsers created with createStackParser', () => {
+  afterEach(() => {
+    GLOBAL_OBJ._sentryDebugIds = undefined;
+  });
+
+  it('put debug ids onto individual frames', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+
+    const fakeErrorStack = 'filename1.js\nfilename2.js\nfilename1.js\nfilename3.js';
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const result = stackParser(fakeErrorStack);
+
+    expect(result[0]).toStrictEqual({ filename: 'filename3.js', function: '?' });
+
+    expect(result[1]).toStrictEqual({
+      filename: 'filename1.js',
+      function: '?',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(result[2]).toStrictEqual({
+      filename: 'filename2.js',
+      function: '?',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+
+    expect(result[3]).toStrictEqual({
+      filename: 'filename1.js',
+      function: '?',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
     });
   });
 });

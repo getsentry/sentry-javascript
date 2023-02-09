@@ -1,6 +1,6 @@
 {
   "name": "@sentry/hub",
-  "version": "7.34.0",
+  "version": "7.37.0",
   "description": "Sentry hub which handles global state managment.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hub",
@@ -16,9 +16,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.34.0",
-    "@sentry/types": "7.34.0",
-    "@sentry/utils": "7.34.0",
+    "@sentry/core": "7.37.0",
+    "@sentry/types": "7.37.0",
+    "@sentry/utils": "7.37.0",
     "tslib": "^1.9.3"
   },
   "scripts": {
@@ -37,7 +37,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch"

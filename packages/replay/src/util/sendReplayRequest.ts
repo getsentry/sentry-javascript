@@ -1,7 +1,6 @@
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
-import type { RateLimits } from '@sentry/utils';
-import { isRateLimited, logger, updateRateLimits } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { SendReplayData } from '../types';
@@ -63,10 +62,13 @@ export async function sendReplayRequest({
     return;
   }
 
-  replayEvent.tags = {
-    ...replayEvent.tags,
-    sessionSampleRate: options.sessionSampleRate,
-    errorSampleRate: options.errorSampleRate,
+  replayEvent.contexts = {
+    ...replayEvent.contexts,
+    replay: {
+      ...(replayEvent.contexts && replayEvent.contexts.replay),
+      session_sample_rate: options.sessionSampleRate,
+      error_sample_rate: options.errorSampleRate,
+    },
   };
 
   /*
@@ -98,10 +100,12 @@ export async function sendReplayRequest({
           "version": "7.25.0"
       },
       "sdkProcessingMetadata": {},
-      "tags": {
-          "sessionSampleRate": 1,
-          "errorSampleRate": 0,
-      }
+      "contexts": {
+        "replay": {
+          "session_sample_rate": 1,
+          "error_sample_rate": 0,
+        },
+      },
   }
   */
 
@@ -120,29 +124,12 @@ export async function sendReplayRequest({
     return response;
   }
 
-  const rateLimits = updateRateLimits({}, response);
-  if (isRateLimited(rateLimits, 'replay')) {
-    throw new RateLimitError(rateLimits);
-  }
-
   // If the status code is invalid, we want to immediately stop & not retry
   if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
     throw new TransportStatusCodeError(response.statusCode);
   }
 
   return response;
-}
-
-/**
- * This error indicates that we hit a rate limit API error.
- */
-export class RateLimitError extends Error {
-  public rateLimits: RateLimits;
-
-  public constructor(rateLimits: RateLimits) {
-    super('Rate limit hit');
-    this.rateLimits = rateLimits;
-  }
 }
 
 /**
