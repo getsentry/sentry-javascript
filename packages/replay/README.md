@@ -101,33 +101,14 @@ replay.stop(); // Stop recording
 
 ## Loading Replay as a CDN Bundle
 
-As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
+As an alternative to the NPM package, you can use Replay as a CDN bundle.
+Please refer to the [Session Replay installation guide](https://docs.sentry.io/platforms/javascript/session-replay/#install) for CDN bundle instructions.
 
-```js
-// Browser SDK bundle
-<script
-  src="https://browser.sentry-cdn.com/7.31.1/bundle.tracing.replay.min.js"
-  crossorigin="anonymous"
-></script>
-
-// Add Sentry.Integrations.Replay to your Sentry.init call
-Sentry.init({
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // If the entire session is not sampled, use the below sample rate to sample
-  // sessions when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  dsn: '__DSN__',
-  integrations: [new Sentry.Integrations.Replay()],
-});
-```
-
-The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
-
-Alternatively, you can also load the Replay integration separately from other bundles:
+<details>
+<summary>Deprecated Replay integration bundle</summary>
+Installing the replay integration as a secondary integration bundle to the SDK bundle was deprecated in favour of
+complete CDN bundles that already contain the replay integration. No need to keep two bundles in sync anymore.
+The `replay.(min.)js` bundle will be removed in v8 of the JS SDKs.
 
 ```html
 <script
@@ -139,9 +120,7 @@ Alternatively, you can also load the Replay integration separately from other bu
   crossorigin="anonymous"
 ></script>
 ```
-
-Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
-Note that the two bundle versions always have to match.
+</details>
 
 ## Sessions
 
