@@ -96,7 +96,7 @@ export function constructWebpackConfigFunction(
       appDirPath = path.join(projectDir, 'src', 'app');
     }
 
-    const apiRoutesPath = path.join(pagesDirPath, 'api');
+    const apiRoutesPath = path.join(pagesDirPath, 'api', '/');
 
     const middlewareJsPath = path.join(pagesDirPath, '..', 'middleware.js');
     const middlewareTsPath = path.join(pagesDirPath, '..', 'middleware.ts');
