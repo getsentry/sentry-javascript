@@ -11,7 +11,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --config ../../.prettierrc.json --write . ",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --config ../../.prettierrc.json --check .",
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",

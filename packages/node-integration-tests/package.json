@@ -10,7 +10,7 @@
     "clean": "rimraf -g **/node_modules",
     "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",

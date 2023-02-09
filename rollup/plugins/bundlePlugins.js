@@ -187,8 +187,12 @@ export function makeTSPlugin(jsVersion) {
  * from the browser and browser+tracing bundles.
  * If we need to add more such guards in the future, we might want to refactor this into a more generic plugin.
  */
-export function makeExcludeReplayPlugin() {
-  const replacementRegex = /\/\/ __ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_FROM_BUNDLES_END__/m;
+export function makeExcludeBlockPlugin(type) {
+  const replacementRegex = new RegExp(
+    `\\/\\/ __ROLLUP_EXCLUDE_${type}_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_${type}_FROM_BUNDLES_END__`,
+    'm',
+  );
+
   const browserIndexFilePath = path.resolve(__dirname, '../../packages/browser/src/index.ts');
 
   const plugin = {

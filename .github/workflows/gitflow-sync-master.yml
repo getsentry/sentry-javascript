@@ -1,10 +1,10 @@
 name: Gitflow - Sync develop into master
 on:
-  push:
-    pull_request:
-      - types: [closed]
-      - branches:
-          - 'develop'
+  pull_request:
+    types:
+      - closed
+    branches:
+      - develop
 
 env:
   MAIN_BRANCH: master
