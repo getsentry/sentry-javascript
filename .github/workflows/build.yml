@@ -153,10 +153,9 @@ jobs:
     # only upload the zipped layer file if we're about to release
     if: startsWith(github.ref, 'refs/heads/release/')
     env:
-        # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
-        CACHED_BUILD_PATHS: |
-          ${{ github.workspace }}/packages/serverless
-        BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+      CACHED_BUILD_PATHS: |
+        ${{ github.workspace }}/packages/serverless
+      BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -220,7 +219,7 @@ jobs:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # use Node 14 for now.
           node-version: '14'
-     - name: Dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
           path: ${{ env.DEPENDENCY_CACHE_PATHS }}
@@ -251,7 +250,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-     - name: Dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
           path: ${{ env.DEPENDENCY_CACHE_PATHS }}
@@ -674,7 +673,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-     - name: Dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
           path: ${{ env.DEPENDENCY_CACHE_PATHS }}
@@ -737,7 +736,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-     - name: Dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
           path: ${{ env.DEPENDENCY_CACHE_PATHS }}
