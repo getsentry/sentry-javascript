@@ -13,8 +13,8 @@ export function setupReplayContainer({
       flushMinDelay: 100,
       flushMaxDelay: 100,
       stickySession: false,
-      sessionSampleRate: 0,
-      errorSampleRate: 1,
+      sessionSampleRate: 1,
+      errorSampleRate: 0,
       useCompression: false,
       blockAllMedia: true,
       _experiments: {},
@@ -30,8 +30,10 @@ export function setupReplayContainer({
   replay['_setInitialState']();
   replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
   replay['_isEnabled'] = true;
+  replay.recordingMode = replay.session?.sampled === 'error' ? 'error' : 'session';
   replay.eventBuffer = createEventBuffer({
     useCompression: options?.useCompression || false,
+    keepLastCheckout: replay.recordingMode === 'error',
   });
 
   return replay;

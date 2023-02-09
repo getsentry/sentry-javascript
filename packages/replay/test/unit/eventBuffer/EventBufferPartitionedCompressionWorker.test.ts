@@ -3,21 +3,21 @@ import 'jsdom-worker';
 import pako from 'pako';
 
 import { BASE_TIMESTAMP } from '../..';
-import { EventBufferCompressionWorker } from '../../../src/eventBuffer/EventBufferCompressionWorker';
+import { createEventBuffer } from '../../../src/eventBuffer';
+import { EventBufferPartitionedCompressionWorker } from '../../../src/eventBuffer/EventBufferPartitionedCompressionWorker';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
-import { createEventBuffer } from './../../../src/eventBuffer';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
 
-describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
+describe('Unit | eventBuffer | EventBufferPartitionedCompressionWorker', () => {
   it('adds events to event buffer with compression worker', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
-      keepLastCheckout: false,
+      keepLastCheckout: true,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
+    expect(buffer['_compression']).toBeInstanceOf(EventBufferPartitionedCompressionWorker);
 
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
@@ -35,11 +35,11 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
   it('adds checkout events to event buffer with compression worker', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
-      keepLastCheckout: false,
+      keepLastCheckout: true,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
+    expect(buffer['_compression']).toBeInstanceOf(EventBufferPartitionedCompressionWorker);
 
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
@@ -47,24 +47,34 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await buffer.addEvent(TEST_EVENT);
     await buffer.addEvent(TEST_EVENT);
 
-    // This should clear previous buffer
+    // This should clear previous buffer, but keep last checkout
+    buffer.clear(true);
+    await buffer.addEvent({ ...TEST_EVENT, type: 2 }, true);
+
+    await buffer.addEvent(TEST_EVENT);
+    await buffer.addEvent(TEST_EVENT);
+
+    // This should clear previous buffer, but keep last checkout
+    buffer.clear(true);
     await buffer.addEvent({ ...TEST_EVENT, type: 2 }, true);
 
     const result = await buffer.finish();
     expect(result).toBeInstanceOf(Uint8Array);
     const restored = pako.inflate(result as Uint8Array, { to: 'string' });
 
-    expect(restored).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 2 }]));
+    expect(restored).toEqual(
+      JSON.stringify([{ ...TEST_EVENT, type: 2 }, TEST_EVENT, TEST_EVENT, { ...TEST_EVENT, type: 2 }]),
+    );
   });
 
   it('calling `finish()` multiple times does not result in duplicated events', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
-      keepLastCheckout: false,
+      keepLastCheckout: true,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
+    expect(buffer['_compression']).toBeInstanceOf(EventBufferPartitionedCompressionWorker);
 
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
@@ -86,11 +96,11 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
   it('calling `finish()` multiple times, with events in between, does not result in duplicated or dropped events', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
-      keepLastCheckout: false,
+      keepLastCheckout: true,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
+    expect(buffer['_compression']).toBeInstanceOf(EventBufferPartitionedCompressionWorker);
 
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
@@ -116,11 +126,11 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
   it('handles an error when compressing the payload', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
-      keepLastCheckout: false,
+      keepLastCheckout: true,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
+    expect(buffer['_compression']).toBeInstanceOf(EventBufferPartitionedCompressionWorker);
 
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
@@ -134,28 +144,5 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     });
 
     await expect(() => buffer.finish()).rejects.toBeDefined();
-  });
-
-  it('handles an error when adding an event', async function () {
-    const buffer = createEventBuffer({
-      useCompression: true,
-      keepLastCheckout: false,
-    }) as EventBufferProxy;
-
-    expect(buffer).toBeInstanceOf(EventBufferProxy);
-    expect(buffer['_compression']).toBeInstanceOf(EventBufferCompressionWorker);
-
-    // Ensure worker is ready
-    await buffer.ensureWorkerIsLoaded();
-
-    await buffer.addEvent({ data: { o: 1 }, timestamp: BASE_TIMESTAMP, type: 3 }, true);
-    await buffer.addEvent({ data: { o: 2 }, timestamp: BASE_TIMESTAMP, type: 3 });
-
-    // @ts-ignore Mock this private so it triggers an error
-    jest.spyOn(buffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
-      return Promise.reject('test worker error');
-    });
-
-    await expect(() => buffer.addEvent({ data: { o: 3 }, timestamp: BASE_TIMESTAMP, type: 3 })).rejects.toBeDefined();
   });
 });

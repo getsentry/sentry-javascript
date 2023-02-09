@@ -23,6 +23,7 @@ describe('Unit | eventBuffer | EventBufferProxy', () => {
   it('waits for the worker to be loaded when calling finish', async function () {
     const buffer = createEventBuffer({
       useCompression: true,
+      keepLastCheckout: false,
     }) as EventBufferProxy;
 
     expect(buffer).toBeInstanceOf(EventBufferProxy);
@@ -41,7 +42,7 @@ describe('Unit | eventBuffer | EventBufferProxy', () => {
     const workerBlob = new Blob([workerString]);
     const workerUrl = URL.createObjectURL(workerBlob);
     const worker = new Worker(workerUrl);
-    const buffer = new EventBufferProxy(worker);
+    const buffer = new EventBufferProxy(worker, false);
 
     buffer.addEvent(TEST_EVENT);
     buffer.addEvent(TEST_EVENT);

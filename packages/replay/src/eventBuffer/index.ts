@@ -7,12 +7,13 @@ import { EventBufferProxy } from './EventBufferProxy';
 
 interface CreateEventBufferParams {
   useCompression: boolean;
+  keepLastCheckout: boolean;
 }
 
 /**
  * Create an event buffer for replays.
  */
-export function createEventBuffer({ useCompression }: CreateEventBufferParams): EventBuffer {
+export function createEventBuffer({ useCompression, keepLastCheckout }: CreateEventBufferParams): EventBuffer {
   // eslint-disable-next-line no-restricted-globals
   if (useCompression && window.Worker) {
     try {
@@ -20,7 +21,7 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
 
       __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
       const worker = new Worker(workerUrl);
-      return new EventBufferProxy(worker);
+      return new EventBufferProxy(worker, keepLastCheckout);
     } catch (error) {
       __DEBUG_BUILD__ && logger.log('[Replay] Failed to create compression worker');
       // Fall back to use simple event buffer array

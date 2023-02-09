@@ -4,6 +4,7 @@ import { logger } from '@sentry/utils';
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
+import { EventBufferPartitionedCompressionWorker } from './EventBufferPartitionedCompressionWorker';
 
 /**
  * This proxy will try to use the compression worker, and fall back to use the simple buffer if an error occurs there.
@@ -12,15 +13,21 @@ import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
  */
 export class EventBufferProxy implements EventBuffer {
   private _fallback: EventBufferArray;
-  private _compression: EventBufferCompressionWorker;
+  private _compression: EventBufferCompressionWorker | EventBufferPartitionedCompressionWorker;
   private _used: EventBuffer;
   private _ensureWorkerIsLoadedPromise: Promise<void>;
 
-  public constructor(worker: Worker) {
+  public constructor(worker: Worker, keepLastCheckout: boolean) {
     this._fallback = new EventBufferArray();
-    this._compression = new EventBufferCompressionWorker(worker);
-    this._used = this._fallback;
 
+    // In error mode, we use the partitioned compression worker, which does not use compression streaming
+    // Instead, all events are sent at finish-time, as we need to continuously modify the queued events
+    // In session mode, we use a streaming compression implementation, which is more performant
+    this._compression = keepLastCheckout
+      ? new EventBufferPartitionedCompressionWorker(worker)
+      : new EventBufferCompressionWorker(worker);
+
+    this._used = this._fallback;
     this._ensureWorkerIsLoadedPromise = this._ensureWorkerIsLoaded();
   }
 
@@ -52,9 +59,19 @@ export class EventBufferProxy implements EventBuffer {
     return this._used.finish();
   }
 
+  /** @inheritdoc */
+  public clear(keepLastCheckout?: boolean): Promise<void> {
+    return this._used.clear(keepLastCheckout);
+  }
+
   /** Ensure the worker has loaded. */
   public ensureWorkerIsLoaded(): Promise<void> {
     return this._ensureWorkerIsLoadedPromise;
+  }
+
+  /** @inheritdoc */
+  public getEarliestTimestamp(): number | null {
+    return this._used.getEarliestTimestamp();
   }
 
   /** Actually check if the worker has been loaded. */

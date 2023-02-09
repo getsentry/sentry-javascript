@@ -23,7 +23,7 @@ export interface SendReplayData {
  */
 export interface WorkerRequest {
   id: number;
-  method: 'clear' | 'addEvent' | 'finish';
+  method: 'clear' | 'addEvent' | 'finish' | 'compress';
   arg?: string;
 }
 
@@ -280,6 +280,12 @@ export interface EventBuffer {
    * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
+
+  /** Clear the buffer, and optional ensure we keep the last checkout. */
+  clear(keepLastCheckout?: boolean): Promise<void>;
+
+  /** Get the earliest timestamp of a pending event. */
+  getEarliestTimestamp(): number | null;
 }
 
 export type AddUpdateCallback = () => boolean | void;

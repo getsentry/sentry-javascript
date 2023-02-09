@@ -57,6 +57,18 @@ export class EventBufferCompressionWorker implements EventBuffer {
     return this._finishRequest();
   }
 
+  /** @inheritdoc */
+  public clear(): Promise<void> {
+    // NOTE: We do not support keeping the last checkout in this implementation.
+    return this._clear();
+  }
+
+  /** @inheritdoc */
+  public getEarliestTimestamp(): number | null {
+    // Not supported in this mode
+    return null;
+  }
+
   /**
    * Send the event to the worker.
    */
