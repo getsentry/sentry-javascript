@@ -38,6 +38,8 @@ env:
     nx-Linux-refs/heads/develop
     nx-Linux
 
+  NX_CACHE_KEY: nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
+
   NX_CACHE_PATH: .nxcache
 
 jobs:
@@ -134,7 +136,7 @@ jobs:
         if: needs.job_get_metadata.outputs.is_release == 'false'
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          key: ${{ env.NX_CACHE_KEY }}
           # We always want to _store_ the cache (so it can be used by other branches), but when uncached, never _restore_ from it
           restore-keys:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
@@ -172,7 +174,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
 
       - name: Build Lambda
         run: yarn lerna run build:bundle --scope @sentry/serverless --include-dependencies
@@ -228,7 +230,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@main-skip-step
         with:
@@ -258,7 +260,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run linter
         run: yarn lint
 
@@ -283,7 +285,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -309,7 +311,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
@@ -346,7 +348,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run tests
         env:
           NODE_VERSION: 16
@@ -381,7 +383,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -418,7 +420,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -488,7 +490,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -545,7 +547,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -575,7 +577,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run browser build tests
         run: |
           cd packages/browser
@@ -612,7 +614,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -647,7 +649,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -681,7 +683,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
       - name: Get node version
         id: versions
         run: |
@@ -744,7 +746,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_RESTORE_KEYS }}
+          key: ${{ env.NX_CACHE_KEY }}
 
       - name: Setup
         run: yarn install
