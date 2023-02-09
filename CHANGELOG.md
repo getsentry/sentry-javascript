@@ -11,9 +11,9 @@
 - feat(nextjs): Add auto-wrapping for server components (#6953)
 - feat(replay): Improve rrweb error ignoring (#7087 & #7094)
 - feat(replay): Send client_report when replay sending fails (#7093)
-- fix(replay): Export Replay from Sentry namespace in full CDN bundle (#TODO)
 - fix(node): `LocalVariables`, Improve frame matching for ESM (#7049)
 - fix(node): Add lru cache to http integration span map (#7064)
+- fix(replay): Export Replay from Sentry namespace in full CDN bundle (#7119)
 
 Work in this release contributed by @JamesHenry. Thank you for your contribution!
 
