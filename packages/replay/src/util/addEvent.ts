@@ -1,8 +1,8 @@
+import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION } from '../constants';
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
-import { getCurrentHub } from '@sentry/core';
 
 /**
  * Add an event to the event buffer
