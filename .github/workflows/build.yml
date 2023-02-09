@@ -164,11 +164,9 @@ jobs:
         id: compute_lockfile_hash
         run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
 
-      # When the `ci-skip-cache` label is added to a PR, we always want to skip dependency cache
       - name: Check dependency cache
         uses: actions/cache@v3
         id: cache_dependencies
-        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
