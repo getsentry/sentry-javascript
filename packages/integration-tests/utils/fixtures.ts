@@ -35,6 +35,11 @@ export type TestFixtures = {
 };
 
 const sentryTest = base.extend<TestFixtures>({
+  _autoSnapshotSuffix: [async ({ }, use, testInfo) => {
+    testInfo.snapshotSuffix = '';
+    await use();
+  }, { auto: true }],
+
   getLocalTestPath: ({}, use, testInfo) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
