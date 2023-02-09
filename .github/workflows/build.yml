@@ -176,7 +176,7 @@ jobs:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
 
-      - name: Build Lambda
+      - name: Build
         run: yarn lerna run build:bundle --scope @sentry/serverless --include-dependencies
 
       - name: Get SDK version
@@ -421,6 +421,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn lerna run build:types,build:transpile --scope @sentry/nextjs --include-dependencies
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -491,6 +493,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn build
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -548,6 +552,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn build
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -578,6 +584,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn build
       - name: Run browser build tests
         run: |
           cd packages/browser
@@ -615,6 +623,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn lerna run build:types,build:transpile --scope @sentry/node-integration-tests --include-dependencies
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -650,6 +660,8 @@ jobs:
         with:
           path: ${{ env.NX_CACHE_PATH }}
           key: ${{ env.NX_CACHE_KEY }}
+      - name: Build
+        run: yarn lerna run build:types,build:transpile --scope @sentry/remix --include-dependencies
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}

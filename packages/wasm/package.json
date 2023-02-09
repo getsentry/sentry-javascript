@@ -54,5 +54,14 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+     "test": {
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile", "build:bundle", "^build:bundle"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/coverage"]
+     }
+    }
+  }
 }
