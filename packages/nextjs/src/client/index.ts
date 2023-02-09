@@ -77,7 +77,9 @@ function addClientIntegrations(options: BrowserOptions): void {
 
       if (
         frame.filename &&
-        frame.filename.match(/^app:\/\/\/_next\/static\/chunks\/(main|main-app|polyfills|webpack)-[0-9a-f]{16}\.js$/)
+        frame.filename.match(
+          /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+        )
       ) {
         // We don't care about these frames. It's Next.js internal code.
         frame.in_app = false;
