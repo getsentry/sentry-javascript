@@ -153,9 +153,8 @@ jobs:
     # only upload the zipped layer file if we're about to release
     if: startsWith(github.ref, 'refs/heads/release/')
     env:
-      CACHED_BUILD_PATHS: |
-        ${{ github.workspace }}/packages/serverless
-      BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+      CACHED_BUILD_PATHS: ./dist-serverless
+      BUILD_CACHE_KEY: serverless-${{ github.event.inputs.commit || github.sha }}
     runs-on: ubuntu-20.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -178,13 +177,6 @@ jobs:
       - name: Build Lambda
         run: yarn lerna run build:bundle --scope @sentry/serverless --include-dependencies
 
-      - name: Cache build for artifact upload
-        uses: actions/cache@v3
-        id: cache_built_packages
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
       - name: Get SDK version
         # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
         # equivalent of using >> rather than >.)
@@ -194,6 +186,14 @@ jobs:
       - name: Move dist-serverless to root directory (requirement for zipping action)
         run: |
           mv ./packages/serverless/build/aws/dist-serverless .
+
+      - name: Cache build for zip upload
+        uses: actions/cache@v3
+        id: cache_built_packages
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+
       - name: Create and upload final zip file
         uses: getsentry/action-build-aws-lambda-extension@v1
         with:
