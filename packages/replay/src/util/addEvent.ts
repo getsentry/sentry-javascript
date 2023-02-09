@@ -1,3 +1,4 @@
+import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { SESSION_IDLE_DURATION } from '../constants';
@@ -46,5 +47,11 @@ export async function addEvent(
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
     replay.stop();
+
+    const client = getCurrentHub().getClient();
+
+    if (client) {
+      client.recordDroppedEvent('internal_sdk_error', 'replay');
+    }
   }
 }

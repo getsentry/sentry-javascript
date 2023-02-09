@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "node ./scripts/verify-packages-versions.js && lerna run build:types,build:transpile,build:bundle",
+    "build": "node ./scripts/verify-packages-versions.js && run-s build:types build:transpile build:bundle",
     "build:bundle": "lerna run build:bundle",
     "build:dev": "lerna run build:types,build:transpile",
     "build:dev:filter": "lerna run build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
@@ -109,8 +109,7 @@
     "typescript": "3.8.3"
   },
   "resolutions": {
-    "**/agent-base": "5",
-    "@types/express-serve-static-core": "4.17.30"
+    "**/agent-base": "5"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

@@ -18,7 +18,7 @@ import { TextEncoder } from 'util';
 
 import { createTransport } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
-import { makeOfflineTransport, MIN_DELAY, START_DELAY } from '../../../src/transports/offline';
+import { makeOfflineTransport, START_DELAY } from '../../../src/transports/offline';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -115,8 +115,19 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
   };
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function waitUntil(fn: () => boolean, timeout: number): Promise<void> {
+  return new Promise(resolve => {
+    let runtime = 0;
+
+    const interval = setInterval(() => {
+      runtime += 100;
+
+      if (fn() || runtime >= timeout) {
+        clearTimeout(interval);
+        resolve();
+      }
+    }, 100);
+  });
 }
 
 describe('makeOfflineTransport', () => {
@@ -138,7 +149,7 @@ describe('makeOfflineTransport', () => {
     expect(queuedCount).toEqual(0);
     expect(getSendCount()).toEqual(1);
 
-    await delay(MIN_DELAY * 2);
+    await waitUntil(() => getCalls().length == 1, 1_000);
 
     // After a successful send, the store should be checked
     expect(getCalls()).toEqual(['pop']);
@@ -152,7 +163,7 @@ describe('makeOfflineTransport', () => {
 
     expect(result).toEqual({ statusCode: 200 });
 
-    await delay(MIN_DELAY * 3);
+    await waitUntil(() => getCalls().length == 2, 1_000);
 
     expect(getSendCount()).toEqual(2);
     // After a successful send from the store, the store should be checked again to ensure it's empty
@@ -175,7 +186,7 @@ describe('makeOfflineTransport', () => {
 
     expect(result).toEqual({});
 
-    await delay(MIN_DELAY * 2);
+    await waitUntil(() => getCalls().length === 1, 1_000);
 
     expect(getSendCount()).toEqual(0);
     expect(queuedCount).toEqual(1);
@@ -198,7 +209,7 @@ describe('makeOfflineTransport', () => {
 
     expect(result).toEqual({ statusCode: 500 });
 
-    await delay(MIN_DELAY * 2);
+    await waitUntil(() => getSendCount() === 1, 1_000);
 
     expect(getSendCount()).toEqual(1);
     expect(queuedCount).toEqual(0);
@@ -215,7 +226,7 @@ describe('makeOfflineTransport', () => {
       expect(result).toEqual({});
       expect(getCalls()).toEqual(['add']);
 
-      await delay(START_DELAY + 1_000);
+      await waitUntil(() => getCalls().length === 3 && getSendCount() === 1, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(1);
       expect(getCalls()).toEqual(['add', 'pop', 'pop']);
@@ -235,7 +246,7 @@ describe('makeOfflineTransport', () => {
         flushAtStartup: true,
       });
 
-      await delay(START_DELAY + 1_000);
+      await waitUntil(() => getCalls().length === 3 && getSendCount() === 2, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(2);
       expect(getCalls()).toEqual(['pop', 'pop', 'pop']);
@@ -277,40 +288,44 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
-  it('Follows the Retry-After header', async () => {
-    const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
-    const { getSendCount, baseTransport } = createTestTransport(
-      {
+  it(
+    'Follows the Retry-After header',
+    async () => {
+      const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
+      const { getSendCount, baseTransport } = createTestTransport(
+        {
+          statusCode: 429,
+          headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+        },
+        { statusCode: 200 },
+      );
+
+      let queuedCount = 0;
+      const transport = makeOfflineTransport(baseTransport)({
+        ...transportOptions,
+        createStore: store,
+        shouldStore: () => {
+          queuedCount += 1;
+          return true;
+        },
+      });
+      const result = await transport.send(ERROR_ENVELOPE);
+
+      expect(result).toEqual({
         statusCode: 429,
-        headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
-      },
-      { statusCode: 200 },
-    );
+        headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
+      });
 
-    let queuedCount = 0;
-    const transport = makeOfflineTransport(baseTransport)({
-      ...transportOptions,
-      createStore: store,
-      shouldStore: () => {
-        queuedCount += 1;
-        return true;
-      },
-    });
-    const result = await transport.send(ERROR_ENVELOPE);
+      await waitUntil(() => getSendCount() === 1, 500);
 
-    expect(result).toEqual({
-      statusCode: 429,
-      headers: { 'x-sentry-rate-limits': '', 'retry-after': '1' },
-    });
+      expect(getSendCount()).toEqual(1);
 
-    await delay(MIN_DELAY * 2);
+      await waitUntil(() => getCalls().length === 2, START_DELAY * 2);
 
-    expect(getSendCount()).toEqual(1);
-
-    await delay(3_000);
-
-    expect(getSendCount()).toEqual(2);
-    expect(queuedCount).toEqual(0);
-    expect(getCalls()).toEqual(['pop', 'pop']);
-  }, 7_000);
+      expect(getSendCount()).toEqual(2);
+      expect(queuedCount).toEqual(0);
+      expect(getCalls()).toEqual(['pop', 'pop']);
+    },
+    START_DELAY * 3,
+  );
 });
