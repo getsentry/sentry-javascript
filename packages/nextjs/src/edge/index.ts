@@ -139,3 +139,5 @@ export {
 } from './wrapApiHandlerWithSentry';
 
 export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
+
+export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';

@@ -125,3 +125,8 @@ export declare function wrapErrorGetInitialPropsWithSentry<F extends (...args: a
 export declare function withSentryServerSideErrorGetInitialProps<F extends (...args: any[]) => any>(
   getInitialProps: F,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps an `app` directory component with Sentry error instrumentation. (Currently only reports errors for server components)
+ */
+export declare function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(WrappingTarget: F): F;

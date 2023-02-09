@@ -16,11 +16,10 @@ To run the test suite and our code linter, node.js and yarn are required.
 [`node` download](https://nodejs.org/download)
 [`yarn` download](https://yarnpkg.com/en/docs/install)
 
-`sentry-javascript` is a monorepo containing several packages, and we use `lerna` to manage them. To get started, install all dependencies, use `lerna` to bootstrap the workspace, and then perform an initial build, so TypeScript can read all of the linked type definitions.
+`sentry-javascript` is a monorepo containing several packages, and we use `lerna` to manage them. To get started, install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
 
 ```
 $ yarn
-$ yarn lerna bootstrap
 $ yarn build
 ```
 

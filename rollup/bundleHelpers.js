@@ -16,7 +16,7 @@ import {
   makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
-  makeExcludeReplayPlugin,
+  makeExcludeBlockPlugin,
   makeSetSDKSourcePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
@@ -24,8 +24,16 @@ import { mergePlugins } from './utils';
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig, includeReplay } =
-    options;
+  const {
+    bundleType,
+    entrypoints,
+    jsVersion,
+    licenseTitle,
+    outputFileBase,
+    packageSpecificConfig,
+    includeReplay,
+    includeOffline,
+  } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -33,7 +41,8 @@ export function makeBaseBundleConfig(options) {
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
-  const excludeReplayPlugin = makeExcludeReplayPlugin();
+  const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
+  const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -52,6 +61,10 @@ export function makeBaseBundleConfig(options) {
 
   if (!includeReplay) {
     standAloneBundleConfig.plugins.push(excludeReplayPlugin);
+  }
+
+  if (!includeOffline) {
+    standAloneBundleConfig.plugins.push(excludeOfflineTransport);
   }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)

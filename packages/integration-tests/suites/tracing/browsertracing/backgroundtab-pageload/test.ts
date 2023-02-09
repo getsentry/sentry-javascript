@@ -9,9 +9,11 @@ sentryTest('should finish pageload transaction when the page goes background', a
 
   await page.goto(url);
 
-  void page.click('#go-background');
+  const pageloadTransactionPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page);
+  await page.click('#go-background');
+
+  const pageloadTransaction = await pageloadTransactionPromise;
 
   expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
   expect(pageloadTransaction.contexts?.trace?.status).toBe('cancelled');
