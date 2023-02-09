@@ -24,8 +24,8 @@ jobs:
         with:
           # Parse version from head branch
           text: ${{ github.head_ref }}
-          # match: refs/heads/preprare-release/xx.xx.xx
-          regex: '^refs\/heads\/preprare-release\/(\d+\.\d+\.\d+)$'
+          # match: preprare-release/xx.xx.xx
+          regex: '^preprare-release\/(\d+\.\d+\.\d+)$'
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
