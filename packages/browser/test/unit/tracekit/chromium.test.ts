@@ -332,6 +332,35 @@ describe('Tracekit - Chrome Tests', () => {
     });
   });
 
+  it('should parse frames with async urls', () => {
+    const CHROME_109_ASYNC_URL = {
+      message: 'bad',
+      name: 'Error',
+      stack: `Error: bad
+          at Object.aha (http://localhost:5000/:19:13)
+          at callAnotherThing (http://localhost:5000/:20:16)
+          at Object.callback (async http://localhost:5000/:25:7)
+          at test (http://localhost:5000/:33:23)
+          at Foo.testMethod (http://localhost:5000/:44:7)`,
+    };
+
+    const ex = exceptionFromError(parser, CHROME_109_ASYNC_URL);
+
+    expect(ex).toEqual({
+      value: 'bad',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          { filename: 'http://localhost:5000/', function: 'Foo.testMethod', lineno: 44, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'test', lineno: 33, colno: 23, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Object.callback', lineno: 25, colno: 7, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'callAnotherThing', lineno: 20, colno: 16, in_app: true },
+          { filename: 'http://localhost:5000/', function: 'Object.aha', lineno: 19, colno: 13, in_app: true },
+        ],
+      },
+    });
+  });
+
   it('should parse exceptions with native code frames in Edge 44', () => {
     const EDGE44_NATIVE_CODE_EXCEPTION = {
       message: 'test',
