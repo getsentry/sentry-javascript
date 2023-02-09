@@ -1,0 +1,11 @@
+name: Clear all GHA caches
+on:
+  workflow_dispatch:
+
+jobs:
+  clear-caches:
+    name: Delete all caches
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clear caches
+        uses: easimon/wipe-cache@v2
