@@ -186,8 +186,8 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                 },
                 {
                   attributes: {
-                    rr_height: '0px',
-                    rr_width: '0px',
+                    rr_height: '100px',
+                    rr_width: '100px',
                   },
                   childNodes: [],
                   id: 25,
@@ -196,11 +196,27 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                 },
                 {
                   id: 26,
+                  textContent: '\n    ',
+                  type: 3,
+                },
+                {
+                  attributes: {
+                    "data-sentry-unblock": "",
+                    src: "file://foo/foo.png",
+                    style: "width:100px;height:100px",
+                  },
+                  childNodes: [],
+                  id: 27,
+                  tagName: 'img',
+                  type: 2,
+                },
+                {
+                  id: 28,
                   textContent: '\n  ',
                   type: 3,
                 },
                 {
-                  id: 27,
+                  id: 29,
                   textContent: '\n\n',
                   type: 3,
                 },
