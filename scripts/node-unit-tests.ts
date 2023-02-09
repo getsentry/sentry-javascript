@@ -107,6 +107,12 @@ function runWithIgnores(skipPackages: string[] = []): void {
 }
 
 /**
+ * Manually run build for older lerna versions, which do not have Nx dependencies.
+ */
+function build(): void {
+  run('yarn build:dev');
+}
+/**
  * Run the tests, accounting for compatibility problems in older versions of Node.
  */
 function runTests(): void {
@@ -120,16 +126,19 @@ function runTests(): void {
       installLegacyDeps(NODE_8_LEGACY_DEPENDENCIES);
       skipNodeV8Tests();
       es6ifyTestTSConfig('utils');
+      build();
       break;
     case '10':
       NODE_10_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
       installLegacyDeps(NODE_10_LEGACY_DEPENDENCIES);
       es6ifyTestTSConfig('utils');
+      build();
       break;
     case '12':
       NODE_12_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
       installLegacyDeps(NODE_12_LEGACY_DEPENDENCIES);
       es6ifyTestTSConfig('utils');
+      build();
       break;
   }
 
