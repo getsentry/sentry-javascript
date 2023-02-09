@@ -8,6 +8,8 @@
           "build:transpile",
           "build:types",
           "lint:eslint",
+          "lint:prettier",
+          "lint",
           "test",
           "test:unit"
         ]
@@ -69,6 +71,17 @@
     },
     "lint:eslint": {
       "inputs": ["default"],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
+      "outputs": []
+    },
+    "lint:prettier": {
+      "inputs": ["default"],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
+      "outputs": []
+    },
+    "lint": {
+      "inputs": ["default"],
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
       "outputs": []
     },
     "test": {

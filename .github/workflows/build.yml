@@ -233,7 +233,6 @@ jobs:
         uses: getsentry/size-limit-action@main-skip-step
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_step: build
           main_branch: develop
 
   job_lint:

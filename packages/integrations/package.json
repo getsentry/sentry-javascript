@@ -16,13 +16,13 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "dependencies": {
-    "@sentry/browser": "7.36.0",
     "@sentry/types": "7.36.0",
     "@sentry/utils": "7.36.0",
     "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry/browser": "7.36.0",
     "chai": "^4.1.2"
   },
   "scripts": {
