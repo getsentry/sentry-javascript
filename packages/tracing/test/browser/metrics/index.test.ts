@@ -48,6 +48,7 @@ describe('_addResourceSpans', () => {
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
+      renderBlockingStatus: 'non-blocking',
     };
     _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
 
@@ -61,6 +62,7 @@ describe('_addResourceSpans', () => {
       transferSize: 256,
       encodedBodySize: 256,
       decodedBodySize: 256,
+      renderBlockingStatus: 'non-blocking',
     };
     _addResourceSpans(transaction, entry, '/assets/to/me', 123, 456, 100);
 
@@ -74,6 +76,7 @@ describe('_addResourceSpans', () => {
       transferSize: 256,
       encodedBodySize: 456,
       decodedBodySize: 593,
+      renderBlockingStatus: 'non-blocking',
     };
 
     const timeOrigin = 100;
@@ -90,6 +93,7 @@ describe('_addResourceSpans', () => {
         ['Decoded Body Size']: entry.decodedBodySize,
         ['Encoded Body Size']: entry.encodedBodySize,
         ['Transfer Size']: entry.transferSize,
+        ['Render Blocking Status']: entry.renderBlockingStatus,
       },
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
@@ -143,6 +147,7 @@ describe('_addResourceSpans', () => {
       transferSize: 0,
       encodedBodySize: 0,
       decodedBodySize: 0,
+      renderBlockingStatus: 'non-blocking',
     };
 
     _addResourceSpans(transaction, entry, '/assets/to/css', 100, 23, 345);
@@ -156,6 +161,7 @@ describe('_addResourceSpans', () => {
           ['Decoded Body Size']: entry.decodedBodySize,
           ['Encoded Body Size']: entry.encodedBodySize,
           ['Transfer Size']: entry.transferSize,
+          ['Render Blocking Status']: entry.renderBlockingStatus,
         },
       }),
     );
