@@ -40,7 +40,7 @@ env:
 
   NX_CACHE_KEY: nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
 
-  NX_CACHE_PATH: .nxcache
+  NX_CACHE_PATH: ${{ github.workspace }}/.nxcache
 
 jobs:
   job_get_metadata:
@@ -99,7 +99,7 @@ jobs:
         id: compute_lockfile_hash
         run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
 
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         id: cache_dependencies
         with:
@@ -123,7 +123,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
+      - name: Dependency cache
         uses: actions/cache@v3
         with:
           path: ${{ env.DEPENDENCY_CACHE_PATHS }}
