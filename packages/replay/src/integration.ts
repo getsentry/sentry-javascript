@@ -2,7 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY, MASK_ALL_TEXT_SELECTOR } from './constants';
+import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY } from './constants';
 import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
@@ -53,7 +53,7 @@ export class Replay implements Integration {
     _experiments = {},
     sessionSampleRate,
     errorSampleRate,
-    maskAllText,
+    maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
 
@@ -79,6 +79,7 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this._recordingOptions = {
       maskAllInputs,
+      maskAllText,
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
@@ -113,7 +114,6 @@ export class Replay implements Integration {
       sessionSampleRate,
       errorSampleRate,
       useCompression,
-      maskAllText: typeof maskAllText === 'boolean' ? maskAllText : !maskTextSelector,
       blockAllMedia,
       _experiments,
     };
@@ -140,13 +140,6 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       );
 
       this._initialOptions.errorSampleRate = errorSampleRate;
-    }
-
-    if (this._initialOptions.maskAllText) {
-      // `maskAllText` is a more user friendly option to configure
-      // `maskTextSelector`. This means that all nodes will have their text
-      // content masked.
-      this._recordingOptions.maskTextSelector = MASK_ALL_TEXT_SELECTOR;
     }
 
     if (this._initialOptions.blockAllMedia) {
