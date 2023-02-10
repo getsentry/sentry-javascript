@@ -1,7 +1,7 @@
+import workerString from '@sentry-internal/replay-worker';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer } from '../types';
-import workerString from '../worker/worker.js';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
 

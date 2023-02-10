@@ -5,8 +5,7 @@ export default makeNPMConfigVariants(
     hasBundles: true,
     packageSpecificConfig: {
       output: {
-        // set exports to 'named' or 'auto' so that rollup doesn't warn about
-        // the default export in `worker/worker.js`
+        // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
         // set preserveModules to false because for Replay we actually want
         // to bundle everything into one file.
