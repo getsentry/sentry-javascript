@@ -118,6 +118,11 @@ describe('webpack loaders', () => {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/[...testPage].js',
         expectedWrappingTargetKind: 'page',
       },
+      // Regression test for https://github.com/getsentry/sentry-javascript/issues/7122
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/apidoc/[version].tsx',
+        expectedWrappingTargetKind: 'page',
+      },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.js',
         expectedWrappingTargetKind: 'middleware',
