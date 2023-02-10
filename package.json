@@ -27,7 +27,7 @@
     "test": "lerna run --ignore @sentry-internal/* test",
     "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby}\" --ignore @sentry-internal/*",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
-    "test:update-snapshots": "lerna run --scope=@sentry-internal/browser-integration-test test:update-snapshots"
+    "test:update-snapshots": "lerna run test:update-snapshots"
   },
   "volta": {
     "node": "16.19.0",
