@@ -124,7 +124,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   childNodes: [
                     {
                       type: 3,
-                      textContent: '**** ****** ** ******** *** ** **** *********',
+                      textContent: 'This should be unmasked due to data attribute',
                       id: 16,
                     },
                   ],
