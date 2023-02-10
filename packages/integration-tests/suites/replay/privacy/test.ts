@@ -29,240 +29,240 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
   const checkoutEvent = replayPayload.find(({ type }) => type === EventType.FullSnapshot);
 
   expect(checkoutEvent?.data).toEqual({
-    'node': {
-      'type': 0,
-      'childNodes': [
+    node: {
+      type: 0,
+      childNodes: [
         {
-          'type': 1,
-          'name': 'html',
-          'publicId': '',
-          'systemId': '',
-          'id': 2
+          type: 1,
+          name: 'html',
+          publicId: '',
+          systemId: '',
+          id: 2,
         },
         {
-          'type': 2,
-          'tagName': 'html',
-          'attributes': {},
-          'childNodes': [
+          type: 2,
+          tagName: 'html',
+          attributes: {},
+          childNodes: [
             {
-              'type': 2,
-              'tagName': 'head',
-              'attributes': {},
-              'childNodes': [
+              type: 2,
+              tagName: 'head',
+              attributes: {},
+              childNodes: [
                 {
-                  'type': 2,
-                  'tagName': 'meta',
-                  'attributes': {
-                    'charset': 'utf-8'
+                  type: 2,
+                  tagName: 'meta',
+                  attributes: {
+                    charset: 'utf-8',
                   },
-                  'childNodes': [],
-                  'id': 5
-                }
+                  childNodes: [],
+                  id: 5,
+                },
               ],
-              'id': 4
+              id: 4,
             },
             {
-              'type': 3,
-              'textContent': '\n  ',
-              'id': 6
+              type: 3,
+              textContent: '\n  ',
+              id: 6,
             },
             {
-              'type': 2,
-              'tagName': 'body',
-              'attributes': {},
-              'childNodes': [
+              type: 2,
+              tagName: 'body',
+              attributes: {},
+              childNodes: [
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 8
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 8,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'button',
-                  'attributes': {
+                  type: 2,
+                  tagName: 'button',
+                  attributes: {
                     'aria-label': 'Click me',
-                    'onclick': "console.log('Test log')"
+                    onclick: "console.log('Test log')",
                   },
-                  'childNodes': [
+                  childNodes: [
                     {
-                      'type': 3,
-                      'textContent': '***** **',
-                      'id': 10
-                    }
+                      type: 3,
+                      textContent: '***** **',
+                      id: 10,
+                    },
                   ],
-                  'id': 9
+                  id: 9,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 11
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 11,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'div',
-                  'attributes': {},
-                  'childNodes': [
+                  type: 2,
+                  tagName: 'div',
+                  attributes: {},
+                  childNodes: [
                     {
-                      'type': 3,
-                      'textContent': '**** ****** ** ****** ** *******',
-                      'id': 13
-                    }
+                      type: 3,
+                      textContent: '**** ****** ** ****** ** *******',
+                      id: 13,
+                    },
                   ],
-                  'id': 12
+                  id: 12,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 14
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 14,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'div',
-                  'attributes': {
-                    'data-sentry-unmask': ''
+                  type: 2,
+                  tagName: 'div',
+                  attributes: {
+                    'data-sentry-unmask': '',
                   },
-                  'childNodes': [
+                  childNodes: [
                     {
-                      'type': 3,
-                      'textContent': 'This should be unmasked due to data attribute',
-                      'id': 16
-                    }
+                      type: 3,
+                      textContent: 'This should be unmasked due to data attribute',
+                      id: 16,
+                    },
                   ],
-                  'id': 15
+                  id: 15,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 17
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 17,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'input',
-                  'attributes': {
-                    'placeholder': 'Placeholder should be masked'
+                  type: 2,
+                  tagName: 'input',
+                  attributes: {
+                    placeholder: 'Placeholder should be masked',
                   },
-                  'childNodes': [],
-                  'id': 18
+                  childNodes: [],
+                  id: 18,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 19
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 19,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'div',
-                  'attributes': {
-                    'title': 'Title should be masked'
+                  type: 2,
+                  tagName: 'div',
+                  attributes: {
+                    title: 'Title should be masked',
                   },
-                  'childNodes': [
+                  childNodes: [
                     {
-                      'type': 3,
-                      'textContent': '***** ****** ** ******',
-                      'id': 21
-                    }
+                      type: 3,
+                      textContent: '***** ****** ** ******',
+                      id: 21,
+                    },
                   ],
-                  'id': 20
+                  id: 20,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 22
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 22,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'svg',
-                  'attributes': {
-                    'rr_width': '200px',
-                    'rr_height': '200px'
+                  type: 2,
+                  tagName: 'svg',
+                  attributes: {
+                    rr_width: '200px',
+                    rr_height: '200px',
                   },
-                  'childNodes': [],
-                  'isSVG': true,
-                  'id': 23
+                  childNodes: [],
+                  isSVG: true,
+                  id: 23,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 24
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 24,
                 },
                 {
-                  'type': 2,
-                  'tagName': 'svg',
-                  'attributes': {
-                    'style': 'width:200px;height:200px',
-                    'class': 'sentry-unblock',
-                    'viewBox': '0 0 80 80',
-                    'data-sentry-unblock': ''
-                  },
-                  'childNodes': [
-                    {
-                      'type': 2,
-                      'tagName': 'path',
-                      'attributes': {
-                        'rr_width': '0px',
-                        'rr_height': '0px'
-                      },
-                      'childNodes': [],
-                      'isSVG': true,
-                      'id': 26
-                    }
-                  ],
-                  'isSVG': true,
-                  'id': 25
-                },
-                {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 27
-                },
-                {
-                  'type': 2,
-                  'tagName': 'img',
-                  'attributes': {
-                    'rr_width': '100px',
-                    'rr_height': '100px'
-                  },
-                  'childNodes': [],
-                  'id': 28
-                },
-                {
-                  'type': 3,
-                  'textContent': '\n    ',
-                  'id': 29
-                },
-                {
-                  'type': 2,
-                  'tagName': 'img',
-                  'attributes': {
+                  type: 2,
+                  tagName: 'svg',
+                  attributes: {
+                    style: 'width:200px;height:200px',
+                    class: 'sentry-unblock',
+                    viewBox: '0 0 80 80',
                     'data-sentry-unblock': '',
-                    'style': 'width:100px;height:100px',
-                    'src': 'file:///none.png'
                   },
-                  'childNodes': [],
-                  'id': 30
+                  childNodes: [
+                    {
+                      type: 2,
+                      tagName: 'path',
+                      attributes: {
+                        rr_width: '0px',
+                        rr_height: '0px',
+                      },
+                      childNodes: [],
+                      isSVG: true,
+                      id: 26,
+                    },
+                  ],
+                  isSVG: true,
+                  id: 25,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n  ',
-                  'id': 31
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 27,
                 },
                 {
-                  'type': 3,
-                  'textContent': '\n\n',
-                  'id': 32
-                }
+                  type: 2,
+                  tagName: 'img',
+                  attributes: {
+                    rr_width: '100px',
+                    rr_height: '100px',
+                  },
+                  childNodes: [],
+                  id: 28,
+                },
+                {
+                  type: 3,
+                  textContent: '\n    ',
+                  id: 29,
+                },
+                {
+                  type: 2,
+                  tagName: 'img',
+                  attributes: {
+                    'data-sentry-unblock': '',
+                    style: 'width:100px;height:100px',
+                    src: 'file:///none.png',
+                  },
+                  childNodes: [],
+                  id: 30,
+                },
+                {
+                  type: 3,
+                  textContent: '\n  ',
+                  id: 31,
+                },
+                {
+                  type: 3,
+                  textContent: '\n\n',
+                  id: 32,
+                },
               ],
-              'id': 7
-            }
+              id: 7,
+            },
           ],
-          'id': 3
-        }
+          id: 3,
+        },
       ],
-      'id': 1
+      id: 1,
     },
-    'initialOffset': {
-  'left': 0,
-      'top': 0
-    }
-  })
+    initialOffset: {
+      left: 0,
+      top: 0,
+    },
+  });
 });
