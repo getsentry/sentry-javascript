@@ -16,7 +16,7 @@ const handlers: Handlers = {
   },
 
   addEvent: (data: string) => {
-    compressor.addEvent(data);
+    return compressor.addEvent(data);
   },
 
   finish: () => {
