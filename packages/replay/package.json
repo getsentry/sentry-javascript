@@ -53,6 +53,7 @@
     "tslib": "^1.9.3"
   },
   "dependencies": {
+    "@sentry-internal/rrweb": "1.102.0",
     "@sentry/core": "7.37.0",
     "@sentry/types": "7.37.0",
     "@sentry/utils": "7.37.0"
