@@ -227,13 +227,28 @@
               },
               {
                 "type": 3,
-                "textContent": "\n  ",
+                "textContent": "\n    ",
                 "id": 33
+              },
+              {
+                "type": 2,
+                "tagName": "video",
+                "attributes": {
+                  "rr_width": "30px",
+                  "rr_height": "30px"
+                },
+                "childNodes": [],
+                "id": 34
+              },
+              {
+                "type": 3,
+                "textContent": "\n  ",
+                "id": 35
               },
               {
                 "type": 3,
                 "textContent": "\n\n",
-                "id": 34
+                "id": 36
               }
             ],
             "id": 7
