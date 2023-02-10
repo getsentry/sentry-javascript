@@ -77,7 +77,7 @@ export function Transaction(obj?: Partial<Event>): any {
           'Transfer Size': 1097,
           'Encoded Body Size': 797,
           'Decoded Body Size': 1885,
-          'Render Blocking Status': 'non-blocking',
+          'resource.render_blocking_status': 'non-blocking',
         },
         description: '/favicon.ico',
         op: 'resource.other',

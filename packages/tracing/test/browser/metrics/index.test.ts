@@ -93,7 +93,7 @@ describe('_addResourceSpans', () => {
         ['Decoded Body Size']: entry.decodedBodySize,
         ['Encoded Body Size']: entry.encodedBodySize,
         ['Transfer Size']: entry.transferSize,
-        ['Render Blocking Status']: entry.renderBlockingStatus,
+        ['resource.render_blocking_status']: entry.renderBlockingStatus,
       },
       description: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
@@ -161,7 +161,7 @@ describe('_addResourceSpans', () => {
           ['Decoded Body Size']: entry.decodedBodySize,
           ['Encoded Body Size']: entry.encodedBodySize,
           ['Transfer Size']: entry.transferSize,
-          ['Render Blocking Status']: entry.renderBlockingStatus,
+          ['resource.render_blocking_status']: entry.renderBlockingStatus,
         },
       }),
     );

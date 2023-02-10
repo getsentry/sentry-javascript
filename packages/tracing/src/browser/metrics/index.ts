@@ -363,7 +363,7 @@ export function _addResourceSpans(
     data['Decoded Body Size'] = entry.decodedBodySize;
   }
   if ('renderBlockingStatus' in entry) {
-    data['Render Blocking Status'] = entry.renderBlockingStatus;
+    data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
 
   const startTimestamp = timeOrigin + startTime;
