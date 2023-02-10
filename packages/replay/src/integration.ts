@@ -79,6 +79,7 @@ export class Replay implements Integration {
   }: ReplayConfiguration = {}) {
     this._recordingOptions = {
       maskAllInputs,
+      maskAllText,
       maskInputOptions: { ...(maskInputOptions || {}), password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
@@ -113,7 +114,6 @@ export class Replay implements Integration {
       sessionSampleRate,
       errorSampleRate,
       useCompression,
-      maskAllText,
       blockAllMedia,
       _experiments,
     };
