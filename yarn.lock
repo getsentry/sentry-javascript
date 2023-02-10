@@ -3163,7 +3163,7 @@
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.102.0.tgz#d9a68fe89a51feda1fe1a5385ef3ae84c773dbac"
   integrity sha512-DLAKilL1/xr3OlC9VYBF5p1YbmU4WgKv4j9NBsUw/dM8qLcLLxZaS6oBKunoSQrMvZn4BtvTn7REzBb8lUt9Vw==
 
-"@sentry-internal/rrweb@^1.102.0":
+"@sentry-internal/rrweb@1.102.0":
   version "1.102.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.102.0.tgz#85bbd35594c4ef25427502be6e34c994b66559bc"
   integrity sha512-GyU6UPN8RLlDQFyW0CRL30Gv+q02Qk01C83wSDuwnMRUeFufU5Ybj2zqlnh4HCali/JMaKmQlLT+C0EVPpwmwA==
