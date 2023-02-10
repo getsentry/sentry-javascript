@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/browser';
-import { Replay } from '@sentry/replay';
 
 window.Sentry = Sentry;
-window.Replay = new Replay({
+window.Replay = new Sentry.Replay({
   flushMinDelay: 500,
   flushMaxDelay: 500,
   useCompression: false,
