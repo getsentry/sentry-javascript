@@ -586,7 +586,6 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
           PW_TRACING_ONLY: ${{ matrix.tracing_only }}
-          PW_REPLAY: ${{ matrix.replay }}
         run: |
           cd packages/integration-tests
           yarn test:ci

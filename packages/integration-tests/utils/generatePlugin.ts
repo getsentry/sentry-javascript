@@ -44,6 +44,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es5_min: 'build/bundles/[INTEGRATION_NAME].es5.min.js',
     bundle_es6: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
+    bundle_replay_es6: 'build/bundles/[INTEGRATION_NAME].js',
+    bundle_replay_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
 };
 
