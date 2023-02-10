@@ -3,7 +3,7 @@
   "scripts": {
     "build": "node ./scripts/verify-packages-versions.js && run-s build:types build:transpile build:bundle",
     "build:bundle": "lerna run build:bundle",
-    "build:dev": "run-s build:types build:transpile",
+    "build:dev": "lerna run build:types,build:transpile",
     "build:dev:filter": "lerna run build:dev --include-filtered-dependencies --include-filtered-dependents --scope",
     "build:transpile": "lerna run build:transpile",
     "build:types": "lerna run build:types",
@@ -19,17 +19,17 @@
     "clean:all": "run-p clean:build clean:caches clean:deps",
     "codecov": "codecov",
     "fix": "lerna run fix",
+    "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "lerna run lint",
     "lint:eslint": "lerna run lint:eslint",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/* test",
     "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby}\" --ignore @sentry-internal/*",
-    "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
-    "postinstall": "patch-package"
+    "test-ci-node": "ts-node ./scripts/node-unit-tests.ts"
   },
   "volta": {
-    "node": "16.18.1",
+    "node": "16.19.0",
     "yarn": "1.22.19"
   },
   "workspaces": [
@@ -85,13 +85,12 @@
     "jsdom": "^19.0.0",
     "karma-browserstack-launcher": "^1.5.1",
     "karma-firefox-launcher": "^1.1.0",
-    "lerna": "^6.0.3",
+    "lerna": "6.5.0-alpha.2",
     "madge": "4.0.2",
     "magic-string": "^0.27.0",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",
-    "patch-package": "^6.5.0",
     "prettier": "2.7.1",
     "recast": "^0.20.5",
     "replace-in-file": "^4.0.0",
@@ -110,8 +109,7 @@
     "typescript": "3.8.3"
   },
   "resolutions": {
-    "**/agent-base": "5",
-    "@types/express-serve-static-core": "4.17.30"
+    "**/agent-base": "5"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

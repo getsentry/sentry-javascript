@@ -18,40 +18,40 @@ type DocumentGetInitialProps = typeof Document.getInitialProps;
 export function wrapDocumentGetInitialPropsWithSentry(
   origDocumentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
-  return async function (
-    this: unknown,
-    ...args: Parameters<DocumentGetInitialProps>
-  ): ReturnType<DocumentGetInitialProps> {
-    if (isBuild()) {
-      return origDocumentGetInitialProps.apply(this, args);
-    }
+  return new Proxy(origDocumentGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
+      if (isBuild()) {
+        return wrappingTarget.apply(thisArg, args);
+      }
 
-    const [context] = args;
-    const { req, res } = context;
+      const [context] = args;
+      const { req, res } = context;
 
-    const errorWrappedGetInitialProps = withErrorInstrumentation(origDocumentGetInitialProps);
-    const options = getCurrentHub().getClient()?.getOptions();
+      const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
+      const options = getCurrentHub().getClient()?.getOptions();
 
-    // Generally we can assume that `req` and `res` are always defined on the server:
-    // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-    // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
-    // span with each other when there are no req or res objects, we simply do not trace them at all here.
-    if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
-      const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
-        dataFetcherRouteName: '/_document',
-        requestedRouteName: context.pathname,
-        dataFetchingMethodName: 'getInitialProps',
-      });
+      // Generally we can assume that `req` and `res` are always defined on the server:
+      // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+      // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
+      // span with each other when there are no req or res objects, we simply do not trace them at all here.
+      if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
+        const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
+          dataFetcherRouteName: '/_document',
+          requestedRouteName: context.pathname,
+          dataFetchingMethodName: 'getInitialProps',
+        });
 
-      const { dataFetcherResult: documentInitialProps } = await (tracedGetInitialProps.apply(this, args) as ReturnType<
-        typeof tracedGetInitialProps
-      >);
+        const { dataFetcherResult: documentInitialProps } = await (tracedGetInitialProps.apply(
+          thisArg,
+          args,
+        ) as ReturnType<typeof tracedGetInitialProps>);
 
-      return documentInitialProps;
-    } else {
-      return errorWrappedGetInitialProps.apply(this, args);
-    }
-  };
+        return documentInitialProps;
+      } else {
+        return errorWrappedGetInitialProps.apply(thisArg, args);
+      }
+    },
+  });
 }
 
 /**

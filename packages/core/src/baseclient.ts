@@ -435,6 +435,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     const options = this.getOptions();
+    const integrations = Object.keys(this._integrations);
+    if (!hint.integrations && integrations.length > 0) {
+      hint.integrations = integrations;
+    }
     return prepareEvent(options, event, hint, scope);
   }
 
@@ -504,10 +508,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       );
     }
 
+    const dataCategory: DataCategory = eventType === 'replay_event' ? 'replay' : eventType;
+
     return this._prepareEvent(event, hint, scope)
       .then(prepared => {
         if (prepared === null) {
-          this.recordDroppedEvent('event_processor', eventType, event);
+          this.recordDroppedEvent('event_processor', dataCategory, event);
           throw new SentryError('An event processor returned `null`, will not send event.', 'log');
         }
 
@@ -521,7 +527,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       })
       .then(processedEvent => {
         if (processedEvent === null) {
-          this.recordDroppedEvent('before_send', event.type || 'error', event);
+          this.recordDroppedEvent('before_send', dataCategory, event);
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 

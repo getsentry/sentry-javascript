@@ -19,6 +19,10 @@ export function printStats(items: Metrics[]): void {
     cpu: `${((MetricsStats.mean(items, MetricsStats.cpu) || 0) * 100).toFixed(2)} %`,
     memoryMean: filesize(MetricsStats.mean(items, MetricsStats.memoryMean)),
     memoryMax: filesize(MetricsStats.max(items, MetricsStats.memoryMax)),
+    netTx: filesize(MetricsStats.mean(items, MetricsStats.netTx)),
+    netRx: filesize(MetricsStats.mean(items, MetricsStats.netRx)),
+    netCount: MetricsStats.mean(items, MetricsStats.netCount),
+    netTime: `${MetricsStats.mean(items, MetricsStats.netTime)?.toFixed(2)} ms`,
   });
 }
 
@@ -28,11 +32,11 @@ export function printAnalysis(analysis: Analysis): void {
     table[AnalyzerItemMetric[item.metric]] = {
       value: item.values.value(0),
       withSentry: item.values.diff(0, 1),
-      withReplay: item.values.diff(1, 2),
+      withReplay: item.values.diff(0, 2),
       ...((item.others == undefined) ? {} : {
         previous: item.others.value(0),
         previousWithSentry: item.others.diff(0, 1),
-        previousWithReplay: item.others.diff(1, 2)
+        previousWithReplay: item.others.diff(0, 2)
       })
     };
   }

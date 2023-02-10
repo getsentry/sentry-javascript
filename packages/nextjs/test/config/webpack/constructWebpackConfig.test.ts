@@ -1,7 +1,8 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
 
-import { SentryWebpackPlugin } from '../../../src/config/webpack';
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
+
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -138,7 +139,7 @@ describe('constructWebpackConfigFunction()', () => {
       );
     });
 
-    it('injects user config file into `_app` in client bundle but not in server bundle', async () => {
+    it('injects user config file into `_app` in server bundle and in the client bundle', async () => {
       const finalServerWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
         incomingWebpackConfig: serverWebpackConfig,
@@ -152,7 +153,7 @@ describe('constructWebpackConfigFunction()', () => {
 
       expect(finalServerWebpackConfig.entry).toEqual(
         expect.objectContaining({
-          'pages/_app': expect.not.arrayContaining([serverConfigFilePath]),
+          'pages/_app': expect.arrayContaining([serverConfigFilePath]),
         }),
       );
       expect(finalClientWebpackConfig.entry).toEqual(
@@ -234,7 +235,7 @@ describe('constructWebpackConfigFunction()', () => {
       expect(finalWebpackConfig.entry).toEqual({
         main: './src/index.ts',
         // only _app has config file injected
-        'pages/_app': [clientConfigFilePath, 'next-client-pages-loader?page=%2F_app'],
+        'pages/_app': ['./sentry.client.config.js', 'next-client-pages-loader?page=%2F_app'],
         'pages/_error': 'next-client-pages-loader?page=%2F_error',
         'pages/sniffTour': ['./node_modules/smellOVision/index.js', 'private-next-pages/sniffTour.js'],
         'pages/simulator/leaderboard': {

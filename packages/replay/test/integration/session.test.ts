@@ -451,7 +451,7 @@ describe('Integration | session', () => {
 
   it('increases segment id after each event', async () => {
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,

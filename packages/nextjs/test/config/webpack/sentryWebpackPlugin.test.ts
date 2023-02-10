@@ -1,9 +1,10 @@
+import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
 import type { BuildContext, ExportedNextConfig } from '../../../src/config/types';
-import { getUserConfigFile, getWebpackPluginOptions, SentryWebpackPlugin } from '../../../src/config/webpack';
+import { getUserConfigFile, getWebpackPluginOptions } from '../../../src/config/webpack';
 import {
   clientBuildContext,
   clientWebpackConfig,
@@ -36,7 +37,7 @@ describe('Sentry webpack plugin config', () => {
         authToken: 'dogsarebadatkeepingsecrets', // picked up from env
         stripPrefix: ['webpack://_N_E/'], // default
         urlPrefix: '~/_next', // default
-        entries: expect.any(Function), // default, tested separately elsewhere
+        entries: [],
         release: 'doGsaREgReaT', // picked up from env
         dryRun: false, // based on buildContext.dev being false
       }),
@@ -78,6 +79,7 @@ describe('Sentry webpack plugin config', () => {
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: [`${clientBuildContext.dir}/.next/static/chunks/pages`], urlPrefix: '~/_next/static/chunks/pages' },
+        { paths: [`${clientBuildContext.dir}/.next/static/chunks/app`], urlPrefix: '~/_next/static/chunks/app' },
       ]);
     });
 
@@ -141,6 +143,7 @@ describe('Sentry webpack plugin config', () => {
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: [`${serverBuildContextWebpack4.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
+        { paths: [`${serverBuildContextWebpack4.dir}/.next/server/app/`], urlPrefix: '~/_next/server/app' },
       ]);
     });
 
@@ -158,6 +161,7 @@ describe('Sentry webpack plugin config', () => {
 
       expect(sentryWebpackPluginInstance.options.include).toEqual([
         { paths: [`${serverBuildContext.dir}/.next/server/pages/`], urlPrefix: '~/_next/server/pages' },
+        { paths: [`${serverBuildContext.dir}/.next/server/app/`], urlPrefix: '~/_next/server/app' },
         { paths: [`${serverBuildContext.dir}/.next/server/chunks/`], urlPrefix: '~/_next/server/chunks' },
       ]);
     });

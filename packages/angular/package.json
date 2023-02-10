@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "7.31.1",
+  "version": "7.37.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -21,9 +21,9 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.31.1",
-    "@sentry/types": "7.31.1",
-    "@sentry/utils": "7.31.1",
+    "@sentry/browser": "7.37.0",
+    "@sentry/types": "7.37.0",
+    "@sentry/utils": "7.37.0",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
@@ -43,19 +43,20 @@
   "scripts": {
     "build": "yarn build:transpile",
     "build:transpile": "ng build --prod",
-    "build:dev": "run-s build",
-    "build:watch": "run-p build:transpile:watch",
+    "build:dev": "yarn build",
+    "build:watch": "yarn build:transpile:watch",
+    "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "ng build --prod --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
-    "test": "run-s test:unit",
+    "lint:eslint": "eslint . --format stylish",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "test": "yarn test:unit",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch"
   },

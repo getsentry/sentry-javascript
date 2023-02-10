@@ -1,6 +1,7 @@
 // mock helper functions not tested directly in this file
 import './mocks';
 
+import type { ModuleRuleUseProperty, WebpackModuleRule } from '../../src/config/types';
 import {
   clientBuildContext,
   clientWebpackConfig,
@@ -38,6 +39,29 @@ declare global {
   }
 }
 
+function applyRuleToResource(rule: WebpackModuleRule, resourcePath: string): ModuleRuleUseProperty[] {
+  const applications = [];
+
+  let shouldApply: boolean = false;
+  if (typeof rule.test === 'function') {
+    shouldApply = rule.test(resourcePath);
+  } else if (rule.test instanceof RegExp) {
+    shouldApply = !!resourcePath.match(rule.test);
+  } else if (rule.test) {
+    shouldApply = resourcePath === rule.test;
+  }
+
+  if (shouldApply) {
+    if (Array.isArray(rule.use)) {
+      applications.push(...rule.use);
+    } else if (rule.use) {
+      applications.push(rule.use);
+    }
+  }
+
+  return applications;
+}
+
 describe('webpack loaders', () => {
   describe('server loaders', () => {
     it('adds server `valueInjection` loader to server config', async () => {
@@ -60,6 +84,133 @@ describe('webpack loaders', () => {
         ],
       });
     });
+
+    it.each([
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/testPage.tsx',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: './src/pages/testPage.tsx',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: './pages/testPage.tsx',
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '../src/pages/testPage.tsx',
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/nested/testPage.ts',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/nested/testPage.js',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/[nested]/[testPage].js',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/[...testPage].js',
+        expectedWrappingTargetKind: 'page',
+      },
+      // Regression test for https://github.com/getsentry/sentry-javascript/issues/7122
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/apidoc/[version].tsx',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.js',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: './src/middleware.js',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: './middleware.js',
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.ts',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.tsx',
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/testApiRoute.ts',
+        expectedWrappingTargetKind: 'api-route',
+      },
+      {
+        resourcePath: './src/pages/api/testApiRoute.ts',
+        expectedWrappingTargetKind: 'api-route',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/nested/testApiRoute.js',
+        expectedWrappingTargetKind: 'api-route',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.js',
+        expectedWrappingTargetKind: 'page-server-component',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.js',
+        expectedWrappingTargetKind: 'page-server-component',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts', // ts is not a valid file ending for pages in the app dir
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/page.tsx',
+        expectedWrappingTargetKind: 'page-server-component',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/loading.ts',
+        expectedWrappingTargetKind: undefined,
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/layout.js',
+        expectedWrappingTargetKind: undefined,
+      },
+    ])(
+      'should apply the right wrappingTargetKind with wrapping loader ($resourcePath)',
+      async ({ resourcePath, expectedWrappingTargetKind }) => {
+        const finalWebpackConfig = await materializeFinalWebpackConfig({
+          exportedNextConfig,
+          incomingWebpackConfig: serverWebpackConfig,
+          incomingWebpackBuildContext: serverBuildContext,
+        });
+
+        const loaderApplications: ModuleRuleUseProperty[] = [];
+        finalWebpackConfig.module.rules.forEach(rule => {
+          loaderApplications.push(...applyRuleToResource(rule, resourcePath));
+        });
+
+        if (expectedWrappingTargetKind) {
+          expect(loaderApplications).toContainEqual(
+            expect.objectContaining({
+              loader: expect.stringMatching(/wrappingLoader\.js$/),
+              options: expect.objectContaining({
+                wrappingTargetKind: expectedWrappingTargetKind,
+              }),
+            }),
+          );
+        } else {
+          expect(loaderApplications).not.toContainEqual(
+            expect.objectContaining({
+              loader: expect.stringMatching(/wrappingLoader\.js$/),
+            }),
+          );
+        }
+      },
+    );
   });
 
   describe('client loaders', () => {

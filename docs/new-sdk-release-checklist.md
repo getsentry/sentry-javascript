@@ -52,7 +52,7 @@ When you’re ready to make the first release, there are a couple of steps that 
 
 ### Before the Release:
 
-- [ ]  1) If not yet done, be sure to remove the `private: true` property from your SDK’s `package.json`
+- [ ]  1) If not yet done, be sure to remove the `private: true` property from your SDK’s `package.json`. Additionally, ensure that `"publishConfig": {"access": "public"}` is set.
 - [ ]  2) Make sure that the new SDK is **not added** in`[craft.yml](https://github.com/getsentry/sentry-javascript/blob/master/.craft.yml)` as a target for the **Sentry release registry**\
 *Once this is added, craft will try to publish an entry in the next release which does not work and caused failed release runs in the past*
 - [ ]  3) Make sure the new SDK is not excluded from the github & npm targets in `.craft.yml`

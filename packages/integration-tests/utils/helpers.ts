@@ -1,10 +1,9 @@
 import type { Page, Request } from '@playwright/test';
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
-import type { Event, EventEnvelopeHeaders } from '@sentry/types';
+import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
 
 const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
-const envelopeRequestParser = (request: Request | null): Event => {
+export const envelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 
@@ -15,7 +14,11 @@ const envelopeRequestParser = (request: Request | null): Event => {
     } catch (error) {
       return line;
     }
-  })[2];
+  });
+};
+
+export const envelopeRequestParser = (request: Request | null, envelopeIndex = 2): Event => {
+  return envelopeParser(request)[envelopeIndex] as Event;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
@@ -24,6 +27,58 @@ export const envelopeHeaderRequestParser = (request: Request | null): EventEnvel
 
   // First row of the envelop is the event payload.
   return envelope.split('\n').map(line => JSON.parse(line))[0];
+};
+
+export const getEnvelopeType = (request: Request | null): EnvelopeItemType => {
+  const envelope = request?.postData() || '';
+
+  return (envelope.split('\n').map(line => JSON.parse(line))[1] as Record<string, unknown>).type as EnvelopeItemType;
+};
+
+export const countEnvelopes = async (
+  page: Page,
+  options?: {
+    url?: string;
+    timeout?: number;
+    envelopeType: EnvelopeItemType | EnvelopeItemType[];
+  },
+): Promise<number> => {
+  const countPromise = new Promise<number>((resolve, reject) => {
+    let reqCount = 0;
+
+    const requestHandler = (request: Request): void => {
+      if (envelopeUrlRegex.test(request.url())) {
+        try {
+          if (options?.envelopeType) {
+            const envelopeTypeArray = options
+              ? typeof options.envelopeType === 'string'
+                ? [options.envelopeType]
+                : options.envelopeType || (['event'] as EnvelopeItemType[])
+              : (['event'] as EnvelopeItemType[]);
+
+            if (envelopeTypeArray.includes(getEnvelopeType(request))) {
+              reqCount++;
+            }
+          }
+        } catch (e) {
+          reject(e);
+        }
+      }
+    };
+
+    page.on('request', requestHandler);
+
+    setTimeout(() => {
+      page.off('request', requestHandler);
+      resolve(reqCount);
+    }, options?.timeout || 1000);
+  });
+
+  if (options?.url) {
+    await page.goto(options.url);
+  }
+
+  return countPromise;
 };
 
 /**
@@ -54,16 +109,6 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
 }
 
 /**
- * This returns the replay container (assuming it exists).
- * Note that due to how this works with playwright, this is a POJO copy of replay.
- * This means that we cannot access any methods on it, and also not mutate it in any way.
- */
-export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
-  const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
-  return replayIntegration._replay;
-}
-
-/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
  * amount of requests, and returns all the events recieved up to that point in time.
@@ -76,6 +121,7 @@ async function getMultipleRequests<T>(
   options?: {
     url?: string;
     timeout?: number;
+    envelopeType?: EnvelopeItemType | EnvelopeItemType[];
   },
 ): Promise<T[]> {
   const requests: Promise<T[]> = new Promise((resolve, reject) => {
@@ -86,6 +132,18 @@ async function getMultipleRequests<T>(
     function requestHandler(request: Request): void {
       if (urlRgx.test(request.url())) {
         try {
+          if (options?.envelopeType) {
+            const envelopeTypeArray = options
+              ? typeof options.envelopeType === 'string'
+                ? [options.envelopeType]
+                : options.envelopeType || (['event'] as EnvelopeItemType[])
+              : (['event'] as EnvelopeItemType[]);
+
+            if (!envelopeTypeArray.includes(getEnvelopeType(request))) {
+              return;
+            }
+          }
+
           reqCount--;
           requestData.push(requestParser(request));
 
@@ -127,11 +185,10 @@ async function getMultipleSentryEnvelopeRequests<T>(
   options?: {
     url?: string;
     timeout?: number;
+    envelopeType?: EnvelopeItemType | EnvelopeItemType[];
   },
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T[]> {
-  // TODO: This is not currently checking the type of envelope, just casting for now.
-  // We can update this to include optional type-guarding when we have types for Envelope.
   return getMultipleRequests<T>(page, count, envelopeUrlRegex, requestParser, options) as Promise<T[]>;
 }
 

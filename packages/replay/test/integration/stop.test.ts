@@ -44,7 +44,7 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {
@@ -128,17 +128,17 @@ describe('Integration | stop', () => {
 
   it('does not buffer events when stopped', async function () {
     WINDOW.dispatchEvent(new Event('blur'));
-    expect(replay.eventBuffer?.pendingLength).toBe(1);
+    expect(replay.eventBuffer?.hasEvents).toBe(true);
 
     // stop replays
     integration.stop();
 
-    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
+    expect(replay.eventBuffer).toBe(null);
 
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
-    expect(replay.eventBuffer?.pendingLength).toBe(undefined);
+    expect(replay.eventBuffer).toBe(null);
     expect(replay).not.toHaveLastSentReplay();
   });
 

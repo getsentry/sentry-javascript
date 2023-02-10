@@ -1,0 +1,25 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
+const moduleExports = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  experimental: {
+    appDir: Number(process.env.NODE_MAJOR) >= 16, // experimental.appDir requires Node v16.8.0 or later.
+  },
+  pageExtensions: ['jsx', 'js', 'tsx', 'ts', 'page.tsx'],
+  sentry: {
+    // Suppress the warning message from `handleSourcemapHidingOptionWarning` in `src/config/webpack.ts`
+    // TODO (v8): This can come out in v8, because this option will get a default value
+    hideSourceMaps: false,
+    excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
+  },
+};
+
+const SentryWebpackPluginOptions = {
+  dryRun: true,
+  silent: true,
+};
+
+module.exports = withSentryConfig(moduleExports, SentryWebpackPluginOptions);
+

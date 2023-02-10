@@ -249,10 +249,13 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
   };
 }
 
-export function wrapCreateBrowserRouter(createRouterFunction: CreateRouterFunction): CreateRouterFunction {
+export function wrapCreateBrowserRouter<
+  TState extends RouterState = RouterState,
+  TRouter extends Router<TState> = Router<TState>,
+>(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function (routes: RouteObject[], opts?: any): Router {
+  return function (routes: RouteObject[], opts?: any): TRouter {
     const router = createRouterFunction(routes, opts);
 
     // The initial load ends when `createBrowserRouter` is called.

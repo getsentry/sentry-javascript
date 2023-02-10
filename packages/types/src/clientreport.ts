@@ -6,7 +6,9 @@ export type EventDropReason =
   | 'network_error'
   | 'queue_overflow'
   | 'ratelimit_backoff'
-  | 'sample_rate';
+  | 'sample_rate'
+  | 'send_error'
+  | 'internal_sdk_error';
 
 export type Outcome = {
   reason: EventDropReason;

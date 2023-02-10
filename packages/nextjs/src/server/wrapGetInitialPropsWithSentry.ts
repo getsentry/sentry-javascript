@@ -20,48 +20,50 @@ type GetInitialProps = Required<NextPage>['getInitialProps'];
  * @returns A wrapped version of the function
  */
 export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialProps): GetInitialProps {
-  return async function (this: unknown, ...args: Parameters<GetInitialProps>): Promise<ReturnType<GetInitialProps>> {
-    if (isBuild()) {
-      return origGetInitialProps.apply(this, args);
-    }
-
-    const [context] = args;
-    const { req, res } = context;
-
-    const errorWrappedGetInitialProps = withErrorInstrumentation(origGetInitialProps);
-    const options = getCurrentHub().getClient()?.getOptions();
-
-    // Generally we can assume that `req` and `res` are always defined on the server:
-    // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
-    // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
-    // span with each other when there are no req or res objects, we simply do not trace them at all here.
-    if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
-      const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
-        dataFetcherRouteName: context.pathname,
-        requestedRouteName: context.pathname,
-        dataFetchingMethodName: 'getInitialProps',
-      });
-
-      const { dataFetcherResult, pageloadSpanId, pageloadTraceId, pageloadTransactionSampled } =
-        await (tracedGetInitialProps.apply(this, args) as ReturnType<typeof tracedGetInitialProps>);
-
-      const initialProps: Record<string, unknown> = await dataFetcherResult;
-
-      const requestTransaction = getTransactionFromRequest(req);
-      if (requestTransaction) {
-        const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
-        initialProps._sentryPageloadBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+  return new Proxy(origGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetInitialProps>) => {
+      if (isBuild()) {
+        return wrappingTarget.apply(thisArg, args);
       }
 
-      initialProps._sentryPageloadSpanId = pageloadSpanId;
-      initialProps._sentryPageloadTraceId = pageloadTraceId;
-      initialProps._sentryPageloadTraceSampled = pageloadTransactionSampled;
+      const [context] = args;
+      const { req, res } = context;
 
-      return initialProps;
-    } else {
-      return errorWrappedGetInitialProps.apply(this, args);
-    }
-  };
+      const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
+      const options = getCurrentHub().getClient()?.getOptions();
+
+      // Generally we can assume that `req` and `res` are always defined on the server:
+      // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
+      // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
+      // span with each other when there are no req or res objects, we simply do not trace them at all here.
+      if (hasTracingEnabled() && req && res && options?.instrumenter === 'sentry') {
+        const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
+          dataFetcherRouteName: context.pathname,
+          requestedRouteName: context.pathname,
+          dataFetchingMethodName: 'getInitialProps',
+        });
+
+        const { dataFetcherResult, pageloadSpanId, pageloadTraceId, pageloadTransactionSampled } =
+          await (tracedGetInitialProps.apply(thisArg, args) as ReturnType<typeof tracedGetInitialProps>);
+
+        const initialProps: Record<string, unknown> = await dataFetcherResult;
+
+        const requestTransaction = getTransactionFromRequest(req);
+        if (requestTransaction) {
+          const dynamicSamplingContext = requestTransaction.getDynamicSamplingContext();
+          initialProps._sentryPageloadBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+        }
+
+        initialProps._sentryPageloadSpanId = pageloadSpanId;
+        initialProps._sentryPageloadTraceId = pageloadTraceId;
+        initialProps._sentryPageloadTraceSampled = pageloadTransactionSampled;
+
+        return initialProps;
+      } else {
+        return errorWrappedGetInitialProps.apply(thisArg, args);
+      }
+    },
+  });
 }
 
 /**

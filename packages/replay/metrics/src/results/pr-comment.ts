@@ -84,8 +84,8 @@ export class PrCommentBuilder {
         <td align="right"><strong>${values.diff(0, 1)}</strong></td>
         <td align="right"><strong>${values.percent(0, 1)}</strong></td>
         <td align="right">${values.value(2)}</td>
-        <td align="right"><strong>${values.diff(1, 2)}</strong></td>
-        <td align="right"><strong>${values.percent(1, 2)}</strong></td>
+        <td align="right"><strong>${values.diff(0, 2)}</strong></td>
+        <td align="right"><strong>${values.percent(0, 2)}</strong></td>
       `;
     }
 
@@ -141,7 +141,7 @@ export class PrCommentBuilder {
       this._buffer += `<tr><th>${resultFile.hash}</th>`;
       for (const item of analysis.items) {
         // TODO maybe find a better way of showing this. After the change to multiple scenarios, this shows diff between "With Sentry" and "With Sentry + Replay"
-        this._buffer += `<td align="right">${item.values.diff(1, 2)}</td>`;
+        this._buffer += `<td align="right">${item.values.diff(0, 2)}</td>`;
       }
       this._buffer += '</tr>';
     }

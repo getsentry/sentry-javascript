@@ -6,13 +6,23 @@ import { mockSdk } from './../../index';
 jest.useFakeTimers();
 
 describe('Integration | coreHandlers | handleScope', () => {
-  beforeAll(async function () {
-    await mockSdk();
-    jest.runAllTimers();
-  });
+  it('returns a breadcrumb only if last breadcrumb has changed', async function () {
+    const { replay } = await mockSdk({ autoStart: false });
 
-  it('returns a breadcrumb only if last breadcrumb has changed', function () {
+    // Note: mocks don't work for calls inside of the same module,
+    // So we need to make sure to mock the `handleScopeListener` call itself
     const mockHandleScope = jest.spyOn(HandleScope, 'handleScope');
+    const mockHandleScopeListener = jest.spyOn(HandleScope, 'handleScopeListener').mockImplementation(() => {
+      return scope => {
+        return HandleScope.handleScope(scope);
+      };
+    });
+
+    await replay.start();
+    jest.runAllTimers();
+
+    expect(mockHandleScopeListener).toHaveBeenCalledTimes(1);
+
     getCurrentHub().getScope()?.addBreadcrumb({ message: 'testing' });
 
     expect(mockHandleScope).toHaveBeenCalledTimes(1);

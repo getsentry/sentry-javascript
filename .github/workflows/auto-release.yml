@@ -1,0 +1,38 @@
+name: Gitflow - Auto prepare release
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
+# This workflow tirggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+    name: 'Prepare a new version'
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_RELEASE_PAT }}
+          fetch-depth: 0
+
+      # https://github.com/actions-ecosystem/action-regex-match
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: version
+        with:
+          # Parse version from head branch
+          text: ${{ github.head_ref }}
+          # match: preprare-release/xx.xx.xx
+          regex: '^preprare-release\/(\d+\.\d+\.\d+)$'
+
+      - name: Prepare release
+        uses: getsentry/action-prepare-release@v1
+        if: github.event.pull_request.merged == true && steps.version.outputs.match != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+        with:
+          version: ${{ steps.version.outputs.match != '' }}
+          force: false
+          merge_target: master

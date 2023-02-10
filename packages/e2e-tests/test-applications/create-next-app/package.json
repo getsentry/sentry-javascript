@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "TEST_MODE=build playwright test",
+    "test": "test:prod && test:dev",
+    "test:prod": "TEST_MODE=prod playwright test",
     "test:dev": "TEST_MODE=dev playwright test"
   },
   "dependencies": {

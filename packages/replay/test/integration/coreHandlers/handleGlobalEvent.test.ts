@@ -40,26 +40,32 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     };
 
     // @ts-ignore replay event type
-    expect(handleGlobalEventListener(replay)(replayEvent)).toEqual({
+    expect(handleGlobalEventListener(replay)(replayEvent, {})).toEqual({
       type: REPLAY_EVENT_NAME,
     });
   });
 
   it('does not delete breadcrumbs from error and transaction events', () => {
     expect(
-      handleGlobalEventListener(replay)({
-        breadcrumbs: [{ type: 'fakecrumb' }],
-      }),
+      handleGlobalEventListener(replay)(
+        {
+          breadcrumbs: [{ type: 'fakecrumb' }],
+        },
+        {},
+      ),
     ).toEqual(
       expect.objectContaining({
         breadcrumbs: [{ type: 'fakecrumb' }],
       }),
     );
     expect(
-      handleGlobalEventListener(replay)({
-        type: 'transaction',
-        breadcrumbs: [{ type: 'fakecrumb' }],
-      }),
+      handleGlobalEventListener(replay)(
+        {
+          type: 'transaction',
+          breadcrumbs: [{ type: 'fakecrumb' }],
+        },
+        {},
+      ),
     ).toEqual(
       expect.objectContaining({
         breadcrumbs: [{ type: 'fakecrumb' }],
@@ -76,7 +82,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.not.objectContaining({ replayId: expect.anything() }),
       }),
     );
-    expect(handleGlobalEventListener(replay)(error)).toEqual(
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
       expect.objectContaining({
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
@@ -102,9 +108,9 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
 
     const client = getCurrentHub().getClient()!;
 
-    handleGlobalEventListener(replay)(error1);
-    handleGlobalEventListener(replay)(error2);
-    handleGlobalEventListener(replay)(error3);
+    handleGlobalEventListener(replay)(error1, {});
+    handleGlobalEventListener(replay)(error2, {});
+    handleGlobalEventListener(replay)(error3, {});
 
     client.recordDroppedEvent('before_send', 'error', { event_id: 'err2' });
 
@@ -125,7 +131,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
     );
-    expect(handleGlobalEventListener(replay)(error)).toEqual(
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
       expect.objectContaining({
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
@@ -166,7 +172,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent)).toEqual(errorEvent);
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
   it('skips rrweb internal errors', () => {
@@ -204,7 +210,87 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent)).toEqual(null);
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(null);
+  });
+
+  it('skips exception with __rrweb__ set', () => {
+    const errorEvent: Event = {
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: "Cannot read properties of undefined (reading 'contains')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'scrambled.js',
+                  function: 'MutationBuffer.processMutations',
+                  in_app: true,
+                  lineno: 101,
+                  colno: 23,
+                },
+                {
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
+                  in_app: true,
+                },
+              ],
+            },
+            mechanism: {
+              type: 'generic',
+              handled: true,
+            },
+          },
+        ],
+      },
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
+    };
+
+    const originalException = new window.Error('some exception');
+    // @ts-ignore this could be set by rrweb
+    originalException.__rrweb__ = true;
+
+    expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(null);
+  });
+
+  it('handles string exceptions', () => {
+    const errorEvent: Event = {
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: "Cannot read properties of undefined (reading 'contains')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'scrambled.js',
+                  function: 'MutationBuffer.processMutations',
+                  in_app: true,
+                  lineno: 101,
+                  colno: 23,
+                },
+                {
+                  filename: '<anonymous>',
+                  function: 'Array.forEach',
+                  in_app: true,
+                },
+              ],
+            },
+            mechanism: {
+              type: 'generic',
+              handled: true,
+            },
+          },
+        ],
+      },
+      level: 'error',
+      event_id: 'ff1616b1e13744c6964281349aecc82a',
+    };
+
+    const originalException = 'some string exception';
+
+    expect(handleGlobalEventListener(replay)(errorEvent, { originalException })).toEqual(errorEvent);
   });
 
   it('does not skip rrweb internal errors with _experiments.captureExceptions', () => {
@@ -244,7 +330,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
 
     replay.getOptions()._experiments = { captureExceptions: true };
 
-    expect(handleGlobalEventListener(replay)(errorEvent)).toEqual(errorEvent);
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
   it('does not skip non-rrweb errors when no stacktrace exists', () => {
@@ -268,7 +354,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent)).toEqual(errorEvent);
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 
   it('does not skip non-rrweb errors when no exception', () => {
@@ -278,6 +364,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
       event_id: 'ff1616b1e13744c6964281349aecc82a',
     };
 
-    expect(handleGlobalEventListener(replay)(errorEvent)).toEqual(errorEvent);
+    expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
 });

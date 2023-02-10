@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "7.31.1",
+  "version": "7.37.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -10,7 +10,7 @@
     "clean": "rimraf -g **/node_modules",
     "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
+    "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{suites,utils}/**/*.ts\"",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
@@ -25,7 +25,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
-    "apollo-server": "^3.6.7",
+    "apollo-server": "^3.11.1",
     "axios": "^0.27.2",
     "cors": "^2.8.5",
     "express": "^4.17.3",

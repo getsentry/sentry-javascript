@@ -2,6 +2,7 @@ name: 'Build & Test'
 on:
   push:
     branches:
+      - develop
       - master
       - release/**
   pull_request:
@@ -42,11 +43,11 @@ env:
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
-  # We want to prefer the cache from the current master branch, if we don't find any on the current branch
+  # We want to prefer the cache from the current develop branch, if we don't find any on the current branch
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
     nx-Linux-${{ github.ref }}
-    nx-Linux-refs/heads/master
+    nx-Linux-refs/heads/develop
     nx-Linux
 
 jobs:
@@ -120,6 +121,10 @@ jobs:
             any_code:
               - '!**/*.md'
 
+      - name: Get PR labels
+        id: pr-labels
+        uses: mydea/pr-labels-action@update-core
+
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
       changed_nextjs: ${{ steps.changed.outputs.nextjs }}
@@ -130,17 +135,23 @@ jobs:
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_master: ${{ github.ref == 'refs/heads/master' }}
+      is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
+      # When merging into master, or from master
+      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/master' || github.ref == 'refs/heads/master' }}
+      has_gitflow_label:
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
-        ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-skip-cache') }}
+        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
 
   job_install_deps:
     name: Install Dependencies
     needs: job_get_metadata
     runs-on: ubuntu-20.04
     timeout-minutes: 15
-    if: needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request'
+    if: |
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false') &&
+      (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v3
@@ -154,18 +165,14 @@ jobs:
         id: compute_lockfile_hash
         run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
 
-      # When the `ci-skip-cache` label is added to a PR, we always want to skip dependency cache
       - name: Check dependency cache
         uses: actions/cache@v3
         id: cache_dependencies
-        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
-        if:
-          steps.cache_dependencies.outputs.cache-hit == '' || needs.job_get_metadata.outputs.force_skip_cache == 'true'
         run: yarn install --ignore-engines --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
@@ -198,7 +205,7 @@ jobs:
       - name: NX cache
         uses: actions/cache@v3
         # Disable cache when:
-        # - on master
+        # - on develop
         # - on release branches
         # - when PR has `ci-skip-cache` label
         if: |
@@ -207,9 +214,9 @@ jobs:
         with:
           path: node_modules/.cache/nx
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-          # On master branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
-            ${{needs.job_get_metadata.outputs.is_master == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+            ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
@@ -268,8 +275,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    # Size Check will error out outside of the context of a PR
-    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_master == 'true'
+    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -279,7 +285,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
-          # `master`. We can't change this without making changes to the action, so we'll
           # use Node 14 for now.
           node-version: '14'
       - name: Check dependency cache
@@ -293,12 +298,11 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@v5
-        # Don't run size check on release branches - at that point, we're already committed
-        if: needs.job_get_metadata.outputs.is_release == 'false'
+        uses: getsentry/size-limit-action@main-skip-step
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
+          main_branch: develop
 
   job_lint:
     name: Lint
@@ -378,7 +382,7 @@ jobs:
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3.1.1
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{ github.sha }}
           path: |
@@ -465,7 +469,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18]
+        node: [10, 12, 14, 16, '18.13.0']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -485,56 +489,34 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        name: Check if Playwright browser is cached
+        id: playwright-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
+      - name: Install Playwright browser if not cached
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        continue-on-error: true # playwright needs node >= 14
+        run: npx playwright install --with-deps
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
+      - name: Install OS dependencies of Playwright if cache hit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        continue-on-error: true # playwright needs node >= 14
+        run: npx playwright install-deps
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
           cd packages/nextjs
           yarn test:integration
-
-  # Ember tests are separate from the rest because they are the slowest part of the test suite, and making them a
-  # separate job allows them to run in parallel with the other tests.
-  job_ember_tests:
-    name: Ember (${{ matrix.scenario }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_ember == 'true' || github.event_name != 'pull_request'
-    timeout-minutes: 10
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-          # TODO: removing `fetch-depth` below seems to have no effect, and the commit which added it had no description,
-          # so it's not clear why it's necessary. That said, right now ember tests are xfail, so it's a little hard to
-          # tell if it's safe to remove. Once ember tests are fixed, let's try again with it turned off, and if all goes
-          # well, we can pull it out.
-          fetch-depth: 0
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          # We support node 14+. If that works, we can safely assume that newer versions will also work.
-          node-version: '14'
-      - name: Check dependency cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-      - name: Run Ember tests
-        run: |
-          cd packages/ember
-          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v3
 
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
@@ -580,12 +562,10 @@ jobs:
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Get npm cache directory
         id: npm-cache-dir
-        run: |
-          echo "::set-output name=dir::$(npm config get cache)"
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Get Playwright version
         id: playwright-version
-        run: |
-          echo "::set-output name=version::$(node -p "require('@playwright/test/package.json').version")"
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
       - uses: actions/cache@v3
         name: Check if Playwright browser is cached
         id: playwright-cache
@@ -758,7 +738,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -804,7 +784,6 @@ jobs:
         job_browser_playwright_tests,
         job_browser_integration_tests,
         job_remix_integration_tests,
-        job_ember_tests,
       ]
     # Always run this, even if a dependent job failed
     if: always()
@@ -820,7 +799,9 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 30
-    if: contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements') ||
+      needs.job_get_metadata.outputs.is_develop == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -857,7 +838,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.2
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: ${{ steps.process.outputs.artifactName }}

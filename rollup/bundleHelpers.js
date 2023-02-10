@@ -16,15 +16,24 @@ import {
   makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
-  makeExcludeReplayPlugin,
+  makeExcludeBlockPlugin,
+  makeSetSDKSourcePlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig, includeReplay } =
-    options;
+  const {
+    bundleType,
+    entrypoints,
+    jsVersion,
+    licenseTitle,
+    outputFileBase,
+    packageSpecificConfig,
+    includeReplay,
+    includeOffline,
+  } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -32,7 +41,8 @@ export function makeBaseBundleConfig(options) {
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
-  const excludeReplayPlugin = makeExcludeReplayPlugin();
+  const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
+  const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -51,6 +61,10 @@ export function makeBaseBundleConfig(options) {
 
   if (!includeReplay) {
     standAloneBundleConfig.plugins.push(excludeReplayPlugin);
+  }
+
+  if (!includeOffline) {
+    standAloneBundleConfig.plugins.push(excludeOfflineTransport);
   }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
@@ -141,6 +155,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
+  const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
   // The additional options to use for each variant we're going to create.
   const variantSpecificConfigMap = {
@@ -148,21 +163,21 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
-      plugins: [includeDebuggingPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
-      plugins: [stripDebuggingPlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
-      plugins: [includeDebuggingPlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
   };
 

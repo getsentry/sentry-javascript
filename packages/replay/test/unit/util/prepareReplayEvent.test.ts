@@ -18,6 +18,19 @@ describe('Unit | util | prepareReplayEvent', () => {
 
     client = hub.getClient()!;
     scope = hub.getScope()!;
+
+    jest.spyOn(client, 'getSdkMetadata').mockImplementation(() => {
+      return {
+        sdk: {
+          name: 'sentry.javascript.testSdk',
+          version: '1.0.0',
+        },
+      };
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('works', async () => {
@@ -35,9 +48,17 @@ describe('Unit | util | prepareReplayEvent', () => {
       replay_id: replayId,
       replay_type: 'session',
       segment_id: 3,
+      contexts: {
+        replay: {
+          error_sample_rate: 1.0,
+          session_sample_rate: 0.1,
+        },
+      },
     };
 
     const replayEvent = await prepareReplayEvent({ scope, client, replayId, event });
+
+    expect(client.getSdkMetadata).toHaveBeenCalledTimes(1);
 
     expect(replayEvent).toEqual({
       type: 'replay_event',
@@ -51,9 +72,15 @@ describe('Unit | util | prepareReplayEvent', () => {
       platform: 'javascript',
       event_id: 'replay-ID',
       environment: 'production',
+      contexts: {
+        replay: {
+          error_sample_rate: 1.0,
+          session_sample_rate: 0.1,
+        },
+      },
       sdk: {
-        name: 'sentry.javascript.unknown',
-        version: 'version:Test',
+        name: 'sentry.javascript.testSdk',
+        version: '1.0.0',
       },
       sdkProcessingMetadata: {},
       breadcrumbs: undefined,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "7.31.1",
+  "version": "7.37.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,10 +16,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.31.1",
-    "@sentry/replay": "7.31.1",
-    "@sentry/types": "7.31.1",
-    "@sentry/utils": "7.31.1",
+    "@sentry/core": "7.37.0",
+    "@sentry/replay": "7.37.0",
+    "@sentry/types": "7.37.0",
+    "@sentry/utils": "7.37.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
@@ -27,6 +27,7 @@
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
     "chokidar": "^3.0.2",
+    "fake-indexeddb": "^4.0.1",
     "karma": "^6.3.16",
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^2.2.0",
@@ -45,10 +46,12 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
+    "build:dev": "yarn build",
     "build:bundle": "rollup --config rollup.bundle.config.js",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
     "build:bundle:watch": "rollup --config rollup.bundle.config.js --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
@@ -57,10 +60,10 @@
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
-    "lint:eslint": "eslint . --cache --cache-location '../../eslintcache/' --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
+    "lint:eslint": "eslint . --format stylish",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "size:check": "run-p size:check:es5 size:check:es6",
     "size:check:es5": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
     "size:check:es6": "cat build/bundles/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",

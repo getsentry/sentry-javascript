@@ -59,46 +59,4 @@ describe('withSentryConfig', () => {
     // directly
     expect('sentry' in finalConfig).toBe(false);
   });
-
-  describe('conditional use of `constructWebpackConfigFunction`', () => {
-    // Note: In these tests, it would be nice to be able to spy on `constructWebpackConfigFunction` to see whether or
-    // not it's called, but that sets up a catch-22: If you import or require the module to spy on the function, it gets
-    // cached and the `require` call we care about (inside of `withSentryConfig`) doesn't actually run the module code.
-    // Alternatively, if we call `jest.resetModules()` after setting up the spy, then the module code *is* run a second
-    // time, but the spy belongs to the first instance of the module and therefore never registers a call. Thus we have
-    // to test whether or not the file is required instead.
-
-    it('imports from `webpack.ts` if build phase is "phase-production-build"', () => {
-      jest.isolateModules(() => {
-        // In case this is still set from elsewhere, reset it
-        delete (global as any)._sentryWebpackModuleLoaded;
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-build');
-
-        expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
-      });
-    });
-
-    it('imports from `webpack.ts` if build phase is "phase-development-server"', () => {
-      jest.isolateModules(() => {
-        // In case this is still set from elsewhere, reset it
-        delete (global as any)._sentryWebpackModuleLoaded;
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-build');
-
-        expect((global as any)._sentryWebpackModuleLoaded).toBe(true);
-      });
-    });
-
-    it('Doesn\'t import from `webpack.ts` if build phase is "phase-production-server"', () => {
-      jest.isolateModules(() => {
-        // In case this is still set from elsewhere, reset it
-        delete (global as any)._sentryWebpackModuleLoaded;
-
-        materializeFinalNextConfig(exportedNextConfig, undefined, 'phase-production-server');
-
-        expect((global as any)._sentryWebpackModuleLoaded).toBeUndefined();
-      });
-    });
-  });
 });

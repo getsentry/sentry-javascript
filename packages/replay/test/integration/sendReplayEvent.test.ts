@@ -36,6 +36,8 @@ describe('Integration | sendReplayEvent', () => {
 
     ({ replay } = await mockSdk({
       replayOptions: {
+        flushMinDelay: 5_000,
+        flushMaxDelay: 15_000,
         stickySession: false,
         _experiments: {
           captureExceptions: true,
@@ -57,7 +59,7 @@ describe('Integration | sendReplayEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
 
     mockSendReplayRequest.mockClear();
   });
@@ -67,7 +69,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay['_loadSession']({ expiry: SESSION_IDLE_DURATION });
+    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
   });
 
   afterAll(() => {
@@ -104,7 +106,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('update last activity when user clicks mouse', async () => {
@@ -143,16 +145,16 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.segmentId).toBe(1);
 
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
-  it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
+  it('uploads a replay event if maxFlushDelay is set 15 seconds have elapsed since the last replay upload', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     // Fire a new event every 4 seconds, 4 times
-    [...Array(4)].forEach(() => {
+    for (let i = 0; i < 4; i++) {
       mockRecord._emitter(TEST_EVENT);
-      jest.advanceTimersByTime(4000);
-    });
+      jest.advanceTimersByTime(4_000);
+    }
 
     // We are at time = +16seconds now (relative to BASE_TIMESTAMP)
     // The next event should cause an upload immediately
@@ -171,7 +173,7 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     expect(replay.session?.segmentId).toBe(1);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
 
     // Let's make sure it continues to work
     mockTransportSend.mockClear();
@@ -216,7 +218,7 @@ describe('Integration | sendReplayEvent', () => {
     // Session's last activity should not be updated
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('uploads a replay event when document becomes hidden', async () => {
@@ -244,61 +246,7 @@ describe('Integration | sendReplayEvent', () => {
     // visibilitystate as user being active
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
     // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
-  });
-
-  it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    mockRecord._emitter(TEST_EVENT);
-    // Pretend 5 seconds have passed
-    const ELAPSED = 5000;
-    await advanceTimers(ELAPSED);
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(mockTransportSend).toHaveBeenCalledTimes(1);
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
-
-    // No user activity to trigger an update
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
-
-    // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
-  });
-
-  it('uploads a replay event if 15 seconds have elapsed since the last replay upload', async () => {
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    // Fire a new event every 4 seconds, 4 times
-    [...Array(4)].forEach(() => {
-      mockRecord._emitter(TEST_EVENT);
-      jest.advanceTimersByTime(4000);
-    });
-
-    // We are at time = +16seconds now (relative to BASE_TIMESTAMP)
-    // The next event should cause an upload immediately
-    mockRecord._emitter(TEST_EVENT);
-    await new Promise(process.nextTick);
-
-    expect(replay).toHaveLastSentReplay({
-      recordingData: JSON.stringify([...Array(5)].map(() => TEST_EVENT)),
-    });
-
-    // There should also not be another attempt at an upload 5 seconds after the last replay event
-    mockTransportSend.mockClear();
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-
-    expect(replay).not.toHaveLastSentReplay();
-
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
-    // events array should be empty
-    expect(replay.eventBuffer?.pendingLength).toBe(0);
-
-    // Let's make sure it continues to work
-    mockTransportSend.mockClear();
-    mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-    expect(replay).toHaveLastSentReplay({ recordingData: JSON.stringify([TEST_EVENT]) });
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
   });
 
   it('uploads a dom breadcrumb 5 seconds after listener receives an event', async () => {

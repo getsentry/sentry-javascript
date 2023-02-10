@@ -40,7 +40,7 @@ describe('Integration | events', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
     mockTransportSend.mockClear();
   });
 
@@ -93,7 +93,7 @@ describe('Integration | events', () => {
 
   it('has correct timestamps when there are events earlier than initial timestamp', async function () {
     clearSession(replay);
-    replay['_loadSession']({ expiry: 0 });
+    replay['_loadAndCheckSession'](0);
     mockTransportSend.mockClear();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -130,11 +130,13 @@ describe('Integration | events', () => {
     expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: (BASE_TIMESTAMP - 10000) / 1000,
+        contexts: {
+          replay: {
+            error_sample_rate: 0,
+            session_sample_rate: 1,
+          },
+        },
         urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
-        tags: expect.objectContaining({
-          errorSampleRate: 0,
-          sessionSampleRate: 1,
-        }),
       }),
     });
   });

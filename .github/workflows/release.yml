@@ -11,6 +11,7 @@ on:
       merge_target:
         description: Target branch to merge into. Uses the default branch as a fallback (optional)
         required: false
+        default: master
 jobs:
   release:
     runs-on: ubuntu-20.04

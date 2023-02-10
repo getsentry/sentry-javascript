@@ -83,7 +83,7 @@ Sentry.setUser({ email: "jane.doe@example.com" });
 
 ### Stopping & re-starting replays
 
-You can manually stop/re-start Replay capture via `.stop()` & `.start()`:
+Replay recording only starts when it is included in the `integrations` array when calling `Sentry.init` or calling `addIntegration` from the a Sentry client instance. To stop recording you can call the `stop()`.
 
 ```js
 const replay = new Replay();
@@ -91,54 +91,36 @@ Sentry.init({
   integrations: [replay]
 });
 
-// sometime later
-replay.stop();
-replay.start();
+const client = getClient();
+
+// Add replay integration, will start recoring
+client.addIntegration(replay);
+
+replay.stop(); // Stop recording
 ```
 
 ## Loading Replay as a CDN Bundle
 
-As an alternative to the NPM package, you can load the Replay integration bundle from our CDN.
+As an alternative to the NPM package, you can use Replay as a CDN bundle.
+Please refer to the [Session Replay installation guide](https://docs.sentry.io/platforms/javascript/session-replay/#install) for CDN bundle instructions.
 
-```js
-// Browser SDK bundle
-<script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.tracing.replay.min.js"
-  crossorigin="anonymous"
-></script>
-
-// Add Sentry.Integrations.Replay to your Sentry.init call
-Sentry.init({
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // If the entire session is not sampled, use the below sample rate to sample
-  // sessions when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
-
-  dsn: '__DSN__',
-  integrations: [new Sentry.Integrations.Replay()],
-});
-```
-
-The Replay initilialization [configuration](#configuration) options are identical to the options of the NPM package.
-
-Alternatively, you can also load the Replay integration separately from other bundles:
+<details>
+<summary>Deprecated Replay integration bundle</summary>
+Installing the replay integration as a secondary integration bundle to the SDK bundle was deprecated in favour of
+complete CDN bundles that already contain the replay integration. No need to keep two bundles in sync anymore.
+The `replay.(min.)js` bundle will be removed in v8 of the JS SDKs.
 
 ```html
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/bundle.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/bundle.min.js"
   crossorigin="anonymous"
 ></script>
 <script
-  src="https://browser.sentry-cdn.com/7.31.0/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.31.1/replay.min.js"
   crossorigin="anonymous"
 ></script>
 ```
-
-Please visit our [CDN bundle docs](https://docs.sentry.io/platforms/javascript/install/cdn/#available-bundles) to get the correct `integrity` checksums for your version.
-Note that the two bundle versions always have to match.
+</details>
 
 ## Sessions
 
@@ -185,19 +167,29 @@ The following options can be configured as options to the integration, in `new R
 
 The following options can be configured as options to the integration, in `new Replay({})`:
 
-| key              | type                     | default                             | description                                                                                                                                                                                         |
-| ---------------- | ------------------------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| maskAllText      | boolean                  | `true`                              | Mask _all_ text content. Will pass text content through `maskTextFn` before sending to server.                                                                                                       |
-| blockAllMedia    | boolean                  | `true`                              | Block _all_ media elements (`img, svg, video, object, picture, embed, map, audio`)
-| maskTextFn       | (text: string) => string | `(text) => '*'.repeat(text.length)` | Function to customize how text content is masked before sending to server. By default, masks text with `*`.                                                                                         |
-| maskAllInputs    | boolean                  | `true`                              | Mask values of `<input>` elements. Passes input values through `maskInputFn` before sending to server.                                                                                               |
-| maskInputOptions | Record<string, boolean>  | `{ password: true }`                | Customize which inputs `type` to mask. <br /> Available `<input>` types: `color, date, datetime-local, email, month, number, range, search, tel, text, time, url, week, textarea, select, password`. |
-| maskInputFn      | (text: string) => string | `(text) => '*'.repeat(text.length)` | Function to customize how form input values are masked before sending to server. By default, masks values with `*`.                                                                                 |
-| blockClass       | string \| RegExp         | `'sentry-block'`                    | Redact all elements that match the class name. See [privacy](#blocking) section for an example.                                                                                                                                                      |
-| blockSelector    | string                   | `'[data-sentry-block]'`               | Redact all elements that match the DOM selector. See [privacy](#blocking) section for an example.                                                                                                                                                     |
-| ignoreClass      | string \| RegExp         | `'sentry-ignore'`                   | Ignores all events on the matching input field. See [privacy](#ignoring) section for an example.                                                                                                                                                     |
-| maskTextClass    | string \| RegExp         | `'sentry-mask'`                     | Mask all elements that match the class name. See [privacy](#masking) section for an example.                                                                                                                                                        |
-| maskTextSelector    | string         | `undefined`                     | Mask all elements that match the given DOM selector. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| key              | type                     | default                                 | description                                                                                                                                                                                         |
+| ---------------- | ------------------------ | -----------------------------------     | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| maskAllText      | boolean                  | `true`                                  | Mask _all_ text content. Will pass text content through `maskTextFn` before sending to server.                                                                                                       |
+| maskAllInputs    | boolean                  | `true`                                  | Mask values of `<input>` elements. Passes input values through `maskInputFn` before sending to server.                                                                                               |
+| blockAllMedia    | boolean                  | `true`                                  | Block _all_ media elements (`img, svg, video, object, picture, embed, map, audio`)
+| maskTextFn       | (text: string) => string | `(text) => '*'.repeat(text.length)`     | Function to customize how text content is masked before sending to server. By default, masks text with `*`.                                                                                         |
+| block            | Array<string>            | `.sentry-block, [data-sentry-block]`    | Redact any elements that match the DOM selectors. See [privacy](#blocking) section for an example.                                                                                                                                                     |
+| unblock          | Array<string>            | `.sentry-unblock, [data-sentry-unblock]`| Do not redact any elements that match the DOM selectors. Useful when using `blockAllMedia`. See [privacy](#blocking) section for an example.                                                                                                                                                     |
+| mask             | Array<string>            | `.sentry-mask, [data-sentry-mask]`      | Mask all elements that match the given DOM selectors. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| unmask           | Array<string>            | `.sentry-unmask, [data-sentry-unmask]`  | Unmask all elements that match the given DOM selectors. Useful when using `maskAllText`. See [privacy](#masking) section for an example.                                                                                                                                                        |
+| ignore           | Array<string>            | `.sentry-ignore, [data-sentry-ignore]`  | Ignores all events on the matching input fields. See [privacy](#ignoring) section for an example.                                                                                                                                                     |
+
+#### Deprecated options
+In order to streamline our privacy options, the following have been deprecated in favor for the respective options above.
+
+| deprecated key   | replaced by | description |
+| ---------------- | ----------- | ----------- |
+| maskInputOptions | mask        | Use CSS selectors in `mask` in order to mask all inputs of a certain type. For example, `input[type="address"]` |
+| blockSelector    | block       | The selector(s) can be moved directly in the `block` array. |
+| blockClass       | block       | Convert the class name to a CSS selector and add to `block` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
+| maskClass        | mask        | Convert the class name to a CSS selector and add to `mask` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
+| maskSelector     | mask        | The selector(s) can be moved directly in the `mask` array. |
+| ignoreClass      | ignore      | Convert the class name to a CSS selector and add to `ignore` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
 
 ## Privacy
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all media elements (`img, svg, video, object, picture, embed, map, audio`). This can be disabled by setting `maskAllText` to `false`. It is also possible to add the following CSS classes to specific DOM elements to prevent recording its contents: `sentry-block`, `sentry-ignore`, and `sentry-mask`. The following sections will show examples of how content is handled by the differing methods.
@@ -223,3 +215,9 @@ However, please note that it is _possible_ that the error count reported on the 
 does not match the actual errors that have been captured.
 The reason for that is that errors _can_ be lost, e.g. a network request fails, or similar.
 This should not happen to often, but be aware that it is theoretically possible.
+
+## Manually sending replay data
+
+You can use `replay.flush()` to immediately send all currently captured replay data.
+This can be combined with `replaysOnErrorSampleRate: 1`
+in order to be able to send the last 60 seconds of replay data on-demand.
