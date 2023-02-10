@@ -20,9 +20,6 @@ export const VISIBILITY_CHANGE_TIMEOUT = SESSION_IDLE_DURATION;
 // The maximum length of a session
 export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes
 
-/** The select to use for the `maskAllText` option  */
-export const MASK_ALL_TEXT_SELECTOR = 'body *:not(style), body *:not(script)';
-
 /** Default flush delays */
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
 export const DEFAULT_FLUSH_MAX_DELAY = 5_000;
