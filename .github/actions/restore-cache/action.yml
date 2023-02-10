@@ -27,17 +27,25 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Generate random UUID
+      id: generate-uuid
+      uses: filipstefansson/uuid-action@v1
+
     - name: Dependency cache
       uses: actions/cache@v3
       with:
         path: ${{ inputs.dependency_cache_paths }}
-        key: ${{ inputs.dependency_cache_key }}
+        key: dependencies-${{ steps.generate-uuid.outputs.uuid }}
+        restore-keys: |
+          ${{ inputs.dependency_cache_key }}
 
     - name: Nx cache
       uses: actions/cache@v3
       with:
         path: ${{ inputs.nx_cache_paths }}
-        key: ${{ inputs.nx_cache_key }}
+        key: nx-${{ steps.generate-uuid.outputs.uuid }}
+        restore-keys: |
+          ${{ inputs.nx_cache_key }}
 
     - name: Run install
       run: yarn install --frozen-lockfile
