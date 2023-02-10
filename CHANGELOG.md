@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 7.31.1
+## 7.37.1
 
 - fix(browser): Support `async` in stack frame urls (#7131)
 - fix(nextjs): Make api route identifier stricter (#7126)
