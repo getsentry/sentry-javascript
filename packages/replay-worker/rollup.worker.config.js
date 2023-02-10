@@ -7,7 +7,7 @@ import { terser } from 'rollup-plugin-terser';
 import copy from 'rollup-plugin-copy';
 
 const config = defineConfig({
-  input: ['./src/index.ts'],
+  input: ['./src/worker.ts'],
   output: {
     dir: './build/',
     format: 'esm',
@@ -27,7 +27,7 @@ const config = defineConfig({
       },
     },
     copy({
-      targets: [{ src: 'types/*', dest: 'build' }],
+      targets: [{ src: 'vendor/*', dest: 'build' }],
     }),
   ],
 });

@@ -2,4 +2,4 @@ node_modules
 /*.tgz
 .eslintcache
 build
-!types/*.d.ts
+!vendor/*.d.ts
