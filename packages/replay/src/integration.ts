@@ -8,7 +8,7 @@ import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from 
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
-const MEDIA_SELECTORS = 'img,image,svg,path,rect,area,video,object,picture,embed,map,audio';
+const MEDIA_SELECTORS = 'img,image,svg,video,object,picture,embed,map,audio';
 
 let _initialized = false;
 
