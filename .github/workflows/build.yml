@@ -102,13 +102,6 @@ jobs:
           restore-keys: |
             yarn-${{ runner.os }}
 
-      - name: Dependency cache
-        uses: actions/cache@v3
-        id: cache_dependencies
-        with:
-          path: ${{ needs.job_build.outputs.dependency_cache_path }}
-          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
     outputs:
