@@ -25,7 +25,8 @@
     "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
-    "test:ci": "playwright test ./suites --browser='all' --reporter='line'"
+    "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
+    "test:update-snapshots": "yarn test --update-snapshots --browser='all'"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
