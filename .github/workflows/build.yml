@@ -92,7 +92,7 @@ jobs:
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       - name: Yarn cache
         uses: actions/cache@v3
@@ -125,6 +125,9 @@ jobs:
         with:
           path: ${{ needs.job_install_deps.outputs.dependency_cache_path }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Nx cache
         uses: actions/cache@v3
