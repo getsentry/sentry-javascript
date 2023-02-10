@@ -80,7 +80,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'button',
                   attributes: {
-                    'aria-label': 'Click me',
+                    'aria-label': '***** **',
                     onclick: "console.log('Test log')",
                   },
                   childNodes: [
@@ -124,7 +124,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   childNodes: [
                     {
                       type: 3,
-                      textContent: 'This should be unmasked due to data attribute',
+                      textContent: '**** ****** ** ******** *** ** **** *********',
                       id: 16,
                     },
                   ],
@@ -139,7 +139,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'input',
                   attributes: {
-                    placeholder: 'Placeholder should be masked',
+                    placeholder: '*********** ****** ** ******',
                   },
                   childNodes: [],
                   id: 18,
@@ -153,7 +153,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'div',
                   attributes: {
-                    title: 'Title should be masked',
+                    title: '***** ****** ** ******',
                   },
                   childNodes: [
                     {
