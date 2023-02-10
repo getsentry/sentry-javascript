@@ -14,7 +14,6 @@
     "build:watch": "run-p build:transpile:watch",
     "build:dev:watch": "run-p build:watch",
     "build:transpile:watch": "yarn build:rollup --watch",
-    "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
