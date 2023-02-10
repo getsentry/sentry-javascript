@@ -167,7 +167,7 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -219,7 +219,7 @@ jobs:
           node-version: '14'
 
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -247,7 +247,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -269,7 +269,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -292,7 +292,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -326,7 +326,7 @@ jobs:
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -356,7 +356,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -391,7 +391,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -459,7 +459,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -514,7 +514,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -542,7 +542,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -577,7 +577,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -610,7 +610,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -642,7 +642,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
@@ -703,7 +703,7 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Restore caches
-        uses: ./actions/restore-cache
+        uses: ./.github/actions/restore-cache
         with:
           dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
