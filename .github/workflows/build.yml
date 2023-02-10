@@ -165,19 +165,15 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
 
-      - name: Build
-        run: yarn lerna run build:bundle --scope @sentry/serverless --include-dependencies
+      - name: Restore caches
+        uses: ./../actions/restore-cache
+        with:
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_bundle: '@sentry/serverless'
 
       - name: Get SDK version
         # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
@@ -221,16 +217,15 @@ jobs:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # use Node 14 for now.
           node-version: '14'
-      - name: Dependency cache
-        uses: actions/cache@v3
+
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@main-skip-step
         with:
@@ -251,16 +246,13 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
       - name: Run linter
         run: yarn lint
 
@@ -276,16 +268,13 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -302,16 +291,13 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
@@ -339,19 +325,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
       - name: Run tests
-        env:
-          NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
@@ -374,16 +355,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -411,18 +390,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn lerna run build:types,build:transpile --scope @sentry/nextjs --include-dependencies
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_package: '@sentry/nextjs'
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -483,18 +458,14 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn build
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -542,18 +513,14 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn build
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -574,18 +541,14 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn build
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
       - name: Run browser build tests
         run: |
           cd packages/browser
@@ -613,18 +576,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn lerna run build:types,build:transpile --scope @sentry/node-integration-tests --include-dependencies
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_package: '@sentry-internal/node-integration-tests'
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -650,18 +609,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
-      - name: Build
-        run: yarn lerna run build:types,build:transpile --scope @sentry/remix --include-dependencies
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_package: '@sentry/remix'
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -686,16 +641,14 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
       - name: Get node version
         id: versions
         run: |
@@ -749,16 +702,14 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Dependency cache
-        uses: actions/cache@v3
+      - name: Restore caches
+        uses: ./../actions/restore-cache
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Nx cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.NX_CACHE_PATH }}
-          key: ${{ env.NX_CACHE_KEY }}
+          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          nx_cache_paths: ${{ env.NX_CACHE_PATH }}
+          nx_cache_key: ${{ env.NX_CACHE_KEY }}
+          build_all: true
 
       - name: Setup
         run: yarn install

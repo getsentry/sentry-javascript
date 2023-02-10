@@ -1,0 +1,59 @@
+name: 'Restore build cache'
+description: 'Restore all cache necessary for the build.'
+
+inputs:
+  nx_cache_key:
+    description: 'Cache key for Nx cache'
+    required: true
+  nx_cache_paths:
+    description: 'Cache paths for Nx cache'
+    required: true
+  dependency_cache_key:
+    description: 'Cache key for dependency cache'
+    required: true
+  dependency_cache_paths:
+    description: 'Cache paths for dependency cache'
+    required: true
+  build_all:
+    description: 'Build all packages'
+    required: false
+  build_package:
+    description: 'Build the specified package (excl. bundles)'
+    required: false
+  build_bundle:
+    description: 'Build the specified package bundle'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Dependency cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ inputs.dependency_cache_paths }}
+        key: ${{ inputs.dependency_cache_key }}
+
+    - name: Nx cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ inputs.nx_cache_paths }}
+        key: ${{ inputs.nx_cache_key }}
+
+    - name: Run install
+      run: yarn install --ignore-engines --frozen-lockfile
+      shell: bash
+
+    - name: Run full build
+      if: ${{ inputs.build_all }}
+      run: yarn build
+      shell: bash
+
+    - name: Run package build
+      if: ${{ inputs.build_package }}
+      run: yarn build:dev:filter ${{ inputs.build_package }}
+      shell: bash
+
+    - name: Run bundle build
+      if: ${{ inputs.build_bundle }}
+      run: yarn build:bundle:filter ${{ inputs.build_bundle }}
+      shell: bash
