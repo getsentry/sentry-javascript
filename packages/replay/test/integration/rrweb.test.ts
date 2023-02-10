@@ -17,7 +17,7 @@ describe('Integration | rrweb', () => {
     });
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
-        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
+        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio",
         "collectFonts": true,
         "emit": [Function],
         "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore]",

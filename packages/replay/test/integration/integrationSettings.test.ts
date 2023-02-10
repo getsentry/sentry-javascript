@@ -17,7 +17,7 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
+        '",.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
       );
     });
 
@@ -27,7 +27,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
+        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
       );
     });
   });
