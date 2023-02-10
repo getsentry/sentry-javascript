@@ -21,21 +21,12 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
-  DEPENDENCY_CACHE_PATHS: |
-    ${{ github.workspace }}/node_modules
-    ${{ github.workspace }}/packages/*/node_modules
-    ~/.cache/ms-playwright/
-    ~/.cache/mongodb-binaries/
-
-  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
-
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
   # We want to prefer the cache from the current develop branch, if we don't find any on the current branch
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
     nx-Linux-${{ github.ref }}
-    nx-Linux-refs/heads/develop
     nx-Linux
 
   NX_CACHE_KEY: nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
@@ -97,20 +88,32 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "hash=${{ runner.os }}-dependencies-${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "hash=yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: Yarn cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{steps.compute_lockfile_hash.outputs.hash }}
+          restore-keys: |
+            yarn-${{ runner.os }}
 
       - name: Dependency cache
         uses: actions/cache@v3
         id: cache_dependencies
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          path: ${{ needs.job_build.outputs.dependency_cache_path }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
-        if: steps.cache_dependencies.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+      dependency_cache_path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
 
   job_build:
     name: Build
@@ -127,7 +130,7 @@ jobs:
       - name: Dependency cache
         uses: actions/cache@v3
         with:
-          path: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          path: ${{ needs.job_install_deps.outputs.dependency_cache_path }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
       - name: Nx cache
@@ -149,6 +152,7 @@ jobs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+      dependency_cache_path: ${{ needs.job_install_deps.outputs.dependency_cache_path }}
 
   job_pack_aws_lambda_layer:
     name: Pack and Upload AWS Lambda Layer
@@ -170,7 +174,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -222,7 +226,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -250,7 +254,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -272,7 +276,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -295,7 +299,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -329,7 +333,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -359,7 +363,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -394,7 +398,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -462,7 +466,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -517,7 +521,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -545,7 +549,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -580,7 +584,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -613,7 +617,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -645,7 +649,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
@@ -706,7 +710,7 @@ jobs:
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
-          dependency_cache_paths: ${{ env.DEPENDENCY_CACHE_PATHS }}
+          dependency_cache_paths: ${{ needs.job_build.outputs.dependency_cache_path }}
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
           nx_cache_paths: ${{ env.NX_CACHE_PATH }}
           nx_cache_key: ${{ env.NX_CACHE_KEY }}
