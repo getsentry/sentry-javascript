@@ -97,7 +97,7 @@ jobs:
         # so no need to reinstall them
       - name: Compute dependency cache key
         id: compute_lockfile_hash
-        run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "hash=${{ runner.os }}-dependencies-${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
 
       - name: Dependency cache
         uses: actions/cache@v3
@@ -107,6 +107,7 @@ jobs:
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
+        if: steps.cache_dependencies.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}

@@ -28,6 +28,7 @@ runs:
   using: 'composite'
   steps:
     - name: Dependency cache
+      id: cache_dependencies
       uses: actions/cache/restore@v3
       with:
         path: ${{ inputs.dependency_cache_paths }}
@@ -42,6 +43,7 @@ runs:
           ${{ inputs.nx_cache_key }}
 
     - name: Run install
+      if: steps.cache_dependencies.outputs.cache-hit != 'true'
       run: yarn install --frozen-lockfile
       shell: bash
 
