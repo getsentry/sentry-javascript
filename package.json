@@ -14,7 +14,7 @@
     "circularDepCheck": "lerna run circularDepCheck",
     "clean": "run-p clean:build clean:caches",
     "clean:build": "lerna run clean",
-    "clean:caches": "yarn rimraf eslintcache && yarn jest --clearCache",
+    "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
     "clean:all": "run-p clean:build clean:caches clean:deps",
     "codecov": "codecov",
