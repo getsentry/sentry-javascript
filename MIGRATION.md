@@ -254,7 +254,7 @@ export function makeMyCustomTransport(options: BaseTransportOptions): Transport 
   }
 
   // `createTransport` takes care of rate limiting and flushing
-  return createTransport({ bufferSize: options.bufferSize }, makeRequest);
+  return createTransport(options, makeRequest);
 }
 
 Sentry.init({
