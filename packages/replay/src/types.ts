@@ -175,7 +175,7 @@ export interface ReplayConfiguration
   extends ReplayIntegrationPrivacyOptions,
     OptionalReplayPluginOptions,
     DeprecatedPrivacyOptions,
-    Pick<RecordingOptions, 'maskAllText'|'maskAllInputs'> {}
+    Pick<RecordingOptions, 'maskAllText' | 'maskAllInputs'> {}
 
 interface CommonEventContext {
   /**
