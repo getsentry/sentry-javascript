@@ -18,6 +18,14 @@ import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
+interface BreadcrumbsOptions {
+  /**
+   * Function determining whether or not to create breadcrumbs to track outgoing requests to the given URL.
+   * By default, breadcrumbs will be created for all outgoing requests.
+   */
+  shouldCreateBreadcrumbForRequest?: (url: string) => boolean;
+}
+
 interface TracingOptions {
   /**
    * List of strings/regex controlling to which outgoing requests
@@ -42,7 +50,7 @@ interface HttpOptions {
    * Whether breadcrumbs should be recorded for requests
    * Defaults to true
    */
-  breadcrumbs?: boolean;
+  breadcrumbs?: BreadcrumbsOptions | boolean;
 
   /**
    * Whether tracing spans should be created for requests
@@ -66,14 +74,14 @@ export class Http implements Integration {
    */
   public name: string = Http.id;
 
-  private readonly _breadcrumbs: boolean;
+  private readonly _breadcrumbs: BreadcrumbsOptions | undefined;
   private readonly _tracing: TracingOptions | undefined;
 
   /**
    * @inheritDoc
    */
   public constructor(options: HttpOptions = {}) {
-    this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
+    this._breadcrumbs = !options.breadcrumbs || options.breadcrumbs === true ? {} : options.breadcrumbs;
     this._tracing = !options.tracing ? undefined : options.tracing === true ? {} : options.tracing;
   }
 
@@ -139,13 +147,29 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
  * @returns A function which accepts the exiting handler and returns a wrapped handler
  */
 function _createWrappedRequestMethodFactory(
-  breadcrumbsEnabled: boolean,
+  breadcrumbsOptions: BreadcrumbsOptions | undefined,
   tracingOptions: TracingOptions | undefined,
   httpModule: typeof http | typeof https,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
+  const createBreadcrumbUrlMap = new LRUMap<string, boolean>(100);
   const createSpanUrlMap = new LRUMap<string, boolean>(100);
   const headersUrlMap: Record<string, boolean> = {};
+
+  const shouldCreateBreadcrumb = (url: string): boolean => {
+    if (breadcrumbsOptions?.shouldCreateBreadcrumbForRequest === undefined) {
+      return true;
+    }
+
+    const cachedDecision = createBreadcrumbUrlMap.get(url);
+    if (cachedDecision !== undefined) {
+      return cachedDecision;
+    }
+
+    const decision = breadcrumbsOptions.shouldCreateBreadcrumbForRequest(url);
+    createBreadcrumbUrlMap.set(url, decision);
+    return decision;
+  };
 
   const shouldCreateSpan = (url: string): boolean => {
     if (tracingOptions?.shouldCreateSpanForRequest === undefined) {
@@ -187,12 +211,19 @@ function _createWrappedRequestMethodFactory(
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
+      const shouldCreateBreadcrumbDecision = shouldCreateBreadcrumb(requestUrl);
+      const shouldCreateSpanDecision = shouldCreateSpan(requestUrl);
+
+      if (!shouldCreateSpanDecision && !shouldCreateBreadcrumbDecision) {
+        return originalRequestMethod.apply(httpModule, requestArgs);
+      }
+
       let requestSpan: Span | undefined;
       let parentSpan: Span | undefined;
 
       const scope = getCurrentHub().getScope();
 
-      if (scope && tracingOptions && shouldCreateSpan(requestUrl)) {
+      if (scope && tracingOptions && shouldCreateSpanDecision) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
@@ -257,7 +288,7 @@ function _createWrappedRequestMethodFactory(
         .once('response', function (this: http.ClientRequest, res: http.IncomingMessage): void {
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
-          if (breadcrumbsEnabled) {
+          if (shouldCreateBreadcrumbDecision) {
             addRequestBreadcrumb('response', requestUrl, req, res);
           }
           if (requestSpan) {
@@ -272,7 +303,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
 
-          if (breadcrumbsEnabled) {
+          if (shouldCreateBreadcrumbDecision) {
             addRequestBreadcrumb('error', requestUrl, req);
           }
           if (requestSpan) {
