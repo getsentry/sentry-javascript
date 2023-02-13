@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "7.36.0",
+  "version": "7.37.2",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -25,7 +25,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
-    "apollo-server": "^3.6.7",
+    "apollo-server": "^3.11.1",
     "axios": "^0.27.2",
     "cors": "^2.8.5",
     "express": "^4.17.3",

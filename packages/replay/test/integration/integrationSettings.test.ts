@@ -1,4 +1,3 @@
-import { MASK_ALL_TEXT_SELECTOR } from '../../src/constants';
 import { mockSdk } from '../index';
 
 describe('Integration | integrationSettings', () => {
@@ -17,7 +16,7 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
+        '",.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
       );
     });
 
@@ -27,7 +26,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio"',
+        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
       );
     });
   });
@@ -191,32 +190,27 @@ describe('Integration | integrationSettings', () => {
     it('works with default value', async () => {
       const { replay } = await mockSdk({ replayOptions: {} });
 
-      // Default is true
-      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
+      expect(replay['_recordingOptions'].maskAllText).toBe(true);
     });
 
     it('works with true', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: true } });
 
-      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
+      expect(replay['_recordingOptions'].maskAllText).toBe(true);
     });
 
     it('works with false', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: false } });
 
-      expect(replay['_recordingOptions'].maskTextSelector).toBe('.sentry-mask,[data-sentry-mask]');
+      expect(replay['_recordingOptions'].maskAllText).toBe(false);
     });
+  });
 
-    it('maskTextSelector takes precedence over maskAllText when not specifiying maskAllText:true', async () => {
+  describe('maskTextSelector', () => {
+    it('can have custom mask selector', async () => {
       const { replay } = await mockSdk({ replayOptions: { maskTextSelector: '[custom]' } });
 
       expect(replay['_recordingOptions'].maskTextSelector).toBe('[custom],.sentry-mask,[data-sentry-mask]');
-    });
-
-    it('maskAllText takes precedence over maskTextSelector when specifiying maskAllText:true', async () => {
-      const { replay } = await mockSdk({ replayOptions: { maskAllText: true, maskTextSelector: '[custom]' } });
-
-      expect(replay['_recordingOptions'].maskTextSelector).toBe(MASK_ALL_TEXT_SELECTOR);
     });
   });
 

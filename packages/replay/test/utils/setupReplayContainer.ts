@@ -16,12 +16,12 @@ export function setupReplayContainer({
       sessionSampleRate: 0,
       errorSampleRate: 1,
       useCompression: false,
-      maskAllText: true,
       blockAllMedia: true,
       _experiments: {},
       ...options,
     },
     recordingOptions: {
+      maskAllText: true,
       ...recordingOptions,
     },
   });
