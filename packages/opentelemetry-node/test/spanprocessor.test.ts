@@ -750,6 +750,46 @@ describe('SentrySpanProcessor', () => {
       trace_id: otelSpan.spanContext().traceId,
     });
   });
+
+  it('generates Sentry errors from opentelemetry span exception events', () => {
+    let sentryEvent: any;
+    let otelSpan: any;
+
+    client = new NodeClient({
+      ...DEFAULT_NODE_CLIENT_OPTIONS,
+      beforeSend: event => {
+        sentryEvent = event;
+        return null;
+      },
+    });
+    hub = new Hub(client);
+    makeMain(hub);
+
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        child.recordException(new Error('this is an otel error!'));
+        otelSpan = child as OtelSpan;
+        child.end();
+      });
+
+      parentOtelSpan.end();
+    });
+
+    expect(sentryEvent).toBeDefined();
+    expect(sentryEvent.exception).toBeDefined();
+    expect(sentryEvent.exception.values[0]).toEqual({
+      mechanism: expect.any(Object),
+      type: 'Error',
+      value: 'this is an otel error!',
+    });
+    expect(sentryEvent.contexts.trace).toEqual({
+      parent_span_id: otelSpan.parentSpanId,
+      span_id: otelSpan.spanContext().spanId,
+      trace_id: otelSpan.spanContext().traceId,
+    });
+  });
 });
 
 // OTEL expects a custom date format
