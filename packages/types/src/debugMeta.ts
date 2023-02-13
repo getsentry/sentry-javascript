@@ -5,18 +5,18 @@ export interface DebugMeta {
   images?: Array<DebugImage>;
 }
 
-/**
- * Possible choices for debug images.
- */
-export type DebugImageType = 'wasm' | 'macho' | 'elf' | 'pe';
+export type DebugImage = WasmDebugImage | SourceMapDebugImage;
 
-/**
- * References to debug images.
- */
-export interface DebugImage {
-  type: DebugImageType;
+interface WasmDebugImage {
+  type: 'wasm';
   debug_id: string;
   code_id?: string | null;
   code_file: string;
   debug_file?: string | null;
+}
+
+interface SourceMapDebugImage {
+  type: 'sourcemap';
+  source_filename: string; // abs_path
+  debug_id: string; // uuid
 }

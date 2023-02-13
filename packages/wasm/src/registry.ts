@@ -41,7 +41,7 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
 export function registerModule(module: WebAssembly.Module, url: string): void {
   const { buildId, debugFile } = getModuleInfo(module);
   if (buildId) {
-    const oldIdx = IMAGES.findIndex(img => img.code_file === url);
+    const oldIdx = getImage(url);
     if (oldIdx >= 0) {
       IMAGES.splice(oldIdx, 1);
     }
@@ -68,5 +68,11 @@ export function getImages(): Array<DebugImage> {
  * @param url the URL of the WebAssembly module.
  */
 export function getImage(url: string): number {
-  return IMAGES.findIndex(img => img.code_file === url);
+  return IMAGES.findIndex(image => {
+    if (image.type === 'wasm') {
+      return image.code_file === url;
+    } else {
+      return false;
+    }
+  });
 }

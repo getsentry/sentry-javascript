@@ -34,8 +34,8 @@ describe('Tracekit - Misc Tests', () => {
             in_app: true,
           },
           {
-            filename: 'http:///path/to/file.js',
-            abs_path: 'http:///path/to/file.js',
+            filename: 'file:///path/to/file.js',
+            abs_path: 'file:///path/to/file.js',
             function: '?',
             lineno: 878,
             in_app: true,

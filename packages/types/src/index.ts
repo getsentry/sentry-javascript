@@ -5,7 +5,7 @@ export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
-export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
+export type { DebugImage, DebugMeta } from './debugMeta';
 export type {
   AttachmentItem,
   BaseEnvelopeHeaders,

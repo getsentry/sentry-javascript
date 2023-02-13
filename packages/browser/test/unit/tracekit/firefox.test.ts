@@ -595,7 +595,7 @@ describe('Tracekit - Firefox Tests', () => {
           {
             colno: 1018410,
             filename: 'https://www.random_website.com/main.4a4119c3cdfd10266d84.js',
-            abs_path: 'https://www.random_website.com/vendor.d1cae9cfc9917df88de7.js',
+            abs_path: 'https://www.random_website.com/main.4a4119c3cdfd10266d84.js',
             function: 'handleProfileResult',
             in_app: true,
             lineno: 146,
