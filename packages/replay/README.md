@@ -151,7 +151,7 @@ The following options can be configured on the root level of your browser-based 
 
 | key                 | type    | default | description                                                                                                                                                                                                                     |
 | ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
-| replaysSessionSampleRate   | number  | `0.1`   | The sample rate for replays that begin recording immediately and last the entirety of the user's session. 1.0 will collect all replays, 0 will collect no replays.                                           |
+| replaysSessionSampleRate   | number  | `0`   | The sample rate for replays that begin recording immediately and last the entirety of the user's session. 1.0 will collect all replays, 0 will collect no replays.                                           |
 | replaysOnErrorSampleRate     | number  | `0`   |The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends. 1.0 capturing all sessions with an error, and 0 capturing none.
 
 ### General Integration Configuration
