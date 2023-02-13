@@ -137,7 +137,8 @@ jobs:
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/develop' || github.head_ref == 'refs/heads/master' }}
+      # When merging into master, or from master
+      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
@@ -468,7 +469,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18]
+        node: [10, 12, 14, 16, '18.13.0']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -532,6 +533,8 @@ jobs:
           - bundle_es5_min
           - bundle_es6
           - bundle_es6_min
+          - bundle_replay_es6
+          - bundle_replay_es6_min
         tracing_only:
           - true
           - false
