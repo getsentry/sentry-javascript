@@ -1,16 +1,8 @@
 {
   "extends": "../../tsconfig.json",
-  "include": [
-    "src/**/*",
-    "../core/src/tracing/errors.ts",
-    "../core/src/tracing/errors.ts",
-    "../core/src/tracing/hubextensions.ts",
-    "../core/src/tracing/idletransaction.ts",
-    "../core/src/tracing/span.ts",
-    "../core/src/tracing/spanstatus.ts",
-    "../core/src/tracing/transaction.ts",
-    "../core/src/tracing/utils.ts"
-  ],
+
+  "include": ["src/**/*"],
+
   "compilerOptions": {
     // package-specific options
   }

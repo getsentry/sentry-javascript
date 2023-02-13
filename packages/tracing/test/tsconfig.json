@@ -2,9 +2,6 @@
 // it's purely a placeholder to satisfy VSCode.
 {
   "extends": "../tsconfig.test.json",
-  "include": [
-    "./**/*",
-    "../../core/test/lib/tracing/idletransaction.test.ts",
-    "../../core/test/lib/tracing/idletransaction.test.ts"
-  ]
+
+  "include": ["./**/*"]
 }
