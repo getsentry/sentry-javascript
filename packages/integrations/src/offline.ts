@@ -23,14 +23,7 @@ export type Item = { key: string; value: Event };
  * cache offline errors and send when connected
  * @deprecated The offline integration has been deprecated in favor of the offline transport wrapper.
  *
- * ```
- * import { init, makeBrowserOfflineTransport, makeFetchTransport } from '@sentry/browser';
- *
- * init({
- *   dsn: '__DSN__',
- *   transport: makeBrowserOfflineTransport(makeFetchTransport),
- * });
- * ```
+ * http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
  */
 export class Offline implements Integration {
   /**
