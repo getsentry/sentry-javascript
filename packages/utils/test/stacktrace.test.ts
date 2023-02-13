@@ -1,5 +1,4 @@
-import { createStackParser, stripSentryFramesAndReverse } from '../src/stacktrace';
-import { GLOBAL_OBJ } from '../src/worldwide';
+import { stripSentryFramesAndReverse } from '../src/stacktrace';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {
