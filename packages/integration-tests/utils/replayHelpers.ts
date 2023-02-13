@@ -177,3 +177,15 @@ const replayEnvelopeParser = (request: Request | null): unknown[] => {
 
   return lines;
 };
+
+/**
+ * We can only test replay tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain the Replay integration
+ *
+ * @returns `true` if we should skip the replay test
+ */
+export function shouldSkipReplayTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('replay') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
