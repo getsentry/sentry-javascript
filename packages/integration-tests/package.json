@@ -19,7 +19,6 @@
     "type-check": "tsc",
     "pretest": "yarn clean && yarn type-check",
     "test": "playwright test ./suites",
-    "test:replay": "yarn pretest && PWDEBUG=console playwright test ./suites/replay/privacy",
     "test:bundle:es5": "PW_BUNDLE=bundle_es5 yarn test",
     "test:bundle:es5:min": "PW_BUNDLE=bundle_es5_min yarn test",
     "test:bundle:es6": "PW_BUNDLE=bundle_es6 yarn test",
