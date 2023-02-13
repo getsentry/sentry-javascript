@@ -4,6 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.37.2
+
+This release includes changes and fixes around text masking and blocking in Replay's `rrweb` dependency. See versions [1.102.0](https://github.com/getsentry/rrweb/releases/tag/1.102.0) and [1.103.0](https://github.com/getsentry/rrweb/releases/tag/1.103.0).
+
+- feat: Check `blockSelector` for blocking elements as well
+- feat: With maskAllText, mask the attributes: placeholder, title, `aria-label`
+- feat: fix masking on `textarea`
+- feat: Add `maskAllText` option
+
+SDK Changes:
+
+- fix(replay): Fix svgs not getting unblocked  (#7132)
+
+## 7.37.1
+
+- fix(browser): Support `async` in stack frame urls (#7131)
+- fix(nextjs): Make api route identifier stricter (#7126)
+- fix(node): Don't rely on `this` in http integration (#7135)
+- fix(replay): Fix missing fetch/xhr requests (#7134)
+- fix(tracing): Export `defaultStackParser` from tracing CDN bundles (#7116)
+
+## 7.37.0
+
+- feat: Add source map debug ids (#7068)
+- feat(browser): Add IndexedDb offline transport store (#6983)
+- feat(nextjs): Add auto-wrapping for server components (#6953)
+- feat(nextjs): Improve client stack traces (#7097)
+- feat(replay): Improve rrweb error ignoring (#7087 & #7094)
+- feat(replay): Send client_report when replay sending fails (#7093)
+- fix(node): `LocalVariables`, Improve frame matching for ESM (#7049)
+- fix(node): Add lru cache to http integration span map (#7064)
+- fix(replay): Export Replay from Sentry namespace in full CDN bundle (#7119)
+
+Work in this release contributed by @JamesHenry. Thank you for your contribution!
+
 ## 7.36.0
 
 This Release re-introduces the accidentally removed but still deprecated `maskInputOptions` option for Session Replay.

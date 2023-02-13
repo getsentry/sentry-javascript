@@ -1,11 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getReplaySnapshot } from '../../../utils/replayHelpers';
+import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
 sentryTest('should not send replays if both sample rates are 0', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
