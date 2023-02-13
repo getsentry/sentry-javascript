@@ -1,7 +1,6 @@
 import { BrowserClient, Hub } from '@sentry/browser';
 
-import { addExtensionMethods } from '../src';
-import { Transaction } from '../src/transaction';
+import { addExtensionMethods, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('`Transaction` class', () => {

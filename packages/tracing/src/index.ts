@@ -5,6 +5,7 @@ export {
   hasTracingEnabled,
   IdleTransaction,
   Span,
+  // eslint-disable-next-line deprecation/deprecation
   SpanStatus,
   spanStatusfromHttpCode,
   startIdleTransaction,

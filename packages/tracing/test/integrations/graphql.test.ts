@@ -2,8 +2,8 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { Span } from '../../src';
 import { GraphQL } from '../../src/integrations/node/graphql';
-import { Span } from '../../src/span';
 import { getTestClient } from '../testutils';
 
 const GQLExecute = {
@@ -12,13 +12,17 @@ const GQLExecute = {
   },
 };
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockClient = GQLExecute;
+
 // mock for 'graphql/execution/execution.js' package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
     loadModule() {
-      return GQLExecute;
+      return mockClient;
     },
   };
 });

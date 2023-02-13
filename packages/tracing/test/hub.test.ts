@@ -4,10 +4,8 @@ import { Hub, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { logger } from '@sentry/utils';
 
+import { addExtensionMethods, extractTraceparentData, TRACEPARENT_REGEXP, Transaction } from '../src';
 import { BrowserTracing } from '../src/browser/browsertracing';
-import { addExtensionMethods } from '../src/hubextensions';
-import { Transaction } from '../src/transaction';
-import { extractTraceparentData, TRACEPARENT_REGEXP } from '../src/utils';
 import {
   addDOMPropertiesToGlobal,
   getDefaultBrowserClientOptions,

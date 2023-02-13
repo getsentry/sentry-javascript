@@ -1,14 +1,12 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub } from '@sentry/core';
+import { Hub, IdleTransactionSpanRecorder } from '@sentry/core';
 
 import {
   DEFAULT_FINAL_TIMEOUT,
   DEFAULT_HEARTBEAT_INTERVAL,
   DEFAULT_IDLE_TIMEOUT,
-  IdleTransaction,
-  IdleTransactionSpanRecorder,
-} from '../src/idletransaction';
-import { Span } from '../src/span';
+} from '../../core/src/tracing/idletransaction';
+import { IdleTransaction, Span } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';

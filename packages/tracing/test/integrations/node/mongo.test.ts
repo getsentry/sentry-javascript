@@ -2,8 +2,8 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { Span } from '../../../src';
 import { Mongo } from '../../../src/integrations/node/mongo';
-import { Span } from '../../../src/span';
 import { getTestClient } from '../../testutils';
 
 class Collection {
@@ -25,13 +25,17 @@ class Collection {
   }
 }
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockCollection = Collection;
+
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
     ...actual,
     loadModule() {
       return {
-        Collection,
+        Collection: mockCollection,
       };
     },
   };

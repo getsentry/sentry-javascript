@@ -1,4 +1,4 @@
-import { extractTraceparentData, hasTracingEnabled } from '../src/utils';
+import { extractTraceparentData, hasTracingEnabled } from '../src';
 
 describe('hasTracingEnabled', () => {
   const tracesSampler = () => 1;

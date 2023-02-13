@@ -1,17 +1,21 @@
 import { BrowserClient, WINDOW } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
+import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
+import {
+  DEFAULT_FINAL_TIMEOUT,
+  DEFAULT_HEARTBEAT_INTERVAL,
+  DEFAULT_IDLE_TIMEOUT,
+} from '../../../core/src/tracing/idletransaction';
+import type { IdleTransaction } from '../../src';
+import { getActiveTransaction } from '../../src';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
-import * as hubExtensions from '../../src/hubextensions';
-import type { IdleTransaction } from '../../src/idletransaction';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../../src/idletransaction';
-import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
