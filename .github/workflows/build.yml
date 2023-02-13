@@ -533,6 +533,8 @@ jobs:
           - bundle_es5_min
           - bundle_es6
           - bundle_es6_min
+          - bundle_replay_es6
+          - bundle_replay_es6_min
         tracing_only:
           - true
           - false

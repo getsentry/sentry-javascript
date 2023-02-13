@@ -1,14 +1,17 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getReplaySnapshot, REPLAY_DEFAULT_FLUSH_MAX_DELAY, waitForReplayRequest } from '../../../utils/replayHelpers';
+import {
+  getReplaySnapshot,
+  REPLAY_DEFAULT_FLUSH_MAX_DELAY,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../utils/replayHelpers';
 
 sentryTest('should stop recording after receiving an error response', async ({ getLocalTestPath, page }) => {
-  // Currently bundle tests are not supported for replay
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
   let called = 0;
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
