@@ -1,17 +1,8 @@
-import type {
-  ClientOptions,
-  CustomSamplingContext,
-  Integration,
-  IntegrationClass,
-  Options,
-  SamplingContext,
-  TransactionContext,
-} from '@sentry/types';
-import { dynamicRequire, isNaN, isNodeEnv, loadModule, logger } from '@sentry/utils';
+import type { ClientOptions, CustomSamplingContext, Options, SamplingContext, TransactionContext } from '@sentry/types';
+import { isNaN, logger } from '@sentry/utils';
 
-import type { Hub } from '..';
-import { getMainCarrier } from '..';
-import { registerErrorInstrumentation } from './errors';
+import type { Hub } from '../';
+import { getMainCarrier } from '../';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
 import { hasTracingEnabled } from './utils';
@@ -220,9 +211,9 @@ export function startIdleTransaction(
 }
 
 /**
- * @private
+ * Adds tracing extensions to the global hub.
  */
-export function _addTracingExtensions(): void {
+export function addTracingExtensions(): void {
   const carrier = getMainCarrier();
   if (!carrier.__SENTRY__) {
     return;
@@ -234,71 +225,4 @@ export function _addTracingExtensions(): void {
   if (!carrier.__SENTRY__.extensions.traceHeaders) {
     carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
-}
-
-/**
- * @private
- */
-function _autoloadDatabaseIntegrations(): void {
-  const carrier = getMainCarrier();
-  if (!carrier.__SENTRY__) {
-    return;
-  }
-
-  const packageToIntegrationMapping: Record<string, () => Integration> = {
-    mongodb() {
-      const integration = dynamicRequire(module, './integrations/node/mongo') as {
-        Mongo: IntegrationClass<Integration>;
-      };
-      return new integration.Mongo();
-    },
-    mongoose() {
-      const integration = dynamicRequire(module, './integrations/node/mongo') as {
-        Mongo: IntegrationClass<Integration>;
-      };
-      return new integration.Mongo({ mongoose: true });
-    },
-    mysql() {
-      const integration = dynamicRequire(module, './integrations/node/mysql') as {
-        Mysql: IntegrationClass<Integration>;
-      };
-      return new integration.Mysql();
-    },
-    pg() {
-      const integration = dynamicRequire(module, './integrations/node/postgres') as {
-        Postgres: IntegrationClass<Integration>;
-      };
-      return new integration.Postgres();
-    },
-  };
-
-  const mappedPackages = Object.keys(packageToIntegrationMapping)
-    .filter(moduleName => !!loadModule(moduleName))
-    .map(pkg => {
-      try {
-        return packageToIntegrationMapping[pkg]();
-      } catch (e) {
-        return undefined;
-      }
-    })
-    .filter(p => p) as Integration[];
-
-  if (mappedPackages.length > 0) {
-    carrier.__SENTRY__.integrations = [...(carrier.__SENTRY__.integrations || []), ...mappedPackages];
-  }
-}
-
-/**
- * This patches the global object and injects the Tracing extensions methods
- */
-export function addExtensionMethods(): void {
-  _addTracingExtensions();
-
-  // Detect and automatically load specified integrations.
-  if (isNodeEnv()) {
-    _autoloadDatabaseIntegrations();
-  }
-
-  // If an error happens globally, we should make sure transaction status is set to error.
-  registerErrorInstrumentation();
 }

@@ -54,11 +54,11 @@ export {
 export { SDK_VERSION } from '@sentry/browser';
 
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
-import { addExtensionMethods } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { BrowserTracing } from './browser';
+import { addExtensionMethods } from './hubextensions';
 
 export { Span } from '@sentry/core';
 

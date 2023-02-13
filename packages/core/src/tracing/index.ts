@@ -1,4 +1,3 @@
-export * from './errors';
 export * from './hubextensions';
 export * from './idletransaction';
 export * from './span';
