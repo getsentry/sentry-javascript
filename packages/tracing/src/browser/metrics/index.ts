@@ -332,6 +332,7 @@ export interface ResourceEntry extends Record<string, unknown> {
   transferSize?: number;
   encodedBodySize?: number;
   decodedBodySize?: number;
+  renderBlockingStatus?: string;
 }
 
 /** Create resource-related spans */
@@ -359,6 +360,9 @@ export function _addResourceSpans(
   }
   if ('decodedBodySize' in entry) {
     data['Decoded Body Size'] = entry.decodedBodySize;
+  }
+  if ('renderBlockingStatus' in entry) {
+    data['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
 
   const startTimestamp = timeOrigin + startTime;
