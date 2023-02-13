@@ -4,11 +4,10 @@ import type { RecordingEvent } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
-import { waitForReplayRequest } from '../../../utils/replayHelpers';
+import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should have the correct default privacy settings', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
@@ -80,7 +79,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'button',
                   attributes: {
-                    'aria-label': 'Click me',
+                    'aria-label': '***** **',
                     onclick: "console.log('Test log')",
                   },
                   childNodes: [
@@ -139,7 +138,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'input',
                   attributes: {
-                    placeholder: 'Placeholder should be masked',
+                    placeholder: '*********** ****** ** ******',
                   },
                   childNodes: [],
                   id: 18,
@@ -153,7 +152,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'div',
                   attributes: {
-                    title: 'Title should be masked',
+                    title: '***** ****** ** ******',
                   },
                   childNodes: [
                     {
@@ -190,7 +189,6 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   tagName: 'svg',
                   attributes: {
                     style: 'width:200px;height:200px',
-                    class: 'sentry-unblock',
                     viewBox: '0 0 80 80',
                     'data-sentry-unblock': '',
                   },
@@ -199,31 +197,31 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                       type: 2,
                       tagName: 'path',
                       attributes: {
-                        rr_width: '0px',
-                        rr_height: '0px',
+                        d: '',
                       },
                       childNodes: [],
                       isSVG: true,
                       id: 26,
                     },
+                    {
+                      type: 2,
+                      tagName: 'area',
+                      attributes: {},
+                      childNodes: [],
+                      isSVG: true,
+                      id: 27,
+                    },
+                    {
+                      type: 2,
+                      tagName: 'rect',
+                      attributes: {},
+                      childNodes: [],
+                      isSVG: true,
+                      id: 28,
+                    },
                   ],
                   isSVG: true,
                   id: 25,
-                },
-                {
-                  type: 3,
-                  textContent: '\n    ',
-                  id: 27,
-                },
-                {
-                  type: 2,
-                  tagName: 'img',
-                  attributes: {
-                    rr_width: '100px',
-                    rr_height: '100px',
-                  },
-                  childNodes: [],
-                  id: 28,
                 },
                 {
                   type: 3,
@@ -234,22 +232,37 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
                   type: 2,
                   tagName: 'img',
                   attributes: {
-                    'data-sentry-unblock': '',
-                    style: 'width:100px;height:100px',
-                    src: 'file:///none.png',
+                    rr_width: '100px',
+                    rr_height: '100px',
                   },
                   childNodes: [],
                   id: 30,
                 },
                 {
                   type: 3,
-                  textContent: '\n  ',
+                  textContent: '\n    ',
                   id: 31,
+                },
+                {
+                  type: 2,
+                  tagName: 'img',
+                  attributes: {
+                    'data-sentry-unblock': '',
+                    style: 'width:100px;height:100px',
+                    src: 'file:///none.png',
+                  },
+                  childNodes: [],
+                  id: 32,
+                },
+                {
+                  type: 3,
+                  textContent: '\n  ',
+                  id: 33,
                 },
                 {
                   type: 3,
                   textContent: '\n\n',
-                  id: 32,
+                  id: 34,
                 },
               ],
               id: 7,

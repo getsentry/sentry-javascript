@@ -10,13 +10,19 @@ import {
   expectedNavigationPerformanceSpan,
   getExpectedReplayEvent,
 } from '../../../utils/replayEventTemplates';
-import { getCustomRecordingEvents, getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
+import {
+  getCustomRecordingEvents,
+  getReplayEvent,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../utils/replayHelpers';
 
 sentryTest(
   'replay recording should contain default performance spans',
   async ({ getLocalTestPath, page, browserName }) => {
-    // Replay bundles are es6 only and most performance entries are only available in chromium
-    if ((process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) || browserName !== 'chromium') {
+    // We only test this against the NPM package and replay bundles
+    // and only on chromium as most performance entries are only available in chromium
+    if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
@@ -68,8 +74,7 @@ sentryTest(
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
   async ({ getLocalTestPath, page }) => {
-    // Replay bundles are es6 only
-    if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+    if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
 

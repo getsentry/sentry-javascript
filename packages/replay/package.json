@@ -46,7 +46,7 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/rrweb": "1.101.2",
+    "@sentry-internal/rrweb": "1.103.0",
     "@types/pako": "^2.0.0",
     "jsdom-worker": "^0.2.1",
     "pako": "^2.0.4",
