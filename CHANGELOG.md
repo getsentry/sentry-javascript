@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.37.2
+
+This release includes changes and fixes around text masking and blocking in Replay's `rrweb` dependency. See versions [1.102.0](https://github.com/getsentry/rrweb/releases/tag/1.102.0) and [1.103.0](https://github.com/getsentry/rrweb/releases/tag/1.103.0).
+
+- feat: Check `blockSelector` for blocking elements as well
+- feat: With maskAllText, mask the attributes: placeholder, title, `aria-label`
+- feat: fix masking on `textarea`
+- feat: Add `maskAllText` option
+
+SDK Changes:
+
+- fix(replay): Fix svgs not getting unblocked  (#7132)
+
 ## 7.37.1
 
 - fix(browser): Support `async` in stack frame urls (#7131)
