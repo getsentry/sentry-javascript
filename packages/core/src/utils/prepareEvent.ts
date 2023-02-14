@@ -118,47 +118,50 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
  */
 export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-  if (debugIdMap) {
-    // Build a map of abs_path -> debug_id
-    const absPathDebugIdMap: Record<string, string> = {};
-    Object.keys(debugIdMap).forEach(debugIdStackTrace => {
-      const parsedStack = stackParser(debugIdStackTrace);
-      for (const stackFrame of parsedStack) {
-        if (stackFrame.abs_path) {
-          absPathDebugIdMap[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
-          break;
-        }
+
+  if (!debugIdMap) {
+    return;
+  }
+
+  // Build a map of abs_path -> debug_id
+  const absPathDebugIdMap: Record<string, string> = {};
+  Object.keys(debugIdMap).forEach(debugIdStackTrace => {
+    const parsedStack = stackParser(debugIdStackTrace);
+    for (const stackFrame of parsedStack) {
+      if (stackFrame.abs_path) {
+        absPathDebugIdMap[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
+        break;
       }
-    });
-
-    // Get a Set of abs_paths in the stack trace
-    const errorAbsPaths = new Set<string>();
-    if (event && event.exception && event.exception.values) {
-      event.exception.values.forEach(exception => {
-        if (exception.stacktrace && exception.stacktrace.frames) {
-          exception.stacktrace.frames.forEach(frame => {
-            if (frame.abs_path) {
-              errorAbsPaths.add(frame.abs_path);
-            }
-          });
-        }
-      });
     }
+  });
 
-    // Fill debug_meta information
-    event.debug_meta = event.debug_meta || {};
-    event.debug_meta.images = event.debug_meta.images || [];
-    const images = event.debug_meta.images;
-    errorAbsPaths.forEach(absPath => {
-      if (absPathDebugIdMap[absPath]) {
-        images.push({
-          type: 'sourcemap',
-          code_file: absPath,
-          debug_id: absPathDebugIdMap[absPath],
+  // Get a Set of abs_paths in the stack trace
+  const errorAbsPaths = new Set<string>();
+  if (event && event.exception && event.exception.values) {
+    event.exception.values.forEach(exception => {
+      if (exception.stacktrace && exception.stacktrace.frames) {
+        exception.stacktrace.frames.forEach(frame => {
+          if (frame.abs_path) {
+            errorAbsPaths.add(frame.abs_path);
+          }
         });
       }
     });
   }
+
+  // Fill debug_meta information
+  event.debug_meta = event.debug_meta || {};
+  event.debug_meta.images = event.debug_meta.images || [];
+  const images = event.debug_meta.images;
+  errorAbsPaths.forEach(absPath => {
+    if (absPathDebugIdMap[absPath]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: absPath,
+        debug_id: absPathDebugIdMap[absPath],
+      });
+    }
+  });
 }
 
 /**
