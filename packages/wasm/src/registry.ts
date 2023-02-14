@@ -69,10 +69,6 @@ export function getImages(): Array<DebugImage> {
  */
 export function getImage(url: string): number {
   return IMAGES.findIndex(image => {
-    if (image.type === 'wasm') {
-      return image.code_file === url;
-    } else {
-      return false;
-    }
+    return image.type === 'wasm' && image.code_file === url;
   });
 }
