@@ -4,15 +4,16 @@ import resolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
 import { terser } from 'rollup-plugin-terser';
+import copy from 'rollup-plugin-copy';
 
 const config = defineConfig({
-  input: ['./worker/src/worker.ts'],
+  input: ['./src/worker.ts'],
   output: {
-    dir: './src/worker/',
+    dir: './build/',
     format: 'esm',
   },
   plugins: [
-    typescript({ tsconfig: './tsconfig.worker.json' }),
+    typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
     resolve(),
     terser({
       mangle: {
@@ -25,6 +26,9 @@ const config = defineConfig({
         return `export default \`${code}\`;`;
       },
     },
+    copy({
+      targets: [{ src: 'vendor/*', dest: 'build' }],
+    }),
   ],
 });
 

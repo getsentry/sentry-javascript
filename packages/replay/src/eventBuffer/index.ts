@@ -1,7 +1,7 @@
+import { getWorkerURL } from '@sentry-internal/replay-worker';
 import { logger } from '@sentry/utils';
 
 import type { EventBuffer } from '../types';
-import workerString from '../worker/worker.js';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
 
@@ -16,8 +16,7 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
   // eslint-disable-next-line no-restricted-globals
   if (useCompression && window.Worker) {
     try {
-      const workerBlob = new Blob([workerString]);
-      const workerUrl = URL.createObjectURL(workerBlob);
+      const workerUrl = getWorkerURL();
 
       __DEBUG_BUILD__ && logger.log('[Replay] Using compression worker');
       const worker = new Worker(workerUrl);

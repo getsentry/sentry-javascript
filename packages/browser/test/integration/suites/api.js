@@ -112,12 +112,26 @@ describe('API', function () {
 
       // Same exceptions, different stacktrace (different line number), don't dedupe
       throwSameConsecutiveErrors('bar');
+
+      // Same exception, with transaction in between, dedupe
+      throwError();
+      Sentry.captureEvent({
+        event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+        message: 'someMessage',
+        transaction: 'wat',
+        type: 'transaction',
+      });
+      throwError();
     }).then(function (summary) {
+      // We have a length of one here since transactions don't go through beforeSend
+      // and we add events to summary in beforeSend
+      assert.equal(summary.events.length, 6);
       assert.match(summary.events[0].exception.values[0].value, /Exception no \d+/);
       assert.match(summary.events[1].exception.values[0].value, /Exception no \d+/);
       assert.equal(summary.events[2].exception.values[0].value, 'foo');
       assert.equal(summary.events[3].exception.values[0].value, 'bar');
       assert.equal(summary.events[4].exception.values[0].value, 'bar');
+      assert.equal(summary.events[5].exception.values[0].value, 'foo');
     });
   });
 
