@@ -116,7 +116,7 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
 /**
  * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
  */
-function applyDebugMetadata(event: Event, stackParser: StackParser): void {
+export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
   if (debugIdMap) {
     // Build a map of abs_path -> debug_id
