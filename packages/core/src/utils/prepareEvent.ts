@@ -153,7 +153,7 @@ function applyDebugMetadata(event: Event, stackParser: StackParser): void {
       if (absPathDebugIdMap[absPath]) {
         images.push({
           type: 'sourcemap',
-          source_filename: absPath,
+          code_file: absPath,
           debug_id: absPathDebugIdMap[absPath],
         });
       }

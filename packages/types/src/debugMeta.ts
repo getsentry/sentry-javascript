@@ -17,6 +17,6 @@ interface WasmDebugImage {
 
 interface SourceMapDebugImage {
   type: 'sourcemap';
-  source_filename: string; // abs_path
+  code_file: string; // abs_path
   debug_id: string; // uuid
 }
