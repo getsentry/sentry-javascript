@@ -15,6 +15,8 @@ import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { isBuild } from './utils/isBuild';
 
 export * from '@sentry/node';
+export { Integrations };
+
 export { captureUnderscoreErrorException } from '../common/_error';
 
 /**
