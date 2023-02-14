@@ -1,5 +1,8 @@
-import { constants, Deflate } from 'pako';
+import { constants, Deflate, deflate } from 'pako';
 
+/**
+ * A stateful compressor that can be used to batch compress events.
+ */
 export class Compressor {
   /**
    * pako deflator instance
@@ -15,10 +18,16 @@ export class Compressor {
     this._init();
   }
 
+  /**
+   * Clear the compressor buffer.
+   */
   public clear(): void {
     this._init();
   }
 
+  /**
+   * Add an event to the compressor buffer.
+   */
   public addEvent(data: string): void {
     if (!data) {
       throw new Error('Adding invalid event');
@@ -34,6 +43,9 @@ export class Compressor {
     this._hasEvents = true;
   }
 
+  /**
+   * Finish compression of the current buffer.
+   */
   public finish(): Uint8Array {
     // We should always have a list, it can be empty
     this.deflate.push(']', constants.Z_FINISH);
@@ -51,6 +63,9 @@ export class Compressor {
     return result;
   }
 
+  /**
+   * Re-initialize the compressor buffer.
+   */
   private _init(): void {
     this._hasEvents = false;
     this.deflate = new Deflate();
@@ -58,4 +73,11 @@ export class Compressor {
     // Fake an array by adding a `[`
     this.deflate.push('[', constants.Z_NO_FLUSH);
   }
+}
+
+/**
+ * Compress a string.
+ */
+export function compress(data: string): Uint8Array {
+  return deflate(data);
 }
