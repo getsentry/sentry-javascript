@@ -124,16 +124,16 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
   }
 
   // Build a map of abs_path -> debug_id
-  const absPathDebugIdMap: Record<string, string> = {};
-  Object.keys(debugIdMap).forEach(debugIdStackTrace => {
+  const absPathDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     const parsedStack = stackParser(debugIdStackTrace);
     for (const stackFrame of parsedStack) {
       if (stackFrame.abs_path) {
-        absPathDebugIdMap[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
+        acc[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
         break;
       }
     }
-  });
+    return acc;
+  }, {});
 
   // Get a Set of abs_paths in the stack trace
   const errorAbsPaths = new Set<string>();
