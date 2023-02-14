@@ -137,16 +137,18 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
 
   // Get a Set of abs_paths in the stack trace
   const errorAbsPaths = new Set<string>();
-  if (event && event.exception && event.exception.values) {
-    event.exception.values.forEach(exception => {
-      if (exception.stacktrace && exception.stacktrace.frames) {
-        exception.stacktrace.frames.forEach(frame => {
-          if (frame.abs_path) {
-            errorAbsPaths.add(frame.abs_path);
-          }
-        });
-      }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    event!.exception!.values!.forEach(exception => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      exception.stacktrace!.frames!.forEach(frame => {
+        if (frame.abs_path) {
+          errorAbsPaths.add(frame.abs_path);
+        }
+      });
     });
+  } catch (e) {
+    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 
   // Fill debug_meta information
