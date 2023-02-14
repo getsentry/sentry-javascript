@@ -2,18 +2,20 @@
   "name": "@sentry-internal/replay-worker",
   "version": "7.37.2",
   "description": "Worker for @sentry/replay",
-  "main": "build/index.js",
-  "module": "build/index.js",
+  "main": "build/npm/esm/index.js",
+  "module": "build/npm/esm/index.js",
+  "types": "build/npm/types/index.d.ts",
   "sideEffects": false,
   "private": true,
   "scripts": {
-    "build": "yarn build:transpile",
+    "build": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.worker.config.js",
-    "build:types": "yarn build:transpile",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:dev": "yarn build",
-    "build:watch": "run-p build:transpile:watch",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-p build:watch",
     "build:transpile:watch": "yarn build:rollup --watch",
+    "build:types:watch": "yarn build:types --watch",
     "clean": "rimraf build",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
@@ -36,7 +38,6 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@types/pako": "^2.0.0",
-    "rollup-plugin-copy": "~3.4.0",
     "tslib": "^1.9.3"
   },
   "dependencies": {
