@@ -1,12 +1,3 @@
-import { handleMessage } from './handleMessage';
-
-addEventListener('message', handleMessage);
-
-// Immediately send a message when worker loads, so we know the worker is ready
-// @ts-ignore this syntax is actually fine
-postMessage({
-  id: undefined,
-  method: 'init',
-  success: true,
-  response: undefined,
-});
+// This is replaced at build-time with the content from _worker.ts, wrapped as a string.
+// This is just a placeholder so that types etc. are correct.
+export default '' as string;
