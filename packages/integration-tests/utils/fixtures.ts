@@ -22,6 +22,7 @@ const getAsset = (assetDir: string, asset: string): string => {
 };
 
 export type TestFixtures = {
+  _autoSnapshotSuffix: void;
   testDir: string;
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -35,6 +36,14 @@ export type TestFixtures = {
 };
 
 const sentryTest = base.extend<TestFixtures>({
+  _autoSnapshotSuffix: [
+    async ({}, use, testInfo) => {
+      testInfo.snapshotSuffix = '';
+      await use();
+    },
+    { auto: true },
+  ],
+
   getLocalTestPath: ({}, use, testInfo) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
