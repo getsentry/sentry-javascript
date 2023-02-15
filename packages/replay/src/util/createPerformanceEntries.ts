@@ -109,10 +109,12 @@ function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; 
   let startTimeOrNavigationActivation = 0;
 
   if (WINDOW.performance) {
-    const navEntry = WINDOW.performance.getEntriesByType('navigation')[0] as (PerformanceNavigationTiming & {activationStart: number});
+    const navEntry = WINDOW.performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming & {
+      activationStart: number;
+    };
 
     // See https://github.com/GoogleChrome/web-vitals/blob/9f11c4c6578fb4c5ee6fa4e32b9d1d756475f135/src/lib/getActivationStart.ts#L21
-    startTimeOrNavigationActivation = navEntry && navEntry.activationStart || 0;
+    startTimeOrNavigationActivation = (navEntry && navEntry.activationStart) || 0;
   }
 
   const start = getAbsoluteTime(startTimeOrNavigationActivation);
