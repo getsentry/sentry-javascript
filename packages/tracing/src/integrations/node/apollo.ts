@@ -4,6 +4,10 @@ import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
+interface ApolloOptions {
+  nestjs?: boolean;
+}
+
 type ApolloResolverGroup = {
   [key: string]: () => unknown;
 };
@@ -24,6 +28,19 @@ export class Apollo implements Integration {
    */
   public name: string = Apollo.id;
 
+  private readonly _useNest: boolean;
+
+  /**
+   * @inheritDoc
+   */
+  public constructor(
+    options: ApolloOptions = {
+      nestjs: false,
+    },
+  ) {
+    this._useNest = !!options.nestjs;
+  }
+
   /**
    * @inheritDoc
    */
@@ -33,62 +50,111 @@ export class Apollo implements Integration {
       return;
     }
 
-    const pkg = loadModule<{
-      ApolloServerBase: {
-        prototype: {
-          constructSchema: () => unknown;
+    if (this._useNest) {
+      const pkg = loadModule<{
+        GraphQLFactory: {
+          prototype: {
+            create: (resolvers: ApolloModelResolvers[]) => unknown;
+          };
         };
-      };
-    }>('apollo-server-core');
+      }>('@nestjs/graphql');
 
-    if (!pkg) {
-      __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
-      return;
-    }
+      if (!pkg) {
+        __DEBUG_BUILD__ && logger.error('Apollo-NestJS Integration was unable to require @nestjs/graphql package.');
+        return;
+      }
 
-    /**
-     * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
-     */
-    fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: () => unknown) {
-      return function (this: { config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown } }) {
-        if (!this.config.resolvers) {
-          if (__DEBUG_BUILD__) {
-            if (this.config.schema) {
-              logger.warn(
-                'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.',
-              );
-            } else if (this.config.modules) {
-              logger.warn(
-                'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
-              );
-            }
+      /**
+       * Iterate over resolvers of NestJS ResolversExplorerService before schemas are constructed.
+       */
+      fill(
+        pkg.GraphQLFactory.prototype,
+        'mergeWithSchema',
+        function (orig: (this: unknown, ...args: unknown[]) => unknown) {
+          return function (
+            this: { resolversExplorerService: { explore: () => ApolloModelResolvers[] } },
+            ...args: unknown[]
+          ) {
+            fill(this.resolversExplorerService, 'explore', function (orig: () => ApolloModelResolvers[]) {
+              return function (this: unknown) {
+                const resolvers = arrayify(orig.call(this));
 
-            logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
-          }
+                const instrumentedResolvers = instrumentResolvers(resolvers, getCurrentHub);
 
-          return orig.call(this);
-        }
+                return instrumentedResolvers;
+              };
+            });
 
-        const resolvers = arrayify(this.config.resolvers);
+            return orig.call(this, ...args);
+          };
+        },
+      );
+    } else {
+      const pkg = loadModule<{
+        ApolloServerBase: {
+          prototype: {
+            constructSchema: (config: unknown) => unknown;
+          };
+        };
+      }>('apollo-server-core');
 
-        this.config.resolvers = resolvers.map(model => {
-          Object.keys(model).forEach(resolverGroupName => {
-            Object.keys(model[resolverGroupName]).forEach(resolverName => {
-              if (typeof model[resolverGroupName][resolverName] !== 'function') {
-                return;
+      if (!pkg) {
+        __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
+        return;
+      }
+
+      /**
+       * Iterate over resolvers of the ApolloServer instance before schemas are constructed.
+       */
+      fill(pkg.ApolloServerBase.prototype, 'constructSchema', function (orig: (config: unknown) => unknown) {
+        return function (this: {
+          config: { resolvers?: ApolloModelResolvers[]; schema?: unknown; modules?: unknown };
+        }) {
+          if (!this.config.resolvers) {
+            if (__DEBUG_BUILD__) {
+              if (this.config.schema) {
+                logger.warn(
+                  'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.' +
+                    'If you are using NestJS with Apollo, please use `Sentry.Integrations.Apollo({ nestjs: true })` instead.',
+                );
+                logger.warn();
+              } else if (this.config.modules) {
+                logger.warn(
+                  'Apollo integration is not able to trace `ApolloServer` instances constructed via `modules` property.',
+                );
               }
 
-              wrapResolver(model, resolverGroupName, resolverName, getCurrentHub);
-            });
-          });
+              logger.error('Skipping tracing as no resolvers found on the `ApolloServer` instance.');
+            }
 
-          return model;
-        });
+            return orig.call(this);
+          }
 
-        return orig.call(this);
-      };
-    });
+          const resolvers = arrayify(this.config.resolvers);
+
+          this.config.resolvers = instrumentResolvers(resolvers, getCurrentHub);
+
+          return orig.call(this);
+        };
+      });
+    }
   }
+}
+
+function instrumentResolvers(resolvers: ApolloModelResolvers[], getCurrentHub: () => Hub): ApolloModelResolvers[] {
+  return resolvers.map(model => {
+    Object.keys(model).forEach(resolverGroupName => {
+      Object.keys(model[resolverGroupName]).forEach(resolverName => {
+        if (typeof model[resolverGroupName][resolverName] !== 'function') {
+          return;
+        }
+
+        wrapResolver(model, resolverGroupName, resolverName, getCurrentHub);
+      });
+    });
+
+    return model;
+  });
 }
 
 /**
