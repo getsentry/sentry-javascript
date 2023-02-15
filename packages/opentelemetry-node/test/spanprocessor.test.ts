@@ -221,7 +221,7 @@ describe('SentrySpanProcessor', () => {
         child.end();
 
         expect(sentrySpan?.data).toEqual({
-          'otel.kind': 0,
+          'otel.kind': 'INTERNAL',
           'test-attribute': 'test-value',
           'test-attribute-2': [1, 2, 3],
           'test-attribute-3': 0,

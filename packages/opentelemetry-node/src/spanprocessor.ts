@@ -1,5 +1,5 @@
 import type { Context } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
+import { SpanKind, trace } from '@opentelemetry/api';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
@@ -223,7 +223,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   const { attributes, kind } = otelSpan;
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
-  sentrySpan.setData('otel.kind', kind.valueOf());
+  sentrySpan.setData('otel.kind', SpanKind[kind]);
 
   Object.keys(attributes).forEach(prop => {
     const value = attributes[prop];
