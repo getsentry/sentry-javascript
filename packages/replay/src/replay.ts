@@ -38,6 +38,7 @@ import { debounce } from './util/debounce';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
+import { requestIdleCallback } from './util/requestIdleCallback';
 import { sendReplay } from './util/sendReplay';
 
 /**
@@ -294,24 +295,19 @@ export class ReplayContainer implements ReplayContainerInterface {
    * processing and hand back control to caller.
    */
   public addUpdate(cb: AddUpdateCallback): void {
-    // We need to always run `cb` (e.g. in the case of `this.recordingMode == 'error'`)
-    const cbResult = cb();
+    requestIdleCallback(() => {
+      cb();
 
-    // If this option is turned on then we will only want to call `flush`
-    // explicitly
-    if (this.recordingMode === 'error') {
-      return;
-    }
+      // If this option is turned on then we will only want to call `flush`
+      // explicitly
+      if (this.recordingMode === 'error') {
+        return;
+      }
 
-    // If callback is true, we do not want to continue with flushing -- the
-    // caller will need to handle it.
-    if (cbResult === true) {
-      return;
-    }
-
-    // addUpdate is called quite frequently - use _debouncedFlush so that it
-    // respects the flush delays and does not flush immediately
-    this._debouncedFlush();
+      // addUpdate is called quite frequently - use _debouncedFlush so that it
+      // respects the flush delays and does not flush immediately
+      this._debouncedFlush();
+    });
   }
 
   /**
@@ -528,55 +524,67 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    this.addUpdate(() => {
-      // The session is always started immediately on pageload/init, but for
-      // error-only replays, it should reflect the most recent checkout
-      // when an error occurs. Clear any state that happens before this current
-      // checkout. This needs to happen before `addEvent()` which updates state
-      // dependent on this reset.
-      if (this.recordingMode === 'error' && event.type === 2) {
-        this._setInitialState();
+    requestIdleCallback(() => {
+      const shouldFlush = this._captureEmittedEvent(event, isCheckout);
+      if (shouldFlush) {
+        this._debouncedFlush();
       }
-
-      // We need to clear existing events on a checkout, otherwise they are
-      // incremental event updates and should be appended
-      void addEvent(this, event, isCheckout);
-
-      // Different behavior for full snapshots (type=2), ignore other event types
-      // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-      if (event.type !== 2) {
-        return false;
-      }
-
-      // If there is a previousSessionId after a full snapshot occurs, then
-      // the replay session was started due to session expiration. The new session
-      // is started before triggering a new checkout and contains the id
-      // of the previous session. Do not immediately flush in this case
-      // to avoid capturing only the checkout and instead the replay will
-      // be captured if they perform any follow-up actions.
-      if (this.session && this.session.previousSessionId) {
-        return true;
-      }
-
-      // See note above re: session start needs to reflect the most recent
-      // checkout.
-      if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
-        this.session.started = this._context.earliestEvent;
-        this._maybeSaveSession();
-      }
-
-      // Flush immediately so that we do not miss the first segment, otherwise
-      // it can prevent loading on the UI. This will cause an increase in short
-      // replays (e.g. opening and closing a tab quickly), but these can be
-      // filtered on the UI.
-      if (this.recordingMode === 'session') {
-        // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
-        void this.flushImmediate();
-      }
-
-      return true;
     });
   };
+
+  /**
+   * Capture an event emitted from rrweb.
+   * Returns true if the event should be flushed.
+   */
+  private _captureEmittedEvent(event: RecordingEvent, isCheckout?: boolean): boolean {
+    // The session is always started immediately on pageload/init, but for
+    // error-only replays, it should reflect the most recent checkout
+    // when an error occurs. Clear any state that happens before this current
+    // checkout. This needs to happen before `addEvent()` which updates state
+    // dependent on this reset.
+    if (this.recordingMode === 'error' && event.type === 2) {
+      this._setInitialState();
+    }
+
+    // We need to clear existing events on a checkout, otherwise they are
+    // incremental event updates and should be appended
+    void addEvent(this, event, isCheckout);
+
+    // Different behavior for full snapshots (type=2), ignore other event types
+    // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
+    if (event.type !== 2) {
+      // Only should enqueue flush if in session mode
+      return this.recordingMode === 'session';
+    }
+
+    // If there is a previousSessionId after a full snapshot occurs, then
+    // the replay session was started due to session expiration. The new session
+    // is started before triggering a new checkout and contains the id
+    // of the previous session. Do not immediately flush in this case
+    // to avoid capturing only the checkout and instead the replay will
+    // be captured if they perform any follow-up actions.
+    if (this.session && this.session.previousSessionId) {
+      return false;
+    }
+
+    // See note above re: session start needs to reflect the most recent
+    // checkout.
+    if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
+      this.session.started = this._context.earliestEvent;
+      this._maybeSaveSession();
+    }
+
+    // Flush immediately so that we do not miss the first segment, otherwise
+    // it can prevent loading on the UI. This will cause an increase in short
+    // replays (e.g. opening and closing a tab quickly), but these can be
+    // filtered on the UI.
+    if (this.recordingMode === 'session') {
+      // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
+      void this.flushImmediate();
+    }
+
+    return false;
+  }
 
   /**
    * Handle when visibility of the page content changes. Opening a new tab will

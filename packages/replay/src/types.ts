@@ -282,7 +282,7 @@ export interface EventBuffer {
   finish(): Promise<ReplayRecordingData>;
 }
 
-export type AddUpdateCallback = () => boolean | void;
+export type AddUpdateCallback = () => void;
 
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;

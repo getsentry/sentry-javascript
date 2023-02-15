@@ -25,6 +25,7 @@ describe('Integration | sendReplayEvent', () => {
   let mockSendReplayRequest: jest.SpyInstance<any>;
   let domHandler: (args: any) => any;
   const { record: mockRecord } = mockRrweb();
+  const _requestIdleCallback = WINDOW.requestIdleCallback;
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
@@ -65,6 +66,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   afterEach(async () => {
+    WINDOW.requestIdleCallback = _requestIdleCallback;
     jest.runAllTimers();
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
@@ -127,6 +129,80 @@ describe('Integration | sendReplayEvent', () => {
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+  });
+
+  it('works with requestIdleCallback', async () => {
+    const mockRequestIdleCallback = jest.fn((cb: () => void) => {
+      setTimeout(cb, 50);
+    });
+
+    WINDOW.requestIdleCallback = mockRequestIdleCallback;
+
+    domHandler({
+      name: 'click',
+    });
+    domHandler({
+      name: 'click',
+    });
+
+    jest.advanceTimersByTime(10);
+
+    domHandler({
+      name: 'click',
+    });
+
+    expect(mockRequestIdleCallback).toBeCalledTimes(3);
+
+    // 5s (flush time) + 50ms for idle callback mock
+    await advanceTimers(5050);
+
+    expect(mockRequestIdleCallback).toBeCalledTimes(3);
+    expect(replay).toHaveLastSentReplay({
+      recordingData: JSON.stringify([
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP + 10,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: (BASE_TIMESTAMP + 10) / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
   });
 
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {

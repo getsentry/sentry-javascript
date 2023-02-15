@@ -1,10 +1,13 @@
 import { GLOBAL_OBJ } from '@sentry/utils';
 
+// This is a new API that is not available everywhere yet
+type RequestIdleCallback = (cb: () => void, options?: { timeout: number }) => void;
+
 // exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
 // prevents the browser package from being bundled in the CDN bundle, and avoids a
 // circular dependency between the browser and replay packages should `@sentry/browser` import
 // from `@sentry/replay` in the future
-export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
+export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window & { requestIdleCallback?: RequestIdleCallback };
 
 export const REPLAY_SESSION_KEY = 'sentryReplaySession';
 export const REPLAY_EVENT_NAME = 'replay_event';
