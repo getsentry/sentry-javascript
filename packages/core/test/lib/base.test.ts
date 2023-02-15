@@ -1368,8 +1368,6 @@ describe('BaseClient', () => {
         type: 'transaction',
         transaction_info: {
           source: 'url',
-          changes: [],
-          propagations: 3,
         },
       };
 
@@ -1383,14 +1381,6 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toEqual('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
-        changes: [
-          {
-            propagations: 3,
-            source: 'custom',
-            timestamp: expect.any(Number),
-          },
-        ],
-        propagations: 3,
       });
     });
 
@@ -1407,8 +1397,6 @@ describe('BaseClient', () => {
         type: 'transaction',
         transaction_info: {
           source: 'url',
-          changes: [],
-          propagations: 3,
         },
       });
 
@@ -1416,14 +1404,6 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
-        changes: [
-          {
-            propagations: 3,
-            source: 'custom',
-            timestamp: expect.any(Number),
-          },
-        ],
-        propagations: 3,
       });
     });
 

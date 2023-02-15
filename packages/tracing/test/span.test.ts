@@ -508,8 +508,6 @@ describe('Span', () => {
         expect.objectContaining({
           transaction_info: {
             source: 'url',
-            changes: [],
-            propagations: 0,
           },
         }),
       );

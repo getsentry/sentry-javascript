@@ -20,8 +20,6 @@ describe('getServerSideProps', () => {
       transaction: '/[id]/withServerSideProps',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       type: 'transaction',
       request: {
