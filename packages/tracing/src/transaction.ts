@@ -11,7 +11,7 @@ import type {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { Span as SpanClass, SpanRecorder } from './span';
 
