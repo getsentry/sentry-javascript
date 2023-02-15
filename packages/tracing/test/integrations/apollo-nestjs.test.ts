@@ -16,7 +16,9 @@ type ApolloModelResolvers = {
 
 class GraphQLFactory {
   _resolvers: ApolloModelResolvers[];
-
+  resolversExplorerService = {
+    explore: () => this._resolvers,
+  };
   constructor() {
     this._resolvers = [
       {
@@ -39,10 +41,6 @@ class GraphQLFactory {
   public mergeWithSchema(..._args: unknown[]) {
     return this.resolversExplorerService.explore();
   }
-
-  public resolversExplorerService = {
-    explore: () => this._resolvers,
-  };
 }
 
 // mock for @nestjs/graphql package
