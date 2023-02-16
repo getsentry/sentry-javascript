@@ -697,6 +697,22 @@ describe('BaseClient', () => {
       );
     });
 
+    test('skips empty integrations', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        // @ts-ignore we want to force invalid integrations here
+        integrations: [new TestIntegration(), null, undefined],
+      });
+      const client = new TestClient(options);
+      client.setupIntegrations();
+
+      client.captureEvent({ message: 'message' });
+
+      expect(TestClient.instance!.event!.sdk).toEqual({
+        integrations: ['TestIntegration'],
+      });
+    });
+
     test('normalizes event with default depth of 3', () => {
       expect.assertions(1);
 
