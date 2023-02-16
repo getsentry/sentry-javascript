@@ -7,6 +7,7 @@ import { ReplayContainer } from './replay';
 import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
+import { isBot } from './util/isBot';
 
 const MEDIA_SELECTORS = 'img,image,svg,video,object,picture,embed,map,audio';
 
@@ -268,6 +269,12 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
 
   if (typeof opt.replaysOnErrorSampleRate === 'number') {
     finalOptions.errorSampleRate = opt.replaysOnErrorSampleRate;
+  }
+
+  // For bots, never sample
+  if (isBot()) {
+    finalOptions.sessionSampleRate = 0;
+    finalOptions.errorSampleRate = 0;
   }
 
   return finalOptions;

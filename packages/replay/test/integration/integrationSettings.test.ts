@@ -1,4 +1,5 @@
 import { mockSdk } from '../index';
+import { WINDOW } from '../../src/constants';
 
 describe('Integration | integrationSettings', () => {
   beforeEach(() => {
@@ -231,6 +232,25 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions()._experiments).toEqual({});
+    });
+  });
+
+  describe('bot detection', () => {
+    const userAgent = WINDOW.navigator.userAgent;
+
+    afterEach(() => {
+      Object.defineProperty(WINDOW.navigator, 'userAgent', { configurable: true, value: userAgent });
+    });
+
+    it('auto-detects bots and sets sample rates to 0', async () => {
+      Object.defineProperty(WINDOW.navigator, 'userAgent', { configurable: true, value: 'GoogleBot user agent' });
+
+      const { replay } = await mockSdk({
+        sentryOptions: { replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1 },
+      });
+
+      expect(replay.getOptions().sessionSampleRate).toBe(0);
+      expect(replay.getOptions().errorSampleRate).toBe(0);
     });
   });
 });
