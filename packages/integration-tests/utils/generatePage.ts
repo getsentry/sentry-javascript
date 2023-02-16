@@ -10,9 +10,10 @@ export async function generatePage(
   subjectPath: string,
   templatePath: string,
   outPath: string,
+  outPageName: string = 'index.html',
 ): Promise<void> {
   const localPath = `${outPath}/dist`;
-  const bundlePath = `${localPath}/index.html`;
+  const bundlePath = `${localPath}/${outPageName}}`;
 
   if (!existsSync(localPath)) {
     mkdirSync(localPath, { recursive: true });
@@ -33,7 +34,7 @@ export async function generatePage(
           plugins: [
             new SentryScenarioGenerationPlugin(),
             new HtmlWebpackPlugin({
-              filename: 'index.html',
+              filename: outPageName,
               template: templatePath,
               inject: 'body',
             }),
