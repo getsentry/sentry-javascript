@@ -192,13 +192,28 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
+      const spanData: Record<string, string> = {
+        url: requestUrl,
+        method: requestOptions.method || 'GET',
+      };
+      if (requestOptions.hash) {
+        // strip leading "#"
+        spanData['http.fragment'] = requestOptions.hash.substring(1);
+      }
+      if (requestOptions.search) {
+        // strip leading "?"
+        spanData['http.query'] = requestOptions.search.substring(1);
+      }
+
+      // TODO potential breaking change... shouldCreateSpanForRequest no longer has access to query + fragment, is that a problem?
       if (scope && tracingOptions && shouldCreateSpan(requestUrl)) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
-            description: `${requestOptions.method || 'GET'} ${requestUrl}`,
+            description: `${spanData.method} ${spanData.url}`,
             op: 'http.client',
+            data: spanData,
           });
 
           if (shouldAttachTraceData(requestUrl)) {
@@ -253,7 +268,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', requestUrl, req, res);
+            addRequestBreadcrumb('response', spanData, req, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
@@ -268,7 +283,7 @@ function _createWrappedRequestMethodFactory(
           const req = this;
 
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', requestUrl, req);
+            addRequestBreadcrumb('error', spanData, req);
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
@@ -283,7 +298,12 @@ function _createWrappedRequestMethodFactory(
 /**
  * Captures Breadcrumb based on provided request/response pair
  */
-function addRequestBreadcrumb(event: string, url: string, req: http.ClientRequest, res?: http.IncomingMessage): void {
+function addRequestBreadcrumb(
+  event: string,
+  spanData: Record<string, string>,
+  req: http.ClientRequest,
+  res?: http.IncomingMessage,
+): void {
   if (!getCurrentHub().getIntegration(Http)) {
     return;
   }
@@ -294,7 +314,7 @@ function addRequestBreadcrumb(event: string, url: string, req: http.ClientReques
       data: {
         method: req.method,
         status_code: res && res.statusCode,
-        url,
+        ...spanData,
       },
       type: 'http',
     },

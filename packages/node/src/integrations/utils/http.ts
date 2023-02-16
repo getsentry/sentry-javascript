@@ -27,7 +27,8 @@ export function extractUrl(requestOptions: RequestOptions): string {
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port =
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
-  const path = requestOptions.path ? requestOptions.path : '/';
+  // do not include search or hash in span descriptions, per https://github.com/getsentry/develop/pull/773
+  const path = requestOptions.pathname || '/';
 
   return `${protocol}//${hostname}${port}${path}`;
 }
