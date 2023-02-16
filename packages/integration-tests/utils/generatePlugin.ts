@@ -47,6 +47,14 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_replay_es6: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_replay_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
+  wasm: {
+    cjs: 'build/npm/cjs/index.js',
+    esm: 'build/npm/esm/index.js',
+    bundle_es6: 'build/bundles/wasm.js',
+    bundle_es6_min: 'build/bundles/wasm.min.js',
+    bundle_replay_es6: 'build/bundles/wasm.js',
+    bundle_replay_es6_min: 'build/bundles/wasm.min.js',
+  },
 };
 
 /*
@@ -94,6 +102,7 @@ function generateSentryAlias(): Record<string, string> {
 class SentryScenarioGenerationPlugin {
   public requiresTracing: boolean = false;
   public requiredIntegrations: string[] = [];
+  public requiresWASMIntegration: boolean = false;
 
   private _name: string = 'SentryScenarioGenerationPlugin';
 
@@ -107,6 +116,7 @@ class SentryScenarioGenerationPlugin {
             '@sentry/tracing': 'Sentry',
             '@sentry/integrations': 'Sentry.Integrations',
             '@sentry/replay': 'Sentry',
+            '@sentry/wasm': 'Sentry.Integrations',
           }
         : {};
 
@@ -121,6 +131,8 @@ class SentryScenarioGenerationPlugin {
               this.requiresTracing = true;
             } else if (source === '@sentry/integrations') {
               this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
+            } else if (source === '@sentry/wasm') {
+              this.requiresWASMIntegration = true;
             }
           },
         );
@@ -147,6 +159,14 @@ class SentryScenarioGenerationPlugin {
 
             data.assetTags.scripts.unshift(integrationObject);
           });
+
+          if (this.requiresWASMIntegration && BUNDLE_PATHS['wasm'][bundleKey]) {
+            const wasmObject = createHtmlTagObject('script', {
+              src: path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][bundleKey]),
+            });
+
+            data.assetTags.scripts.unshift(wasmObject);
+          }
 
           data.assetTags.scripts.unshift(bundleObject);
         }
