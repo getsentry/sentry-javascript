@@ -13,8 +13,8 @@ export const UNKNOWN_COMPONENT = 'unknown';
 
 export type FallbackRender = (errorData: {
   error: Error;
-  componentStack: string | null;
-  eventId: string | null;
+  componentStack: string;
+  eventId: string;
   resetError(): void;
 }) => React.ReactElement;
 
@@ -138,7 +138,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (error) {
       let element: React.ReactElement | undefined = undefined;
       if (typeof fallback === 'function') {
-        element = fallback({ error, componentStack, resetError: this.resetErrorBoundary, eventId });
+        element = fallback({
+          error,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          componentStack: componentStack!,
+          resetError: this.resetErrorBoundary,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          eventId: eventId!,
+        });
       } else {
         element = fallback;
       }
