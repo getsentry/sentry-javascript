@@ -64,7 +64,7 @@ describe('setupOnce', () => {
 
   beforeAll(() => {
     new Apollo({
-      nestjs: true,
+      useNestjs: true,
     }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),

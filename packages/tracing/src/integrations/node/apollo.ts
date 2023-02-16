@@ -5,7 +5,7 @@ import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface ApolloOptions {
-  nestjs?: boolean;
+  useNestjs?: boolean;
 }
 
 type ApolloResolverGroup = {
@@ -35,10 +35,10 @@ export class Apollo implements Integration {
    */
   public constructor(
     options: ApolloOptions = {
-      nestjs: false,
+      useNestjs: false,
     },
   ) {
-    this._useNest = !!options.nestjs;
+    this._useNest = !!options.useNestjs;
   }
 
   /**
