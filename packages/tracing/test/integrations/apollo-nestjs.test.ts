@@ -109,7 +109,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo({ nestjs: true });
+    const integration = new Apollo({ useNestjs: true });
     integration.setupOnce(
       () => {},
       () => hub,
