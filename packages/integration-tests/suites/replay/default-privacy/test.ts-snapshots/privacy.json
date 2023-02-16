@@ -27,6 +27,17 @@
                 },
                 "childNodes": [],
                 "id": 5
+              },
+              {
+                "type": 2,
+                "tagName": "link",
+                "attributes": {
+                  "rel": "icon",
+                  "type": "image/png",
+                  "href": "file:///Users/francesco/git/sentry-javascript/packages/integration-tests/suites/replay/default-privacy/dist/assets/icon/favicon.png"
+                },
+                "childNodes": [],
+                "id": 6
               }
             ],
             "id": 4
@@ -34,7 +45,7 @@
           {
             "type": 3,
             "textContent": "\n  ",
-            "id": 6
+            "id": 7
           },
           {
             "type": 2,
@@ -44,7 +55,7 @@
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 8
+                "id": 9
               },
               {
                 "type": 2,
@@ -57,15 +68,15 @@
                   {
                     "type": 3,
                     "textContent": "***** **",
-                    "id": 10
+                    "id": 11
                   }
                 ],
-                "id": 9
+                "id": 10
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 11
+                "id": 12
               },
               {
                 "type": 2,
@@ -75,15 +86,15 @@
                   {
                     "type": 3,
                     "textContent": "**** ****** ** ****** ** *******",
-                    "id": 13
+                    "id": 14
                   }
                 ],
-                "id": 12
+                "id": 13
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 14
+                "id": 15
               },
               {
                 "type": 2,
@@ -95,15 +106,15 @@
                   {
                     "type": 3,
                     "textContent": "This should be unmasked due to data attribute",
-                    "id": 16
+                    "id": 17
                   }
                 ],
-                "id": 15
+                "id": 16
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 17
+                "id": 18
               },
               {
                 "type": 2,
@@ -112,12 +123,12 @@
                   "placeholder": "*********** ****** ** ******"
                 },
                 "childNodes": [],
-                "id": 18
+                "id": 19
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 19
+                "id": 20
               },
               {
                 "type": 2,
@@ -129,15 +140,15 @@
                   {
                     "type": 3,
                     "textContent": "***** ****** ** ******",
-                    "id": 21
+                    "id": 22
                   }
                 ],
-                "id": 20
+                "id": 21
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 22
+                "id": 23
               },
               {
                 "type": 2,
@@ -148,12 +159,12 @@
                 },
                 "childNodes": [],
                 "isSVG": true,
-                "id": 23
+                "id": 24
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 24
+                "id": 25
               },
               {
                 "type": 2,
@@ -172,7 +183,7 @@
                     },
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 26
+                    "id": 27
                   },
                   {
                     "type": 2,
@@ -180,7 +191,7 @@
                     "attributes": {},
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 27
+                    "id": 28
                   },
                   {
                     "type": 2,
@@ -188,16 +199,16 @@
                     "attributes": {},
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 28
+                    "id": 29
                   }
                 ],
                 "isSVG": true,
-                "id": 25
+                "id": 26
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 29
+                "id": 30
               },
               {
                 "type": 2,
@@ -207,12 +218,12 @@
                   "rr_height": "100px"
                 },
                 "childNodes": [],
-                "id": 30
+                "id": 31
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 31
+                "id": 32
               },
               {
                 "type": 2,
@@ -223,12 +234,12 @@
                   "src": "file:///none.png"
                 },
                 "childNodes": [],
-                "id": 32
+                "id": 33
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 33
+                "id": 34
               },
               {
                 "type": 2,
@@ -238,20 +249,20 @@
                   "rr_height": "30px"
                 },
                 "childNodes": [],
-                "id": 34
-              },
-              {
-                "type": 3,
-                "textContent": "\n  ",
                 "id": 35
               },
               {
                 "type": 3,
-                "textContent": "\n\n",
+                "textContent": "\n  ",
                 "id": 36
+              },
+              {
+                "type": 3,
+                "textContent": "\n\n",
+                "id": 37
               }
             ],
-            "id": 7
+            "id": 8
           }
         ],
         "id": 3
