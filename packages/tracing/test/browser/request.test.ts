@@ -213,19 +213,6 @@ describe('callbacks', () => {
 
       expect(newSpan).toBeUndefined();
     });
-
-    it('records outgoing propogations', () => {
-      const firstReqData = { ...fetchHandlerData };
-      const secondReqData = { ...fetchHandlerData };
-
-      expect(transaction.metadata.propagations).toBe(0);
-
-      fetchCallback(firstReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
-      expect(transaction.metadata.propagations).toBe(1);
-
-      fetchCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
-      expect(transaction.metadata.propagations).toBe(2);
-    });
   });
 
   describe('xhrCallback()', () => {
@@ -369,19 +356,6 @@ describe('callbacks', () => {
       const newSpan = transaction.spanRecorder?.spans[1];
 
       expect(newSpan).toBeUndefined();
-    });
-
-    it('records outgoing propogations', () => {
-      const firstReqData = { ...xhrHandlerData };
-      const secondReqData = { ...xhrHandlerData };
-
-      expect(transaction.metadata.propagations).toBe(0);
-
-      xhrCallback(firstReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
-      expect(transaction.metadata.propagations).toBe(1);
-
-      xhrCallback(secondReqData, alwaysCreateSpan, alwaysAttachHeaders, {});
-      expect(transaction.metadata.propagations).toBe(2);
     });
   });
 });

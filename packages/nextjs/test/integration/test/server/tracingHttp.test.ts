@@ -33,8 +33,6 @@ describe('Tracing HTTP', () => {
       transaction: 'GET /api/http',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 1,
       },
       type: 'transaction',
       request: {
