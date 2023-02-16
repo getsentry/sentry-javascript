@@ -60,7 +60,9 @@ export function debounce(func: CallbackFunction, wait: number, options?: Debounc
     if (maxWait && maxTimerId === undefined) {
       maxTimerId = setTimeout(() => {
         invokeFunc();
-        if (timerId) { clearTimeout(timerId)}
+        if (timerId) {
+          clearTimeout(timerId);
+        }
       }, maxWait);
     }
 
