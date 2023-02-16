@@ -1,8 +1,8 @@
 import pako from 'pako';
 
-import { Compressor } from '../../../worker/src/Compressor';
+import { Compressor } from '../../src/Compressor';
 
-describe('Unit | worker | Compressor', () => {
+describe('Compressor', () => {
   it('compresses multiple events', () => {
     const compressor = new Compressor();
 

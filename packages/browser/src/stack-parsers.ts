@@ -13,9 +13,9 @@ const GECKO_PRIORITY = 50;
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
+    abs_path: filename, // As opposed to filename, abs_path is immutable (I can't control your actions but don't touch it!)
     function: func,
-    // All browser frames are considered in_app
-    in_app: true,
+    in_app: true, // All browser frames are considered in_app
   };
 
   if (lineno !== undefined) {
