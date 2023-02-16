@@ -275,7 +275,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true'
+    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
