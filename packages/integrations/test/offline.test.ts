@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { WINDOW } from '@sentry/browser';
 import type { Event, EventProcessor, Hub, Integration, IntegrationClass } from '@sentry/types';
 
