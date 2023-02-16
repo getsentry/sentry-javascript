@@ -115,7 +115,7 @@ export class Apollo implements Integration {
               if (this.config.schema) {
                 logger.warn(
                   'Apollo integration is not able to trace `ApolloServer` instances constructed via `schema` property.' +
-                    'If you are using NestJS with Apollo, please use `Sentry.Integrations.Apollo({ nestjs: true })` instead.',
+                    'If you are using NestJS with Apollo, please use `Sentry.Integrations.Apollo({ useNestjs: true })` instead.',
                 );
                 logger.warn();
               } else if (this.config.modules) {
