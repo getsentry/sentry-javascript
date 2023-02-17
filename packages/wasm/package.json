@@ -21,13 +21,6 @@
     "@sentry/utils": "7.38.0",
     "tslib": "^1.9.3"
   },
-  "devDependencies": {
-    "@types/jest-environment-puppeteer": "^4.4.0",
-    "cross-env": "^7.0.3",
-    "express": "^4.17.1",
-    "jest-puppeteer": "^4.4.0",
-    "puppeteer": "18.2.1"
-  },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:bundle": "rollup --config rollup.bundle.config.js",
@@ -47,9 +40,7 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test": "node test/scripts/ensure-bundles.js && cross-env PORT=1337 jest",
-    "test:watch": "jest --watch"
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\""
   },
   "volta": {
     "extends": "../../package.json"
