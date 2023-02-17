@@ -1,53 +1,53 @@
 {
-  "name": "@sentry/angular",
+  "name": "@sentry/angular-ivy",
   "version": "7.38.0",
-  "description": "Official Sentry SDK for Angular",
+  "description": "Official Sentry SDK for Angular with full Ivy Support",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=12"
   },
+  "private": true,
   "main": "build/bundles/sentry-angular.umd.js",
   "module": "build/fesm2015/sentry-angular.js",
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 10.x <= 15.x",
-    "@angular/core": ">= 10.x <= 15.x",
-    "@angular/router": ">= 10.x <= 15.x",
+    "@angular/common": ">= 12.x <= 15.x",
+    "@angular/core": ">= 12.x <= 15.x",
+    "@angular/router": ">= 12.x <= 15.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
     "@sentry/browser": "7.38.0",
     "@sentry/types": "7.38.0",
     "@sentry/utils": "7.38.0",
-    "tslib": "^2.0.0"
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.1002.4",
-    "@angular/cli": "^10.2.4",
-    "@angular/common": "~10.2.5",
-    "@angular/compiler": "^10.2.5",
-    "@angular/compiler-cli": "~10.2.5",
-    "@angular/core": "~10.2.5",
-    "@angular/platform-browser": "~10.2.5",
-    "@angular/platform-browser-dynamic": "~10.2.5",
-    "@angular/router": "~10.2.5",
-    "ng-packagr": "^10.1.0",
-    "typescript": "~4.0.2",
-    "zone.js": "^0.11.8",
-    "rxjs": "6.5.5"
+    "@angular-devkit/build-angular": "~12.2.18",
+    "@angular/cli": "~12.2.18",
+    "@angular/common": "~12.2.0",
+    "@angular/compiler": "~12.2.0",
+    "@angular/compiler-cli": "~12.2.0",
+    "@angular/core": "~12.2.0",
+    "@angular/platform-browser": "~12.2.0",
+    "@angular/platform-browser-dynamic": "~12.2.0",
+    "@angular/router": "~12.2.0",
+    "ng-packagr": "^12.1.1",
+    "typescript": "~4.3.5",
+    "zone.js": "~0.11.4"
   },
   "scripts": {
     "build": "yarn build:transpile",
-    "build:transpile": "ng build --prod",
+    "build:transpile": "ng build",
     "build:dev": "yarn build",
     "build:watch": "yarn build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "ng build --prod --watch",
+    "build:transpile:watch": "ng build --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
@@ -56,10 +56,7 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test": "yarn test:unit",
-    "test:unit": "jest",
-    "test:unit:watch": "jest --watch"
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\""
   },
   "volta": {
     "extends": "../../package.json"
