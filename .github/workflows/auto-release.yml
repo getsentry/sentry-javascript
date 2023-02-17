@@ -33,6 +33,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
         with:
-          version: ${{ steps.version.outputs.match != '' }}
+          version: ${{ steps.version.outputs.group1 }}
           force: false
           merge_target: master
