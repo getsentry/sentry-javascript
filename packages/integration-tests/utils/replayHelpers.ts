@@ -219,7 +219,7 @@ export function shouldSkipReplayTest(): boolean {
 export function normalize(obj: unknown): string {
   const rawString = JSON.stringify(obj, null, 2);
   const normalizedString = rawString
-    .replace(/"file:\/\/.+(\/.*\.html)"/, '"$1"')
-    .replace(/"timeOffset":\s*\d+/, '"timeOffset": 0');
+    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
   return normalizedString;
 }
