@@ -69,6 +69,7 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
 
   await page.goto(url);
   await page.click('#xhr');
+  await page.click('#go-background');
 
   const { performanceSpans: spans0 } = getReplayRecordingContent(await reqPromise0);
   const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
