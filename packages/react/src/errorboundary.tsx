@@ -13,8 +13,8 @@ export const UNKNOWN_COMPONENT = 'unknown';
 
 export type FallbackRender = (errorData: {
   error: Error;
-  componentStack: string | null;
-  eventId: string | null;
+  componentStack: string;
+  eventId: string;
   resetError(): void;
 }) => React.ReactElement;
 
@@ -48,11 +48,17 @@ export type ErrorBoundaryProps = {
   beforeCapture?(scope: Scope, error: Error | null, componentStack: string | null): void;
 };
 
-type ErrorBoundaryState = {
-  componentStack: React.ErrorInfo['componentStack'] | null;
-  error: Error | null;
-  eventId: string | null;
-};
+type ErrorBoundaryState =
+  | {
+      componentStack: null;
+      error: null;
+      eventId: null;
+    }
+  | {
+      componentStack: React.ErrorInfo['componentStack'];
+      error: Error;
+      eventId: string;
+    };
 
 const INITIAL_STATE = {
   componentStack: null,
@@ -133,12 +139,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   public render(): React.ReactNode {
     const { fallback, children } = this.props;
-    const { error, componentStack, eventId } = this.state;
+    const state = this.state;
 
-    if (error) {
+    if (state.error) {
       let element: React.ReactElement | undefined = undefined;
       if (typeof fallback === 'function') {
-        element = fallback({ error, componentStack, resetError: this.resetErrorBoundary, eventId });
+        element = fallback({
+          error: state.error,
+          componentStack: state.componentStack,
+          resetError: this.resetErrorBoundary,
+          eventId: state.eventId,
+        });
       } else {
         element = fallback;
       }

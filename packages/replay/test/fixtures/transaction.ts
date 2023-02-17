@@ -77,6 +77,7 @@ export function Transaction(obj?: Partial<Event>): any {
           'Transfer Size': 1097,
           'Encoded Body Size': 797,
           'Decoded Body Size': 1885,
+          'resource.render_blocking_status': 'non-blocking',
         },
         description: '/favicon.ico',
         op: 'resource.other',
@@ -224,14 +225,10 @@ export function Transaction(obj?: Partial<Event>): any {
             "[Tracing] Starting 'resource.other' span on transaction '/organizations/:orgId/replays/:replaySlug/' (b44b173b1c74a782).",
         },
       },
-      changes: [],
-      propagations: 2,
       sampleRate: 1,
     }, // }}}
     transaction_info: {
       source: 'route',
-      changes: [],
-      propagations: 2,
     },
     measurements: {
       longTaskCount: {

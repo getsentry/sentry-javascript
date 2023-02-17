@@ -1,10 +1,11 @@
 import type { Context } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
+import { SpanKind, trace } from '@opentelemetry/api';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { isString, logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
 import { isSentryRequestSpan } from './utils/is-sentry-request';
@@ -93,6 +94,12 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onEnd(otelSpan: OtelSpan): void {
+    const hub = getCurrentHub();
+    if (!hub) {
+      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onEnd before a hub has been setup.');
+      return;
+    }
+
     const otelSpanId = otelSpan.spanContext().spanId;
     const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 
@@ -111,6 +118,46 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       SENTRY_SPAN_PROCESSOR_MAP.delete(otelSpanId);
       return;
     }
+
+    otelSpan.events.forEach(event => {
+      if (event.name !== 'exception') {
+        return;
+      }
+
+      const attributes = event.attributes;
+      if (!attributes) {
+        return;
+      }
+
+      const message = attributes[SemanticAttributes.EXCEPTION_MESSAGE];
+      const syntheticError = new Error(message as string | undefined);
+
+      const stack = attributes[SemanticAttributes.EXCEPTION_STACKTRACE];
+      if (isString(stack)) {
+        syntheticError.stack = stack;
+      }
+
+      const type = attributes[SemanticAttributes.EXCEPTION_TYPE];
+      if (isString(type)) {
+        syntheticError.name = type;
+      }
+
+      hub.captureException(syntheticError, {
+        captureContext: {
+          contexts: {
+            otel: {
+              attributes: otelSpan.attributes,
+              resource: otelSpan.resource.attributes,
+            },
+            trace: {
+              trace_id: otelSpan.spanContext().traceId,
+              span_id: otelSpan.spanContext().spanId,
+              parent_span_id: otelSpan.parentSpanId,
+            },
+          },
+        },
+      });
+    });
 
     if (sentrySpan instanceof Transaction) {
       updateTransactionWithOtelData(sentrySpan, otelSpan);
@@ -176,7 +223,7 @@ function updateSpanWithOtelData(sentrySpan: SentrySpan, otelSpan: OtelSpan): voi
   const { attributes, kind } = otelSpan;
 
   sentrySpan.setStatus(mapOtelStatus(otelSpan));
-  sentrySpan.setData('otel.kind', kind.valueOf());
+  sentrySpan.setData('otel.kind', SpanKind[kind]);
 
   Object.keys(attributes).forEach(prop => {
     const value = attributes[prop];

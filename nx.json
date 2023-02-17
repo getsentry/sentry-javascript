@@ -8,7 +8,8 @@
           "build:transpile",
           "build:types",
           "lint:eslint"
-        ]
+        ],
+        "cacheDirectory": ".nxcache"
       }
     }
   },

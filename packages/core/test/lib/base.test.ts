@@ -697,6 +697,22 @@ describe('BaseClient', () => {
       );
     });
 
+    test('skips empty integrations', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        // @ts-ignore we want to force invalid integrations here
+        integrations: [new TestIntegration(), null, undefined],
+      });
+      const client = new TestClient(options);
+      client.setupIntegrations();
+
+      client.captureEvent({ message: 'message' });
+
+      expect(TestClient.instance!.event!.sdk).toEqual({
+        integrations: ['TestIntegration'],
+      });
+    });
+
     test('normalizes event with default depth of 3', () => {
       expect.assertions(1);
 
@@ -1368,8 +1384,6 @@ describe('BaseClient', () => {
         type: 'transaction',
         transaction_info: {
           source: 'url',
-          changes: [],
-          propagations: 3,
         },
       };
 
@@ -1383,14 +1397,6 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toEqual('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
-        changes: [
-          {
-            propagations: 3,
-            source: 'custom',
-            timestamp: expect.any(Number),
-          },
-        ],
-        propagations: 3,
       });
     });
 
@@ -1407,8 +1413,6 @@ describe('BaseClient', () => {
         type: 'transaction',
         transaction_info: {
           source: 'url',
-          changes: [],
-          propagations: 3,
         },
       });
 
@@ -1416,14 +1420,6 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
       expect(TestClient.instance!.event!.transaction_info).toEqual({
         source: 'custom',
-        changes: [
-          {
-            propagations: 3,
-            source: 'custom',
-            timestamp: expect.any(Number),
-          },
-        ],
-        propagations: 3,
       });
     });
 

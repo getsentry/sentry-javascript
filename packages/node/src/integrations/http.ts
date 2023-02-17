@@ -243,11 +243,6 @@ function _createWrappedRequestMethodFactory(
                 `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
               );
           }
-
-          const transaction = parentSpan.transaction;
-          if (transaction) {
-            transaction.metadata.propagations++;
-          }
         }
       }
 

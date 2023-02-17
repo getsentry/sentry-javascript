@@ -12,7 +12,7 @@ import type { SdkInfo } from './sdkinfo';
 import type { Severity, SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { Thread } from './thread';
-import type { TransactionNameChange, TransactionSource } from './transaction';
+import type { TransactionSource } from './transaction';
 import type { User } from './user';
 
 /** JSDoc */
@@ -50,8 +50,6 @@ export interface Event {
   sdkProcessingMetadata?: { [key: string]: any };
   transaction_info?: {
     source: TransactionSource;
-    changes: TransactionNameChange[];
-    propagations: number;
   };
   threads?: {
     values: Thread[];

@@ -48,8 +48,6 @@ describe('Error Server-side Props', () => {
       transaction: '/withErrorServerSideProps',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       type: 'transaction',
       request: {
