@@ -7,8 +7,8 @@ import { shouldSkipWASMTests } from '../../utils/wasmHelpers';
 
 sentryTest(
   'captured exception should include modified frames and debug_meta attribute',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipWASMTests()) {
+  async ({ getLocalTestPath, page, browserName }) => {
+    if (shouldSkipWASMTests(browserName)) {
       sentryTest.skip();
     }
 
