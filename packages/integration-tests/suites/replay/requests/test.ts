@@ -32,6 +32,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
 
   await page.goto(url);
   await page.click('#fetch');
+  await page.click('#go-background');
 
   const { performanceSpans } = getReplayRecordingContent(await reqPromise1);
 
