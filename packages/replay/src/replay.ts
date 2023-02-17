@@ -35,6 +35,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { EventCounter } from './util/EventCounter';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -59,6 +60,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  public eventCounter: EventCounter;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -122,6 +125,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush = debounce(() => this._flush(), this._options.flushMinDelay, {
       maxWait: this._options.flushMaxDelay,
     });
+
+    this.eventCounter = new EventCounter();
   }
 
   /** Get the event context. */

@@ -31,3 +31,7 @@ export const ERROR_CHECKOUT_TIME = 60_000;
 
 export const RETRY_BASE_INTERVAL = 5000;
 export const RETRY_MAX_COUNT = 3;
+
+// How many events can occur in the given rolling time window before we want to pause & full checkout the replay?
+export const EVENT_ROLLING_WINDOW_TIME = 100;
+export const EVENT_ROLLING_WINDOW_MAX = 2_000;

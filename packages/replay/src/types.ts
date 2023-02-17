@@ -1,6 +1,7 @@
 import type { ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
 
 import type { eventWithTime, recordOptions } from './types/rrweb';
+import type { EventCounter } from './util/EventCounter';
 
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
@@ -289,6 +290,7 @@ export interface ReplayContainer {
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
+  eventCounter: EventCounter;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;

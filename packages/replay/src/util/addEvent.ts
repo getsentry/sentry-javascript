@@ -1,8 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { SESSION_IDLE_DURATION } from '../constants';
+import { SESSION_IDLE_DURATION, EVENT_ROLLING_WINDOW_TIME } from '../constants';
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { EventCounter } from './EventCounter';
 
 /**
  * Add an event to the event buffer
@@ -40,6 +41,19 @@ export async function addEvent(
   const earliestEvent = replay.getContext().earliestEvent;
   if (replay.session && replay.session.segmentId === 0 && (!earliestEvent || timestampInMs < earliestEvent)) {
     replay.getContext().earliestEvent = timestampInMs;
+  }
+
+  replay.eventCounter.add();
+
+  // If we exceed the event limit, pause the recording and resume it after the rolling window time
+  // The resuming will trigger a full checkout
+  // This means the user will have a brief gap in their recording, but it's better than freezing the page due to too many events happening at the same time
+  // Afterwards, things will continue as normally
+  if (replay.eventCounter.hasExceededLimit()) {
+    replay.eventCounter = new EventCounter();
+    replay.pause();
+    setTimeout(() => replay.resume(), EVENT_ROLLING_WINDOW_TIME);
+    return;
   }
 
   try {

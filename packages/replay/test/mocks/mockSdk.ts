@@ -5,6 +5,7 @@ import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';
 import type { TestClientOptions } from '../utils/TestClient';
 import { getDefaultClientOptions, init } from '../utils/TestClient';
+import { EventCounter } from '../../src/util/EventCounter';
 
 export interface MockSdkParams {
   replayOptions?: ReplayConfiguration;
@@ -83,6 +84,10 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
   }
 
   const replay = replayIntegration['_replay']!;
+
+  // In tests, we want to ignore the event counter by default
+  // As it adds timeouts that can interfere with other things
+  replay.eventCounter = new EventCounter(0);
 
   return { replay, integration: replayIntegration };
 }
