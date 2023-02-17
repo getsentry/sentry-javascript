@@ -9,7 +9,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
     sentryTest.skip();
   }
 
-  // we're only interested in segment 1 which should contain the fetch span
+  const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -34,7 +34,9 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
   await page.click('#fetch');
   await page.click('#go-background');
 
-  const { performanceSpans } = getReplayRecordingContent(await reqPromise1);
+  const { performanceSpans: spans0 } = getReplayRecordingContent(await reqPromise0);
+  const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
+  const performanceSpans = [...spans0, ...spans1];
 
   expect(performanceSpans).toContainEqual(expectedFetchPerformanceSpan);
 });
@@ -44,7 +46,7 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
     sentryTest.skip();
   }
 
-  // we're only interested in segment 1 which should contain the fetch span
+  const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -68,7 +70,9 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
   await page.goto(url);
   await page.click('#xhr');
 
-  const { performanceSpans } = getReplayRecordingContent(await reqPromise1);
+  const { performanceSpans: spans0 } = getReplayRecordingContent(await reqPromise0);
+  const { performanceSpans: spans1 } = getReplayRecordingContent(await reqPromise1);
+  const performanceSpans = [...spans0, ...spans1];
 
   expect(performanceSpans).toContainEqual(expectedXHRPerformanceSpan);
 });
