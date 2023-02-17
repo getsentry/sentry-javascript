@@ -29,8 +29,9 @@ export function extractUrl(requestOptions: RequestOptions): string {
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
   // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const path = requestOptions.pathname || '/';
+  const authority = requestOptions.auth ? `${requestOptions.auth}@` : '';
 
-  return `${protocol}//${hostname}${port}${path}`;
+  return `${protocol}//${authority}${hostname}${port}${path}`;
 }
 
 /**
@@ -102,7 +103,8 @@ export function urlToOptions(url: URL): RequestOptions {
     options.port = Number(url.port);
   }
   if (url.username || url.password) {
-    options.auth = `${url.username}:${url.password}`;
+    // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
+    options.auth = '[Filtered]:[Filtered]';
   }
   return options;
 }
