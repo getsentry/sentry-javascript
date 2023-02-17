@@ -216,7 +216,7 @@ describe('tracing', () => {
     expect(spans[1].data['http.fragment']).toEqual('learn-more');
   });
 
-  it('omits username and password entirely from span', () => {
+  it('omits the authority (username and password) entirely from span', () => {
     nock('http://username:password@dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
