@@ -11,21 +11,21 @@ import { createProfilingEventEnvelope, isProfiledTransactionEvent, maybeRemovePr
  *
  */
 export class BrowserProfilingIntegration implements Integration {
-  name = 'ProfilingIntegration';
-  getCurrentHub?: () => Hub = undefined;
+  public readonly name: string = 'ProfilingIntegration';
+  public getCurrentHub?: () => Hub = undefined;
 
   /**
    *
    */
-  setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
 
   /**
-   *
+   * Handle global event
    */
-  handleGlobalEvent(event: Event): Event {
+  public handleGlobalEvent(event: Event): Event {
     if (this.getCurrentHub === undefined) {
       return maybeRemoveProfileFromSdkMetadata(event);
     }
@@ -73,7 +73,7 @@ export class BrowserProfilingIntegration implements Integration {
       const envelope = createProfilingEventEnvelope(event, dsn);
 
       if (envelope) {
-        transport.send(envelope);
+        void transport.send(envelope);
       }
     }
 

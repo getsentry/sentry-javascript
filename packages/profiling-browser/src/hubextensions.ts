@@ -1,8 +1,6 @@
-import { getMainCarrier } from '@sentry/hub';
+import { getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
-
-import { CpuProfilerBindings } from './cpu_profiler';
 
 const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
@@ -24,7 +22,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext,
   ): Transaction {
-    const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
+    const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // We create "unique" transaction names to avoid concurrent transactions with same names
     // from being ignored by the profiler. From here on, only this transaction name should be used when
@@ -37,7 +35,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
-    // @ts-expect-error profilesSampleRate is not part of the options type yet
+    // @ts-ignore profilesSampleRate is not part of the options type yet
     const profilesSampleRate = this.getClient()?.getOptions?.()?.profilesSampleRate;
     if (profilesSampleRate === undefined) {
       if (__DEBUG_BUILD__) {
@@ -124,12 +122,12 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     /**
      *
      */
-    function profilingWrappedTransactionFinish() {
+    function profilingWrappedTransactionFinish(): Transaction {
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
       const profile = onProfileHandler();
 
-      // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
+      // @ts-ignore profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       // Set profile context
       transaction.setContext('profile', { profile_id });

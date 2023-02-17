@@ -9,27 +9,20 @@ import type {
   SdkMetadata,
 } from '@sentry/types';
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
-import os from 'os';
-import path from 'path';
-import { isMainThread, threadId } from 'worker_threads';
 
-import type { RawThreadCpuProfile, ThreadCpuProfile } from './cpu_profiler';
+import type { RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
 
-// We require the file because if we import it, it will be included in the bundle.
-// I guess tsc does not check file contents when it's imported.
-// eslint-disable-next-line
-const { root_directory } = require('./../root.js');
-
-const THREAD_ID_STRING = String(threadId);
-const THREAD_NAME = isMainThread ? 'main' : 'worker';
+const THREAD_ID_STRING = String(0);
+const THREAD_NAME = 'main';
 
 // Machine properties (eval only once)
-const PLATFORM = os.platform();
-const RELEASE = os.release();
-const VERSION = os.version();
-const TYPE = os.type();
-const MODEL = os.machine ? os.machine() : os.arch();
-const ARCH = os.arch();
+const OS_PLATFORM = 'PLACEHOLDER_PLATFORM';
+const OS_RELEASE = 'PLACEHOLDER_RELEASE';
+const OS_VERSION = 'PLACEHOLDER_VERSION';
+const OS_TYPE = 'PLACEHOLDER_TYPE';
+const OS_MODEL = 'PLACEHOLDER_MODEL';
+const OS_ARCH = 'PLACEHOLDER_ARCH';
+
 export interface Profile {
   event_id: string;
   version: string;
@@ -162,6 +155,9 @@ function createEventEnvelopeHeaders(
  * @param tunnel
  * @returns {EventEnvelope | null}
  */
+// We will live dangerously and disable complexity here, time is of the essence.
+// Onwards to the next refactor my fellow engineers!
+// eslint-disable-next-line complexity
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
   dsn: DsnComponents,
@@ -203,7 +199,7 @@ export function createProfilingEventEnvelope(
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
-  const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) ?? '';
+  const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) || '';
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -216,25 +212,25 @@ export function createProfilingEventEnvelope(
   const profile: Profile = {
     event_id: rawProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
-    platform: 'node',
+    platform: 'node', // @TODO replace with browser once backend supports it
     version: '1',
     release: event.release || '',
     environment: event.environment || '',
     runtime: {
-      name: 'node',
-      version: process.versions.node || '',
+      name: 'node', // @TODO replace with browser once backend supports it
+      version: process.versions.node || '', // @TODO replace with browser once backend supports it
     },
     os: {
-      name: PLATFORM,
-      version: RELEASE,
-      build_number: VERSION,
+      name: OS_PLATFORM,
+      version: OS_RELEASE,
+      build_number: OS_VERSION,
     },
     device: {
       locale:
-        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ?? '',
-      model: MODEL,
-      manufacturer: TYPE,
-      architecture: ARCH,
+        process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE'] || '',
+      model: OS_MODEL,
+      manufacturer: OS_TYPE,
+      architecture: OS_ARCH,
       is_emulator: false,
     },
     profile: enrichedThreadProfile,
@@ -254,7 +250,7 @@ export function createProfilingEventEnvelope(
     {
       type: 'profile',
     },
-    // @ts-expect-error profile is not yet a type in @sentry/types
+    // @ts-ignore this is missing in typedef
     profile,
   ];
 
@@ -281,14 +277,4 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
   delete event.sdkProcessingMetadata.profile;
   return event;
-}
-
-// Requires the root.js file which exports __dirname, this is then forwarded to our native
-// addon where we remove the absolute path from each frame to generate a project relatvie filename
-/**
- *
- */
-export function getProjectRootDirectory(): string | null {
-  const components = path.resolve(root_directory).split('/node_modules');
-  return components?.[0] || null;
 }
