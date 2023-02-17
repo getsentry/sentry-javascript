@@ -11,6 +11,7 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
 import type { RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
+import { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
 
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
@@ -277,4 +278,42 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
   delete event.sdkProcessingMetadata.profile;
   return event;
+}
+
+/**
+ *
+ */
+export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): ThreadCpuProfile {
+  const profile: ThreadCpuProfile = {
+    samples: [],
+    stacks: [],
+    frames: [],
+    thread_metadata: {
+      [THREAD_ID_STRING]: { name: THREAD_NAME },
+    },
+  };
+
+  for (let i = 0; i < input.samples.length; i++) {
+    const jsSample = input.samples[i];
+
+    let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
+
+    // Frame index pointers in top->down order
+    const stack: number[] = [];
+    while (stackTop) {
+      stack.push(stackTop.frameId);
+      stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
+    }
+
+    const sample: ThreadCpuProfile['samples'][0] = {
+      elapsed_since_start_ns: jsSample.timestamp,
+      stack: jsSample.stackId,
+      thread_id: THREAD_ID_STRING,
+    };
+
+    profile['stacks'][i] = stack.reverse();
+    profile['samples'][i] = sample;
+  }
+
+  return profile;
 }
