@@ -4,11 +4,10 @@ import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../utils/helpers';
-import { waitForReplayRequest } from '../../../utils/replayHelpers';
+import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 

@@ -21,6 +21,7 @@ sentry-node-serverless-*.zip
 jest/transformers/*.js
 # node tarballs
 packages/*/sentry-*.tgz
+.nxcache
 
 # logs
 yarn-error.log

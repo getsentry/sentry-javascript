@@ -88,7 +88,10 @@ export function setupIntegrations(integrations: Integration[]): IntegrationIndex
   const integrationIndex: IntegrationIndex = {};
 
   integrations.forEach(integration => {
-    setupIntegration(integration, integrationIndex);
+    // guard against empty provided integrations
+    if (integration) {
+      setupIntegration(integration, integrationIndex);
+    }
   });
 
   return integrationIndex;

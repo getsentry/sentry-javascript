@@ -17,20 +17,21 @@ describe('Integration | rrweb', () => {
     });
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
-        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,path,rect,area,video,object,picture,embed,map,audio",
+        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio",
         "collectFonts": true,
         "emit": [Function],
         "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore]",
         "inlineImages": false,
         "inlineStylesheet": true,
         "maskAllInputs": true,
+        "maskAllText": true,
         "maskInputFn": undefined,
         "maskInputOptions": Object {
           "password": true,
         },
         "maskInputSelector": ".sentry-mask,[data-sentry-mask]",
         "maskTextFn": undefined,
-        "maskTextSelector": "body *:not(style), body *:not(script)",
+        "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "slimDOMOptions": "all",
         "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
         "unmaskInputSelector": ".sentry-unmask,[data-sentry-unmask]",

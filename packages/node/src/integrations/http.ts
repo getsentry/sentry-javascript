@@ -101,12 +101,11 @@ export class Http implements Integration {
     // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
     const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
 
-    const wrappedHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions);
-
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const httpModule = require('http');
-    fill(httpModule, 'get', wrappedHandlerMaker);
-    fill(httpModule, 'request', wrappedHandlerMaker);
+    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, httpModule);
+    fill(httpModule, 'get', wrappedHttpHandlerMaker);
+    fill(httpModule, 'request', wrappedHttpHandlerMaker);
 
     // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
     // If we do, we'd get double breadcrumbs and double spans for `https` calls.
@@ -114,8 +113,13 @@ export class Http implements Integration {
     if (NODE_VERSION.major && NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const httpsModule = require('https');
-      fill(httpsModule, 'get', wrappedHandlerMaker);
-      fill(httpsModule, 'request', wrappedHandlerMaker);
+      const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
+        this._breadcrumbs,
+        tracingOptions,
+        httpsModule,
+      );
+      fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
+      fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
     }
   }
 }
@@ -137,6 +141,7 @@ type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedR
 function _createWrappedRequestMethodFactory(
   breadcrumbsEnabled: boolean,
   tracingOptions: TracingOptions | undefined,
+  httpModule: typeof http | typeof https,
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
   const createSpanUrlMap = new LRUMap<string, boolean>(100);
@@ -172,11 +177,8 @@ function _createWrappedRequestMethodFactory(
   };
 
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {
-    return function wrappedMethod(this: typeof http | typeof https, ...args: RequestMethodArgs): http.ClientRequest {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const httpModule = this;
-
-      const requestArgs = normalizeRequestArgs(this, args);
+    return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
+      const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
       const requestUrl = extractUrl(requestOptions);
 
@@ -240,11 +242,6 @@ function _createWrappedRequestMethodFactory(
               logger.log(
                 `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
               );
-          }
-
-          const transaction = parentSpan.transaction;
-          if (transaction) {
-            transaction.metadata.propagations++;
           }
         }
       }

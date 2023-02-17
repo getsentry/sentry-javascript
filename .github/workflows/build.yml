@@ -47,7 +47,6 @@ env:
   NX_CACHE_RESTORE_KEYS: |
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
     nx-Linux-${{ github.ref }}
-    nx-Linux-refs/heads/develop
     nx-Linux
 
 jobs:
@@ -137,7 +136,8 @@ jobs:
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
-      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/develop' || github.head_ref == 'refs/heads/master' }}
+      # When merging into master, or from master
+      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
@@ -164,16 +164,15 @@ jobs:
         id: compute_lockfile_hash
         run: echo "hash=${{ hashFiles('yarn.lock') }}" >> "$GITHUB_OUTPUT"
 
-      # When the `ci-skip-cache` label is added to a PR, we always want to skip dependency cache
       - name: Check dependency cache
         uses: actions/cache@v3
         id: cache_dependencies
-        if: needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
       - name: Install dependencies
+        if: steps.cache_dependencies.outputs.cache_hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
@@ -213,7 +212,7 @@ jobs:
           needs.job_get_metadata.outputs.is_release == 'false' &&
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
-          path: node_modules/.cache/nx
+          path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
@@ -245,12 +244,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -276,7 +275,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-20.04
-    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true'
+    if: github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -289,21 +288,24 @@ jobs:
           # use Node 14 for now.
           node-version: '14'
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@main-skip-step
+        uses: getsentry/size-limit-action@runForBranch
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
           main_branch: develop
+          # When on release branch, we want to always run
+          # Else, we fall back to the default handling of the action
+          run_for_branch: ${{ (needs.job_get_metadata.outputs.is_release == 'true' && 'true') || '' }}
 
   job_lint:
     name: Lint
@@ -320,12 +322,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -345,12 +347,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -371,12 +373,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -408,12 +410,12 @@ jobs:
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -443,12 +445,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -470,7 +472,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18]
+        node: [10, 12, 14, 16, '18.13.0']
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -481,12 +483,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -534,6 +536,8 @@ jobs:
           - bundle_es5_min
           - bundle_es6
           - bundle_es6_min
+          - bundle_replay_es6
+          - bundle_replay_es6_min
         tracing_only:
           - true
           - false
@@ -552,12 +556,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -610,12 +614,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -640,12 +644,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -678,12 +682,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -714,12 +718,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -748,12 +752,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -811,12 +815,12 @@ jobs:
       - name: Set up Node
         uses: volta-cli/action@v4
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}

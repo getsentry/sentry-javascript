@@ -30,6 +30,7 @@ export type eventWithTime = {
  * Record<string, unknown> union type.
  */
 export type recordOptions = {
+  maskAllText?: boolean;
   maskAllInputs?: boolean;
   blockClass?: blockClass;
   ignoreClass?: string;

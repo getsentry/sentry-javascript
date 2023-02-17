@@ -73,7 +73,6 @@ export type {
   TransactionContext,
   TransactionMetadata,
   TransactionSource,
-  TransactionNameChange,
 } from './transaction';
 export type {
   DurationUnit,

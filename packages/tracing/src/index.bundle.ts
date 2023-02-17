@@ -41,6 +41,7 @@ export {
 export { BrowserClient } from '@sentry/browser';
 export {
   defaultIntegrations,
+  defaultStackParser,
   forceLoad,
   init,
   lastEventId,

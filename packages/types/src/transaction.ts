@@ -176,12 +176,6 @@ export interface TransactionMetadata {
 
   /** Metadata for the transaction's spans, keyed by spanId */
   spanMetadata: { [spanId: string]: { [key: string]: unknown } };
-
-  /** Metadata representing information about transaction name changes  */
-  changes: TransactionNameChange[];
-
-  /** The total number of propagations that happened */
-  propagations: number;
 }
 
 /**
@@ -201,20 +195,3 @@ export type TransactionSource =
   | 'component'
   /** Name of a background task (e.g. a Celery task) */
   | 'task';
-
-/**
- * Object representing metadata about when a transaction name was changed.
- */
-export interface TransactionNameChange {
-  /**
-   * Unix timestamp when the name was changed. Same type as the start and
-   * end timestamps of a transaction and span.
-   */
-  timestamp: number;
-
-  /** Previous source before transaction name change */
-  source: TransactionSource;
-
-  /** Number of propagations since start of transaction */
-  propagations: number;
-}

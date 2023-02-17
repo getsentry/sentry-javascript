@@ -12,6 +12,9 @@ Each case group has a default HTML skeleton named `template.hbs`, and also a def
 
 `test.ts` is required for each test case, which contains the assertions (and if required the script injection logic). For every case, any set of `init.js`, `template.hbs` and `subject.js` can be defined locally, and each one of them  will have precedence over the default definitions of the test group.
 
+To test page multi-page navigations, you can specify additional `page-*.html` (e.g. `page-0.html`, `page-1.html`) files. These will also be compiled and initialized with the same `init.js` and `subject.js` files that are applied to `template.hbs/html`. Note: `page-*.html` file lookup **doesn not** fall back to the
+parent directories, meaning that page files have to be directly in the `test.ts` directory.
+
 ```
 suites/
 |---- breadcrumbs/
@@ -23,6 +26,7 @@ suites/
             |---- init.js [optional case specific init]
             |---- subject.js [optional case specific subject]
             |---- test.ts [assertions]
+            |---- page-*.html [optional, NO fallback!]
 ```
 
 ## Writing Tests

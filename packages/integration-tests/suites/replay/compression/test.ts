@@ -2,11 +2,15 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
-import { getFullRecordingSnapshots, getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
+import {
+  getFullRecordingSnapshots,
+  getReplayEvent,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../utils/replayHelpers';
 
 sentryTest('replay recording should be compressed by default', async ({ getLocalTestPath, page }) => {
-  // Replay bundles are es6 only
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_es5')) {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 

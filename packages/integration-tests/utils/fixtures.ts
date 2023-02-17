@@ -22,6 +22,7 @@ const getAsset = (assetDir: string, asset: string): string => {
 };
 
 export type TestFixtures = {
+  _autoSnapshotSuffix: void;
   testDir: string;
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -35,6 +36,14 @@ export type TestFixtures = {
 };
 
 const sentryTest = base.extend<TestFixtures>({
+  _autoSnapshotSuffix: [
+    async ({}, use, testInfo) => {
+      testInfo.snapshotSuffix = '';
+      await use();
+    },
+    { auto: true },
+  ],
+
   getLocalTestPath: ({}, use, testInfo) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
@@ -48,6 +57,20 @@ const sentryTest = base.extend<TestFixtures>({
 
         await generatePage(init, subject, template, testDir);
       }
+
+      const additionalPages = fs
+        .readdirSync(testDir)
+        .filter(filename => filename.startsWith('page-') && filename.endsWith('.html'));
+
+      const outDir = path.dirname(testInfo.file);
+      for (const pageFilename of additionalPages) {
+        // create a new page with the same subject and init as before
+        const subject = getAsset(testDir, 'subject.js');
+        const pageFile = getAsset(testDir, pageFilename);
+        const init = getAsset(testDir, 'init.js');
+        await generatePage(init, subject, pageFile, outDir, pageFilename);
+      }
+
       return pagePath;
     });
   },

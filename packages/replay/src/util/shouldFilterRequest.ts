@@ -3,7 +3,8 @@ import { getCurrentHub } from '@sentry/core';
 import type { ReplayContainer } from '../types';
 
 /**
- * Check whether a given request URL should be filtered out.
+ * Check whether a given request URL should be filtered out. This is so we
+ * don't log Sentry ingest requests.
  */
 export function shouldFilterRequest(replay: ReplayContainer, url: string): boolean {
   // If we enabled the `traceInternals` experiment, we want to trace everything
@@ -11,7 +12,7 @@ export function shouldFilterRequest(replay: ReplayContainer, url: string): boole
     return false;
   }
 
-  return !_isSentryRequest(url);
+  return _isSentryRequest(url);
 }
 
 /**

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { captureException } from '@sentry/core';
+import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -233,13 +233,22 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public stop(): void {
+  public stop(reason?: string): void {
     if (!this._isEnabled) {
       return;
     }
 
     try {
-      __DEBUG_BUILD__ && logger.log('[Replay] Stopping Replays');
+      if (__DEBUG_BUILD__) {
+        const msg = `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''}`;
+
+        // When `traceInternals` is enabled, we want to log this to the console
+        // Else, use the regular debug output
+        // eslint-disable-next-line
+        const log = this.getOptions()._experiments.traceInternals ? console.warn : logger.log;
+        log(msg);
+      }
+
       this._isEnabled = false;
       this._removeListeners();
       this.stopRecording();
@@ -426,7 +435,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.session = session;
 
     if (!this.session.sampled) {
-      this.stop();
+      this.stop('session unsampled');
       return false;
     }
 
@@ -807,9 +816,16 @@ export class ReplayContainer implements ReplayContainerInterface {
     } catch (err) {
       this._handleException(err);
 
-      // This means we retried 3 times, and all of them failed
+      // This means we retried 3 times and all of them failed,
+      // or we ran into a problem we don't want to retry, like rate limiting.
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      this.stop();
+      this.stop('sendReplay');
+
+      const client = getCurrentHub().getClient();
+
+      if (client) {
+        client.recordDroppedEvent('send_error', 'replay');
+      }
     }
   }
 

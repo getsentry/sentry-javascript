@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Compressor } from './Compressor';
+import { compress, Compressor } from './Compressor';
 
 const compressor = new Compressor();
 
 interface Handlers {
   clear: () => void;
   addEvent: (data: string) => void;
-  finish: () => void;
+  finish: () => Uint8Array;
+  compress: (data: string) => Uint8Array;
 }
 
 const handlers: Handlers = {
   clear: () => {
     compressor.clear();
-    return '';
   },
 
   addEvent: (data: string) => {
@@ -22,8 +22,15 @@ const handlers: Handlers = {
   finish: () => {
     return compressor.finish();
   },
+
+  compress: (data: string) => {
+    return compress(data);
+  },
 };
 
+/**
+ * Handler for worker messages.
+ */
 export function handleMessage(e: MessageEvent): void {
   const method = e.data.method as string;
   const id = e.data.id as number;
