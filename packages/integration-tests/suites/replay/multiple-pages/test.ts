@@ -16,8 +16,8 @@ import {
 import {
   getReplayEvent,
   getReplayRecordingContent,
+  normalize,
   shouldSkipReplayTest,
-  stringify,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
@@ -53,7 +53,7 @@ sentryTest(
     const recording0 = getReplayRecordingContent(await reqPromise0);
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
-    expect(stringify(recording0.fullSnapshots)).toMatchSnapshot('seg-0-snap-full');
+    expect(normalize(recording0.fullSnapshots)).toMatchSnapshot('seg-0-snap-full');
     expect(recording0.incrementalSnapshots.length).toEqual(0);
 
     await page.click('#go-background');
@@ -65,7 +65,7 @@ sentryTest(
       getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }),
     );
     expect(recording1.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording1.incrementalSnapshots)).toMatchSnapshot('seg-1-snap-incremental');
+    expect(normalize(recording1.incrementalSnapshots)).toMatchSnapshot('seg-1-snap-incremental');
 
     // We can't guarantee the order of the performance spans, or in which of the two segments they are sent
     // So to avoid flakes, we collect them all and check that they are all there
@@ -98,7 +98,7 @@ sentryTest(
     const recording2 = getReplayRecordingContent(await reqPromise2);
 
     expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2, replay_start_timestamp: undefined }));
-    expect(stringify(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
+    expect(normalize(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
     expect(recording2.incrementalSnapshots.length).toEqual(0);
 
     await page.click('#go-background');
@@ -110,7 +110,7 @@ sentryTest(
       getExpectedReplayEvent({ segment_id: 3, urls: [], replay_start_timestamp: undefined }),
     );
     expect(recording3.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording3.incrementalSnapshots)).toMatchSnapshot('seg-3-snap-incremental');
+    expect(normalize(recording3.incrementalSnapshots)).toMatchSnapshot('seg-3-snap-incremental');
 
     const collectedPerformanceSpansAfterReload = [...recording2.performanceSpans, ...recording3.performanceSpans];
     const collectedBreadcrumbsAdterReload = [...recording2.breadcrumbs, ...recording3.breadcrumbs];
@@ -156,7 +156,7 @@ sentryTest(
         },
       }),
     );
-    expect(stringify(recording4.fullSnapshots)).toMatchSnapshot('seg-4-snap-full');
+    expect(normalize(recording4.fullSnapshots)).toMatchSnapshot('seg-4-snap-full');
     expect(recording4.incrementalSnapshots.length).toEqual(0);
 
     await page.click('#go-background');
@@ -180,7 +180,7 @@ sentryTest(
       }),
     );
     expect(recording5.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording5.incrementalSnapshots)).toMatchSnapshot('seg-5-snap-incremental');
+    expect(normalize(recording5.incrementalSnapshots)).toMatchSnapshot('seg-5-snap-incremental');
 
     const collectedPerformanceSpansAfterLinkNavigation = [
       ...recording4.performanceSpans,
@@ -227,7 +227,7 @@ sentryTest(
       }),
     );
     expect(recording6.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording6.incrementalSnapshots)).toMatchSnapshot('seg-6-snap-incremental');
+    expect(normalize(recording6.incrementalSnapshots)).toMatchSnapshot('seg-6-snap-incremental');
 
     await page.click('#go-background');
 
@@ -251,7 +251,7 @@ sentryTest(
       }),
     );
     expect(recording7.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording7.incrementalSnapshots)).toMatchSnapshot('seg-7-snap-incremental');
+    expect(normalize(recording7.incrementalSnapshots)).toMatchSnapshot('seg-7-snap-incremental');
 
     const collectedPerformanceSpansAfterSPANavigation = [
       ...recording6.performanceSpans,
@@ -291,7 +291,7 @@ sentryTest(
         replay_start_timestamp: undefined,
       }),
     );
-    expect(stringify(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
+    expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
     expect(recording8.incrementalSnapshots.length).toEqual(0);
 
     await page.click('#go-background');
@@ -307,7 +307,7 @@ sentryTest(
       }),
     );
     expect(recording9.fullSnapshots.length).toEqual(0);
-    expect(stringify(recording9.incrementalSnapshots)).toMatchSnapshot('seg-9-snap-incremental');
+    expect(normalize(recording9.incrementalSnapshots)).toMatchSnapshot('seg-9-snap-incremental');
 
     const collectedPerformanceSpansAfterIndexNavigation = [
       ...recording8.performanceSpans,

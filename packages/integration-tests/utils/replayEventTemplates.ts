@@ -110,7 +110,7 @@ export const expectedLCPPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    value: expect.any(Number),
+    duration: expect.any(Number),
     nodeId: expect.any(Number),
     size: expect.any(Number),
   },

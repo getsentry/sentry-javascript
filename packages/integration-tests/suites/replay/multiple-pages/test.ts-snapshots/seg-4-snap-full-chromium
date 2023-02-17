@@ -114,7 +114,7 @@
                   "type": 2,
                   "tagName": "a",
                   "attributes": {
-                    "href": "file:///Users/lukas/code/sentry-javascript/packages/integration-tests/suites/replay/multiple-pages/dist/index.html"
+                    "href": "/index.html"
                   },
                   "childNodes": [
                     {
