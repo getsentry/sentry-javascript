@@ -298,11 +298,14 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
       - name: Check bundle sizes
-        uses: getsentry/size-limit-action@main-skip-step
+        uses: getsentry/size-limit-action@runForBranch
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
           main_branch: develop
+          # When on release branch, we want to always run
+          # Else, we fall back to the default handling of the action
+          run_for_branch: ${{ (needs.job_get_metadata.outputs.is_release == 'true' && 'true') || '' }}
 
   job_lint:
     name: Lint
