@@ -214,9 +214,12 @@ export function shouldSkipReplayTest(): boolean {
  * Takes a replay recording payload and returns a normalized string representation.
  * This is necessary because the DOM snapshots contain absolute paths to other HTML
  * files which break the tests on different machines.
+ * Also, we need to normalize any time offsets as they can vary and cause flakes.
  */
 export function normalize(obj: unknown): string {
   const rawString = JSON.stringify(obj, null, 2);
-  const normalizedString = rawString.replace(/"file:\/\/.+(\/.*\.html)"/g, '"$1"');
+  const normalizedString = rawString
+    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
   return normalizedString;
 }
