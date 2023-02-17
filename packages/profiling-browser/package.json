@@ -1,0 +1,52 @@
+{
+  "name": "@sentry/profiling-browser",
+  "version": "7.38.0",
+  "description": "Official Sentry SDK for browser profiling",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-browser",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=8"
+  },
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry/browser": "7.38.0",
+    "@sentry/types": "7.38.0",
+    "@sentry/utils": "7.38.0"
+  },
+  "peerDependencies": {
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf build coverage sentry-svelte-*.tgz",
+    "fix": "run-s fix:eslint fix:prettier",
+    "fix:eslint": "eslint . --format stylish --fix",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
+    "lint": "run-s lint:prettier lint:eslint",
+    "lint:eslint": "eslint . --format stylish",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false
+}
