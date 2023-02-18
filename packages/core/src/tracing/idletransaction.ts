@@ -7,9 +7,11 @@ import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';
 
-export const DEFAULT_IDLE_TIMEOUT = 1000;
-export const DEFAULT_FINAL_TIMEOUT = 30000;
-export const DEFAULT_HEARTBEAT_INTERVAL = 5000;
+export const TRACING_DEFAULTS = {
+  idleTimeout: 1000,
+  finalTimeout: 30000,
+  heartbeatInterval: 5000,
+};
 
 /**
  * @inheritDoc
@@ -81,12 +83,12 @@ export class IdleTransaction extends Transaction {
      * The time to wait in ms until the idle transaction will be finished. This timer is started each time
      * there are no active spans on this transaction.
      */
-    private readonly _idleTimeout: number = DEFAULT_IDLE_TIMEOUT,
+    private readonly _idleTimeout: number = TRACING_DEFAULTS.idleTimeout,
     /**
      * The final value in ms that a transaction cannot exceed
      */
-    private readonly _finalTimeout: number = DEFAULT_FINAL_TIMEOUT,
-    private readonly _heartbeatInterval: number = DEFAULT_HEARTBEAT_INTERVAL,
+    private readonly _finalTimeout: number = TRACING_DEFAULTS.finalTimeout,
+    private readonly _heartbeatInterval: number = TRACING_DEFAULTS.heartbeatInterval,
     // Whether or not the transaction should put itself on the scope when it starts and pop itself off when it ends
     private readonly _onScope: boolean = false,
   ) {

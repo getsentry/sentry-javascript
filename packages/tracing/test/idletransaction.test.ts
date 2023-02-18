@@ -1,12 +1,8 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, IdleTransactionSpanRecorder } from '@sentry/core';
+import { TRACING_DEFAULTS } from '@sentry/core';
 
-import {
-  DEFAULT_FINAL_TIMEOUT,
-  DEFAULT_HEARTBEAT_INTERVAL,
-  DEFAULT_IDLE_TIMEOUT,
-} from '../../core/src/tracing/idletransaction';
-import { IdleTransaction, Span } from '../src';
+import { Hub, IdleTransaction, Span } from '../../core/src';
+import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';
@@ -22,9 +18,9 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
         hub,
-        DEFAULT_IDLE_TIMEOUT,
-        DEFAULT_FINAL_TIMEOUT,
-        DEFAULT_HEARTBEAT_INTERVAL,
+        TRACING_DEFAULTS.idleTimeout,
+        TRACING_DEFAULTS.finalTimeout,
+        TRACING_DEFAULTS.heartbeatInterval,
         true,
       );
       transaction.initSpanRecorder(10);
@@ -47,9 +43,9 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
         hub,
-        DEFAULT_IDLE_TIMEOUT,
-        DEFAULT_FINAL_TIMEOUT,
-        DEFAULT_HEARTBEAT_INTERVAL,
+        TRACING_DEFAULTS.idleTimeout,
+        TRACING_DEFAULTS.finalTimeout,
+        TRACING_DEFAULTS.heartbeatInterval,
         true,
       );
       transaction.initSpanRecorder(10);
@@ -66,9 +62,9 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction(
         { name: 'foo', sampled: false },
         hub,
-        DEFAULT_IDLE_TIMEOUT,
-        DEFAULT_FINAL_TIMEOUT,
-        DEFAULT_HEARTBEAT_INTERVAL,
+        TRACING_DEFAULTS.idleTimeout,
+        TRACING_DEFAULTS.finalTimeout,
+        TRACING_DEFAULTS.heartbeatInterval,
         true,
       );
 
@@ -123,7 +119,7 @@ describe('IdleTransaction', () => {
 
     expect(transaction.activities).toMatchObject({ [span.spanId]: true, [childSpan.spanId]: true });
     span.finish();
-    jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT + 1);
+    jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
     expect(transaction.activities).toMatchObject({ [childSpan.spanId]: true });
@@ -201,7 +197,7 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
       transaction.initSpanRecorder(10);
 
-      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
       expect(transaction.endTimestamp).toBeDefined();
     });
 
@@ -210,7 +206,7 @@ describe('IdleTransaction', () => {
       transaction.initSpanRecorder(10);
       transaction.startChild({});
 
-      jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
       expect(transaction.endTimestamp).toBeUndefined();
     });
 
@@ -261,23 +257,23 @@ describe('IdleTransaction', () => {
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
 
     it('finishes a transaction after 3 beats', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
@@ -285,20 +281,20 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(1);
     });
 
     it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, DEFAULT_IDLE_TIMEOUT, 50000);
+      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout, 50000);
       const mockFinish = jest.spyOn(transaction, 'finish');
       transaction.initSpanRecorder(10);
 
@@ -306,42 +302,42 @@ describe('IdleTransaction', () => {
       transaction.startChild({});
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       const span = transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       transaction.startChild(); // push activity
       transaction.startChild(); // push activity
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       span.finish(); // pop activity
 
       // Beat 1
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
-      jest.advanceTimersByTime(DEFAULT_HEARTBEAT_INTERVAL);
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(1);
 
       // Heartbeat does not keep going after finish has been called

@@ -37,21 +37,5 @@ export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T |
   return scope && (scope.getTransaction() as T | undefined);
 }
 
-/**
- * Converts from milliseconds to seconds
- * @param time time in ms
- */
-export function msToSec(time: number): number {
-  return time / 1000;
-}
-
-/**
- * Converts from seconds to milliseconds
- * @param time time in seconds
- */
-export function secToMs(time: number): number {
-  return time * 1000;
-}
-
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils
 export { stripUrlQueryAndFragment } from '@sentry/utils';

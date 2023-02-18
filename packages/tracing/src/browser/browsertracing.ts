@@ -1,12 +1,6 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import {
-  DEFAULT_FINAL_TIMEOUT,
-  DEFAULT_HEARTBEAT_INTERVAL,
-  DEFAULT_IDLE_TIMEOUT,
-  extractTraceparentData,
-  startIdleTransaction,
-} from '@sentry/core';
+import { extractTraceparentData, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
 
@@ -130,9 +124,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
-  idleTimeout: DEFAULT_IDLE_TIMEOUT,
-  finalTimeout: DEFAULT_FINAL_TIMEOUT,
-  heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+  ...TRACING_DEFAULTS,
   markBackgroundTransactions: true,
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
