@@ -14,7 +14,7 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
-import { addExtensionMethods } from './hubextensions';
+import { addExtensionMethods } from './extensions';
 import * as Integrations from './integrations';
 
 export type { RequestInstrumentationOptions } from './browser';
