@@ -2,6 +2,7 @@ import type { PerformanceNavigationTiming } from '../../../src/types';
 
 export function PerformanceEntryNavigation(obj?: Partial<PerformanceNavigationTiming>): PerformanceNavigationTiming {
   const entry = {
+    activationStart: 0,
     name: 'https://sentry.io/organizations/sentry/discover/',
     entryType: 'navigation',
     startTime: 0,
