@@ -293,7 +293,7 @@ export interface ReplayContainer {
   isPaused(): boolean;
   getContext(): InternalEventContext;
   start(): void;
-  stop(): void;
+  stop(reason?: string): void;
   pause(): void;
   resume(): void;
   startRecording(): void;

@@ -5,7 +5,6 @@
 
 module.exports = {
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: ['rollup.config.worker.js'],
   overrides: [
     {
       files: ['worker/**/*.ts'],

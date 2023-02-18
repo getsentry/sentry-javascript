@@ -1,0 +1,39 @@
+[
+  {
+    "source": 1,
+    "positions": [
+      {
+        "x": 41,
+        "y": 18,
+        "id": 9,
+        "timeOffset": [timeOffset]
+      }
+    ]
+  },
+  {
+    "source": 2,
+    "type": 1,
+    "id": 9,
+    "x": 41,
+    "y": 18
+  },
+  {
+    "source": 2,
+    "type": 5,
+    "id": 9
+  },
+  {
+    "source": 2,
+    "type": 0,
+    "id": 9,
+    "x": 41,
+    "y": 18
+  },
+  {
+    "source": 2,
+    "type": 2,
+    "id": 9,
+    "x": 41,
+    "y": 18
+  }
+]

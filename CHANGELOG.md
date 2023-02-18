@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.38.0
+
+- feat: Put `abs_path` into stack frame object (#7167)
+- feat(integrations): Deprecate `Offline` integration (#7063)
+- feat(otel): Convert exception otel events to sentry errors (#7165)
+- feat(replay): Change LCP calculation (#7187)
+- feat(tracing): Support Apollo/GraphQL with NestJS (#7194)
+- feat(tracing): Track `PerformanceResourceTiming.renderBlockingStatus` (#7127)
+- feat(tracing|core): Remove transaction name change recording (#7197)
+- fix(browser): Ensure dedupe integration ignores non-errors (#7172)
+- fix(core): Skip empty integrations (#7204)
+- fix(nextjs): Fix faulty import in Next.js .d.ts (#7175)
+- fix(otel): Make otel.kind be a string (#7182)
+- fix(react): Make fallback render types more accurate (#7198)
+- fix(replay): Debounced flushes not respecting `maxWait` (#7207, #7208)
+- ref(replay): Improve logging for stopped replay (#7174)
+
+Work in this release contributed by @lucas-zimermann. Thank you for your contribution!
+
 ## 7.37.2
 
 This release includes changes and fixes around text masking and blocking in Replay's `rrweb` dependency. See versions [1.102.0](https://github.com/getsentry/rrweb/releases/tag/1.102.0) and [1.103.0](https://github.com/getsentry/rrweb/releases/tag/1.103.0).

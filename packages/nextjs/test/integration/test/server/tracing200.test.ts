@@ -21,8 +21,6 @@ describe('Tracing 200', () => {
       transaction: 'GET /api/users',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       type: 'transaction',
       request: {

@@ -545,15 +545,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           processedEvent.transaction_info = {
             ...transactionInfo,
             source,
-            changes: [
-              ...transactionInfo.changes,
-              {
-                source,
-                // use the same timestamp as the processed event.
-                timestamp: processedEvent.timestamp as number,
-                propagations: transactionInfo.propagations,
-              },
-            ],
           };
         }
 

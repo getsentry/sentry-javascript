@@ -20,8 +20,6 @@ describe('tracingServerGetServerSidePropsCustomPageExtension', () => {
       transaction: '/customPageExtension',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       type: 'transaction',
       request: {

@@ -9,7 +9,7 @@ import type {
   TransactionContext,
   TransactionMetadata,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import type { Hub } from '..';
 import { getCurrentHub } from '..';
@@ -52,8 +52,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       source: 'custom',
       ...transactionContext.metadata,
       spanMetadata: {},
-      changes: [],
-      propagations: 0,
     };
 
     this._trimEnd = transactionContext.trimEnd;
@@ -84,17 +82,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * JSDoc
    */
   public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
-    // `source` could change without the name changing if we discover that an unparameterized route is actually
-    // parameterized by virtue of having no parameters in its path
-    if (name !== this.name || source !== this.metadata.source) {
-      this.metadata.changes.push({
-        // log previous source
-        source: this.metadata.source,
-        timestamp: timestampInSeconds(),
-        propagations: this.metadata.propagations,
-      });
-    }
-
     this._name = name;
     this.metadata.source = source;
   }
@@ -197,8 +184,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...(metadata.source && {
         transaction_info: {
           source: metadata.source,
-          changes: metadata.changes,
-          propagations: metadata.propagations,
         },
       }),
     };

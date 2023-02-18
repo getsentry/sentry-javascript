@@ -9,18 +9,19 @@ export * from './edge';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 
-import type { BrowserOptions } from './client';
-import * as clientSdk from './client';
-import type { EdgeOptions } from './edge';
-import * as edgeSdk from './edge';
-import type { NodeOptions } from './server';
-import * as serverSdk from './server';
+import type * as clientSdk from './client';
+import type * as edgeSdk from './edge';
+import type * as serverSdk from './server';
 
 /** Initializes Sentry Next.js SDK */
-export declare function init(options: Options | BrowserOptions | NodeOptions | EdgeOptions): void;
+export declare function init(
+  options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
+): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integrations, ...edgeSdk.Integrations };
+export declare const Integrations: typeof clientSdk.Integrations &
+  typeof serverSdk.Integrations &
+  typeof edgeSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;

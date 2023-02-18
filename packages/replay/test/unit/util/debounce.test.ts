@@ -246,14 +246,27 @@ describe('Unit | util | debounce', () => {
     const debouncedCallback = debounce(callback, 100, { maxWait: 100 });
 
     debouncedCallback();
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
 
     expect(callback).toHaveBeenCalledTimes(1);
 
     const retval = debouncedCallback();
     expect(retval).toBe('foo');
 
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
+    debouncedCallback();
+    jest.advanceTimersByTime(25);
+
     expect(callback).toHaveBeenCalledTimes(2);
   });
 });

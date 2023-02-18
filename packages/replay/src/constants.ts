@@ -22,7 +22,9 @@ export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes
 
 /** Default flush delays */
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
-export const DEFAULT_FLUSH_MAX_DELAY = 5_000;
+// XXX: Temp fix for our debounce logic where `maxWait` would never occur if it
+// was the same as `wait`
+export const DEFAULT_FLUSH_MAX_DELAY = 5_500;
 
 /* How long to wait for error checkouts */
 export const ERROR_CHECKOUT_TIME = 60_000;

@@ -86,6 +86,16 @@ export function getReplayEvent(replayRequest: Request): ReplayEvent {
   return event;
 }
 
+type CustomRecordingContent = {
+  breadcrumbs: Breadcrumb[];
+  performanceSpans: PerformanceSpan[];
+};
+
+type RecordingContent = {
+  fullSnapshots: RecordingSnapshot[];
+  incrementalSnapshots: RecordingSnapshot[];
+} & CustomRecordingContent;
+
 /**
  * Takes an uncompressed replay request and returns the custom recording events,
  * i.e. the events we emit as type 5 rrweb events
@@ -93,10 +103,7 @@ export function getReplayEvent(replayRequest: Request): ReplayEvent {
  * @param replayRequest
  * @returns an object containing the replay breadcrumbs and performance spans
  */
-export function getCustomRecordingEvents(replayRequest: Request): {
-  breadcrumbs: Breadcrumb[];
-  performanceSpans: PerformanceSpan[];
-} {
+export function getCustomRecordingEvents(replayRequest: Request): CustomRecordingContent {
   const recordingEvents = getDecompressedRecordingEvents(replayRequest);
 
   const breadcrumbs = getReplayBreadcrumbs(recordingEvents);
@@ -126,8 +133,21 @@ export function getFullRecordingSnapshots(replayRequest: Request): RecordingSnap
   return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
 }
 
+function getincrementalRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
+  return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
+}
+
 function getDecompressedRecordingEvents(replayRequest: Request): RecordingEvent[] {
   return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+}
+
+export function getReplayRecordingContent(replayRequest: Request): RecordingContent {
+  const fullSnapshots = getFullRecordingSnapshots(replayRequest);
+  const incrementalSnapshots = getincrementalRecordingSnapshots(replayRequest);
+  const customEvents = getCustomRecordingEvents(replayRequest);
+
+  return { fullSnapshots, incrementalSnapshots, ...customEvents };
 }
 
 /**
@@ -188,4 +208,18 @@ const replayEnvelopeParser = (request: Request | null): unknown[] => {
 export function shouldSkipReplayTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
   return bundle != null && !bundle.includes('replay') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * Takes a replay recording payload and returns a normalized string representation.
+ * This is necessary because the DOM snapshots contain absolute paths to other HTML
+ * files which break the tests on different machines.
+ * Also, we need to normalize any time offsets as they can vary and cause flakes.
+ */
+export function normalize(obj: unknown): string {
+  const rawString = JSON.stringify(obj, null, 2);
+  const normalizedString = rawString
+    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+  return normalizedString;
 }

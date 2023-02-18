@@ -57,6 +57,20 @@ const sentryTest = base.extend<TestFixtures>({
 
         await generatePage(init, subject, template, testDir);
       }
+
+      const additionalPages = fs
+        .readdirSync(testDir)
+        .filter(filename => filename.startsWith('page-') && filename.endsWith('.html'));
+
+      const outDir = path.dirname(testInfo.file);
+      for (const pageFilename of additionalPages) {
+        // create a new page with the same subject and init as before
+        const subject = getAsset(testDir, 'subject.js');
+        const pageFile = getAsset(testDir, pageFilename);
+        const init = getAsset(testDir, 'init.js');
+        await generatePage(init, subject, pageFile, outDir, pageFilename);
+      }
+
       return pagePath;
     });
   },

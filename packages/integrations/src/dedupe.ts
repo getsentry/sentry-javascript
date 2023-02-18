@@ -23,6 +23,12 @@ export class Dedupe implements Integration {
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     const eventProcessor: EventProcessor = currentEvent => {
+      // We want to ignore any non-error type events, e.g. transactions or replays
+      // These should never be deduped, and also not be compared against as _previousEvent.
+      if (currentEvent.type) {
+        return currentEvent;
+      }
+
       const self = getCurrentHub().getIntegration(Dedupe);
       if (self) {
         // Juuust in case something goes wrong
