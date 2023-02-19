@@ -43,6 +43,10 @@ class GraphQLFactory {
   }
 }
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockFactory = GraphQLFactory;
+
 // mock for @nestjs/graphql package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
@@ -50,7 +54,7 @@ jest.mock('@sentry/utils', () => {
     ...actual,
     loadModule() {
       return {
-        GraphQLFactory,
+        GraphQLFactory: mockFactory,
       };
     },
   };
