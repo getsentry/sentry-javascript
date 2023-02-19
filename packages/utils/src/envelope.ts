@@ -6,7 +6,6 @@ import type {
   DataCategory,
   DsnComponents,
   Envelope,
-  EnvelopeItem,
   EnvelopeItemType,
   Event,
   EventEnvelopeHeaders,
@@ -41,16 +40,32 @@ export function addItemToEnvelope<E extends Envelope>(envelope: E, newItem: E[1]
 /**
  * Convenience function to loop through the items and item types of an envelope.
  * (This function was mostly created because working with envelope types is painful at the moment)
+ *
+ * If the callback returns true, the rest of the items will be skipped.
  */
 export function forEachEnvelopeItem<E extends Envelope>(
   envelope: Envelope,
-  callback: (envelopeItem: E[1][number], envelopeItemType: E[1][number][0]['type']) => void,
-): void {
+  callback: (envelopeItem: E[1][number], envelopeItemType: E[1][number][0]['type']) => boolean | void,
+): boolean {
   const envelopeItems = envelope[1];
-  envelopeItems.forEach((envelopeItem: EnvelopeItem) => {
+
+  for (const envelopeItem of envelopeItems) {
     const envelopeItemType = envelopeItem[0].type;
-    callback(envelopeItem, envelopeItemType);
-  });
+    const result = callback(envelopeItem, envelopeItemType);
+
+    if (result) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Returns true if the envelope contains any of the given envelope item types
+ */
+export function envelopeContainsItemType(envelope: Envelope, ...types: EnvelopeItemType[]): boolean {
+  return forEachEnvelopeItem(envelope, (_, type) => types.includes(type));
 }
 
 /**
