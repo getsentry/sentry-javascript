@@ -81,7 +81,10 @@ export function init(options: NodeOptions): void {
   buildMetadata(options, ['nextjs', 'node']);
 
   options.environment =
-    options.environment || process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || process.env.NODE_ENV;
+    options.environment ||
+    process.env.SENTRY_ENVIRONMENT ||
+    (process.env.VERCEL_ENV ? `vercel-${process.env.VERCEL_ENV}` : undefined) ||
+    process.env.NODE_ENV;
 
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js

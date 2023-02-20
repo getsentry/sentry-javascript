@@ -39,7 +39,10 @@ export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
 
-  options.environment = options.environment || process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV;
+  options.environment =
+    options.environment ||
+    (process.env.NEXT_PUBLIC_VERCEL_ENV ? `vercel-${process.env.NEXT_PUBLIC_VERCEL_ENV}` : undefined) ||
+    process.env.NODE_ENV;
 
   addClientIntegrations(options);
 
