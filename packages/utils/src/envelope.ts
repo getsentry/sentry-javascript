@@ -64,7 +64,7 @@ export function forEachEnvelopeItem<E extends Envelope>(
 /**
  * Returns true if the envelope contains any of the given envelope item types
  */
-export function envelopeContainsItemType(envelope: Envelope, ...types: EnvelopeItemType[]): boolean {
+export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItemType[]): boolean {
   return forEachEnvelopeItem(envelope, (_, type) => types.includes(type));
 }
 

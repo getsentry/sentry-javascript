@@ -63,7 +63,7 @@ export function makeOfflineTransport<TO>(
       // - Ordered and Replay relies on the response status to know when they're successfully sent.
       // - Likely to fill the queue quickly and block other events from being sent.
       // We also want to drop client reports because they can be generated when we retry sending events while offline.
-      if (envelopeContainsItemType(env, 'replay_event', 'replay_recording', 'client_report')) {
+      if (envelopeContainsItemType(env, ['replay_event', 'replay_recording', 'client_report'])) {
         return false;
       }
 
