@@ -8,7 +8,7 @@ import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from 
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
-const MEDIA_SELECTORS = 'img,image,svg,video,object,picture,embed,map,audio';
+const MEDIA_SELECTORS = 'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
 
 let _initialized = false;
 
