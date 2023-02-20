@@ -133,7 +133,7 @@ export function getFullRecordingSnapshots(replayRequest: Request): RecordingSnap
   return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
 }
 
-function getincrementalRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+function getIncrementalRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
   const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
   return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
 }
@@ -144,7 +144,7 @@ function getDecompressedRecordingEvents(replayRequest: Request): RecordingEvent[
 
 export function getReplayRecordingContent(replayRequest: Request): RecordingContent {
   const fullSnapshots = getFullRecordingSnapshots(replayRequest);
-  const incrementalSnapshots = getincrementalRecordingSnapshots(replayRequest);
+  const incrementalSnapshots = getIncrementalRecordingSnapshots(replayRequest);
   const customEvents = getCustomRecordingEvents(replayRequest);
 
   return { fullSnapshots, incrementalSnapshots, ...customEvents };
@@ -216,10 +216,29 @@ export function shouldSkipReplayTest(): boolean {
  * files which break the tests on different machines.
  * Also, we need to normalize any time offsets as they can vary and cause flakes.
  */
-export function normalize(obj: unknown): string {
+export function normalize(
+  obj: unknown,
+  { normalizeNumberAttributes }: { normalizeNumberAttributes?: string[] } = {},
+): string {
   const rawString = JSON.stringify(obj, null, 2);
-  const normalizedString = rawString
+  let normalizedString = rawString
     .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
     .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+
+  if (normalizeNumberAttributes?.length) {
+    // We look for: "attr": "123px", "123", "123%", "123em", "123rem"
+    const regex = new RegExp(
+      `"(${normalizeNumberAttributes
+        .map(attr => `(?:${attr})`)
+        .join('|')})":\\s*"([\\d\\.]+)((?:px)|%|(?:em)(?:rem))?"`,
+      'gm',
+    );
+
+    normalizedString = normalizedString.replace(regex, (_, attr, num, unit) => {
+      // Remove floating points here, to ensure this is a bit less flaky
+      return `"${attr}": "${parseInt(num, 10)}${unit || ''}"`;
+    });
+  }
+
   return normalizedString;
 }
