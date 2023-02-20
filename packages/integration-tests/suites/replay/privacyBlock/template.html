@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
-  <head><meta charset="utf-8" /></head>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="file://assets/icon/favicon.png"/>
+  </head>
   <body>
     <button aria-label="Click me" onclick="console.log('Test log')">Click me</button>
     <div>This should be masked by default</div>
@@ -12,5 +15,8 @@
     <img style="width:100px;height:100px" src="file:///none.png" />
     <img data-sentry-unblock style="width:100px;height:100px" src="file:///none.png" />
     <video style="width:30px;height:30px"><source src="file://foo.mp4" /></video>
+    <div class="nested-hide">
+      <div>This should be hidden.</div>
+    </div>
   </body>
 </html>
