@@ -46,9 +46,8 @@ export function init(options: EdgeOptions = {}): void {
     }
   }
 
-  if (options.environment === undefined && process.env.SENTRY_ENVIRONMENT) {
-    options.environment = process.env.SENTRY_ENVIRONMENT;
-  }
+  options.environment =
+    options.environment || process.env.SENTRY_ENVIRONMENT || process.env.VERCEL_ENV || process.env.NODE_ENV;
 
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
     options.autoSessionTracking = true;
