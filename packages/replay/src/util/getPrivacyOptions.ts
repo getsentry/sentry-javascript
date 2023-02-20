@@ -79,7 +79,12 @@ export function getPrivacyOptions({
     maskInputSelector: maskSelector,
     unmaskInputSelector: unmaskSelector,
 
-    blockSelector: getOption(block, ['.sentry-block', '[data-sentry-block]', 'base[href="/"]'], blockClass, blockSelector),
+    blockSelector: getOption(
+      block,
+      ['.sentry-block', '[data-sentry-block]', 'base[href="/"]'],
+      blockClass,
+      blockSelector,
+    ),
     unblockSelector: getOption(unblock, ['.sentry-unblock', '[data-sentry-unblock]']),
     ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]'], ignoreClass),
   };
