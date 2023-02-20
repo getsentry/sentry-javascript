@@ -154,8 +154,8 @@
                 "type": 2,
                 "tagName": "svg",
                 "attributes": {
-                  "rr_width": "200px",
-                  "rr_height": "200px"
+                  "rr_width": "[200-250]px",
+                  "rr_height": "[200-250]px"
                 },
                 "childNodes": [],
                 "isSVG": true,
@@ -214,8 +214,8 @@
                 "type": 2,
                 "tagName": "img",
                 "attributes": {
-                  "rr_width": "100px",
-                  "rr_height": "100px"
+                  "rr_width": "[100-150]px",
+                  "rr_height": "[100-150]px"
                 },
                 "childNodes": [],
                 "id": 31
@@ -245,8 +245,8 @@
                 "type": 2,
                 "tagName": "video",
                 "attributes": {
-                  "rr_width": "30px",
-                  "rr_height": "30px"
+                  "rr_width": "[0-50]px",
+                  "rr_height": "[0-50]px"
                 },
                 "childNodes": [],
                 "id": 35

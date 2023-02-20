@@ -32,8 +32,8 @@
                 "type": 2,
                 "tagName": "link",
                 "attributes": {
-                  "rr_width": "0px",
-                  "rr_height": "0px"
+                  "rr_width": "[0-50]px",
+                  "rr_height": "[0-50]px"
                 },
                 "childNodes": [],
                 "id": 6
@@ -271,8 +271,8 @@
                 "type": 2,
                 "tagName": "video",
                 "attributes": {
-                  "rr_width": "30px",
-                  "rr_height": "30px"
+                  "rr_width": "[0-50]px",
+                  "rr_height": "[0-50]px"
                 },
                 "childNodes": [],
                 "id": 38
@@ -287,8 +287,8 @@
                 "tagName": "div",
                 "attributes": {
                   "class": "nested-hide",
-                  "rr_width": "1264px",
-                  "rr_height": "19px"
+                  "rr_width": "[1250-1300]px",
+                  "rr_height": "[0-50]px"
                 },
                 "childNodes": [],
                 "id": 40

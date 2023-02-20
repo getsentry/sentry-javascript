@@ -236,9 +236,22 @@ export function normalize(
 
     normalizedString = normalizedString.replace(regex, (_, attr, num, unit) => {
       // Remove floating points here, to ensure this is a bit less flaky
-      return `"${attr}": "${parseInt(num, 10)}${unit || ''}"`;
+      const integer = parseInt(num, 10);
+      const normalizedNum = normalizeNumberAttribute(integer);
+
+      return `"${attr}": "${normalizedNum}${unit || ''}"`;
     });
   }
 
   return normalizedString;
+}
+
+/**
+ * Map e.g. 16 to [0-50] or 123 to [100-150].
+ */
+function normalizeNumberAttribute(num: number): string {
+  const step = 50;
+  const stepCount = Math.floor(num / step);
+
+  return `[${stepCount * step}-${(stepCount + 1) * step}]`;
 }
