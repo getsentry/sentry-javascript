@@ -9,9 +9,10 @@
   _namespace,
   _publicKey,
   _sdkBundleUrl,
-  _config
+  _config,
+  _lazy
 ) {
-  var lazy = true;
+  var lazy = _lazy;
   var forceLoad = false;
 
   for (var i = 0; i < document.scripts.length; i++) {
@@ -217,4 +218,4 @@
   }
 })(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundles/bundle.js', {
   dsn: 'https://public@example.com/1'
-});
+}, true);
