@@ -1,8 +1,8 @@
 import { getCurrentHub } from '@sentry/core';
-import { flush } from '@sentry/node';
+import { captureException, flush } from '@sentry/node';
 import { hasTracingEnabled } from '@sentry/tracing';
 import type { Transaction } from '@sentry/types';
-import { extractRequestData, isString, logger } from '@sentry/utils';
+import { addExceptionMechanism, extractRequestData, isString, logger, objectify } from '@sentry/utils';
 import { cwd } from 'process';
 
 import {
@@ -66,23 +66,51 @@ function wrapExpressRequestHandler(
       scope.setSDKProcessingMetadata({ request });
     }
 
-    if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
-      return origRequestHandler.call(this, req, res, next);
+    let transaction: Transaction | undefined;
+
+    if (options && hasTracingEnabled(options) && request.url && request.method) {
+      const url = new URL(request.url);
+      const [name, source] = getTransactionName(routes, url, pkg);
+      transaction = startRequestHandlerTransaction(hub, name, source, {
+        headers: {
+          'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
+          baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
+        },
+        method: request.method,
+      });
+      // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+      // the domain), we can still finish it (albeit possibly missing some scope data)
+      (res as AugmentedExpressResponse).__sentryTransaction = transaction;
     }
 
-    const url = new URL(request.url);
-    const [name, source] = getTransactionName(routes, url, pkg);
-    const transaction = startRequestHandlerTransaction(hub, name, source, {
-      headers: {
-        'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
-        baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
-      },
-      method: request.method,
-    });
-    // save a link to the transaction on the response, so that even if there's an error (landing us outside of
-    // the domain), we can still finish it (albeit possibly missing some scope data)
-    (res as AugmentedExpressResponse).__sentryTransaction = transaction;
-    return origRequestHandler.call(this, req, res, next);
+    try {
+      return origRequestHandler.call(this, req, res, next);
+    } catch (e) {
+      const objectifiedErr = objectify(e);
+
+      transaction?.setStatus('internal_error');
+
+      captureException(objectifiedErr, scope => {
+        scope.setSpan(transaction);
+        scope.addEventProcessor(event => {
+          addExceptionMechanism(event, {
+            type: 'instrument',
+            handled: false,
+            data: {
+              function: 'remix.express.requestHandler',
+            },
+          });
+          return event;
+        });
+
+        return scope;
+      });
+
+      throw objectifiedErr;
+    } finally {
+      transaction?.finish();
+      await flush(2000);
+    }
   };
 }
 

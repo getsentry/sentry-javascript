@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Hub } from '@sentry/node';
-import { captureException, getCurrentHub } from '@sentry/node';
+import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { getActiveTransaction, hasTracingEnabled } from '@sentry/tracing';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
@@ -12,6 +12,7 @@ import {
   isNodeEnv,
   loadModule,
   logger,
+  objectify,
 } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -423,24 +424,50 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         });
       }
 
-      if (!options || !hasTracingEnabled(options)) {
-        return origRequestHandler.call(this, request, loadContext);
+      let transaction: Transaction | undefined;
+
+      if (options && hasTracingEnabled(options)) {
+        transaction = startRequestHandlerTransaction(hub, name, source, {
+          headers: {
+            'sentry-trace': request.headers.get('sentry-trace') || '',
+            baggage: request.headers.get('baggage') || '',
+          },
+          method: request.method,
+        });
       }
 
-      const transaction = startRequestHandlerTransaction(hub, name, source, {
-        headers: {
-          'sentry-trace': request.headers.get('sentry-trace') || '',
-          baggage: request.headers.get('baggage') || '',
-        },
-        method: request.method,
-      });
+      try {
+        const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+        transaction?.setHttpStatus(res.status);
+        return res;
+      } catch (e) {
+        const objectifiedErr = objectify(e);
 
-      const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+        transaction?.setStatus('internal_error');
 
-      transaction.setHttpStatus(res.status);
-      transaction.finish();
+        captureException(objectifiedErr, scope => {
+          scope.setSpan(transaction);
+          scope.addEventProcessor(event => {
+            addExceptionMechanism(event, {
+              type: 'instrument',
+              handled: false,
+              data: {
+                function: 'remix.requestHandler',
+              },
+            });
+            return event;
+          });
 
-      return res;
+          return scope;
+        });
+
+        throw objectifiedErr;
+      } finally {
+        if (transaction) {
+          transaction.finish();
+          await flush(2000);
+        }
+      }
     })();
   };
 }
