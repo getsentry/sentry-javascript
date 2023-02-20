@@ -10,6 +10,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 
+import { getVercelEnv } from '../common/getVercelEnv';
 import { EdgeClient } from './edgeclient';
 import { makeEdgeTransport } from './transport';
 
@@ -47,10 +48,7 @@ export function init(options: EdgeOptions = {}): void {
   }
 
   options.environment =
-    options.environment ||
-    process.env.SENTRY_ENVIRONMENT ||
-    (process.env.VERCEL_ENV ? `vercel-${process.env.VERCEL_ENV}` : undefined) ||
-    process.env.NODE_ENV;
+    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
     options.autoSessionTracking = true;
