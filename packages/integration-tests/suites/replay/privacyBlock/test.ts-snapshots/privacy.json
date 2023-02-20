@@ -32,9 +32,8 @@
                 "type": 2,
                 "tagName": "link",
                 "attributes": {
-                  "rel": "icon",
-                  "type": "image/png",
-                  "href": "file:///Users/francesco/git/sentry-javascript/packages/integration-tests/suites/replay/default-privacy/dist/assets/icon/favicon.png"
+                  "rr_width": "0px",
+                  "rr_height": "0px"
                 },
                 "childNodes": [],
                 "id": 6
@@ -154,17 +153,44 @@
                 "type": 2,
                 "tagName": "svg",
                 "attributes": {
-                  "rr_width": "200px",
-                  "rr_height": "200px"
+                  "style": "width:200px;height:200px",
+                  "viewBox": "0 0 80 80"
                 },
-                "childNodes": [],
+                "childNodes": [
+                  {
+                    "type": 2,
+                    "tagName": "path",
+                    "attributes": {
+                      "d": ""
+                    },
+                    "childNodes": [],
+                    "isSVG": true,
+                    "id": 25
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "area",
+                    "attributes": {},
+                    "childNodes": [],
+                    "isSVG": true,
+                    "id": 26
+                  },
+                  {
+                    "type": 2,
+                    "tagName": "rect",
+                    "attributes": {},
+                    "childNodes": [],
+                    "isSVG": true,
+                    "id": 27
+                  }
+                ],
                 "isSVG": true,
                 "id": 24
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 25
+                "id": 28
               },
               {
                 "type": 2,
@@ -183,7 +209,7 @@
                     },
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 27
+                    "id": 30
                   },
                   {
                     "type": 2,
@@ -191,7 +217,7 @@
                     "attributes": {},
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 28
+                    "id": 31
                   },
                   {
                     "type": 2,
@@ -199,31 +225,31 @@
                     "attributes": {},
                     "childNodes": [],
                     "isSVG": true,
-                    "id": 29
+                    "id": 32
                   }
                 ],
                 "isSVG": true,
-                "id": 26
+                "id": 29
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 30
+                "id": 33
               },
               {
                 "type": 2,
                 "tagName": "img",
                 "attributes": {
-                  "rr_width": "100px",
-                  "rr_height": "100px"
+                  "style": "width:100px;height:100px",
+                  "src": "file:///none.png"
                 },
                 "childNodes": [],
-                "id": 31
+                "id": 34
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 32
+                "id": 35
               },
               {
                 "type": 2,
@@ -234,12 +260,12 @@
                   "src": "file:///none.png"
                 },
                 "childNodes": [],
-                "id": 33
+                "id": 36
               },
               {
                 "type": 3,
                 "textContent": "\n    ",
-                "id": 34
+                "id": 37
               },
               {
                 "type": 2,
@@ -249,17 +275,33 @@
                   "rr_height": "30px"
                 },
                 "childNodes": [],
-                "id": 35
+                "id": 38
+              },
+              {
+                "type": 3,
+                "textContent": "\n    ",
+                "id": 39
+              },
+              {
+                "type": 2,
+                "tagName": "div",
+                "attributes": {
+                  "class": "nested-hide",
+                  "rr_width": "1264px",
+                  "rr_height": "18px"
+                },
+                "childNodes": [],
+                "id": 40
               },
               {
                 "type": 3,
                 "textContent": "\n  ",
-                "id": 36
+                "id": 41
               },
               {
                 "type": 3,
                 "textContent": "\n\n",
-                "id": 37
+                "id": 42
               }
             ],
             "id": 8
