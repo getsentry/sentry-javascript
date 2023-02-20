@@ -9,6 +9,7 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import type { IntegrationWithExclusionOption } from '../common/userIntegrations';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
@@ -79,7 +80,10 @@ export function init(options: NodeOptions): void {
   }
 
   buildMetadata(options, ['nextjs', 'node']);
-  options.environment = options.environment || process.env.NODE_ENV;
+
+  options.environment =
+    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
+
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;
