@@ -6,7 +6,7 @@ import type { Page, Request } from 'playwright';
 import { envelopeRequestParser } from './helpers';
 
 type CustomRecordingEvent = { tag: string; payload: Record<string, unknown> };
-type PerformanceSpan = {
+export type PerformanceSpan = {
   op: string;
   description: string;
   startTimestamp: number;
