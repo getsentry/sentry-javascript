@@ -28,7 +28,8 @@ if (typeof serverComponent === 'function') {
   wrappedServerComponent = new Proxy(serverComponent, {
     apply: (originalServerComponent, thisArg, args) => {
       const headersList = headers();
-      return Sentry.wrapServerComponentWithSentry(serverComponent, {
+
+      return Sentry.wrapServerComponentWithSentry(originalServerComponent, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader: headersList.get('sentry-trace'),
