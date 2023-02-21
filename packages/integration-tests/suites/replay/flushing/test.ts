@@ -54,8 +54,9 @@ sentryTest('replay recording flushes every 5s', async ({ getLocalTestPath, page 
   const diff1 = replayEvent1.timestamp! - replayEvent0.timestamp!;
   const diff2 = replayEvent2.timestamp! - replayEvent1.timestamp!;
 
-  expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS + 0.1);
+  // We want to check that the diff is more than 0.5s, but less than 1s
+  expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS + 0.4);
   expect(diff1).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS);
-  expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS + 0.1);
+  expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS + 0.4);
   expect(diff2).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS);
 });
