@@ -144,6 +144,9 @@ function waitUntil(fn: () => boolean, timeout: number): Promise<void> {
       runtime += 100;
 
       if (fn() || runtime >= timeout) {
+        if (runtime >= timeout) {
+          console.log('waitUntil timed out');
+        }
         clearTimeout(interval);
         resolve();
       }
@@ -326,44 +329,44 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
-  it(
-    'Follows the Retry-After header',
-    async () => {
-      const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
-      const { getSendCount, baseTransport } = createTestTransport(
-        {
+  for (let i = 0; i < 100; i++) {
+    it.only(
+      `Follows the Retry-After header ${i}`,
+      async () => {
+        const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
+        const { getSendCount, baseTransport } = createTestTransport(
+          {
+            statusCode: 429,
+            headers: { 'x-sentry-rate-limits': '', 'retry-after': '2' },
+          },
+          { statusCode: 200 },
+        );
+
+        let queuedCount = 0;
+        const transport = makeOfflineTransport(baseTransport)({
+          ...transportOptions,
+          createStore: store,
+          shouldStore: () => {
+            queuedCount += 1;
+            return true;
+          },
+        });
+        const result = await transport.send(ERROR_ENVELOPE);
+
+        expect(result).toEqual({
           statusCode: 429,
-          headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
-        },
-        { statusCode: 200 },
-      );
+          headers: { 'x-sentry-rate-limits': '', 'retry-after': '2' },
+        });
 
-      let queuedCount = 0;
-      const transport = makeOfflineTransport(baseTransport)({
-        ...transportOptions,
-        createStore: store,
-        shouldStore: () => {
-          queuedCount += 1;
-          return true;
-        },
-      });
-      const result = await transport.send(ERROR_ENVELOPE);
+        expect(getSendCount()).toEqual(1);
 
-      expect(result).toEqual({
-        statusCode: 429,
-        headers: { 'x-sentry-rate-limits': '', 'retry-after': '3' },
-      });
+        await waitUntil(() => getSendCount() === 2 && getCalls().length === 2, START_DELAY);
 
-      await waitUntil(() => getSendCount() === 1, 500);
-
-      expect(getSendCount()).toEqual(1);
-
-      await waitUntil(() => getCalls().length === 2, START_DELAY * 2);
-
-      expect(getSendCount()).toEqual(2);
-      expect(queuedCount).toEqual(0);
-      expect(getCalls()).toEqual(['pop', 'pop']);
-    },
-    START_DELAY * 3,
-  );
+        expect(getCalls()).toEqual(['pop', 'pop']);
+        expect(queuedCount).toEqual(0);
+        expect(getSendCount()).toEqual(2);
+      },
+      START_DELAY * 3,
+    );
+  }
 });

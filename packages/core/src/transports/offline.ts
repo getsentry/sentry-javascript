@@ -75,12 +75,8 @@ export function makeOfflineTransport<TO>(
     }
 
     function flushIn(delay: number): void {
-      if (!store) {
+      if (!store || flushTimer) {
         return;
-      }
-
-      if (flushTimer) {
-        clearTimeout(flushTimer as ReturnType<typeof setTimeout>);
       }
 
       flushTimer = setTimeout(async () => {
@@ -89,9 +85,15 @@ export function makeOfflineTransport<TO>(
         const found = await store.pop();
         if (found) {
           log('Attempting to send previously queued event');
-          void send(found).catch(e => {
+
+          try {
+            await send(found);
+          } catch (e) {
             log('Failed to retry sending', e);
-          });
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('No queued events to send');
         }
       }, delay) as Timer;
 
