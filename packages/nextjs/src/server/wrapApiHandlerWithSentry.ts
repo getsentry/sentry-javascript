@@ -1,5 +1,6 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
-import { extractTraceparentData, hasTracingEnabled } from '@sentry/tracing';
+import { extractTraceparentData } from '@sentry/tracing';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,

@@ -1,5 +1,5 @@
 import type { Hub } from '@sentry/core';
-import { getMainCarrier } from '@sentry/core';
+import { getMainCarrier, hasTracingEnabled } from '@sentry/core';
 import type {
   ClientOptions,
   CustomSamplingContext,
@@ -14,7 +14,6 @@ import { dynamicRequire, isNaN, isNodeEnv, loadModule, logger } from '@sentry/ut
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
-import { hasTracingEnabled } from './utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {

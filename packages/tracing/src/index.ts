@@ -46,6 +46,7 @@ export { addExtensionMethods };
 export {
   extractTraceparentData,
   getActiveTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   hasTracingEnabled,
   stripUrlQueryAndFragment,
   TRACEPARENT_REGEXP,

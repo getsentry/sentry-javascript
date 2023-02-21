@@ -1,6 +1,6 @@
 import { extractTraceparentData, hasTracingEnabled } from '../src/utils';
 
-describe('hasTracingEnabled', () => {
+describe('hasTracingEnabled (deprecated)', () => {
   const tracesSampler = () => 1;
   const tracesSampleRate = 1;
   it.each([
@@ -25,7 +25,9 @@ describe('hasTracingEnabled', () => {
     ],
   ])(
     '%s',
+    // eslint-disable-next-line deprecation/deprecation
     (_: string, input: Parameters<typeof hasTracingEnabled>[0], output: ReturnType<typeof hasTracingEnabled>) => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(hasTracingEnabled(input)).toBe(output);
     },
   );

@@ -1,6 +1,5 @@
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import * as SentryTracing from '@sentry/tracing';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/server';
@@ -17,7 +16,7 @@ describe('data-fetching function wrappers', () => {
       req = { headers: {}, url: 'http://dogs.are.great/tricks/kangaroo' } as IncomingMessage;
       res = { end: jest.fn() } as unknown as ServerResponse;
 
-      jest.spyOn(SentryTracing, 'hasTracingEnabled').mockReturnValueOnce(true);
+      jest.spyOn(SentryCore, 'hasTracingEnabled').mockReturnValueOnce(true);
       jest.spyOn(SentryNode, 'getCurrentHub').mockReturnValueOnce({
         getClient: () =>
           ({

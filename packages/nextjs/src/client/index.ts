@@ -1,7 +1,8 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
-import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
+import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 
 import { getVercelEnv } from '../common/getVercelEnv';
