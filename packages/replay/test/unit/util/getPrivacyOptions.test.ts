@@ -2,7 +2,7 @@ import { getPrivacyOptions } from '../../../src/util/getPrivacyOptions';
 
 describe('Unit | util | getPrivacyOptions', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => { });
   });
   afterEach(() => {
     jest.clearAllMocks();
@@ -73,7 +73,7 @@ describe('Unit | util | getPrivacyOptions', () => {
     ).toMatchInlineSnapshot(`
       Object {
         "blockClass": /deprecated-block-\\*/,
-        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block]",
+        "blockSelector": '.custom-block,.sentry-block,[data-sentry-block],base[href="/"]',
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore]",
         "maskInputSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "maskTextClass": /deprecated-mask-\\*/,
