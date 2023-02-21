@@ -199,7 +199,7 @@ export function constructWebpackConfigFunction(
           // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
           return (
             normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
-            !!normalizedAbsoluteResourcePath.match(/[\\/]page\.(js|jsx|tsx)$/)
+            !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
           );
         },
         use: [
@@ -207,7 +207,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'page-server-component',
+              wrappingTargetKind: 'server-component',
             },
           },
         ],

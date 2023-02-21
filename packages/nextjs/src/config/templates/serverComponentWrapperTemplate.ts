@@ -11,6 +11,9 @@
 import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
+// @ts-ignore TODO
+// eslint-disable-next-line import/no-unresolved
+import { headers } from 'next/headers';
 
 type ServerComponentModule = {
   default: unknown;
@@ -22,7 +25,17 @@ const serverComponent = serverComponentModule.default;
 
 let wrappedServerComponent;
 if (typeof serverComponent === 'function') {
-  wrappedServerComponent = Sentry.wrapAppDirComponentWithSentry(serverComponent);
+  wrappedServerComponent = new Proxy(serverComponent, {
+    apply: (originalServerComponent, thisArg, args) => {
+      const headersList = headers();
+      return Sentry.wrapServerComponentWithSentry(serverComponent, {
+        componentRoute: '__ROUTE__',
+        componentType: '__COMPONENT_TYPE__',
+        sentryTraceHeader: headersList.get('sentry-trace'),
+        baggageHeader: headersList.get('baggage'),
+      }).apply(thisArg, args);
+    },
+  });
 } else {
   wrappedServerComponent = serverComponent;
 }

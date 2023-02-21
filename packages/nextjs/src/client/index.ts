@@ -133,5 +133,3 @@ export {
   withSentryServerSideErrorGetInitialProps,
   wrapErrorGetInitialPropsWithSentry,
 } from './wrapErrorGetInitialPropsWithSentry';
-
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';

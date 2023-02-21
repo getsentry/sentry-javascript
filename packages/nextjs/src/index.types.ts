@@ -10,6 +10,7 @@ export * from './edge';
 import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';
+import type { ServerComponentContext } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
@@ -128,6 +129,9 @@ export declare function withSentryServerSideErrorGetInitialProps<F extends (...a
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
 
 /**
- * Wraps an `app` directory component with Sentry error instrumentation. (Currently only reports errors for server components)
+ * Wraps an `app` directory server component with Sentry error and performance instrumentation.
  */
-export declare function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(WrappingTarget: F): F;
+export declare function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(
+  WrappingTarget: F,
+  context: ServerComponentContext,
+): F;

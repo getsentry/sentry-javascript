@@ -1,9 +1,14 @@
 import { captureException } from '@sentry/core';
 
+import type { ServerComponentContext } from '../common/types';
+
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
  */
-export function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(appDirComponent: F): F {
+export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(
+  appDirComponent: F,
+  _context: ServerComponentContext,
+): F {
   // Even though users may define server components as async functions, for the client bundles
   // Next.js will turn them into synchronous functions and it will transform any`await`s into instances of the`use`
   // hook. 🤯
