@@ -38,12 +38,12 @@ sentryTest('replay recording flushes every 5s', async ({ getLocalTestPath, page 
 
   // trigger mouse click every 100ms, it should still flush after 5s even if clicks are ongoing
   for (let i = 0; i < 70; i++) {
-    setTimeout(() => {
-      // at some point during this test, the page is closed, then we don't care about further clicks
-      if (page.isClosed()) {
-        return;
+    setTimeout(async () => {
+      try {
+        await page.click('#go-background');
+      } catch {
+        // ignore errors here, we don't care if the page is closed
       }
-      void page.click('#go-background');
     }, i * 100);
   }
 
