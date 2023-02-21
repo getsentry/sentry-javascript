@@ -1,10 +1,12 @@
 import { expect } from '@playwright/test';
-import { EventType } from '@sentry-internal/rrweb';
-import type { RecordingEvent } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../utils/helpers';
-import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
+import {
+  getFullRecordingSnapshots,
+  normalize,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../utils/replayHelpers';
 
 sentryTest('should have the correct default privacy settings', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
@@ -24,8 +26,11 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayPayload = envelopeRequestParser<RecordingEvent[]>(await reqPromise0, 5);
-  const checkoutEvent = replayPayload.find(({ type }) => type === EventType.FullSnapshot);
 
-  expect(JSON.stringify(checkoutEvent?.data, null, 2)).toMatchSnapshot('privacy.json');
+  const snapshots = getFullRecordingSnapshots(await reqPromise0);
+  expect(snapshots.length).toEqual(1);
+
+  const stringifiedSnapshot = normalize(snapshots[0], { normalizeNumberAttributes: ['rr_width', 'rr_height'] });
+
+  expect(stringifiedSnapshot).toMatchSnapshot('privacy.json');
 });

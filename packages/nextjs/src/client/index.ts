@@ -4,6 +4,7 @@ import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 
+import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { nextRouterInstrumentation } from './performance';
@@ -38,7 +39,9 @@ const globalWithInjectedValues = global as typeof global & {
 export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
-  options.environment = options.environment || process.env.NODE_ENV;
+
+  options.environment = options.environment || getVercelEnv(true) || process.env.NODE_ENV;
+
   addClientIntegrations(options);
 
   reactInit(options);
