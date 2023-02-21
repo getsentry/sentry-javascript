@@ -97,6 +97,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracesSampleRate?: number;
 
   /**
+   * If this is enabled, transactions and trace data will be generated and captured.
+   * This will set the `tracesSampleRate` to the recommended default of `1.0`.
+   * Note that `tracesSampleRate` and `tracesSampler` take precedence over this option.
+   */
+  enableTracing?: boolean;
+
+  /**
    * Initial data to populate scope.
    */
   initialScope?: CaptureContext;
