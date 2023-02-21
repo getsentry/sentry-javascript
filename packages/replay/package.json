@@ -1,23 +1,20 @@
 {
   "name": "@sentry/replay",
-  "version": "7.37.0",
+  "version": "7.38.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "sideEffects": false,
   "scripts": {
-    "build": "run-s build:worker && run-p build:core build:types build:bundle",
-    "build:transpile": "run-s build:worker build:core",
+    "build": "run-p build:transpile build:types build:bundle",
+    "build:transpile": "rollup -c rollup.npm.config.js",
     "build:bundle": "rollup -c rollup.bundle.config.js",
-    "build:dev": "run-p build:worker build:transpile build:types",
-    "build:worker": "rollup -c rollup.config.worker.js",
-    "build:core": "rollup -c rollup.npm.config.js",
+    "build:dev": "run-p build:transpile build:types",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:worker:watch build:core:watch build:bundle:watch build:types:watch",
-    "build:dev:watch": "run-p build:core:watch build:types:watch",
-    "build:core:watch": "yarn build:core --watch",
-    "build:worker:watch": "yarn build:worker --watch",
+    "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
+    "build:dev:watch": "run-p build:transpile:watch build:types:watch",
+    "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
@@ -25,7 +22,7 @@
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
-    "fix:prettier": "prettier --write \"{src,test,scripts,worker}/**/*.ts\"",
+    "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
@@ -46,16 +43,15 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/rrweb": "1.101.2",
-    "@types/pako": "^2.0.0",
+    "@sentry-internal/replay-worker": "7.38.0",
+    "@sentry-internal/rrweb": "1.103.0",
     "jsdom-worker": "^0.2.1",
-    "pako": "^2.0.4",
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@sentry/core": "7.37.0",
-    "@sentry/types": "7.37.0",
-    "@sentry/utils": "7.37.0"
+    "@sentry/core": "7.38.0",
+    "@sentry/types": "7.38.0",
+    "@sentry/utils": "7.38.0"
   },
   "engines": {
     "node": ">=12"

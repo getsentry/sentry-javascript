@@ -91,11 +91,6 @@ export interface ReplayPluginOptions extends SessionOptions {
   useCompression: boolean;
 
   /**
-   * Mask all text in recordings. All text will be replaced with asterisks by default.
-   */
-  maskAllText: boolean;
-
-  /**
    * Block all media (e.g. images, svg, video) in recordings.
    */
   blockAllMedia: boolean;
@@ -180,7 +175,7 @@ export interface ReplayConfiguration
   extends ReplayIntegrationPrivacyOptions,
     OptionalReplayPluginOptions,
     DeprecatedPrivacyOptions,
-    Pick<RecordingOptions, 'maskAllInputs'> {}
+    Pick<RecordingOptions, 'maskAllText' | 'maskAllInputs'> {}
 
 interface CommonEventContext {
   /**
@@ -298,7 +293,7 @@ export interface ReplayContainer {
   isPaused(): boolean;
   getContext(): InternalEventContext;
   start(): void;
-  stop(): void;
+  stop(reason?: string): void;
   pause(): void;
   resume(): void;
   startRecording(): void;

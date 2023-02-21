@@ -86,6 +86,16 @@ export function getReplayEvent(replayRequest: Request): ReplayEvent {
   return event;
 }
 
+type CustomRecordingContent = {
+  breadcrumbs: Breadcrumb[];
+  performanceSpans: PerformanceSpan[];
+};
+
+type RecordingContent = {
+  fullSnapshots: RecordingSnapshot[];
+  incrementalSnapshots: RecordingSnapshot[];
+} & CustomRecordingContent;
+
 /**
  * Takes an uncompressed replay request and returns the custom recording events,
  * i.e. the events we emit as type 5 rrweb events
@@ -93,10 +103,7 @@ export function getReplayEvent(replayRequest: Request): ReplayEvent {
  * @param replayRequest
  * @returns an object containing the replay breadcrumbs and performance spans
  */
-export function getCustomRecordingEvents(replayRequest: Request): {
-  breadcrumbs: Breadcrumb[];
-  performanceSpans: PerformanceSpan[];
-} {
+export function getCustomRecordingEvents(replayRequest: Request): CustomRecordingContent {
   const recordingEvents = getDecompressedRecordingEvents(replayRequest);
 
   const breadcrumbs = getReplayBreadcrumbs(recordingEvents);
@@ -126,8 +133,21 @@ export function getFullRecordingSnapshots(replayRequest: Request): RecordingSnap
   return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
 }
 
+function getIncrementalRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
+  return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
+}
+
 function getDecompressedRecordingEvents(replayRequest: Request): RecordingEvent[] {
   return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+}
+
+export function getReplayRecordingContent(replayRequest: Request): RecordingContent {
+  const fullSnapshots = getFullRecordingSnapshots(replayRequest);
+  const incrementalSnapshots = getIncrementalRecordingSnapshots(replayRequest);
+  const customEvents = getCustomRecordingEvents(replayRequest);
+
+  return { fullSnapshots, incrementalSnapshots, ...customEvents };
 }
 
 /**
@@ -177,3 +197,61 @@ const replayEnvelopeParser = (request: Request | null): unknown[] => {
 
   return lines;
 };
+
+/**
+ * We can only test replay tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain the Replay integration
+ *
+ * @returns `true` if we should skip the replay test
+ */
+export function shouldSkipReplayTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('replay') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * Takes a replay recording payload and returns a normalized string representation.
+ * This is necessary because the DOM snapshots contain absolute paths to other HTML
+ * files which break the tests on different machines.
+ * Also, we need to normalize any time offsets as they can vary and cause flakes.
+ */
+export function normalize(
+  obj: unknown,
+  { normalizeNumberAttributes }: { normalizeNumberAttributes?: string[] } = {},
+): string {
+  const rawString = JSON.stringify(obj, null, 2);
+  let normalizedString = rawString
+    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+
+  if (normalizeNumberAttributes?.length) {
+    // We look for: "attr": "123px", "123", "123%", "123em", "123rem"
+    const regex = new RegExp(
+      `"(${normalizeNumberAttributes
+        .map(attr => `(?:${attr})`)
+        .join('|')})":\\s*"([\\d\\.]+)((?:px)|%|(?:em)(?:rem))?"`,
+      'gm',
+    );
+
+    normalizedString = normalizedString.replace(regex, (_, attr, num, unit) => {
+      // Remove floating points here, to ensure this is a bit less flaky
+      const integer = parseInt(num, 10);
+      const normalizedNum = normalizeNumberAttribute(integer);
+
+      return `"${attr}": "${normalizedNum}${unit || ''}"`;
+    });
+  }
+
+  return normalizedString;
+}
+
+/**
+ * Map e.g. 16 to [0-50] or 123 to [100-150].
+ */
+function normalizeNumberAttribute(num: number): string {
+  const step = 50;
+  const stepCount = Math.floor(num / step);
+
+  return `[${stepCount * step}-${(stepCount + 1) * step}]`;
+}

@@ -20,8 +20,6 @@ describe('getInitialProps', () => {
       transaction: '/[id]/withInitialProps',
       transaction_info: {
         source: 'route',
-        changes: [],
-        propagations: 0,
       },
       type: 'transaction',
       request: {

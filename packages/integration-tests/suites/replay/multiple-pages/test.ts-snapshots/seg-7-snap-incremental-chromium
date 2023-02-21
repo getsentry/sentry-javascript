@@ -1,0 +1,44 @@
+[
+  {
+    "source": 1,
+    "positions": [
+      {
+        "x": 41,
+        "y": 90,
+        "id": 12,
+        "timeOffset": [timeOffset]
+      }
+    ]
+  },
+  {
+    "source": 2,
+    "type": 1,
+    "id": 12,
+    "x": 41,
+    "y": 90
+  },
+  {
+    "source": 2,
+    "type": 6,
+    "id": 15
+  },
+  {
+    "source": 2,
+    "type": 5,
+    "id": 12
+  },
+  {
+    "source": 2,
+    "type": 0,
+    "id": 12,
+    "x": 41,
+    "y": 90
+  },
+  {
+    "source": 2,
+    "type": 2,
+    "id": 12,
+    "x": 41,
+    "y": 90
+  }
+]

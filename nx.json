@@ -7,8 +7,10 @@
           "build:bundle",
           "build:transpile",
           "build:types",
-          "lint:eslint"
-        ]
+          "lint:eslint",
+          "test:unit"
+        ],
+        "cacheDirectory": ".nxcache"
       }
     }
   },
@@ -68,6 +70,11 @@
     "lint:eslint": {
       "inputs": ["default"],
       "outputs": []
+    },
+    "test:unit": {
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/coverage"]
     }
   }
 }

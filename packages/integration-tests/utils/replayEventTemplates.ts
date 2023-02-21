@@ -71,6 +71,25 @@ export const expectedNavigationPerformanceSpan = {
   },
 };
 
+export const expectedNavigationPushPerformanceSpan = {
+  op: 'navigation.push',
+  description: expect.any(String),
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {},
+};
+
+export const expectedReloadPerformanceSpan = {
+  op: 'navigation.reload',
+  description: '',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    duration: expect.any(Number),
+    size: expect.any(Number),
+  },
+};
+
 export const expectedMemoryPerformanceSpan = {
   op: 'memory',
   description: 'memory',
@@ -91,7 +110,7 @@ export const expectedLCPPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    duration: expect.any(Number),
+    value: expect.any(Number),
     nodeId: expect.any(Number),
     size: expect.any(Number),
   },
@@ -111,6 +130,28 @@ export const expectedFPPerformanceSpan = {
   endTimestamp: expect.any(Number),
 };
 
+export const expectedFetchPerformanceSpan = {
+  op: 'resource.fetch',
+  description: expect.any(String),
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    method: expect.any(String),
+    statusCode: expect.any(Number),
+  },
+};
+
+export const expectedXHRPerformanceSpan = {
+  op: 'resource.xhr',
+  description: expect.any(String),
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    method: expect.any(String),
+    statusCode: expect.any(Number),
+  },
+};
+
 /* Breadcrumbs */
 
 export const expectedClickBreadcrumb = {
@@ -120,5 +161,15 @@ export const expectedClickBreadcrumb = {
   message: expect.any(String),
   data: {
     nodeId: expect.any(Number),
+  },
+};
+
+export const expectedNavigationBreadcrumb = {
+  timestamp: expect.any(Number),
+  type: 'default',
+  category: 'navigation',
+  data: {
+    from: expect.any(String),
+    to: expect.any(String),
   },
 };

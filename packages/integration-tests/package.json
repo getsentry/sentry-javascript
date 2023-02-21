@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "7.37.0",
+  "version": "7.38.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -23,9 +23,12 @@
     "test:bundle:es5:min": "PW_BUNDLE=bundle_es5_min yarn test",
     "test:bundle:es6": "PW_BUNDLE=bundle_es6 yarn test",
     "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
+    "test:bundle:replay:es6": "PW_BUNDLE=bundle_replay_es6 yarn test",
+    "test:bundle:replay:es6:min": "PW_BUNDLE=bundle_replay_es6_min yarn test",
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
-    "test:ci": "playwright test ./suites --browser='all' --reporter='line'"
+    "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
+    "test:update-snapshots": "yarn test --update-snapshots --browser='all'"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
