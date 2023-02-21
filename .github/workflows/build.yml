@@ -11,6 +11,9 @@ on:
       commit:
         description: If the commit you want to test isn't the head of a branch, provide its SHA here
         required: false
+  schedule:
+    # Run every day at midnight (without cache)
+    - cron: '0 0 * * *'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -141,7 +144,7 @@ jobs:
       has_gitflow_label:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ') }}
+        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
   job_install_deps:
     name: Install Dependencies
@@ -205,9 +208,8 @@ jobs:
       - name: NX cache
         uses: actions/cache@v3
         # Disable cache when:
-        # - on develop
         # - on release branches
-        # - when PR has `ci-skip-cache` label
+        # - when PR has `ci-skip-cache` label or on nightly builds
         if: |
           needs.job_get_metadata.outputs.is_release == 'false' &&
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
