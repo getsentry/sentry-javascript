@@ -157,11 +157,11 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.js',
-        expectedWrappingTargetKind: 'page-server-component',
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.js',
-        expectedWrappingTargetKind: 'page-server-component',
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts', // ts is not a valid file ending for pages in the app dir
@@ -169,7 +169,7 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/page.tsx',
-        expectedWrappingTargetKind: 'page-server-component',
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/loading.ts',
@@ -177,7 +177,7 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/layout.js',
-        expectedWrappingTargetKind: undefined,
+        expectedWrappingTargetKind: 'server-component',
       },
     ])(
       'should apply the right wrappingTargetKind with wrapping loader ($resourcePath)',
