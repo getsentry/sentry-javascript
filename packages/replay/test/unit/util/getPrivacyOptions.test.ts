@@ -2,7 +2,7 @@ import { getPrivacyOptions } from '../../../src/util/getPrivacyOptions';
 
 describe('Unit | util | getPrivacyOptions', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation(() => { });
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
     jest.clearAllMocks();
