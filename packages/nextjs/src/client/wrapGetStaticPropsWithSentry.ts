@@ -3,10 +3,15 @@ import type { GetStaticProps } from 'next';
 type Props = { [key: string]: unknown };
 
 /**
- * A passthrough function in case this function is used on the clientside.
+ * A passthrough function in case this function is used on the clientside. We need to make the returned function async
+ * so we are consistent with the serverside implementation.
  */
-export function wrapGetStaticPropsWithSentry(getStaticProps: GetStaticProps<Props>): GetStaticProps<Props> {
-  return getStaticProps;
+export function wrapGetStaticPropsWithSentry(origGetStaticProps: GetStaticProps<Props>): GetStaticProps<Props> {
+  return new Proxy(origGetStaticProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
+      return await wrappingTarget.apply(thisArg, args);
+    },
+  });
 }
 
 /**
