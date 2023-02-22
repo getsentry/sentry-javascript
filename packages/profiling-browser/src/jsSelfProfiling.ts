@@ -3,7 +3,7 @@ type JSSelfProfileSampleMarker = 'script' | 'gc' | 'style' | 'layout' | 'paint' 
 
 export type JSSelfProfileSample = {
   timestamp: number;
-  stackId: number;
+  stackId?: number;
   marker?: JSSelfProfileSampleMarker;
 };
 
@@ -26,6 +26,10 @@ export type JSSelfProfile = {
   samples: JSSelfProfileSample[];
 };
 
+export interface ProcessedJSSelfProfile extends JSSelfProfile {
+  profile_id: string;
+}
+
 type BufferFullCallback = (trace: JSSelfProfile) => void;
 
 interface JSSelfProfiler {
@@ -36,11 +40,19 @@ interface JSSelfProfiler {
   addEventListener(event: 'samplebufferfull', callback: BufferFullCallback): void;
 }
 
-declare const JSSelfProfiler: {
+export declare const JSSelfProfiler: {
   new (options: { sampleInterval: number; maxBufferSize: number }): JSSelfProfiler;
 };
 
-export type RawThreadCpuProfile = JSSelfProfile;
+declare global {
+  interface Window {
+    Profiler: typeof JSSelfProfiler | undefined;
+  }
+}
+
+export interface RawThreadCpuProfile extends JSSelfProfile {
+  profile_id: string;
+}
 export interface ThreadCpuProfile {
   samples: {
     stack_id: number;
@@ -50,9 +62,9 @@ export interface ThreadCpuProfile {
   stacks: number[][];
   frames: {
     function: string;
-    file: string;
-    line: number;
-    column: number;
+    file: string | undefined;
+    line: number | undefined;
+    column: number | undefined;
   }[];
   thread_metadata: Record<string, { name?: string; priority?: number }>;
   queue_metadata?: Record<string, { label: string }>;

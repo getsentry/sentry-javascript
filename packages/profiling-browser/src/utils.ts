@@ -10,8 +10,7 @@ import type {
 } from '@sentry/types';
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
-import type { RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
-import { JSSelfProfile, JSSelfProfileStack } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
 
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
@@ -23,6 +22,7 @@ const OS_VERSION = 'PLACEHOLDER_VERSION';
 const OS_TYPE = 'PLACEHOLDER_TYPE';
 const OS_MODEL = 'PLACEHOLDER_MODEL';
 const OS_ARCH = 'PLACEHOLDER_ARCH';
+const OS_LOCALE = 'PLACEHOLDER_LOCALE';
 
 export interface Profile {
   event_id: string;
@@ -82,16 +82,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
     return profile;
   }
 
-  return {
-    samples: profile.samples,
-    frames: profile.frames,
-    stacks: profile.stacks,
-    thread_metadata: {
-      [THREAD_ID_STRING]: {
-        name: THREAD_NAME,
-      },
-    },
-  };
+  return convertJSSelfProfileToSampledFormat(profile);
 }
 
 // Profile is marked as optional because it is deleted from the metadata
@@ -147,6 +138,22 @@ function createEventEnvelopeHeaders(
   };
 }
 
+function getTraceId(event: Event): string {
+  const traceId: unknown = event && event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+  // Log a warning if the profile has an invalid traceId (should be uuidv4).
+  // All profiles and transactions are rejected if this is the case and we want to
+  // warn users that this is happening if they enable debug flag
+  if (typeof traceId === 'string' && traceId.length !== 32) {
+    if (__DEBUG_BUILD__) {
+      logger.log(`[Profiling] Invalid traceId: ${traceId} on profiled event`);
+    }
+  }
+  if (typeof traceId !== 'string') {
+    return '';
+  }
+
+  return traceId;
+}
 /**
  * Creates a profiling event envelope from a Sentry event. If profile does not pass
  * validation, returns null.
@@ -193,22 +200,13 @@ export function createProfilingEventEnvelope(
     return null;
   }
 
+  const traceId = getTraceId(event);
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
-
-  const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) || '';
-  // Log a warning if the profile has an invalid traceId (should be uuidv4).
-  // All profiles and transactions are rejected if this is the case and we want to
-  // warn users that this is happening if they enable debug flag
-  if (traceId.length !== 32) {
-    if (__DEBUG_BUILD__) {
-      logger.log(`[Profiling] Invalid traceId: ${traceId} on profiled event`);
-    }
-  }
 
   const profile: Profile = {
     event_id: rawProfile.profile_id,
@@ -219,7 +217,7 @@ export function createProfilingEventEnvelope(
     environment: event.environment || '',
     runtime: {
       name: 'node', // @TODO replace with browser once backend supports it
-      version: process.versions.node || '', // @TODO replace with browser once backend supports it
+      version: '', // @TODO replace with browser once backend supports it
     },
     os: {
       name: OS_PLATFORM,
@@ -227,8 +225,7 @@ export function createProfilingEventEnvelope(
       build_number: OS_VERSION,
     },
     device: {
-      locale:
-        process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE'] || '',
+      locale: OS_LOCALE,
       model: OS_MODEL,
       manufacturer: OS_TYPE,
       architecture: OS_ARCH,
@@ -281,9 +278,13 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 }
 
 /**
- *
+ * Converts a JSSelfProfile to a our sampled format.
+ * does not currently perform any stack indexing.
  */
 export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): ThreadCpuProfile {
+  const EMPTY_STACK_ID = 0;
+  let STACK_ID = EMPTY_STACK_ID + 1;
+
   const profile: ThreadCpuProfile = {
     samples: [],
     stacks: [],
@@ -293,26 +294,53 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     },
   };
 
+  profile.stacks[EMPTY_STACK_ID] = [];
+
   for (let i = 0; i < input.samples.length; i++) {
     const jsSample = input.samples[i];
 
+    // If sample has no stack, add an empty sample
+    if (jsSample.stackId === undefined) {
+      profile['samples'][i] = {
+        elapsed_since_start_ns: jsSample.timestamp.toString(),
+        stack_id: EMPTY_STACK_ID,
+        thread_id: THREAD_ID_STRING,
+      };
+      continue;
+    }
+
     let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
 
-    // Frame index pointers in top->down order
+    // Functions in top->down order (root is last)
     const stack: number[] = [];
+
     while (stackTop) {
       stack.push(stackTop.frameId);
+
+      const frame = input.frames[stackTop.frameId];
+
+      // If our frame has not been indexed yet, index it
+      if (profile.frames[stackTop.frameId] === undefined) {
+        profile.frames[stackTop.frameId] = {
+          function: frame.name,
+          file: frame.resourceId ? input.resources[frame.resourceId] : undefined,
+          line: frame.line,
+          column: frame.column,
+        };
+      }
+
       stackTop = stackTop.parentId === undefined ? undefined : input.stacks[stackTop.parentId];
     }
 
     const sample: ThreadCpuProfile['samples'][0] = {
-      elapsed_since_start_ns: jsSample.timestamp,
-      stack: jsSample.stackId,
+      elapsed_since_start_ns: (jsSample.timestamp * 1e6).toString(),
+      stack_id: STACK_ID,
       thread_id: THREAD_ID_STRING,
     };
 
-    profile['stacks'][i] = stack.reverse();
+    profile['stacks'][STACK_ID] = stack;
     profile['samples'][i] = sample;
+    STACK_ID++;
   }
 
   return profile;
