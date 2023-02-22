@@ -69,6 +69,8 @@ export function getPrivacyOptions({
   // eslint-disable-next-line deprecation/deprecation
   ignoreClass,
 }: GetPrivacyOptions): GetPrivacyReturn {
+  const defaultBlockedElements = ['base[href="/"]'];
+
   const maskSelector = getOption(mask, ['.sentry-mask', '[data-sentry-mask]'], maskTextClass, maskTextSelector);
   const unmaskSelector = getOption(unmask, ['.sentry-unmask', '[data-sentry-unmask]']);
 
@@ -79,7 +81,12 @@ export function getPrivacyOptions({
     maskInputSelector: maskSelector,
     unmaskInputSelector: unmaskSelector,
 
-    blockSelector: getOption(block, ['.sentry-block', '[data-sentry-block]'], blockClass, blockSelector),
+    blockSelector: getOption(
+      block,
+      ['.sentry-block', '[data-sentry-block]', ...defaultBlockedElements],
+      blockClass,
+      blockSelector,
+    ),
     unblockSelector: getOption(unblock, ['.sentry-unblock', '[data-sentry-unblock]']),
     ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]'], ignoreClass),
   };

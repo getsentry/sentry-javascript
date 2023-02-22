@@ -32,9 +32,8 @@
                 "type": 2,
                 "tagName": "link",
                 "attributes": {
-                  "rel": "icon",
-                  "type": "image/png",
-                  "href": "file:///icon/favicon.png"
+                  "rr_width": "[0-50]px",
+                  "rr_height": "[0-50]px"
                 },
                 "childNodes": [],
                 "id": 6
