@@ -84,16 +84,15 @@ export function makeOfflineTransport<TO>(
 
         const found = await store.pop();
         if (found) {
-          log('Attempting to send previously queued event');
+          // eslint-disable-next-line no-console
+          console.log('Attempting to send previously queued event');
 
           try {
             await send(found);
           } catch (e) {
-            log('Failed to retry sending', e);
+            // eslint-disable-next-line no-console
+            console.log('Failed to retry sending', e);
           }
-        } else {
-          // eslint-disable-next-line no-console
-          console.log('No queued events to send');
         }
       }, delay) as Timer;
 
