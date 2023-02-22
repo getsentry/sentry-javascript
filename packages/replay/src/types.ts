@@ -314,6 +314,7 @@ export interface ReplayContainer {
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
+  setInitialState(): void;
 }
 
 export interface ReplayPerformanceEntry {

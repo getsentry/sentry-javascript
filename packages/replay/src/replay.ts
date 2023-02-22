@@ -16,7 +16,6 @@ import type {
   EventBuffer,
   InternalEventContext,
   PopEventContext,
-  RecordingEvent,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
@@ -30,6 +29,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -155,7 +155,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
-    this._setInitialState();
+    this.setInitialState();
 
     if (!this._loadAndCheckSession()) {
       return;
@@ -207,7 +207,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
-        emit: this._handleRecordingEmit,
+        emit: getHandleRecordingEmit(this),
         onMutation: (mutations: unknown[]) => {
           if (this._options._experiments.captureMutationSize) {
             const count = mutations.length;
@@ -420,6 +420,25 @@ export class ReplayContainer implements ReplayContainerInterface {
     return false;
   }
 
+  /**
+   * Capture some initial state that can change throughout the lifespan of the
+   * replay. This is required because otherwise they would be captured at the
+   * first flush.
+   */
+  public setInitialState(): void {
+    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
+    const url = `${WINDOW.location.origin}${urlPath}`;
+
+    this.performanceEvents = [];
+
+    // Reset _context as well
+    this._clearContext();
+
+    this._context.initialUrl = url;
+    this._context.initialTimestamp = new Date().getTime();
+    this._context.urls.push(url);
+  }
+
   /** A wrapper to conditionally capture exceptions. */
   private _handleException(error: unknown): void {
     __DEBUG_BUILD__ && logger.error('[Replay]', error);
@@ -445,7 +464,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // If session was newly created (i.e. was not loaded from storage), then
     // enable flag to create the root replay
     if (type === 'new') {
-      this._setInitialState();
+      this.setInitialState();
     }
 
     const currentSessionId = this.getSessionId();
@@ -461,25 +480,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return true;
-  }
-
-  /**
-   * Capture some initial state that can change throughout the lifespan of the
-   * replay. This is required because otherwise they would be captured at the
-   * first flush.
-   */
-  private _setInitialState(): void {
-    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
-    const url = `${WINDOW.location.origin}${urlPath}`;
-
-    this.performanceEvents = [];
-
-    // Reset _context as well
-    this._clearContext();
-
-    this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
-    this._context.urls.push(url);
   }
 
   /**
@@ -532,72 +532,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._handleException(err);
     }
   }
-
-  /**
-   * Handler for recording events.
-   *
-   * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
-   */
-  private _handleRecordingEmit: (event: RecordingEvent, isCheckout?: boolean) => void = (
-    event: RecordingEvent,
-    isCheckout?: boolean,
-  ) => {
-    // If this is false, it means session is expired, create and a new session and wait for checkout
-    if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.warn('[Replay] Received replay event after session expired.');
-
-      return;
-    }
-
-    this.addUpdate(() => {
-      // The session is always started immediately on pageload/init, but for
-      // error-only replays, it should reflect the most recent checkout
-      // when an error occurs. Clear any state that happens before this current
-      // checkout. This needs to happen before `addEvent()` which updates state
-      // dependent on this reset.
-      if (this.recordingMode === 'error' && event.type === 2) {
-        this._setInitialState();
-      }
-
-      // We need to clear existing events on a checkout, otherwise they are
-      // incremental event updates and should be appended
-      void addEvent(this, event, isCheckout);
-
-      // Different behavior for full snapshots (type=2), ignore other event types
-      // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-      if (event.type !== 2) {
-        return false;
-      }
-
-      // If there is a previousSessionId after a full snapshot occurs, then
-      // the replay session was started due to session expiration. The new session
-      // is started before triggering a new checkout and contains the id
-      // of the previous session. Do not immediately flush in this case
-      // to avoid capturing only the checkout and instead the replay will
-      // be captured if they perform any follow-up actions.
-      if (this.session && this.session.previousSessionId) {
-        return true;
-      }
-
-      // See note above re: session start needs to reflect the most recent
-      // checkout.
-      if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
-        this.session.started = this._context.earliestEvent;
-        this._maybeSaveSession();
-      }
-
-      // Flush immediately so that we do not miss the first segment, otherwise
-      // it can prevent loading on the UI. This will cause an increase in short
-      // replays (e.g. opening and closing a tab quickly), but these can be
-      // filtered on the UI.
-      if (this.recordingMode === 'session') {
-        // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
-        void this.flushImmediate();
-      }
-
-      return true;
-    });
-  };
 
   /**
    * Handle when visibility of the page content changes. Opening a new tab will
