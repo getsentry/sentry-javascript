@@ -11,6 +11,12 @@ Sentry.init({
   sampleRate: 1,
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
-
+  beforeSend(event, hint) {
+    if (hint.originalException.message.includes('[drop]')) {
+      return null;
+    }
+    return event;
+  },
   integrations: [window.Replay],
+  debug: true,
 });

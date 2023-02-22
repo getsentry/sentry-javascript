@@ -9,6 +9,10 @@ document.getElementById('error').addEventListener('click', () => {
   throw new Error('Ooops');
 });
 
+document.getElementById('drop').addEventListener('click', () => {
+  throw new Error('[drop] Ooops');
+});
+
 document.getElementById('log').addEventListener('click', () => {
   console.log('Some message');
 });

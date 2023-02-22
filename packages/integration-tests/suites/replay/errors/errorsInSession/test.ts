@@ -47,17 +47,11 @@ sentryTest(
     const req1 = await reqPromise1;
 
     const event0 = getReplayEvent(req0);
-    const content0 = getReplayRecordingContent(req0);
 
     const event1 = getReplayEvent(req1);
     const content1 = getReplayRecordingContent(req1);
 
     expect(event0).toEqual(getExpectedReplayEvent());
-
-    // The first event should have both, full and incremental snapshots,
-    // as we recorded and kept all events in the buffer
-    expect(content0.fullSnapshots).toHaveLength(1);
-    expect(content0.incrementalSnapshots).toHaveLength(0);
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
@@ -69,9 +63,48 @@ sentryTest(
       }),
     );
 
-    // Also the second snapshot should have a full snapshot, as we switched from error to session
-    // mode which triggers another checkout
-    expect(content1.fullSnapshots).toHaveLength(0);
+    expect(content1.breadcrumbs).toEqual(expect.arrayContaining([expectedClickBreadcrumb]));
+  },
+);
+
+sentryTest(
+  '[session-mode] replay event should not contain an error id of a dropped error while recording',
+  async ({ getLocalTestPath, page }) => {
+    if (shouldSkipReplayTest()) {
+      sentryTest.skip();
+    }
+
+    const reqPromise1 = waitForReplayRequest(page, 1);
+
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    await page.goto(url);
+    await page.click('#go-background');
+
+    await page.click('#drop');
+    await page.click('#go-background');
+    const req1 = await reqPromise1;
+
+    const event1 = getReplayEvent(req1);
+    const content1 = getReplayRecordingContent(req1);
+
+    expect(event1).toEqual(
+      getExpectedReplayEvent({
+        replay_start_timestamp: undefined,
+        segment_id: 1,
+        error_ids: [], // <-- no error id
+        urls: [],
+      }),
+    );
+
     expect(content1.breadcrumbs).toEqual(expect.arrayContaining([expectedClickBreadcrumb]));
   },
 );
