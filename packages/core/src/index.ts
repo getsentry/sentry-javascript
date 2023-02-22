@@ -30,6 +30,7 @@ export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';
 export { FunctionToString, InboundFilters } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';
+export { hasTracingEnabled } from './utils/hasTracingEnabled';
 
 import * as Integrations from './integrations';
 

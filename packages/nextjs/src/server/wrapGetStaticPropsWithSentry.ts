@@ -1,5 +1,5 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';

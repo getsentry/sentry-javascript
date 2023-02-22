@@ -1,5 +1,4 @@
 import * as coreSdk from '@sentry/core';
-import * as sentryTracing from '@sentry/tracing';
 
 import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
 
@@ -30,7 +29,7 @@ afterAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.resetAllMocks();
-  jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
+  jest.spyOn(coreSdk, 'hasTracingEnabled').mockImplementation(() => true);
 });
 
 describe('withEdgeWrapping', () => {
