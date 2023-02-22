@@ -16,7 +16,7 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],base[href=\"/\"],img,image,svg,video,object,picture,embed,map,audio"',
+        '",.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
       );
     });
 
@@ -26,7 +26,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href=\"/\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\"icon\"],link[rel=\"apple-touch-icon\"]"',
+        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
       );
     });
   });
