@@ -63,7 +63,9 @@ sentryTest(
       }),
     );
 
-    expect(content1.breadcrumbs).toEqual(expect.arrayContaining([expectedClickBreadcrumb]));
+    expect(content1.breadcrumbs).toEqual(
+      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#error' }]),
+    );
   },
 );
 
@@ -105,6 +107,9 @@ sentryTest(
       }),
     );
 
-    expect(content1.breadcrumbs).toEqual(expect.arrayContaining([expectedClickBreadcrumb]));
+    // The button click that triggered the error should still be recorded
+    expect(content1.breadcrumbs).toEqual(
+      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#drop' }]),
+    );
   },
 );
