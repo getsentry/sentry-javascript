@@ -4,17 +4,10 @@ import type { ErrorProps } from 'next/error';
 type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
 
 /**
- * A passthrough function in case this function is used on the clientside. We need to make the returned function async
- * so we are consistent with the serverside implementation.
+ * A passthrough function in case this function is used on the clientside.
  */
-export function wrapErrorGetInitialPropsWithSentry(
-  origErrorGetInitialProps: ErrorGetInitialProps,
-): ErrorGetInitialProps {
-  return new Proxy(origErrorGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<ErrorGetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
-    },
-  });
+export function wrapErrorGetInitialPropsWithSentry(errorGetInitialProps: ErrorGetInitialProps): ErrorGetInitialProps {
+  return errorGetInitialProps;
 }
 
 /**

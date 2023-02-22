@@ -3,17 +3,12 @@ import type Document from 'next/document';
 type DocumentGetInitialProps = typeof Document.getInitialProps;
 
 /**
- * A passthrough function in case this function is used on the clientside. We need to make the returned function async
- * so we are consistent with the serverside implementation.
+ * A passthrough function in case this function is used on the clientside.
  */
 export function wrapDocumentGetInitialPropsWithSentry(
-  origDocumentGetInitialProps: DocumentGetInitialProps,
+  documentGetInitialProps: DocumentGetInitialProps,
 ): DocumentGetInitialProps {
-  return new Proxy(origDocumentGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<DocumentGetInitialProps>) => {
-      return await wrappingTarget.apply(thisArg, args);
-    },
-  });
+  return documentGetInitialProps;
 }
 
 /**
