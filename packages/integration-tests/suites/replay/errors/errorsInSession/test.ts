@@ -24,7 +24,7 @@ sentryTest(
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       const event = envelopeRequestParser(route.request());
-      // error event have no type field
+      // error events have no type field
       if (event && !event.type && event.event_id) {
         errorEventId = event.event_id;
       }

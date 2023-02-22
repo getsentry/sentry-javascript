@@ -29,7 +29,7 @@ sentryTest(
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       const event = envelopeRequestParser(route.request());
-      // error event have no type field
+      // error events have no type field
       if (event && !event.type && event.event_id) {
         errorEventId = event.event_id;
       }
@@ -81,7 +81,9 @@ sentryTest(
     // The first event should have both, full and incremental snapshots,
     // as we recorded and kept all events in the buffer
     expect(content0.fullSnapshots).toHaveLength(1);
-    expect(content0.incrementalSnapshots).toHaveLength(10);
+    // We don't know how many incremental snapshots we'll have (also browser-dependent),
+    // but we know that we have at least 5
+    expect(content0.incrementalSnapshots.length).toBeGreaterThan(5);
     // We want to make sure that the event that triggered the error was recorded.
     expect(content0.breadcrumbs).toEqual(
       expect.arrayContaining([
