@@ -32,7 +32,9 @@ if (typeof serverComponent === 'function') {
       return Sentry.wrapServerComponentWithSentry(originalServerComponent, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryTraceHeader: headersList.get('sentry-trace'),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         baggageHeader: headersList.get('baggage'),
       }).apply(thisArg, args);
     },
