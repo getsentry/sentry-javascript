@@ -10,6 +10,7 @@ import {
   expectedNavigationPerformanceSpan,
   getExpectedReplayEvent,
 } from '../../../utils/replayEventTemplates';
+import type { PerformanceSpan } from '../../../utils/replayHelpers';
 import {
   getCustomRecordingEvents,
   getReplayEvent,
@@ -68,6 +69,13 @@ sentryTest(
         expectedMemoryPerformanceSpan,
       ]),
     );
+
+    const lcpSpan = collectedPerformanceSpans.find(
+      s => s.description === 'largest-contentful-paint',
+    ) as PerformanceSpan;
+
+    // LCP spans should be point-in-time spans
+    expect(lcpSpan?.startTimestamp).toBeCloseTo(lcpSpan?.endTimestamp);
   },
 );
 
