@@ -9,8 +9,7 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "build/cjs/index.js",
-  "module": "build/esm/index.js",
+  "main": "src/index.ts",
   "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
@@ -19,12 +18,15 @@
     "@sentry/browser": "7.38.0",
     "@sentry/core": "^7.38.0",
     "@sentry/types": "7.38.0",
-    "@sentry/utils": "7.38.0"
+    "@sentry/utils": "7.38.0",
+    "lru_map": "^0.4.1"
   },
   "peerDependencies": {},
-  "devDependencies": {},
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "tsc -p ./tsconfig.json",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",

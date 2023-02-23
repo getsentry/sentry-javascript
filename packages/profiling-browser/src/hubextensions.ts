@@ -1,7 +1,9 @@
+import { WINDOW } from '@sentry/browser';
 import { getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
+import { sendProfile } from './integration';
 import type { JSSelfProfile, JSSelfProfiler, ProcessedJSSelfProfile } from './jsSelfProfiling';
 
 const MAX_PROFILE_DURATION_MS = 30_000;
@@ -38,6 +40,9 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
     if (!transaction.sampled) {
+      if (__DEBUG_BUILD__) {
+        logger.log('[Profiling] Transaction is not sampled, skipping profiling');
+      }
       return transaction;
     }
 
@@ -45,9 +50,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const client = this.getClient();
     const options = client && client.getOptions();
 
+    const JSProfiler = WINDOW.Profiler
+
     // Feature support check
-    // eslint-disable-next-line
-    if (!isJSProfilerSupported(window?.Profiler)) {
+    if (!isJSProfilerSupported(JSProfiler)) {
       if (__DEBUG_BUILD__) {
         logger.log(
           '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
@@ -76,12 +82,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     }
 
     // Defer any profilesSamplingInterval validation to the profiler API
-    // @ts-ignore not part of the browser options yet
+    // @ts-ignore not part of the browser options yet and might never be, but useful to control during poc stage
     const samplingInterval = options.profilesSamplingInterval || 10;
     // Start the profiler
     const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingInterval);
-    // eslint-disable-next-line
-    const profiler = new window.Profiler({ sampleInterval: samplingInterval, maxBufferSize: maxSamples });
+    const profiler = new JSProfiler({ sampleInterval: samplingInterval, maxBufferSize: maxSamples });
     if (__DEBUG_BUILD__) {
       logger.log(`[Profiling] started profiling transaction: ${transactionContext.name}`);
     }
@@ -93,25 +98,26 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // event of an error or user mistake (calling transaction.finish multiple times), it is important that the behavior of onProfileHandler
     // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
     // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-    let profile: ProcessedJSSelfProfile | null = null;
+    let processedProfile: ProcessedJSSelfProfile | null = null;
 
     /**
      *
      */
-    async function onProfileHandler(): Promise<ProcessedJSSelfProfile | null> {
+    function onProfileHandler(): void {
       // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
-      if (profile) {
+      if (processedProfile) {
         if (__DEBUG_BUILD__) {
           logger.log('[Profiling] profile for:', transactionContext.name, 'already exists, returning early');
         }
-        return profile;
+        return;
       }
 
-      profile = await profiler
+      const span = transaction.startChild({ op: 'profiler.stop' });
+      profiler
         .stop()
-        .then((p: JSSelfProfile): ProcessedJSSelfProfile | null => {
+        .then((p: JSSelfProfile): void => {
           if (maxDurationTimeoutID) {
-            global.clearTimeout(maxDurationTimeoutID);
+            WINDOW.clearTimeout(maxDurationTimeoutID);
             maxDurationTimeoutID = undefined;
           }
 
@@ -120,19 +126,18 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
           }
 
           // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-          if (!profile) {
+          if (!p) {
             if (__DEBUG_BUILD__) {
               logger.log(
                 `[Profiling] profiler returned null profile for: ${transactionContext.name}`,
                 'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
               );
             }
-            return null;
+            return;
           }
 
-          // Assign profile_id to the profile
-          const processed: ProcessedJSSelfProfile = { ...p, profile_id: profile_id };
-          return processed;
+          processedProfile = { ...p, profile_id: profile_id };
+          sendProfile(profile_id, processedProfile);
         })
         .catch(error => {
           if (__DEBUG_BUILD__) {
@@ -141,11 +146,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
           return null;
         });
 
-      return profile;
+      span.finish();
     }
 
     // Enqueue a timeout to prevent profiles from running over max duration.
-    let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
+    let maxDurationTimeoutID: number | undefined = WINDOW.setTimeout(() => {
       if (__DEBUG_BUILD__) {
         logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transactionContext.name);
       }
@@ -158,14 +163,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     /**
      *
      */
-    function profilingWrappedTransactionFinish(): Transaction {
+    function profilingWrappedTransactionFinish(): Promise<Transaction> {
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
-      const profile = onProfileHandler();
-
-      // @ts-ignore profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
-      transaction.setMetadata({ profile });
       // Set profile context
+      onProfileHandler();
       transaction.setContext('profile', { profile_id });
 
       return originalFinish();

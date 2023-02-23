@@ -1,3 +1,4 @@
+import {WINDOW} from '@sentry/browser'
 import type {
   DsnComponents,
   DynamicSamplingContext,
@@ -8,21 +9,66 @@ import type {
   SdkInfo,
   SdkMetadata,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString,logger, uuid4  } from '@sentry/utils';
 
 import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
 
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
+
 // Machine properties (eval only once)
-const OS_PLATFORM = 'PLACEHOLDER_PLATFORM';
-const OS_RELEASE = 'PLACEHOLDER_RELEASE';
-const OS_VERSION = 'PLACEHOLDER_VERSION';
-const OS_TYPE = 'PLACEHOLDER_TYPE';
-const OS_MODEL = 'PLACEHOLDER_MODEL';
-const OS_ARCH = 'PLACEHOLDER_ARCH';
-const OS_LOCALE = 'PLACEHOLDER_LOCALE';
+let OS_PLATFORM = ''; // macos
+let OS_PLATFORM_VERSION = '' // 13.2
+let OS_ARCH = '';
+let OS_BROWSER = ''
+let OS_MODEL = '';
+const OS_LOCALE = WINDOW.navigator.language || WINDOW.navigator.languages[0] || '';
+
+type UAData = {
+  platform?: string;
+  architecture?: string;
+  model?: string;
+  platformVersion?: string;
+  fullVersionList?: {
+    brand: string;
+    version: string;
+  }[];
+}
+
+interface UserAgentData {
+  getHighEntropyValues: (keys: string[]) => Promise<UAData>;
+}
+
+function isUserAgentData(data: unknown): data is UserAgentData {
+  return !!data && typeof data === 'object' && 'getHighEntropyValues' in data;
+
+}
+
+
+// @ts-expect-error userAgentData is not part of the navigator interface yet
+const userAgentData = WINDOW.navigator.userAgentData;
+if (isUserAgentData(userAgentData)) {
+
+  userAgentData.getHighEntropyValues(
+    ['architecture',
+    'model',
+    'platform',
+    'platformVersion',
+    'fullVersionList'])
+    .then((ua: UAData) => { 
+      OS_PLATFORM = ua.platform || '';
+      OS_ARCH = ua.architecture || '';
+      OS_MODEL = ua.model || '';
+      OS_PLATFORM_VERSION = ua.platformVersion || '';
+  
+      if(ua.fullVersionList && ua.fullVersionList.length > 0){
+        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]
+        OS_BROWSER = `${firstUa.brand  } ${  firstUa.version}`;
+      }
+     }).catch(e => void e)
+
+}
 
 export interface Profile {
   event_id: string;
@@ -221,13 +267,13 @@ export function createProfilingEventEnvelope(
     },
     os: {
       name: OS_PLATFORM,
-      version: OS_RELEASE,
-      build_number: OS_VERSION,
+      version: OS_PLATFORM_VERSION,
+      build_number: OS_BROWSER,
     },
     device: {
       locale: OS_LOCALE,
       model: OS_MODEL,
-      manufacturer: OS_TYPE,
+      manufacturer: OS_BROWSER,
       architecture: OS_ARCH,
       is_emulator: false,
     },
@@ -279,11 +325,11 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
 /**
  * Converts a JSSelfProfile to a our sampled format.
- * does not currently perform any stack indexing.
+ * Does not currently perform stack indexing.
  */
 export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): ThreadCpuProfile {
-  const EMPTY_STACK_ID = 0;
-  let STACK_ID = EMPTY_STACK_ID + 1;
+  let EMPTY_STACK_ID: undefined | number = undefined;
+  let STACK_ID = 0;
 
   const profile: ThreadCpuProfile = {
     samples: [],
@@ -294,15 +340,25 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     },
   };
 
-  profile.stacks[EMPTY_STACK_ID] = [];
+  if (!input.samples.length) {
+    return profile;
+  }
+
+  const start = input.samples[0].timestamp;
+  profile.stacks = [];
 
   for (let i = 0; i < input.samples.length; i++) {
     const jsSample = input.samples[i];
 
     // If sample has no stack, add an empty sample
     if (jsSample.stackId === undefined) {
+      if(EMPTY_STACK_ID === undefined){
+        EMPTY_STACK_ID = STACK_ID
+        profile.stacks[EMPTY_STACK_ID] = []
+      }
+
       profile['samples'][i] = {
-        elapsed_since_start_ns: jsSample.timestamp.toString(),
+        elapsed_since_start_ns: ((jsSample.timestamp - start) * 1e6).toFixed(0),
         stack_id: EMPTY_STACK_ID,
         thread_id: THREAD_ID_STRING,
       };
@@ -312,6 +368,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
 
     // Functions in top->down order (root is last)
+    // We follow the stackTop.parentId trail and collect each visited frameId
     const stack: number[] = [];
 
     while (stackTop) {
@@ -333,7 +390,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     }
 
     const sample: ThreadCpuProfile['samples'][0] = {
-      elapsed_since_start_ns: (jsSample.timestamp * 1e6).toString(),
+      elapsed_since_start_ns: ((jsSample.timestamp - start) * 1e6).toFixed(0),
       stack_id: STACK_ID,
       thread_id: THREAD_ID_STRING,
     };
