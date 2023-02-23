@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
 import type { DynamicSamplingContext, Span } from '@sentry/types';
 import {
   addInstrumentationHandler,
@@ -8,8 +8,6 @@ import {
   isInstanceOf,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-
-import { hasTracingEnabled } from '../utils';
 
 export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
 

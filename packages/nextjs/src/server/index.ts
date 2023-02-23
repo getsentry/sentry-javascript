@@ -1,9 +1,8 @@
 import type { Carrier } from '@sentry/core';
-import { getHubFromCarrier, getMainCarrier } from '@sentry/core';
+import { getHubFromCarrier, getMainCarrier, hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';

@@ -1,0 +1,24 @@
+{
+  "name": "@sentry-internal/event-proxy-server",
+  "version": "7.38.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "type": "module",
+  "module": "build/index.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:transpile": "tsc --project tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "3.8.3",
+    "express": "4.18.2",
+    "@sentry/utils": "7.38.0",
+    "@sentry/types": "7.38.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

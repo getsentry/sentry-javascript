@@ -129,6 +129,46 @@ export declare function withSentryServerSideErrorGetInitialProps<F extends (...a
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
 
 /**
+ * Wraps a `getServerSideProps` function with Sentry error and performance instrumentation.
+ *
+ * @param origGetServerSideProps The `getServerSideProps` function
+ * @param parameterizedRoute The page's parameterized route
+ * @returns A wrapped version of the function
+ */
+export declare function wrapGetServerSidePropsWithSentry<F extends (...args: any[]) => any>(
+  origGetServerSideProps: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapGetServerSidePropsWithSentry` instead.
+ */
+export declare function withSentryGetServerSideProps<F extends (...args: any[]) => any>(
+  origGetServerSideProps: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps a `getStaticProps` function with Sentry error and performance instrumentation.
+ *
+ * @param origGetStaticProps The `getStaticProps` function
+ * @param parameterizedRoute The page's parameterized route
+ * @returns A wrapped version of the function
+ */
+export declare function wrapGetStaticPropsWithSentry<F extends (...args: any[]) => any>(
+  origGetStaticPropsa: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapGetStaticPropsWithSentry` instead.
+ */
+export declare function withSentryGetStaticProps<F extends (...args: any[]) => any>(
+  origGetStaticPropsa: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
  * Wraps an `app` directory server component with Sentry error and performance instrumentation.
  */
 export declare function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(

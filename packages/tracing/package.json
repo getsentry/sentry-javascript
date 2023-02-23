@@ -45,6 +45,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "test:unit": "jest",
     "test": "jest",
     "test:watch": "jest --watch"
   },

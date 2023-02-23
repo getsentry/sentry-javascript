@@ -1,4 +1,5 @@
 import { init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { hasTracingEnabled } from '@sentry/core';
 import { arrayify, GLOBAL_OBJ } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
@@ -80,7 +81,7 @@ const vueInit = (app: Vue, options: Options): void => {
 
   attachErrorHandler(app, options);
 
-  if ('tracesSampleRate' in options || 'tracesSampler' in options) {
+  if (hasTracingEnabled(options)) {
     app.mixin(
       createTracingMixins({
         ...options,

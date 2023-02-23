@@ -29,6 +29,11 @@ export interface InternalGlobal {
     id?: string;
   };
   SENTRY_SDK_SOURCE?: SdkSource;
+  /**
+   * Debug IDs are indirectly injected by Sentry CLI or bundler plugins to directly reference a particular source map
+   * for resolving of a source file. The injected code will place an entry into the record for each loaded bundle/JS
+   * file.
+   */
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
     globalEventProcessors: any;

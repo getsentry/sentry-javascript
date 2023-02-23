@@ -1,5 +1,5 @@
 import type { Hub } from '@sentry/core';
-import { getMainCarrier } from '@sentry/core';
+import { getMainCarrier, hasTracingEnabled } from '@sentry/core';
 import type {
   ClientOptions,
   CustomSamplingContext,
@@ -14,7 +14,6 @@ import { dynamicRequire, isNaN, isNodeEnv, loadModule, logger } from '@sentry/ut
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
-import { hasTracingEnabled } from './utils';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
@@ -44,7 +43,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  */
 function sample<T extends Transaction>(
   transaction: T,
-  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler'>,
+  options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
 ): T {
   // nothing to do if tracing is not enabled
@@ -61,7 +60,7 @@ function sample<T extends Transaction>(
     return transaction;
   }
 
-  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` were defined, so one of these should
+  // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
   // work; prefer the hook if so
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
@@ -71,10 +70,16 @@ function sample<T extends Transaction>(
     });
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
-  } else {
+  } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
     transaction.setMetadata({
       sampleRate: Number(sampleRate),
+    });
+  } else {
+    // When `enableTracing === true`, we use a sample rate of 100%
+    sampleRate = 1;
+    transaction.setMetadata({
+      sampleRate,
     });
   }
 
