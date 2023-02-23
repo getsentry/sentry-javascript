@@ -7,6 +7,13 @@ import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
 
+interface EventProxyServerOptions {
+  /** Port to start the event proxy server at. */
+  port: number;
+  /** The name for the proxy server used for referencing it with listener functions */
+  proxyServerName: string;
+}
+
 interface SentryRequestCallbackData {
   envelope: Envelope;
   rawProxyRequestBody: string;
@@ -14,7 +21,11 @@ interface SentryRequestCallbackData {
   sentryResponseStatusCode?: number;
 }
 
-export async function startEventProxyServer(options: { port: number; proxyServerName: string }): Promise<void> {
+/**
+ * Starts an event proxy server that will proxy events to sentry when the `tunnel` option is used. Point the `tunnel`
+ * option to this server (like this `tunnel: http://localhost:${port option}/`).
+ */
+export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
   const eventCallbackListeners: Set<(data: string) => void> = new Set();
 
   const proxyServer = http.createServer((proxyRequest, proxyResponse) => {
