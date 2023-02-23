@@ -124,15 +124,29 @@ export {
   withSentryServerSideAppGetInitialProps,
   wrapAppGetInitialPropsWithSentry,
 } from './wrapAppGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideDocumentGetInitialProps,
   wrapDocumentGetInitialPropsWithSentry,
 } from './wrapDocumentGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideErrorGetInitialProps,
   wrapErrorGetInitialPropsWithSentry,
 } from './wrapErrorGetInitialPropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetServerSideProps,
+  wrapGetServerSidePropsWithSentry,
+} from './wrapGetServerSidePropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetStaticProps,
+  wrapGetStaticPropsWithSentry,
+} from './wrapGetStaticPropsWithSentry';
 
 export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
