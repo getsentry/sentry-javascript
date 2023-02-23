@@ -61,7 +61,7 @@ export class Wasm implements Integration {
 
       if (haveWasm) {
         event.debug_meta = event.debug_meta || {};
-        event.debug_meta.images = getImages();
+        event.debug_meta.images = [...(event.debug_meta.images || []), ...getImages()];
       }
 
       return event;
