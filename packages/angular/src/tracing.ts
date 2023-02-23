@@ -70,7 +70,7 @@ export function getActiveTransaction(): Transaction | undefined {
 export class TraceService implements OnDestroy {
   public navStart$: Observable<Event> = this._router.events.pipe(
     filter((event): event is NavigationStart => event instanceof NavigationStart),
-    tap((navigationEvent: NavigationStart) => {
+    tap(navigationEvent => {
       if (!instrumentationInitialized) {
         IS_DEBUG_BUILD &&
           logger.error('Angular integration has tracing enabled, but Tracing integration is not configured');
