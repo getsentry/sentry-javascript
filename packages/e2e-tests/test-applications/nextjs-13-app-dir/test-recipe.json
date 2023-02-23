@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
-  "testApplicationName": "next-app-app-dir",
+  "testApplicationName": "nextjs-13-app-dir",
   "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
   "tests": [
     {
@@ -10,15 +10,6 @@
     {
       "testName": "Playwright tests - Dev Mode",
       "testCommand": "yarn test:dev"
-    }
-  ],
-  "canaryVersions": [
-    {
-      "dependencyOverrides": {
-        "next": "latest",
-        "react": "latest",
-        "react-dom": "latest"
-      }
     }
   ]
 }

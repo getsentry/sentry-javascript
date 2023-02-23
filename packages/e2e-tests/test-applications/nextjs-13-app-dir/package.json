@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "test:prod && test:dev",
-    "test:prod": "TEST_MODE=prod playwright test",
-    "test:dev": "TEST_MODE=dev playwright test"
+    "test": "playwright test"
   },
   "dependencies": {
     "@next/font": "13.0.7",
@@ -23,6 +21,7 @@
     "typescript": "4.9.4"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "file:../../../event-proxy-server",
     "@playwright/test": "^1.27.1"
   }
 }

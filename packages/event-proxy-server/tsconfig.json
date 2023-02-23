@@ -1,8 +1,10 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "ES2015",
-    "outDir": "build"
+    "module": "CommonJS",
+    "outDir": "build",
+    "declaration": true,
+    "esModuleInterop": true
   },
   "include": ["src/**/*.ts"]
 }
