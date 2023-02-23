@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError } from '../../../test-utils/event-proxy-server';
 import axios, { AxiosError } from 'axios';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
