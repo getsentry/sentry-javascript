@@ -47,7 +47,7 @@ for (let index = 0; index < 25; index++) {
         } catch {
           // ignore errors here, we don't care if the page is closed
         }
-      }, i * 150);
+      }, i * 50);
     }
 
     const replayEvent2 = getReplayEvent(await reqPromise2);
