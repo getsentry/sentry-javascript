@@ -39,3 +39,5 @@ next-env.d.ts
 
 # Sentry
 .sentryclirc
+
+.vscode/
