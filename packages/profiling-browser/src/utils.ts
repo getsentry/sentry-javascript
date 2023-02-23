@@ -1,4 +1,4 @@
-import {WINDOW} from '@sentry/browser'
+import { WINDOW } from '@sentry/browser';
 import type {
   DsnComponents,
   DynamicSamplingContext,
@@ -9,19 +9,18 @@ import type {
   SdkInfo,
   SdkMetadata,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString,logger, uuid4  } from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
 import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
 
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
-
 // Machine properties (eval only once)
 let OS_PLATFORM = ''; // macos
-let OS_PLATFORM_VERSION = '' // 13.2
+let OS_PLATFORM_VERSION = ''; // 13.2
 let OS_ARCH = '';
-let OS_BROWSER = ''
+let OS_BROWSER = '';
 let OS_MODEL = '';
 const OS_LOCALE = WINDOW.navigator.language || WINDOW.navigator.languages[0] || '';
 
@@ -34,7 +33,7 @@ type UAData = {
     brand: string;
     version: string;
   }[];
-}
+};
 
 interface UserAgentData {
   getHighEntropyValues: (keys: string[]) => Promise<UAData>;
@@ -42,32 +41,25 @@ interface UserAgentData {
 
 function isUserAgentData(data: unknown): data is UserAgentData {
   return !!data && typeof data === 'object' && 'getHighEntropyValues' in data;
-
 }
-
 
 // @ts-expect-error userAgentData is not part of the navigator interface yet
 const userAgentData = WINDOW.navigator.userAgentData;
 if (isUserAgentData(userAgentData)) {
-
-  userAgentData.getHighEntropyValues(
-    ['architecture',
-    'model',
-    'platform',
-    'platformVersion',
-    'fullVersionList'])
-    .then((ua: UAData) => { 
+  userAgentData
+    .getHighEntropyValues(['architecture', 'model', 'platform', 'platformVersion', 'fullVersionList'])
+    .then((ua: UAData) => {
       OS_PLATFORM = ua.platform || '';
       OS_ARCH = ua.architecture || '';
       OS_MODEL = ua.model || '';
       OS_PLATFORM_VERSION = ua.platformVersion || '';
-  
-      if(ua.fullVersionList && ua.fullVersionList.length > 0){
-        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]
-        OS_BROWSER = `${firstUa.brand  } ${  firstUa.version}`;
-      }
-     }).catch(e => void e)
 
+      if (ua.fullVersionList && ua.fullVersionList.length > 0) {
+        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1];
+        OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
+      }
+    })
+    .catch(e => void e);
 }
 
 export interface Profile {
@@ -352,9 +344,9 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
 
     // If sample has no stack, add an empty sample
     if (jsSample.stackId === undefined) {
-      if(EMPTY_STACK_ID === undefined){
-        EMPTY_STACK_ID = STACK_ID
-        profile.stacks[EMPTY_STACK_ID] = []
+      if (EMPTY_STACK_ID === undefined) {
+        EMPTY_STACK_ID = STACK_ID;
+        profile.stacks[EMPTY_STACK_ID] = [];
       }
 
       profile['samples'][i] = {

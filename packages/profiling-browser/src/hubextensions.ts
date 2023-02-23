@@ -25,7 +25,7 @@ function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof 
  * startProfiling is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
-export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
+export function wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
     transactionContext: TransactionContext,
@@ -46,11 +46,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
-    // @ts-ignore profilesSampleRate is not part of the options type yet
     const client = this.getClient();
     const options = client && client.getOptions();
 
-    const JSProfiler = WINDOW.Profiler
+    const JSProfiler = WINDOW.Profiler;
 
     // Feature support check
     if (!isJSProfilerSupported(JSProfiler)) {
@@ -204,7 +203,7 @@ function _addProfilingExtensionMethods(): void {
   if (__DEBUG_BUILD__) {
     logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
   }
-  carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
+  carrier.__SENTRY__.extensions['startTransaction'] = wrapStartTransactionWithProfiling(
     // This is already patched by sentry/tracing, we are going to re-patch it...
     carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,
   );

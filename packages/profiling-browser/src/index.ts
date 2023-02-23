@@ -1,4 +1,4 @@
-import { addExtensionMethods } from './hubextensions';
+import { addExtensionMethods, wrapStartTransactionWithProfiling } from './hubextensions';
 import { BrowserProfilingIntegration } from './integration';
 
 // Treeshakable guard to remove all code related to profiling
@@ -9,4 +9,4 @@ if (typeof __SENTRY_PROFILING === 'undefined' || __SENTRY_PROFILING) {
   addExtensionMethods();
 }
 
-export { BrowserProfilingIntegration };
+export { BrowserProfilingIntegration, wrapStartTransactionWithProfiling };
