@@ -9,11 +9,14 @@
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
 ## Angular Version Compatibility
 
-The latest version of this SDK officially supports Angular 12-15 with Angular's new rendering engine, Ivy.
+**Note**: This SDK is still experimental and not yet stable.
+We do not yet make guarantees in terms of breaking changes, version compatibilities or semver.
+Please open a Github issue if you experience bugs or would like to share feedback.
+
+This SDK officially supports Angular 12-15 with Angular's new rendering engine, Ivy.
 
 If you're using Angular 10, 11 or a newer Angular version with View Engine instead of Ivy, please use [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/angular/README.md).
 
