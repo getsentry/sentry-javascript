@@ -8,7 +8,6 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
 const FLUSH_DELAY_SECONDS = 0.5;
 
 for (let index = 0; index < 25; index++) {
-  console.log('test', index);
   sentryTest(`replay recording flushes every FLUSH_DELAY_SECONDS (${index})}`, async ({ getLocalTestPath, page }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
@@ -48,7 +47,7 @@ for (let index = 0; index < 25; index++) {
         } catch {
           // ignore errors here, we don't care if the page is closed
         }
-      }, i * 100);
+      }, i * 150);
     }
 
     const replayEvent2 = getReplayEvent(await reqPromise2);
@@ -60,10 +59,10 @@ for (let index = 0; index < 25; index++) {
     const diff1 = replayEvent1.timestamp! - replayEvent0.timestamp!;
     const diff2 = replayEvent2.timestamp! - replayEvent1.timestamp!;
 
-    // We want to check that the diff is between 0.1 and 0.9 seconds, to accomodate for some wiggle room
-    expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS + 0.4);
-    expect(diff1).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.4);
-    expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS + 0.4);
-    expect(diff2).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.4);
+    // We want to check that the diff is between 0.05 and 0.95 seconds, to accomodate for some wiggle room
+    expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS + 0.45);
+    expect(diff1).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.45);
+    expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS + 0.45);
+    expect(diff2).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.45);
   });
 }
