@@ -4,12 +4,8 @@
   "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
   "tests": [
     {
-      "testName": "Playwright tests - Prod Mode",
-      "testCommand": "yarn test:prod"
-    },
-    {
-      "testName": "Playwright tests - Dev Mode",
-      "testCommand": "yarn test:dev"
+      "testName": "Playwright tests",
+      "testCommand": "yarn test"
     }
   ]
 }
