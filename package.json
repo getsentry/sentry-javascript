@@ -42,6 +42,7 @@
     "packages/ember",
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
+    "packages/event-proxy-server",
     "packages/gatsby",
     "packages/hub",
     "packages/integration-tests",
