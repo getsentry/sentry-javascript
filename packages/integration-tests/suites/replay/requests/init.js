@@ -2,9 +2,9 @@ import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
-  flushMinDelay: 500,
-  flushMaxDelay: 500,
-  useCompression: true,
+  flushMinDelay: 200,
+  flushMaxDelay: 2000,
+  useCompression: false,
 });
 
 Sentry.init({
