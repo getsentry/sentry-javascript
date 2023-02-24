@@ -28,7 +28,7 @@
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
-    "test:update-snapshots": "yarn test --update-snapshots --browser='all'"
+    "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",

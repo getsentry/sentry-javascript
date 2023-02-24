@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { captureException, getCurrentHub, startTransaction, withScope } from '@sentry/core';
+import { captureException, getCurrentHub, hasTracingEnabled, startTransaction, withScope } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
@@ -46,9 +46,7 @@ export function tracingHandler(): (
       return next();
     }
 
-    // TODO: This is the `hasTracingEnabled` check, but we're doing it manually since `@sentry/tracing` isn't a
-    // dependency of `@sentry/node`. Long term, that function should probably move to `@sentry/hub.
-    if (!('tracesSampleRate' in options) && !('tracesSampler' in options)) {
+    if (!hasTracingEnabled(options)) {
       __DEBUG_BUILD__ &&
         logger.warn(
           'Sentry `tracingHandler` is being used, but tracing is disabled. Please enable tracing by setting ' +

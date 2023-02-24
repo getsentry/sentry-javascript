@@ -1,4 +1,5 @@
 import type {
+  ClientReport,
   Envelope,
   EventEnvelope,
   EventItem,
@@ -9,6 +10,7 @@ import type {
   TransportMakeRequestResponse,
 } from '@sentry/types';
 import {
+  createClientReportEnvelope,
   createEnvelope,
   createEventEnvelopeHeaders,
   dsnFromString,
@@ -52,6 +54,25 @@ const RELAY_ENVELOPE = createEnvelope<ReplayEnvelope>(
       DATA,
     ],
   ],
+);
+
+const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
+  {
+    reason: 'before_send',
+    category: 'error',
+    quantity: 30,
+  },
+  {
+    reason: 'network_error',
+    category: 'transaction',
+    quantity: 23,
+  },
+];
+
+const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
+  DEFAULT_DISCARDED_EVENTS,
+  'https://public@dsn.ingest.sentry.io/1337',
+  123456,
 );
 
 const transportOptions = {
@@ -281,6 +302,23 @@ describe('makeOfflineTransport', () => {
       shouldStore: () => true,
     });
     const result = transport.send(RELAY_ENVELOPE);
+
+    await expect(result).rejects.toBeInstanceOf(Error);
+    expect(queuedCount).toEqual(0);
+    expect(getSendCount()).toEqual(0);
+    expect(getCalls()).toEqual([]);
+  });
+
+  it('should not store client report envelopes on send failure', async () => {
+    const { getCalls, store } = createTestStore();
+    const { getSendCount, baseTransport } = createTestTransport(new Error());
+    const queuedCount = 0;
+    const transport = makeOfflineTransport(baseTransport)({
+      ...transportOptions,
+      createStore: store,
+      shouldStore: () => true,
+    });
+    const result = transport.send(CLIENT_REPORT_ENVELOPE);
 
     await expect(result).rejects.toBeInstanceOf(Error);
     expect(queuedCount).toEqual(0);

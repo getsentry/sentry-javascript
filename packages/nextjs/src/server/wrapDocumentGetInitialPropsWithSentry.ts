@@ -1,5 +1,5 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import type Document from 'next/document';
 
 import { isBuild } from './utils/isBuild';

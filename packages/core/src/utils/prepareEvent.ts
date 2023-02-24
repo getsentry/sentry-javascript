@@ -1,5 +1,5 @@
-import type { ClientOptions, Event, EventHint } from '@sentry/types';
-import { dateTimestampInSeconds, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
+import type { ClientOptions, Event, EventHint, StackParser } from '@sentry/types';
+import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { Scope } from '../scope';
 
@@ -36,6 +36,7 @@ export function prepareEvent(
 
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);
+  applyDebugMetadata(prepared, options.stackParser);
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
@@ -110,6 +111,59 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
   if (request && request.url) {
     request.url = truncate(request.url, maxValueLength);
   }
+}
+
+/**
+ * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
+ */
+export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  if (!debugIdMap) {
+    return;
+  }
+
+  // Build a map of abs_path -> debug_id
+  const absPathDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    const parsedStack = stackParser(debugIdStackTrace);
+    for (const stackFrame of parsedStack) {
+      if (stackFrame.abs_path) {
+        acc[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  // Get a Set of abs_paths in the stack trace
+  const errorAbsPaths = new Set<string>();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    event!.exception!.values!.forEach(exception => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      exception.stacktrace!.frames!.forEach(frame => {
+        if (frame.abs_path) {
+          errorAbsPaths.add(frame.abs_path);
+        }
+      });
+    });
+  } catch (e) {
+    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
+  }
+
+  // Fill debug_meta information
+  event.debug_meta = event.debug_meta || {};
+  event.debug_meta.images = event.debug_meta.images || [];
+  const images = event.debug_meta.images;
+  errorAbsPaths.forEach(absPath => {
+    if (absPathDebugIdMap[absPath]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: absPath,
+        debug_id: absPathDebugIdMap[absPath],
+      });
+    }
+  });
 }
 
 /**
