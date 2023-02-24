@@ -53,7 +53,7 @@ const config: PlaywrightTestConfig = {
       port: 3000,
     },
     {
-      command: 'yarn ts-node start-event-proxy.ts',
+      command: 'yarn ts-nod-script start-event-proxy.ts',
       port: 27496,
     },
   ],
