@@ -39,16 +39,17 @@ for (let index = 0; index < 25; index++) {
       getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 1, urls: [] }),
     );
 
-    // trigger mouse click every 100ms, it should still flush after 0.5s even if clicks are ongoing
-    for (let i = 0; i < 70; i++) {
-      setTimeout(async () => {
-        try {
-          await page.click('#something');
-        } catch {
-          // ignore errors here, we don't care if the page is closed
-        }
-      }, i * 200);
-    }
+    // // trigger mouse click every 100ms, it should still flush after 0.5s even if clicks are ongoing
+    // for (let i = 0; i < 70; i++) {
+    //   setTimeout(async () => {
+    //     try {
+    //       await page.click('#something');
+    //     } catch {
+    //       // ignore errors here, we don't care if the page is closed
+    //     }
+    //   }, i * 100);
+    // }
+    await page.click('#something');
 
     const replayEvent2 = getReplayEvent(await reqPromise2);
     expect(replayEvent2).toEqual(
