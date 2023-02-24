@@ -1,5 +1,5 @@
 import { WINDOW } from '@sentry/browser';
-import { getCurrentHub, getMainCarrier } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
@@ -14,7 +14,7 @@ type StartTransaction = (
   this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
-) => Transaction;
+) => Transaction | undefined;
 
 function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfiler {
   return typeof maybeProfiler === 'function';
@@ -25,11 +25,22 @@ function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof 
  * startProfiling is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
-export function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
+export function wrapTransactionWithProfiling(
+  transaction: Transaction | undefined,
+  transactionContext: TransactionContext,
+  getCurrentHub: () => Hub,
+): Transaction | undefined {
   // We create "unique" transaction names to avoid concurrent transactions with same names
   // from being ignored by the profiler. From here on, only this transaction name should be used when
   // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
   const profile_id = uuid4();
+
+  if (!transaction) {
+    if (__DEBUG_BUILD__) {
+      logger.log(`[Profiling] transaction not found, skipping profiling for: ${transactionContext.name}`);
+    }
+    return transaction;
+  }
 
   // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
   if (!transaction.sampled) {
@@ -95,6 +106,9 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
    */
   function onProfileHandler(): void {
     // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
+    if (!transaction) {
+      return;
+    }
     if (processedProfile) {
       if (__DEBUG_BUILD__) {
         logger.log(
@@ -160,6 +174,9 @@ export function wrapTransactionWithProfiling(transaction: Transaction): Transact
    * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
    */
   function profilingWrappedTransactionFinish(): Promise<Transaction> {
+    if (!transaction) {
+      return originalFinish();
+    }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     // Set profile context
@@ -181,9 +198,9 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     this: Hub,
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext,
-  ): Transaction {
-    const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
-    return wrapTransactionWithProfiling(transaction);
+  ): Transaction | undefined {
+    const transaction: Transaction | undefined = startTransaction.call(this, transactionContext, customSamplingContext);
+    return wrapTransactionWithProfiling(transaction, transactionContext, () => this);
   };
 }
 
