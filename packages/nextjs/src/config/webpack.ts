@@ -87,12 +87,16 @@ export function constructWebpackConfigFunction(
     });
 
     let pagesDirPath: string;
-    let appDirPath: string;
     if (fs.existsSync(path.join(projectDir, 'pages')) && fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()) {
       pagesDirPath = path.join(projectDir, 'pages');
-      appDirPath = path.join(projectDir, 'app');
     } else {
       pagesDirPath = path.join(projectDir, 'src', 'pages');
+    }
+
+    let appDirPath: string;
+    if (fs.existsSync(path.join(projectDir, 'app')) && fs.lstatSync(path.join(projectDir, 'app')).isDirectory()) {
+      appDirPath = path.join(projectDir, 'app');
+    } else {
       appDirPath = path.join(projectDir, 'src', 'app');
     }
 
