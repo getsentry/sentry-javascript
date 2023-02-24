@@ -1,5 +1,4 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
-import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 
 import type { ServerComponentContext } from '../common/types';
@@ -11,7 +10,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   appDirComponent: F,
   context: ServerComponentContext,
 ): F {
-  const { componentRoute, componentType, sentryTraceHeader, baggageHeader } = context;
+  const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles
   // Next.js will turn them into synchronous functions and it will transform any `await`s into instances of the `use`
@@ -21,19 +20,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       return domain.create().bind(() => {
         let maybePromiseResult;
 
-        const traceparentData =
-          typeof sentryTraceHeader === 'string' ? extractTraceparentData(sentryTraceHeader) : undefined;
-
-        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
         const transaction = startTransaction({
           op: 'function.nextjs',
           name: `${componentType} Server Component (${componentRoute})`,
-          ...traceparentData,
           status: 'ok',
           metadata: {
             source: 'component',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
         });
 
