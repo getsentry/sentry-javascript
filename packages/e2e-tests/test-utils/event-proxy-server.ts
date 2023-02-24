@@ -125,8 +125,8 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   });
 
   const eventCallbackServerStartupPromise = new Promise<void>(resolve => {
-    const listener = eventCallbackServer.listen(0, () => {
-      const port = String((listener.address() as AddressInfo).port);
+    eventCallbackServer.listen(0, () => {
+      const port = String((eventCallbackServer.address() as AddressInfo).port);
       void registerCallbackServerPort(options.proxyServerName, port).then(resolve);
     });
   });
