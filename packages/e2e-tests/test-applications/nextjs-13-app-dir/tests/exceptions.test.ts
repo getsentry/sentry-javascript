@@ -20,8 +20,6 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   const errorEvent = await errorEventPromise;
   const exceptionEventId = errorEvent.event_id;
 
-  console.log(`Polling for error eventId: ${exceptionEventId}`);
-
   await expect
     .poll(
       async () => {

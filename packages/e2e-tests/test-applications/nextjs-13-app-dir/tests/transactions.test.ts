@@ -17,8 +17,6 @@ test('Sends a pageload transaction', async ({ page }) => {
   const transactionEvent = await pageloadTransactionEventPromise;
   const transactionEventId = transactionEvent.event_id;
 
-  console.log(`Polling for pageload transaction eventId: ${transactionEventId}`);
-
   await expect
     .poll(
       async () => {
@@ -58,12 +56,8 @@ test('Sends a transaction for a server component', async ({ page }) => {
 
   await page.goto('/user/4');
 
-  console.log('Waiting for server component transaction.');
-
   const transactionEvent = await serverComponentTransactionPromise;
   const transactionEventId = transactionEvent.event_id;
-
-  console.log(`Polling for server component transaction eventId: ${transactionEventId}`);
 
   await expect
     .poll(
