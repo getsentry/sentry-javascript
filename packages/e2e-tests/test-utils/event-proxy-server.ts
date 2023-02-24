@@ -6,6 +6,10 @@ import * as https from 'https';
 import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import * as util from 'util';
+
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
 
 interface EventProxyServerOptions {
   /** Port to start the event proxy server at. */
@@ -121,11 +125,9 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   });
 
   const eventCallbackServerStartupPromise = new Promise<void>(resolve => {
-    const listener = eventCallbackServer.listen(0, () => {
-      const port = String((listener.address() as AddressInfo).port);
-      const tmpFileWithPort = path.join(os.tmpdir(), `event-proxy-server-${options.proxyServerName}`);
-      fs.writeFileSync(tmpFileWithPort, port, { encoding: 'utf8' });
-      resolve();
+    eventCallbackServer.listen(0, () => {
+      const port = String((eventCallbackServer.address() as AddressInfo).port);
+      void registerCallbackServerPort(options.proxyServerName, port).then(resolve);
     });
   });
 
@@ -134,12 +136,11 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   return;
 }
 
-export function waitForRequest(
+export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => boolean,
 ): Promise<SentryRequestCallbackData> {
-  const tmpFileWithPort = path.join(os.tmpdir(), `event-proxy-server-${proxyServerName}`);
-  const eventCallbackServerPort = fs.readFileSync(tmpFileWithPort, 'utf8');
+  const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
     const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
@@ -217,4 +218,16 @@ export function waitForTransaction(
       return false;
     }).catch(reject);
   });
+}
+
+const TEMP_FILE_PREFIX = 'event-proxy-server-';
+
+async function registerCallbackServerPort(serverName: string, port: string): Promise<void> {
+  const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
+  await writeFile(tmpFilePath, port, { encoding: 'utf8' });
+}
+
+async function retrieveCallbackServerPort(serverName: string): Promise<string> {
+  const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
+  return await readFile(tmpFilePath, 'utf8');
 }
