@@ -50,6 +50,7 @@ test('Sends a pageload transaction', async ({ page }) => {
 
 test('Sends a transaction for a server component', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+    console.log('AAA', JSON.stringify(transactionEvent));
     return (
       transactionEvent?.contexts?.trace?.op === 'function.nextjs' &&
       transactionEvent?.transaction === 'Page Server Component (/user/[id])'
@@ -57,6 +58,8 @@ test('Sends a transaction for a server component', async ({ page }) => {
   });
 
   await page.goto('/user/4');
+
+  console.log('Waiting for server component transaction.');
 
   const transactionEvent = await serverComponentTransactionPromise;
   const transactionEventId = transactionEvent.event_id;
