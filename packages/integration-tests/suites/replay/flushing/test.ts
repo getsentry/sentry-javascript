@@ -32,7 +32,7 @@ for (let index = 0; index < 25; index++) {
     expect(replayEvent0).toEqual(getExpectedReplayEvent());
 
     // trigger mouse click
-    void page.click('#go-background');
+    void page.click('#something');
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     expect(replayEvent1).toEqual(
