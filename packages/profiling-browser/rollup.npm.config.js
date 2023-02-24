@@ -1,3 +1,3 @@
-import { makeBaseNPMConfig } from '../../rollup/index.js';
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '../../rollup/index.js';
 
-export default makeBaseNPMConfig();
+export default makeNPMConfigVariants(makeBaseNPMConfig());

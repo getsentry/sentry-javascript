@@ -1,12 +1,7 @@
-import { addExtensionMethods, wrapStartTransactionWithProfiling } from './hubextensions';
+import { addExtensionMethods } from './hubextensions';
 import { BrowserProfilingIntegration } from './integration';
 
-// Treeshakable guard to remove all code related to profiling
-declare const __SENTRY_PROFILING: boolean;
+// This is a side effect, it patches the global object and injects the Profiling extensions methods
+addExtensionMethods();
 
-// Guard for tree
-if (typeof __SENTRY_PROFILING === 'undefined' || __SENTRY_PROFILING) {
-  addExtensionMethods();
-}
-
-export { BrowserProfilingIntegration, wrapStartTransactionWithProfiling };
+export { BrowserProfilingIntegration };

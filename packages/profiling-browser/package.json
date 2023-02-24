@@ -9,24 +9,28 @@
   "engines": {
     "node": ">=8"
   },
-  "main": "src/index.ts",
+  "sideEffects": [
+    "./build/cjs/index.js",
+    "./build/esm/index.js"
+  ],
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "lru_map": "^0.4.1"
+  },
+  "peerDependencies": {
     "@sentry/browser": "7.38.0",
     "@sentry/core": "^7.38.0",
     "@sentry/types": "7.38.0",
-    "@sentry/utils": "7.38.0",
-    "lru_map": "^0.4.1"
+    "@sentry/utils": "7.38.0"
   },
-  "peerDependencies": {},
-  "devDependencies": {
-    "typescript": "^4.9.5"
-  },
+  "devDependencies": {},
   "scripts": {
-    "build": "tsc -p ./tsconfig.json",
+    "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
@@ -48,6 +52,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sideEffects": false
+  }
 }

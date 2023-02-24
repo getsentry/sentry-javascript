@@ -40,11 +40,12 @@ interface UserAgentData {
 }
 
 function isUserAgentData(data: unknown): data is UserAgentData {
-  return !!data && typeof data === 'object' && 'getHighEntropyValues' in data;
+  return typeof data === 'object' && data !== null && 'getHighEntropyValues' in data;
 }
 
-// @ts-expect-error userAgentData is not part of the navigator interface yet
+// @ts-ignore userAgentData is not part of the navigator interface yet
 const userAgentData = WINDOW.navigator.userAgentData;
+
 if (isUserAgentData(userAgentData)) {
   userAgentData
     .getHighEntropyValues(['architecture', 'model', 'platform', 'platformVersion', 'fullVersionList'])
@@ -347,6 +348,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
       if (EMPTY_STACK_ID === undefined) {
         EMPTY_STACK_ID = STACK_ID;
         profile.stacks[EMPTY_STACK_ID] = [];
+        STACK_ID++;
       }
 
       profile['samples'][i] = {
