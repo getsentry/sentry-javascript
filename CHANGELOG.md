@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+This release adds a new `enableTracing` option, which can be used instead of `tracesSampleRate` for an easier setup.
+Related to this, the `hasTracingEnabled` utility function was moved from `@sentry/tracing` to `@sentry/core`.
+The old export from `@sentry/tracing` has been deprecated and will be removed in v8.
+
 ## 7.37.2
 
 This release includes changes and fixes around text masking and blocking in Replay's `rrweb` dependency. See versions [1.102.0](https://github.com/getsentry/rrweb/releases/tag/1.102.0) and [1.103.0](https://github.com/getsentry/rrweb/releases/tag/1.103.0).

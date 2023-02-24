@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/core';
+import * as sentryCore from '@sentry/core';
 import * as utils from '@sentry/utils';
 
 import type { Transaction } from '../../src';
@@ -7,7 +7,6 @@ import { Span, spanStatusfromHttpCode } from '../../src';
 import type { FetchData, XHRData } from '../../src/browser/request';
 import { fetchCallback, instrumentOutgoingRequests, shouldAttachHeaders, xhrCallback } from '../../src/browser/request';
 import { addExtensionMethods } from '../../src/hubextensions';
-import * as tracingUtils from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
 beforeAll(() => {
@@ -17,7 +16,7 @@ beforeAll(() => {
   global.Request = {};
 });
 
-const hasTracingEnabled = jest.spyOn(tracingUtils, 'hasTracingEnabled');
+const hasTracingEnabled = jest.spyOn(sentryCore, 'hasTracingEnabled');
 const addInstrumentationHandler = jest.spyOn(utils, 'addInstrumentationHandler');
 const setRequestHeader = jest.fn();
 
@@ -47,7 +46,7 @@ describe('instrumentOutgoingRequests', () => {
 });
 
 describe('callbacks', () => {
-  let hub: Hub;
+  let hub: sentryCore.Hub;
   let transaction: Transaction;
   const alwaysCreateSpan = () => true;
   const alwaysAttachHeaders = () => true;
@@ -56,8 +55,8 @@ describe('callbacks', () => {
 
   beforeAll(() => {
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options));
-    makeMain(hub);
+    hub = new sentryCore.Hub(new BrowserClient(options));
+    sentryCore.makeMain(hub);
   });
 
   beforeEach(() => {
