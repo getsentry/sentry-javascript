@@ -22,7 +22,10 @@ const serverComponent = serverComponentModule.default;
 
 let wrappedServerComponent;
 if (typeof serverComponent === 'function') {
-  wrappedServerComponent = Sentry.wrapAppDirComponentWithSentry(serverComponent);
+  wrappedServerComponent = Sentry.wrapServerComponentWithSentry(serverComponent, {
+    componentRoute: '__ROUTE__',
+    componentType: '__COMPONENT_TYPE__',
+  });
 } else {
   wrappedServerComponent = serverComponent;
 }

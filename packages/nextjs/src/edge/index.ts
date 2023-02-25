@@ -140,4 +140,4 @@ export {
 
 export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
+export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
