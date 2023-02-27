@@ -14,8 +14,13 @@ import {
 
 import { WINDOW } from '../helpers';
 
+interface XhrFetchOptions {
+  captureRequestPayload: boolean;
+  captureResponsePayload: boolean;
+}
+
 /** JSDoc */
-interface BreadcrumbsOptions {
+interface BreadcrumbsOptions extends XhrFetchOptions {
   console: boolean;
   dom:
     | boolean
@@ -66,6 +71,8 @@ export class Breadcrumbs implements Integration {
       history: true,
       sentry: true,
       xhr: true,
+      captureRequestPayload: false,
+      captureResponsePayload: false,
       ...options,
     };
   }
@@ -86,10 +93,10 @@ export class Breadcrumbs implements Integration {
       addInstrumentationHandler('dom', _domBreadcrumb(this.options.dom));
     }
     if (this.options.xhr) {
-      addInstrumentationHandler('xhr', _xhrBreadcrumb);
+      addInstrumentationHandler('xhr', _xhrBreadcrumb(this.options));
     }
     if (this.options.fetch) {
-      addInstrumentationHandler('fetch', _fetchBreadcrumb);
+      addInstrumentationHandler('fetch', _fetchBreadcrumb(this.options));
     }
     if (this.options.history) {
       addInstrumentationHandler('history', _historyBreadcrumb);
@@ -217,79 +224,103 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
  * Creates breadcrumbs from XHR API calls
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
-  if (handlerData.endTimestamp) {
-    // We only capture complete, non-sentry requests
-    if (handlerData.xhr.__sentry_own_request__) {
+function _xhrBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: string]: any }) => void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (handlerData: { [key: string]: any }): void => {
+    if (handlerData.endTimestamp) {
+      // We only capture complete, non-sentry requests
+      if (handlerData.xhr.__sentry_own_request__) {
+        return;
+      }
+
+      const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
+
+      const xhrData: { [key: string]: unknown } = {
+        method,
+        url,
+        status_code,
+      };
+
+      if (options.captureRequestPayload) {
+        xhrData.request_payload = body;
+      }
+
+      if (options.captureResponsePayload) {
+        xhrData.response_payload = handlerData.xhr.responseText;
+      }
+
+      getCurrentHub().addBreadcrumb(
+        {
+          category: 'xhr',
+          data: xhrData,
+          type: 'http',
+        },
+        {
+          xhr: handlerData.xhr,
+          input: body,
+        },
+      );
+
       return;
     }
-
-    const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
-
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'xhr',
-        data: {
-          method,
-          url,
-          status_code,
-        },
-        type: 'http',
-      },
-      {
-        xhr: handlerData.xhr,
-        input: body,
-      },
-    );
-
-    return;
-  }
+  };
 }
-
 /**
  * Creates breadcrumbs from fetch API calls
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
-  // We only capture complete fetch requests
-  if (!handlerData.endTimestamp) {
-    return;
-  }
+function _fetchBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: string]: any }) => Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return async (handlerData: { [key: string]: any }): Promise<void> => {
+    // We only capture complete fetch requests
+    if (!handlerData.endTimestamp) {
+      return;
+    }
 
-  if (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST') {
-    // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
-    return;
-  }
+    if (handlerData.fetchData.url.match(/sentry_key/) && handlerData.fetchData.method === 'POST') {
+      // We will not create breadcrumbs for fetch requests that contain `sentry_key` (internal sentry requests)
+      return;
+    }
 
-  if (handlerData.error) {
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'fetch',
-        data: handlerData.fetchData,
-        level: 'error',
-        type: 'http',
-      },
-      {
-        data: handlerData.error,
-        input: handlerData.args,
-      },
-    );
-  } else {
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'fetch',
-        data: {
-          ...handlerData.fetchData,
-          status_code: handlerData.response.status,
+    if (options.captureRequestPayload) {
+      handlerData.fetchData.request_payload = handlerData.args[1] && handlerData.args[1].body;
+    }
+
+    if (options.captureResponsePayload && handlerData.response) {
+      const response = handlerData.response.clone();
+      handlerData.fetchData.response_payload = await response.text();
+    }
+
+    if (handlerData.error) {
+      getCurrentHub().addBreadcrumb(
+        {
+          category: 'fetch',
+          data: handlerData.fetchData,
+          level: 'error',
+          type: 'http',
         },
-        type: 'http',
-      },
-      {
-        input: handlerData.args,
-        response: handlerData.response,
-      },
-    );
-  }
+        {
+          data: handlerData.error,
+          input: handlerData.args,
+        },
+      );
+    } else {
+      getCurrentHub().addBreadcrumb(
+        {
+          category: 'fetch',
+          data: {
+            ...handlerData.fetchData,
+            status_code: handlerData.response.status,
+          },
+          type: 'http',
+        },
+        {
+          input: handlerData.args,
+          response: handlerData.response,
+        },
+      );
+    }
+  };
 }
 
 /**

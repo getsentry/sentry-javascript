@@ -25,6 +25,8 @@ interface XhrHandlerData {
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp: number;
   endTimestamp?: number;
+  request_payload?: string;
+  response_payload?: string;
 }
 
 function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
@@ -44,6 +46,7 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
     return null;
   }
 
+  const { request_payload: requestPayload, response_payload: responsePayload } = handlerData;
   const { method, url, status_code: statusCode } = handlerData.xhr.__sentry_xhr__ || {};
 
   if (url === undefined) {
@@ -62,6 +65,8 @@ function handleXhr(handlerData: XhrHandlerData): ReplayPerformanceEntry | null {
     data: {
       method,
       statusCode,
+      requestPayload,
+      responsePayload,
     },
   };
 }

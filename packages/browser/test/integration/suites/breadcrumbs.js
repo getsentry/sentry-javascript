@@ -91,6 +91,7 @@ describe('breadcrumbs', function () {
       assert.equal(summary.breadcrumbs[0].category, 'xhr');
       assert.equal(summary.breadcrumbs[0].data.method, 'POST');
       assert.isUndefined(summary.breadcrumbs[0].data.input);
+      assert.isUndefined(summary.breadcrumbs[0].data.request_payload);
       assert.equal(summary.breadcrumbHints[0].input, '{"foo":"bar"}');
     });
   });

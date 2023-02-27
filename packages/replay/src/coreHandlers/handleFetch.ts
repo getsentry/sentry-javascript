@@ -7,6 +7,8 @@ interface FetchHandlerData {
   fetchData: {
     method: string;
     url: string;
+    request_payload?: string;
+    response_payload?: string;
   };
   response: {
     type: string;
@@ -26,6 +28,7 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
   }
 
   const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
+  const { method, request_payload: requestPayload, response_payload: responsePayload } = fetchData;
 
   return {
     type: 'resource.fetch',
@@ -33,8 +36,10 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
     end: endTimestamp / 1000,
     name: fetchData.url,
     data: {
-      method: fetchData.method,
+      method,
       statusCode: response.status,
+      requestPayload,
+      responsePayload,
     },
   };
 }
