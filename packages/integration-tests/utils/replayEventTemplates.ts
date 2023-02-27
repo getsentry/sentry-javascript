@@ -130,6 +130,28 @@ export const expectedFPPerformanceSpan = {
   endTimestamp: expect.any(Number),
 };
 
+export const expectedFetchPerformanceSpan = {
+  op: 'resource.fetch',
+  description: expect.any(String),
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    method: expect.any(String),
+    statusCode: expect.any(Number),
+  },
+};
+
+export const expectedXHRPerformanceSpan = {
+  op: 'resource.xhr',
+  description: expect.any(String),
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    method: expect.any(String),
+    statusCode: expect.any(Number),
+  },
+};
+
 /* Breadcrumbs */
 
 export const expectedClickBreadcrumb = {
@@ -150,4 +172,16 @@ export const expectedNavigationBreadcrumb = {
     from: expect.any(String),
     to: expect.any(String),
   },
+};
+
+export const expectedConsoleBreadcrumb = {
+  timestamp: expect.any(Number),
+  type: 'default',
+  category: 'console',
+  data: {
+    logger: 'console',
+    arguments: expect.any(Array),
+  },
+  level: expect.stringMatching(/(log|warn|error)/),
+  message: expect.any(String),
 };

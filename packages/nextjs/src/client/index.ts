@@ -1,9 +1,11 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
-import { BrowserTracing, defaultRequestInstrumentationOptions, hasTracingEnabled } from '@sentry/tracing';
+import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 
+import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { nextRouterInstrumentation } from './performance';
@@ -38,7 +40,9 @@ const globalWithInjectedValues = global as typeof global & {
 export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
   buildMetadata(options, ['nextjs', 'react']);
-  options.environment = options.environment || process.env.NODE_ENV;
+
+  options.environment = options.environment || getVercelEnv(true) || process.env.NODE_ENV;
+
   addClientIntegrations(options);
 
   reactInit(options);
@@ -120,15 +124,27 @@ export {
   withSentryServerSideAppGetInitialProps,
   wrapAppGetInitialPropsWithSentry,
 } from './wrapAppGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideDocumentGetInitialProps,
   wrapDocumentGetInitialPropsWithSentry,
 } from './wrapDocumentGetInitialPropsWithSentry';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideErrorGetInitialProps,
   wrapErrorGetInitialPropsWithSentry,
 } from './wrapErrorGetInitialPropsWithSentry';
 
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetServerSideProps,
+  wrapGetServerSidePropsWithSentry,
+} from './wrapGetServerSidePropsWithSentry';
+
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  withSentryGetStaticProps,
+  wrapGetStaticPropsWithSentry,
+} from './wrapGetStaticPropsWithSentry';

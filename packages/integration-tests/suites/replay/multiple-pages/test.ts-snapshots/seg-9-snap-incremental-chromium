@@ -6,7 +6,7 @@
         "x": 41,
         "y": 18,
         "id": 9,
-        "timeOffset": 0
+        "timeOffset": [timeOffset]
       }
     ]
   },

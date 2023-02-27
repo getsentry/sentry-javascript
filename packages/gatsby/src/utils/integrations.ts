@@ -1,3 +1,4 @@
+import { hasTracingEnabled } from '@sentry/core';
 import * as Tracing from '@sentry/tracing';
 import type { Integration } from '@sentry/types';
 
@@ -13,7 +14,7 @@ export type UserIntegrations = Integration[] | UserFnIntegrations;
  * @param options The options users have defined.
  */
 export function getIntegrationsFromOptions(options: GatsbyOptions): UserIntegrations {
-  const isTracingEnabled = Tracing.hasTracingEnabled(options);
+  const isTracingEnabled = hasTracingEnabled(options);
   if (options.integrations === undefined) {
     return getIntegrationsFromArray([], isTracingEnabled);
   } else if (Array.isArray(options.integrations)) {

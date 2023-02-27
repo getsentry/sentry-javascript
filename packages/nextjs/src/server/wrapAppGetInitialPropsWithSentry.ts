@@ -1,5 +1,5 @@
+import { hasTracingEnabled } from '@sentry/core';
 import { getCurrentHub } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 

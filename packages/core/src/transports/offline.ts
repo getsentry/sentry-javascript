@@ -1,21 +1,9 @@
 import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
-import { forEachEnvelopeItem, logger, parseRetryAfterHeader } from '@sentry/utils';
+import { envelopeContainsItemType, logger, parseRetryAfterHeader } from '@sentry/utils';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
 const MAX_DELAY = 3.6e6; // 1 hour
-
-function isReplayEnvelope(envelope: Envelope): boolean {
-  let isReplay = false;
-
-  forEachEnvelopeItem(envelope, (_, type) => {
-    if (type === 'replay_event') {
-      isReplay = true;
-    }
-  });
-
-  return isReplay;
-}
 
 function log(msg: string, error?: Error): void {
   __DEBUG_BUILD__ && logger.info(`[Offline]: ${msg}`, error);
@@ -74,7 +62,8 @@ export function makeOfflineTransport<TO>(
       // We don't queue Session Replay envelopes because they are:
       // - Ordered and Replay relies on the response status to know when they're successfully sent.
       // - Likely to fill the queue quickly and block other events from being sent.
-      if (isReplayEnvelope(env)) {
+      // We also want to drop client reports because they can be generated when we retry sending events while offline.
+      if (envelopeContainsItemType(env, ['replay_event', 'replay_recording', 'client_report'])) {
         return false;
       }
 

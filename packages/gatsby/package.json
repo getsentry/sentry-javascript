@@ -20,6 +20,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@sentry/core": "7.38.0",
     "@sentry/react": "7.38.0",
     "@sentry/tracing": "7.38.0",
     "@sentry/types": "7.38.0",

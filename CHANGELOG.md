@@ -4,6 +4,37 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.39.0
+
+This release adds a new package, `@sentry/angular-ivy`, which is our Angular SDK with full support for Angular's rendering engine, Ivy.
+
+This release also adds a new `enableTracing` option, which can be used instead of `tracesSampleRate` for an easier setup.
+Related to this, the `hasTracingEnabled` utility function was moved from `@sentry/tracing` to `@sentry/core`.
+The old export from `@sentry/tracing` has been deprecated and will be removed in v8.
+
+- feat(angular): Add Ivy-compatible Angular SDK package (#7264)
+- feat(core): Add source map images to `debug_meta` (#7168)
+- feat(loader): Make lazy-loading configurable (#7232)
+- feat(nextjs): Add performance monitoring to server components (#7242)
+- feat(nextjs): Default to `VERCEL_ENV` as environment (#7227)
+- feat(replay): Add more default block filters (#7233)
+- feat(tracing): Add `enableTracing` option (#7238)
+- fix(core): Exclude client reports from offline queuing (#7226)
+- fix(nextjs): Export serverside data-fetcher wrappers from client (#7256)
+- fix(replay): Fix timestamps on LCP (#7225)
+
+**Replay `rrweb` changes:**
+
+`@sentry-internal/rrweb` was updated from 1.103.0 to 1.104.1 (#7238):
+
+- feat: Export `typings/types` ([#60](https://github.com/getsentry/rrweb/pull/60))
+- feat: Remove `autoplay` attribute from audio/video tags ([#59](https://github.com/getsentry/rrweb/pull/59))
+- fix: Exclude `modulepreload` as well ([#52](https://github.com/getsentry/rrweb/pull/52))
+- fix: Handle removed attributes ([#65](https://github.com/getsentry/rrweb/pull/65))
+- fix: Masking inputs on change when `maskAllInputs:false` ([#61](https://github.com/getsentry/rrweb/pull/61))
+- fix: More robust `rootShadowHost` check ([#50](https://github.com/getsentry/rrweb/pull/50))
+- fix: Textarea value is being duplicated ([#62](https://github.com/getsentry/rrweb/pull/62))
+
 ## 7.38.0
 
 - feat: Put `abs_path` into stack frame object (#7167)

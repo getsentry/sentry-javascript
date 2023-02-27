@@ -9,14 +9,14 @@ describe('Integration | integrationSettings', () => {
     it('sets the correct configuration when `blockAllMedia` is disabled', async () => {
       const { replay } = await mockSdk({ replayOptions: { blockAllMedia: false } });
 
-      expect(replay['_recordingOptions'].blockSelector).toBe('.sentry-block,[data-sentry-block]');
+      expect(replay['_recordingOptions'].blockSelector).toBe('.sentry-block,[data-sentry-block],base[href="/"]');
     });
 
     it('sets the correct configuration when `blockSelector` is empty and `blockAllMedia` is enabled', async () => {
       const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
+        '",.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
       );
     });
 
@@ -26,7 +26,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio"',
+        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
       );
     });
   });

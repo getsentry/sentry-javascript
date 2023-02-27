@@ -1,5 +1,4 @@
 import * as coreSdk from '@sentry/core';
-import * as sentryTracing from '@sentry/tracing';
 
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
@@ -32,7 +31,7 @@ afterAll(() => {
 beforeEach(() => {
   jest.resetAllMocks();
   jest.restoreAllMocks();
-  jest.spyOn(sentryTracing, 'hasTracingEnabled').mockImplementation(() => true);
+  jest.spyOn(coreSdk, 'hasTracingEnabled').mockImplementation(() => true);
 });
 
 describe('wrapApiHandlerWithSentry', () => {

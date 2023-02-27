@@ -1,6 +1,32 @@
+jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
+
+jest.mock('@sentry/utils', () => ({
+  ...jest.requireActual('@sentry/utils'),
+  browserPerformanceTimeOrigin: Date.now(),
+}));
+
+import { WINDOW } from '../../../src/constants';
 import { createPerformanceEntries } from '../../../src/util/createPerformanceEntries';
+import { PerformanceEntryLcp } from '../../fixtures/performanceEntry/lcp';
+import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {
+  beforeEach(function () {
+    if (!WINDOW.performance.getEntriesByType) {
+      WINDOW.performance.getEntriesByType = jest.fn((type: string) => {
+        if (type === 'navigation') {
+          return [PerformanceEntryNavigation()];
+        }
+        throw new Error(`entry ${type} not mocked`);
+      });
+    }
+  });
+
+  afterAll(function () {
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
   it('ignores sdks own requests', function () {
     const data = {
       name: 'https://ingest.f00.f00/api/1/envelope/?sentry_key=dsn&sentry_version=7',
@@ -30,5 +56,22 @@ describe('Unit | util | createPerformanceEntries', () => {
 
     // @ts-ignore Needs a PerformanceEntry mock
     expect(createPerformanceEntries([data])).toEqual([]);
+  });
+
+  it('has correct LCP entry when no navigation event', function () {
+    const result = createPerformanceEntries([PerformanceEntryLcp()]);
+    expect(result).toEqual([
+      {
+        data: {
+          nodeId: -1,
+          size: 7619,
+          value: 5108.299,
+        },
+        name: 'largest-contentful-paint',
+        type: 'largest-contentful-paint',
+        end: 1672531205.108299,
+        start: 1672531205.108299,
+      },
+    ]);
   });
 });

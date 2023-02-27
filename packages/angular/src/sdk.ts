@@ -3,7 +3,6 @@ import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit, SDK_VERSION, setContext } from '@sentry/browser';
 import { logger } from '@sentry/utils';
 
-import { ANGULAR_MINIMUM_VERSION } from './constants';
 import { IS_DEBUG_BUILD } from './flags';
 
 /**
@@ -27,6 +26,8 @@ export function init(options: BrowserOptions): void {
 }
 
 function checkAndSetAngularVersion(): void {
+  const ANGULAR_MINIMUM_VERSION = 10;
+
   const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : undefined;
 
   if (angularVersion) {

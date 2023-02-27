@@ -15,9 +15,9 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": "10.x || 11.x || 12.x || 13.x || 14.x || 15.x",
-    "@angular/core": "10.x || 11.x || 12.x || 13.x || 14.x || 15.x",
-    "@angular/router": "10.x || 11.x || 12.x || 13.x || 14.x || 15.x",
+    "@angular/common": ">= 10.x <= 15.x",
+    "@angular/core": ">= 10.x <= 15.x",
+    "@angular/router": ">= 10.x <= 15.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
@@ -38,7 +38,8 @@
     "@angular/router": "~10.2.5",
     "ng-packagr": "^10.1.0",
     "typescript": "~4.0.2",
-    "zone.js": "^0.11.8"
+    "zone.js": "^0.11.8",
+    "rxjs": "6.5.5"
   },
   "scripts": {
     "build": "yarn build:transpile",
