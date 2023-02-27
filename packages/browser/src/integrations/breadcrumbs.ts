@@ -241,11 +241,11 @@ function _xhrBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: string]
         status_code,
       };
 
-      if (options.captureRequestPayload) {
+      if (options.captureRequestPayload && body) {
         xhrData.request_payload = body;
       }
 
-      if (options.captureResponsePayload) {
+      if (options.captureResponsePayload && handlerData.xhr.responseText) {
         xhrData.response_payload = handlerData.xhr.responseText;
       }
 
@@ -282,15 +282,18 @@ function _fetchBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: strin
       return;
     }
 
-    if (options.captureRequestPayload) {
-      handlerData.fetchData.request_payload = handlerData.args[1] && handlerData.args[1].body;
+    if (options.captureRequestPayload && handlerData.args[1] && handlerData.args[1].body) {
+      handlerData.fetchData.request_payload = handlerData.args[1].body;
     }
 
     if (options.captureResponsePayload && handlerData.response) {
       try {
         // We need to clone() this in order to avoid consuming the original response body
         const response = handlerData.response.clone();
-        handlerData.fetchData.response_payload = await response.text();
+        const text = await response.text();
+        if (text) {
+          handlerData.fetchData.response_payload = text;
+        }
       } catch (error) {
         // if something happens here, we don't want to break the whole breadcrumb
       }
