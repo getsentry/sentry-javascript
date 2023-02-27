@@ -288,6 +288,7 @@ function _fetchBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: strin
 
     if (options.captureResponsePayload && handlerData.response) {
       try {
+        // We need to clone() this in order to avoid consuming the original response body
         const response = handlerData.response.clone();
         handlerData.fetchData.response_payload = await response.text();
       } catch (error) {
