@@ -287,8 +287,12 @@ function _fetchBreadcrumb(options: XhrFetchOptions): (handlerData: { [key: strin
     }
 
     if (options.captureResponsePayload && handlerData.response) {
-      const response = handlerData.response.clone();
-      handlerData.fetchData.response_payload = await response.text();
+      try {
+        const response = handlerData.response.clone();
+        handlerData.fetchData.response_payload = await response.text();
+      } catch (error) {
+        // if something happens here, we don't want to break the whole breadcrumb
+      }
     }
 
     if (handlerData.error) {
