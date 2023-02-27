@@ -32,24 +32,23 @@ for (let index = 0; index < 25; index++) {
     expect(replayEvent0).toEqual(getExpectedReplayEvent());
 
     // trigger mouse click
-    void page.click('#something');
+    void page.click('#go-background');
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     expect(replayEvent1).toEqual(
       getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 1, urls: [] }),
     );
 
-    // // trigger mouse click every 100ms, it should still flush after 0.5s even if clicks are ongoing
-    // for (let i = 0; i < 70; i++) {
-    //   setTimeout(async () => {
-    //     try {
-    //       await page.click('#something');
-    //     } catch {
-    //       // ignore errors here, we don't care if the page is closed
-    //     }
-    //   }, i * 100);
-    // }
-    await page.click('#something');
+    // trigger mouse click every 100ms, it should still flush after 0.5s even if clicks are ongoing
+    for (let i = 0; i < 70; i++) {
+      setTimeout(async () => {
+        try {
+          await page.click('#go-background');
+        } catch {
+          // ignore errors here, we don't care if the page is closed
+        }
+      }, i * 100);
+    }
 
     const replayEvent2 = getReplayEvent(await reqPromise2);
     expect(replayEvent2).toEqual(
@@ -60,10 +59,13 @@ for (let index = 0; index < 25; index++) {
     const diff1 = replayEvent1.timestamp! - replayEvent0.timestamp!;
     const diff2 = replayEvent2.timestamp! - replayEvent1.timestamp!;
 
-    // We want to check that the diff is between 0.05 and 0.95 seconds, to accomodate for some wiggle room
-    expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS + 0.45);
-    expect(diff1).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.45);
-    expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS + 0.45);
-    expect(diff2).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.45);
+    // Playwright is very inconsistent with timing, so we have to ease up the expectations a lot here.
+    // Generally, we'd expect to see a diff of FLUSH_DELAY_SECONDS, but we've observed test flakes up to 2.5s.
+    // The beste we can do here is ensure that the flushes actually happen in a somewhat reasonable time frame within
+    // one order of magnitude of FLUSH_DELAY_SECONDS.
+    expect(diff1).toBeLessThan(FLUSH_DELAY_SECONDS * 10);
+    expect(diff1).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.4);
+    expect(diff2).toBeLessThan(FLUSH_DELAY_SECONDS * 10);
+    expect(diff2).toBeGreaterThanOrEqual(FLUSH_DELAY_SECONDS - 0.4);
   });
 }
