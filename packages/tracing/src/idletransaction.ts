@@ -266,7 +266,7 @@ export class IdleTransaction extends Transaction {
     }
 
     if (Object.keys(this.activities).length === 0) {
-      let endTimestamp = timestampWithMs() ;
+      const endTimestamp = timestampWithMs();
       if (this._idleTimeoutCanceledPermanently) {
         this.finish(endTimestamp);
       } else {
