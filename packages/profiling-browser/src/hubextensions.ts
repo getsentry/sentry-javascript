@@ -6,16 +6,20 @@ import { logger, uuid4 } from '@sentry/utils';
 import { sendProfile } from './integration';
 import type { JSSelfProfile, JSSelfProfiler, ProcessedJSSelfProfile } from './jsSelfProfiling';
 
+// Max profile duration.
 const MAX_PROFILE_DURATION_MS = 30_000;
 
 // While we experiment, per transaction sampling interval will be more flexible to work with.
-
 type StartTransaction = (
   this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ) => Transaction | undefined;
 
+/**
+ * Check if profiler constructor is available.
+ * @param maybeProfiler
+ */
 function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfiler {
   return typeof maybeProfiler === 'function';
 }
@@ -102,7 +106,7 @@ export function wrapTransactionWithProfiling(
   let processedProfile: ProcessedJSSelfProfile | null = null;
 
   /**
-   *
+   * Idempotent handler for profile stop
    */
   function onProfileHandler(): void {
     // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
@@ -143,6 +147,11 @@ export function wrapTransactionWithProfiling(
           return;
         }
 
+        // If a profile has less than 2 samples, it is not useful and should be discarded.
+        if (p.samples.length < 2) {
+          return;
+        }
+
         processedProfile = { ...p, profile_id: profile_id };
         sendProfile(profile_id, processedProfile);
       })
@@ -179,8 +188,9 @@ export function wrapTransactionWithProfiling(
     }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
-    // Set profile context
     onProfileHandler();
+
+    // Set profile context
     transaction.setContext('profile', { profile_id });
 
     return originalFinish();
@@ -237,7 +247,7 @@ function _addProfilingExtensionMethods(): void {
 }
 
 /**
- * This patches the global object and injects the Profiling extensions methods
+ * Patches the global object and injects the Profiling extensions methods
  */
 export function addExtensionMethods(): void {
   _addProfilingExtensionMethods();

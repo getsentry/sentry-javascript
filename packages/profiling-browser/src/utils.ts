@@ -22,7 +22,8 @@ let OS_PLATFORM_VERSION = ''; // 13.2
 let OS_ARCH = '';
 let OS_BROWSER = '';
 let OS_MODEL = '';
-const OS_LOCALE = WINDOW.navigator.language || WINDOW.navigator.languages[0] || '';
+const OS_LOCALE =
+  (WINDOW.navigator && WINDOW.navigator.language) || (WINDOW.navigator && WINDOW.navigator.languages[0]) || '';
 
 type UAData = {
   platform?: string;
@@ -44,7 +45,7 @@ function isUserAgentData(data: unknown): data is UserAgentData {
 }
 
 // @ts-ignore userAgentData is not part of the navigator interface yet
-const userAgentData = WINDOW.navigator.userAgentData;
+const userAgentData = WINDOW.navigator && WINDOW.navigator.userAgentData;
 
 if (isUserAgentData(userAgentData)) {
   userAgentData
@@ -337,6 +338,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     return profile;
   }
 
+  // We assert samples.length > 0 above
   const start = input.samples[0].timestamp;
   profile.stacks = [];
 
