@@ -236,7 +236,7 @@ export class IdleTransaction extends Transaction {
       this._idleTimeoutID = undefined;
       this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
 
-      if (Object.keys(this.activities).length === 0) {
+      if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
         this.finish(endTimestamp);
       }
     }
