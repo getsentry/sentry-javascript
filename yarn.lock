@@ -3878,17 +3878,17 @@
     semver "7.3.2"
     semver-intersect "1.4.0"
 
-"@sentry-internal/rrweb-snapshot@1.103.0":
-  version "1.103.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.103.0.tgz#afabe3d5c729a82a65b896e45018d50ee896fd74"
-  integrity sha512-YE0RlQh/bvVr3LcYgMhs5FJ4VUMpVZPUT/IqDVN+rZ4be2ARAn9z50skA26RyO/z6IXiIi8i6YacP8gGTOyFJg==
+"@sentry-internal/rrweb-snapshot@1.104.1":
+  version "1.104.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.104.1.tgz#baa1e951be432b8b8345833f5ed926144c62601f"
+  integrity sha512-IefNuRsyG8xoo6RNqTRoIaaarhjV1NO7JPiohYyyeSWDu26hK4mKlwDLlY41A5fRq8i49fiISoLU1EKueYFGOA==
 
-"@sentry-internal/rrweb@1.103.0":
-  version "1.103.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.103.0.tgz#c702be1616e9391e1dde2b0549a6038438e7bbf7"
-  integrity sha512-F9RfDbbjM1oddUX6jcfuv4n8jpZG5fsHvzIjT4z+KxBa8V09G9Nz/8wuDrIg0Cgb54wTRAbyyAKOexvzoZ8SKA==
+"@sentry-internal/rrweb@1.104.1":
+  version "1.104.1"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.104.1.tgz#a4c25f8daf59327d528540f872d301f4bc866dcc"
+  integrity sha512-kdf/tfMsIr3mr6IGZwpBcrS05GWyKbkAhv/4GkFevw9VSeHozTn2pPx6gU9M4WskN7NiZp4wvJ+4uLgwWdZSwg==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "1.103.0"
+    "@sentry-internal/rrweb-snapshot" "1.104.1"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"

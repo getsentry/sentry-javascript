@@ -44,7 +44,7 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "7.38.0",
-    "@sentry-internal/rrweb": "1.103.0",
+    "@sentry-internal/rrweb": "1.104.1",
     "jsdom-worker": "^0.2.1",
     "tslib": "^1.9.3"
   },
