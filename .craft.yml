@@ -22,7 +22,6 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: npm
-    excludeNames: /^sentry-angular-ivy-.*/
   - name: registry
     sdks:
       'npm:@sentry/browser':
