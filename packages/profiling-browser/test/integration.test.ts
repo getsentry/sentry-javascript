@@ -1,8 +1,8 @@
+import type { Event } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
-import { BrowserProfilingIntegration, PROFILING_EVENT_CACHE, sendProfile } from '../src/integration';
-import { Event } from '@sentry/types';
 import { getCurrentHub } from '../../core/src/hub';
+import { BrowserProfilingIntegration, PROFILING_EVENT_CACHE, sendProfile } from '../src/integration';
 
 describe('BrowserProfilingIntegration', () => {
   beforeEach(() => {
