@@ -36,6 +36,7 @@
   },
   "workspaces": [
     "packages/angular",
+    "packages/angular-ivy",
     "packages/browser",
     "packages/core",
     "packages/e2e-tests",

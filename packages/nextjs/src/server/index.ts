@@ -223,4 +223,4 @@ export {
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';
 
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
+export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';

@@ -148,5 +148,3 @@ export {
   withSentryGetStaticProps,
   wrapGetStaticPropsWithSentry,
 } from './wrapGetStaticPropsWithSentry';
-
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
