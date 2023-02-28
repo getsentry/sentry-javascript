@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { waitForError } from '../../../test-utils/event-proxy-server';
 
 test.describe('dev mode error symbolification', () => {
@@ -18,6 +18,20 @@ test.describe('dev mode error symbolification', () => {
     await exceptionButton.click();
 
     const errorEvent = await errorEventPromise;
-    console.log(JSON.stringify(errorEvent));
+    const errorEventFrames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
+
+    expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
+      expect.objectContaining({
+        filename: 'app/client-component/page.tsx',
+        abs_path: 'webpack-internal:///(app-client)/./app/client-component/page.tsx',
+        function: 'onClick',
+        in_app: true,
+        lineno: 10,
+        colno: 16,
+        pre_context: ['         id="exception-button"', '         onClick={() => {'],
+        context_line: "           throw new Error('client-component-button-click-error');",
+        post_context: ['         }}', '       >', '         throw'],
+      }),
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { startEventProxyServer, waitForTransaction } from '../../test-utils/event-proxy-server';
+import { startEventProxyServer } from '../../test-utils/event-proxy-server';
 
 startEventProxyServer({
   port: 27496,
