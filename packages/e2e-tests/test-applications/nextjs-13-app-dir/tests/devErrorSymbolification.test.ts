@@ -1,6 +1,5 @@
 import { test } from '@playwright/test';
 import { waitForError } from '../../../test-utils/event-proxy-server';
-import { BUTTON_CLICK_ERROR_MESSAGE } from '../app/client-component/page';
 
 test.describe('dev mode error symbolification', () => {
   if (process.env.TEST_ENV !== 'development') {
@@ -12,7 +11,7 @@ test.describe('dev mode error symbolification', () => {
     await page.goto('/client-component');
 
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === BUTTON_CLICK_ERROR_MESSAGE;
+      return errorEvent?.exception?.values?.[0]?.value === 'client-component-button-click-error';
     });
 
     const exceptionButton = page.locator('id=exception-button');

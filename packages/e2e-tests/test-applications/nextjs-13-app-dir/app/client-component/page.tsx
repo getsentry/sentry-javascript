@@ -4,7 +4,7 @@ export default async function Page() {
       <p>Press to throw:</p>
       <button
         onClick={() => {
-          throw new Error(BUTTON_CLICK_ERROR_MESSAGE);
+          throw new Error('client-component-button-click-error');
         }}
       >
         throw
@@ -12,5 +12,3 @@ export default async function Page() {
     </div>
   );
 }
-
-export const BUTTON_CLICK_ERROR_MESSAGE = 'button-click-error';
