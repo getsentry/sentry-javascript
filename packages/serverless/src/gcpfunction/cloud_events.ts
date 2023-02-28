@@ -49,8 +49,6 @@ function _wrapCloudEventFunction(
 
     const activeDomain = getActiveDomain()!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
-    activeDomain.on('error', captureException);
-
     const newCallback = activeDomain.bind((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
         captureException(args[0]);
