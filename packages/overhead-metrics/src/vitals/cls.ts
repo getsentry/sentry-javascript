@@ -12,12 +12,10 @@ class CLS {
 
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (!entry.hadRecentInput) {
-            if (window.cumulativeLayoutShiftScore === undefined) {
-              window.cumulativeLayoutShiftScore = entry.value;
-            } else {
-              window.cumulativeLayoutShiftScore += entry.value;
-            }
+          if (window.cumulativeLayoutShiftScore === undefined) {
+            window.cumulativeLayoutShiftScore = entry.value;
+          } else if (!entry.hadRecentInput) {
+            window.cumulativeLayoutShiftScore += entry.value;
           }
         }
       });
