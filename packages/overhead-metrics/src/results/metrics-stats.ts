@@ -51,6 +51,10 @@ export class MetricsStats {
   private static _filteredValues(numbers: number[]): number[] {
     numbers.sort((a, b) => a - b);
 
+    if (numbers.length < 1) {
+      return [];
+    }
+
     const q1 = ss.quantileSorted(numbers, 0.25);
     const q3 = ss.quantileSorted(numbers, 0.75);
     const iqr = q3 - q1;

@@ -2,7 +2,7 @@ import type { Metrics } from '../../src/collector.js';
 import { MetricsCollector } from '../../src/collector.js';
 import type { NumberProvider } from '../../src/results/metrics-stats.js';
 import { MetricsStats } from '../../src/results/metrics-stats.js';
-import { JankTestScenario } from '../../src/scenarios.js';
+import { BookingAppScenario } from '../../src/scenarios.js';
 import { printStats } from '../../src/util/console.js';
 import { latestResultFile } from './env.js';
 
@@ -26,9 +26,9 @@ const collector = new MetricsCollector({ headless: true, cpuThrottling: 2 });
 const result = await collector.execute({
   name: 'jank',
   scenarios: [
-    new JankTestScenario('index.html'),
-    new JankTestScenario('with-sentry.html'),
-    new JankTestScenario('with-replay.html'),
+    new BookingAppScenario('index.html', 100),
+    new BookingAppScenario('with-sentry.html', 100),
+    new BookingAppScenario('with-replay.html', 100),
   ],
   runs: 10,
   tries: 10,
