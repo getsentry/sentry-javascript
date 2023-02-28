@@ -1,5 +1,6 @@
 import type { Event, EventHint } from '@sentry/types';
-import type { parse, StackFrame } from 'stacktrace-parser';
+import type { StackFrame } from 'stacktrace-parser';
+import * as stackTraceParser from 'stacktrace-parser';
 
 type OriginalStackFrameResponse = {
   originalStackFrame: StackFrame;
@@ -112,10 +113,6 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
   // Do to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the
   // entire event processor.Symbolicated stack traces are just a nice to have.
   try {
-    // @ts-ignore it's there
-    // eslint-disable-next-line import/no-unresolved
-    const stackTraceParser: { parse: typeof parse } = import('next/dist/compiled/stacktrace-parser');
-
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
       const frames = stackTraceParser.parse(hint.originalException.stack);
 
