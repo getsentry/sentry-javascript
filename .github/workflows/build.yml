@@ -802,8 +802,8 @@ jobs:
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
-  replay_metrics:
-    name: Replay Metrics
+  overhead_metrics:
+    name: Overhead metrics
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 30
@@ -828,18 +828,14 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
 
-      - name: Setup
-        run: yarn install
-        working-directory: packages/replay/metrics
-
       - name: Collect
         run: yarn ci:collect
-        working-directory: packages/replay/metrics
+        working-directory: packages/overhead-metrics
 
       - name: Process
         id: process
         run: yarn ci:process
-        working-directory: packages/replay/metrics
+        working-directory: packages/overhead-metrics
         # Don't run on forks - the PR comment cannot be added.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
