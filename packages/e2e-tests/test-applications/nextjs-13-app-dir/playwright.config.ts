@@ -1,6 +1,12 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
+const testEnv = process.env.TEST_ENV;
+
+if (!testEnv) {
+  throw new Error('No test env defined');
+}
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -49,7 +55,7 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'yarn start',
+      command: testEnv === 'development' ? 'yarn dev' : 'yarn start',
       port: 3000,
     },
     {
