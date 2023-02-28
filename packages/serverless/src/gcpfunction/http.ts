@@ -1,5 +1,5 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
-import { flush, getCurrentHub } from '@sentry/node';
+import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -131,13 +131,13 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     try {
       fnResult = fn(req, res);
     } catch (err) {
-      getCurrentHub().captureException(err);
+      captureException(err);
       throw err;
     }
 
     if (isThenable(fnResult)) {
       fnResult.then(null, err => {
-        getCurrentHub().captureException(err);
+        captureException(err);
         throw err;
       });
     }
