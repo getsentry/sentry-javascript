@@ -26,7 +26,7 @@
     "extract-zip": "^2.0.1",
     "filesize": "^10.0.6",
     "p-timeout": "^6.0.0",
-    "playwright": "^1.29.1",
+    "playwright": "^1.31.1",
     "playwright-core": "^1.29.1",
     "simple-git": "^3.16.0",
     "simple-statistics": "^7.8.0",
