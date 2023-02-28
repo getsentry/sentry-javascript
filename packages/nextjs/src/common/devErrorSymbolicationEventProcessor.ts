@@ -105,7 +105,8 @@ function parseOriginalCodeFrame(codeFrame: string): {
 }
 
 /**
- * TODO
+ * Event processor that will symbolicate errors by using the webpack/nextjs dev server that is used to show stack traces
+ * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
   let stackTraceParser: { parse: typeof parse };
