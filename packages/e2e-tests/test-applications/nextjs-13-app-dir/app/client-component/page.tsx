@@ -5,6 +5,7 @@ export default function Page() {
     <div>
       <p>Press to throw:</p>
       <button
+        id="exception-button"
         onClick={() => {
           throw new Error('client-component-button-click-error');
         }}
