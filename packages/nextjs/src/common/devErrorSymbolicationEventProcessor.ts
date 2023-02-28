@@ -109,52 +109,52 @@ function parseOriginalCodeFrame(codeFrame: string): {
  * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
-  let stackTraceParser: { parse: typeof parse };
+  // Do to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the
+  // entire event processor.Symbolicated stack traces are just a nice to have.
   try {
-    // @ts-ignore it's there ()
+    // @ts-ignore it's there
     // eslint-disable-next-line import/no-unresolved
-    const stackTraceParserPromise = import('next/dist/compiled/stacktrace-parser');
-    stackTraceParser = await stackTraceParserPromise;
-  } catch (e) {
-    return event;
-  }
+    const stackTraceParser: { parse: typeof parse } = import('next/dist/compiled/stacktrace-parser');
 
-  if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
-    const frames = stackTraceParser.parse(hint.originalException.stack);
+    if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
+      const frames = stackTraceParser.parse(hint.originalException.stack);
 
-    const resolvedFrames = await Promise.all(
-      frames.map(async frame => await resolveStackFrame(frame, hint.originalException as Error)),
-    );
+      const resolvedFrames = await Promise.all(
+        frames.map(async frame => await resolveStackFrame(frame, hint.originalException as Error)),
+      );
 
-    if (event.exception?.values?.[0].stacktrace?.frames) {
-      event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
-        (frame, i, frames) => {
-          const resolvedFrame = resolvedFrames[frames.length - 1 - i];
-          if (!resolvedFrame || !resolvedFrame.originalStackFrame || !resolvedFrame.originalCodeFrame) {
+      if (event.exception?.values?.[0].stacktrace?.frames) {
+        event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
+          (frame, i, frames) => {
+            const resolvedFrame = resolvedFrames[frames.length - 1 - i];
+            if (!resolvedFrame || !resolvedFrame.originalStackFrame || !resolvedFrame.originalCodeFrame) {
+              return {
+                ...frame,
+                platform: frame.abs_path?.startsWith('node:internal') ? 'nodejs' : undefined, // simple hack that will prevent a source mapping error from showing up
+                in_app: false,
+              };
+            }
+
+            const { contextLine, preContextLines, postContextLines } = parseOriginalCodeFrame(
+              resolvedFrame.originalCodeFrame,
+            );
+
             return {
               ...frame,
-              platform: frame.abs_path?.startsWith('node:internal') ? 'nodejs' : undefined, // simple hack that will prevent a source mapping error from showing up
-              in_app: false,
+              pre_context: preContextLines,
+              context_line: contextLine,
+              post_context: postContextLines,
+              function: resolvedFrame.originalStackFrame.methodName,
+              filename: resolvedFrame.originalStackFrame.file || undefined,
+              lineno: resolvedFrame.originalStackFrame.lineNumber || undefined,
+              colno: resolvedFrame.originalStackFrame.column || undefined,
             };
-          }
-
-          const { contextLine, preContextLines, postContextLines } = parseOriginalCodeFrame(
-            resolvedFrame.originalCodeFrame,
-          );
-
-          return {
-            ...frame,
-            pre_context: preContextLines,
-            context_line: contextLine,
-            post_context: postContextLines,
-            function: resolvedFrame.originalStackFrame.methodName,
-            filename: resolvedFrame.originalStackFrame.file || undefined,
-            lineno: resolvedFrame.originalStackFrame.lineNumber || undefined,
-            colno: resolvedFrame.originalStackFrame.column || undefined,
-          };
-        },
-      );
+          },
+        );
+      }
     }
+  } catch (e) {
+    return event;
   }
 
   return event;
