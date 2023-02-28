@@ -1,7 +1,13 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
-import { baggageHeaderToDynamicSamplingContext, isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  isString,
+  isThenable,
+  logger,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
@@ -105,13 +111,6 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (res as any).__sentry_transaction = transaction;
 
-    // functions-framework creates a domain for each incoming request so we take advantage of this fact and add an error handler.
-    // BTW this is the only way to catch any exception occured during request lifecycle.
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    getActiveDomain()!.on('error', err => {
-      captureException(err);
-    });
-
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const _end = res.end;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,6 +127,21 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         });
     };
 
-    return fn(req, res);
+    let fnResult;
+    try {
+      fnResult = fn(req, res);
+    } catch (err) {
+      getCurrentHub().captureException(err);
+      throw err;
+    }
+
+    if (isThenable(fnResult)) {
+      fnResult.then(null, err => {
+        getCurrentHub().captureException(err);
+        throw err;
+      });
+    }
+
+    return fnResult;
   };
 }
