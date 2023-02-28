@@ -1,5 +1,5 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
-import { captureException, flush, getCurrentHub } from '@sentry/node';
+import { flush, getCurrentHub } from '@sentry/node';
 import { extractTraceparentData } from '@sentry/tracing';
 import {
   baggageHeaderToDynamicSamplingContext,
@@ -9,7 +9,7 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 
-import { domainify, getActiveDomain, proxyFunction } from './../utils';
+import { domainify, proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff
