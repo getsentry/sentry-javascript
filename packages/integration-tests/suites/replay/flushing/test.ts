@@ -5,6 +5,14 @@ import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 for (let index = 0; index < 50; index++) {
+  /*
+   * In this test we're explicitly not forcing a flush by triggering a visibility change.
+   * Instead, we want to verify that the `flushMaxDelay` works in the sense that eventually
+   * a flush is triggered if some events are in the buffer.
+   * Note: Due to timing problems and inconsistencies in Playwright/CI, we can't reliably
+   * assert on the flush timestamps. Therefore we only assert that events were eventually
+   * sent (i.e. flushed).
+   */
   sentryTest(
     `replay events are flushed after max flash delay was reached (${index})`,
     async ({ getLocalTestPath, page }) => {
