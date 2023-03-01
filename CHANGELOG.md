@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.40.0
+
+- feat(nextjs): Automatically resolve source of errors in dev mode (#7294)
+- feat(vue): Log errors to the console by default (#7310)
+- fix(ember): Disable performance in FastBoot (#7282)
+- fix(serverless): Capture custom tags in error events of GCP functions (#7298)
+- fix(serverless): Capture custom tags in GCP Background and CloudEvent function error events (#7301)
+
 ## 7.39.0
 
 This release adds a new package, `@sentry/angular-ivy`, which is our Angular SDK with full support for Angular's rendering engine, Ivy.
