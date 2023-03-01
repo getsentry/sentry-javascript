@@ -76,6 +76,7 @@ sentryTest(
       sentryTest.skip();
     }
 
+    const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -89,7 +90,7 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await page.click('#go-background');
+    await reqPromise0;
 
     await page.click('#drop');
     await page.click('#go-background');

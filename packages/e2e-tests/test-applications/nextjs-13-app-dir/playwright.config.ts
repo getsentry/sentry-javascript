@@ -1,6 +1,12 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
+const testEnv = process.env.TEST_ENV;
+
+if (!testEnv) {
+  throw new Error('No test env defined');
+}
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -13,18 +19,18 @@ const config: PlaywrightTestConfig = {
      * Maximum time expect() should wait for the condition to be met.
      * For example in `await expect(locator).toHaveText();`
      */
-    timeout: 5000,
+    timeout: 10000,
   },
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: 0,
+  /* `next dev` is incredibly buggy with the app dir */
+  retries: testEnv === 'development' ? 3 : 0,
   /* Opt out of parallel tests on CI. */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'dot',
+  reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -49,7 +55,7 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'yarn start',
+      command: testEnv === 'development' ? 'yarn dev' : 'yarn start',
       port: 3000,
     },
     {
