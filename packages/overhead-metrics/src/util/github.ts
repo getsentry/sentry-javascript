@@ -60,7 +60,7 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
     console.log(
       `Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`,
     );
-  } else {
+  } else if (!(await Git.branchIsBase)) {
     prNumber = (
       await octokit.rest.pulls.list({
         ...defaultArgs,
