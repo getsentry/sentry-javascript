@@ -26,7 +26,9 @@ let OS_ARCH = ''; // arm64
 let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
 let OS_MODEL = '';
 const OS_LOCALE =
-  (WINDOW.navigator && WINDOW.navigator.language) || (WINDOW.navigator && WINDOW.navigator.languages[0]) || '';
+  (WINDOW.navigator && WINDOW.navigator.language) ||
+  (WINDOW.navigator && WINDOW.navigator.languages && WINDOW.navigator.languages[0]) ||
+  '';
 
 type UAData = {
   platform?: string;
