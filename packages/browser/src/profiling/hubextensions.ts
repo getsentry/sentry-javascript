@@ -3,8 +3,8 @@ import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from
 import { logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import { sendProfile } from './browserProfiling';
 import type { JSSelfProfile, JSSelfProfiler, ProcessedJSSelfProfile } from './jsSelfProfiling';
+import { sendProfile } from './sendProfile';
 
 // Max profile duration.
 const MAX_PROFILE_DURATION_MS = 30_000;
