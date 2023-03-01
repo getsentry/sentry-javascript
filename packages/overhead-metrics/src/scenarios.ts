@@ -74,7 +74,7 @@ export class BookingAppScenario implements Scenario {
       await page.click(`.result:nth-child(${i}) [data-select]`);
     }
 
-    // Wait for flushing, which we set to 2000ms
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait for flushing, which we set to 2000ms - to be safe, we add 1s on top
+    await new Promise(resolve => setTimeout(resolve, 3000));
   }
 }
