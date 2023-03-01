@@ -12,7 +12,7 @@ const globalWithVue = GLOBAL_OBJ as typeof GLOBAL_OBJ & { Vue: Vue };
 const DEFAULT_CONFIG: Options = {
   Vue: globalWithVue.Vue,
   attachProps: true,
-  logErrors: false,
+  logErrors: true,
   hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
