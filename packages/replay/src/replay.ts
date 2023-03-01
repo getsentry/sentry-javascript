@@ -204,13 +204,14 @@ export class ReplayContainer implements ReplayContainerInterface {
           if (count > 500) {
             const breadcrumb = createBreadcrumb({
               category: 'replay.mutations',
-              message: `A mutation with ${count} changes was recorded, which indicate slow performance.`,
+              message: `A mutation with ${count} changes was recorded, which may indicate slow performance.`,
               data: {
                 mutationsCount: count,
               },
             });
             this._createCustomBreadcrumb(breadcrumb);
           }
+          // `true` means we use the regular mutation handling by rrweb
           return true;
         },
       });
