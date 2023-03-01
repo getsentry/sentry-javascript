@@ -64,7 +64,7 @@ export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Re
   });
 }
 
-function isReplayEvent(event: Event): event is ReplayEvent {
+export function isReplayEvent(event: Event): event is ReplayEvent {
   return event.type === 'replay_event';
 }
 

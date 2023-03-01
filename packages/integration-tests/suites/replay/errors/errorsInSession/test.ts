@@ -39,7 +39,6 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await page.click('#go-background');
     const req0 = await reqPromise0;
 
     await page.click('#error');
@@ -57,7 +56,6 @@ sentryTest(
       getExpectedReplayEvent({
         replay_start_timestamp: undefined,
         segment_id: 1,
-        // @ts-ignore this is fine
         error_ids: [errorEventId],
         urls: [],
       }),
