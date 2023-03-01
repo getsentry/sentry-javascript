@@ -19,8 +19,8 @@ const THREAD_NAME = 'main';
 // Machine properties (eval only once)
 let OS_PLATFORM = ''; // macos
 let OS_PLATFORM_VERSION = ''; // 13.2
-let OS_ARCH = '';
-let OS_BROWSER = '';
+let OS_ARCH = ''; // arm64
+let OS_BROWSER = WINDOW.navigator && WINDOW.navigator.userAgent || '';
 let OS_MODEL = '';
 const OS_LOCALE =
   (WINDOW.navigator && WINDOW.navigator.language) || (WINDOW.navigator && WINDOW.navigator.languages[0]) || '';
@@ -251,13 +251,13 @@ export function createProfilingEventEnvelope(
   const profile: Profile = {
     event_id: rawProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
-    platform: 'node', // @TODO replace with browser once backend supports it
+    platform: 'javascript',
     version: '1',
     release: event.release || '',
     environment: event.environment || '',
     runtime: {
-      name: 'node', // @TODO replace with browser once backend supports it
-      version: '', // @TODO replace with browser once backend supports it
+      name: 'javascript',
+      version: WINDOW.navigator.userAgent
     },
     os: {
       name: OS_PLATFORM,
