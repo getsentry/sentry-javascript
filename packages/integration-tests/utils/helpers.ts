@@ -108,6 +108,23 @@ async function getSentryEvents(page: Page, url?: string): Promise<Array<Event>> 
   return eventsHandle.jsonValue();
 }
 
+export function waitForErrorRequest(page: Page): Promise<Request> {
+  return page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const event = envelopeRequestParser(req);
+
+      return !event.type;
+    } catch {
+      return false;
+    }
+  });
+}
+
 /**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
