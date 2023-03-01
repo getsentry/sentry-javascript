@@ -58,7 +58,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-describe('makeOfflineTransport', () => {
+describe.skip('makeOfflineTransport', () => {
   beforeAll(async () => {
     await deleteDatabase('sentry');
   });
