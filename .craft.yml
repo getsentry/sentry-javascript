@@ -38,6 +38,8 @@ targets:
         onlyIfPresent: /^sentry-vue-.*\.tgz$/
       'npm:@sentry/gatsby':
         onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
+      'npm:@sentry/angular-ivy':
+        onlyIfPresent: /^sentry-angular-ivy.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-.*\.tgz$/
       'npm:@sentry/wasm':
