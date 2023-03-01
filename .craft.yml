@@ -39,9 +39,9 @@ targets:
       'npm:@sentry/gatsby':
         onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
       'npm:@sentry/angular-ivy':
-        onlyIfPresent: /^sentry-angular-ivy.*\.tgz$/
+        onlyIfPresent: /^sentry-angular-ivy-.*\.tgz$/
       'npm:@sentry/angular':
-        onlyIfPresent: /^sentry-angular-.*\.tgz$/
+        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
       'npm:@sentry/wasm':
         onlyIfPresent: /^sentry-wasm-.*\.tgz$/
       'npm:@sentry/nextjs':
