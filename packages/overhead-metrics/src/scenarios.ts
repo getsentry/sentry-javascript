@@ -53,3 +53,28 @@ export class JankTestScenario implements Scenario {
     await new Promise(resolve => setTimeout(resolve, 12000));
   }
 }
+
+export class BookingAppScenario implements Scenario {
+  public constructor(private _indexFile: string, private _count: number) {}
+
+  /**
+   *
+   */
+  public async run(_: playwright.Browser, page: playwright.Page): Promise<void> {
+    let url = path.resolve(`./test-apps/booking-app/${this._indexFile}`);
+    assert(fs.existsSync(url));
+    url = `file:///${url.replace(/\\/g, '/')}?count=${this._count}`;
+    console.log('Navigating to ', url);
+    await page.goto(url, { waitUntil: 'load', timeout: 60000 });
+
+    // Click "Update"
+    await page.click('#search button');
+
+    for (let i = 1; i < 10; i++) {
+      await page.click(`.result:nth-child(${i}) [data-select]`);
+    }
+
+    // Wait for flushing, which we set to 2000ms - to be safe, we add 1s on top
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+}

@@ -1,7 +1,7 @@
 import type { Metrics } from '../../src/collector.js';
 import { MetricsCollector } from '../../src/collector.js';
 import { MetricsStats } from '../../src/results/metrics-stats.js';
-import { JankTestScenario } from '../../src/scenarios.js';
+import { BookingAppScenario } from '../../src/scenarios.js';
 import { printStats } from '../../src/util/console.js';
 import { latestResultFile } from './env.js';
 
@@ -9,9 +9,12 @@ const collector = new MetricsCollector();
 const result = await collector.execute({
   name: 'dummy',
   scenarios: [
-    new JankTestScenario('index.html'),
-    new JankTestScenario('with-sentry.html'),
-    new JankTestScenario('with-replay.html'),
+    new BookingAppScenario('index.html', 50),
+    new BookingAppScenario('with-sentry.html', 50),
+    new BookingAppScenario('with-replay.html', 50),
+    new BookingAppScenario('index.html', 500),
+    new BookingAppScenario('with-sentry.html', 500),
+    new BookingAppScenario('with-replay.html', 500),
   ],
   runs: 1,
   tries: 1,
