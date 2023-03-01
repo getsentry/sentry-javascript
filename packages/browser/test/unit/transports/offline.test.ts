@@ -58,8 +58,7 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// TODO: Temp. skipping this because it is very flaky - we should revisit this and make this non-flaky
-describe.skip('makeOfflineTransport', () => {
+describe('makeOfflineTransport', () => {
   beforeAll(async () => {
     await deleteDatabase('sentry');
   });
