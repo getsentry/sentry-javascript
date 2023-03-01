@@ -1,6 +1,6 @@
 import * as SentryUtils from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import type { EventBuffer } from '../../src/types';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
@@ -95,7 +95,7 @@ describe('Integration | flush', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+    replay['_loadAndCheckSession']();
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,

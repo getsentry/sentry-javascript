@@ -5,7 +5,7 @@ import {
   ERROR_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  VISIBILITY_CHANGE_TIMEOUT,
+  SESSION_IDLE_DURATION,
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -154,7 +154,7 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
-  it('does not send a replay when triggering a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', async () => {
+  it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_DURATION]ms', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -162,7 +162,7 @@ describe('Integration | errorSampleRate', () => {
       },
     });
 
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -186,8 +186,8 @@ describe('Integration | errorSampleRate', () => {
 
     expect(replay).not.toHaveLastSentReplay();
 
-    // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 100);
+    // User comes back before `SESSION_IDLE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 100);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
