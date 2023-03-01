@@ -435,7 +435,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, '18.13.0']
+        node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -462,14 +462,12 @@ jobs:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        continue-on-error: true # playwright needs node >= 14
+        if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        continue-on-error: true # playwright needs node >= 14
+        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
         run: npx playwright install-deps
       - name: Run tests
         env:
