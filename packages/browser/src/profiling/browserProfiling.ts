@@ -1,17 +1,82 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { LRUMap } from 'lru_map';
 
+import { addExtensionMethods } from './hubextensions';
 import type { ProcessedJSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
 import { createProfilingEventEnvelope } from './utils';
 
-// We need this integration in order to actually send data to Sentry. We hook into the event processor
-// and inspect each event to see if it is a transaction event and if that transaction event
-// contains a profile on it's metadata. If that is the case, we create a profiling event envelope
-// and delete the profile from the transaction metadata.
-export const PROFILING_EVENT_CACHE = new LRUMap<string, Event>(20);
+/**
+ * Creates a simple cache that evicts keys in fifo order
+ * @param size {Number}
+ */
+export function makeProfilingCache<Key extends string, Value extends Event>(
+  size: number,
+): {
+  get: (key: Key) => Value | undefined;
+  add: (key: Key, value: Value) => void;
+  delete: (key: Key) => boolean;
+  clear: () => void;
+  size: () => number;
+} {
+  // Maintain a fifo queue of keys, we cannot rely on Object.keys as the browser may not support it.
+  let evictionOrder: Key[] = [];
+  let cache: Record<string, Value> = {};
+
+  return {
+    add(key: Key, value: Value) {
+      while (evictionOrder.length >= size) {
+        // shift is O(n) but this is small size and only happens if we are
+        // exceeding the cache size so it should be fine.
+        const evictCandidate = evictionOrder.shift();
+
+        if (evictCandidate !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete cache[evictCandidate];
+        }
+      }
+
+      // in case we have a collision, delete the old key.
+      if (cache[key]) {
+        this.delete(key);
+      }
+
+      evictionOrder.push(key);
+      cache[key] = value;
+    },
+    clear() {
+      cache = {};
+      evictionOrder = [];
+    },
+    get(key: Key): Value | undefined {
+      return cache[key];
+    },
+    size() {
+      return evictionOrder.length;
+    },
+    // Delete cache key and return true if it existed, false otherwise.
+    delete(key: Key): boolean {
+      if (!cache[key]) {
+        return false;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete cache[key];
+
+      for (let i = 0; i < evictionOrder.length; i++) {
+        if (evictionOrder[i] === key) {
+          evictionOrder.splice(i, 1);
+          break;
+        }
+      }
+
+      return true;
+    },
+  };
+}
+
+export const PROFILING_EVENT_CACHE = makeProfilingCache<string, Event>(20);
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
  * This exists because we do not want to await async profiler.stop calls as transaction.finish is called
@@ -21,13 +86,18 @@ export const PROFILING_EVENT_CACHE = new LRUMap<string, Event>(20);
  */
 export class BrowserProfilingIntegration implements Integration {
   public readonly name: string = 'BrowserProfilingIntegration';
-  public getCurrentHub?: () => Hub = undefined;
 
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this.getCurrentHub = getCurrentHub;
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+    // Patching the hub to add the extension methods.
+    // Warning: we have an implicit dependency on import order and we will fail patching if the constructor of
+    // BrowserProfilingIntegration is called before @sentry/tracing is imported. This is because we need to patch
+    // the methods of @sentry/tracing which are patched as a side effect of importing @sentry/tracing.
+    addExtensionMethods();
+
+    // Add our event processor
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
 
@@ -35,13 +105,13 @@ export class BrowserProfilingIntegration implements Integration {
    * @inheritDoc
    */
   public handleGlobalEvent(event: Event): Event {
-    const profile_id = event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id'];
+    const profileId = event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id'];
 
-    if (profile_id && typeof profile_id === 'string') {
+    if (profileId && typeof profileId === 'string') {
       if (__DEBUG_BUILD__) {
         logger.log('[Profiling] Profiling event found, caching it.');
       }
-      PROFILING_EVENT_CACHE.set(profile_id, event);
+      PROFILING_EVENT_CACHE.add(profileId, event);
     }
 
     return event;
@@ -53,8 +123,8 @@ export class BrowserProfilingIntegration implements Integration {
  * If the profiled transaction event is found, we use the profiled transaction event and profile
  * to construct a profile type envelope and send it to Sentry.
  */
-export function sendProfile(profile_id: string, profile: ProcessedJSSelfProfile): void {
-  const event = PROFILING_EVENT_CACHE.get(profile_id);
+export function sendProfile(profileId: string, profile: ProcessedJSSelfProfile): void {
+  const event = PROFILING_EVENT_CACHE.get(profileId);
 
   if (!event) {
     // We could not find a corresponding transaction event for this profile.
@@ -112,7 +182,7 @@ export function sendProfile(profile_id: string, profile: ProcessedJSSelfProfile)
   const envelope = createProfilingEventEnvelope(event as ProfiledEvent, dsn);
 
   // Evict event from the cache - we want to prevent the LRU cache from prioritizing already sent events over new ones.
-  PROFILING_EVENT_CACHE.delete(profile_id);
+  PROFILING_EVENT_CACHE.delete(profileId);
 
   if (!envelope) {
     if (__DEBUG_BUILD__) {

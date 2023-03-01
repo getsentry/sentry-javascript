@@ -1,4 +1,3 @@
-import { WINDOW } from '@sentry/browser';
 import type {
   DsnComponents,
   DynamicSamplingContext,
@@ -11,8 +10,12 @@ import type {
 } from '@sentry/types';
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
+import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
 
+const MS_TO_NS = 1e6;
+// Use 0 as main thread id which is identical to threadId in node:worker_threads
+// where main logs 0 and workers seem to log in increments of 1
 const THREAD_ID_STRING = String(0);
 const THREAD_NAME = 'main';
 
@@ -20,7 +23,7 @@ const THREAD_NAME = 'main';
 let OS_PLATFORM = ''; // macos
 let OS_PLATFORM_VERSION = ''; // 13.2
 let OS_ARCH = ''; // arm64
-let OS_BROWSER = WINDOW.navigator && WINDOW.navigator.userAgent || '';
+let OS_BROWSER = (WINDOW.navigator && WINDOW.navigator.userAgent) || '';
 let OS_MODEL = '';
 const OS_LOCALE =
   (WINDOW.navigator && WINDOW.navigator.language) || (WINDOW.navigator && WINDOW.navigator.languages[0]) || '';
@@ -203,9 +206,10 @@ function getTraceId(event: Event): string {
  * @param tunnel
  * @returns {EventEnvelope | null}
  */
-// We will live dangerously and disable complexity here, time is of the essence.
-// Onwards to the next refactor my fellow engineers!
-// eslint-disable-next-line complexity
+
+/**
+ * Creates a profiling event envelope from a Sentry event.
+ */
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
   dsn: DsnComponents,
@@ -257,7 +261,7 @@ export function createProfilingEventEnvelope(
     environment: event.environment || '',
     runtime: {
       name: 'javascript',
-      version: WINDOW.navigator.userAgent
+      version: WINDOW.navigator.userAgent,
     },
     os: {
       name: OS_PLATFORM,
@@ -325,6 +329,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
   let EMPTY_STACK_ID: undefined | number = undefined;
   let STACK_ID = 0;
 
+  // Initialize the profile that we will fill with data
   const profile: ThreadCpuProfile = {
     samples: [],
     stacks: [],
@@ -338,9 +343,8 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     return profile;
   }
 
-  // We assert samples.length > 0 above
+  // We assert samples.length > 0 above and timestamp should always be present
   const start = input.samples[0].timestamp;
-  profile.stacks = [];
 
   for (let i = 0; i < input.samples.length; i++) {
     const jsSample = input.samples[i];
@@ -354,7 +358,8 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
       }
 
       profile['samples'][i] = {
-        elapsed_since_start_ns: ((jsSample.timestamp - start) * 1e6).toFixed(0),
+        // convert ms timestamp to ns
+        elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
         stack_id: EMPTY_STACK_ID,
         thread_id: THREAD_ID_STRING,
       };
@@ -386,7 +391,8 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Threa
     }
 
     const sample: ThreadCpuProfile['samples'][0] = {
-      elapsed_since_start_ns: ((jsSample.timestamp - start) * 1e6).toFixed(0),
+      // convert ms timestamp to ns
+      elapsed_since_start_ns: ((jsSample.timestamp - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
       thread_id: THREAD_ID_STRING,
     };

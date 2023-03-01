@@ -1,9 +1,9 @@
-import { WINDOW } from '@sentry/browser';
 import { getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
-import { sendProfile } from './integration';
+import { WINDOW } from '../helpers';
+import { sendProfile } from './browserProfiling';
 import type { JSSelfProfile, JSSelfProfiler, ProcessedJSSelfProfile } from './jsSelfProfiling';
 
 // Max profile duration.
@@ -34,11 +34,18 @@ export function wrapTransactionWithProfiling(
   transactionContext: TransactionContext,
   getCurrentHub: () => Hub,
 ): Transaction | undefined {
-  // We create "unique" transaction names to avoid concurrent transactions with same names
-  // from being ignored by the profiler. From here on, only this transaction name should be used when
-  // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
-  const profile_id = uuid4();
+  // Feature support check first
+  const JSProfiler = WINDOW.Profiler;
+  if (!isJSProfilerSupported(JSProfiler)) {
+    if (__DEBUG_BUILD__) {
+      logger.log(
+        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
+      );
+    }
+    return transaction;
+  }
 
+  // Check if we have a valid
   if (!transaction) {
     if (__DEBUG_BUILD__) {
       logger.log(`[Profiling] transaction not found, skipping profiling for: ${transactionContext.name}`);
@@ -57,18 +64,6 @@ export function wrapTransactionWithProfiling(
   const client = getCurrentHub().getClient();
   const options = client && client.getOptions();
 
-  const JSProfiler = WINDOW.Profiler;
-
-  // Feature support check
-  if (!isJSProfilerSupported(JSProfiler)) {
-    if (__DEBUG_BUILD__) {
-      logger.log(
-        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
-      );
-    }
-    return transaction;
-  }
-
   // @ts-ignore not part of the browser options yet
   const profilesSampleRate = (options && options.profilesSampleRate) || 0;
   if (profilesSampleRate === undefined) {
@@ -86,15 +81,19 @@ export function wrapTransactionWithProfiling(
     return transaction;
   }
 
-  // Defer any profilesSamplingInterval validation to the profiler API
-  // @ts-ignore not part of the browser options yet and might never be, but useful to control during poc stage
-  const samplingInterval = options.profilesSamplingInterval || 10;
+  // From initial testing, it seems that the minimum value for sampleInterval is 10ms.
+  const samplingIntervalMS = 10;
   // Start the profiler
-  const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingInterval);
-  const profiler = new JSProfiler({ sampleInterval: samplingInterval, maxBufferSize: maxSamples });
+  const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingIntervalMS);
+  const profiler = new JSProfiler({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
   if (__DEBUG_BUILD__) {
     logger.log(`[Profiling] started profiling transaction: ${transaction.name || transaction.description}`);
   }
+
+  // We create "unique" transaction names to avoid concurrent transactions with same names
+  // from being ignored by the profiler. From here on, only this transaction name should be used when
+  // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
+  const profileId = uuid4();
 
   // A couple of important things to note here:
   // `CpuProfilerBindings.stopProfiling` will be scheduled to run in 30seconds in order to exceed max profile duration.
@@ -152,8 +151,8 @@ export function wrapTransactionWithProfiling(
           return;
         }
 
-        processedProfile = { ...p, profile_id: profile_id };
-        sendProfile(profile_id, processedProfile);
+        processedProfile = { ...p, profile_id: profileId };
+        sendProfile(profileId, processedProfile);
       })
       .catch(error => {
         if (__DEBUG_BUILD__) {
@@ -191,7 +190,7 @@ export function wrapTransactionWithProfiling(
     onProfileHandler();
 
     // Set profile context
-    transaction.setContext('profile', { profile_id });
+    transaction.setContext('profile', { profile_id: profileId });
 
     return originalFinish();
   }
@@ -201,9 +200,9 @@ export function wrapTransactionWithProfiling(
 }
 
 /**
- *
+ * Wraps startTransaction with profiling logic. This is done automatically by the profiling integration.
  */
-export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
+function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
     transactionContext: TransactionContext,
@@ -240,6 +239,7 @@ function _addProfilingExtensionMethods(): void {
   if (__DEBUG_BUILD__) {
     logger.log('[Profiling] startTransaction exists, patching it with profiling functionality...');
   }
+
   carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
     // This is already patched by sentry/tracing, we are going to re-patch it...
     carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,

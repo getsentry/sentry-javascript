@@ -1,7 +1,13 @@
+import { TextDecoder,TextEncoder } from 'util'
+// @ts-ignore patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+const patchedEncoder = !global.window.TextEncoder && (global.window.TextEncoder = TextEncoder) || true;
+// @ts-ignore patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+const patchedDecoder = !global.window.TextDecoder && (global.window.TextDecoder = TextDecoder) || true;
+
 import { JSDOM } from 'jsdom';
 
-import type { JSSelfProfile } from '../src/jsSelfProfiling';
-import { convertJSSelfProfileToSampledFormat } from '../src/utils';
+import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
+import { convertJSSelfProfileToSampledFormat } from '../../../src/profiling/utils';
 
 const makeJSProfile = (partial: Partial<JSSelfProfile> = {}): JSSelfProfile => {
   return {
@@ -13,6 +19,13 @@ const makeJSProfile = (partial: Partial<JSSelfProfile> = {}): JSSelfProfile => {
   };
 };
 
+// @ts-ignore store a reference so we can reset it later
+const globalDocument = global.document;
+// @ts-ignore store a reference so we can reset it later
+const globalWindow = global.window;
+// @ts-ignore store a reference so we can reset it later
+const globalLocation = global.location;
+
 describe('convertJSSelfProfileToSampledFormat', () => {
   beforeEach(() => {
     const dom = new JSDOM();
@@ -23,6 +36,24 @@ describe('convertJSSelfProfileToSampledFormat', () => {
     // @ts-ignore need to override global document
     global.location = dom.window.location;
   });
+
+  // Reset back to previous values
+  afterEach(() => {
+    // @ts-ignore need to override global document
+    global.document = globalDocument;
+    // @ts-ignore need to override global document
+    global.window = globalWindow;
+    // @ts-ignore need to override global document
+    global.location = globalLocation;
+  });
+
+  afterAll(() => {
+    // @ts-ignore patch the encoder on the window, else importing JSDOM fails
+    patchedEncoder && delete global.window.TextEncoder;
+    // @ts-ignore patch the encoder on the window, else importing JSDOM fails
+    patchedDecoder && delete global.window.TextDecoder;
+  })
+
   it('gracefully handles empty profiles', () => {
     expect(() =>
       convertJSSelfProfileToSampledFormat(

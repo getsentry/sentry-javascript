@@ -49,7 +49,6 @@
     "packages/node",
     "packages/node-integration-tests",
     "packages/opentelemetry-node",
-    "packages/profiling-browser",
     "packages/react",
     "packages/remix",
     "packages/replay",
