@@ -9,11 +9,9 @@ const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder
 
 import { JSDOM } from 'jsdom';
 
-import {
-  BrowserProfilingIntegration,
-  PROFILING_EVENT_CACHE,
-  sendProfile,
-} from '../../../src/profiling/browserProfiling';
+import { BrowserProfilingIntegration } from '../../../src/profiling/integration';
+import { PROFILING_EVENT_CACHE } from '../../../src/profiling/cache';
+import { sendProfile } from '../../../src/profiling/sendProfile';
 
 // @ts-ignore store a reference so we can reset it later
 const globalDocument = global.document;

@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { PROFILING_EVENT_CACHE } from './browserProfiling';
+import { PROFILING_EVENT_CACHE } from './cache';
 import type { ProcessedJSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
 import { createProfilingEventEnvelope } from './utils';

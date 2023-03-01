@@ -35,5 +35,5 @@ export { makeBrowserOfflineTransport } from './transports/offline';
 
 // __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_BEGIN__
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export { BrowserProfilingIntegration } from './profiling/browserProfiling';
+export { BrowserProfilingIntegration } from './profiling/integration';
 // __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_END__
