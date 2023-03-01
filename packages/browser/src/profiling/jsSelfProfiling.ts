@@ -69,3 +69,47 @@ export interface ThreadCpuProfile {
   thread_metadata: Record<string, { name?: string; priority?: number }>;
   queue_metadata?: Record<string, { label: string }>;
 }
+
+export interface SentryProfile {
+  event_id: string;
+  version: string;
+  os: {
+    name: string;
+    version: string;
+    build_number: string;
+  };
+  runtime: {
+    name: string;
+    version: string;
+  };
+  device: {
+    architecture: string;
+    is_emulator: boolean;
+    locale: string;
+    manufacturer: string;
+    model: string;
+  };
+  timestamp: string;
+  release: string;
+  environment: string;
+  platform: string;
+  profile: ThreadCpuProfile;
+  debug_meta?: {
+    images: {
+      debug_id: string;
+      image_addr: string;
+      code_file: string;
+      type: string;
+      image_size: number;
+      image_vmaddr: string;
+    }[];
+  };
+  transactions: {
+    name: string;
+    trace_id: string;
+    id: string;
+    active_thread_id: string;
+    relative_start_ns: string;
+    relative_end_ns: string;
+  }[];
+}

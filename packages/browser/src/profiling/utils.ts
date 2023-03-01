@@ -11,7 +11,8 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, ThreadCpuProfile } from './jsSelfProfiling';
+import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, SentryProfile,ThreadCpuProfile  } from './jsSelfProfiling';
+
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
@@ -67,50 +68,6 @@ if (isUserAgentData(userAgentData)) {
       }
     })
     .catch(e => void e);
-}
-
-export interface Profile {
-  event_id: string;
-  version: string;
-  os: {
-    name: string;
-    version: string;
-    build_number: string;
-  };
-  runtime: {
-    name: string;
-    version: string;
-  };
-  device: {
-    architecture: string;
-    is_emulator: boolean;
-    locale: string;
-    manufacturer: string;
-    model: string;
-  };
-  timestamp: string;
-  release: string;
-  environment: string;
-  platform: string;
-  profile: ThreadCpuProfile;
-  debug_meta?: {
-    images: {
-      debug_id: string;
-      image_addr: string;
-      code_file: string;
-      type: string;
-      image_size: number;
-      image_vmaddr: string;
-    }[];
-  };
-  transactions: {
-    name: string;
-    trace_id: string;
-    id: string;
-    active_thread_id: string;
-    relative_start_ns: string;
-    relative_end_ns: string;
-  }[];
 }
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
@@ -254,7 +211,7 @@ export function createProfilingEventEnvelope(
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
-  const profile: Profile = {
+  const profile: SentryProfile = {
     event_id: rawProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'javascript',
