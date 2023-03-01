@@ -1,4 +1,4 @@
-import { getMainCarrier } from '@sentry/core';
+import { getCurrentHub, getMainCarrier } from '@sentry/core';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
@@ -25,15 +25,27 @@ function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof 
 }
 
 /**
+ * Safety wrapper for startTransaction for the unlikely case that transaction starts before tracing is imported -
+ * if that happens we want to avoid throwing an error from profiling code.
+ * see https://github.com/getsentry/sentry-javascript/issues/4731.
+ */
+export function onProfilingStartRouteTransaction(transaction: Transaction | undefined): Transaction | undefined {
+  if (!transaction) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Transaction is undefined, skipping profiling');
+    }
+    return transaction;
+  }
+
+  return wrapTransactionWithProfiling(transaction);
+}
+
+/**
  * Wraps startTransaction and stopTransaction with profiling related logic.
  * startProfiling is called after the call to startTransaction in order to avoid our own code from
  * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
-export function wrapTransactionWithProfiling(
-  transaction: Transaction | undefined,
-  transactionContext: TransactionContext,
-  getCurrentHub: () => Hub,
-): Transaction | undefined {
+function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   // Feature support check first
   const JSProfiler = WINDOW.Profiler;
   if (!isJSProfilerSupported(JSProfiler)) {
@@ -41,14 +53,6 @@ export function wrapTransactionWithProfiling(
       logger.log(
         '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
       );
-    }
-    return transaction;
-  }
-
-  // Check if we have a valid
-  if (!transaction) {
-    if (__DEBUG_BUILD__) {
-      logger.log(`[Profiling] transaction not found, skipping profiling for: ${transactionContext.name}`);
     }
     return transaction;
   }
@@ -209,15 +213,21 @@ function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTra
     customSamplingContext?: CustomSamplingContext,
   ): Transaction | undefined {
     const transaction: Transaction | undefined = startTransaction.call(this, transactionContext, customSamplingContext);
-    return wrapTransactionWithProfiling(transaction, transactionContext, () => this);
+    if (transaction === undefined) {
+      if (__DEBUG_BUILD__) {
+        logger.log('[Profiling] Transaction is undefined, skipping profiling');
+      }
+      return transaction;
+    }
+
+    return wrapTransactionWithProfiling(transaction);
   };
 }
 
 /**
  * Patches startTransaction and stopTransaction with profiling logic.
- * @private
  */
-function _addProfilingExtensionMethods(): void {
+export function addProfilingExtensionMethods(): void {
   const carrier = getMainCarrier();
   if (!carrier.__SENTRY__) {
     if (__DEBUG_BUILD__) {
@@ -244,11 +254,4 @@ function _addProfilingExtensionMethods(): void {
     // This is already patched by sentry/tracing, we are going to re-patch it...
     carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction,
   );
-}
-
-/**
- * Patches the global object and injects the Profiling extensions methods
- */
-export function addExtensionMethods(): void {
-  _addProfilingExtensionMethods();
 }

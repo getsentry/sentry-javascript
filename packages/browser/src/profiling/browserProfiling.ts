@@ -1,8 +1,8 @@
 import { getCurrentHub } from '@sentry/core';
-import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
+import type { Event, EventProcessor, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { addExtensionMethods } from './hubextensions';
+import { addProfilingExtensionMethods } from './hubextensions';
 import type { ProcessedJSSelfProfile } from './jsSelfProfiling';
 import type { ProfiledEvent } from './utils';
 import { createProfilingEventEnvelope } from './utils';
@@ -90,12 +90,12 @@ export class BrowserProfilingIntegration implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     // Patching the hub to add the extension methods.
     // Warning: we have an implicit dependency on import order and we will fail patching if the constructor of
     // BrowserProfilingIntegration is called before @sentry/tracing is imported. This is because we need to patch
     // the methods of @sentry/tracing which are patched as a side effect of importing @sentry/tracing.
-    addExtensionMethods();
+    addProfilingExtensionMethods();
 
     // Add our event processor
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
