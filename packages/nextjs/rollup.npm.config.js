@@ -16,7 +16,9 @@ export default [
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
       // the name doesn't match an SDK dependency)
-      packageSpecificConfig: { external: ['next/router', 'next/constants', 'next/headers'] },
+      packageSpecificConfig: {
+        external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
+      },
     }),
   ),
   ...makeNPMConfigVariants(

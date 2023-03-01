@@ -5,6 +5,7 @@ import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 
+import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
@@ -53,6 +54,10 @@ export function init(options: BrowserOptions): void {
       event.type === 'transaction' && event.transaction === '/404' ? null : event;
     filterTransactions.id = 'NextClient404Filter';
     scope.addEventProcessor(filterTransactions);
+
+    if (process.env.NODE_ENV === 'development') {
+      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    }
   });
 }
 

@@ -4,8 +4,19 @@
   "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
   "tests": [
     {
-      "testName": "Playwright tests",
-      "testCommand": "yarn test"
+      "testName": "Prod Mode",
+      "testCommand": "yarn test:prod"
+    },
+    {
+      "testName": "Dev Mode",
+      "testCommand": "yarn test:dev"
+    }
+  ],
+  "canaryVersions": [
+    {
+      "dependencyOverrides": {
+        "next": "latest"
+      }
     }
   ]
 }
