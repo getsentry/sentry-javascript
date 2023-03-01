@@ -1,8 +1,8 @@
-import { TextDecoder,TextEncoder } from 'util'
+import { TextDecoder, TextEncoder } from 'util';
 // @ts-ignore patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
-const patchedEncoder = !global.window.TextEncoder && (global.window.TextEncoder = TextEncoder) || true;
+const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-ignore patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
-const patchedDecoder = !global.window.TextDecoder && (global.window.TextDecoder = TextDecoder) || true;
+const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
 
 import { JSDOM } from 'jsdom';
 
@@ -52,7 +52,7 @@ describe('convertJSSelfProfileToSampledFormat', () => {
     patchedEncoder && delete global.window.TextEncoder;
     // @ts-ignore patch the encoder on the window, else importing JSDOM fails
     patchedDecoder && delete global.window.TextDecoder;
-  })
+  });
 
   it('gracefully handles empty profiles', () => {
     expect(() =>

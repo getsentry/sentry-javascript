@@ -11,8 +11,13 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfileStack, RawThreadCpuProfile, SentryProfile,ThreadCpuProfile  } from './jsSelfProfiling';
-
+import type {
+  JSSelfProfile,
+  JSSelfProfileStack,
+  RawThreadCpuProfile,
+  SentryProfile,
+  ThreadCpuProfile,
+} from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
 // Use 0 as main thread id which is identical to threadId in node:worker_threads
