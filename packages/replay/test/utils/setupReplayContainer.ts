@@ -1,4 +1,3 @@
-import { SESSION_IDLE_DURATION } from '../../src/constants';
 import { createEventBuffer } from '../../src/eventBuffer';
 import { ReplayContainer } from '../../src/replay';
 import type { RecordingOptions, ReplayPluginOptions } from '../../src/types';
@@ -28,7 +27,7 @@ export function setupReplayContainer({
 
   clearSession(replay);
   replay['_setInitialState']();
-  replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+  replay['_loadAndCheckSession']();
   replay['_isEnabled'] = true;
   replay.eventBuffer = createEventBuffer({
     useCompression: options?.useCompression || false,
