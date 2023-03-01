@@ -1,10 +1,8 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../utils/helpers';
-import { waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestPath, page }) => {
   // For this test, we skip all bundle tests, as we're only interested in Replay being correctly
@@ -27,10 +25,10 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayEvent0 = envelopeRequestParser(await reqPromise0) as ReplayEvent;
+  const replayEvent0 = getReplayEvent(await reqPromise0);
 
   await page.click('button');
-  const replayEvent1 = envelopeRequestParser(await reqPromise1) as ReplayEvent;
+  const replayEvent1 = getReplayEvent(await reqPromise1);
 
   expect(replayEvent0).toBeDefined();
   expect(replayEvent0).toEqual({
