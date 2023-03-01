@@ -1,3 +1,4 @@
+import fs from 'fs-extra';
 import path from 'path';
 
 import { ResultsAnalyzer } from '../../src/results/analyzer.js';
@@ -11,9 +12,16 @@ import { artifactName, baselineResultsDir, latestResultFile, previousResultsDir 
 const latestResult = Result.readFromFile(latestResultFile);
 const branch = await Git.branch;
 const baseBranch = await Git.baseBranch;
+const branchIsBase = await Git.branchIsBase;
 
 await GitHub.downloadPreviousArtifact(baseBranch, baselineResultsDir, artifactName);
-await GitHub.downloadPreviousArtifact(branch, previousResultsDir, artifactName);
+
+if (branchIsBase) {
+  await GitHub.downloadPreviousArtifact(branch, previousResultsDir, artifactName);
+} else {
+  // Copy over same results
+  await fs.copy(baselineResultsDir, previousResultsDir);
+}
 
 GitHub.writeOutput('artifactName', artifactName);
 GitHub.writeOutput('artifactPath', path.resolve(previousResultsDir));

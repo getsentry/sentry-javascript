@@ -53,6 +53,15 @@ export const Git = {
     }
   },
 
+  get branchIsBase(): Promise<boolean> {
+    return (async () => {
+      const branch = await this.branch;
+      const baseBranch = await this.baseBranch;
+
+      return branch === baseBranch;
+    })();
+  },
+
   get hash(): Promise<GitHash> {
     return (async () => {
       let gitHash = await git.revparse('HEAD');
