@@ -110,8 +110,7 @@ function parseOriginalCodeFrame(codeFrame: string): {
  * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
-  // Do to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the
-  // entire event processor.Symbolicated stack traces are just a nice to have.
+  // Due to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the  // entire event processor.Symbolicated stack traces are just a nice to have.
   try {
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
       const frames = stackTraceParser.parse(hint.originalException.stack);

@@ -25,8 +25,8 @@ const config: PlaywrightTestConfig = {
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: testEnv === 'development' ? 3 : 0, // `next dev` is incredibly buggy with the app dir
+  /* `next dev` is incredibly buggy with the app dir */
+  retries: testEnv === 'development' ? 3 : 0,
   /* Opt out of parallel tests on CI. */
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */

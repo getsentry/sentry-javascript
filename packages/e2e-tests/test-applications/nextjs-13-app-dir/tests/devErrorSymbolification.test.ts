@@ -7,15 +7,14 @@ test.describe('dev mode error symbolification', () => {
     return;
   }
 
-  test('should have symbaolicated dev errors', async ({ page }) => {
+  test('should have symbolicated dev errors', async ({ page }) => {
     await page.goto('/client-component');
 
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'client-component-button-click-error';
     });
 
-    const exceptionButton = page.locator('id=exception-button');
-    await exceptionButton.click();
+    await page.locator('id=exception-button').click();
 
     const errorEvent = await errorEventPromise;
     const errorEventFrames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
