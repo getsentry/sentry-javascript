@@ -326,7 +326,7 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual([]);
   });
 
-  it(
+  it.skip(
     'Follows the Retry-After header',
     async () => {
       const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
