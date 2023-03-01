@@ -10,6 +10,7 @@
     "build": "tsc",
     "dev:collect": "ts-node-esm ./configs/dev/collect.ts",
     "dev:process": "ts-node-esm ./configs/dev/process.ts",
+    "dev:run:replay": "npx chrome ./test-apps/booking-app/with-replay.html",
     "ci:collect": "ts-node-esm ./configs/ci/collect.ts",
     "ci:process": "ts-node-esm ./configs/ci/process.ts",
     "fix": "run-s fix:eslint fix:prettier",
