@@ -1,10 +1,8 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { ReplayEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../utils/helpers';
-import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
@@ -25,10 +23,10 @@ sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  const replayEvent0 = envelopeRequestParser(await reqPromise0) as ReplayEvent;
+  const replayEvent0 = getReplayEvent(await reqPromise0);
 
   await page.click('button');
-  const replayEvent1 = envelopeRequestParser(await reqPromise1) as ReplayEvent;
+  const replayEvent1 = getReplayEvent(await reqPromise1);
 
   expect(replayEvent0).toBeDefined();
   expect(replayEvent0).toEqual({
