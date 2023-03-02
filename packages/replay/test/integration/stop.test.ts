@@ -1,7 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
 import type { Replay } from '../../src';
-import { SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 // mock functions need to be imported first
@@ -44,7 +44,7 @@ describe('Integration | stop', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     sessionStorage.clear();
     clearSession(replay);
-    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+    replay['_loadAndCheckSession']();
     mockRecord.takeFullSnapshot.mockClear();
     mockAddInstrumentationHandler.mockClear();
     Object.defineProperty(WINDOW, 'location', {

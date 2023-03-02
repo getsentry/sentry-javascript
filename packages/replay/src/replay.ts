@@ -4,13 +4,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import {
-  ERROR_CHECKOUT_TIME,
-  MAX_SESSION_LIFE,
-  SESSION_IDLE_DURATION,
-  VISIBILITY_CHANGE_TIMEOUT,
-  WINDOW,
-} from './constants';
+import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -367,7 +361,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if session is not expired, false otherwise.
    * @hidden
    */
-  public checkAndHandleExpiredSession(expiry?: number): boolean | void {
+  public checkAndHandleExpiredSession(): boolean | void {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
@@ -382,7 +376,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    if (!this._loadAndCheckSession(expiry)) {
+    if (!this._loadAndCheckSession()) {
       return;
     }
 
@@ -412,9 +406,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Loads (or refreshes) the current session.
    * Returns false if session is not recorded.
    */
-  private _loadAndCheckSession(expiry = SESSION_IDLE_DURATION): boolean {
+  private _loadAndCheckSession(): boolean {
     const { type, session } = getSession({
-      expiry,
+      expiry: SESSION_IDLE_DURATION,
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -626,7 +620,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
+    const expired = isSessionExpired(this.session, SESSION_IDLE_DURATION);
 
     if (breadcrumb && !expired) {
       this._createCustomBreadcrumb(breadcrumb);
@@ -646,10 +640,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const isSessionActive = this.checkAndHandleExpiredSession(VISIBILITY_CHANGE_TIMEOUT);
+    const isSessionActive = this.checkAndHandleExpiredSession();
 
     if (!isSessionActive) {
-      // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
+      // If the user has come back to the page within SESSION_IDLE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
       __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');

@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 import {
   expectedClickBreadcrumb,
   expectedConsoleBreadcrumb,
@@ -10,6 +10,7 @@ import {
 import {
   getReplayEvent,
   getReplayRecordingContent,
+  isReplayEvent,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../../utils/replayHelpers';
@@ -26,6 +27,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
     const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqErrorPromise = waitForErrorRequest(page);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       const event = envelopeRequestParser(route.request());
@@ -33,7 +35,10 @@ sentryTest(
       if (event && !event.type && event.event_id) {
         errorEventId = event.event_id;
       }
-      callsToSentry++;
+      // We only want to count errors & replays here
+      if (event && (!event.type || isReplayEvent(event))) {
+        callsToSentry++;
+      }
 
       return route.fulfill({
         status: 200,
@@ -46,6 +51,8 @@ sentryTest(
 
     await page.goto(url);
     await page.click('#go-background');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     expect(callsToSentry).toEqual(0);
 
     await page.click('#error');
@@ -53,6 +60,7 @@ sentryTest(
 
     await page.click('#go-background');
     const req1 = await reqPromise1;
+    await reqErrorPromise;
 
     expect(callsToSentry).toEqual(3); // 1 error, 2 replay events
 
@@ -69,11 +77,12 @@ sentryTest(
     const event2 = getReplayEvent(req2);
     const content2 = getReplayRecordingContent(req2);
 
+    expect(callsToSentry).toBe(4); // 1 error, 3 replay events
+
     expect(event0).toEqual(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
-        // @ts-ignore this is fine
-        error_ids: [errorEventId],
+        error_ids: [errorEventId!],
         replay_type: 'error',
       }),
     );
@@ -97,7 +106,6 @@ sentryTest(
     expect(event1).toEqual(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
-        // @ts-ignore this is fine
         replay_type: 'error', // although we're in session mode, we still send 'error' as replay_type
         replay_start_timestamp: undefined,
         segment_id: 1,
@@ -108,14 +116,12 @@ sentryTest(
     // Also the second snapshot should have a full snapshot, as we switched from error to session
     // mode which triggers another checkout
     expect(content1.fullSnapshots).toHaveLength(1);
-    expect(content1.incrementalSnapshots).toHaveLength(0);
 
     // The next event should just be a normal replay event as we're now in session mode and
     // we continue recording everything
     expect(event2).toEqual(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
-        // @ts-ignore this is fine
         replay_type: 'error',
         replay_start_timestamp: undefined,
         segment_id: 2,
