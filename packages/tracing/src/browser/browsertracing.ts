@@ -100,7 +100,11 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    *
    * Default: undefined
    */
-  _experiments: Partial<{ enableLongTask: boolean; enableInteractions: boolean }>;
+  _experiments: Partial<{
+    enableLongTask: boolean;
+    enableInteractions: boolean;
+    onStartRouteTransaction: (t: Transaction | undefined, ctx: TransactionContext, getCurrentHub: () => Hub) => void;
+  }>;
 
   /**
    * beforeNavigate is called before a pageload/navigation transaction is created and allows users to modify transaction
@@ -211,7 +215,14 @@ export class BrowserTracing implements Integration {
     } = this.options;
 
     instrumentRouting(
-      (context: TransactionContext) => this._createRouteTransaction(context),
+      (context: TransactionContext) => {
+        const transaction = this._createRouteTransaction(context);
+
+        this.options._experiments.onStartRouteTransaction &&
+          this.options._experiments.onStartRouteTransaction(transaction, context, getCurrentHub);
+
+        return transaction;
+      },
       startTransactionOnPageLoad,
       startTransactionOnLocationChange,
     );
