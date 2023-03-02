@@ -12,6 +12,7 @@ import { addProfilingExtensionMethods } from './hubextensions';
  * integration less reliable as we might be dropping profiles when the cache is full.
  *
  * @experimental
+ */
 export class BrowserProfilingIntegration implements Integration {
   public readonly name: string = 'BrowserProfilingIntegration';
 
