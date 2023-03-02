@@ -5,7 +5,7 @@ import {
   DEFAULT_FLUSH_MIN_DELAY,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  VISIBILITY_CHANGE_TIMEOUT,
+  SESSION_IDLE_DURATION,
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -55,7 +55,7 @@ describe('Integration | session', () => {
     });
   });
 
-  it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
+  it('creates a new session and triggers a full dom snapshot when document becomes visible after [SESSION_IDLE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -65,7 +65,7 @@ describe('Integration | session', () => {
 
     const initialSession = replay.session;
 
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -75,7 +75,7 @@ describe('Integration | session', () => {
     expect(replay).not.toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session if user hides the tab and comes back within [VISIBILITY_CHANGE_TIMEOUT] seconds', () => {
+  it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_DURATION] seconds', () => {
     const initialSession = replay.session;
 
     Object.defineProperty(document, 'visibilityState', {
@@ -88,8 +88,8 @@ describe('Integration | session', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSameSession(initialSession);
 
-    // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 1);
+    // User comes back before `SESSION_IDLE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -184,7 +184,7 @@ describe('Integration | session', () => {
     expect(replay.session).toBe(undefined);
   });
 
-  it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
+  it('creates a new session and triggers a full dom snapshot when document becomes visible after [SESSION_IDLE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -194,7 +194,7 @@ describe('Integration | session', () => {
 
     const initialSession = replay.session;
 
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -204,7 +204,7 @@ describe('Integration | session', () => {
     expect(replay).not.toHaveSameSession(initialSession);
   });
 
-  it('creates a new session and triggers a full dom snapshot when document becomes focused after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
+  it('creates a new session and triggers a full dom snapshot when document becomes focused after [SESSION_IDLE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -214,7 +214,7 @@ describe('Integration | session', () => {
 
     const initialSession = replay.session;
 
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
     WINDOW.dispatchEvent(new Event('focus'));
 
@@ -224,7 +224,7 @@ describe('Integration | session', () => {
     expect(replay).not.toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session if user hides the tab and comes back within [VISIBILITY_CHANGE_TIMEOUT] seconds', () => {
+  it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_DURATION] seconds', () => {
     const initialSession = replay.session;
 
     Object.defineProperty(document, 'visibilityState', {
@@ -237,8 +237,8 @@ describe('Integration | session', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSameSession(initialSession);
 
-    // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 1);
+    // User comes back before `SESSION_IDLE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -451,7 +451,7 @@ describe('Integration | session', () => {
 
   it('increases segment id after each event', async () => {
     clearSession(replay);
-    replay['_loadAndCheckSession'](0);
+    replay['_loadAndCheckSession']();
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,

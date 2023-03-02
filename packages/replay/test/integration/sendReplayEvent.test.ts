@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
@@ -59,7 +59,7 @@ describe('Integration | sendReplayEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession'](0);
+    replay['_loadAndCheckSession']();
 
     mockSendReplayRequest.mockClear();
   });
@@ -69,7 +69,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+    replay['_loadAndCheckSession']();
   });
 
   afterAll(() => {
