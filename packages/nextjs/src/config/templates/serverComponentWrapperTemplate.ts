@@ -11,6 +11,9 @@
 import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
+// @ts-ignore TODO
+// eslint-disable-next-line import/no-unresolved
+import { headers } from 'next/headers';
 
 type ServerComponentModule = {
   default: unknown;
@@ -22,9 +25,30 @@ const serverComponent = serverComponentModule.default;
 
 let wrappedServerComponent;
 if (typeof serverComponent === 'function') {
-  wrappedServerComponent = Sentry.wrapServerComponentWithSentry(serverComponent, {
-    componentRoute: '__ROUTE__',
-    componentType: '__COMPONENT_TYPE__',
+  // TODO: explain why this code needs to be in this file
+  wrappedServerComponent = new Proxy(serverComponent, {
+    apply: (originalFunction, thisArg, args) => {
+      let sentryTraceHeader: string | undefined = undefined;
+      let baggageHeader: string | undefined = undefined;
+
+      if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        // @ts-ignore TODO
+        // eslint-disable-next-line import/no-unresolved
+        // const { headers } = await import('next/headers');
+        const headersList = headers();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        sentryTraceHeader = headersList.get('sentry-trace');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        baggageHeader = headersList.get('baggage');
+      }
+
+      return Sentry.wrapServerComponentWithSentry(originalFunction, {
+        componentRoute: '__ROUTE__',
+        componentType: '__COMPONENT_TYPE__',
+        sentryTraceHeader,
+        baggageHeader,
+      }).apply(thisArg, args);
+    },
   });
 } else {
   wrappedServerComponent = serverComponent;
