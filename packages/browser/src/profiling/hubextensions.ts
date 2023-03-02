@@ -28,6 +28,8 @@ function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof 
  * Safety wrapper for startTransaction for the unlikely case that transaction starts before tracing is imported -
  * if that happens we want to avoid throwing an error from profiling code.
  * see https://github.com/getsentry/sentry-javascript/issues/4731.
+ * 
+ * @experimental
  */
 export function onProfilingStartRouteTransaction(transaction: Transaction | undefined): Transaction | undefined {
   if (!transaction) {
