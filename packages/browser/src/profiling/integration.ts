@@ -10,7 +10,8 @@ import { addProfilingExtensionMethods } from './hubextensions';
  * in a synchronous context. Instead, we handle sending the profile async from the promise callback and
  * rely on being able to pull the event from the cache when we need to construct the envelope. This makes the
  * integration less reliable as we might be dropping profiles when the cache is full.
- */
+ *
+ * @experimental
 export class BrowserProfilingIntegration implements Integration {
   public readonly name: string = 'BrowserProfilingIntegration';
 
