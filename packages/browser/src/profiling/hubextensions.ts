@@ -119,10 +119,10 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
     if (__DEBUG_BUILD__) {
       logger.log(
         "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
-        );
-        logger.log('[Profiling] Disabling profiling for current user session.');
-      }
-      PROFILING_CONSTRUCTOR_FAILED = true;
+      );
+      logger.log('[Profiling] Disabling profiling for current user session.');
+    }
+    PROFILING_CONSTRUCTOR_FAILED = true;
   }
 
   // We failed to construct the profiler, fallback to original transaction - there is no need to log

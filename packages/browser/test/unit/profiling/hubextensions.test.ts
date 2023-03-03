@@ -39,9 +39,9 @@ describe('BrowserProfilingIntegration', () => {
       },
       getOptions() {
         return {
-            profilesSampleRate: 1,
-        }
-      }
+          profilesSampleRate: 1,
+        };
+      },
     };
 
     hub.bindClient(client);
@@ -67,7 +67,7 @@ describe('BrowserProfilingIntegration', () => {
     // @ts-ignore force api to be undefined
     global.window.Profiler = undefined;
     // set sampled to true so that profiling does not early return
-    const mockTransaction = {sampled: true} as Transaction
+    const mockTransaction = { sampled: true } as Transaction;
     expect(() => onProfilingStartRouteTransaction(mockTransaction)).not.toThrow();
   });
   it('does not throw if constructor throws', () => {
@@ -81,7 +81,7 @@ describe('BrowserProfilingIntegration', () => {
     }
 
     // set sampled to true so that profiling does not early return
-    const mockTransaction = {sampled: true} as Transaction
+    const mockTransaction = { sampled: true } as Transaction;
 
     // @ts-ignore override with our own constructor
     global.window.Profiler = Profiler;
