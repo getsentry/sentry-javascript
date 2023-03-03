@@ -169,6 +169,68 @@ describe('vueRouterInstrumentation()', () => {
     },
   );
 
+  it('allows to configure routeLabel=path', () => {
+    // create instrumentation
+    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'path' });
+
+    // instrument
+    instrument(mockStartTransaction, true, true);
+
+    // check
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes.normalRoute1;
+    const to = testRoutes.namedRoute;
+    beforeEachCallback(to, from, mockNext);
+
+    // first startTx call happens when the instrumentation is initialized (for pageloads)
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/login',
+      metadata: {
+        source: 'route',
+      },
+      data: {
+        params: to.params,
+        query: to.query,
+      },
+      op: 'navigation',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+  });
+
+  it('allows to configure routeLabel=name', () => {
+    // create instrumentation
+    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'name' });
+
+    // instrument
+    instrument(mockStartTransaction, true, true);
+
+    // check
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes.normalRoute1;
+    const to = testRoutes.namedRoute;
+    beforeEachCallback(to, from, mockNext);
+
+    // first startTx call happens when the instrumentation is initialized (for pageloads)
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: 'login-screen',
+      metadata: {
+        source: 'custom',
+      },
+      data: {
+        params: to.params,
+        query: to.query,
+      },
+      op: 'navigation',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+  });
+
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
     const mockedTxn = {
       setName: jest.fn(),
