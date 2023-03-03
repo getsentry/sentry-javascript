@@ -32,6 +32,7 @@ describe('Integration | rrweb', () => {
         "maskInputSelector": ".sentry-mask,[data-sentry-mask]",
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
+        "onMutation": [Function],
         "slimDOMOptions": "all",
         "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
         "unmaskInputSelector": ".sentry-unmask,[data-sentry-unmask]",
