@@ -8,7 +8,12 @@ import type { IdleTransaction } from '../idletransaction';
 import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
 import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
+import {
+  addPerformanceEntries,
+  startTrackingInteractions,
+  startTrackingLongTasks,
+  startTrackingWebVitals,
+} from './metrics';
 import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
@@ -187,6 +192,7 @@ export class BrowserTracing implements Integration {
     }
 
     startTrackingWebVitals();
+    startTrackingInteractions();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
