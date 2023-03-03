@@ -199,17 +199,18 @@ export class ReplayContainer implements ReplayContainerInterface {
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: this._handleRecordingEmit,
         onMutation: (mutations: unknown[]) => {
-          const count = mutations.length;
+          if (this._options._experiments.captureMutationSize) {
+            const count = mutations.length;
 
-          if (count > 500) {
-            const breadcrumb = createBreadcrumb({
-              category: 'replay.mutations',
-              message: `A mutation with ${count} changes was recorded, which may indicate slow performance.`,
-              data: {
-                mutationsCount: count,
-              },
-            });
-            this._createCustomBreadcrumb(breadcrumb);
+            if (count > 500) {
+              const breadcrumb = createBreadcrumb({
+                category: 'replay.mutations',
+                data: {
+                  length: count,
+                },
+              });
+              this._createCustomBreadcrumb(breadcrumb);
+            }
           }
           // `true` means we use the regular mutation handling by rrweb
           return true;
