@@ -1,14 +1,14 @@
 import { getClientIPAddress } from '../../src/utils/getIpAddress';
 
 class Headers {
-  private headers: Record<string, string> = {};
+  private _headers: Record<string, string> = {};
 
   get(key: string): string | null {
-    return this.headers[key] ?? null;
+    return this._headers[key] ?? null;
   }
 
   set(key: string, value: string): void {
-    this.headers[key] = value;
+    this._headers[key] = value;
   }
 }
 
