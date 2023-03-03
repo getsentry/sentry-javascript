@@ -10,6 +10,11 @@ export function ClientErrorDebugTools() {
   const [isFetchingAPIRoute, setIsFetchingAPIRoute] = useState<boolean>();
   const [isFetchingEdgeAPIRoute, setIsFetchingEdgeAPIRoute] = useState<boolean>();
   const [isFetchingExternalAPIRoute, setIsFetchingExternalAPIRoute] = useState<boolean>();
+  const [renderError, setRenderError] = useState<boolean>();
+
+  if (renderError) {
+    throw new Error('Render Error');
+  }
 
   return (
     <div>
@@ -36,6 +41,14 @@ export function ClientErrorDebugTools() {
         }}
       >
         Throw promise rejection
+      </button>
+      <br />
+      <button
+        onClick={() => {
+          setRenderError(true);
+        }}
+      >
+        Cause render error
       </button>
       <br />
       <br />

@@ -8,13 +8,13 @@ test.describe('dev mode error symbolification', () => {
   }
 
   test('should have symbolicated dev errors', async ({ page }) => {
-    await page.goto('/client-component');
+    await page.goto('/client-component/parameter/42');
 
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'client-component-button-click-error';
+      return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
     });
 
-    await page.locator('id=exception-button').click();
+    await page.getByText('Throw error').click();
 
     const errorEvent = await errorEventPromise;
     const errorEventFrames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;

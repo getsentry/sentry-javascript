@@ -9,19 +9,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1>Layout (/)</h1>
           <ul>
             <li>
+              <Link href="/">/</Link>
+            </li>
+            <li>
+              <Link href="/client-component">/client-component</Link>
+            </li>
+            <li>
+              <Link href="/client-component/parameter/42">/client-component/parameter/42</Link>
+            </li>
+            <li>
               <Link href="/client-component/parameter/foo/bar/baz">/client-component/parameter/foo/bar/baz</Link>
             </li>
             <li>
-              <Link href="/client-component/parameter/1/2">/client-component/parameter/1/2</Link>
+              <Link href="/server-component">/server-component</Link>
             </li>
             <li>
-              <Link href="/client-component/parameter/1/2">/client-component/parameter/1/2</Link>
+              <Link href="/server-component/parameter/42">/server-component/parameter/42</Link>
             </li>
             <li>
-              <Link href="/client-component/parameter/1/2">/client-component/parameter/1/2</Link>
-            </li>
-            <li>
-              <Link href="/client-component/parameter/1/2">/client-component/parameter/1/2</Link>
+              <Link href="/server-component/parameter/foo/bar/baz">/server-component/parameter/foo/bar/baz</Link>
             </li>
           </ul>
           <TransactionContextProvider>{children}</TransactionContextProvider>

@@ -1,9 +1,11 @@
-import { ClientErrorDebugTools } from '../../../components/client-error-debug-tools';
+'use client';
+
+import { ClientErrorDebugTools } from '../../components/client-error-debug-tools';
 
 export default function Page() {
   return (
     <div style={{ border: '1px solid lightgrey', padding: '12px' }}>
-      <h2>Page (/client-component/render-error)</h2>
+      <h2>Page (/client-component)</h2>
       <ClientErrorDebugTools />
     </div>
   );
