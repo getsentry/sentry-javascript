@@ -368,7 +368,6 @@ const testHarness = ({
     tracingOptions: {},
     trackComponents: [],
     timeout: 0,
-    routeLabel: 'name',
     hooks: [] as Operation[],
   };
 

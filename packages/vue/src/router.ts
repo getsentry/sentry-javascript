@@ -1,8 +1,17 @@
-import { captureException, getCurrentHub, WINDOW } from '@sentry/browser';
+import { captureException, WINDOW } from '@sentry/browser';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 import { getActiveTransaction } from './tracing';
-import type { Options } from './types';
+
+interface VueRouterInstrumationOptions {
+  /**
+   * What to use for route labels.
+   * By default, we use route.name (if set) and else the path.
+   *
+   * Default: 'name'
+   */
+  routeLabel: 'name' | 'path';
+}
 
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -36,12 +45,15 @@ interface VueRouter {
 /**
  * Creates routing instrumentation for Vue Router v2, v3 and v4
  *
+ * You can optionally pass in an options object with the available option:
+ * * `routeLabel`: Set this to `route` to opt-out of using `route.name` for transaction names.
+ *
  * @param router The Vue Router instance that is used
  */
-export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrumentation {
-  const client = getCurrentHub().getClient();
-  const options = ((client && client.getOptions()) || {}) as Partial<Options>;
-
+export function vueRouterInstrumentation(
+  router: VueRouter,
+  options: Partial<VueRouterInstrumationOptions> = {},
+): VueRouterInstrumentation {
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
     startTransactionOnPageLoad: boolean = true,
