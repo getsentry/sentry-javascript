@@ -192,9 +192,11 @@ export class BrowserTracing implements Integration {
     }
 
     startTrackingWebVitals();
-    startTrackingInteractions();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
+    }
+    if (this.options._experiments.enableInteractions) {
+      startTrackingInteractions();
     }
   }
 
