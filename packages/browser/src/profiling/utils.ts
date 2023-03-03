@@ -1,3 +1,4 @@
+import { DEFAULT_ENVIRONMENT } from '@sentry/core';
 import type {
   DsnComponents,
   DynamicSamplingContext,
@@ -222,7 +223,7 @@ export function createProfilingEventEnvelope(
     platform: 'javascript',
     version: '1',
     release: event.release || '',
-    environment: event.environment || '',
+    environment: event.environment || DEFAULT_ENVIRONMENT,
     runtime: {
       name: 'javascript',
       version: WINDOW.navigator.userAgent,
