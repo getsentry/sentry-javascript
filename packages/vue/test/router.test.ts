@@ -1,7 +1,8 @@
 import * as SentryBrowser from '@sentry/browser';
 import type { Transaction } from '@sentry/types';
+import { createApp } from 'vue';
 
-import { vueRouterInstrumentation } from '../src';
+import { init, vueRouterInstrumentation } from '../src';
 import type { Route } from '../src/router';
 import * as vueTracing from '../src/tracing';
 
@@ -168,6 +169,51 @@ describe('vueRouterInstrumentation()', () => {
       expect(mockNext).toHaveBeenCalledTimes(1);
     },
   );
+
+  it('allows to configure routeLabel=path', () => {
+    // Need to setup a proper client with options etc.
+    const app = createApp({
+      template: '<div>hello</div>',
+    });
+    const el = document.createElement('div');
+
+    init({
+      app,
+      defaultIntegrations: false,
+      routeLabel: 'path',
+    });
+
+    app.mount(el);
+
+    // create instrumentation
+    const instrument = vueRouterInstrumentation(mockVueRouter);
+
+    // instrument
+    instrument(mockStartTransaction, true, true);
+
+    // check
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes.normalRoute1;
+    const to = testRoutes.namedRoute;
+    beforeEachCallback(to, from, mockNext);
+
+    // first startTx call happens when the instrumentation is initialized (for pageloads)
+    expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      name: '/login',
+      metadata: {
+        source: 'route',
+      },
+      data: {
+        params: to.params,
+        query: to.query,
+      },
+      op: 'navigation',
+      tags: {
+        'routing.instrumentation': 'vue-router',
+      },
+    });
+  });
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
     const mockedTxn = {

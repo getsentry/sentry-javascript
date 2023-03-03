@@ -1,7 +1,8 @@
-import { captureException, WINDOW } from '@sentry/browser';
+import { captureException, getCurrentHub, WINDOW } from '@sentry/browser';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 
 import { getActiveTransaction } from './tracing';
+import type { Options } from './types';
 
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
@@ -38,6 +39,9 @@ interface VueRouter {
  * @param router The Vue Router instance that is used
  */
 export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrumentation {
+  const client = getCurrentHub().getClient();
+  const options = ((client && client.getOptions()) || {}) as Partial<Options>;
+
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
     startTransactionOnPageLoad: boolean = true,
@@ -81,7 +85,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       // Determine a name for the routing transaction and where that name came from
       let transactionName: string = to.path;
       let transactionSource: TransactionSource = 'url';
-      if (to.name) {
+      if (to.name && options.routeLabel !== 'path') {
         transactionName = to.name.toString();
         transactionSource = 'custom';
       } else if (to.matched[0] && to.matched[0].path) {

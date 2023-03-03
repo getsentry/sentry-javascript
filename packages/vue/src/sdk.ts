@@ -16,6 +16,7 @@ const DEFAULT_CONFIG: Options = {
   hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
+  routeLabel: 'name',
   _metadata: {
     sdk: {
       name: 'sentry.javascript.vue',

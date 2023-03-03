@@ -46,6 +46,14 @@ export interface Options extends TracingOptions, BrowserOptions {
 
   /** {@link TracingOptions} */
   tracingOptions?: Partial<TracingOptions>;
+
+  /**
+   * What to use for route labels.
+   * By default, we use route.name (if set) and else the path.
+   *
+   * Default: 'name'
+   */
+  routeLabel: 'name' | 'path';
 }
 
 /** Vue specific configuration for Tracing Integration  */
