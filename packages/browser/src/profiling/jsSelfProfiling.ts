@@ -32,7 +32,7 @@ export interface ProcessedJSSelfProfile extends JSSelfProfile {
 
 type BufferFullCallback = (trace: JSSelfProfile) => void;
 
-interface JSSelfProfiler {
+export interface JSSelfProfiler {
   sampleInterval: number;
   stopped: boolean;
 
@@ -40,13 +40,13 @@ interface JSSelfProfiler {
   addEventListener(event: 'samplebufferfull', callback: BufferFullCallback): void;
 }
 
-export declare const JSSelfProfiler: {
+export declare const JSSelfProfilerConstructor: {
   new (options: { sampleInterval: number; maxBufferSize: number }): JSSelfProfiler;
 };
 
 declare global {
   interface Window {
-    Profiler: typeof JSSelfProfiler | undefined;
+    Profiler: typeof JSSelfProfilerConstructor | undefined;
   }
 }
 

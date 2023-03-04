@@ -3,11 +3,19 @@ import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from
 import { logger, uuid4 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
-import type { JSSelfProfile, JSSelfProfiler, ProcessedJSSelfProfile } from './jsSelfProfiling';
+import type {
+  JSSelfProfile,
+  JSSelfProfiler,
+  JSSelfProfilerConstructor,
+  ProcessedJSSelfProfile,
+} from './jsSelfProfiling';
 import { sendProfile } from './sendProfile';
 
 // Max profile duration.
 const MAX_PROFILE_DURATION_MS = 30_000;
+// Keep a flag value to avoid re-initializing the profiler constructor. If it fails
+// once, it will always fail and this allows us to early return.
+let PROFILING_CONSTRUCTOR_FAILED = false;
 
 // While we experiment, per transaction sampling interval will be more flexible to work with.
 type StartTransaction = (
@@ -20,7 +28,7 @@ type StartTransaction = (
  * Check if profiler constructor is available.
  * @param maybeProfiler
  */
-function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfiler {
+function isJSProfilerSupported(maybeProfiler: unknown): maybeProfiler is typeof JSSelfProfilerConstructor {
   return typeof maybeProfiler === 'function';
 }
 
@@ -49,8 +57,9 @@ export function onProfilingStartRouteTransaction(transaction: Transaction | unde
  */
 function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   // Feature support check first
-  const JSProfiler = WINDOW.Profiler;
-  if (!isJSProfilerSupported(JSProfiler)) {
+  const JSProfilerConstructor = WINDOW.Profiler;
+
+  if (!isJSProfilerSupported(JSProfilerConstructor)) {
     if (__DEBUG_BUILD__) {
       logger.log(
         '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
@@ -63,6 +72,14 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   if (!transaction.sampled) {
     if (__DEBUG_BUILD__) {
       logger.log('[Profiling] Transaction is not sampled, skipping profiling');
+    }
+    return transaction;
+  }
+
+  // If constructor failed once, it will always fail, so we can early return.
+  if (PROFILING_CONSTRUCTOR_FAILED) {
+    if (__DEBUG_BUILD__) {
+      logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
     }
     return transaction;
   }
@@ -91,7 +108,29 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   const samplingIntervalMS = 10;
   // Start the profiler
   const maxSamples = Math.floor(MAX_PROFILE_DURATION_MS / samplingIntervalMS);
-  const profiler = new JSProfiler({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
+  let profiler: JSSelfProfiler | undefined;
+
+  // Attempt to initialize the profiler constructor, if it fails, we disable profiling for the current user session.
+  // This is likely due to a missing 'Document-Policy': 'js-profiling' header. We do not want to throw an error if this happens
+  // as we risk breaking the user's application, so just disable profiling and log an error.
+  try {
+    profiler = new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
+  } catch (e) {
+    if (__DEBUG_BUILD__) {
+      logger.log(
+        "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
+      );
+      logger.log('[Profiling] Disabling profiling for current user session.');
+    }
+    PROFILING_CONSTRUCTOR_FAILED = true;
+  }
+
+  // We failed to construct the profiler, fallback to original transaction - there is no need to log
+  // anything as we already did that in the try/catch block.
+  if (!profiler) {
+    return transaction;
+  }
+
   if (__DEBUG_BUILD__) {
     logger.log(`[Profiling] started profiling transaction: ${transaction.name || transaction.description}`);
   }
@@ -116,6 +155,10 @@ function wrapTransactionWithProfiling(transaction: Transaction): Transaction {
   function onProfileHandler(): void {
     // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
     if (!transaction) {
+      return;
+    }
+    // Satisfy the type checker, but profiler will always be defined here.
+    if (!profiler) {
       return;
     }
     if (processedProfile) {
