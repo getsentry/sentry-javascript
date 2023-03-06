@@ -29,7 +29,11 @@ for (let i = 0; i < 100; i++) {
       const reqPromise1 = waitForReplayRequest(page, 1);
       const reqPromise2 = waitForReplayRequest(page, 2);
 
+      let callsToSentry = 0;
+
       await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+        callsToSentry++;
+
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
