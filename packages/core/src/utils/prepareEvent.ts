@@ -1,6 +1,7 @@
 import type { ClientOptions, Event, EventHint, StackParser } from '@sentry/types';
 import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
+import { DEFAULT_ENVIRONMENT } from '../constants';
 import { Scope } from '../scope';
 
 /**
@@ -87,7 +88,7 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
   const { environment, release, dist, maxValueLength = 250 } = options;
 
   if (!('environment' in event)) {
-    event.environment = 'environment' in options ? environment : 'production';
+    event.environment = 'environment' in options ? environment : DEFAULT_ENVIRONMENT;
   }
 
   if (event.release === undefined && release !== undefined) {
