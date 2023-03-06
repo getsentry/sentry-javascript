@@ -52,7 +52,7 @@ export function getClientIPAddress(headers: Headers): string | null {
       return parseForwardedHeader(value);
     }
 
-    return value?.split(', ');
+    return value?.split(',').map((v: string) => v.trim());
   });
 
   // Flatten the array and filter out any falsy entries

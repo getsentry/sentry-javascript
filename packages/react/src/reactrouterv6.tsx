@@ -5,7 +5,7 @@ import { WINDOW } from '@sentry/browser';
 import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
-import React from 'react';
+import * as React from 'react';
 
 import type {
   Action,
