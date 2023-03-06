@@ -6,7 +6,10 @@ const config: PlaywrightTestConfig = {
   use: {
     baseURL: 'http://localhost:3000',
   },
+  // Run tests inside of a single file in parallel
   fullyParallel: true,
+  // Use 5 workers on CI, else use defaults (based on available CPU cores)
+  workers: process.env.CI ? 5 : undefined,
   webServer: {
     cwd: path.join(__dirname, 'test', 'integration'),
     command: 'yarn start',
