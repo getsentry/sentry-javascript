@@ -1,8 +1,8 @@
 import type { ClientOptions, CustomSamplingContext, Options, SamplingContext, TransactionContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
-import type { Hub } from '../';
-import { getMainCarrier } from '../';
+import type { Hub } from '../hub';
+import { getMainCarrier } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';

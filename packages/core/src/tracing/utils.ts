@@ -1,7 +1,7 @@
 import type { Transaction } from '@sentry/types';
 
-import type { Hub } from '..';
-import { getCurrentHub } from '..';
+import type { Hub } from '../hub';
+import { getCurrentHub } from '../hub';
 
 /**
  * The `extractTraceparentData` function and `TRACEPARENT_REGEXP` constant used

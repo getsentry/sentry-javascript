@@ -2,7 +2,7 @@
 import type { TransactionContext } from '@sentry/types';
 import { logger, timestampWithMs } from '@sentry/utils';
 
-import type { Hub } from '..';
+import type { Hub } from '../hub';
 import type { Span } from './span';
 import { SpanRecorder } from './span';
 import { Transaction } from './transaction';

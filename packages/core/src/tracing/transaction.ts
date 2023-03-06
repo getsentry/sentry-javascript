@@ -11,9 +11,9 @@ import type {
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
-import type { Hub } from '..';
-import { getCurrentHub } from '..';
 import { DEFAULT_ENVIRONMENT } from '../constants';
+import type { Hub } from '../hub';
+import { getCurrentHub } from '../hub';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
