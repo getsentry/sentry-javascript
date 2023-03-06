@@ -30,7 +30,7 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
   expect(eventData.spans).toHaveLength(1);
   const interactionSpan = eventData.spans![0];
   expect(interactionSpan.op).toBe('ui.action.click');
-  expect(interactionSpan.description).toBe('body > button#interaction-button');
+  expect(interactionSpan.description).toBe('body > button');
 });
 
 sentryTest('should create only one transaction per interaction', async ({ browserName, getLocalTestPath, page }) => {
