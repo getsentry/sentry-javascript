@@ -3,7 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { Span } from '../../../src';
-import { Postgres } from '../../../src/integrations/node/postgres';
+import { Postgres } from '../../../src/node/integrations/postgres';
 import { getTestClient } from '../../testutils';
 
 class PgClient {

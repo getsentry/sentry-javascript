@@ -1,7 +1,7 @@
 export * from './exports';
 
 import { addExtensionMethods } from './extensions';
-import * as Integrations from './node';
+import * as Integrations from './node/integrations';
 
 export { Integrations };
 
