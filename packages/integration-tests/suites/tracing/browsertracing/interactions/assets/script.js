@@ -1,4 +1,4 @@
-(() => {
+const delay = () => {
   const startTime = Date.now();
 
   function getElasped() {
@@ -9,4 +9,8 @@
   while (getElasped() < 105) {
     //
   }
-})();
+};
+
+document.getElementById('interaction-button').addEventListener('click', delay);
+
+delay();
