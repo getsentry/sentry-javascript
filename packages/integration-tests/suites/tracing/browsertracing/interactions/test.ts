@@ -27,7 +27,7 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
   expect(eventData.platform).toBe('javascript');
   expect(eventData.type).toBe('transaction');
 
-  expect(eventData.spans).toBeDefined();
+  expect(eventData.spans).toHaveLength(1);
   const interactionSpan = eventData.spans![0];
   expect(interactionSpan.op).toBe('ui.action.click');
   expect(interactionSpan.description).toBe('body > button');
