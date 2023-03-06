@@ -1,3 +1,5 @@
+/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
+
 import type { Hub } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';

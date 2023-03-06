@@ -1,7 +1,7 @@
 {
   "name": "@sentry/tracing",
   "version": "7.41.0",
-  "description": "Extensions for Sentry AM",
+  "description": "Sentry Performance Monitoring Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
   "author": "Sentry",

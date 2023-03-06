@@ -1,3 +1,4 @@
+/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Hub } from '@sentry/types';
 
 /**
