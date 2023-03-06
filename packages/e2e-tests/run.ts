@@ -174,6 +174,7 @@ type RecipeResult = {
 type Recipe = {
   testApplicationName: string;
   buildCommand?: string;
+  buildAssertionCommand?: string;
   buildTimeoutSeconds?: number;
   tests: {
     testName: string;
@@ -212,9 +213,9 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
       console.log(buildCommandProcess.stdout.replace(/^/gm, '[BUILD OUTPUT] '));
       console.log(buildCommandProcess.stderr.replace(/^/gm, '[BUILD OUTPUT] '));
 
-      const error: undefined | (Error & { code?: string }) = buildCommandProcess.error;
+      const buildCommandProcessError: undefined | (Error & { code?: string }) = buildCommandProcess.error;
 
-      if (error?.code === 'ETIMEDOUT') {
+      if (buildCommandProcessError?.code === 'ETIMEDOUT') {
         processShouldExitWithError = true;
 
         printCIErrorMessage(
@@ -238,6 +239,58 @@ const recipeResults: RecipeResult[] = recipePaths.map(recipePath => {
           buildFailed: true,
           testResults: [],
         };
+      }
+
+      if (recipe.buildAssertionCommand) {
+        console.log(
+          `Running E2E test build assertion for test application "${recipe.testApplicationName}"${dependencyOverridesInformationString}`,
+        );
+        const buildAssertionCommandProcess = childProcess.spawnSync(recipe.buildAssertionCommand, {
+          cwd: path.dirname(recipePath),
+          input: buildCommandProcess.stdout,
+          encoding: 'utf8',
+          shell: true, // needed so we can pass the build command in as whole without splitting it up into args
+          timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
+          env: {
+            ...process.env,
+            ...envVarsToInject,
+          },
+        });
+
+        // Prepends some text to the output build command's output so we can distinguish it from logging in this script
+        console.log(buildAssertionCommandProcess.stdout.replace(/^/gm, '[BUILD ASSERTION OUTPUT] '));
+        console.log(buildAssertionCommandProcess.stderr.replace(/^/gm, '[BUILD ASSERTION OUTPUT] '));
+
+        const buildAssertionCommandProcessError: undefined | (Error & { code?: string }) =
+          buildAssertionCommandProcess.error;
+
+        if (buildAssertionCommandProcessError?.code === 'ETIMEDOUT') {
+          processShouldExitWithError = true;
+
+          printCIErrorMessage(
+            `Build assertion in test application "${recipe.testApplicationName}" (${path.dirname(
+              recipePath,
+            )}) timed out!`,
+          );
+
+          return {
+            dependencyOverrides,
+            buildFailed: true,
+            testResults: [],
+          };
+        } else if (buildAssertionCommandProcess.status !== 0) {
+          processShouldExitWithError = true;
+
+          printCIErrorMessage(
+            `Build assertion in test application "${recipe.testApplicationName}" (${path.dirname(recipePath)}) failed!`,
+          );
+
+          return {
+            dependencyOverrides,
+            buildFailed: true,
+            testResults: [],
+          };
+        }
       }
     }
 
