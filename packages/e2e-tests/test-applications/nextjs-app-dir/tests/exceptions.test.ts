@@ -11,11 +11,10 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'I am a click error!';
+    return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
   });
 
-  const exceptionButton = page.locator('id=exception-button');
-  await exceptionButton.click();
+  await page.getByText('Throw error').click();
 
   const errorEvent = await errorEventPromise;
   const exceptionEventId = errorEvent.event_id;

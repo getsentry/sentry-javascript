@@ -52,11 +52,11 @@ if (process.env.TEST_ENV === 'production') {
     const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
       return (
         transactionEvent?.contexts?.trace?.op === 'function.nextjs' &&
-        transactionEvent?.transaction === 'Page Server Component (/user/[id])'
+        transactionEvent?.transaction === 'Page Server Component (/server-component/parameter/[...parameters])'
       );
     });
 
-    await page.goto('/user/4');
+    await page.goto('/server-component/parameter/1337/42');
 
     const transactionEvent = await serverComponentTransactionPromise;
     const transactionEventId = transactionEvent.event_id;

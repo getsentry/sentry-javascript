@@ -8,7 +8,7 @@ test.describe('dev mode error symbolification', () => {
   }
 
   test('should have symbolicated dev errors', async ({ page }) => {
-    await page.goto('/client-component/parameter/42');
+    await page.goto('/');
 
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
@@ -21,15 +21,15 @@ test.describe('dev mode error symbolification', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        filename: 'app/client-component/page.tsx',
-        abs_path: 'webpack-internal:///(app-client)/./app/client-component/page.tsx',
+        filename: 'components/client-error-debug-tools.tsx',
+        abs_path: 'webpack-internal:///(app-client)/./components/client-error-debug-tools.tsx',
         function: 'onClick',
         in_app: true,
-        lineno: 10,
+        lineno: 32,
         colno: 16,
-        pre_context: ['         id="exception-button"', '         onClick={() => {'],
-        context_line: "           throw new Error('client-component-button-click-error');",
-        post_context: ['         }}', '       >', '         throw'],
+        post_context: ['         }}', '       >', '         Throw error'],
+        context_line: "           throw new Error('Click Error');",
+        pre_context: ['       <button', '         onClick={() => {'],
       }),
     );
   });

@@ -17,6 +17,11 @@
       "dependencyOverrides": {
         "next": "latest"
       }
+    },
+    {
+      "dependencyOverrides": {
+        "next": "canary"
+      }
     }
   ]
 }
