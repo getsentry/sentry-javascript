@@ -117,16 +117,19 @@ function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; 
     startTimeOrNavigationActivation = (navEntry && navEntry.activationStart) || 0;
   }
 
-  const start = getAbsoluteTime(startTimeOrNavigationActivation);
+  // value is in ms
   const value = Math.max(startTime - startTimeOrNavigationActivation, 0);
+  // LCP doesn't have a "duration", it just happens at a single point in time.
+  // But the UI expects both, so use end (in seconds) for both timestamps.
+  const end = getAbsoluteTime(startTimeOrNavigationActivation) + value / 1000;
 
   return {
     type: entryType,
     name: entryType,
-    start,
-    end: start + value,
+    start: end,
+    end,
     data: {
-      value,
+      value, // LCP "duration" in ms
       size,
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,5 +1,4 @@
-import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
-import { hasTracingEnabled } from '@sentry/tracing';
+import { captureException, getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import {
   addExceptionMechanism,

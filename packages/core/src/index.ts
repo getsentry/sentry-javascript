@@ -31,6 +31,8 @@ export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';
 export { FunctionToString, InboundFilters } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';
+export { hasTracingEnabled } from './utils/hasTracingEnabled';
+export { DEFAULT_ENVIRONMENT } from './constants';
 
 import * as Integrations from './integrations';
 

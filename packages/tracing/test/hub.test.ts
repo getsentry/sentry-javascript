@@ -187,6 +187,57 @@ describe('Hub', () => {
         expect(transaction.sampled).toBe(true);
       });
 
+      it('should set sampled = true if enableTracing is true', () => {
+        const options = getDefaultBrowserClientOptions({ enableTracing: true });
+        const hub = new Hub(new BrowserClient(options));
+        makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.sampled).toBe(true);
+      });
+
+      it('should set sampled = false if enableTracing is true & tracesSampleRate is 0', () => {
+        const options = getDefaultBrowserClientOptions({ enableTracing: true, tracesSampleRate: 0 });
+        const hub = new Hub(new BrowserClient(options));
+        makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.sampled).toBe(false);
+      });
+
+      it('should set sampled = false if enableTracing is false & tracesSampleRate is 0', () => {
+        const options = getDefaultBrowserClientOptions({ enableTracing: false, tracesSampleRate: 0 });
+        const hub = new Hub(new BrowserClient(options));
+        makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(transaction.sampled).toBe(false);
+      });
+
+      it('should prefer tracesSampler returning false to enableTracing', () => {
+        // make the two options do opposite things to prove precedence
+        const tracesSampler = jest.fn().mockReturnValue(false);
+        const options = getDefaultBrowserClientOptions({ enableTracing: true, tracesSampler });
+        const hub = new Hub(new BrowserClient(options));
+        makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(false);
+      });
+
+      it('should prefer tracesSampler returning true to enableTracing', () => {
+        // make the two options do opposite things to prove precedence
+        const tracesSampler = jest.fn().mockReturnValue(true);
+        const options = getDefaultBrowserClientOptions({ enableTracing: false, tracesSampler });
+        const hub = new Hub(new BrowserClient(options));
+        makeMain(hub);
+        const transaction = hub.startTransaction({ name: 'dogpark' });
+
+        expect(tracesSampler).toHaveBeenCalled();
+        expect(transaction.sampled).toBe(true);
+      });
+
       it('should not try to override explicitly set positive sampling decision', () => {
         // so that the decision otherwise would be false
         const tracesSampler = jest.fn().mockReturnValue(0);

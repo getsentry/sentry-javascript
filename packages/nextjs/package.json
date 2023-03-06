@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "7.38.0",
+  "version": "7.41.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -18,16 +18,17 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "7.38.0",
-    "@sentry/integrations": "7.38.0",
-    "@sentry/node": "7.38.0",
-    "@sentry/react": "7.38.0",
-    "@sentry/tracing": "7.38.0",
-    "@sentry/types": "7.38.0",
-    "@sentry/utils": "7.38.0",
+    "@sentry/core": "7.41.0",
+    "@sentry/integrations": "7.41.0",
+    "@sentry/node": "7.41.0",
+    "@sentry/react": "7.41.0",
+    "@sentry/tracing": "7.41.0",
+    "@sentry/types": "7.41.0",
+    "@sentry/utils": "7.41.0",
     "@sentry/webpack-plugin": "1.20.0",
     "chalk": "3.0.0",
     "rollup": "2.78.0",
+    "stacktrace-parser": "^0.1.10",
     "tslib": "^1.9.3"
   },
   "devDependencies": {

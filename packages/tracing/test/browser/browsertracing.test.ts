@@ -142,6 +142,17 @@ describe('BrowserTracing', () => {
       customStartTransaction({ name: 'a/path', op: 'pageload' });
     };
 
+    it('_experiements calls onStartRouteTransaction on route instrumentation', () => {
+      const onStartTranscation = jest.fn();
+      createBrowserTracing(true, {
+        _experiments: {
+          onStartRouteTransaction: onStartTranscation,
+        },
+      });
+
+      expect(onStartTranscation).toHaveBeenCalledTimes(1);
+    });
+
     it('calls custom routing instrumenation', () => {
       createBrowserTracing(true, {
         routingInstrumentation: customInstrumentRouting,

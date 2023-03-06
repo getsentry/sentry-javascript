@@ -10,6 +10,7 @@ export * from './edge';
 import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';
+import type { ServerComponentContext } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
@@ -130,6 +131,49 @@ export declare function withSentryServerSideErrorGetInitialProps<F extends (...a
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
 
 /**
- * Wraps an `app` directory component with Sentry error instrumentation. (Currently only reports errors for server components)
+ * Wraps a `getServerSideProps` function with Sentry error and performance instrumentation.
+ *
+ * @param origGetServerSideProps The `getServerSideProps` function
+ * @param parameterizedRoute The page's parameterized route
+ * @returns A wrapped version of the function
  */
-export declare function wrapAppDirComponentWithSentry<F extends (...args: any[]) => any>(WrappingTarget: F): F;
+export declare function wrapGetServerSidePropsWithSentry<F extends (...args: any[]) => any>(
+  origGetServerSideProps: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapGetServerSidePropsWithSentry` instead.
+ */
+export declare function withSentryGetServerSideProps<F extends (...args: any[]) => any>(
+  origGetServerSideProps: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps a `getStaticProps` function with Sentry error and performance instrumentation.
+ *
+ * @param origGetStaticProps The `getStaticProps` function
+ * @param parameterizedRoute The page's parameterized route
+ * @returns A wrapped version of the function
+ */
+export declare function wrapGetStaticPropsWithSentry<F extends (...args: any[]) => any>(
+  origGetStaticPropsa: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * @deprecated Use `wrapGetStaticPropsWithSentry` instead.
+ */
+export declare function withSentryGetStaticProps<F extends (...args: any[]) => any>(
+  origGetStaticPropsa: F,
+  parameterizedRoute: string,
+): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>>;
+
+/**
+ * Wraps an `app` directory server component with Sentry error and performance instrumentation.
+ */
+export declare function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(
+  WrappingTarget: F,
+  context: ServerComponentContext,
+): F;

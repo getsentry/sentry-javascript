@@ -1,4 +1,4 @@
-import type { Options, Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
 
 import type { Hub } from '..';
 import { getCurrentHub } from '..';
@@ -16,19 +16,6 @@ import { getCurrentHub } from '..';
  * See https://github.com/getsentry/sentry-javascript/issues/4642 for more details.
  */
 export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
-
-/**
- * Determines if tracing is currently enabled.
- *
- * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
- */
-export function hasTracingEnabled(
-  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler'> | undefined,
-): boolean {
-  const client = getCurrentHub().getClient();
-  const options = maybeOptions || (client && client.getOptions());
-  return !!options && ('tracesSampleRate' in options || 'tracesSampler' in options);
-}
 
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {

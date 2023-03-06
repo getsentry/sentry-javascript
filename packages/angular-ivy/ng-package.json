@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "build",
+  "lib": {
+    "entryFile": "src/index.ts",
+    "umdModuleIds": {
+      "@sentry/browser": "Sentry",
+      "@sentry/utils": "Sentry.util"
+    }
+  },
+  "allowedNonPeerDependencies": ["@sentry/browser", "@sentry/utils", "@sentry/types", "tslib"],
+  "assets": ["README.md", "LICENSE"]
+}

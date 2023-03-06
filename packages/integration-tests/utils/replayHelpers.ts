@@ -1,12 +1,12 @@
 import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
 import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
 import pako from 'pako';
-import type { Page, Request } from 'playwright';
+import type { Page, Request, Response } from 'playwright';
 
 import { envelopeRequestParser } from './helpers';
 
 type CustomRecordingEvent = { tag: string; payload: Record<string, unknown> };
-type PerformanceSpan = {
+export type PerformanceSpan = {
   op: string;
   description: string;
   startTimestamp: number;
@@ -37,8 +37,10 @@ type SnapshotNode = {
  * @param segmentId the segment_id of the replay event
  * @returns
  */
-export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Request> {
-  return page.waitForRequest(req => {
+export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Response> {
+  return page.waitForResponse(res => {
+    const req = res.request();
+
     const postData = req.postData();
     if (!postData) {
       return false;
@@ -62,7 +64,7 @@ export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Re
   });
 }
 
-function isReplayEvent(event: Event): event is ReplayEvent {
+export function isReplayEvent(event: Event): event is ReplayEvent {
   return event.type === 'replay_event';
 }
 
@@ -78,7 +80,8 @@ export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
 
 export const REPLAY_DEFAULT_FLUSH_MAX_DELAY = 5_000;
 
-export function getReplayEvent(replayRequest: Request): ReplayEvent {
+export function getReplayEvent(resOrReq: Request | Response): ReplayEvent {
+  const replayRequest = getRequest(resOrReq);
   const event = envelopeRequestParser(replayRequest);
   if (!isReplayEvent(event)) {
     throw new Error('Request is not a replay event');
@@ -103,7 +106,8 @@ type RecordingContent = {
  * @param replayRequest
  * @returns an object containing the replay breadcrumbs and performance spans
  */
-export function getCustomRecordingEvents(replayRequest: Request): CustomRecordingContent {
+export function getCustomRecordingEvents(resOrReq: Request | Response): CustomRecordingContent {
+  const replayRequest = getRequest(resOrReq);
   const recordingEvents = getDecompressedRecordingEvents(replayRequest);
 
   const breadcrumbs = getReplayBreadcrumbs(recordingEvents);
@@ -128,23 +132,27 @@ function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): Performan
     .map(data => data.payload) as PerformanceSpan[];
 }
 
-export function getFullRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+export function getFullRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+  const replayRequest = getRequest(resOrReq);
   const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
   return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
 }
 
-function getincrementalRecordingSnapshots(replayRequest: Request): RecordingSnapshot[] {
+function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+  const replayRequest = getRequest(resOrReq);
   const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
   return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
 }
 
-function getDecompressedRecordingEvents(replayRequest: Request): RecordingEvent[] {
+function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingEvent[] {
+  const replayRequest = getRequest(resOrReq);
   return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
 }
 
-export function getReplayRecordingContent(replayRequest: Request): RecordingContent {
+export function getReplayRecordingContent(resOrReq: Request | Response): RecordingContent {
+  const replayRequest = getRequest(resOrReq);
   const fullSnapshots = getFullRecordingSnapshots(replayRequest);
-  const incrementalSnapshots = getincrementalRecordingSnapshots(replayRequest);
+  const incrementalSnapshots = getIncrementalRecordingSnapshots(replayRequest);
   const customEvents = getCustomRecordingEvents(replayRequest);
 
   return { fullSnapshots, incrementalSnapshots, ...customEvents };
@@ -216,10 +224,48 @@ export function shouldSkipReplayTest(): boolean {
  * files which break the tests on different machines.
  * Also, we need to normalize any time offsets as they can vary and cause flakes.
  */
-export function normalize(obj: unknown): string {
+export function normalize(
+  obj: unknown,
+  { normalizeNumberAttributes }: { normalizeNumberAttributes?: string[] } = {},
+): string {
   const rawString = JSON.stringify(obj, null, 2);
-  const normalizedString = rawString
+  let normalizedString = rawString
     .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
     .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+
+  if (normalizeNumberAttributes?.length) {
+    // We look for: "attr": "123px", "123", "123%", "123em", "123rem"
+    const regex = new RegExp(
+      `"(${normalizeNumberAttributes
+        .map(attr => `(?:${attr})`)
+        .join('|')})":\\s*"([\\d\\.]+)((?:px)|%|(?:em)(?:rem))?"`,
+      'gm',
+    );
+
+    normalizedString = normalizedString.replace(regex, (_, attr, num, unit) => {
+      // Remove floating points here, to ensure this is a bit less flaky
+      const integer = parseInt(num, 10);
+      const normalizedNum = normalizeNumberAttribute(integer);
+
+      return `"${attr}": "${normalizedNum}${unit || ''}"`;
+    });
+  }
+
   return normalizedString;
+}
+
+/**
+ * Map e.g. 16 to [0-50] or 123 to [100-150].
+ */
+function normalizeNumberAttribute(num: number): string {
+  const step = 50;
+  const stepCount = Math.floor(num / step);
+
+  return `[${stepCount * step}-${(stepCount + 1) * step}]`;
+}
+
+/** Get a request from either a request or a response */
+function getRequest(resOrReq: Request | Response): Request {
+  // @ts-ignore we check this
+  return typeof resOrReq.request === 'function' ? (resOrReq as Response).request() : (resOrReq as Request);
 }

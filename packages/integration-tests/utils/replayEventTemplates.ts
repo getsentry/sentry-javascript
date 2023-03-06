@@ -173,3 +173,15 @@ export const expectedNavigationBreadcrumb = {
     to: expect.any(String),
   },
 };
+
+export const expectedConsoleBreadcrumb = {
+  timestamp: expect.any(Number),
+  type: 'default',
+  category: 'console',
+  data: {
+    logger: 'console',
+    arguments: expect.any(Array),
+  },
+  level: expect.stringMatching(/(log|warn|error)/),
+  message: expect.any(String),
+};

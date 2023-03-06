@@ -1,14 +1,15 @@
 import type { Carrier } from '@sentry/core';
-import { getHubFromCarrier, getMainCarrier } from '@sentry/core';
+import { getHubFromCarrier, getMainCarrier, hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
 import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
+import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import type { IntegrationWithExclusionOption } from '../common/userIntegrations';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
@@ -79,7 +80,10 @@ export function init(options: NodeOptions): void {
   }
 
   buildMetadata(options, ['nextjs', 'node']);
-  options.environment = options.environment || process.env.NODE_ENV;
+
+  options.environment =
+    options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
+
   addServerIntegrations(options);
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;
@@ -109,6 +113,10 @@ export function init(options: NodeOptions): void {
     }
 
     scope.addEventProcessor(filterTransactions);
+
+    if (process.env.NODE_ENV === 'development') {
+      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    }
   });
 
   if (activeDomain) {
@@ -220,4 +228,4 @@ export {
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';
 
-export { wrapAppDirComponentWithSentry } from './wrapAppDirComponentWithSentry';
+export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';

@@ -13,6 +13,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import type { Hub } from '..';
 import { getCurrentHub } from '..';
+import { DEFAULT_ENVIRONMENT } from '../constants';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -260,7 +261,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction = source && source !== 'url' ? this.name : undefined;
 
     const dsc = dropUndefinedKeys({
-      environment,
+      environment: environment || DEFAULT_ENVIRONMENT,
       release,
       transaction,
       user_segment,

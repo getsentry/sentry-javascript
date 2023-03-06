@@ -9,14 +9,19 @@
   _namespace,
   _publicKey,
   _sdkBundleUrl,
-  _config
+  _config,
+  _lazy
 ) {
-  var lazy = true;
+  var lazy = _lazy;
   var forceLoad = false;
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
-      lazy = !(document.scripts[i].getAttribute('data-lazy') === 'no');
+      // If lazy was set to true above, we need to check if the user has set data-lazy="no"
+      // to confirm that we should lazy load the CDN bundle
+      if (lazy && document.scripts[i].getAttribute('data-lazy') === 'no') {
+        lazy = false;
+      }
       break;
     }
   }
@@ -217,4 +222,4 @@
   }
 })(window, document, 'script', 'onerror', 'onunhandledrejection', 'Sentry', 'loader.js', '../../build/bundles/bundle.js', {
   dsn: 'https://public@example.com/1'
-});
+}, true);

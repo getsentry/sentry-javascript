@@ -4,6 +4,56 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.41.0
+
+- feat: Ensure we use the same default `environment` everywhere (#7327)
+- feat(profiling): Add JS self profiling in the browser (#7273)
+- feat(vue): Allow to set `routeLabel: 'path'` to opt-out of using name (#7326)
+- fix(profiling): Guard from throwing if profiler constructor throws (#7328)
+- fix(react): Use namespace import for react router v6 (#7330)
+- fix(remix): Correctly parse `X-Forwarded-For` Http header (#7329)
+
+Work in this release contributed by @OliverJAsh. Thank you for your contribution!
+
+## 7.40.0
+
+- feat(nextjs): Automatically resolve source of errors in dev mode (#7294)
+- feat(vue): Log errors to the console by default (#7310)
+- fix(ember): Disable performance in FastBoot (#7282)
+- fix(serverless): Capture custom tags in error events of GCP functions (#7298)
+- fix(serverless): Capture custom tags in GCP Background and CloudEvent function error events (#7301)
+
+## 7.39.0
+
+This release adds a new package, `@sentry/angular-ivy`, which is our Angular SDK with full support for Angular's rendering engine, Ivy.
+
+This release also adds a new `enableTracing` option, which can be used instead of `tracesSampleRate` for an easier setup.
+Related to this, the `hasTracingEnabled` utility function was moved from `@sentry/tracing` to `@sentry/core`.
+The old export from `@sentry/tracing` has been deprecated and will be removed in v8.
+
+- feat(angular): Add Ivy-compatible Angular SDK package (#7264)
+- feat(core): Add source map images to `debug_meta` (#7168)
+- feat(loader): Make lazy-loading configurable (#7232)
+- feat(nextjs): Add performance monitoring to server components (#7242)
+- feat(nextjs): Default to `VERCEL_ENV` as environment (#7227)
+- feat(replay): Add more default block filters (#7233)
+- feat(tracing): Add `enableTracing` option (#7238)
+- fix(core): Exclude client reports from offline queuing (#7226)
+- fix(nextjs): Export serverside data-fetcher wrappers from client (#7256)
+- fix(replay): Fix timestamps on LCP (#7225)
+
+**Replay `rrweb` changes:**
+
+`@sentry-internal/rrweb` was updated from 1.103.0 to 1.104.1 (#7238):
+
+- feat: Export `typings/types` ([#60](https://github.com/getsentry/rrweb/pull/60))
+- feat: Remove `autoplay` attribute from audio/video tags ([#59](https://github.com/getsentry/rrweb/pull/59))
+- fix: Exclude `modulepreload` as well ([#52](https://github.com/getsentry/rrweb/pull/52))
+- fix: Handle removed attributes ([#65](https://github.com/getsentry/rrweb/pull/65))
+- fix: Masking inputs on change when `maskAllInputs:false` ([#61](https://github.com/getsentry/rrweb/pull/61))
+- fix: More robust `rootShadowHost` check ([#50](https://github.com/getsentry/rrweb/pull/50))
+- fix: Textarea value is being duplicated ([#62](https://github.com/getsentry/rrweb/pull/62))
+
 ## 7.38.0
 
 - feat: Put `abs_path` into stack frame object (#7167)
