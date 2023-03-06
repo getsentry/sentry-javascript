@@ -6,7 +6,7 @@ const config: PlaywrightTestConfig = {
   use: {
     baseURL: 'http://localhost:3000',
   },
-  workers: 3,
+  fullyParallel: true,
   webServer: {
     cwd: path.join(__dirname, 'test', 'integration'),
     command: 'yarn start',
