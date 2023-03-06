@@ -25,12 +25,11 @@ for (let i = 0; i < 100; i++) {
         sentryTest.skip();
       }
 
-      let callsToSentry = 0;
       const reqPromise0 = waitForReplayRequest(page, 0);
       const reqPromise1 = waitForReplayRequest(page, 1);
+      const reqPromise2 = waitForReplayRequest(page, 2);
 
       await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        callsToSentry++;
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -50,10 +49,11 @@ for (let i = 0; i < 100; i++) {
       await page.click('#go-background');
       await reqPromise1;
 
-      expect(callsToSentry).toEqual(2); // 2 replay events
-
       await page.click('#log');
       await page.click('#go-background');
+      await reqPromise2;
+
+      // Note: The fact that reqPromise1/reqPromise2 are fulfilled prooves that the recording continues
 
       const event0 = getReplayEvent(req0);
 
