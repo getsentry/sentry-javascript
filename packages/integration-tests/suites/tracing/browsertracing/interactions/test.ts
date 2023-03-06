@@ -6,7 +6,9 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
 sentryTest('should capture interaction transaction.', async ({ browserName, getLocalTestPath, page }) => {
-  if (browserName !== 'chromium') {
+  const supportedBrowsers = ['chromium', 'firefox'];
+
+  if (!supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
 
@@ -21,17 +23,12 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
   const eventData = envelopes[0];
 
-  expect(eventData).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: expect.objectContaining({
-          op: 'ui.action.click',
-        }),
-      }),
-      platform: 'javascript',
-      spans: [],
-      tags: {},
-      type: 'transaction',
-    }),
-  );
+  expect(eventData.contexts).toMatchObject({ trace: { op: 'ui.action.click' } });
+  expect(eventData.platform).toBe('javascript');
+  expect(eventData.type).toBe('transaction');
+
+  expect(eventData.spans).toBeDefined();
+  const interactionSpan = eventData.spans![0];
+  expect(interactionSpan.op).toBe('ui.action.click');
+  expect(interactionSpan.description).toBe('body > button');
 });
