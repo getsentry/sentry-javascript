@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.41.0
+
+- feat: Ensure we use the same default `environment` everywhere (#7327)
+- feat(profiling): Add JS self profiling in the browser (#7273)
+- feat(vue): Allow to set `routeLabel: 'path'` to opt-out of using name (#7326)
+- fix(profiling): Guard from throwing if profiler constructor throws (#7328)
+- fix(react): Use namespace import for react router v6 (#7330)
+- fix(remix): Correctly parse `X-Forwarded-For` Http header (#7329)
+
+Work in this release contributed by @OliverJAsh. Thank you for your contribution!
+
 ## 7.40.0
 
 - feat(nextjs): Automatically resolve source of errors in dev mode (#7294)
