@@ -25,7 +25,7 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",

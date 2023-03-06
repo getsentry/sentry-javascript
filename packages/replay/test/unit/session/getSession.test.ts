@@ -1,4 +1,4 @@
-import { WINDOW } from '../../../src/constants';
+import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from '../../../src/constants';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
@@ -42,7 +42,10 @@ describe('Unit | session | getSession', () => {
 
   it('creates a non-sticky session when one does not exist', function () {
     const { session } = getSession({
-      expiry: 900000,
+      timeouts: {
+        sessionIdle: SESSION_IDLE_DURATION,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: false,
       ...SAMPLE_RATES,
     });
@@ -66,7 +69,10 @@ describe('Unit | session | getSession', () => {
     saveSession(createMockSession(new Date().getTime() - 10000));
 
     const { session } = getSession({
-      expiry: 1000,
+      timeouts: {
+        sessionIdle: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: false,
       ...SAMPLE_RATES,
     });
@@ -79,7 +85,10 @@ describe('Unit | session | getSession', () => {
 
   it('creates a non-sticky session, when one is expired', function () {
     const { session } = getSession({
-      expiry: 1000,
+      timeouts: {
+        sessionIdle: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: false,
       ...SAMPLE_RATES,
       currentSession: makeSession({
@@ -102,7 +111,10 @@ describe('Unit | session | getSession', () => {
     expect(FetchSession.fetchSession()).toBe(null);
 
     const { session } = getSession({
-      expiry: 900000,
+      timeouts: {
+        sessionIdle: SESSION_IDLE_DURATION,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: true,
       sessionSampleRate: 1.0,
       errorSampleRate: 0.0,
@@ -134,7 +146,10 @@ describe('Unit | session | getSession', () => {
     saveSession(createMockSession(now));
 
     const { session } = getSession({
-      expiry: 1000,
+      timeouts: {
+        sessionIdle: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: true,
       sessionSampleRate: 1.0,
       errorSampleRate: 0.0,
@@ -157,7 +172,10 @@ describe('Unit | session | getSession', () => {
     saveSession(createMockSession(new Date().getTime() - 2000));
 
     const { session } = getSession({
-      expiry: 1000,
+      timeouts: {
+        sessionIdle: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: true,
       ...SAMPLE_RATES,
     });
@@ -173,7 +191,10 @@ describe('Unit | session | getSession', () => {
 
   it('fetches a non-expired non-sticky session', function () {
     const { session } = getSession({
-      expiry: 1000,
+      timeouts: {
+        sessionIdle: 1000,
+        maxSessionLife: MAX_SESSION_LIFE,
+      },
       stickySession: false,
       ...SAMPLE_RATES,
       currentSession: makeSession({

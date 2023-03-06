@@ -21,6 +21,7 @@ import type {
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   Session,
+  Timeouts,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
@@ -53,6 +54,15 @@ export class ReplayContainer implements ReplayContainerInterface {
    * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
+   * These are here so we can overwrite them in tests etc.
+   * @hidden
+   */
+  public readonly timeouts: Timeouts = {
+    sessionIdle: SESSION_IDLE_DURATION,
+    maxSessionLife: MAX_SESSION_LIFE,
+  } as const;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -368,7 +378,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
+    if (this._lastActivity && isExpired(this._lastActivity, this.timeouts.maxSessionLife)) {
       // Pause recording
       this.pause();
       return;
@@ -408,7 +418,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _loadAndCheckSession(): boolean {
     const { type, session } = getSession({
-      expiry: SESSION_IDLE_DURATION,
+      timeouts: this.timeouts,
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -517,7 +527,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   ) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
+      __DEBUG_BUILD__ && logger.warn('[Replay] Received replay event after session expired.');
 
       return;
     }
@@ -620,7 +630,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, SESSION_IDLE_DURATION);
+    const expired = isSessionExpired(this.session, this.timeouts);
 
     if (breadcrumb && !expired) {
       this._createCustomBreadcrumb(breadcrumb);

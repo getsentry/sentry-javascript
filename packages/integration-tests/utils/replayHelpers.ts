@@ -138,7 +138,7 @@ export function getFullRecordingSnapshots(resOrReq: Request | Response): Recordi
   return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
 }
 
-function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
   return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);

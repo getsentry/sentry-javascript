@@ -1,16 +1,13 @@
 import { logger } from '@sentry/utils';
 
-import type { Session, SessionOptions } from '../types';
+import type { Session, SessionOptions, Timeouts } from '../types';
 import { isSessionExpired } from '../util/isSessionExpired';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { makeSession } from './Session';
 
 interface GetSessionParams extends SessionOptions {
-  /**
-   * The length of time (in ms) which we will consider the session to be expired.
-   */
-  expiry: number;
+  timeouts: Timeouts;
 
   /**
    * The current session (e.g. if stickySession is off)
@@ -22,7 +19,7 @@ interface GetSessionParams extends SessionOptions {
  * Get or create a session
  */
 export function getSession({
-  expiry,
+  timeouts,
   currentSession,
   stickySession,
   sessionSampleRate,
@@ -35,7 +32,7 @@ export function getSession({
     // If there is a session, check if it is valid (e.g. "last activity" time
     // should be within the "session idle time", and "session started" time is
     // within "max session time").
-    const isExpired = isSessionExpired(session, expiry);
+    const isExpired = isSessionExpired(session, timeouts);
 
     if (!isExpired) {
       return { type: 'saved', session };
