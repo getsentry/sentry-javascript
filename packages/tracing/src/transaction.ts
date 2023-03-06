@@ -1,5 +1,5 @@
 import type { Hub } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
+import { DEFAULT_ENVIRONMENT, getCurrentHub } from '@sentry/core';
 import type {
   Context,
   Contexts,
@@ -260,7 +260,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const transaction = source && source !== 'url' ? this.name : undefined;
 
     const dsc = dropUndefinedKeys({
-      environment,
+      environment: environment || DEFAULT_ENVIRONMENT,
       release,
       transaction,
       user_segment,
