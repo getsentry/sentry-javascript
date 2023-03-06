@@ -1,6 +1,7 @@
-import type { Hub } from '@sentry/core';
-import { getCurrentHub, hasTracingEnabled as _hasTracingEnabled } from '@sentry/core';
-import type { Options, Transaction } from '@sentry/types';
+import type { Transaction } from '@sentry/types';
+
+import type { Hub } from '../hub';
+import { getCurrentHub } from '../hub';
 
 /**
  * The `extractTraceparentData` function and `TRACEPARENT_REGEXP` constant used
@@ -16,39 +17,11 @@ import type { Options, Transaction } from '@sentry/types';
  */
 export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
 
-/**
- * Determines if tracing is currently enabled.
- *
- * Tracing is enabled when at least one of `tracesSampleRate` and `tracesSampler` is defined in the SDK config.
- * @deprecated This export has moved to `@sentry/core`. This export will be removed from `@sentry/tracing` in v8.
- */
-export function hasTracingEnabled(
-  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'> | undefined,
-): boolean {
-  return _hasTracingEnabled(maybeOptions);
-}
-
 /** Grabs active transaction off scope, if any */
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
   const scope = hub.getScope();
   return scope && (scope.getTransaction() as T | undefined);
-}
-
-/**
- * Converts from milliseconds to seconds
- * @param time time in ms
- */
-export function msToSec(time: number): number {
-  return time / 1000;
-}
-
-/**
- * Converts from seconds to milliseconds
- * @param time time in seconds
- */
-export function secToMs(time: number): number {
-  return time * 1000;
 }
 
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils

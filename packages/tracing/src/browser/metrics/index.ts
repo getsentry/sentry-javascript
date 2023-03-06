@@ -1,10 +1,9 @@
 /* eslint-disable max-lines */
+import type { IdleTransaction, Transaction } from '@sentry/core';
+import { getActiveTransaction } from '@sentry/core';
 import type { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
-import type { IdleTransaction } from '../../idletransaction';
-import type { Transaction } from '../../transaction';
-import { getActiveTransaction, msToSec } from '../../utils';
 import { WINDOW } from '../types';
 import { onCLS } from '../web-vitals/getCLS';
 import { onFID } from '../web-vitals/getFID';
@@ -13,6 +12,14 @@ import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe } from '../web-vitals/lib/observe';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
+
+/**
+ * Converts from milliseconds to seconds
+ * @param time time in ms
+ */
+function msToSec(time: number): number {
+  return time / 1000;
+}
 
 function getBrowserPerformanceAPI(): Performance | undefined {
   return WINDOW && WINDOW.addEventListener && WINDOW.performance;
