@@ -26,6 +26,11 @@ describe('getClientIPAddress', () => {
       '2a01:cb19:8350:ed00:d0dd:INVALID_IP_ADDR:8be5,141.101.69.35,2a01:cb19:8350:ed00:d0dd:fa5b:de31:8be5',
       '141.101.69.35',
     ],
+    [
+      '2b01:cb19:8350:ed00:d0dd:fa5b:nope:8be5,   2b01:cb19:NOPE:ed00:d0dd:fa5b:de31:8be5,   141.101.69.35  ',
+      '141.101.69.35',
+    ],
+    ['2b01:cb19:8350:ed00:d0 dd:fa5b:de31:8be5, 141.101.69.35', '141.101.69.35'],
   ])('should parse the IP from the X-Forwarded-For header %s', (headerValue, expectedIP) => {
     const headers = new Headers();
     headers.set('X-Forwarded-For', headerValue);
