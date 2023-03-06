@@ -11,9 +11,11 @@
 import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
-// @ts-ignore TODO
+// @ts-ignore This template is only used with the app directory so we know that this dependency exists.
 // eslint-disable-next-line import/no-unresolved
 import { headers } from 'next/headers';
+
+declare function headers(): { get: (header: string) => string | undefined };
 
 type ServerComponentModule = {
   default: unknown;
@@ -32,13 +34,8 @@ if (typeof serverComponent === 'function') {
       let baggageHeader: string | undefined = undefined;
 
       if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        // @ts-ignore TODO
-        // eslint-disable-next-line import/no-unresolved
-        // const { headers } = await import('next/headers');
         const headersList = headers();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryTraceHeader = headersList.get('sentry-trace');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         baggageHeader = headersList.get('baggage');
       }
 
