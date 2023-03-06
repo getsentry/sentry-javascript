@@ -89,7 +89,7 @@ export function startTrackingInteractions(): void {
     }
   };
 
-  observe('event', entryHandler, { durationThreshold: 10 });
+  observe('event', entryHandler, { durationThreshold: 0 });
 }
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
