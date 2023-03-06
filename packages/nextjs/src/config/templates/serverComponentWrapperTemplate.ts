@@ -27,12 +27,16 @@ const serverComponent = serverComponentModule.default;
 
 let wrappedServerComponent;
 if (typeof serverComponent === 'function') {
-  // TODO: explain why this code needs to be in this file
+  // For some odd Next.js magic reason, `headers()` will not work if used inside `wrapServerComponentsWithSentry`.
+  // Current assumption is that Next.js applies some loader magic to userfiles, but not files in node_modules. This file
+  // is technically a userfile so it gets the loader magic applied.
   wrappedServerComponent = new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
       let sentryTraceHeader: string | undefined = undefined;
       let baggageHeader: string | undefined = undefined;
 
+      // If we call the headers function inside the build phase, Next.js will automatically mark the server component as
+      // dynamic(SSR) which we do not want in case the users have a static component.
       if (process.env.NEXT_PHASE !== 'phase-production-build') {
         const headersList = headers();
         sentryTraceHeader = headersList.get('sentry-trace');
