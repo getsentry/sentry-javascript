@@ -107,7 +107,7 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this.restartIdleTimeout();
+    this._restartIdleTimeout();
     setTimeout(() => {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
@@ -235,7 +235,7 @@ export class IdleTransaction extends Transaction {
   /**
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
-  private restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
+  private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
     this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
@@ -274,7 +274,7 @@ export class IdleTransaction extends Transaction {
       } else {
         // We need to add the timeout here to have the real endtimestamp of the transaction
         // Remember timestampWithMs is in seconds, timeout is in ms
-        this.restartIdleTimeout(endTimestamp + this._idleTimeout / 1000);
+        this._restartIdleTimeout(endTimestamp + this._idleTimeout / 1000);
       }
     }
   }
