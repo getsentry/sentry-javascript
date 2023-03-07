@@ -85,6 +85,10 @@ function isFullSnapshot(event: RecordingEvent): event is FullRecordingSnapshot {
   return event.type === EventType.FullSnapshot;
 }
 
+function isCustomSnapshot(event: RecordingEvent): event is RecordingEvent & { data: CustomRecordingEvent } {
+  return event.type === EventType.Custom;
+}
+
 /**
  * This returns the replay container (assuming it exists).
  * Note that due to how this works with playwright, this is a POJO copy of replay.
@@ -146,10 +150,10 @@ export function getCustomRecordingEvents(resOrReq: Request | Response): CustomRe
 }
 
 function getAllCustomRrwebRecordingEvents(recordingEvents: RecordingEvent[]): CustomRecordingEvent[] {
-  return recordingEvents.filter(event => event.type === 5).map(event => event.data as CustomRecordingEvent);
+  return recordingEvents.filter(isCustomSnapshot).map(event => event.data);
 }
 
-function getReplayBreadcrumbs(recordingEvents: RecordingEvent[], category?: string): Breadcrumb[] {
+function getReplayBreadcrumbs(recordingEvents: RecordingSnapshot[], category?: string): Breadcrumb[] {
   return getAllCustomRrwebRecordingEvents(recordingEvents)
     .filter(data => data.tag === 'breadcrumb')
     .map(data => data.payload)
