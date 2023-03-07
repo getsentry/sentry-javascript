@@ -1,3 +1,5 @@
+import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry-internal/rrweb';
 import type {
   InternalEventContext,
   RecordingEvent,
@@ -20,9 +22,17 @@ export type PerformanceSpan = {
   data: Record<string, number>;
 };
 
-type RecordingSnapshot = eventWithTime & {
+export type FullRecordingSnapshot = eventWithTime & {
   timestamp: 0;
+  data: fullSnapshotEvent['data'];
 };
+
+export type IncrementalRecordingSnapshot = eventWithTime & {
+  timestamp: 0;
+  data: incrementalSnapshotEvent['data'];
+};
+
+export type RecordingSnapshot = FullRecordingSnapshot | IncrementalRecordingSnapshot;
 
 /**
  * Waits for a replay request to be sent by the page and returns it.
@@ -65,6 +75,14 @@ export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Re
 
 export function isReplayEvent(event: Event): event is ReplayEvent {
   return event.type === 'replay_event';
+}
+
+function isIncrementalSnapshot(event: RecordingEvent): event is IncrementalRecordingSnapshot {
+  return event.type === EventType.IncrementalSnapshot;
+}
+
+function isFullSnapshot(event: RecordingEvent): event is FullRecordingSnapshot {
+  return event.type === EventType.FullSnapshot;
 }
 
 /**
@@ -144,16 +162,16 @@ function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): Performan
     .map(data => data.payload) as PerformanceSpan[];
 }
 
-export function getFullRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+export function getFullRecordingSnapshots(resOrReq: Request | Response): FullRecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   const events = getDecompressedRecordingEvents(replayRequest);
-  return events.filter(event => event.type === 2);
+  return events.filter(isFullSnapshot);
 }
 
-export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): IncrementalRecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   const events = getDecompressedRecordingEvents(replayRequest);
-  return events.filter(event => event.type === 3);
+  return events.filter(isIncrementalSnapshot);
 }
 
 function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
@@ -166,7 +184,7 @@ function getDecompressedRecordingEvents(resOrReq: Request | Response): Recording
         event => typeof event.data === 'object' && event.data && (event.data as Record<string, unknown>).source !== 1,
       )
       .map(event => {
-        return { ...event, timestamp: 0 };
+        return { ...event, timestamp: 0 } as RecordingSnapshot;
       })
   );
 }
