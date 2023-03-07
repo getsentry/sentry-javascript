@@ -7,6 +7,6 @@ describe('SvelteKit SDK', () => {
     expect(SentryClient).toBeDefined();
     expect(SentryServer).toBeDefined();
     expect(SentryClient.init).toBeDefined();
-    expect(SentryServer.init).toBeDefined()
-  })
-})
+    expect(SentryServer.init).toBeDefined();
+  });
+});
