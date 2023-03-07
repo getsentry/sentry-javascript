@@ -16,17 +16,17 @@
     ".": {
       "import": "./build/npm/esm/index.js",
       "require": "./build/npm/cjs/index.js",
-      "types": "./build/npm/types/index.d.ts"
+      "default": "./build/npm/cjs/index.js"
     },
     "./node": {
       "import": "./build/npm/esm/node/index.js",
       "require": "./build/npm/cjs/node/index.js",
-      "types": "./build/npm/types/node/index.d.ts"
+      "default": "./build/npm/cjs/node/index.js"
     },
     "./browser": {
       "import": "./build/npm/esm/browser/index.js",
       "require": "./build/npm/cjs/browser/index.js",
-      "types": "./build/npm/types/browser/index.d.ts"
+      "default": "./build/npm/browser/node/index.js"
     }
   },
   "typesVersions": {

@@ -47,7 +47,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "yarn build",
+    "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup --config rollup.bundle.config.js",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",

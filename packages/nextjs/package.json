@@ -17,7 +17,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@rollup/plugin-commonjs": "24.0.0",
+    "@rollup/plugin-commonjs": "24.0.1",
     "@sentry/core": "7.41.0",
     "@sentry/integrations": "7.41.0",
     "@sentry/node": "7.41.0",
