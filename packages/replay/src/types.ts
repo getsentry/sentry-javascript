@@ -277,6 +277,7 @@ export interface EventBuffer {
 
   /**
    * Add an event to the event buffer.
+   * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
    *
    * Returns a promise that resolves if the event was successfully added, else rejects.
    */

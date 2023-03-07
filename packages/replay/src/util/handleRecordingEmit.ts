@@ -1,8 +1,7 @@
 import { logger } from '@sentry/utils';
 
-import type { ReplayContainer } from '../replay';
 import { saveSession } from '../session/saveSession';
-import type { RecordingEvent } from '../types';
+import type { RecordingEvent, ReplayContainer } from '../types';
 import { addEvent } from './addEvent';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
@@ -13,7 +12,9 @@ type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => vo
  * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
  */
 export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCallback {
-  return (event: RecordingEvent, isCheckout?: boolean) => {
+  let hadFirstEvent = false;
+
+  return (event: RecordingEvent, _isCheckout?: boolean) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!replay.checkAndHandleExpiredSession()) {
       __DEBUG_BUILD__ && logger.warn('[Replay] Received replay event after session expired.');
@@ -21,13 +22,19 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       return;
     }
 
+    // `_isCheckout` is only set when the checkout is due to `checkoutEveryNms`
+    // We also want to treat the first event as a checkout, so we handle this specifically here
+    const isCheckout = _isCheckout || !hadFirstEvent;
+    hadFirstEvent = true;
+
+    // The handler returns `true` if we do not want to trigger debounced flush, `false` if we want to debounce flush.
     replay.addUpdate(() => {
       // The session is always started immediately on pageload/init, but for
       // error-only replays, it should reflect the most recent checkout
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (replay.recordingMode === 'error' && event.type === 2) {
+      if (replay.recordingMode === 'error' && isCheckout) {
         replay.setInitialState();
       }
 
@@ -37,7 +44,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-      if (event.type !== 2) {
+      if (!isCheckout) {
         return false;
       }
 
