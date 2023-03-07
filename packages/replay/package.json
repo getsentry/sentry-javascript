@@ -25,7 +25,7 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",
@@ -44,7 +44,7 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "7.41.0",
-    "@sentry-internal/rrweb": "1.104.1",
+    "@sentry-internal/rrweb": "1.105.0",
     "jsdom-worker": "^0.2.1",
     "tslib": "^1.9.3"
   },

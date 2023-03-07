@@ -3,7 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { Span } from '../../src';
-import { GraphQL } from '../../src/integrations/node/graphql';
+import { GraphQL } from '../../src/node/integrations/graphql';
 import { getTestClient } from '../testutils';
 
 const GQLExecute = {

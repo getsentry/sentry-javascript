@@ -3,7 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { Span } from '../../src';
-import { Apollo } from '../../src/integrations/node/apollo';
+import { Apollo } from '../../src/node/integrations/apollo';
 import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {

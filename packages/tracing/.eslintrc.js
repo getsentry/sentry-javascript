@@ -2,7 +2,7 @@ module.exports = {
   extends: ['../../.eslintrc.js'],
   overrides: [
     {
-      files: ['src/integrations/node/**'],
+      files: ['src/node/**'],
       rules: {
         '@sentry-internal/sdk/no-optional-chaining': 'off',
       },
