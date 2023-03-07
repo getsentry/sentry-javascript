@@ -15,25 +15,25 @@ function _autoloadDatabaseIntegrations(): void {
 
   const packageToIntegrationMapping: Record<string, () => Integration> = {
     mongodb() {
-      const integration = dynamicRequire(module, './integrations/node/mongo') as {
+      const integration = dynamicRequire(module, './node/integrations/mongo') as {
         Mongo: IntegrationClass<Integration>;
       };
       return new integration.Mongo();
     },
     mongoose() {
-      const integration = dynamicRequire(module, './integrations/node/mongo') as {
+      const integration = dynamicRequire(module, './node/integrations/mongo') as {
         Mongo: IntegrationClass<Integration>;
       };
       return new integration.Mongo({ mongoose: true });
     },
     mysql() {
-      const integration = dynamicRequire(module, './integrations/node/mysql') as {
+      const integration = dynamicRequire(module, './node/integrations/mysql') as {
         Mysql: IntegrationClass<Integration>;
       };
       return new integration.Mysql();
     },
     pg() {
-      const integration = dynamicRequire(module, './integrations/node/postgres') as {
+      const integration = dynamicRequire(module, './node/integrations/postgres') as {
         Postgres: IntegrationClass<Integration>;
       };
       return new integration.Postgres();

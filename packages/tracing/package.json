@@ -1,7 +1,7 @@
 {
   "name": "@sentry/tracing",
   "version": "7.41.0",
-  "description": "Extensions for Sentry AM",
+  "description": "Sentry Performance Monitoring Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
   "author": "Sentry",
@@ -12,6 +12,36 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./build/npm/esm/index.js",
+      "require": "./build/npm/cjs/index.js",
+      "types": "./build/npm/types/index.d.ts"
+    },
+    "./node": {
+      "import": "./build/npm/esm/node/index.js",
+      "require": "./build/npm/cjs/node/index.js",
+      "types": "./build/npm/types/node/index.d.ts"
+    },
+    "./browser": {
+      "import": "./build/npm/esm/browser/index.js",
+      "require": "./build/npm/cjs/browser/index.js",
+      "types": "./build/npm/types/browser/index.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./build/npm/types/index.d.ts"
+      ],
+      "node": [
+        "./build/npm/types/node/index.d.ts"
+      ],
+      "browser": [
+        "./build/npm/types/browser/index.d.ts"
+      ]
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
