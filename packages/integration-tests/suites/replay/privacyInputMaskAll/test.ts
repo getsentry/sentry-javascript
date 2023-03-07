@@ -44,13 +44,13 @@ sentryTest(
 
     const text = 'test';
 
-    await page.locator('#input').type(text);
+    await page.locator('#input').fill(text);
     await forceFlushReplay();
     const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#input-unmasked').type(text);
+    await page.locator('#input-unmasked').fill(text);
     await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];
@@ -86,13 +86,13 @@ sentryTest(
 
     const text = 'test';
 
-    await page.locator('#textarea').type(text);
+    await page.locator('#textarea').fill(text);
     await forceFlushReplay();
     const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#textarea-unmasked').type(text);
+    await page.locator('#textarea-unmasked').fill(text);
     await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];

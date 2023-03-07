@@ -45,19 +45,19 @@ sentryTest(
 
     const text = 'test';
 
-    await page.locator('#input').type(text);
+    await page.locator('#input').fill(text);
     await forceFlushReplay();
     const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe(text);
 
-    await page.locator('#input-masked').type(text);
+    await page.locator('#input-masked').fill(text);
     await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];
     expect(lastSnapshot2.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#input-ignore').type(text);
+    await page.locator('#input-ignore').fill(text);
     await forceFlushReplay();
     const snapshots3 = getIncrementalRecordingSnapshots(await reqPromise3).filter(isInputMutation);
     expect(snapshots3.length).toBe(0);
@@ -91,19 +91,19 @@ sentryTest(
     await reqPromise0;
 
     const text = 'test';
-    await page.locator('#textarea').type(text);
+    await page.locator('#textarea').fill(text);
     await forceFlushReplay();
     const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe(text);
 
-    await page.locator('#textarea-masked').type(text);
+    await page.locator('#textarea-masked').fill(text);
     await forceFlushReplay();
     const snapshots2 = getIncrementalRecordingSnapshots(await reqPromise2).filter(isInputMutation);
     const lastSnapshot2 = snapshots2[snapshots2.length - 1];
     expect(lastSnapshot2.data.text).toBe('*'.repeat(text.length));
 
-    await page.locator('#textarea-ignore').type(text);
+    await page.locator('#textarea-ignore').fill(text);
     await forceFlushReplay();
     const snapshots3 = getIncrementalRecordingSnapshots(await reqPromise3).filter(isInputMutation);
     expect(snapshots3.length).toBe(0);
