@@ -1,39 +1,44 @@
 [
   {
-    "source": 1,
-    "positions": [
-      {
-        "x": 41,
-        "y": 90,
-        "id": 12,
-        "timeOffset": [timeOffset]
-      }
-    ]
+    "type": 3,
+    "data": {
+      "source": 2,
+      "type": 1,
+      "id": 12,
+      "x": 41,
+      "y": 90
+    },
+    "timestamp": [timestamp]
   },
   {
-    "source": 2,
-    "type": 1,
-    "id": 12,
-    "x": 41,
-    "y": 90
+    "type": 3,
+    "data": {
+      "source": 2,
+      "type": 5,
+      "id": 12
+    },
+    "timestamp": [timestamp]
   },
   {
-    "source": 2,
-    "type": 5,
-    "id": 12
+    "type": 3,
+    "data": {
+      "source": 2,
+      "type": 0,
+      "id": 12,
+      "x": 41,
+      "y": 90
+    },
+    "timestamp": [timestamp]
   },
   {
-    "source": 2,
-    "type": 0,
-    "id": 12,
-    "x": 41,
-    "y": 90
-  },
-  {
-    "source": 2,
-    "type": 2,
-    "id": 12,
-    "x": 41,
-    "y": 90
+    "type": 3,
+    "data": {
+      "source": 2,
+      "type": 2,
+      "id": 12,
+      "x": 41,
+      "y": 90
+    },
+    "timestamp": [timestamp]
   }
 ]
