@@ -16,7 +16,13 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
 ];
 
 // These packages don't support Node 8 for syntax or dependency reasons.
-const NODE_8_SKIP_TESTS_PACKAGES = ['@sentry/gatsby', '@sentry/serverless', '@sentry/nextjs', '@sentry/remix', '@sentry/sveltekit'];
+const NODE_8_SKIP_TESTS_PACKAGES = [
+  '@sentry/gatsby',
+  '@sentry/serverless',
+  '@sentry/nextjs',
+  '@sentry/remix',
+  '@sentry/sveltekit',
+];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
 const NODE_8_LEGACY_DEPENDENCIES = [
@@ -24,6 +30,7 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'jest@25.x',
   'jest-environment-jsdom@25.x',
   'jest-environment-node@25.x',
+  'jest-resolver@25.x',
   'ts-jest@25.x',
   'lerna@3.13.4',
 ];
@@ -35,7 +42,6 @@ const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit'];
 const NODE_12_LEGACY_DEPENDENCIES = ['lerna@3.13.4'];
 
 const NODE_14_SKIP_TESTS_PACKAGES = ['@sentry/sveltekit'];
-
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
