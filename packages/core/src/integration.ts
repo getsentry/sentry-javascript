@@ -40,7 +40,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
     integrationsByName[name] = currentInstance;
   });
 
-  return Object.values(integrationsByName);
+  return Object.keys(integrationsByName).map(k => integrationsByName[k]);
 }
 
 /** Gets integrations to install */
