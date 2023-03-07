@@ -4,9 +4,11 @@ import { createContext, PropsWithChildren, useState } from 'react';
 import { Transaction } from '@sentry/types';
 import { startTransaction, getCurrentHub } from '@sentry/nextjs';
 
-export const TransactionContext = createContext<{ transactionActive: boolean; toggle: () => void }>({
+export const TransactionContext = createContext<
+  { transactionActive: false; start: (transactionName: string) => void } | { transactionActive: true; stop: () => void }
+>({
   transactionActive: false,
-  toggle: () => undefined,
+  start: () => undefined,
 });
 
 export function TransactionContextProvider({ children }: PropsWithChildren) {
@@ -14,19 +16,24 @@ export function TransactionContextProvider({ children }: PropsWithChildren) {
 
   return (
     <TransactionContext.Provider
-      value={{
-        transactionActive: !!transaction,
-        toggle: () => {
-          if (transaction) {
-            transaction.finish();
-            setTransaction(undefined);
-          } else {
-            const t = startTransaction({ name: 'Manual Transaction' });
-            getCurrentHub().getScope()?.setSpan(t);
-            setTransaction(t);
-          }
-        },
-      }}
+      value={
+        transaction
+          ? {
+              transactionActive: true,
+              stop: () => {
+                transaction.finish();
+                setTransaction(undefined);
+              },
+            }
+          : {
+              transactionActive: false,
+              start: (transactionName: string) => {
+                const t = startTransaction({ name: transactionName });
+                getCurrentHub().getScope()?.setSpan(t);
+                setTransaction(t);
+              },
+            }
+      }
     >
       {children}
     </TransactionContext.Provider>
