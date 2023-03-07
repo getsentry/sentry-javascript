@@ -4,7 +4,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
+import { ERROR_CHECKOUT_TIME, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -365,10 +365,10 @@ export class ReplayContainer implements ReplayContainerInterface {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
-    // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
+    // SESSION_IDLE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
+    if (this._lastActivity && isExpired(this._lastActivity, SESSION_IDLE_DURATION)) {
       // Pause recording
       this.pause();
       return;
