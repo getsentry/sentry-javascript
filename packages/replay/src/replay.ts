@@ -206,7 +206,7 @@ export class ReplayContainer implements ReplayContainerInterface {
               const breadcrumb = createBreadcrumb({
                 category: 'replay.mutations',
                 data: {
-                  length: count,
+                  count,
                 },
               });
               this._createCustomBreadcrumb(breadcrumb);
