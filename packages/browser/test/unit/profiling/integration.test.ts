@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { getCurrentHub } from '@sentry/core';
 import type { Event } from '@sentry/types';
 import { TextDecoder, TextEncoder } from 'util';
 
