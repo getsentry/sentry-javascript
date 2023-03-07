@@ -115,7 +115,8 @@
     "typescript": "3.8.3"
   },
   "resolutions": {
-    "**/agent-base": "5"
+    "**/agent-base": "5",
+    "**/jest-resolve": "29.5.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript"

@@ -39,5 +39,8 @@ export { BrowserProfilingIntegration } from './profiling/integration';
 // __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_END__
 
 // __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_BEGIN__
+// Need to disable import/no-unresolved since it does not work with the exports field
+// https://github.com/import-js/eslint-plugin-import/issues/1810
+// eslint-disable-next-line import/no-unresolved
 export { addTracingExtensions, BrowserTracing, instrumentOutgoingRequests } from '@sentry/tracing/browser';
 // __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_END__
