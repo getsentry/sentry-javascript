@@ -1,13 +1,12 @@
 import { test } from '@playwright/test';
-import * as crypto from 'crypto';
 import { waitForTransaction } from '../../../test-utils/event-proxy-server';
 
 if (process.env.TEST_ENV === 'production') {
   // TODO: Fix that this is flakey on dev server - might be an SDK bug
-  test('Sends connected traces for server components', async ({ page }) => {
+  test('Sends connected traces for server components', async ({ page }, testInfo) => {
     await page.goto('/client-component');
 
-    const clientTransactionName = crypto.randomUUID();
+    const clientTransactionName = `e2e-next-js-app-dir: ${testInfo.title}`;
 
     const serverComponentTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
       return (
