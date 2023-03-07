@@ -253,41 +253,6 @@ describe('IdleTransaction', () => {
     });
   });
 
-  describe('restartIdleTimeout', () => {
-    it('does not finish if idle timeout is restarted', () => {
-      const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
-      transaction.initSpanRecorder(10);
-
-      const span = transaction.startChild({});
-      span.finish();
-
-      jest.advanceTimersByTime(8);
-
-      transaction.restartIdleTimeout();
-
-      jest.advanceTimersByTime(8);
-
-      expect(transaction.endTimestamp).toBeUndefined();
-    });
-
-    it('finish when restarted idleTimeout is exceeded after last activity finished', () => {
-      const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
-      transaction.initSpanRecorder(10);
-
-      const span = transaction.startChild({});
-      span.finish();
-
-      jest.advanceTimersByTime(2);
-
-      transaction.restartIdleTimeout();
-
-      jest.advanceTimersByTime(10);
-      expect(transaction.endTimestamp).toBeDefined();
-    });
-  });
-
   describe('cancelIdleTimeout', () => {
     it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
       const idleTimeout = 10;

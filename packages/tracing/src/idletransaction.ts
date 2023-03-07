@@ -204,18 +204,6 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
-   * Restarts idle timeout, if there is no running idle timeout it will start one.
-   */
-  public restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
-    this.cancelIdleTimeout();
-    this._idleTimeoutID = setTimeout(() => {
-      if (!this._finished && Object.keys(this.activities).length === 0) {
-        this.finish(endTimestamp);
-      }
-    }, this._idleTimeout);
-  }
-
-  /**
    * Cancels the existing idle timeout, if there is one.
    * @param restartOnChildSpanChange Default is `true`.
    *                                 If set to false the transaction will end
@@ -240,6 +228,18 @@ export class IdleTransaction extends Transaction {
         this.finish(endTimestamp);
       }
     }
+  }
+
+  /**
+   * Restarts idle timeout, if there is no running idle timeout it will start one.
+   */
+  private restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
+    this.cancelIdleTimeout();
+    this._idleTimeoutID = setTimeout(() => {
+      if (!this._finished && Object.keys(this.activities).length === 0) {
+        this.finish(endTimestamp);
+      }
+    }, this._idleTimeout);
   }
 
   /**
