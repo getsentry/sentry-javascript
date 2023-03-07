@@ -1,13 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForError } from '../../../test-utils/event-proxy-server';
-import axios, { AxiosError } from 'axios';
+import { pollEventOnSentry } from '../../../test-utils/playwright-poll-sentry-event';
 
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 30_000;
-
-test('Sends a client-side exception to Sentry', async ({ page }) => {
+test('Sends an ingestable client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
@@ -19,31 +14,22 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   const errorEvent = await errorEventPromise;
   const exceptionEventId = errorEvent.event_id;
 
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
+  expect(exceptionEventId).toBeDefined();
+  await pollEventOnSentry(exceptionEventId!);
 });
+
+// test('Sends an ingestable route handler exception to Sentry', async ({ page }) => {
+//   await page.goto('/');
+
+//   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+//     return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
+//   });
+
+//   await page.getByText('Throw error').click();
+
+//   const errorEvent = await errorEventPromise;
+//   const exceptionEventId = errorEvent.event_id;
+
+//   expect(exceptionEventId).toBeDefined();
+//   await pollEventOnSentry(exceptionEventId!);
+// });
