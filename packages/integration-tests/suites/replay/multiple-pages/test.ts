@@ -45,12 +45,21 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
+    const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise3 = waitForReplayRequest(page, 3);
+    const reqPromise4 = waitForReplayRequest(page, 4);
+    const reqPromise5 = waitForReplayRequest(page, 5);
+    const reqPromise6 = waitForReplayRequest(page, 6);
+    const reqPromise7 = waitForReplayRequest(page, 7);
+    const reqPromise8 = waitForReplayRequest(page, 8);
+    const reqPromise9 = waitForReplayRequest(page, 9);
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    const replayEvent0 = getReplayEvent(await reqPromise0);
-    const recording0 = getReplayRecordingContent(await reqPromise0);
+    const req0 = await reqPromise0;
+    const replayEvent0 = getReplayEvent(req0);
+    const recording0 = getReplayRecordingContent(req0);
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
     expect(normalize(recording0.fullSnapshots)).toMatchSnapshot('seg-0-snap-full');
@@ -58,8 +67,9 @@ sentryTest(
 
     await page.click('#go-background');
 
-    const replayEvent1 = getReplayEvent(await reqPromise1);
-    const recording1 = getReplayRecordingContent(await reqPromise1);
+    const req1 = await reqPromise1;
+    const replayEvent1 = getReplayEvent(req1);
+    const recording1 = getReplayRecordingContent(req1);
 
     expect(replayEvent1).toEqual(
       getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }),
@@ -91,11 +101,9 @@ sentryTest(
 
     await page.reload();
 
-    const reqPromise2 = waitForReplayRequest(page, 2);
-    const reqPromise3 = waitForReplayRequest(page, 3);
-
-    const replayEvent2 = getReplayEvent(await reqPromise2);
-    const recording2 = getReplayRecordingContent(await reqPromise2);
+    const req2 = await reqPromise2;
+    const replayEvent2 = getReplayEvent(req2);
+    const recording2 = getReplayRecordingContent(req2);
 
     expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2, replay_start_timestamp: undefined }));
     expect(normalize(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
@@ -103,8 +111,9 @@ sentryTest(
 
     await page.click('#go-background');
 
-    const replayEvent3 = getReplayEvent(await reqPromise3);
-    const recording3 = getReplayRecordingContent(await reqPromise3);
+    const req3 = await reqPromise3;
+    const replayEvent3 = getReplayEvent(req3);
+    const recording3 = getReplayRecordingContent(req3);
 
     expect(replayEvent3).toEqual(
       getExpectedReplayEvent({ segment_id: 3, urls: [], replay_start_timestamp: undefined }),
@@ -134,11 +143,9 @@ sentryTest(
 
     await page.click('a');
 
-    const reqPromise4 = waitForReplayRequest(page, 4);
-    const reqPromise5 = waitForReplayRequest(page, 5);
-
-    const replayEvent4 = getReplayEvent(await reqPromise4);
-    const recording4 = getReplayRecordingContent(await reqPromise4);
+    const req4 = await reqPromise4;
+    const replayEvent4 = getReplayEvent(req4);
+    const recording4 = getReplayRecordingContent(req4);
 
     expect(replayEvent4).toEqual(
       getExpectedReplayEvent({
@@ -161,8 +168,9 @@ sentryTest(
 
     await page.click('#go-background');
 
-    const replayEvent5 = getReplayEvent(await reqPromise5);
-    const recording5 = getReplayRecordingContent(await reqPromise5);
+    const req5 = await reqPromise5;
+    const replayEvent5 = getReplayEvent(req5);
+    const recording5 = getReplayRecordingContent(req5);
 
     expect(replayEvent5).toEqual(
       getExpectedReplayEvent({
@@ -207,9 +215,9 @@ sentryTest(
 
     await page.click('#spa-navigation');
 
-    const reqPromise6 = waitForReplayRequest(page, 6);
-    const replayEvent6 = getReplayEvent(await reqPromise6);
-    const recording6 = getReplayRecordingContent(await reqPromise6);
+    const req6 = await reqPromise6;
+    const replayEvent6 = getReplayEvent(req6);
+    const recording6 = getReplayRecordingContent(req6);
 
     expect(replayEvent6).toEqual(
       getExpectedReplayEvent({
@@ -231,9 +239,9 @@ sentryTest(
 
     await page.click('#go-background');
 
-    const reqPromise7 = waitForReplayRequest(page, 7);
-    const replayEvent7 = getReplayEvent(await reqPromise7);
-    const recording7 = getReplayRecordingContent(await reqPromise7);
+    const req7 = await reqPromise7;
+    const replayEvent7 = getReplayEvent(req7);
+    const recording7 = getReplayRecordingContent(req7);
 
     expect(replayEvent7).toEqual(
       getExpectedReplayEvent({
@@ -279,11 +287,9 @@ sentryTest(
 
     await page.click('a');
 
-    const reqPromise8 = waitForReplayRequest(page, 8);
-    const reqPromise9 = waitForReplayRequest(page, 9);
-
-    const replayEvent8 = getReplayEvent(await reqPromise8);
-    const recording8 = getReplayRecordingContent(await reqPromise8);
+    const req8 = await reqPromise8;
+    const replayEvent8 = getReplayEvent(req8);
+    const recording8 = getReplayRecordingContent(req8);
 
     expect(replayEvent8).toEqual(
       getExpectedReplayEvent({
@@ -296,8 +302,9 @@ sentryTest(
 
     await page.click('#go-background');
 
-    const replayEvent9 = getReplayEvent(await reqPromise9);
-    const recording9 = getReplayRecordingContent(await reqPromise9);
+    const req9 = await reqPromise9;
+    const replayEvent9 = getReplayEvent(req9);
+    const recording9 = getReplayRecordingContent(req9);
 
     expect(replayEvent9).toEqual(
       getExpectedReplayEvent({
