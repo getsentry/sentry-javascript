@@ -12,7 +12,7 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
     return;
   }
 
-  if (['ui.click', 'ui.input'].includes(breadcrumb.category || '')) {
+  if (['ui.click', 'ui.input'].includes(breadcrumb.category as string)) {
     replay.triggerUserActivity();
   } else {
     replay.checkAndHandleExpiredSession();
