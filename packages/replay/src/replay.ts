@@ -208,6 +208,23 @@ export class ReplayContainer implements ReplayContainerInterface {
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: this._handleRecordingEmit,
+        onMutation: (mutations: unknown[]) => {
+          if (this._options._experiments.captureMutationSize) {
+            const count = mutations.length;
+
+            if (count > 500) {
+              const breadcrumb = createBreadcrumb({
+                category: 'replay.mutations',
+                data: {
+                  count,
+                },
+              });
+              this._createCustomBreadcrumb(breadcrumb);
+            }
+          }
+          // `true` means we use the regular mutation handling by rrweb
+          return true;
+        },
       });
     } catch (err) {
       this._handleException(err);
