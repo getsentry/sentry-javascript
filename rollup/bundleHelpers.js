@@ -34,6 +34,7 @@ export function makeBaseBundleConfig(options) {
     includeReplay,
     includeOffline,
     includeBrowserProfiling,
+    includeBrowserTracing,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -43,8 +44,9 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
   const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
-  const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
-  const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
+  const excludeOfflineTransportPlugin = makeExcludeBlockPlugin('OFFLINE');
+  const excludeBrowserProfilingPlugin = makeExcludeBlockPlugin('BROWSER_PROFILING');
+  const excludeBrowserTracingPlugin = makeExcludeBlockPlugin('BROWSER_TRACING');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -66,11 +68,15 @@ export function makeBaseBundleConfig(options) {
   }
 
   if (!includeOffline) {
-    standAloneBundleConfig.plugins.push(excludeOfflineTransport);
+    standAloneBundleConfig.plugins.push(excludeOfflineTransportPlugin);
   }
 
   if (!includeBrowserProfiling) {
-    standAloneBundleConfig.plugins.push(excludeBrowserProfiling);
+    standAloneBundleConfig.plugins.push(excludeBrowserProfilingPlugin);
+  }
+
+  if (!includeBrowserTracing) {
+    standAloneBundleConfig.plugins.push(excludeBrowserTracingPlugin);
   }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)

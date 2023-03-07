@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Hub, IdleTransaction } from '@sentry/core';
+import { Hub, IdleTransaction, addTracingExtensions } from '@sentry/core';
 import { extractTraceparentData, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
@@ -165,6 +165,8 @@ export class BrowserTracing implements Integration {
   private _latestRouteSource?: TransactionSource;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
+    addTracingExtensions();
+
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
       ..._options,

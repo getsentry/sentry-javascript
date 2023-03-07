@@ -37,3 +37,7 @@ export { makeBrowserOfflineTransport } from './transports/offline';
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
 export { BrowserProfilingIntegration } from './profiling/integration';
 // __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_END__
+
+// __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_BEGIN__
+export { addTracingExtensions, BrowserTracing, instrumentOutgoingRequests } from '@sentry/tracing/browser';
+// __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_END__

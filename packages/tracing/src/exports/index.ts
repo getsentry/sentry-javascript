@@ -2,6 +2,7 @@ export {
   extractTraceparentData,
   getActiveTransaction,
   hasTracingEnabled,
+  addTracingExtensions,
   IdleTransaction,
   Span,
   // eslint-disable-next-line deprecation/deprecation
