@@ -16,7 +16,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
 ];
 
 // These packages don't support Node 8 for syntax or dependency reasons.
-const NODE_8_SKIP_TESTS_PACKAGES = ['@sentry/gatsby', '@sentry/serverless', '@sentry/nextjs', '@sentry/remix'];
+const NODE_8_SKIP_TESTS_PACKAGES = ['@sentry/gatsby', '@sentry/serverless', '@sentry/nextjs', '@sentry/remix', '@sentry/sveltekit'];
 
 // We have to downgrade some of our dependencies in order to run tests in Node 8 and 10.
 const NODE_8_LEGACY_DEPENDENCIES = [
@@ -28,11 +28,14 @@ const NODE_8_LEGACY_DEPENDENCIES = [
   'lerna@3.13.4',
 ];
 
-const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
+const NODE_10_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit'];
 const NODE_10_LEGACY_DEPENDENCIES = ['jsdom@16.x', 'lerna@3.13.4'];
 
-const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix'];
+const NODE_12_SKIP_TESTS_PACKAGES = ['@sentry/remix', '@sentry/sveltekit'];
 const NODE_12_LEGACY_DEPENDENCIES = ['lerna@3.13.4'];
+
+const NODE_14_SKIP_TESTS_PACKAGES = ['@sentry/sveltekit'];
+
 
 type JSONValue = string | number | boolean | null | JSONArray | JSONObject;
 
@@ -130,6 +133,9 @@ function runTests(): void {
       NODE_12_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
       installLegacyDeps(NODE_12_LEGACY_DEPENDENCIES);
       es6ifyTestTSConfig('utils');
+      break;
+    case '14':
+      NODE_14_SKIP_TESTS_PACKAGES.forEach(dep => ignores.add(dep));
       break;
   }
 

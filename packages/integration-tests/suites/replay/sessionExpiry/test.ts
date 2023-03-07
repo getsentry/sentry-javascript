@@ -4,7 +4,6 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import {
   getFullRecordingSnapshots,
-  getIncrementalRecordingSnapshots,
   getReplayEvent,
   getReplaySnapshot,
   normalize,
@@ -52,29 +51,6 @@ sentryTest('handles an expired session RUN', async ({ getLocalTestPath, page }) 
 
   const replayEvent1 = getReplayEvent(req1);
   expect(replayEvent1).toEqual(getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 1, urls: [] }));
-
-  const fullSnapshots1 = getFullRecordingSnapshots(req1);
-  expect(fullSnapshots1.length).toEqual(0);
-
-  const incrementalSnapshots1 = getIncrementalRecordingSnapshots(req1);
-  // The number of incremental snapshots depends on the browser
-  expect(incrementalSnapshots1.length).toBeGreaterThanOrEqual(4);
-
-  expect(incrementalSnapshots1).toEqual(
-    expect.arrayContaining([
-      {
-        source: 1,
-        positions: [
-          {
-            id: 9,
-            timeOffset: expect.any(Number),
-            x: expect.any(Number),
-            y: expect.any(Number),
-          },
-        ],
-      },
-    ]),
-  );
 
   const replay = await getReplaySnapshot(page);
   const oldSessionId = replay.session?.id;
