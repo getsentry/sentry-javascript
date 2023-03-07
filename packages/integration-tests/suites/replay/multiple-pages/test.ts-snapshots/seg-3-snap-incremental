@@ -2,21 +2,6 @@
   {
     "type": 3,
     "data": {
-      "source": 1,
-      "positions": [
-        {
-          "x": 41,
-          "y": 18,
-          "id": 9,
-          "timeOffset": [timeOffset]
-        }
-      ]
-    },
-    "timestamp": [timestamp]
-  },
-  {
-    "type": 3,
-    "data": {
       "source": 2,
       "type": 1,
       "id": 9,

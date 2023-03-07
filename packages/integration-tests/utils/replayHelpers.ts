@@ -140,11 +140,17 @@ export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): 
 
 function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  return (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .map(event => {
-      return { ...event, timestamp: 0 };
-    });
+  return (
+    (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
+      .sort((a, b) => a.timestamp - b.timestamp)
+      // source 1 is MouseMove, which is a bit flaky and we don't care about
+      .filter(
+        event => typeof event.data === 'object' && event.data && (event.data as Record<string, unknown>).source !== 1,
+      )
+      .map(event => {
+        return { ...event, timestamp: 0 };
+      })
+  );
 }
 
 export function getReplayRecordingContent(resOrReq: Request | Response): RecordingContent {
