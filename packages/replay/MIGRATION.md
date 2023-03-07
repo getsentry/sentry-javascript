@@ -3,14 +3,14 @@
 Sentry Replay is now out of Beta. This means that the usual stability guarantees apply.
 
 Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since been fixed/improved.
-We **storngly** recommend anyone using Replay in a version before 7.39.0 to update to 7.39.0 or newer, in order to prevent running Replay with known problems that have since been fixed.
+We **strongly** recommend anyone using Replay in a version before 7.39.0 to update to 7.39.0 or newer, in order to prevent running Replay with known problems that have since been fixed.
 
 Below you can find a list of relevant replay issues that have been resolved until 7.39.0:
 
 ## New features / improvements
 
 - Remove `autoplay` attribute from audio/video tags ([#59](https://github.com/getsentry/rrweb/pull/59))
-- Exclude `modulepreload` as well ([#52](https://github.com/getsentry/rrweb/pull/52))
+- Exclude fetching scripts that use `<link rel="modulepreload">` ([#52](https://github.com/getsentry/rrweb/pull/52))
 - With maskAllText, mask the attributes: placeholder, title, `aria-label`
 - Lower the flush max delay from 15 seconds to 5 seconds (#6761)
 - Stop recording when retry fails (#6765)
