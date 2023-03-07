@@ -52,9 +52,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page }) => 
 
   // nothing happened because no activity/inactivity was detected
   const replay = await getReplaySnapshot(page);
-  // @ts-ignore private api
   expect(replay._isEnabled).toEqual(true);
-  // @ts-ignore private api
   expect(replay._isPaused).toEqual(false);
 
   // Now we trigger a blur event, which should move the session to paused mode
@@ -63,9 +61,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page }) => 
   });
 
   const replay2 = await getReplaySnapshot(page);
-  // @ts-ignore private api
   expect(replay2._isEnabled).toEqual(true);
-  // @ts-ignore private api
   expect(replay2._isPaused).toEqual(true);
 
   // Trigger an action, should re-start the recording
@@ -73,9 +69,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page }) => 
   const req1 = await reqPromise1;
 
   const replay3 = await getReplaySnapshot(page);
-  // @ts-ignore private api
   expect(replay3._isEnabled).toEqual(true);
-  // @ts-ignore private api
   expect(replay3._isPaused).toEqual(false);
 
   const replayEvent1 = getReplayEvent(req1);
