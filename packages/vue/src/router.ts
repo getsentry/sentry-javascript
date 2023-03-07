@@ -3,6 +3,16 @@ import type { Transaction, TransactionContext, TransactionSource } from '@sentry
 
 import { getActiveTransaction } from './tracing';
 
+interface VueRouterInstrumationOptions {
+  /**
+   * What to use for route labels.
+   * By default, we use route.name (if set) and else the path.
+   *
+   * Default: 'name'
+   */
+  routeLabel: 'name' | 'path';
+}
+
 export type VueRouterInstrumentation = <T extends Transaction>(
   startTransaction: (context: TransactionContext) => T | undefined,
   startTransactionOnPageLoad?: boolean,
@@ -35,9 +45,15 @@ interface VueRouter {
 /**
  * Creates routing instrumentation for Vue Router v2, v3 and v4
  *
+ * You can optionally pass in an options object with the available option:
+ * * `routeLabel`: Set this to `route` to opt-out of using `route.name` for transaction names.
+ *
  * @param router The Vue Router instance that is used
  */
-export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrumentation {
+export function vueRouterInstrumentation(
+  router: VueRouter,
+  options: Partial<VueRouterInstrumationOptions> = {},
+): VueRouterInstrumentation {
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
     startTransactionOnPageLoad: boolean = true,
@@ -81,7 +97,7 @@ export function vueRouterInstrumentation(router: VueRouter): VueRouterInstrument
       // Determine a name for the routing transaction and where that name came from
       let transactionName: string = to.path;
       let transactionSource: TransactionSource = 'url';
-      if (to.name) {
+      if (to.name && options.routeLabel !== 'path') {
         transactionName = to.name.toString();
         transactionSource = 'custom';
       } else if (to.matched[0] && to.matched[0].path) {

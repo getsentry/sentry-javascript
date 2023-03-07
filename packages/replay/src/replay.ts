@@ -4,13 +4,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import {
-  ERROR_CHECKOUT_TIME,
-  MAX_SESSION_LIFE,
-  SESSION_IDLE_DURATION,
-  VISIBILITY_CHANGE_TIMEOUT,
-  WINDOW,
-} from './constants';
+import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -27,6 +21,7 @@ import type {
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   Session,
+  Timeouts,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
@@ -59,6 +54,15 @@ export class ReplayContainer implements ReplayContainerInterface {
    * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
+   * These are here so we can overwrite them in tests etc.
+   * @hidden
+   */
+  public readonly timeouts: Timeouts = {
+    sessionIdle: SESSION_IDLE_DURATION,
+    maxSessionLife: MAX_SESSION_LIFE,
+  } as const;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -204,6 +208,23 @@ export class ReplayContainer implements ReplayContainerInterface {
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: this._handleRecordingEmit,
+        onMutation: (mutations: unknown[]) => {
+          if (this._options._experiments.captureMutationSize) {
+            const count = mutations.length;
+
+            if (count > 500) {
+              const breadcrumb = createBreadcrumb({
+                category: 'replay.mutations',
+                data: {
+                  count,
+                },
+              });
+              this._createCustomBreadcrumb(breadcrumb);
+            }
+          }
+          // `true` means we use the regular mutation handling by rrweb
+          return true;
+        },
       });
     } catch (err) {
       this._handleException(err);
@@ -367,14 +388,14 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if session is not expired, false otherwise.
    * @hidden
    */
-  public checkAndHandleExpiredSession(expiry?: number): boolean | void {
+  public checkAndHandleExpiredSession(): boolean | void {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
     // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
+    if (this._lastActivity && isExpired(this._lastActivity, this.timeouts.maxSessionLife)) {
       // Pause recording
       this.pause();
       return;
@@ -382,7 +403,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    if (!this._loadAndCheckSession(expiry)) {
+    if (!this._loadAndCheckSession()) {
       return;
     }
 
@@ -412,9 +433,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Loads (or refreshes) the current session.
    * Returns false if session is not recorded.
    */
-  private _loadAndCheckSession(expiry = SESSION_IDLE_DURATION): boolean {
+  private _loadAndCheckSession(): boolean {
     const { type, session } = getSession({
-      expiry,
+      timeouts: this.timeouts,
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -523,7 +544,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   ) => {
     // If this is false, it means session is expired, create and a new session and wait for checkout
     if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
+      __DEBUG_BUILD__ && logger.warn('[Replay] Received replay event after session expired.');
 
       return;
     }
@@ -626,7 +647,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
+    const expired = isSessionExpired(this.session, this.timeouts);
 
     if (breadcrumb && !expired) {
       this._createCustomBreadcrumb(breadcrumb);
@@ -646,10 +667,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const isSessionActive = this.checkAndHandleExpiredSession(VISIBILITY_CHANGE_TIMEOUT);
+    const isSessionActive = this.checkAndHandleExpiredSession();
 
     if (!isSessionActive) {
-      // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
+      // If the user has come back to the page within SESSION_IDLE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
       __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');

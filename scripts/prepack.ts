@@ -13,14 +13,33 @@ const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
 const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignore';
 
-const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE];
-const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
+const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE] as const;
+const ENTRY_POINTS = ['main', 'module', 'types', 'browser'] as const;
+const EXPORT_MAP_ENTRY_POINT = 'exports';
+const TYPES_VERSIONS_ENTRY_POINT = 'typesVersions';
 
 const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 
+type PackageJsonEntryPoints = Record<typeof ENTRY_POINTS[number], string>;
+
+interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
+  [EXPORT_MAP_ENTRY_POINT]: {
+    [key: string]: {
+      import: string;
+      require: string;
+      types: string;
+    };
+  };
+  [TYPES_VERSIONS_ENTRY_POINT]: {
+    [key: string]: {
+      [key: string]: string[];
+    };
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkgJson: { [key: string]: unknown } = require(path.resolve('package.json'));
+const pkgJson: PackageJson = require(path.resolve('package.json'));
 
 // check if build dir exists
 if (!fs.existsSync(path.resolve(buildDir))) {
@@ -44,12 +63,28 @@ ASSETS.forEach(asset => {
 // package.json modifications
 const newPackageJsonPath = path.resolve(buildDir, 'package.json');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const newPkgJson: { [key: string]: unknown } = require(newPackageJsonPath);
+const newPkgJson: PackageJson = require(newPackageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
 ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => {
-  newPkgJson[entryPoint] = (newPkgJson[entryPoint] as string).replace(`${buildDir}/`, '');
+  newPkgJson[entryPoint] = newPkgJson[entryPoint].replace(`${buildDir}/`, '');
 });
+
+if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
+  Object.entries(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(([key, val]) => {
+    newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
+      return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
+    }, {} as typeof val);
+  });
+}
+
+if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
+  Object.entries(newPkgJson[TYPES_VERSIONS_ENTRY_POINT]).forEach(([key, val]) => {
+    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
+      return { ...acc, [key]: val.map(v => v.replace(`${buildDir}/`, '')) };
+    }, {});
+  });
+}
 
 delete newPkgJson.scripts;
 delete newPkgJson.volta;

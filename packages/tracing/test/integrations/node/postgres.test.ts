@@ -2,8 +2,8 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Postgres } from '../../../src/integrations/node/postgres';
-import { Span } from '../../../src/span';
+import { Span } from '../../../src';
+import { Postgres } from '../../../src/node/integrations/postgres';
 import { getTestClient } from '../../testutils';
 
 class PgClient {
@@ -23,6 +23,10 @@ class PgClient {
   }
 }
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockClient = PgClient;
+
 // mock for 'pg' / 'pg-native' package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
@@ -30,9 +34,9 @@ jest.mock('@sentry/utils', () => {
     ...actual,
     loadModule() {
       return {
-        Client: PgClient,
+        Client: mockClient,
         native: {
-          Client: PgClient,
+          Client: mockClient,
         },
       };
     },

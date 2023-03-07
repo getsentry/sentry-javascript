@@ -192,11 +192,13 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
+
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache/restore@v3
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
 
       - name: Check build cache
         uses: actions/cache@v3
@@ -245,16 +247,11 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
       - name: Get SDK version
         # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
         # equivalent of using >> rather than >.)
@@ -289,16 +286,10 @@ jobs:
           # The size limit action runs `yarn` and `yarn build` when this job is executed on
           # use Node 14 for now.
           node-version: '14'
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check bundle sizes
         uses: getsentry/size-limit-action@runForBranch
         with:
@@ -323,16 +314,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run linter
         run: yarn lint
 
@@ -348,16 +333,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -374,16 +353,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Pack
         run: yarn build:tarball
       - name: Archive artifacts
@@ -411,16 +384,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.DEFAULT_NODE_VERSION }}
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         env:
           NODE_VERSION: 16
@@ -446,16 +413,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -474,7 +435,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, '18.13.0']
+        node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -484,16 +445,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -507,14 +462,12 @@ jobs:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        continue-on-error: true # playwright needs node >= 14
+        if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        continue-on-error: true # playwright needs node >= 14
+        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
         run: npx playwright install-deps
       - name: Run tests
         env:
@@ -558,16 +511,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Get npm cache directory
         id: npm-cache-dir
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
@@ -616,16 +563,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run integration tests
         env:
           KARMA_BROWSER: ${{ matrix.browser }}
@@ -646,16 +587,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run browser build tests
         run: |
           cd packages/browser
@@ -684,16 +619,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -720,16 +649,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -754,16 +677,10 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Get node version
         id: versions
         run: |
@@ -802,8 +719,8 @@ jobs:
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
-  replay_metrics:
-    name: Replay Metrics
+  overhead_metrics:
+    name: Overhead metrics
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 30
@@ -817,29 +734,19 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
         uses: volta-cli/action@v4
-      - name: Check dependency cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check build cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
-      - name: Setup
-        run: yarn install
-        working-directory: packages/replay/metrics
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Collect
         run: yarn ci:collect
-        working-directory: packages/replay/metrics
+        working-directory: packages/overhead-metrics
 
       - name: Process
         id: process
         run: yarn ci:process
-        working-directory: packages/replay/metrics
+        working-directory: packages/overhead-metrics
         # Don't run on forks - the PR comment cannot be added.
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:

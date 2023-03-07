@@ -8,6 +8,7 @@ import { escapeStringForRegex, logger } from '@sentry/utils';
 import * as domainModule from 'domain';
 import * as path from 'path';
 
+import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
 import type { IntegrationWithExclusionOption } from '../common/userIntegrations';
@@ -112,6 +113,10 @@ export function init(options: NodeOptions): void {
     }
 
     scope.addEventProcessor(filterTransactions);
+
+    if (process.env.NODE_ENV === 'development') {
+      scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    }
   });
 
   if (activeDomain) {

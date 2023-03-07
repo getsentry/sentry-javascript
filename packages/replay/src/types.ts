@@ -18,6 +18,11 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
+export interface Timeouts {
+  sessionIdle: number;
+  maxSessionLife: number;
+}
+
 /**
  * The request payload to worker
  */
@@ -105,6 +110,7 @@ export interface ReplayPluginOptions extends SessionOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    captureMutationSize: boolean;
   }>;
 }
 
@@ -289,6 +295,10 @@ export interface ReplayContainer {
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
+  timeouts: {
+    sessionIdle: number;
+    maxSessionLife: number;
+  };
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;

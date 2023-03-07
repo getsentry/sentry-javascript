@@ -2,8 +2,8 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
+import { addExtensionMethods } from '../../src';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
-import { addExtensionMethods } from '../../src/hubextensions';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
 describe('registerBackgroundTabDetection', () => {

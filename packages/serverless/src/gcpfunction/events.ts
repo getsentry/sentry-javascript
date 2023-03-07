@@ -1,5 +1,5 @@
 import { captureException, flush, getCurrentHub } from '@sentry/node';
-import { logger } from '@sentry/utils';
+import { isThenable, logger } from '@sentry/utils';
 
 import { domainify, getActiveDomain, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
@@ -51,8 +51,6 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
 
     const activeDomain = getActiveDomain()!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 
-    activeDomain.on('error', captureException);
-
     const newCallback = activeDomain.bind((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
         captureException(args[0]);
@@ -71,7 +69,22 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
     });
 
     if (fn.length > 2) {
-      return (fn as EventFunctionWithCallback)(data, context, newCallback);
+      let fnResult;
+      try {
+        fnResult = (fn as EventFunctionWithCallback)(data, context, newCallback);
+      } catch (err) {
+        captureException(err);
+        throw err;
+      }
+
+      if (isThenable(fnResult)) {
+        fnResult.then(null, err => {
+          captureException(err);
+          throw err;
+        });
+      }
+
+      return fnResult;
     }
 
     return Promise.resolve()

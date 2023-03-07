@@ -30,6 +30,7 @@ import {
   uuid4,
 } from '@sentry/utils';
 
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 
@@ -409,7 +410,7 @@ export class Hub implements HubInterface {
    */
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
-    const { release, environment } = (client && client.getOptions()) || {};
+    const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
     // Will fetch userAgent if called from browser sdk
     const { userAgent } = GLOBAL_OBJ.navigator || {};
