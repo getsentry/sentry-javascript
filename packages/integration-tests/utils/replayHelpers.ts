@@ -1,4 +1,5 @@
 import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type { eventWithTime } from '@sentry/replay/build/npm/types/types/rrweb';
 import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
 import pako from 'pako';
 import type { Page, Request, Response } from 'playwright';
@@ -14,15 +15,8 @@ export type PerformanceSpan = {
   data: Record<string, number>;
 };
 
-export type RecordingSnapshot = {
-  node: SnapshotNode;
-  initialOffset: number;
-};
-
-type SnapshotNode = {
-  type: number;
-  id: number;
-  childNodes: SnapshotNode[];
+type RecordingSnapshot = eventWithTime & {
+  timestamp: 0;
 };
 
 /**
@@ -134,19 +128,23 @@ function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): Performan
 
 export function getFullRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
-  return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
+  const events = getDecompressedRecordingEvents(replayRequest);
+  return events.filter(event => event.type === 2);
 }
 
 export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
-  return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
+  const events = getDecompressedRecordingEvents(replayRequest);
+  return events.filter(event => event.type === 3);
 }
 
-function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingEvent[] {
+function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+  return (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(event => {
+      return { ...event, timestamp: 0 };
+    });
 }
 
 export function getReplayRecordingContent(resOrReq: Request | Response): RecordingContent {
@@ -231,7 +229,8 @@ export function normalize(
   const rawString = JSON.stringify(obj, null, 2);
   let normalizedString = rawString
     .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
-    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]')
+    .replace(/"timestamp":\s*0/gm, '"timestamp": [timestamp]');
 
   if (normalizeNumberAttributes?.length) {
     // We look for: "attr": "123px", "123", "123%", "123em", "123rem"
