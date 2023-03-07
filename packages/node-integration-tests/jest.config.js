@@ -4,5 +4,8 @@ module.exports = {
   globalSetup: '<rootDir>/utils/setup-tests.ts',
   ...baseConfig,
   testMatch: ['**/test.ts'],
+  moduleNameMapper: {
+    uuid: require.resolve('uuid'),
+  },
   setupFilesAfterEnv: ['./jest.setup.js'],
 };
