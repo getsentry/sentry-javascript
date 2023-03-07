@@ -44,8 +44,7 @@ export class OnUnhandledRejection implements Integration {
    * @param reason string
    * @param promise promise
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  public sendUnhandledPromise(reason: any, promise: any): void {
+  public sendUnhandledPromise(reason: unknown, promise: unknown): void {
     const hub = getCurrentHub();
     if (hub.getIntegration(OnUnhandledRejection)) {
       hub.withScope((scope: Scope) => {
