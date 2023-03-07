@@ -5,7 +5,8 @@ import { TransactionContext } from './transaction-context';
 import { captureException } from '@sentry/nextjs';
 
 export function ClientErrorDebugTools() {
-  const { transactionActive, toggle } = useContext(TransactionContext);
+  const transactionContextValue = useContext(TransactionContext);
+  const [transactionName, setTransactionName] = useState<string>('');
 
   const [isFetchingAPIRoute, setIsFetchingAPIRoute] = useState<boolean>();
   const [isFetchingEdgeAPIRoute, setIsFetchingEdgeAPIRoute] = useState<boolean>();
@@ -18,13 +19,34 @@ export function ClientErrorDebugTools() {
 
   return (
     <div>
-      <button
-        onClick={() => {
-          toggle();
-        }}
-      >
-        {transactionActive ? 'Stop Transaction' : 'Start Transaction'}
-      </button>
+      {transactionContextValue.transactionActive ? (
+        <button
+          onClick={() => {
+            transactionContextValue.stop();
+            setTransactionName('');
+          }}
+        >
+          Stop transaction
+        </button>
+      ) : (
+        <>
+          <input
+            type="text"
+            placeholder="Transaction name"
+            value={transactionName}
+            onChange={e => {
+              setTransactionName(e.target.value);
+            }}
+          />
+          <button
+            onClick={() => {
+              transactionContextValue.start(transactionName);
+            }}
+          >
+            Start transaction
+          </button>
+        </>
+      )}
       <br />
       <br />
       <button
