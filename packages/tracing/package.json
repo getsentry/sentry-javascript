@@ -32,7 +32,7 @@
   "typesVersions": {
     "*": {
       "*": [
-        "build/npm/types/index.d.ts"
+        "./build/npm/types/index.d.ts"
       ],
       "node": [
         "./build/npm/types/node/index.d.ts"

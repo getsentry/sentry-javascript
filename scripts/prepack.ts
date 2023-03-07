@@ -16,6 +16,7 @@ const NPM_IGNORE = fs.existsSync('.npmignore') ? '.npmignore' : '../../.npmignor
 const ASSETS = ['README.md', 'LICENSE', 'package.json', NPM_IGNORE] as const;
 const ENTRY_POINTS = ['main', 'module', 'types', 'browser'] as const;
 const EXPORT_MAP_ENTRY_POINT = 'exports';
+const TYPES_VERSIONS_ENTRY_POINT = 'typesVersions';
 
 const packageWithBundles = process.argv.includes('--bundles');
 const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
@@ -23,11 +24,16 @@ const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
 type PackageJsonEntryPoints = Record<typeof ENTRY_POINTS[number], string>;
 
 interface PackageJson extends Record<string, unknown>, PackageJsonEntryPoints {
-  exports: {
+  [EXPORT_MAP_ENTRY_POINT]: {
     [key: string]: {
       import: string;
       require: string;
       types: string;
+    };
+  };
+  [TYPES_VERSIONS_ENTRY_POINT]: {
+    [key: string]: {
+      [key: string]: string[];
     };
   };
 }
@@ -69,6 +75,14 @@ if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
     newPkgJson[EXPORT_MAP_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
       return { ...acc, [key]: val.replace(`${buildDir}/`, '') };
     }, {} as typeof val);
+  });
+}
+
+if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
+  Object.entries(newPkgJson[TYPES_VERSIONS_ENTRY_POINT]).forEach(([key, val]) => {
+    newPkgJson[TYPES_VERSIONS_ENTRY_POINT][key] = Object.entries(val).reduce((acc, [key, val]) => {
+      return { ...acc, [key]: val.map(v => v.replace(`${buildDir}/`, '')) };
+    }, {});
   });
 }
 
