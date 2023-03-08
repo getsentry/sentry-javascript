@@ -560,7 +560,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           data: {
             __sentry__: true,
           },
-          originalException: reason as Error,
+          originalException: reason,
         });
         throw new SentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,

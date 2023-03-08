@@ -58,6 +58,7 @@
     "packages/replay-worker",
     "packages/serverless",
     "packages/svelte",
+    "packages/sveltekit",
     "packages/tracing",
     "packages/types",
     "packages/typescript",

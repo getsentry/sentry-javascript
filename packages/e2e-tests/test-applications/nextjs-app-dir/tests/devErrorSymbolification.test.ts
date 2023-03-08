@@ -21,15 +21,15 @@ test.describe('dev mode error symbolification', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
+        function: 'onClick',
         filename: 'components/client-error-debug-tools.tsx',
         abs_path: 'webpack-internal:///(app-client)/./components/client-error-debug-tools.tsx',
-        function: 'onClick',
-        in_app: true,
-        lineno: 32,
+        lineno: 54,
         colno: 16,
-        post_context: ['         }}', '       >', '         Throw error'],
-        context_line: "           throw new Error('Click Error');",
+        in_app: true,
         pre_context: ['       <button', '         onClick={() => {'],
+        context_line: "           throw new Error('Click Error');",
+        post_context: ['         }}', '       >', '         Throw error'],
       }),
     );
   });

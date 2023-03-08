@@ -3,7 +3,7 @@ import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { Span } from '../../../src';
-import { Mongo } from '../../../src/integrations/node/mongo';
+import { Mongo } from '../../../src/node/integrations/mongo';
 import { getTestClient } from '../../testutils';
 
 class Collection {

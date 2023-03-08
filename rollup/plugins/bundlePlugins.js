@@ -118,8 +118,6 @@ export function makeTerserPlugin() {
           '_support',
           // We want to keep some replay fields unmangled to enable integration tests to access them
           '_replay',
-          '_isEnabled',
-          '_isPaused',
           // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
           '_cssText',
           // We want to keep the _integrations variable unmangled to send all installed integrations from replay

@@ -4,7 +4,8 @@ import { logger } from '@sentry/utils';
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
 
 /**
- * Add an event to the event buffer
+ * Add an event to the event buffer.
+ * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
  */
 export async function addEvent(
   replay: ReplayContainer,
