@@ -69,6 +69,9 @@ export class IdleTransaction extends Transaction {
   // We should not use heartbeat if we finished a transaction
   private _finished: boolean = false;
 
+  // Idle timeout was canceled and we should finish the transaction with the last span end.
+  private _idleTimeoutCanceledPermanently: boolean = false;
+
   private readonly _beforeFinishCallbacks: BeforeFinishCallback[] = [];
 
   /**
@@ -104,7 +107,7 @@ export class IdleTransaction extends Transaction {
       _idleHub.configureScope(scope => scope.setSpan(this));
     }
 
-    this._startIdleTimeout();
+    this._restartIdleTimeout();
     setTimeout(() => {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
@@ -203,20 +206,37 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
-   * Cancels the existing idletimeout, if there is one
+   * Cancels the existing idle timeout, if there is one.
+   * @param restartOnChildSpanChange Default is `true`.
+   *                                 If set to false the transaction will end
+   *                                 with the last child span.
    */
-  private _cancelIdleTimeout(): void {
+  public cancelIdleTimeout(
+    endTimestamp?: Parameters<IdleTransaction['finish']>[0],
+    {
+      restartOnChildSpanChange,
+    }: {
+      restartOnChildSpanChange?: boolean;
+    } = {
+      restartOnChildSpanChange: true,
+    },
+  ): void {
     if (this._idleTimeoutID) {
       clearTimeout(this._idleTimeoutID);
       this._idleTimeoutID = undefined;
+      this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
+
+      if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
+        this.finish(endTimestamp);
+      }
     }
   }
 
   /**
-   * Creates an idletimeout
+   * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
-  private _startIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
-    this._cancelIdleTimeout();
+  private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {
+    this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
         this.finish(endTimestamp);
@@ -229,7 +249,7 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    this._cancelIdleTimeout();
+    this.cancelIdleTimeout();
     __DEBUG_BUILD__ && logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     __DEBUG_BUILD__ && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -248,10 +268,14 @@ export class IdleTransaction extends Transaction {
     }
 
     if (Object.keys(this.activities).length === 0) {
-      // We need to add the timeout here to have the real endtimestamp of the transaction
-      // Remember timestampWithMs is in seconds, timeout is in ms
-      const endTimestamp = timestampWithMs() + this._idleTimeout / 1000;
-      this._startIdleTimeout(endTimestamp);
+      const endTimestamp = timestampWithMs();
+      if (this._idleTimeoutCanceledPermanently) {
+        this.finish(endTimestamp);
+      } else {
+        // We need to add the timeout here to have the real endtimestamp of the transaction
+        // Remember timestampWithMs is in seconds, timeout is in ms
+        this._restartIdleTimeout(endTimestamp + this._idleTimeout / 1000);
+      }
     }
   }
 

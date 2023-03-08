@@ -247,6 +247,45 @@ describe('IdleTransaction', () => {
     });
   });
 
+  describe('cancelIdleTimeout', () => {
+    it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const span = transaction.startChild({});
+      span.finish();
+
+      jest.advanceTimersByTime(2);
+
+      transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
+
+      expect(transaction.endTimestamp).toBeDefined();
+    });
+
+    it('default idle cancel timeout is restarted by child span change', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const span = transaction.startChild({});
+      span.finish();
+
+      jest.advanceTimersByTime(2);
+
+      transaction.cancelIdleTimeout();
+
+      const span2 = transaction.startChild({});
+      span2.finish();
+
+      jest.advanceTimersByTime(8);
+      expect(transaction.endTimestamp).toBeUndefined();
+
+      jest.advanceTimersByTime(2);
+      expect(transaction.endTimestamp).toBeDefined();
+    });
+  });
+
   describe('heartbeat', () => {
     it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
       // 20s to exceed 3 heartbeats

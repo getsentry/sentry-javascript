@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- fix(replay): Ensure `<input type='submit' value='Btn text'>` is masked ([#69](https://github.com/getsentry/rrweb/pull/69))
+
 ## 7.41.0
 
 - feat: Ensure we use the same default `environment` everywhere (#7327)

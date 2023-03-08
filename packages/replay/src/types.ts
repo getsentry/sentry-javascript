@@ -18,6 +18,11 @@ export interface SendReplayData {
   options: ReplayPluginOptions;
 }
 
+export interface Timeouts {
+  sessionIdle: number;
+  maxSessionLife: number;
+}
+
 /**
  * The request payload to worker
  */
@@ -105,6 +110,7 @@ export interface ReplayPluginOptions extends SessionOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    captureMutationSize: boolean;
   }>;
 }
 
@@ -271,6 +277,7 @@ export interface EventBuffer {
 
   /**
    * Add an event to the event buffer.
+   * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
    *
    * Returns a promise that resolves if the event was successfully added, else rejects.
    */
@@ -289,6 +296,10 @@ export interface ReplayContainer {
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
+  timeouts: {
+    sessionIdle: number;
+    maxSessionLife: number;
+  };
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
@@ -304,6 +315,7 @@ export interface ReplayContainer {
   getOptions(): ReplayPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
+  setInitialState(): void;
 }
 
 export interface ReplayPerformanceEntry {

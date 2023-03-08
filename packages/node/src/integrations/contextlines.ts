@@ -62,10 +62,48 @@ export class ContextLines implements Integration {
 
   /** Processes an event and adds context lines */
   public async addSourceContext(event: Event): Promise<Event> {
+    // keep a lookup map of which files we've already enqueued to read,
+    // so we don't enqueue the same file multiple times which would cause multiple i/o reads
+    const enqueuedReadSourceFileTasks: Record<string, number> = {};
+    const readSourceFileTasks: Promise<string | null>[] = [];
+
+    if (this._contextLines > 0 && event.exception?.values) {
+      for (const exception of event.exception.values) {
+        if (!exception.stacktrace?.frames) {
+          continue;
+        }
+
+        // We want to iterate in reverse order as calling cache.get will bump the file in our LRU cache.
+        // This ends up prioritizes source context for frames at the top of the stack instead of the bottom.
+        for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
+          const frame = exception.stacktrace.frames[i];
+          // Call cache.get to bump the file to the top of the cache and ensure we have not already
+          // enqueued a read operation for this filename
+          if (
+            frame.filename &&
+            !enqueuedReadSourceFileTasks[frame.filename] &&
+            !FILE_CONTENT_CACHE.get(frame.filename)
+          ) {
+            readSourceFileTasks.push(_readSourceFile(frame.filename));
+            enqueuedReadSourceFileTasks[frame.filename] = 1;
+          }
+        }
+      }
+    }
+
+    // check if files to read > 0, if so, await all of them to be read before adding source contexts.
+    // Normally, Promise.all here could be short circuited if one of the promises rejects, but we
+    // are guarding from that by wrapping the i/o read operation in a try/catch.
+    if (readSourceFileTasks.length > 0) {
+      await Promise.all(readSourceFileTasks);
+    }
+
+    // Perform the same loop as above, but this time we can assume all files are in the cache
+    // and attempt to add source context to frames.
     if (this._contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
         if (exception.stacktrace?.frames) {
-          await this.addSourceContextToFrames(exception.stacktrace.frames);
+          this.addSourceContextToFrames(exception.stacktrace.frames);
         }
       }
     }
@@ -74,18 +112,16 @@ export class ContextLines implements Integration {
   }
 
   /** Adds context lines to frames */
-  public async addSourceContextToFrames(frames: StackFrame[]): Promise<void> {
-    const contextLines = this._contextLines;
-
+  public addSourceContextToFrames(frames: StackFrame[]): void {
     for (const frame of frames) {
       // Only add context if we have a filename and it hasn't already been added
       if (frame.filename && frame.context_line === undefined) {
-        const sourceFile = await _readSourceFile(frame.filename);
+        const sourceFile = FILE_CONTENT_CACHE.get(frame.filename);
 
         if (sourceFile) {
           try {
             const lines = sourceFile.split('\n');
-            addContextToFrame(lines, frame, contextLines);
+            addContextToFrame(lines, frame, this._contextLines);
           } catch (e) {
             // anomaly, being defensive in case
             // unlikely to ever happen in practice but can definitely happen in theory
@@ -109,6 +145,10 @@ async function _readSourceFile(filename: string): Promise<string | null> {
   }
 
   let content: string | null = null;
+
+  // Guard from throwing if readFile fails, this enables us to use Promise.all and
+  // not have it short circuiting if one of the promises rejects + since context lines are added
+  // on a best effort basis, we want to throw here anyways.
   try {
     content = await readTextFileAsync(filename);
   } catch (_) {

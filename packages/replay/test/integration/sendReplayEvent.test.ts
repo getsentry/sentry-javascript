@@ -129,6 +129,26 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
   });
 
+  it('update last activity when user uses keyboard input', async () => {
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    domHandler({
+      name: 'input',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    domHandler({
+      name: 'input',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+  });
+
   it('uploads a replay event if 5 seconds have elapsed since the last replay event occurred', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);

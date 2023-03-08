@@ -1,4 +1,10 @@
-import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type {
+  InternalEventContext,
+  RecordingEvent,
+  ReplayContainer,
+  Session,
+} from '@sentry/replay/build/npm/types/types';
+import type { eventWithTime } from '@sentry/replay/build/npm/types/types/rrweb';
 import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
 import pako from 'pako';
 import type { Page, Request, Response } from 'playwright';
@@ -14,15 +20,8 @@ export type PerformanceSpan = {
   data: Record<string, number>;
 };
 
-export type RecordingSnapshot = {
-  node: SnapshotNode;
-  initialOffset: number;
-};
-
-type SnapshotNode = {
-  type: number;
-  id: number;
-  childNodes: SnapshotNode[];
+type RecordingSnapshot = eventWithTime & {
+  timestamp: 0;
 };
 
 /**
@@ -73,9 +72,22 @@ export function isReplayEvent(event: Event): event is ReplayEvent {
  * Note that due to how this works with playwright, this is a POJO copy of replay.
  * This means that we cannot access any methods on it, and also not mutate it in any way.
  */
-export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
-  const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
-  return replayIntegration._replay;
+export async function getReplaySnapshot(
+  page: Page,
+): Promise<{ _isPaused: boolean; _isEnabled: boolean; _context: InternalEventContext; session: Session | undefined }> {
+  return await page.evaluate(() => {
+    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replay = replayIntegration._replay;
+
+    const replaySnapshot = {
+      _isPaused: replay.isPaused(),
+      _isEnabled: replay.isEnabled(),
+      _context: replay.getContext(),
+      session: replay.session,
+    };
+
+    return replaySnapshot;
+  });
 }
 
 export const REPLAY_DEFAULT_FLUSH_MAX_DELAY = 5_000;
@@ -134,19 +146,29 @@ function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): Performan
 
 export function getFullRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
-  return events.filter(event => event.type === 2).map(event => event.data as RecordingSnapshot);
+  const events = getDecompressedRecordingEvents(replayRequest);
+  return events.filter(event => event.type === 2);
 }
 
-function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
+export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  const events = getDecompressedRecordingEvents(replayRequest) as RecordingEvent[];
-  return events.filter(event => event.type === 3).map(event => event.data as RecordingSnapshot);
+  const events = getDecompressedRecordingEvents(replayRequest);
+  return events.filter(event => event.type === 3);
 }
 
-function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingEvent[] {
+function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
-  return replayEnvelopeRequestParser(replayRequest, 5) as RecordingEvent[];
+  return (
+    (replayEnvelopeRequestParser(replayRequest, 5) as eventWithTime[])
+      .sort((a, b) => a.timestamp - b.timestamp)
+      // source 1 is MouseMove, which is a bit flaky and we don't care about
+      .filter(
+        event => typeof event.data === 'object' && event.data && (event.data as Record<string, unknown>).source !== 1,
+      )
+      .map(event => {
+        return { ...event, timestamp: 0 };
+      })
+  );
 }
 
 export function getReplayRecordingContent(resOrReq: Request | Response): RecordingContent {
@@ -231,7 +253,8 @@ export function normalize(
   const rawString = JSON.stringify(obj, null, 2);
   let normalizedString = rawString
     .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
-    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]');
+    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]')
+    .replace(/"timestamp":\s*0/gm, '"timestamp": [timestamp]');
 
   if (normalizeNumberAttributes?.length) {
     // We look for: "attr": "123px", "123", "123%", "123em", "123rem"
