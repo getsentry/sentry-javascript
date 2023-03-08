@@ -1,4 +1,4 @@
-import type { Event, Span } from '@sentry/types';
+import type { Event, Span, Transaction } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
@@ -1728,6 +1728,25 @@ describe('BaseClient', () => {
 
       const clearedOutcomes4 = client._clearOutcomes();
       expect(clearedOutcomes4.length).toEqual(0);
+    });
+  });
+
+  describe('hooks', () => {
+    it('should call a startTransaction hook', () => {
+      expect.assertions(1);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      let mockTransaction = {
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+      } as Transaction;
+
+      client.on('startTransaction', (transaction: Transaction) => {
+        expect(transaction).toEqual(mockTransaction);
+      });
+
+      client.emit('startTransaction', mockTransaction);
     });
   });
 });

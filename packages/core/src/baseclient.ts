@@ -360,13 +360,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public on(hook: HookName, callback: HookCallback): void {
-    if (this._hooks[hook]) {
-      // @ts-ignore we cannot enforce the callback to match the hook
-      // while saving bundle size
-      this._hooks[hook].push(callback);
-    } else {
+    if (!this._hooks[hook]) {
       this._hooks[hook] = [];
     }
+
+    // @ts-ignore we cannot enforce the callback to match the hook
+    // while saving bundle size
+    this._hooks[hook].push(callback);
   }
 
   /**
