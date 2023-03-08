@@ -1742,11 +1742,11 @@ describe('BaseClient', () => {
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
       } as Transaction;
 
-      client.on('startTransaction', (transaction: Transaction) => {
+      client?.on('startTransaction', (transaction: Transaction) => {
         expect(transaction).toEqual(mockTransaction);
       });
 
-      client.emit('startTransaction', mockTransaction);
+      client?.emit('startTransaction', mockTransaction);
     });
   });
 });

@@ -150,26 +150,27 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 
   // HOOKS
+  // TODO(v8): Make the hooks non-optional.
 
   /**
    * Register a callback for transaction start and finish.
    */
-  on(hook: TransactionHookName, callback: TransactionHookCallback): void;
+  on?(hook: TransactionHookName, callback: TransactionHookCallback): void;
 
   /**
    * Register a callback for envelope creation and sending.
    */
-  on(hook: EnvelopeHookName, callback: EnvelopeHookCallback): void;
+  on?(hook: EnvelopeHookName, callback: EnvelopeHookCallback): void;
 
   /**
    * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
    * second argument.
    */
-  emit(hook: TransactionHookName, ...params: Parameters<TransactionHookCallback>): void;
+  emit?(hook: TransactionHookName, ...params: Parameters<TransactionHookCallback>): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
-  emit(hook: EnvelopeHookName, ...params: Parameters<EnvelopeHookCallback>): void;
+  emit?(hook: EnvelopeHookName, ...params: Parameters<EnvelopeHookCallback>): void;
 }
