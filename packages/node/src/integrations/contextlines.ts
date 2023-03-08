@@ -65,7 +65,7 @@ export class ContextLines implements Integration {
     // keep a lookup map of which files we've already enqueued to read,
     // so we don't enqueue the same file multiple times which would cause multiple i/o reads
     const enqueuedReadSourceFileTasks: Record<string, number> = {};
-    const readSourceFileTasks: Promise<string | null>[] = [];
+    const readSourceFileTasks: Promise<string[] | null>[] = [];
 
     if (this._contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
