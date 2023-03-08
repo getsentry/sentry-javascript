@@ -1,4 +1,9 @@
-import type { RecordingEvent, ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type {
+  InternalEventContext,
+  RecordingEvent,
+  ReplayContainer,
+  Session,
+} from '@sentry/replay/build/npm/types/types';
 import type { eventWithTime } from '@sentry/replay/build/npm/types/types/rrweb';
 import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
 import pako from 'pako';
@@ -67,9 +72,22 @@ export function isReplayEvent(event: Event): event is ReplayEvent {
  * Note that due to how this works with playwright, this is a POJO copy of replay.
  * This means that we cannot access any methods on it, and also not mutate it in any way.
  */
-export async function getReplaySnapshot(page: Page): Promise<ReplayContainer> {
-  const replayIntegration = await page.evaluate<{ _replay: ReplayContainer }>('window.Replay');
-  return replayIntegration._replay;
+export async function getReplaySnapshot(
+  page: Page,
+): Promise<{ _isPaused: boolean; _isEnabled: boolean; _context: InternalEventContext; session: Session | undefined }> {
+  return await page.evaluate(() => {
+    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replay = replayIntegration._replay;
+
+    const replaySnapshot = {
+      _isPaused: replay.isPaused(),
+      _isEnabled: replay.isEnabled(),
+      _context: replay.getContext(),
+      session: replay.session,
+    };
+
+    return replaySnapshot;
+  });
 }
 
 export const REPLAY_DEFAULT_FLUSH_MAX_DELAY = 5_000;
