@@ -1,4 +1,4 @@
-import type { Envelope, Event, Span, Transaction, Client } from '@sentry/types';
+import type { Client,Envelope, Event, Span, Transaction } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
