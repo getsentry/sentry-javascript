@@ -269,9 +269,15 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
   });
 
-  it('stops replay if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
+  // When the error session records as a normal session, we want to stop
+  // recording after the session ends. Otherwise, we get into a state where the
+  // new session is a session type replay (this could conflict with the session
+  // sample rate of 0.0), or an error session that has no errors. Instead we
+  // simply stop the session replay completely and wait for a new page load to
+  // resample.
+  it('stops replay if session exceeds MAX_SESSION_LIFE and does not start a new session thereafter', async () => {
     // Idle for 15 minutes
-    jest.advanceTimersByTime(15 * 60000);
+    jest.advanceTimersByTime(MAX_SESSION_LIFE + 1);
 
     const TEST_EVENT = {
       data: { name: 'lost event' },
@@ -289,7 +295,44 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
     expect(replay.isEnabled()).toBe(false);
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+
+    domHandler({
+      name: 'click'
+    })
+
+    // Remains disabled!
+    expect(replay.isEnabled()).toBe(false);
   });
+
+  // Should behave the same as above test
+  it('stops replay if user has been idle for more than SESSION_IDLE_DURATION and does not start a new session thereafter', async () => {
+    // Idle for 15 minutes
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+
+    const TEST_EVENT = {
+      data: { name: 'lost event' },
+      timestamp: BASE_TIMESTAMP,
+      type: 3,
+    };
+    mockRecord._emitter(TEST_EVENT);
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    // We stop recording after SESSION_IDLE_DURATION of inactivity in error mode
+    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.isEnabled()).toBe(false);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+
+    domHandler({
+      name: 'click'
+    })
+
+    // Remains disabled!
+    expect(replay.isEnabled()).toBe(false);
+  });
+
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
