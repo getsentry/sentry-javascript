@@ -8,7 +8,7 @@ import type {
 } from '@sentry/types';
 import * as http from 'http';
 import * as https from 'https';
-import * as createHttpsProxyAgent from 'https-proxy-agent';
+import * as httpsProxyAgent from 'https-proxy-agent';
 import { Readable } from 'stream';
 import { URL } from 'url';
 import { createGzip } from 'zlib';
@@ -75,7 +75,8 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
   // TODO(v7): Evaluate if we can set keepAlive to true. This would involve testing for memory leaks in older node
   // versions(>= 8) as they had memory leaks when using it: #2555
   const agent = proxy
-    ? createHttpsProxyAgent(proxy)
+    ? // @ts-ignore this actually is a constructor but the library exports it super weirdly
+      (new httpsProxyAgent(proxy) as http.Agent)
     : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
