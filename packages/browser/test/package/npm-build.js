@@ -2,6 +2,13 @@
 const fs = require('fs');
 const path = require('path');
 
+const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0];
+
+if (CURRENT_NODE_VERSION === '8') {
+  console.log('Skipping npm build test on Node 8');
+  process.exit(0);
+}
+
 const webpack = require('webpack');
 const { JSDOM } = require('jsdom');
 
