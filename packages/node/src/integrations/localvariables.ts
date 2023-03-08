@@ -79,6 +79,8 @@ class AsyncSession implements DebugSession {
   private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
       if (!this._session) {
+        // eslint-disable-next-line no-console
+        console.error('Session is not available');
         reject(new Error('Session is not available'));
         return;
       }
@@ -205,7 +207,7 @@ export class LocalVariables implements Integration {
   public constructor(
     private readonly _options: Options = {},
     private readonly _session: DebugSession | undefined = tryNewAsyncSession(),
-  ) { }
+  ) {}
 
   /**
    * @inheritDoc
