@@ -297,8 +297,8 @@ describe('Integration | errorSampleRate', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
     domHandler({
-      name: 'click'
-    })
+      name: 'click',
+    });
 
     // Remains disabled!
     expect(replay.isEnabled()).toBe(false);
@@ -326,13 +326,12 @@ describe('Integration | errorSampleRate', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
 
     domHandler({
-      name: 'click'
-    })
+      name: 'click',
+    });
 
     // Remains disabled!
     expect(replay.isEnabled()).toBe(false);
   });
-
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };

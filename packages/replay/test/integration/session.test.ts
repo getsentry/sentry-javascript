@@ -66,7 +66,7 @@ describe('Integration | session', () => {
       },
     });
 
-    const initialSession = {...replay.session} as Session;
+    const initialSession = { ...replay.session } as Session;
 
     jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
@@ -77,7 +77,7 @@ describe('Integration | session', () => {
   });
 
   it('does not create a new session when document becomes focused after [SESSION_IDLE_DURATION]ms', () => {
-    const initialSession = {...replay.session} as Session;
+    const initialSession = { ...replay.session } as Session;
 
     jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
@@ -88,7 +88,7 @@ describe('Integration | session', () => {
   });
 
   it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_DURATION] seconds', () => {
-    const initialSession = {...replay.session} as Session;
+    const initialSession = { ...replay.session } as Session;
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -116,7 +116,7 @@ describe('Integration | session', () => {
   });
 
   it('creates a new session if user has been idle for more than SESSION_IDLE_DURATION and comes back to click their mouse', async () => {
-    const initialSession = {...replay.session} as Session;
+    const initialSession = { ...replay.session } as Session;
 
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(
@@ -131,7 +131,7 @@ describe('Integration | session', () => {
       value: new URL(url),
     });
 
-    const ELAPSED = SESSION_IDLE_DURATION +1;
+    const ELAPSED = SESSION_IDLE_DURATION + 1;
     jest.advanceTimersByTime(ELAPSED);
 
     // Session has become in an idle state
@@ -208,12 +208,12 @@ describe('Integration | session', () => {
 
     // `_context` should be reset when a new session is created
     expect(replay.getContext()).toEqual({
-        earliestEvent: null,
-        initialUrl: 'http://dummy/',
-        initialTimestamp: newTimestamp,
-        urls: [],
-        errorIds: new Set(),
-        traceIds: new Set(),
+      earliestEvent: null,
+      initialUrl: 'http://dummy/',
+      initialTimestamp: newTimestamp,
+      urls: [],
+      errorIds: new Set(),
+      traceIds: new Set(),
     });
   });
 
@@ -235,7 +235,7 @@ describe('Integration | session', () => {
   it('creates a new session if current session exceeds MAX_SESSION_LIFE', async () => {
     jest.clearAllMocks();
 
-    const initialSession = {...replay.session} as Session;
+    const initialSession = { ...replay.session } as Session;
 
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(

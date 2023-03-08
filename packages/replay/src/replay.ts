@@ -395,7 +395,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     // SESSION_IDLE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, this.timeouts.sessionIdle) && this.session?.sampled === 'session') {
+    if (
+      this._lastActivity &&
+      isExpired(this._lastActivity, this.timeouts.sessionIdle) &&
+      this.session &&
+      this.session.sampled === 'session'
+    ) {
       // Pause recording only for session-based replays. Otherwise, resuming
       // will create a new replay and will conflict with users who only choose
       // to record error-based replays only. (e.g. the resumed replay will not
