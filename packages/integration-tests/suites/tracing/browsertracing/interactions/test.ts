@@ -12,6 +12,8 @@ type TransactionJSON = ReturnType<Transaction['toJSON']> & {
   type: string;
 };
 
+const wait = (time: number) => new Promise(res => setTimeout(res, time));
+
 sentryTest('should capture interaction transaction.', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
@@ -24,7 +26,6 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-
   await getFirstSentryEnvelopeRequest<Event>(page);
 
   await page.locator('[data-test-id=interaction-button]').click();
@@ -60,19 +61,13 @@ sentryTest('should create only one transaction per interaction', async ({ browse
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
 
   const url = await getLocalTestPath({ testDir: __dirname });
-
-  await getFirstSentryEnvelopeRequest<Event>(page, url);
+  await page.goto(url);
+  await getFirstSentryEnvelopeRequest<Event>(page);
 
   for (let i = 0; i < 4; i++) {
-    setTimeout(async () => {
-      await page.locator('[data-test-id=interaction-button]').click();
-    }, i * 100);
+    await wait(100);
+    page.locator('[data-test-id=interaction-button]').click();
+    const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+    expect(envelope[0].spans).toHaveLength(1);
   }
-
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 4);
-  expect(envelopes).toHaveLength(4);
-
-  envelopes.forEach(event => {
-    expect(event.spans).toHaveLength(1);
-  });
 });
