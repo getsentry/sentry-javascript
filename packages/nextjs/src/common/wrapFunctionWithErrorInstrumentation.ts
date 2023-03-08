@@ -9,12 +9,21 @@ interface ErrorInfoCreator<Args extends any[]> {
   (functionArgs: Args): ErrorInfo;
 }
 
+interface BeforeCaptureErrorHookResult {
+  skipCapturingError?: boolean;
+}
+
+interface BeforeCaptureErrorHook<Args extends any[]> {
+  (functionArgs: Args, error: unknown): PromiseLike<BeforeCaptureErrorHookResult>;
+}
+
 /**
  * TODO
  */
 export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends any[], F extends (...args: A) => any>(
   originalFunction: F,
   errorInfoCreator: ErrorInfoCreator<A>,
+  beforeCaptureError: BeforeCaptureErrorHook<A>,
 ): (...args: Parameters<F>) => ReturnType<F> {
   return new Proxy(originalFunction, {
     apply: (originalFunction, thisArg: unknown, args: Parameters<F>): ReturnType<F> => {
@@ -34,21 +43,25 @@ export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends
         });
       }
 
-      const handleError = (error: unknown): void => {
-        captureException(error);
+      const reportError = (error: unknown): void => {
+        void beforeCaptureError(args, error).then(beforeCaptureErrorResult => {
+          if (!beforeCaptureErrorResult.skipCapturingError) {
+            captureException(error);
+          }
+        });
       };
 
       let maybePromiseResult: ReturnType<F>;
       try {
         maybePromiseResult = originalFunction.apply(thisArg, args);
       } catch (err) {
-        handleError(err);
+        reportError(err);
         throw err;
       }
 
       if (isThenable(maybePromiseResult)) {
         const promiseResult = maybePromiseResult.then(null, (err: unknown) => {
-          handleError(err);
+          reportError(err);
           throw err;
         });
 
