@@ -15,6 +15,6 @@ export type EnvelopeHook = {
 
 export type Hook = TransactionHook | EnvelopeHook;
 
-export type HookStoreItem<T extends Hook> = Partial<Record<T['name'], T['callback'][]>>;
+type HookStoreItem<T extends Hook> = Partial<Record<T['name'], T['callback'][]>>;
 
 export type HookStore = HookStoreItem<EnvelopeHook> & HookStoreItem<TransactionHook>;
