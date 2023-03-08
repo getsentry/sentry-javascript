@@ -81,7 +81,7 @@ export function startTrackingInteractions(): void {
 
         transaction.startChild({
           description: htmlTreeAsString(entry.target),
-          op: `ui.action.${entry.name}`,
+          op: `ui.interaction.${entry.name}`,
           startTimestamp: startTime,
           endTimestamp: startTime + duration,
         });
