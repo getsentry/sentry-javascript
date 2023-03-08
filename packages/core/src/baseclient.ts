@@ -9,8 +9,6 @@ import type {
   Event,
   EventDropReason,
   EventHint,
-  Hook,
-  HookStore,
   Integration,
   IntegrationClass,
   Outcome,
@@ -19,6 +17,7 @@ import type {
   SessionAggregates,
   Severity,
   SeverityLevel,
+  Transaction,
   TransactionEvent,
   Transport,
 } from '@sentry/types';
@@ -99,7 +98,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Holds flushable  */
   private _outcomes: { [key: string]: number } = {};
 
-  private _hooks: HookStore = {};
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private _hooks: Record<string, Function[]> = {};
 
   /**
    * Initializes this client instance.
@@ -355,24 +355,35 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
   }
 
-  /**
-   * @inheritDoc
-   */
-  public on<HookType extends Hook>(hook: HookType['name'], callback: HookType['callback']): void {
+  // Keep on() & emit() signatures in sync with types' client.ts interface
+
+  /** @inheritdoc */
+  public on(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
     }
 
-    (this._hooks[hook] as HookType['callback'][]).push(callback);
+    // @ts-ignore We assue the types are correct
+    this._hooks[hook].push(callback);
   }
 
-  /**
-   * @inheritDoc
-   */
-  public emit<HookType extends Hook>(hook: HookType['name'], ...args: Parameters<HookType['callback']>): void {
+  /** @inheritdoc */
+  public emit(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /** @inheritdoc */
+  public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
-      // @ts-ignore it does not like ...args, but we know this is correct
-      (this._hooks[hook] as HookType['callback'][]).forEach(callback => callback(...args));
+      // @ts-ignore we cannot enforce the callback to match the hook
+      this._hooks[hook].forEach(callback => callback(...rest));
     }
   }
 

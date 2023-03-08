@@ -2,7 +2,6 @@ import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
 import type { Event, EventHint } from './event';
-import type { Hook } from './hooks';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -10,6 +9,8 @@ import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Transport } from './transport';
+import { Transaction } from './transaction';
+import { Envelope } from './envelope';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -155,11 +156,22 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for transaction start and finish.
    */
-  on?<HookType extends Hook>(hook: HookType['name'], callback: HookType['callback']): void;
+  on?(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+
+  /**
+   * Register a callback for transaction start and finish.
+   */
+  on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+
+  /**
+   * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
+   * second argument.
+   */
+  emit?(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
-  emit?<HookType extends Hook>(hook: HookType['name'], ...args: Parameters<HookType['callback']>): void;
+  emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
 }

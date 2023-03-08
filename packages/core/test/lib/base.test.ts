@@ -1,4 +1,4 @@
-import { Event, Span, Transaction, TransactionHook, EnvelopeHook, Envelope } from '@sentry/types';
+import type { Envelope, Event, Span, Transaction, Client } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
@@ -1732,41 +1732,45 @@ describe('BaseClient', () => {
   });
 
   describe('hooks', () => {
-    it('should call a startTransaction hook', () => {
-      expect.assertions(1);
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
+    // Make sure types work for both Client & BaseClient
+    const scenarios = [
+      ['BaseClient', new TestClient(options)],
+      ['Client', new TestClient(options) as Client],
+    ] as const;
 
-      const mockTransaction = {
-        traceId: '86f39e84263a4de99c326acab3bfe3bd',
-      } as Transaction;
+    describe.each(scenarios)('with client %s', (_, client) => {
+      it('should call a startTransaction hook', () => {
+        expect.assertions(1);
 
-      client?.on<TransactionHook>('startTransaction', (transaction: Transaction) => {
-        expect(transaction).toEqual(mockTransaction);
+        const mockTransaction = {
+          traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        } as Transaction;
+
+        client.on?.('startTransaction', transaction => {
+          expect(transaction).toEqual(mockTransaction);
+        });
+
+        client.emit?.('startTransaction', mockTransaction);
       });
 
-      client?.emit<TransactionHook>('startTransaction', mockTransaction);
-    });
+      it('should call a beforeEnvelope hook', () => {
+        expect.assertions(1);
 
-    it('should call a beforeEnvelope hook', () => {
-      expect.assertions(1);
+        const mockEnvelope = [
+          {
+            event_id: '12345',
+          },
+          {},
+        ] as Envelope;
 
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
-      const client = new TestClient(options);
+        client.on?.('beforeEnvelope', envelope => {
+          expect(envelope).toEqual(mockEnvelope);
+        });
 
-      const mockEnvelope = [
-        {
-          event_id: '12345',
-        },
-        {},
-      ] as Envelope;
-
-      client?.on<EnvelopeHook>('beforeEnvelope', (envelope: Envelope) => {
-        expect(envelope).toEqual(mockEnvelope);
+        client.emit?.('beforeEnvelope', mockEnvelope);
       });
-
-      client?.emit<EnvelopeHook>('beforeEnvelope', mockEnvelope);
     });
   });
 });
