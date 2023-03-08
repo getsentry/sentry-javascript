@@ -24,13 +24,15 @@ import type { LCPMetric, ReportCallback } from './types';
 
 const reportedMetricIDs: Record<string, boolean> = {};
 
+type StopListening = () => void;
+
 /**
  * Calculates the [LCP](https://web.dev/lcp/) value for the current page and
  * calls the `callback` function once the value is ready (along with the
  * relevant `largest-contentful-paint` performance entry used to determine the
  * value). The reported value is a `DOMHighResTimeStamp`.
  */
-export const onLCP = (onReport: ReportCallback): void => {
+export const onLCP = (onReport: ReportCallback): StopListening | undefined => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('LCP');
   let report: ReturnType<typeof bindReporter>;
@@ -75,5 +77,9 @@ export const onLCP = (onReport: ReportCallback): void => {
     });
 
     onHidden(stopListening, true);
+
+    return stopListening;
   }
+
+  return undefined;
 };

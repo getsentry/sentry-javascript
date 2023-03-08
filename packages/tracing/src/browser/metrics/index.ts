@@ -34,16 +34,18 @@ let _clsEntry: LayoutShift | undefined;
 /**
  * Start tracking web vitals
  */
-export function startTrackingWebVitals(): void {
+export function startTrackingWebVitals(): ReturnType<typeof _trackLCP> {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
     _trackCLS();
-    _trackLCP();
     _trackFID();
+    return _trackLCP();
   }
+
+  return;
 }
 
 /**
@@ -89,8 +91,8 @@ function _trackCLS(): void {
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): void {
-  onLCP(metric => {
+function _trackLCP(): ReturnType<typeof onLCP> {
+  return onLCP(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
