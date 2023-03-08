@@ -1,6 +1,7 @@
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
+import type { Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
@@ -8,9 +9,8 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
+import type { Transaction } from './transaction';
 import type { Transport } from './transport';
-import { Transaction } from './transaction';
-import { Envelope } from './envelope';
 
 /**
  * User-Facing Sentry SDK Client.
