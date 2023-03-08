@@ -1,5 +1,5 @@
 import { getCurrentHub, hasTracingEnabled, startTransaction } from '@sentry/core';
-import type { Mechanism, Span, Transaction } from '@sentry/types';
+import type { Span, Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, isThenable } from '@sentry/utils';
 
 interface WrapperContext {
@@ -10,18 +10,30 @@ interface WrapperContext {
 }
 
 interface WrapperContextExtractor<Args extends any[]> {
-  (this: unknown, functionArgs: Args): WrapperContext;
+  (functionArgs: Args, finishSpan: () => void): WrapperContext;
 }
 
 interface SpanInfo {
   op: string;
   name: string;
-  data: Record<string, unknown>;
-  mechanism: Partial<Mechanism>;
+  data?: Record<string, unknown>;
 }
 
 interface SpanInfoCreator<Args extends any[]> {
-  (this: unknown, functionArgs: Args, context: { willCreateTransaction: boolean }): SpanInfo;
+  (functionArgs: Args, context: { willCreateTransaction: boolean }): SpanInfo;
+}
+
+interface OnFunctionEndHookResult {
+  shouldFinishSpan: boolean;
+}
+
+interface OnFunctionEndHook<Args extends any[], R> {
+  (
+    functionArgs: Args,
+    span: Span,
+    result: R | undefined,
+    error: unknown | undefined,
+  ): PromiseLike<OnFunctionEndHookResult>;
 }
 
 interface WrappedReturnValue<V> {
@@ -39,6 +51,7 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
   originalFunction: F,
   wrapperContextExtractor: WrapperContextExtractor<A>,
   spanInfoCreator: SpanInfoCreator<A>,
+  onFunctionEnd: OnFunctionEndHook<A, ReturnType<F>>,
 ): (...args: Parameters<F>) => WrappedReturnValue<ReturnType<F>> {
   if (!hasTracingEnabled()) {
     return new Proxy(originalFunction, {
@@ -49,10 +62,16 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
   }
 
   return new Proxy(originalFunction, {
-    apply: (originalFunction, thisArg: unknown, args: unknown[]): WrappedReturnValue<ReturnType<F>> => {
+    apply: (originalFunction, thisArg: unknown, args: A): WrappedReturnValue<ReturnType<F>> => {
       const currentScope = getCurrentHub().getScope();
 
-      const wrapperContext: WrapperContext = wrapperContextExtractor.apply(thisArg, [args]);
+      const userSpanFinish = (): void => {
+        if (span) {
+          span.finish();
+        }
+      };
+
+      const wrapperContext = wrapperContextExtractor(args, userSpanFinish);
 
       let parentSpan: Span | undefined = currentScope?.getSpan();
 
@@ -60,7 +79,7 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
         parentSpan = requestContextTransactionMap.get(wrapperContext.requestContextObject);
       }
 
-      const spanInfo: SpanInfo = spanInfoCreator.apply(thisArg, [args, { willCreateTransaction: !!parentSpan }]);
+      const spanInfo = spanInfoCreator(args, { willCreateTransaction: !!parentSpan });
 
       let span: Span;
       let usedSyntheticTransaction: Transaction | undefined;
@@ -68,6 +87,8 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
         span = parentSpan.startChild({
           description: spanInfo.name,
           op: spanInfo.op,
+          status: 'ok',
+          data: spanInfo.data,
         });
       } else {
         let traceparentData;
@@ -112,6 +133,7 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
             dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
             source: 'route',
           },
+          data: spanInfo.data,
         });
 
         span = transaction;
@@ -129,28 +151,32 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
         span.setStatus('internal_error');
       };
 
-      const handleFunctionEnd = (): void => {
-        span.finish();
+      const handleFunctionEnd = (res: ReturnType<F> | undefined, err: unknown | undefined): void => {
+        void onFunctionEnd(args, span, res, err).then(beforeFinishResult => {
+          if (!beforeFinishResult.shouldFinishSpan) {
+            span.finish();
+          }
+        });
       };
 
       let maybePromiseResult: ReturnType<F>;
       try {
         maybePromiseResult = originalFunction.apply(thisArg, args);
-      } catch (e) {
+      } catch (err) {
         handleFunctionError();
-        handleFunctionEnd();
-        throw e;
+        handleFunctionEnd(undefined, err);
+        throw err;
       }
 
       if (isThenable(maybePromiseResult)) {
         const promiseResult = maybePromiseResult.then(
-          (res: unknown) => {
-            handleFunctionEnd();
+          (res: ReturnType<F>) => {
+            handleFunctionEnd(res, undefined);
             return res;
           },
           (err: unknown) => {
             handleFunctionError();
-            handleFunctionEnd();
+            handleFunctionEnd(undefined, err);
             throw err;
           },
         );
@@ -160,7 +186,7 @@ export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends 
           usedSyntheticTransaction,
         };
       } else {
-        handleFunctionEnd();
+        handleFunctionEnd(maybePromiseResult, undefined);
         return {
           returnValue: maybePromiseResult,
           usedSyntheticTransaction,
