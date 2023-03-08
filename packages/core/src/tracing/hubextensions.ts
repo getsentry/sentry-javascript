@@ -186,6 +186,9 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
   if (transaction.sampled) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
+  if (client) {
+    client.emit('startTransaction', transaction);
+  }
   return transaction;
 }
 
@@ -212,6 +215,9 @@ export function startIdleTransaction(
   });
   if (transaction.sampled) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+  }
+  if (client && client.emit) {
+    client.emit('startTransaction', transaction);
   }
   return transaction;
 }

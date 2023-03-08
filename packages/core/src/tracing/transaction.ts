@@ -141,11 +141,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.finish(endTimestamp);
 
+    const client = this._hub.getClient();
+    if (client && client.emit) {
+      client.emit('finishTransaction', this);
+    }
+
     if (this.sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.
       __DEBUG_BUILD__ && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
 
-      const client = this._hub.getClient();
       if (client) {
         client.recordDroppedEvent('sample_rate', 'transaction');
       }
