@@ -108,18 +108,16 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
           if (typeof transformedState !== 'undefined' && transformedState !== null) {
             const client = getCurrentHub().getClient();
             const options = client && client.getOptions();
-            const normalizationDepth = options && options.normalizeDepth;
+            const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
 
             // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
-            addNonEnumerableProperty(
-              transformedState,
-              '__sentry_override_normalization_depth__',
-              normalizationDepth || 3,
-            );
-
-            // Make sure the state is always reached during normalization
             const newStateContext = { state: { type: 'redux', value: transformedState } };
-            addNonEnumerableProperty(newStateContext, '__sentry_override_normalization_depth__', 3);
+            addNonEnumerableProperty(
+              newStateContext,
+              '__sentry_override_normalization_depth__',
+              3 + // 3 layers for `state.value.transformedState`
+                normalizationDepth, // rest for the actual state
+            );
 
             scope.setContext('state', newStateContext);
           } else {

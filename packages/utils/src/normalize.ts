@@ -105,7 +105,7 @@ function visit(
   // have already been normalized.
   let overriddenDepth = depth;
 
-  if ((value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__']) {
+  if (typeof (value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'] === 'number') {
     overriddenDepth = (value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'] as number;
   }
 
