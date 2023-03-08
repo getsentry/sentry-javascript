@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { configureScope } from '@sentry/browser';
+import { configureScope, getCurrentHub } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
+import { addNonEnumerableProperty } from '@sentry/utils';
 
 interface Action<T = any> {
   type: T;
@@ -105,7 +106,22 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
           /* Set latest state to scope */
           const transformedState = options.stateTransformer(newState);
           if (typeof transformedState !== 'undefined' && transformedState !== null) {
-            scope.setContext('state', { state: { type: 'redux', value: transformedState } });
+            const client = getCurrentHub().getClient();
+            const options = client && client.getOptions();
+            const normalizationDepth = options && options.normalizeDepth;
+
+            // Set the normalization depth of the redux state to the configured `normalizeDepth` option or a sane number as a fallback
+            addNonEnumerableProperty(
+              transformedState,
+              '__sentry_override_normalization_depth__',
+              normalizationDepth || 3,
+            );
+
+            // Make sure the state is always reached during normalization
+            const newStateContext = { state: { type: 'redux', value: transformedState } };
+            addNonEnumerableProperty(newStateContext, '__sentry_override_normalization_depth__', 3);
+
+            scope.setContext('state', newStateContext);
           } else {
             scope.setContext('state', null);
           }
