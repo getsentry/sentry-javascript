@@ -46,7 +46,13 @@ export type RecordingSnapshot = FullRecordingSnapshot | IncrementalRecordingSnap
  * @param segmentId the segment_id of the replay event
  * @returns
  */
-export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Response> {
+export function waitForReplayRequest(
+  page: Page,
+  segmentIdOrCallback?: number | ((event: ReplayEvent, res: Response) => boolean),
+): Promise<Response> {
+  const segmentId = typeof segmentIdOrCallback === 'number' ? segmentIdOrCallback : undefined;
+  const callback = typeof segmentIdOrCallback === 'function' ? segmentIdOrCallback : undefined;
+
   return page.waitForResponse(res => {
     const req = res.request();
 
@@ -60,6 +66,10 @@ export function waitForReplayRequest(page: Page, segmentId?: number): Promise<Re
 
       if (!isReplayEvent(event)) {
         return false;
+      }
+
+      if (callback) {
+        return callback(event, res);
       }
 
       if (segmentId !== undefined) {

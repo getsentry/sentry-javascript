@@ -24,9 +24,26 @@ sentryTest(
       sentryTest.skip();
     }
 
+    // We want to ensure to check the correct event payloads
+    let firstInputMutationSegmentId: number | undefined = undefined;
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise1 = waitForReplayRequest(page, 1);
-    const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise1 = waitForReplayRequest(page, (event, res) => {
+      const check =
+        firstInputMutationSegmentId === undefined && getIncrementalRecordingSnapshots(res).some(isInputMutation);
+
+      if (check) {
+        firstInputMutationSegmentId = event.segment_id;
+      }
+
+      return check;
+    });
+    const reqPromise2 = waitForReplayRequest(page, (event, res) => {
+      return (
+        typeof firstInputMutationSegmentId === 'number' &&
+        firstInputMutationSegmentId < event.segment_id &&
+        getIncrementalRecordingSnapshots(res).some(isInputMutation)
+      );
+    });
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -39,13 +56,13 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-
     await reqPromise0;
 
     const text = 'test';
 
     await page.locator('#input').fill(text);
     await forceFlushReplay();
+
     const snapshots = getIncrementalRecordingSnapshots(await reqPromise1).filter(isInputMutation);
     const lastSnapshot = snapshots[snapshots.length - 1];
     expect(lastSnapshot.data.text).toBe('*'.repeat(text.length));
@@ -66,9 +83,26 @@ sentryTest(
       sentryTest.skip();
     }
 
+    // We want to ensure to check the correct event payloads
+    let firstInputMutationSegmentId: number | undefined = undefined;
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise1 = waitForReplayRequest(page, 1);
-    const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise1 = waitForReplayRequest(page, (event, res) => {
+      const check =
+        firstInputMutationSegmentId === undefined && getIncrementalRecordingSnapshots(res).some(isInputMutation);
+
+      if (check) {
+        firstInputMutationSegmentId = event.segment_id;
+      }
+
+      return check;
+    });
+    const reqPromise2 = waitForReplayRequest(page, (event, res) => {
+      return (
+        typeof firstInputMutationSegmentId === 'number' &&
+        firstInputMutationSegmentId < event.segment_id &&
+        getIncrementalRecordingSnapshots(res).some(isInputMutation)
+      );
+    });
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
