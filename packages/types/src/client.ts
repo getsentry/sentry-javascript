@@ -2,7 +2,7 @@ import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
 import type { Event, EventHint } from './event';
-import type { EnvelopeHook, TransactionHook } from './hooks';
+import type { Hook } from './hooks';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -155,22 +155,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for transaction start and finish.
    */
-  on?(hook: TransactionHook['name'], callback: TransactionHook['callback']): void;
-
-  /**
-   * Register a callback for envelope creation and sending.
-   */
-  on?(hook: EnvelopeHook['name'], callback: EnvelopeHook['callback']): void;
-
-  /**
-   * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
-   * second argument.
-   */
-  emit?(hook: TransactionHook['name'], ...params: Parameters<TransactionHook['callback']>): void;
+  on?<HookType extends Hook>(hook: HookType['name'], callback: HookType['callback']): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
-  emit?(hook: EnvelopeHook['name'], ...params: Parameters<EnvelopeHook['callback']>): void;
+  emit?<HookType extends Hook>(hook: HookType['name'], ...args: Parameters<HookType['callback']>): void;
 }
