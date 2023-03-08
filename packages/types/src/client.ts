@@ -2,6 +2,7 @@ import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
 import type { Event, EventHint } from './event';
+import type { EnvelopeHookCallback, EnvelopeHookName, TransactionHookCallback, TransactionHookName } from './hooks';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -147,4 +148,28 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param event The dropped event.
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
+
+  // HOOKS
+
+  /**
+   * Register a callback for transaction start and finish.
+   */
+  on(hook: TransactionHookName, callback: TransactionHookCallback): void;
+
+  /**
+   * Register a callback for envelope creation and sending.
+   */
+  on(hook: EnvelopeHookName, callback: EnvelopeHookCallback): void;
+
+  /**
+   * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
+   * second argument.
+   */
+  emit(hook: TransactionHookName, ...params: Parameters<TransactionHookCallback>): void;
+
+  /*
+   * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
+   * second argument.
+   */
+  emit(hook: EnvelopeHookName, ...params: Parameters<EnvelopeHookCallback>): void;
 }

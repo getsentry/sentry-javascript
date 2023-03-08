@@ -96,3 +96,4 @@ export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
 
 export type { BrowserClientReplayOptions } from './browseroptions';
+export type { HookStore, HookName, HookCallback } from './hooks';

@@ -9,6 +9,9 @@ import type {
   Event,
   EventDropReason,
   EventHint,
+  HookCallback,
+  HookName,
+  HookStore,
   Integration,
   IntegrationClass,
   Outcome,
@@ -96,6 +99,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Holds flushable  */
   private _outcomes: { [key: string]: number } = {};
+
+  private _hooks: HookStore = {};
 
   /**
    * Initializes this client instance.
@@ -348,6 +353,30 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public on(hook: HookName, callback: HookCallback): void {
+    if (this._hooks[hook]) {
+      // @ts-ignore we cannot enforce the callback to match the hook
+      // while saving bundle size
+      this._hooks[hook].push(callback);
+    } else {
+      this._hooks[hook] = [];
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public emit(hook: HookName, ...args: Parameters<HookCallback>): void {
+    if (this._hooks[hook]) {
+      // @ts-ignore we cannot enforce the callback to match the hook
+      // while saving bundle size
+      this._hooks[hook].forEach((callback: HookCallback) => callback(...args));
     }
   }
 
