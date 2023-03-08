@@ -10,7 +10,7 @@ export * from './edge';
 import type { Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';
-import type { ServerComponentContext } from './common/types';
+import type { RouteHandlerContext, ServerComponentContext } from './common/types';
 import type * as edgeSdk from './edge';
 import type * as serverSdk from './server';
 
@@ -176,4 +176,12 @@ export declare function withSentryGetStaticProps<F extends (...args: any[]) => a
 export declare function wrapServerComponentWithSentry<F extends (...args: any[]) => any>(
   WrappingTarget: F,
   context: ServerComponentContext,
+): F;
+
+/**
+ * Wraps an `app` directory route handler with Sentry error and performance instrumentation.
+ */
+export declare function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
+  WrappingTarget: F,
+  context: RouteHandlerContext,
 ): F;

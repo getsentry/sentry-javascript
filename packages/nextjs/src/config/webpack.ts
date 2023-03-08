@@ -196,7 +196,7 @@ export function constructWebpackConfigFunction(
     }
 
     if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
-      // Wrap page server components
+      // Wrap server components
       newConfig.module.rules.unshift({
         test: resourcePath => {
           const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
@@ -214,6 +214,26 @@ export function constructWebpackConfigFunction(
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
+            },
+          },
+        ],
+      });
+
+      // Wrap route handlers
+      newConfig.module.rules.unshift({
+        test: resourcePath => {
+          const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+          return (
+            normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
+            !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|ts)$/)
+          );
+        },
+        use: [
+          {
+            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            options: {
+              ...staticWrappingLoaderOptions,
+              wrappingTargetKind: 'route-handler',
             },
           },
         ],

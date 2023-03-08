@@ -23,6 +23,9 @@ const serverComponentWrapperTemplatePath = path.resolve(
 );
 const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
 
+const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
+const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
+
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 
@@ -34,7 +37,7 @@ type LoaderOptions = {
   appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
 };
 
 /**
@@ -155,6 +158,29 @@ export default function wrappingLoader(
     } else {
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
     }
+  } else if (wrappingTargetKind === 'route-handler') {
+    // Get the parameterized route name from this page's filepath
+    const parameterizedPagesRoute = path.posix
+      .normalize(path.relative(appDir, this.resourcePath))
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file name
+      .replace(/\/[^/]+\.(js|ts)$/, '')
+      // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
+      .replace(/\/(\(.*?\)\/)+/g, '/')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+
+    // Skip explicitly-ignored routes
+    if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    templateCode = routeHandlerWrapperTemplateCode;
+
+    templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
   } else {

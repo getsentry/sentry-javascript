@@ -3,14 +3,14 @@ import type { Span, Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData, isThenable } from '@sentry/utils';
 
 interface WrapperContext {
-  sentryTraceHeader?: string;
-  sentryBaggageHeader?: string;
+  sentryTraceHeader?: string | null;
+  baggageHeader?: string | null;
   requestContextObject?: object;
   syntheticParentTransaction?: Transaction;
 }
 
-interface WrapperContextExtractor<Args extends any[]> {
-  (functionArgs: Args, finishSpan: () => void): WrapperContext;
+interface WrapperContextExtractor {
+  (finishSpan: () => void): WrapperContext;
 }
 
 interface SpanInfo {
@@ -19,21 +19,16 @@ interface SpanInfo {
   data?: Record<string, unknown>;
 }
 
-interface SpanInfoCreator<Args extends any[]> {
-  (functionArgs: Args, context: { willCreateTransaction: boolean }): SpanInfo;
+interface SpanInfoCreator {
+  (context: { willCreateTransaction: boolean }): SpanInfo;
 }
 
 interface OnFunctionEndHookResult {
   shouldFinishSpan: boolean;
 }
 
-interface OnFunctionEndHook<Args extends any[], R> {
-  (
-    functionArgs: Args,
-    span: Span,
-    result: R | undefined,
-    error: unknown | undefined,
-  ): PromiseLike<OnFunctionEndHookResult>;
+interface OnFunctionEndHook<R> {
+  (span: Span, result: R | undefined, error: unknown | undefined): Promise<OnFunctionEndHookResult>;
 }
 
 interface WrappedReturnValue<V> {
@@ -44,6 +39,10 @@ interface WrappedReturnValue<V> {
 const requestContextTransactionMap = new WeakMap<object, Transaction>();
 const requestContextSyntheticTransactionMap = new WeakMap<object, Transaction>();
 
+const defaultOnFunctionEnd = async (): Promise<OnFunctionEndHookResult> => {
+  return { shouldFinishSpan: true };
+};
+
 /**
  * TODO
  */
@@ -52,20 +51,21 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
   F extends (...args: A) => any,
 >(
   originalFunction: F,
-  wrapperContextExtractor: WrapperContextExtractor<A>,
-  spanInfoCreator: SpanInfoCreator<A>,
-  onFunctionEnd: OnFunctionEndHook<A, ReturnType<F>>,
+  options: {
+    wrapperContextExtractor?: WrapperContextExtractor;
+    spanInfoCreator: SpanInfoCreator;
+    onFunctionEnd?: OnFunctionEndHook<ReturnType<F>>;
+  },
 ): (...args: Parameters<F>) => WrappedReturnValue<ReturnType<F>> {
-  if (!hasTracingEnabled()) {
-    return new Proxy(originalFunction, {
-      apply: (originalFunction, thisArg: unknown, args: unknown[]): WrappedReturnValue<ReturnType<F>> => {
-        return originalFunction.apply(thisArg, args);
-      },
-    });
-  }
-
   return new Proxy(originalFunction, {
     apply: (originalFunction, thisArg: unknown, args: A): WrappedReturnValue<ReturnType<F>> => {
+      if (!hasTracingEnabled()) {
+        return {
+          returnValue: originalFunction.apply(thisArg, args),
+          usedSyntheticTransaction: undefined,
+        };
+      }
+
       const currentScope = getCurrentHub().getScope();
 
       const userSpanFinish = (): void => {
@@ -74,7 +74,7 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
         }
       };
 
-      const wrapperContext = wrapperContextExtractor(args, userSpanFinish);
+      const wrapperContext = options.wrapperContextExtractor?.(userSpanFinish) || {};
 
       let parentSpan: Span | undefined = currentScope?.getSpan();
 
@@ -82,7 +82,7 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
         parentSpan = requestContextTransactionMap.get(wrapperContext.requestContextObject);
       }
 
-      const spanInfo = spanInfoCreator(args, { willCreateTransaction: !!parentSpan });
+      const spanInfo = options.spanInfoCreator({ willCreateTransaction: !parentSpan });
 
       let span: Span;
       let usedSyntheticTransaction: Transaction | undefined;
@@ -125,7 +125,7 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
           }
         }
 
-        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(wrapperContext.sentryBaggageHeader);
+        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(wrapperContext.baggageHeader);
 
         const transaction = startTransaction({
           name: spanInfo.name,
@@ -155,8 +155,8 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
       };
 
       const handleFunctionEnd = (res: ReturnType<F> | undefined, err: unknown | undefined): void => {
-        void onFunctionEnd(args, span, res, err).then(beforeFinishResult => {
-          if (!beforeFinishResult.shouldFinishSpan) {
+        void (options.onFunctionEnd || defaultOnFunctionEnd)(span, res, err).then(beforeFinishResult => {
+          if (beforeFinishResult.shouldFinishSpan) {
             span.finish();
           }
         });

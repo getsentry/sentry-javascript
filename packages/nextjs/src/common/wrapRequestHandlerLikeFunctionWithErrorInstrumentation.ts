@@ -17,13 +17,19 @@ interface BeforeCaptureErrorHook<Args extends any[]> {
   (functionArgs: Args, error: unknown): PromiseLike<BeforeCaptureErrorHookResult>;
 }
 
+const defaultBeforeCaptureError = async (): Promise<BeforeCaptureErrorHookResult> => {
+  return {
+    skipCapturingError: false,
+  };
+};
+
 /**
  * TODO
  */
 export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends any[], F extends (...args: A) => any>(
   originalFunction: F,
   errorInfoCreator: ErrorInfoCreator<A>,
-  beforeCaptureError: BeforeCaptureErrorHook<A>,
+  beforeCaptureError: BeforeCaptureErrorHook<A> = defaultBeforeCaptureError,
 ): (...args: Parameters<F>) => ReturnType<F> {
   return new Proxy(originalFunction, {
     apply: (originalFunction, thisArg: unknown, args: Parameters<F>): ReturnType<F> => {

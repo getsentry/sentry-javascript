@@ -229,3 +229,4 @@ export {
 } from './wrapApiHandlerWithSentry';
 
 export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
+export { wrapRouteHandlerWithSentry } from './wrapRouteHandlerWithSentry';

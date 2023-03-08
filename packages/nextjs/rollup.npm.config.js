@@ -28,6 +28,7 @@ export default [
         'src/config/templates/apiWrapperTemplate.ts',
         'src/config/templates/middlewareWrapperTemplate.ts',
         'src/config/templates/serverComponentWrapperTemplate.ts',
+        'src/config/templates/routeHandlerWrapperTemplate.ts',
       ],
 
       packageSpecificConfig: {
