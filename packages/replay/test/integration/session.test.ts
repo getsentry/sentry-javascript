@@ -81,7 +81,7 @@ describe('Integration | session', () => {
 
     jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
-    document.dispatchEvent(new Event('focus'));
+    WINDOW.dispatchEvent(new Event('focus'));
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSameSession(initialSession);
