@@ -47,7 +47,10 @@ const requestContextSyntheticTransactionMap = new WeakMap<object, Transaction>()
 /**
  * TODO
  */
-export function wrapRequestLikeFunctionWithPerformanceInstrumentation<A extends any[], F extends (...args: A) => any>(
+export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
+  A extends any[],
+  F extends (...args: A) => any,
+>(
   originalFunction: F,
   wrapperContextExtractor: WrapperContextExtractor<A>,
   spanInfoCreator: SpanInfoCreator<A>,

@@ -12,7 +12,7 @@ interface ErrorInfoCreator<Args extends any[]> {
 /**
  * TODO
  */
-export function wrapRequestLikeFunctionWithErrorInstrumentation<A extends any[], F extends (...args: A) => any>(
+export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends any[], F extends (...args: A) => any>(
   originalFunction: F,
   errorInfoCreator: ErrorInfoCreator<A>,
 ): (...args: Parameters<F>) => ReturnType<F> {
