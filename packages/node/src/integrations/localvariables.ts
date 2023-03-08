@@ -24,16 +24,14 @@ export interface DebugSession {
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
 class AsyncSession implements DebugSession {
-  private _session: Session | undefined = undefined;
-
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  private readonly _inspectorModulePromise: Promise<typeof import('inspector')>;
+  private readonly _session: Session;
 
   /** Throws is inspector API is not available */
   public constructor() {
     // Node can be build without inspector support so this can throw
-    // @ts-ignore eslint-disable-next-line @typescript-eslint/no-var-requires
-    this._inspectorModulePromise = import('inspector');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Session } = require('inspector');
+    this._session = new Session();
   }
 
   /** @inheritdoc */
@@ -41,18 +39,11 @@ class AsyncSession implements DebugSession {
     onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
     captureAll: boolean,
   ): void {
-    this._inspectorModulePromise
-      .then(inspectorModule => {
-        this._session = new inspectorModule.Session();
-        this._session.connect();
-        this._session.on('Debugger.paused', onPause);
-        this._session.post('Debugger.enable');
-        // We only want to pause on uncaught exceptions
-        this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
-      })
-      .catch(_ => {
-        /* ignoring, `inspector` isn't always available */
-      });
+    this._session.connect();
+    this._session.on('Debugger.paused', onPause);
+    this._session.post('Debugger.enable');
+    // We only want to pause on uncaught exceptions
+    this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
   }
 
   /** @inheritdoc */
@@ -78,12 +69,6 @@ class AsyncSession implements DebugSession {
    */
   private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
-      if (!this._session) {
-        // eslint-disable-next-line no-console
-        console.error('Session is not available');
-        reject(new Error('Session is not available'));
-        return;
-      }
       this._session.post(
         'Runtime.getProperties',
         {
