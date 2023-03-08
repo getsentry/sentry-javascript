@@ -9,8 +9,7 @@ import type {
   Event,
   EventDropReason,
   EventHint,
-  HookCallback,
-  HookName,
+  Hook,
   HookStore,
   Integration,
   IntegrationClass,
@@ -359,24 +358,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public on(hook: HookName, callback: HookCallback): void {
+  public on<HookType extends Hook>(hook: HookType['name'], callback: HookType['callback']): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
     }
 
-    // @ts-ignore we cannot enforce the callback to match the hook
-    // while saving bundle size
-    this._hooks[hook].push(callback);
+    (this._hooks[hook] as HookType['callback'][]).push(callback);
   }
 
   /**
    * @inheritDoc
    */
-  public emit(hook: HookName, ...args: Parameters<HookCallback>): void {
+  public emit<HookType extends Hook>(hook: HookType['name'], ...args: Parameters<HookType['callback']>): void {
     if (this._hooks[hook]) {
-      // @ts-ignore we cannot enforce the callback to match the hook
-      // while saving bundle size
-      this._hooks[hook].forEach((callback: HookCallback) => callback(...args));
+      // @ts-ignore it does not like ...args, but we know this is correct
+      (this._hooks[hook] as HookType['callback'][]).forEach(callback => callback(...args));
     }
   }
 
