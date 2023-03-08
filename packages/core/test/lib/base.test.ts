@@ -1738,7 +1738,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
 
-      let mockTransaction = {
+      const mockTransaction = {
         traceId: '86f39e84263a4de99c326acab3bfe3bd',
       } as Transaction;
 
