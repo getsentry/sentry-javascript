@@ -24,14 +24,16 @@ export interface DebugSession {
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
 class AsyncSession implements DebugSession {
-  private readonly _session: Session;
+  private _session: Session | undefined = undefined;
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  private readonly _inspectorModulePromise: Promise<typeof import('inspector')>;
 
   /** Throws is inspector API is not available */
   public constructor() {
     // Node can be build without inspector support so this can throw
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Session } = require('inspector');
-    this._session = new Session();
+    // @ts-ignore eslint-disable-next-line @typescript-eslint/no-var-requires
+    this._inspectorModulePromise = import('inspector');
   }
 
   /** @inheritdoc */
@@ -39,11 +41,18 @@ class AsyncSession implements DebugSession {
     onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
     captureAll: boolean,
   ): void {
-    this._session.connect();
-    this._session.on('Debugger.paused', onPause);
-    this._session.post('Debugger.enable');
-    // We only want to pause on uncaught exceptions
-    this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
+    this._inspectorModulePromise
+      .then(inspectorModule => {
+        this._session = new inspectorModule.Session();
+        this._session.connect();
+        this._session.on('Debugger.paused', onPause);
+        this._session.post('Debugger.enable');
+        // We only want to pause on uncaught exceptions
+        this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
+      })
+      .catch(_ => {
+        /* ignoring, `inspector` isn't always available */
+      });
   }
 
   /** @inheritdoc */
@@ -69,6 +78,10 @@ class AsyncSession implements DebugSession {
    */
   private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
     return new Promise((resolve, reject) => {
+      if (!this._session) {
+        reject(new Error('Session is not available'));
+        return;
+      }
       this._session.post(
         'Runtime.getProperties',
         {
@@ -192,7 +205,7 @@ export class LocalVariables implements Integration {
   public constructor(
     private readonly _options: Options = {},
     private readonly _session: DebugSession | undefined = tryNewAsyncSession(),
-  ) {}
+  ) { }
 
   /**
    * @inheritDoc
