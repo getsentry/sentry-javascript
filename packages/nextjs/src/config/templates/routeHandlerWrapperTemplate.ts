@@ -30,7 +30,8 @@ type ServerComponentModule = {
 const serverComponentModule = wrapee as ServerComponentModule;
 
 function wrapHandler<T>(handler: T, method: string): T {
-  // TODO: explain why
+  // Running the instrumentation code during the build phase will mark any function as "dynamic" because we're accessing
+  // the Request object. We do not want to turn handlers dynamic so we skip instrumentation in the build phase.
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return handler;
   }

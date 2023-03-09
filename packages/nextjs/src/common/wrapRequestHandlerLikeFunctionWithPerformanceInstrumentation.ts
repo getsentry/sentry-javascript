@@ -44,7 +44,7 @@ const defaultOnFunctionEnd = async (): Promise<OnFunctionEndHookResult> => {
 };
 
 /**
- * TODO
+ * Generic function that wraps any other function with Sentry performance instrumentation.
  */
 export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
   A extends any[],

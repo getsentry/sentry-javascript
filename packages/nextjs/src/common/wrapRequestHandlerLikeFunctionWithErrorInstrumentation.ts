@@ -24,7 +24,7 @@ const defaultBeforeCaptureError = async (): Promise<BeforeCaptureErrorHookResult
 };
 
 /**
- * TODO
+ * Generic function that wraps any other function with Sentry error instrumentation.
  */
 export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends any[], F extends (...args: A) => any>(
   originalFunction: F,
