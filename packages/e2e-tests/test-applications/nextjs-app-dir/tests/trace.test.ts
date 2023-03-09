@@ -28,3 +28,41 @@ if (process.env.TEST_ENV === 'production') {
     await serverComponentTransaction;
   });
 }
+
+test('Sends connected traces for route handlers', async ({ page }, testInfo) => {
+  await page.goto('/client-component');
+
+  const clientTransactionName = `e2e-next-js-app-dir: ${testInfo.title}`;
+
+  const getRequestTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'GET /dynamic-route/42' &&
+      (await clientTransactionPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
+    );
+  });
+
+  const postRequestTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'POST /dynamic-route/42/1337' &&
+      (await clientTransactionPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
+    );
+  });
+
+  const clientTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+    return transactionEvent?.transaction === clientTransactionName;
+  });
+
+  await page.getByPlaceholder('Transaction name').fill(clientTransactionName);
+  await page.getByText('Start transaction').click();
+
+  await page.getByPlaceholder('GET request target').fill('/dynamic-route/42');
+  await page.getByText('Send GET request').click();
+
+  await page.getByPlaceholder('POST request target').fill('/dynamic-route/42/1337');
+  await page.getByText('Send POST request').click();
+
+  await page.getByText('Stop transaction').click();
+
+  await getRequestTransaction;
+  await postRequestTransaction;
+});

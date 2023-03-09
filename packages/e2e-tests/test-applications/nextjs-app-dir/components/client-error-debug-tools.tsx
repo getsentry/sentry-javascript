@@ -7,10 +7,14 @@ import { captureException } from '@sentry/nextjs';
 export function ClientErrorDebugTools() {
   const transactionContextValue = useContext(TransactionContext);
   const [transactionName, setTransactionName] = useState<string>('');
+  const [getRequestTarget, setGetRequestTarget] = useState<string>('');
+  const [postRequestTarget, setPostRequestTarget] = useState<string>('');
 
   const [isFetchingAPIRoute, setIsFetchingAPIRoute] = useState<boolean>();
   const [isFetchingEdgeAPIRoute, setIsFetchingEdgeAPIRoute] = useState<boolean>();
   const [isFetchingExternalAPIRoute, setIsFetchingExternalAPIRoute] = useState<boolean>();
+  const [isSendeingGetRequest, setIsSendingGetRequest] = useState<boolean>();
+  const [isSendeingPostRequest, setIsSendingPostRequest] = useState<boolean>();
   const [renderError, setRenderError] = useState<boolean>();
 
   if (renderError) {
@@ -119,6 +123,51 @@ export function ClientErrorDebugTools() {
         Send request to external API route
       </button>
       <br />
+      <input
+        type="text"
+        placeholder="GET request target"
+        value={getRequestTarget}
+        onChange={e => {
+          setGetRequestTarget(e.target.value);
+        }}
+      />
+      <button
+        onClick={async () => {
+          setIsSendingGetRequest(true);
+          try {
+            await fetch(getRequestTarget);
+          } catch (e) {
+            captureException(e);
+          }
+          setIsSendingGetRequest(false);
+        }}
+      >
+        Send GET request
+      </button>
+      <br />
+      <input
+        type="text"
+        placeholder="POST request target"
+        value={postRequestTarget}
+        onChange={e => {
+          setPostRequestTarget(e.target.value);
+        }}
+      />
+      <button
+        onClick={async () => {
+          setIsSendingPostRequest(true);
+          try {
+            await fetch(postRequestTarget, {
+              method: 'POST',
+            });
+          } catch (e) {
+            captureException(e);
+          }
+          setIsSendingPostRequest(false);
+        }}
+      >
+        Send POST request
+      </button>
     </div>
   );
 }
