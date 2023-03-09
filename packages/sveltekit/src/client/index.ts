@@ -1,4 +1,11 @@
 export * from '@sentry/svelte';
 
-// Just here so that eslint is happy until we export more stuff here
-export const PLACEHOLDER_CLIENT = 'PLACEHOLDER';
+// The `withSentryConfig` is exported from the `@sentry/svelte` package, but it has
+// nothing to do with the SvelteKit withSentryConfig. (Bad naming on our part)
+// const { withSentryConfig, ...restOfTheSDK } = SvelteSDK;
+
+// export { withSentryConfig as whatever };
+
+// export  {
+//   ...restOfTheSDK,
+// };

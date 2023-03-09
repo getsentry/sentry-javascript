@@ -1,4 +1,5 @@
 export * from './server';
+export * from './config';
 
 // This file is the main entrypoint on the server and/or when the package is `require`d
 
