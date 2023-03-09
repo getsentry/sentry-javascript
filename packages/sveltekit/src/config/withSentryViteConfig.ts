@@ -31,14 +31,10 @@ export function withSentryViteConfig(originalConfig: UserConfigExport): UserConf
 }
 
 function addSentryConfig(originalConfig: UserConfig): UserConfig {
-  const config = { ...originalConfig };
-
-  const { plugins } = config;
-  if (!plugins) {
-    config.plugins = [injectSentryInitPlugin];
-  } else {
-    config.plugins = [injectSentryInitPlugin, ...plugins];
-  }
+  const config = {
+    ...originalConfig,
+    plugins: originalConfig.plugins ? [injectSentryInitPlugin, ...originalConfig.plugins] : [injectSentryInitPlugin],
+  };
 
   const mergedDevServerFileSystemConfig: UserConfig['server'] = {
     fs: {
