@@ -417,7 +417,46 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
-  it('stops replay when session expires', async () => {
+  it('stops replay when user goes idle', async () => {
+    jest.setSystemTime(BASE_TIMESTAMP);
+
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    captureException(new Error('testing'));
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveLastSentReplay();
+
+    // Now wait after session expires - should stop recording
+    mockRecord.takeFullSnapshot.mockClear();
+    (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+
+    // Go idle
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
+    expect(replay.isEnabled()).toBe(false);
+  });
+
+  it('stops replay when session exceeds max length', async () => {
     jest.setSystemTime(BASE_TIMESTAMP);
 
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
