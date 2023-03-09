@@ -48,7 +48,9 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
     return null;
   }
 
+  // `__sn` property is the serialized node created by rrweb
   const serializedNode = targetNode && ('__sn' in targetNode) ? targetNode.__sn  as elementNode & {id: number} : null;
+
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
     message: target,
