@@ -1,4 +1,4 @@
-import type { elementNode, INode} from '@sentry-internal/rrweb-snapshot';
+import type { INode } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
@@ -49,22 +49,30 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   }
 
   // `__sn` property is the serialized node created by rrweb
-  const serializedNode = targetNode && ('__sn' in targetNode) ? targetNode.__sn  as elementNode & {id: number} : null;
+  const serializedNode =
+    targetNode && '__sn' in targetNode && targetNode.__sn.type === NodeType.Element ? targetNode.__sn : null;
 
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
     message: target,
     data: {
-      ...(serializedNode ? {
-        nodeId: serializedNode.id,
-        node: {
-          id: serializedNode.id,
-          tagName: serializedNode.tagName,
-          textContent: targetNode ? Array.from(targetNode.childNodes).filter((node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text).map(node => node.textContent) : '',
-          attributes: serializedNode.attributes,
-        },
-      } : {}),
-
+      ...(serializedNode
+        ? {
+            nodeId: serializedNode.id,
+            node: {
+              id: serializedNode.id,
+              tagName: serializedNode.tagName,
+              textContent: targetNode
+                ? Array.from(targetNode.childNodes)
+                    .filter((node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text)
+                    .map(node => node.textContent)
+                    .join('')
+                : '',
+              // TODO: strict list of attributes
+              attributes: getAttributesToIndex(serializedNode.attributes),
+            },
+          }
+        : {}),
     },
   });
 }
@@ -79,4 +87,18 @@ function getTargetNode(handlerData: DomHandlerData): Node {
 
 function isEventWithTarget(event: unknown): event is { target: Node } {
   return !!(event as { target?: Node }).target;
+}
+
+// Attributes we are interested in:
+const ATTRIBUTES_TO_INDEX =  ['id', 'class', 'aria-label', 'role', 'name'];
+
+function getAttributesToIndex(attributes: Record<string, unknown>) {
+  const obj = {};
+  for (const key of ATTRIBUTES_TO_INDEX) {
+     if (attributes.hasOwnProperty(key)) {
+      obj[key] = attributes[key];
+    }
+  }
+
+  return obj;
 }

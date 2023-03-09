@@ -62,7 +62,21 @@ sentryTest(
     );
 
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#error' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error',
+          data: {
+            node: {
+              attributes: { id: 'error' },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: 'Throw Error',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );
@@ -108,7 +122,23 @@ sentryTest(
 
     // The button click that triggered the error should still be recorded
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#drop' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#drop',
+          data: {
+            node: {
+              attributes: {
+                id: 'drop',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: 'Throw Error but drop it',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );

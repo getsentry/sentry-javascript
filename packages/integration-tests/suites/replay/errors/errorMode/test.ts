@@ -99,6 +99,17 @@ sentryTest(
         {
           ...expectedClickBreadcrumb,
           message: 'body > button#error',
+          data: {
+            nodeId: expect.any(Number),
+            node: {
+              attributes: {
+                id: 'error',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: 'Throw Error',
+            },
+          },
         },
       ]),
     );
@@ -131,7 +142,19 @@ sentryTest(
 
     expect(content2.breadcrumbs).toEqual(
       expect.arrayContaining([
-        { ...expectedClickBreadcrumb, message: 'body > button#log' },
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#log',
+          data: {
+            node: {
+              attributes: { id: 'log' },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: 'Log stuff to the console',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
         { ...expectedConsoleBreadcrumb, level: 'log', message: 'Some message' },
       ]),
     );
