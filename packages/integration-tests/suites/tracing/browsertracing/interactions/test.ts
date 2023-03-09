@@ -66,7 +66,7 @@ sentryTest('should create only one transaction per interaction', async ({ browse
 
   for (let i = 0; i < 4; i++) {
     await wait(100);
-    page.locator('[data-test-id=interaction-button]').click();
+    await page.locator('[data-test-id=interaction-button]').click();
     const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
     expect(envelope[0].spans).toHaveLength(1);
   }
