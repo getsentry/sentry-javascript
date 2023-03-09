@@ -71,6 +71,34 @@ export function startTrackingLongTasks(): void {
   observe('longtask', entryHandler);
 }
 
+/**
+ * Start tracking interaction events.
+ */
+export function startTrackingInteractions(): void {
+  const entryHandler = (entries: PerformanceEventTiming[]): void => {
+    for (const entry of entries) {
+      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      if (!transaction) {
+        return;
+      }
+
+      if (entry.name === 'click') {
+        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const duration = msToSec(entry.duration);
+
+        transaction.startChild({
+          description: htmlTreeAsString(entry.target),
+          op: `ui.interaction.${entry.name}`,
+          startTimestamp: startTime,
+          endTimestamp: startTime + duration,
+        });
+      }
+    }
+  };
+
+  observe('event', entryHandler, { durationThreshold: 0 });
+}
+
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): void {
   // See:

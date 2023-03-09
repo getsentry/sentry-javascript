@@ -10,6 +10,7 @@ Sentry.init({
       idleTimeout: 1000,
       _experiments: {
         enableInteractions: true,
+        enableLongTask: false,
       },
     }),
   ],
