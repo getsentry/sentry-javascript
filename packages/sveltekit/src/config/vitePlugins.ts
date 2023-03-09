@@ -4,6 +4,10 @@ import MagicString from 'magic-string';
 import * as path from 'path';
 import type { Plugin, TransformResult } from 'vite';
 
+const serverIndexFilePath = path.join('@sveltejs', 'kit', 'src', 'runtime', 'server', 'index.js');
+const devClientAppFilePath = path.join('generated', 'client', 'app.js');
+const prodClientAppFilePath = path.join('generated', 'client-optimized', 'app.js');
+
 /**
  * This plugin injects the `Sentry.init` calls from `sentry.(client|server).config.(ts|js)`
  * into SvelteKit runtime files.
@@ -15,10 +19,6 @@ export const injectSentryInitPlugin: Plugin = {
   // into SvelteKit runtime files: For the server, we inject it into the server's `index.js`
   // file. For the client, we use the `_app.js` file.
   transform(code, id) {
-    const serverIndexFilePath = path.join('@sveltejs', 'kit', 'src', 'runtime', 'server', 'index.js');
-    const devClientAppFilePath = path.join('.svelte-kit', 'generated', 'client', 'app.js');
-    const prodClientAppFilePath = path.join('.svelte-kit', 'generated', 'client-optimized', 'app.js');
-
     if (id.endsWith(serverIndexFilePath)) {
       logger.debug('Injecting Server Sentry.init into', id);
       return addSentryConfigFileImport('server', code, id) || code;
