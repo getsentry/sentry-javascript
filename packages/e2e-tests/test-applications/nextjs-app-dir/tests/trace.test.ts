@@ -4,7 +4,7 @@ import { waitForTransaction } from '../../../test-utils/event-proxy-server';
 if (process.env.TEST_ENV === 'production') {
   // TODO: Fix that this is flakey on dev server - might be an SDK bug
   test('Sends connected traces for server components', async ({ page }, testInfo) => {
-    await page.goto('/client-component');
+    await page.goto('/');
 
     const clientTransactionName = `e2e-next-js-app-dir: ${testInfo.title}`;
 
@@ -30,7 +30,7 @@ if (process.env.TEST_ENV === 'production') {
 }
 
 test('Sends connected traces for route handlers', async ({ page }, testInfo) => {
-  await page.goto('/client-component');
+  await page.goto('/');
 
   const clientTransactionName = `e2e-next-js-app-dir: ${testInfo.title}`;
 
