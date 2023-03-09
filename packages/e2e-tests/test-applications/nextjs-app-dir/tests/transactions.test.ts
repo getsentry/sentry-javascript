@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { waitForTransaction } from '../../../test-utils/event-proxy-server';
-import { pollEventOnSentry } from '../../../test-utils/playwright-poll-sentry-event';
+import { pollEventOnSentry } from './utils';
 
 test('Sends an ingestable pageload transaction to Sentry', async ({ page }) => {
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {

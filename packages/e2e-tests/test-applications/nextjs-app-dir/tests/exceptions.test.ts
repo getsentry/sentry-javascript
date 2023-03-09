@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '../../../test-utils/event-proxy-server';
-import { pollEventOnSentry } from '../../../test-utils/playwright-poll-sentry-event';
+import { pollEventOnSentry } from './utils';
 
 test('Sends an ingestable client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');

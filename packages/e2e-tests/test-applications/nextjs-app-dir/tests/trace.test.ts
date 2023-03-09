@@ -36,14 +36,14 @@ test('Sends connected traces for route handlers', async ({ page }, testInfo) => 
 
   const getRequestTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'GET /dynamic-route/42' &&
+      transactionEvent?.transaction === 'GET /dynamic-route/[parameter]' &&
       (await clientTransactionPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
 
   const postRequestTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'POST /dynamic-route/42/1337' &&
+      transactionEvent?.transaction === 'POST /dynamic-route/[...parameters]' &&
       (await clientTransactionPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
