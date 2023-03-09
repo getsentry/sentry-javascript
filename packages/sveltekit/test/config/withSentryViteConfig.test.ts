@@ -1,4 +1,5 @@
-import { UserConfig, Plugin } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
+
 import { withSentryViteConfig } from '../../src/config/withSentryViteConfig';
 
 describe('withSentryViteConfig', () => {
