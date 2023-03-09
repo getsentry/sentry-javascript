@@ -135,6 +135,7 @@ declare global {
   interface PerformanceEventTiming extends PerformanceEntry {
     duration: DOMHighResTimeStamp;
     interactionId?: number;
+    readonly target: Node | null;
   }
 
   // https://wicg.github.io/layout-instability/#sec-layout-shift-attribution

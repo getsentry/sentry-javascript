@@ -25,6 +25,7 @@ export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
+  forceFlushReplay: () => Promise<string>;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
   runInFirefox: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
   runInWebkit: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -91,6 +92,20 @@ const sentryTest = base.extend<TestFixtures>({
 
       return fn(...args);
     });
+  },
+
+  forceFlushReplay: ({ page }, use) => {
+    return use(() =>
+      page.evaluate(`
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: function () {
+          return 'hidden';
+        },
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    `),
+    );
   },
 });
 

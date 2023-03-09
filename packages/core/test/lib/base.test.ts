@@ -1,4 +1,4 @@
-import type { Event, Span } from '@sentry/types';
+import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
 import { dsnToString, logger, SentryError, SyncPromise } from '@sentry/utils';
 
 import { Hub, makeSession, Scope } from '../../src';
@@ -1728,6 +1728,49 @@ describe('BaseClient', () => {
 
       const clearedOutcomes4 = client._clearOutcomes();
       expect(clearedOutcomes4.length).toEqual(0);
+    });
+  });
+
+  describe('hooks', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+
+    // Make sure types work for both Client & BaseClient
+    const scenarios = [
+      ['BaseClient', new TestClient(options)],
+      ['Client', new TestClient(options) as Client],
+    ] as const;
+
+    describe.each(scenarios)('with client %s', (_, client) => {
+      it('should call a startTransaction hook', () => {
+        expect.assertions(1);
+
+        const mockTransaction = {
+          traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        } as Transaction;
+
+        client.on?.('startTransaction', transaction => {
+          expect(transaction).toEqual(mockTransaction);
+        });
+
+        client.emit?.('startTransaction', mockTransaction);
+      });
+
+      it('should call a beforeEnvelope hook', () => {
+        expect.assertions(1);
+
+        const mockEnvelope = [
+          {
+            event_id: '12345',
+          },
+          {},
+        ] as Envelope;
+
+        client.on?.('beforeEnvelope', envelope => {
+          expect(envelope).toEqual(mockEnvelope);
+        });
+
+        client.emit?.('beforeEnvelope', mockEnvelope);
+      });
     });
   });
 });
