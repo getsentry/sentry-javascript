@@ -8,7 +8,6 @@ export * from './config';
 export * from './server';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
-import { UserConfig, UserConfigExport } from 'vite';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';

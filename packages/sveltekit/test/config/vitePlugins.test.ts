@@ -1,6 +1,6 @@
-import { injectSentryInitPlugin } from '../../src/config/vitePlugins';
-
 import * as fs from 'fs';
+
+import { injectSentryInitPlugin } from '../../src/config/vitePlugins';
 
 describe('injectSentryInitPlugin', () => {
   it('has its basic properties set', () => {
@@ -19,7 +19,7 @@ describe('injectSentryInitPlugin', () => {
       // @ts-ignore -- transform is definitely defined and callable. Seems like TS doesn't know that.
       const result = injectSentryInitPlugin.transform(code, id);
 
-      expect(result.code).toMatch(/foo\(\);\n.*import \".*sentry\.server\.config\.ts\";/gm);
+      expect(result.code).toMatch(/foo\(\);\n.*import ".*sentry\.server\.config\.ts";/gm);
       expect(result.map).toBeDefined();
     });
 
@@ -30,7 +30,7 @@ describe('injectSentryInitPlugin', () => {
       // @ts-ignore -- transform is definitely defined and callable. Seems like TS doesn't know that.
       const result = injectSentryInitPlugin.transform(code, id);
 
-      expect(result.code).toMatch(/foo\(\);\n.*import \".*sentry\.client\.config\.ts\";/gm);
+      expect(result.code).toMatch(/foo\(\);\n.*import ".*sentry\.client\.config\.ts";/gm);
       expect(result.map).toBeDefined();
     });
 
@@ -41,7 +41,7 @@ describe('injectSentryInitPlugin', () => {
       // @ts-ignore -- transform is definitely defined and callable. Seems like TS doesn't know that.
       const result = injectSentryInitPlugin.transform(code, id);
 
-      expect(result.code).toMatch(/foo\(\);\n.*import \".*sentry\.client\.config\.ts\";/gm);
+      expect(result.code).toMatch(/foo\(\);\n.*import ".*sentry\.client\.config\.ts";/gm);
       expect(result.map).toBeDefined();
     });
 

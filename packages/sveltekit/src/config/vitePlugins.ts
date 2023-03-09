@@ -1,9 +1,8 @@
-import type { Plugin, TransformResult } from 'vite';
-
-import * as fs from 'fs';
-import * as path from 'path';
-import MagicString from 'magic-string';
 import { logger } from '@sentry/utils';
+import * as fs from 'fs';
+import MagicString from 'magic-string';
+import * as path from 'path';
+import type { Plugin, TransformResult } from 'vite';
 
 /**
  * This plugin injects the `Sentry.init` calls from `sentry.(client|server).config.(ts|js)`

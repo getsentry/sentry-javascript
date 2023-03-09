@@ -1,4 +1,5 @@
-import { UserConfig, UserConfigExport } from 'vite';
+import type { UserConfig, UserConfigExport } from 'vite';
+
 import { injectSentryInitPlugin } from './vitePlugins';
 
 /**
