@@ -1,5 +1,4 @@
-import type { Plugin, UserConfig } from 'vite';
-
+import { UserConfig, Plugin } from 'vite';
 import { withSentryViteConfig } from '../../src/config/withSentryViteConfig';
 
 describe('withSentryViteConfig', () => {
@@ -69,7 +68,7 @@ describe('withSentryViteConfig', () => {
 
   it('takes a function returning a Vite config promise and returns the sentrified version', async () => {
     const sentrifiedConfigFunction = withSentryViteConfig(_env => {
-      return originalConfig;
+      return Promise.resolve(originalConfig);
     });
     const sentrifiedConfig =
       typeof sentrifiedConfigFunction === 'function' &&
@@ -86,5 +85,33 @@ describe('withSentryViteConfig', () => {
     expect((sentrifiedConfig as UserConfig).server?.fs?.allow).toStrictEqual(['./bar', '.']);
 
     expect((sentrifiedConfig as any).test).toEqual(originalConfig.test);
+  });
+
+  it('adds the vite plugin if no plugins are present', () => {
+    const sentrifiedConfig = withSentryViteConfig({
+      test: {
+        include: ['src/**/*.{test,spec}.{js,ts}'],
+      },
+    } as UserConfig);
+
+    expect(typeof sentrifiedConfig).toBe('object');
+
+    const plugins = (sentrifiedConfig as UserConfig).plugins as Plugin[];
+
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].name).toBe('sentry-init-injection-plugin');
+  });
+
+  it('adds the vite plugin and server config to an empty vite config', () => {
+    const sentrifiedConfig = withSentryViteConfig({});
+
+    expect(typeof sentrifiedConfig).toBe('object');
+
+    const plugins = (sentrifiedConfig as UserConfig).plugins as Plugin[];
+
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].name).toBe('sentry-init-injection-plugin');
+
+    expect((sentrifiedConfig as UserConfig).server?.fs?.allow).toStrictEqual(['.']);
   });
 });
