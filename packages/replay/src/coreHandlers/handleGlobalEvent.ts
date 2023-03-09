@@ -1,15 +1,21 @@
 import { addBreadcrumb } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
+import type { ErrorEvent, Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
+import { REPLAY_EVENT_NAME } from '../constants';
 import type { ReplayContainer } from '../types';
 import { isRrwebError } from '../util/isRrwebError';
+import { handleAfterSendError } from './handleAfterSendError';
 
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
  */
-export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
+export function handleGlobalEventListener(
+  replay: ReplayContainer,
+  includeErrorHandling = false,
+): (event: Event, hint: EventHint) => Event | null {
+  const errorHandler = includeErrorHandling ? handleAfterSendError(replay) : undefined;
+
   return (event: Event, hint: EventHint) => {
     // Do not apply replayId to the root event
     if (event.type === REPLAY_EVENT_NAME) {
@@ -39,11 +45,6 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       return event;
     }
 
-    // no event type means error
-    if (!event.type) {
-      replay.getContext().errorIds.add(event.event_id as string);
-    }
-
     if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals) {
       const exc = getEventExceptionValues(event);
       addInternalBreadcrumb({
@@ -51,26 +52,9 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       });
     }
 
-    // Need to be very careful that this does not cause an infinite loop
-    if (
-      replay.recordingMode === 'error' &&
-      event.exception &&
-      event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
-    ) {
-      setTimeout(async () => {
-        // Allow flush to complete before resuming as a session recording, otherwise
-        // the checkout from `startRecording` may be included in the payload.
-        // Prefer to keep the error replay as a separate (and smaller) segment
-        // than the session replay.
-        await replay.flushImmediate();
-
-        if (replay.stopRecording()) {
-          // Reset all "capture on error" configuration before
-          // starting a new recording
-          replay.recordingMode = 'session';
-          replay.startRecording();
-        }
-      });
+    if (errorHandler && !event.type) {
+      // Pretend the error had a 200 response so we capture it
+      errorHandler(event as ErrorEvent, { statusCode: 200 });
     }
 
     return event;

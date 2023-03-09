@@ -1,13 +1,8 @@
-import { getCurrentHub } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
-import {
-  overwriteRecordDroppedEvent,
-  restoreRecordDroppedEvent,
-} from '../../../src/util/monkeyPatchRecordDroppedEvent';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
@@ -73,11 +68,10 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
   });
 
-  it('only tags errors with replay id, adds trace and error id to context for error samples', async () => {
+  it('adds transactions to traceIds & does not add replayId for transactions in error mode', async () => {
     const transaction = Transaction();
     const error = Error();
-    // @ts-ignore idc
-    expect(handleGlobalEventListener(replay)(transaction)).toEqual(
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
       expect.objectContaining({
         tags: expect.not.objectContaining({ replayId: expect.anything() }),
       }),
@@ -89,35 +83,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
 
     expect(replay.getContext().traceIds).toContain('trace_id');
-    expect(replay.getContext().errorIds).toContain('event_id');
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick); // wait for flush
-
-    // Rerverts `recordingMode` to session
-    expect(replay.recordingMode).toBe('session');
-  });
-
-  it('strips out dropped events from errorIds', async () => {
-    const error1 = Error({ event_id: 'err1' });
-    const error2 = Error({ event_id: 'err2' });
-    const error3 = Error({ event_id: 'err3' });
-
-    // @ts-ignore private
-    overwriteRecordDroppedEvent(replay.getContext().errorIds);
-
-    const client = getCurrentHub().getClient()!;
-
-    handleGlobalEventListener(replay)(error1, {});
-    handleGlobalEventListener(replay)(error2, {});
-    handleGlobalEventListener(replay)(error3, {});
-
-    client.recordDroppedEvent('before_send', 'error', { event_id: 'err2' });
-
-    // @ts-ignore private
-    expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err3']);
-
-    restoreRecordDroppedEvent();
   });
 
   it('tags errors and transactions with replay id for session samples', async () => {
@@ -125,8 +90,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     replay.start();
     const transaction = Transaction();
     const error = Error();
-    // @ts-ignore idc
-    expect(handleGlobalEventListener(replay)(transaction)).toEqual(
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
       expect.objectContaining({
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
@@ -136,6 +100,34 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
     );
+  });
+
+  it('does not collect errorIds when hooks are available', async () => {
+    const error1 = Error({ event_id: 'err1' });
+    const error2 = Error({ event_id: 'err2' });
+    const error3 = Error({ event_id: 'err3' });
+
+    const handler = handleGlobalEventListener(replay);
+
+    handler(error1, {});
+    handler(error2, {});
+    handler(error3, {});
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+  });
+
+  it('collects errorIds when hooks are not available', async () => {
+    const error1 = Error({ event_id: 'err1' });
+    const error2 = Error({ event_id: 'err2' });
+    const error3 = Error({ event_id: 'err3' });
+
+    const handler = handleGlobalEventListener(replay, true);
+
+    handler(error1, {});
+    handler(error2, {});
+    handler(error3, {});
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err2', 'err3']);
   });
 
   it('does not skip non-rrweb errors', () => {

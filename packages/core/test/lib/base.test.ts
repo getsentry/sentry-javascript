@@ -1634,6 +1634,108 @@ describe('BaseClient', () => {
     });
   });
 
+  describe('sendEvent', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('emits `afterSendErrorEvent` when sending an error', async () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+        }),
+      );
+
+      // @ts-ignore
+      const mockSend = jest.spyOn(client._transport, 'send');
+
+      const errorEvent: Event = { message: 'error' };
+
+      const callback = jest.fn();
+      client.on('afterSendErrorEvent', callback);
+
+      client.sendEvent(errorEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(1);
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(errorEvent, {});
+    });
+
+    it('still triggers `afterSendErrorEvent` when transport.send rejects', async () => {
+      expect.assertions(3);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+        }),
+      );
+
+      // @ts-ignore
+      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+        return Promise.reject('send error');
+      });
+
+      const errorEvent: Event = { message: 'error' };
+
+      const callback = jest.fn();
+      client.on('afterSendErrorEvent', callback);
+
+      client.sendEvent(errorEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(1);
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(errorEvent, undefined);
+    });
+
+    it('passes the response to the hook', async () => {
+      expect.assertions(3);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+        }),
+      );
+
+      // @ts-ignore
+      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+        return Promise.resolve({ statusCode: 200 });
+      });
+
+      const errorEvent: Event = { message: 'error' };
+
+      const callback = jest.fn();
+      client.on('afterSendErrorEvent', callback);
+
+      client.sendEvent(errorEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(1);
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+  });
+
   describe('captureSession()', () => {
     test('sends sessions to the client', () => {
       expect.assertions(1);

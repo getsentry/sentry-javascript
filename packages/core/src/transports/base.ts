@@ -109,6 +109,9 @@ export function createTransport(
     );
   }
 
+  // We use this to identifify if the transport is the base transport
+  send.__sentry__baseTransport__ = true;
+
   return {
     send,
     flush,

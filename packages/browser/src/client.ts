@@ -146,7 +146,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       } else {
         // If beacon is not supported or if they are using the tunnel option
         // use our regular transport to send client reports to Sentry.
-        this._sendEnvelope(envelope);
+        void this._sendEnvelope(envelope);
       }
     } catch (e) {
       __DEBUG_BUILD__ && logger.error(e);
