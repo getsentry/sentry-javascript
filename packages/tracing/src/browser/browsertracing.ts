@@ -169,7 +169,7 @@ export class BrowserTracing implements Integration {
   private _latestRouteName?: string;
   private _latestRouteSource?: TransactionSource;
 
-  private _stopListeningForLCP?: () => void;
+  private _collectWebVitals: () => void;
 
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.options = {
@@ -192,7 +192,7 @@ export class BrowserTracing implements Integration {
       this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
-    this._stopListeningForLCP = startTrackingWebVitals();
+    this._collectWebVitals = startTrackingWebVitals();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
@@ -313,9 +313,7 @@ export class BrowserTracing implements Integration {
       heartbeatInterval,
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
-      if (this._stopListeningForLCP) {
-        this._stopListeningForLCP();
-      }
+      this._collectWebVitals();
       addPerformanceEntries(transaction);
     });
 

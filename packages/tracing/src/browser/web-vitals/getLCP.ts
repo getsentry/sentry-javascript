@@ -20,11 +20,9 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import type { LCPMetric, ReportCallback } from './types';
+import type { LCPMetric, ReportCallback, StopListening } from './types';
 
 const reportedMetricIDs: Record<string, boolean> = {};
-
-type StopListening = () => void;
 
 /**
  * Calculates the [LCP](https://web.dev/lcp/) value for the current page and
@@ -81,5 +79,5 @@ export const onLCP = (onReport: ReportCallback): StopListening | undefined => {
     return stopListening;
   }
 
-  return undefined;
+  return;
 };
