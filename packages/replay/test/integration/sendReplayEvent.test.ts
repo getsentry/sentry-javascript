@@ -391,6 +391,11 @@ describe('Integration | sendReplayEvent', () => {
     expect(spyHandleException).toHaveBeenCalledTimes(5);
     expect(spyHandleException).toHaveBeenLastCalledWith(new Error('Unable to send Replay - max retries exceeded'));
 
+    const spyHandleExceptionCall = spyHandleException.mock.calls;
+    expect(spyHandleExceptionCall[spyHandleExceptionCall.length - 1][0].cause.message).toEqual(
+      'Something bad happened',
+    );
+
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
 

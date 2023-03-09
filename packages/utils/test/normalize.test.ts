@@ -582,4 +582,58 @@ describe('normalize()', () => {
       expect(result?.foo?.bar?.boo?.bam?.pow).not.toBe('poof');
     });
   });
+
+  describe('overrides normalization depth with a non-enumerable property __sentry_override_normalization_depth__', () => {
+    test('by increasing depth if it is higher', () => {
+      const normalizationTarget = {
+        foo: 'bar',
+        baz: 42,
+        obj: {
+          obj: {
+            obj: {
+              bestSmashCharacter: 'Cpt. Falcon',
+            },
+          },
+        },
+      };
+
+      addNonEnumerableProperty(normalizationTarget, '__sentry_override_normalization_depth__', 3);
+
+      const result = normalize(normalizationTarget, 1);
+
+      expect(result).toEqual({
+        baz: 42,
+        foo: 'bar',
+        obj: {
+          obj: {
+            obj: '[Object]',
+          },
+        },
+      });
+    });
+
+    test('by decreasing depth if it is lower', () => {
+      const normalizationTarget = {
+        foo: 'bar',
+        baz: 42,
+        obj: {
+          obj: {
+            obj: {
+              bestSmashCharacter: 'Cpt. Falcon',
+            },
+          },
+        },
+      };
+
+      addNonEnumerableProperty(normalizationTarget, '__sentry_override_normalization_depth__', 1);
+
+      const result = normalize(normalizationTarget, 3);
+
+      expect(result).toEqual({
+        baz: 42,
+        foo: 'bar',
+        obj: '[Object]',
+      });
+    });
+  });
 });

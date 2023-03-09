@@ -3,7 +3,7 @@ import { addContextToFrame } from '@sentry/utils';
 import { readFile } from 'fs';
 import { LRUMap } from 'lru_map';
 
-const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
+const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 
 // TODO: Replace with promisify when minimum supported node >= v8
@@ -65,7 +65,7 @@ export class ContextLines implements Integration {
     // keep a lookup map of which files we've already enqueued to read,
     // so we don't enqueue the same file multiple times which would cause multiple i/o reads
     const enqueuedReadSourceFileTasks: Record<string, number> = {};
-    const readSourceFileTasks: Promise<string | null>[] = [];
+    const readSourceFileTasks: Promise<string[] | null>[] = [];
 
     if (this._contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
@@ -102,8 +102,8 @@ export class ContextLines implements Integration {
     // and attempt to add source context to frames.
     if (this._contextLines > 0 && event.exception?.values) {
       for (const exception of event.exception.values) {
-        if (exception.stacktrace?.frames) {
-          this.addSourceContextToFrames(exception.stacktrace.frames);
+        if (exception.stacktrace && exception.stacktrace.frames) {
+          await this.addSourceContextToFrames(exception.stacktrace.frames);
         }
       }
     }
@@ -116,12 +116,11 @@ export class ContextLines implements Integration {
     for (const frame of frames) {
       // Only add context if we have a filename and it hasn't already been added
       if (frame.filename && frame.context_line === undefined) {
-        const sourceFile = FILE_CONTENT_CACHE.get(frame.filename);
+        const sourceFileLines = FILE_CONTENT_CACHE.get(frame.filename);
 
-        if (sourceFile) {
+        if (sourceFileLines) {
           try {
-            const lines = sourceFile.split('\n');
-            addContextToFrame(lines, frame, this._contextLines);
+            addContextToFrame(sourceFileLines, frame, this._contextLines);
           } catch (e) {
             // anomaly, being defensive in case
             // unlikely to ever happen in practice but can definitely happen in theory
@@ -134,25 +133,34 @@ export class ContextLines implements Integration {
 
 /**
  * Reads file contents and caches them in a global LRU cache.
+ * If reading fails, mark the file as null in the cache so we don't try again.
  *
  * @param filename filepath to read content from.
  */
-async function _readSourceFile(filename: string): Promise<string | null> {
+async function _readSourceFile(filename: string): Promise<string[] | null> {
   const cachedFile = FILE_CONTENT_CACHE.get(filename);
-  // We have a cache hit
+
+  // We have already attempted to read this file and failed, do not try again
+  if (cachedFile === null) {
+    return null;
+  }
+
+  // We have a cache hit, return it
   if (cachedFile !== undefined) {
     return cachedFile;
   }
 
-  let content: string | null = null;
-
   // Guard from throwing if readFile fails, this enables us to use Promise.all and
   // not have it short circuiting if one of the promises rejects + since context lines are added
   // on a best effort basis, we want to throw here anyways.
+
+  // If we made it to here, it means that our file is not cache nor marked as failed, so attempt to read it
+  let content: string[] | null = null;
   try {
-    content = await readTextFileAsync(filename);
+    const rawFileContents = await readTextFileAsync(filename);
+    content = rawFileContents.split('\n');
   } catch (_) {
-    //
+    // if we fail, we will mark the file as null in the cache and short circuit next time we try to read it
   }
 
   FILE_CONTENT_CACHE.set(filename, content);

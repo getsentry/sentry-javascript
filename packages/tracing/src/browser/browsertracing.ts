@@ -5,7 +5,12 @@ import type { EventProcessor, Integration, Transaction, TransactionContext, Tran
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
 
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
+import {
+  addPerformanceEntries,
+  startTrackingInteractions,
+  startTrackingLongTasks,
+  startTrackingWebVitals,
+} from './metrics';
 import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
@@ -190,6 +195,9 @@ export class BrowserTracing implements Integration {
     this._stopListeningForLCP = startTrackingWebVitals();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
+    }
+    if (this.options._experiments.enableInteractions) {
+      startTrackingInteractions();
     }
   }
 
