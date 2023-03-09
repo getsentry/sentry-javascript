@@ -52,6 +52,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
   integrations for Express
 - [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK with
   Angular integration enabled
+- [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy): Browser SDK with
+  Angular integration enabled including native support for Angular's Ivy rendering engine.
 - [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): Browser SDK with Ember
   integration enabled
 - [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): Browser SDK with React

@@ -1,7 +1,6 @@
+import type { SpanStatusType } from '@sentry/core';
+import { getActiveTransaction } from '@sentry/core';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
-
-import type { SpanStatusType } from './span';
-import { getActiveTransaction } from './utils';
 
 /**
  * Configures global error listeners

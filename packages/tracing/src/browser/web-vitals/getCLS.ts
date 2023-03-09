@@ -18,7 +18,7 @@ import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import type { CLSMetric, ReportCallback } from './types';
+import type { CLSMetric, ReportCallback, StopListening } from './types';
 
 /**
  * Calculates the [CLS](https://web.dev/cls/) value for the current page and
@@ -41,7 +41,7 @@ import type { CLSMetric, ReportCallback } from './types';
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
  */
-export const onCLS = (onReport: ReportCallback): void => {
+export const onCLS = (onReport: ReportCallback): StopListening | undefined => {
   const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
@@ -89,9 +89,15 @@ export const onCLS = (onReport: ReportCallback): void => {
   if (po) {
     report = bindReporter(onReport, metric);
 
-    onHidden(() => {
+    const stopListening = (): void => {
       handleEntries(po.takeRecords() as CLSMetric['entries']);
       report(true);
-    });
+    };
+
+    onHidden(stopListening);
+
+    return stopListening;
   }
+
+  return;
 };

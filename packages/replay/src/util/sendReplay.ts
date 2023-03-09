@@ -41,7 +41,17 @@ export async function sendReplay(
     // If an error happened here, it's likely that uploading the attachment
     // failed, we'll can retry with the same events payload
     if (retryConfig.count >= RETRY_MAX_COUNT) {
-      throw new Error(`${UNABLE_TO_SEND_REPLAY} - max retries exceeded`);
+      const error = new Error(`${UNABLE_TO_SEND_REPLAY} - max retries exceeded`);
+
+      try {
+        // In case browsers don't allow this property to be writable
+        // @ts-ignore This needs lib es2022 and newer
+        error.cause = err;
+      } catch {
+        // nothing to do
+      }
+
+      throw error;
     }
 
     // will retry in intervals of 5, 10, 30

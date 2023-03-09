@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import type { WrappedFunction } from '@sentry/types';
+import type { HandlerDataFetch, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
@@ -136,7 +136,7 @@ function instrumentFetch(): void {
 
   fill(WINDOW, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
-      const handlerData = {
+      const handlerData: HandlerDataFetch = {
         args,
         fetchData: {
           method: getFetchMethod(args),
@@ -173,19 +173,6 @@ function instrumentFetch(): void {
       );
     };
   });
-}
-
-type XHRSendInput = null | Blob | BufferSource | FormData | URLSearchParams | string;
-
-/** JSDoc */
-interface SentryWrappedXMLHttpRequest extends XMLHttpRequest {
-  [key: string]: any;
-  __sentry_xhr__?: {
-    method?: string;
-    url?: string;
-    status_code?: number;
-    body?: XHRSendInput;
-  };
 }
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */

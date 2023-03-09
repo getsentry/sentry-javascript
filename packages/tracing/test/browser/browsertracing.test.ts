@@ -1,17 +1,16 @@
 import { BrowserClient, WINDOW } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, makeMain, TRACING_DEFAULTS } from '@sentry/core';
+import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
 import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
+import type { IdleTransaction } from '../../src';
+import { getActiveTransaction } from '../../src';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
-import * as hubExtensions from '../../src/hubextensions';
-import type { IdleTransaction } from '../../src/idletransaction';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../../src/idletransaction';
-import { getActiveTransaction } from '../../src/utils';
 import { getDefaultBrowserClientOptions } from '../testutils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
@@ -29,7 +28,14 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-jest.mock('../../src/browser/metrics');
+const mockStartTrackingWebVitals = jest.fn().mockReturnValue(() => () => {});
+
+jest.mock('../../src/browser/metrics', () => ({
+  addPerformanceEntries: jest.fn(),
+  startTrackingInteractions: jest.fn(),
+  startTrackingLongTasks: jest.fn(),
+  startTrackingWebVitals: () => mockStartTrackingWebVitals(),
+}));
 
 const instrumentOutgoingRequestsMock = jest.fn();
 jest.mock('./../../src/browser/request', () => {
@@ -58,6 +64,8 @@ describe('BrowserTracing', () => {
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
     document.head.innerHTML = '';
+
+    mockStartTrackingWebVitals.mockClear();
   });
 
   afterEach(() => {
@@ -86,9 +94,7 @@ describe('BrowserTracing', () => {
     expect(browserTracing.options).toEqual({
       _experiments: {},
       enableLongTask: true,
-      idleTimeout: DEFAULT_IDLE_TIMEOUT,
-      finalTimeout: DEFAULT_FINAL_TIMEOUT,
-      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+      ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
@@ -109,9 +115,7 @@ describe('BrowserTracing', () => {
         enableLongTask: false,
       },
       enableLongTask: false,
-      idleTimeout: DEFAULT_IDLE_TIMEOUT,
-      finalTimeout: DEFAULT_FINAL_TIMEOUT,
-      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+      ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
@@ -128,9 +132,7 @@ describe('BrowserTracing', () => {
     expect(browserTracing.options).toEqual({
       _experiments: {},
       enableLongTask: false,
-      idleTimeout: DEFAULT_IDLE_TIMEOUT,
-      finalTimeout: DEFAULT_FINAL_TIMEOUT,
-      heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+      ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
       routingInstrumentation: instrumentRoutingWithDefaults,
       startTransactionOnLocationChange: true,
@@ -361,7 +363,7 @@ describe('BrowserTracing', () => {
         span.finish(); // activities = 0
 
         expect(mockFinish).toHaveBeenCalledTimes(0);
-        jest.advanceTimersByTime(DEFAULT_IDLE_TIMEOUT);
+        jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
         expect(mockFinish).toHaveBeenCalledTimes(1);
       });
 
@@ -377,6 +379,17 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
+
+      it('calls `_collectWebVitals` if enabled', () => {
+        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
+
+        jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+        expect(mockStartTrackingWebVitals).toHaveBeenCalledTimes(1);
       });
     });
 

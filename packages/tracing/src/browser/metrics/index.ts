@@ -1,10 +1,9 @@
 /* eslint-disable max-lines */
+import type { IdleTransaction, Transaction } from '@sentry/core';
+import { getActiveTransaction } from '@sentry/core';
 import type { Measurements } from '@sentry/types';
 import { browserPerformanceTimeOrigin, htmlTreeAsString, logger } from '@sentry/utils';
 
-import type { IdleTransaction } from '../../idletransaction';
-import type { Transaction } from '../../transaction';
-import { getActiveTransaction, msToSec } from '../../utils';
 import { WINDOW } from '../types';
 import { onCLS } from '../web-vitals/getCLS';
 import { onFID } from '../web-vitals/getFID';
@@ -13,6 +12,14 @@ import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import { observe } from '../web-vitals/lib/observe';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
+
+/**
+ * Converts from milliseconds to seconds
+ * @param time time in ms
+ */
+function msToSec(time: number): number {
+  return time / 1000;
+}
 
 function getBrowserPerformanceAPI(): Performance | undefined {
   return WINDOW && WINDOW.addEventListener && WINDOW.performance;
@@ -26,17 +33,30 @@ let _clsEntry: LayoutShift | undefined;
 
 /**
  * Start tracking web vitals
+ *
+ * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals(): void {
+export function startTrackingWebVitals(): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    _trackCLS();
-    _trackLCP();
     _trackFID();
+    const clsCallback = _trackCLS();
+    const lcpCallback = _trackLCP();
+
+    return (): void => {
+      if (clsCallback) {
+        clsCallback();
+      }
+      if (lcpCallback) {
+        lcpCallback();
+      }
+    };
   }
+
+  return () => undefined;
 }
 
 /**
@@ -64,12 +84,40 @@ export function startTrackingLongTasks(): void {
   observe('longtask', entryHandler);
 }
 
+/**
+ * Start tracking interaction events.
+ */
+export function startTrackingInteractions(): void {
+  const entryHandler = (entries: PerformanceEventTiming[]): void => {
+    for (const entry of entries) {
+      const transaction = getActiveTransaction() as IdleTransaction | undefined;
+      if (!transaction) {
+        return;
+      }
+
+      if (entry.name === 'click') {
+        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const duration = msToSec(entry.duration);
+
+        transaction.startChild({
+          description: htmlTreeAsString(entry.target),
+          op: `ui.interaction.${entry.name}`,
+          startTimestamp: startTime,
+          endTimestamp: startTime + duration,
+        });
+      }
+    }
+  };
+
+  observe('event', entryHandler, { durationThreshold: 0 });
+}
+
 /** Starts tracking the Cumulative Layout Shift on the current page. */
-function _trackCLS(): void {
+function _trackCLS(): ReturnType<typeof onCLS> {
   // See:
   // https://web.dev/evolving-cls/
   // https://web.dev/cls-web-tooling/
-  onCLS(metric => {
+  return onCLS(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -82,8 +130,8 @@ function _trackCLS(): void {
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): void {
-  onLCP(metric => {
+function _trackLCP(): ReturnType<typeof onLCP> {
+  return onLCP(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;

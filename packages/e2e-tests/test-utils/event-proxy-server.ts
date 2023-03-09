@@ -138,7 +138,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
 export async function waitForRequest(
   proxyServerName: string,
-  callback: (eventData: SentryRequestCallbackData) => boolean,
+  callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
@@ -157,7 +157,20 @@ export async function waitForRequest(
             const eventCallbackData: SentryRequestCallbackData = JSON.parse(
               Buffer.from(eventContents, 'base64').toString('utf8'),
             );
-            if (callback(eventCallbackData)) {
+            const callbackResult = callback(eventCallbackData);
+            if (typeof callbackResult !== 'boolean') {
+              callbackResult.then(
+                match => {
+                  if (match) {
+                    response.destroy();
+                    resolve(eventCallbackData);
+                  }
+                },
+                err => {
+                  throw err;
+                },
+              );
+            } else if (callbackResult) {
               response.destroy();
               resolve(eventCallbackData);
             }
@@ -175,13 +188,13 @@ export async function waitForRequest(
 
 export function waitForEnvelopeItem(
   proxyServerName: string,
-  callback: (envelopeItem: EnvelopeItem) => boolean,
+  callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
-    waitForRequest(proxyServerName, eventData => {
+    waitForRequest(proxyServerName, async eventData => {
       const envelopeItems = eventData.envelope[1];
       for (const envelopeItem of envelopeItems) {
-        if (callback(envelopeItem)) {
+        if (await callback(envelopeItem)) {
           resolve(envelopeItem);
           return true;
         }
@@ -191,11 +204,14 @@ export function waitForEnvelopeItem(
   });
 }
 
-export function waitForError(proxyServerName: string, callback: (transactionEvent: Event) => boolean): Promise<Event> {
+export function waitForError(
+  proxyServerName: string,
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, envelopeItem => {
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'event' && callback(envelopeItemBody as Event)) {
+      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
         resolve(envelopeItemBody as Event);
         return true;
       }
@@ -206,12 +222,12 @@ export function waitForError(proxyServerName: string, callback: (transactionEven
 
 export function waitForTransaction(
   proxyServerName: string,
-  callback: (transactionEvent: Event) => boolean,
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, envelopeItem => {
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'transaction' && callback(envelopeItemBody as Event)) {
+      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
         resolve(envelopeItemBody as Event);
         return true;
       }

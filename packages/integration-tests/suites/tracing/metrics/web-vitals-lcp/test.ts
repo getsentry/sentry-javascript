@@ -17,8 +17,6 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  // Force closure of LCP listener.
-  await page.click('body');
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(eventData.measurements).toBeDefined();

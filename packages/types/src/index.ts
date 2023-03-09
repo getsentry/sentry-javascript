@@ -94,5 +94,6 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
+export type { HandlerDataFetch, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions } from './browseroptions';

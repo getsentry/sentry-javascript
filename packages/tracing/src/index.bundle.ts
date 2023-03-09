@@ -58,9 +58,9 @@ import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { BrowserTracing } from './browser';
-import { addExtensionMethods } from './hubextensions';
+import { addExtensionMethods } from './extensions';
 
-export { Span } from './span';
+export { Span } from '@sentry/core';
 
 let windowIntegrations = {};
 

@@ -6,6 +6,10 @@
 
 # Official Sentry SDK for Angular
 
+[![npm version](https://img.shields.io/npm/v/@sentry/angular.svg)](https://www.npmjs.com/package/@sentry/angular)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/angular.svg)](https://www.npmjs.com/package/@sentry/angular)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/angular.svg)](https://www.npmjs.com/package/@sentry/angular)
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)

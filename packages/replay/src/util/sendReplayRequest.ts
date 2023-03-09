@@ -115,8 +115,17 @@ export async function sendReplayRequest({
 
   try {
     response = await transport.send(envelope);
-  } catch {
-    throw new Error(UNABLE_TO_SEND_REPLAY);
+  } catch (err) {
+    const error = new Error(UNABLE_TO_SEND_REPLAY);
+
+    try {
+      // In case browsers don't allow this property to be writable
+      // @ts-ignore This needs lib es2022 and newer
+      error.cause = err;
+    } catch {
+      // nothing to do
+    }
+    throw error;
   }
 
   // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore

@@ -6,15 +6,15 @@
 
 # Official Sentry SDK for Angular with Ivy Compatibility
 
+[![npm version](https://img.shields.io/npm/v/@sentry/angular-ivy.svg)](https://www.npmjs.com/package/@sentry/angular-ivy)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/angular-ivy.svg)](https://www.npmjs.com/package/@sentry/angular-ivy)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/angular-ivy.svg)](https://www.npmjs.com/package/@sentry/angular-ivy)
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)
 
 ## Angular Version Compatibility
-
-**Note**: This SDK is still experimental and not yet stable.
-We do not yet make guarantees in terms of breaking changes, version compatibilities or semver.
-Please open a Github issue if you experience bugs or would like to share feedback.
 
 This SDK officially supports Angular 12-15 with Angular's new rendering engine, Ivy.
 

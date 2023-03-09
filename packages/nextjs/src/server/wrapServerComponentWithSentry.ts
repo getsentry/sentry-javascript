@@ -1,4 +1,5 @@
 import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
+import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 
 import type { ServerComponentContext } from '../common/types';
@@ -20,12 +21,20 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       return domain.create().bind(() => {
         let maybePromiseResult;
 
+        const traceparentData = context.sentryTraceHeader
+          ? extractTraceparentData(context.sentryTraceHeader)
+          : undefined;
+
+        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(context.baggageHeader);
+
         const transaction = startTransaction({
           op: 'function.nextjs',
           name: `${componentType} Server Component (${componentRoute})`,
           status: 'ok',
+          ...traceparentData,
           metadata: {
             source: 'component',
+            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           },
         });
 

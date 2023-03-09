@@ -119,7 +119,7 @@ export default function wrappingLoader(
     // https://github.com/vercel/next.js/blob/295f9da393f7d5a49b0c2e15a2f46448dbdc3895/packages/next/build/analysis/get-page-static-info.ts#L37
     // https://github.com/vercel/next.js/blob/a1c15d84d906a8adf1667332a3f0732be615afa0/packages/next-swc/crates/core/src/react_server_components.rs#L247
     // We do not want to wrap client components
-    if (userCode.includes('/* __next_internal_client_entry_do_not_use__ */')) {
+    if (userCode.includes('__next_internal_client_entry_do_not_use__')) {
       this.callback(null, userCode, userModuleSourceMap);
       return;
     }

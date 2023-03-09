@@ -107,4 +107,31 @@ describe('ContextLines', () => {
       expect(readFileSpy).toHaveBeenCalledTimes(0);
     });
   });
+  test.only('does not attempt to readfile multiple times if it fails', async () => {
+    expect.assertions(1);
+    contextLines = new ContextLines({});
+
+    readFileSpy.mockImplementation(() => {
+      throw new Error("ENOENT: no such file or directory, open '/does/not/exist.js'");
+    });
+
+    await addContext([
+      {
+        colno: 1,
+        filename: '/does/not/exist.js',
+        lineno: 1,
+        function: 'fxn1',
+      },
+    ]);
+    await addContext([
+      {
+        colno: 1,
+        filename: '/does/not/exist.js',
+        lineno: 1,
+        function: 'fxn1',
+      },
+    ]);
+
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+  });
 });
