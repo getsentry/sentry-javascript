@@ -20,7 +20,7 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import type { LCPMetric, ReportCallback } from './types';
+import type { LCPMetric, ReportCallback, StopListening } from './types';
 
 const reportedMetricIDs: Record<string, boolean> = {};
 
@@ -30,7 +30,7 @@ const reportedMetricIDs: Record<string, boolean> = {};
  * relevant `largest-contentful-paint` performance entry used to determine the
  * value). The reported value is a `DOMHighResTimeStamp`.
  */
-export const onLCP = (onReport: ReportCallback): void => {
+export const onLCP = (onReport: ReportCallback): StopListening | undefined => {
   const visibilityWatcher = getVisibilityWatcher();
   const metric = initMetric('LCP');
   let report: ReturnType<typeof bindReporter>;
@@ -75,5 +75,9 @@ export const onLCP = (onReport: ReportCallback): void => {
     });
 
     onHidden(stopListening, true);
+
+    return stopListening;
   }
+
+  return;
 };

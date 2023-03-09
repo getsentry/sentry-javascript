@@ -169,6 +169,8 @@ export class BrowserTracing implements Integration {
   private _latestRouteName?: string;
   private _latestRouteSource?: TransactionSource;
 
+  private _collectWebVitals: () => void;
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -190,7 +192,7 @@ export class BrowserTracing implements Integration {
       this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
-    startTrackingWebVitals();
+    this._collectWebVitals = startTrackingWebVitals();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
     }
@@ -311,6 +313,7 @@ export class BrowserTracing implements Integration {
       heartbeatInterval,
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
+      this._collectWebVitals();
       addPerformanceEntries(transaction);
     });
 

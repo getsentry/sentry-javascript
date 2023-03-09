@@ -28,7 +28,14 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-jest.mock('../../src/browser/metrics');
+const mockStartTrackingWebVitals = jest.fn().mockReturnValue(() => () => {});
+
+jest.mock('../../src/browser/metrics', () => ({
+  addPerformanceEntries: jest.fn(),
+  startTrackingInteractions: jest.fn(),
+  startTrackingLongTasks: jest.fn(),
+  startTrackingWebVitals: () => mockStartTrackingWebVitals(),
+}));
 
 const instrumentOutgoingRequestsMock = jest.fn();
 jest.mock('./../../src/browser/request', () => {
@@ -57,6 +64,8 @@ describe('BrowserTracing', () => {
     hub = new Hub(new BrowserClient(options));
     makeMain(hub);
     document.head.innerHTML = '';
+
+    mockStartTrackingWebVitals.mockClear();
   });
 
   afterEach(() => {
@@ -370,6 +379,17 @@ describe('BrowserTracing', () => {
         expect(mockFinish).toHaveBeenCalledTimes(0);
         jest.advanceTimersByTime(2000);
         expect(mockFinish).toHaveBeenCalledTimes(1);
+      });
+
+      it('calls `_collectWebVitals` if enabled', () => {
+        createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
+        const transaction = getActiveTransaction(hub) as IdleTransaction;
+
+        const span = transaction.startChild(); // activities = 1
+        span.finish(); // activities = 0
+
+        jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
+        expect(mockStartTrackingWebVitals).toHaveBeenCalledTimes(1);
       });
     });
 

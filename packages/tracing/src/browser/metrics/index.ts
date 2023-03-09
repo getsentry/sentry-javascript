@@ -33,17 +33,30 @@ let _clsEntry: LayoutShift | undefined;
 
 /**
  * Start tracking web vitals
+ *
+ * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals(): void {
+export function startTrackingWebVitals(): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    _trackCLS();
-    _trackLCP();
     _trackFID();
+    const clsCallback = _trackCLS();
+    const lcpCallback = _trackLCP();
+
+    return (): void => {
+      if (clsCallback) {
+        clsCallback();
+      }
+      if (lcpCallback) {
+        lcpCallback();
+      }
+    };
   }
+
+  return () => undefined;
 }
 
 /**
@@ -100,11 +113,11 @@ export function startTrackingInteractions(): void {
 }
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
-function _trackCLS(): void {
+function _trackCLS(): ReturnType<typeof onCLS> {
   // See:
   // https://web.dev/evolving-cls/
   // https://web.dev/cls-web-tooling/
-  onCLS(metric => {
+  return onCLS(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
@@ -117,8 +130,8 @@ function _trackCLS(): void {
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
-function _trackLCP(): void {
-  onLCP(metric => {
+function _trackLCP(): ReturnType<typeof onLCP> {
+  return onLCP(metric => {
     const entry = metric.entries.pop();
     if (!entry) {
       return;
