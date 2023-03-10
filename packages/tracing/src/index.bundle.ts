@@ -36,6 +36,8 @@ export {
   makeFetchTransport,
   makeXHRTransport,
   withScope,
+  // This is replaced with a shim in rollup
+  Replay,
 } from '@sentry/browser';
 
 export { BrowserClient } from '@sentry/browser';

@@ -18,6 +18,7 @@ import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import MagicString from 'magic-string';
+import modify from 'rollup-plugin-modify';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -211,6 +212,19 @@ export function makeExcludeBlockPlugin(type) {
   };
 
   plugin.name = 'excludeReplay';
+
+  return plugin;
+}
+
+export function makeShimReplayPlugin() {
+  // This is designed to replace the re-export in browser/index.ts to export the shim
+  const plugin = modify({
+    find: '@sentry/replay',
+    replace: './shims/Replay',
+  });
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'replayShim';
 
   return plugin;
 }
