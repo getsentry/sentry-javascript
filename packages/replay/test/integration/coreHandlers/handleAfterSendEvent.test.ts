@@ -5,9 +5,9 @@ import { UNABLE_TO_SEND_REPLAY } from '../../../src/constants';
 import { handleAfterSendEvent } from '../../../src/coreHandlers/handleAfterSendEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
+import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
 import { useFakeTimers } from '../../utils/use-fake-timers';
-import { Transaction } from '../../fixtures/transaction';
 
 useFakeTimers();
 let replay: ReplayContainer;
