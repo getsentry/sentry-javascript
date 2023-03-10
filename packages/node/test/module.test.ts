@@ -18,7 +18,7 @@ function withFilename(fn: () => void, filename: string) {
 describe('getModule', () => {
   test('Windows', () => {
     withFilename(() => {
-      expect(getModule('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js')).toEqual('module');
+      expect(getModule('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js', true)).toEqual('module');
     }, 'C:\\Users\\Tim\\app.js');
   });
 
