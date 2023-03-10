@@ -65,26 +65,26 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     return [];
   }
 
-  let localStack = stack.slice(0, STACKTRACE_LIMIT);
+  const localStack = stack.slice(0, STACKTRACE_LIMIT);
 
   const lastFrameFunction = localStack[localStack.length - 1].function;
-  // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
+  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
   if (lastFrameFunction && /sentryWrapped/.test(lastFrameFunction)) {
     localStack.pop();
   }
 
   // Reversing in the middle of the procedure allows us to just pop the values off the stack
-  localStack = localStack.reverse();
+  localStack.reverse();
 
   const firstFrameFunction = localStack[localStack.length - 1].function;
-  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
+  // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
   if (firstFrameFunction && /captureMessage|captureException/.test(firstFrameFunction)) {
     localStack.pop();
   }
 
   return localStack.map(frame => ({
     ...frame,
-    filename: frame.filename || localStack[0].filename,
+    filename: frame.filename || localStack[localStack.length - 1].filename,
     function: frame.function || '?',
   }));
 }
