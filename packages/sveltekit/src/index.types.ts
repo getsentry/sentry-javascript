@@ -8,12 +8,18 @@ export * from './config';
 export * from './server';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
+// eslint-disable-next-line import/no-unresolved
+import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
 /** Initializes Sentry SvelteKit SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+
+export declare function wrapHandleErrorWithSentry<T extends HandleClientError | HandleServerError>(
+  handleError: T,
+): ReturnType<T>;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;

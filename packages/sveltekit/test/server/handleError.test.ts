@@ -1,16 +1,16 @@
-import { Scope } from '@sentry/svelte';
+import { Scope } from '@sentry/node';
 // For now disable the import/no-unresolved rule, because we don't have a way to
 // tell eslint that we are only importing types from the @sveltejs/kit package without
 // adding a custom resolver, which will take too much time.
 // eslint-disable-next-line import/no-unresolved
-import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
+import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 
-import { wrapHandleErrorWithSentry } from '../../src/client/handleError';
+import { wrapHandleErrorWithSentry } from '../../src/server/handleError';
 
 const mockCaptureException = jest.fn();
 let mockScope = new Scope();
 
-jest.mock('@sentry/svelte', () => {
+jest.mock('@sentry/node', () => {
   const original = jest.requireActual('@sentry/core');
   return {
     ...original,
@@ -32,21 +32,13 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-function handleError(_input: { error: unknown; event: NavigationEvent }): ReturnType<HandleClientError> {
+function handleError(_input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> {
   return {
     message: 'Whoops!',
   };
 }
 
-const navigationEvent: NavigationEvent = {
-  params: {
-    id: '123',
-  },
-  route: {
-    id: 'users/[id]',
-  },
-  url: new URL('http://example.org/users/123'),
-};
+const requestEvent = {} as RequestEvent;
 
 describe('handleError', () => {
   beforeEach(() => {
@@ -58,7 +50,7 @@ describe('handleError', () => {
   it('calls captureException', async () => {
     const wrappedHandleError = wrapHandleErrorWithSentry(handleError);
     const mockError = new Error('test');
-    const returnVal = await wrappedHandleError({ error: mockError, event: navigationEvent });
+    const returnVal = await wrappedHandleError({ error: mockError, event: requestEvent });
 
     expect(returnVal!.message).toEqual('Whoops!');
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
@@ -73,7 +65,7 @@ describe('handleError', () => {
 
     const wrappedHandleError = wrapHandleErrorWithSentry(handleError);
     const mockError = new Error('test');
-    await wrappedHandleError({ error: mockError, event: navigationEvent });
+    await wrappedHandleError({ error: mockError, event: requestEvent });
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledTimes(1);
