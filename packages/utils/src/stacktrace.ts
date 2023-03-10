@@ -14,7 +14,10 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
   return (stack: string, skipFirst: number = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
-    for (const line of stack.split('\n').slice(skipFirst)) {
+    const lines = stack.split('\n');
+
+    for (let i = skipFirst; i < lines.length; i++) {
+      const line = lines[i];
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
       // input size. Huge strings can result in hangs/Denial of Service:
@@ -25,7 +28,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
       // https://github.com/getsentry/sentry-javascript/issues/5459
       // Remove webpack (error: *) wrappers
-      const cleanedLine = line.replace(/\(error: (.*)\)/, '$1');
+      const cleanedLine = /\(error: (.*)\)/.test(line) ? line.replace(/\(error: (.*)\)/, '$1') : line;
 
       for (const parser of sortedParsers) {
         const frame = parser(cleanedLine);
@@ -34,6 +37,10 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
           frames.push(frame);
           break;
         }
+      }
+
+      if (frames.length === STACKTRACE_LIMIT) {
+        break;
       }
     }
 
@@ -64,28 +71,32 @@ export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
 
   let localStack = stack;
 
-  const firstFrameFunction = localStack[0].function || '';
-  const lastFrameFunction = localStack[localStack.length - 1].function || '';
-
-  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
-    localStack = localStack.slice(1);
+  if (stack.length > STACKTRACE_LIMIT) {
+    localStack = stack.slice(0, STACKTRACE_LIMIT);
   }
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
-    localStack = localStack.slice(0, -1);
+  const lastFrameFunction = localStack[localStack.length - 1].function || '';
+  if (/sentryWrapped/.test(lastFrameFunction)) {
+    localStack.pop();
   }
 
   // The frame where the crash happened, should be the last entry in the array
-  return localStack
-    .slice(0, STACKTRACE_LIMIT)
-    .map(frame => ({
+  localStack = localStack.reverse();
+
+  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
+  const firstFrameFunction = localStack[localStack.length - 1].function || '';
+  if (/captureMessage|captureException/.test(firstFrameFunction)) {
+    localStack.pop();
+  }
+
+  return localStack.map(frame => {
+    return {
       ...frame,
       filename: frame.filename || localStack[0].filename,
       function: frame.function || '?',
-    }))
-    .reverse();
+    };
+  });
 }
 
 const defaultFunctionName = '<anonymous>';
@@ -115,79 +126,77 @@ function node(getModule?: GetModuleFn): StackLineParserFn {
 
   // eslint-disable-next-line complexity
   return (line: string) => {
-    if (line.match(FILENAME_MATCH)) {
+    const lineMatch = line.match(FULL_MATCH);
+    if (lineMatch) {
+      let object: string | undefined;
+      let method: string | undefined;
+      let functionName: string | undefined;
+      let typeName: string | undefined;
+      let methodName: string | undefined;
+
+      if (lineMatch[1]) {
+        functionName = lineMatch[1];
+
+        let methodStart = functionName.lastIndexOf('.');
+        if (functionName[methodStart - 1] === '.') {
+          methodStart--;
+        }
+
+        if (methodStart > 0) {
+          object = functionName.slice(0, methodStart);
+          method = functionName.slice(methodStart + 1);
+          const objectEnd = object.indexOf('.Module');
+          if (objectEnd > 0) {
+            functionName = functionName.slice(objectEnd + 1);
+            object = object.slice(0, objectEnd);
+          }
+        }
+        typeName = undefined;
+      }
+
+      if (method) {
+        typeName = object;
+        methodName = method;
+      }
+
+      if (method === '<anonymous>') {
+        methodName = undefined;
+        functionName = undefined;
+      }
+
+      if (functionName === undefined) {
+        methodName = methodName || '<anonymous>';
+        functionName = typeName ? `${typeName}.${methodName}` : methodName;
+      }
+
+      const filename = lineMatch[2] ? lineMatch[2].replace(/^file:\/\//, '') : lineMatch[2];
+      const isNative = lineMatch[5] === 'native';
+      const isInternal = isNative || (filename && filename[0] !== '/' && filename[0] !== '.');
+
+      // in_app is all that's not an internal Node function or a module within node_modules
+      // note that isNative appears to return true even for node core libraries
+      // see https://github.com/getsentry/raven-node/issues/176
+      const in_app = !isInternal && filename !== undefined && !filename.includes('node_modules/');
+
+      return {
+        filename,
+        module: getModule ? getModule(filename) : undefined,
+        function: functionName,
+        lineno: Number(lineMatch[3]) || undefined,
+        colno: Number(lineMatch[4]) || undefined,
+        in_app,
+      };
+    }
+
+    if (FILENAME_MATCH.test(line)) {
       return {
         filename: line,
       };
     }
 
-    const lineMatch = line.match(FULL_MATCH);
-    if (!lineMatch) {
-      return undefined;
-    }
-
-    let object: string | undefined;
-    let method: string | undefined;
-    let functionName: string | undefined;
-    let typeName: string | undefined;
-    let methodName: string | undefined;
-
-    if (lineMatch[1]) {
-      functionName = lineMatch[1];
-
-      let methodStart = functionName.lastIndexOf('.');
-      if (functionName[methodStart - 1] === '.') {
-        methodStart--;
-      }
-
-      if (methodStart > 0) {
-        object = functionName.slice(0, methodStart);
-        method = functionName.slice(methodStart + 1);
-        const objectEnd = object.indexOf('.Module');
-        if (objectEnd > 0) {
-          functionName = functionName.slice(objectEnd + 1);
-          object = object.slice(0, objectEnd);
-        }
-      }
-      typeName = undefined;
-    }
-
-    if (method) {
-      typeName = object;
-      methodName = method;
-    }
-
-    if (method === '<anonymous>') {
-      methodName = undefined;
-      functionName = undefined;
-    }
-
-    if (functionName === undefined) {
-      methodName = methodName || '<anonymous>';
-      functionName = typeName ? `${typeName}.${methodName}` : methodName;
-    }
-
-    const filename = lineMatch[2] && lineMatch[2].startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
-    const isNative = lineMatch[5] === 'native';
-    const isInternal =
-      isNative || (filename && !filename.startsWith('/') && !filename.startsWith('.') && filename.indexOf(':\\') !== 1);
-
-    // in_app is all that's not an internal Node function or a module within node_modules
-    // note that isNative appears to return true even for node core libraries
-    // see https://github.com/getsentry/raven-node/issues/176
-    const in_app = !isInternal && filename !== undefined && !filename.includes('node_modules/');
-
-    return {
-      filename,
-      module: getModule ? getModule(filename) : undefined,
-      function: functionName,
-      lineno: parseInt(lineMatch[3], 10) || undefined,
-      colno: parseInt(lineMatch[4], 10) || undefined,
-      in_app,
-    };
+    return undefined;
   };
 }
-
 /**
  * Node.js stack line parser
  *
