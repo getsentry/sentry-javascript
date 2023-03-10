@@ -37,21 +37,18 @@ if (process.env.TEST_ENV !== 'development') {
   });
 
   test('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
-    console.log('AAA');
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+      console.log(errorEvent?.exception?.values?.[0]?.value);
       return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside an edge route!';
     });
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    console.log('BBB');
-    await page.request.get('/edge-route/error');
+    await page.request.post('/edge-route/error');
 
-    console.log('CCC');
     const errorEvent = await errorEventPromise;
     const exceptionEventId = errorEvent.event_id;
 
-    console.log('DDD');
     expect(exceptionEventId).toBeDefined();
     await pollEventOnSentry(exceptionEventId!);
   });
