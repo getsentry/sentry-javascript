@@ -13,6 +13,13 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    ".": {
+      "browser": "./build/esm/index.client.js",
+      "node": "./build/esm/index.server.js",
+      "default": "./build/cjs/index.server.js"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
