@@ -1,4 +1,4 @@
-import { hasTracingEnabled } from '@sentry/core';
+import { buildMetadata, hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
@@ -7,7 +7,6 @@ import type { EventProcessor } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { nextRouterInstrumentation } from './performance';
 import { applyTunnelRouteOption } from './tunnelRoute';
@@ -40,7 +39,7 @@ const globalWithInjectedValues = global as typeof global & {
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(options);
-  buildMetadata(options, ['nextjs', 'react']);
+  buildMetadata(options, 'nextjs', ['nextjs', 'react']);
 
   options.environment = options.environment || getVercelEnv(true) || process.env.NODE_ENV;
 

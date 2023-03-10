@@ -1,5 +1,5 @@
 import type { Carrier } from '@sentry/core';
-import { getHubFromCarrier, getMainCarrier, hasTracingEnabled } from '@sentry/core';
+import { buildMetadata, getHubFromCarrier, getMainCarrier, hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
@@ -10,7 +10,6 @@ import * as path from 'path';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import type { IntegrationWithExclusionOption } from '../common/userIntegrations';
 import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { isBuild } from './utils/isBuild';
@@ -79,7 +78,7 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(options, ['nextjs', 'node']);
+  buildMetadata(options, 'nextjs', ['nextjs', 'node']);
 
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;

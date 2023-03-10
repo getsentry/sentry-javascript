@@ -1,9 +1,9 @@
 /* eslint-disable import/export */
+import { buildMetadata } from '@sentry/core';
 import { configureScope, getCurrentHub, init as nodeInit } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { instrumentServer } from './utils/instrumentServer';
-import { buildMetadata } from './utils/metadata';
 import type { RemixOptions } from './utils/remixOptions';
 
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
@@ -19,7 +19,7 @@ function sdkAlreadyInitialized(): boolean {
 
 /** Initializes Sentry Remix SDK on Node. */
 export function init(options: RemixOptions): void {
-  buildMetadata(options, ['remix', 'node']);
+  buildMetadata(options, 'remix', ['remix', 'node']);
 
   if (sdkAlreadyInitialized()) {
     __DEBUG_BUILD__ && logger.log('SDK already initialized');
