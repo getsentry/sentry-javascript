@@ -20,9 +20,9 @@
       "default": "./build/esm/index.client.js"
     },
     "node": {
-      "import": "./build/esm/index.client.js",
-      "require": "./build/cjs/index.client.js",
-      "default": "./build/esm/index.client.js"
+      "import": "./build/esm/index.server.js",
+      "require": "./build/cjs/index.server.js",
+      "default": "./build/esm/index.server.js"
     }
   },
   "publishConfig": {
