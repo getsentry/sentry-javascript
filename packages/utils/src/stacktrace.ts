@@ -1,6 +1,6 @@
 import type { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
-const STACKTRACE_LIMIT = 50;
+const STACKTRACE_FRAME_LIMIT = 50;
 // Used to sanitize webpack (error: *) wrapped stack errors
 const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 
@@ -16,7 +16,10 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
   return (stack: string, skipFirst: number = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
-    for (const line of stack.split('\n').slice(skipFirst)) {
+    const lines = stack.split('\n');
+
+    for (let i = skipFirst; i < lines.length; i++) {
+      const line = lines[i];
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
       // input size. Huge strings can result in hangs/Denial of Service:
@@ -36,6 +39,10 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
           frames.push(frame);
           break;
         }
+      }
+
+      if (frames.length >= STACKTRACE_FRAME_LIMIT) {
+        break;
       }
     }
 
@@ -67,7 +74,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     return [];
   }
 
-  const localStack = stack.slice(0, STACKTRACE_LIMIT);
+  const localStack = stack.slice(0, STACKTRACE_FRAME_LIMIT);
 
   const lastFrameFunction = localStack[localStack.length - 1].function;
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
