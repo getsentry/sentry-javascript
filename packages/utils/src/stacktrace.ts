@@ -55,6 +55,9 @@ export function stackParserFromStackParserOptions(stackParser: StackParser | Sta
 }
 
 /**
+ * Removes Sentry frames from the top and bottom of the stack if present and enforces a limit of max number of frames.
+ * Assumes stack input is ordered from top to bottom and returns the reverse representation so call site of the
+ * function that caused the crash is the last frame in the array.
  * @hidden
  */
 export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): StackFrame[] {
@@ -79,7 +82,6 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     localStack.pop();
   }
 
-  // The frame where the crash happened, should be the last entry in the array
   return localStack.map(frame => ({
     ...frame,
     filename: frame.filename || localStack[0].filename,
