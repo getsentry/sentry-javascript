@@ -18,18 +18,33 @@ test('Sends an ingestable client-side exception to Sentry', async ({ page }) => 
   await pollEventOnSentry(exceptionEventId!);
 });
 
-// test('Sends an ingestable route handler exception to Sentry', async ({ page }) => {
-//   await page.goto('/');
+// TODO: Fix that these tests are flakey on dev server - might be an SDK bug - might be Next.js itself
+if (process.env.TEST_ENV !== 'development') {
+  test('Sends an ingestable route handler exception to Sentry', async ({ page }) => {
+    const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside a dynamic route!';
+    });
 
-//   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
-//     return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
-//   });
+    await page.request.get('/dynamic-route/error/42');
 
-//   await page.getByText('Throw error').click();
+    const errorEvent = await errorEventPromise;
+    const exceptionEventId = errorEvent.event_id;
 
-//   const errorEvent = await errorEventPromise;
-//   const exceptionEventId = errorEvent.event_id;
+    expect(exceptionEventId).toBeDefined();
+    await pollEventOnSentry(exceptionEventId!);
+  });
 
-//   expect(exceptionEventId).toBeDefined();
-//   await pollEventOnSentry(exceptionEventId!);
-// });
+  test('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
+    const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside an edge route!';
+    });
+
+    await page.request.get('/edge-route/error');
+
+    const errorEvent = await errorEventPromise;
+    const exceptionEventId = errorEvent.event_id;
+
+    expect(exceptionEventId).toBeDefined();
+    await pollEventOnSentry(exceptionEventId!);
+  });
+}

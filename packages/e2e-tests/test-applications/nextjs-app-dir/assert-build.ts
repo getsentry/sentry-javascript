@@ -17,9 +17,6 @@ assert.match(stdin, /λ \/server-component\/parameter\/\[parameter\]/);
 
 assert.match(stdin, /λ \/dynamic-route\/\[\.\.\.parameters\]/);
 assert.match(stdin, /λ \/dynamic-route\/\[parameter\]/);
-assert.match(stdin, /λ \/dynamic-route\/captureException\/\[\.\.\.parameters\]/);
-assert.match(stdin, /λ \/dynamic-route\/captureException\/\[parameter\]/);
 assert.match(stdin, /λ \/dynamic-route\/error\/\[\.\.\.parameters\]/);
 assert.match(stdin, /λ \/dynamic-route\/error\/\[parameter\]/);
-
 // assert.match(stdin, /● \/static-route/);
