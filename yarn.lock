@@ -4205,7 +4205,7 @@
   dependencies:
     highlight.js "^9.15.6"
 
-"@sveltejs/kit@^1.5.0":
+"@sveltejs/kit@^1.11.0":
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-1.11.0.tgz#23f233c351e5956356ba6f3206e40637c5f5dbda"
   integrity sha512-PwViZcMoLgEU/jhLoSyjf5hSrHS67wvSm0ifBo4prP9irpGa5HuPOZeVDTL5tPDSBoKxtdYi1zlGdoiJfO86jA==
