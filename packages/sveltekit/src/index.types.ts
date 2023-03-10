@@ -17,7 +17,7 @@ import type * as serverSdk from './server';
 /** Initializes Sentry SvelteKit SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
-export declare function wrapHandleErrorWithSentry<T extends HandleClientError | HandleServerError>(
+export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(
   handleError: T,
 ): ReturnType<T>;
 

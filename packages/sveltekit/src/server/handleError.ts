@@ -11,7 +11,7 @@ import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
  *
  * @param handleError The original SvelteKit error handler.
  */
-export function wrapHandleErrorWithSentry(handleError: HandleServerError): HandleServerError {
+export function handleErrorWithSentry(handleError?: HandleServerError): HandleServerError {
   return (input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> => {
     captureException(input.error, scope => {
       scope.addEventProcessor(event => {
@@ -23,6 +23,8 @@ export function wrapHandleErrorWithSentry(handleError: HandleServerError): Handl
       });
       return scope;
     });
-    return handleError(input);
+    if (handleError) {
+      return handleError(input);
+    }
   };
 }

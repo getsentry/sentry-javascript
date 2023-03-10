@@ -11,7 +11,7 @@ import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
  *
  * @param handleError The original SvelteKit error handler.
  */
-export function wrapHandleErrorWithSentry(handleError: HandleClientError): HandleClientError {
+export function handleErrorWithSentry(handleError?: HandleClientError): HandleClientError {
   return (input: { error: unknown; event: NavigationEvent }): ReturnType<HandleClientError> => {
     captureException(input.error, scope => {
       scope.addEventProcessor(event => {
@@ -23,6 +23,8 @@ export function wrapHandleErrorWithSentry(handleError: HandleClientError): Handl
       });
       return scope;
     });
-    return handleError(input);
+    if (handleError) {
+      return handleError(input);
+    }
   };
 }

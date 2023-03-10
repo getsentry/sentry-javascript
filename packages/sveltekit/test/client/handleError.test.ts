@@ -55,6 +55,16 @@ describe('handleError', () => {
     mockScope = new Scope();
   });
 
+  it('works when a handleError func is not provided', async () => {
+    const wrappedHandleError = wrapHandleErrorWithSentry();
+    const mockError = new Error('test');
+    const returnVal = await wrappedHandleError({ error: mockError, event: navigationEvent });
+
+    expect(returnVal).not.toBeDefined();
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(mockError, expect.any(Function));
+  });
+
   it('calls captureException', async () => {
     const wrappedHandleError = wrapHandleErrorWithSentry(handleError);
     const mockError = new Error('test');
