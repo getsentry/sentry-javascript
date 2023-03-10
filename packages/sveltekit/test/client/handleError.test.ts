@@ -1,5 +1,4 @@
 import { Scope } from '@sentry/svelte';
-
 // For now disable the import/no-unresolved rule, because we don't have a way to
 // tell eslint that we are only importing types from the @sveltejs/kit package without
 // adding a custom resolver, which will take too much time.
