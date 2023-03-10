@@ -25,6 +25,8 @@ if (process.env.TEST_ENV !== 'development') {
       return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside a dynamic route!';
     });
 
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     await page.request.get('/dynamic-route/error/42');
 
     const errorEvent = await errorEventPromise;
