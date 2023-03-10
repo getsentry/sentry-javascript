@@ -5,7 +5,7 @@ import { Scope } from '@sentry/node';
 // eslint-disable-next-line import/no-unresolved
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 
-import { wrapHandleErrorWithSentry } from '../../src/server/handleError';
+import { handleErrorWithSentry } from '../../src/server/handleError';
 
 const mockCaptureException = jest.fn();
 let mockScope = new Scope();
@@ -48,7 +48,7 @@ describe('handleError', () => {
   });
 
   it('works when a handleError func is not provided', async () => {
-    const wrappedHandleError = wrapHandleErrorWithSentry();
+    const wrappedHandleError = handleErrorWithSentry();
     const mockError = new Error('test');
     const returnVal = await wrappedHandleError({ error: mockError, event: requestEvent });
 
@@ -58,7 +58,7 @@ describe('handleError', () => {
   });
 
   it('calls captureException', async () => {
-    const wrappedHandleError = wrapHandleErrorWithSentry(handleError);
+    const wrappedHandleError = handleErrorWithSentry(handleError);
     const mockError = new Error('test');
     const returnVal = await wrappedHandleError({ error: mockError, event: requestEvent });
 
@@ -73,7 +73,7 @@ describe('handleError', () => {
       return mockScope;
     });
 
-    const wrappedHandleError = wrapHandleErrorWithSentry(handleError);
+    const wrappedHandleError = handleErrorWithSentry(handleError);
     const mockError = new Error('test');
     await wrappedHandleError({ error: mockError, event: requestEvent });
 
