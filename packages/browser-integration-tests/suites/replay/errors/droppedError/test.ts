@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { envelopeRequestParser } from '../../../../utils/helpers';
+import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
 
 sentryTest(
   '[error-mode] should not start recording if an error occurred when the error was dropped',
@@ -13,7 +14,12 @@ sentryTest(
     let callsToSentry = 0;
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      callsToSentry++;
+      const req = route.request();
+      const event = envelopeRequestParser(req);
+
+      if (isReplayEvent(event)) {
+        callsToSentry++;
+      }
 
       return route.fulfill({
         status: 200,
