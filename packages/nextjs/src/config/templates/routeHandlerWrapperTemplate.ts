@@ -42,9 +42,19 @@ function wrapHandler<T>(handler: T, method: string): T {
 
   return new Proxy(handler, {
     apply: (originalFunction, thisArg, args) => {
-      const headersList = headers();
-      const sentryTraceHeader = headersList.get('sentry-trace');
-      const baggageHeader = headersList.get('baggage');
+      let sentryTraceHeader: string | undefined;
+      let baggageHeader: string | undefined;
+
+      try {
+        // For some odd Next.js magic reason, `headers()` will not work if used inside node_modules.
+        // Current assumption is that Next.js applies some loader magic to userfiles, but not files in node_modules.
+        // This file is technically a userfile so it gets the loader magic applied.
+        const headersList = headers();
+        sentryTraceHeader = headersList.get('sentry-trace');
+        baggageHeader = headersList.get('baggage');
+      } catch (e) {
+        // This crashes on the edge runtime - at least at the time when this was written, which was during app dir alpha
+      }
 
       return Sentry.wrapRouteHandlerWithSentry(originalFunction, {
         method,

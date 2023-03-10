@@ -141,3 +141,5 @@ export {
 export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 
 export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
+
+export { wrapRouteHandlerWithSentry } from './wrapRouteHandlerWithSentry';
