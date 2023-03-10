@@ -57,16 +57,12 @@ export function stackParserFromStackParserOptions(stackParser: StackParser | Sta
 /**
  * @hidden
  */
-export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
+export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): StackFrame[] {
   if (!stack.length) {
     return [];
   }
 
-  let localStack = stack;
-
-  if (stack.length >= STACKTRACE_LIMIT) {
-    localStack.slice(0, STACKTRACE_LIMIT);
-  }
+  let localStack = stack.slice(0, STACKTRACE_LIMIT);
 
   const lastFrameFunction = localStack[localStack.length - 1].function;
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
