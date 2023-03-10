@@ -33,7 +33,7 @@ export function wrapRequestHandlerLikeFunctionWithErrorInstrumentation<A extends
 ): (...args: Parameters<F>) => ReturnType<F> {
   return new Proxy(originalFunction, {
     apply: (originalFunction, thisArg: unknown, args: Parameters<F>): ReturnType<F> => {
-      const errorInfo: ErrorInfo = errorInfoCreator(args);
+      const errorInfo = errorInfoCreator(args);
 
       const scope = getCurrentHub().getScope();
       if (scope) {

@@ -25,8 +25,6 @@ if (process.env.TEST_ENV !== 'development') {
       return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside a dynamic route!';
     });
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     await page.request.get('/dynamic-route/error/42');
 
     const errorEvent = await errorEventPromise;
@@ -36,15 +34,12 @@ if (process.env.TEST_ENV !== 'development') {
     await pollEventOnSentry(exceptionEventId!);
   });
 
-  test('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
+  test.only('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
-      console.log(errorEvent?.exception?.values?.[0]?.value);
       return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside an edge route!';
     });
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    await page.request.post('/edge-route/error');
+    await page.request.get('/edge-route/error');
 
     const errorEvent = await errorEventPromise;
     const exceptionEventId = errorEvent.event_id;

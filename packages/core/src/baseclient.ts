@@ -245,6 +245,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public flush(timeout?: number): PromiseLike<boolean> {
+    __DEBUG_BUILD__ && logger.warn('Flushing events.');
     const transport = this._transport;
     if (transport) {
       return this._isClientDoneProcessing(timeout).then(clientFinished => {

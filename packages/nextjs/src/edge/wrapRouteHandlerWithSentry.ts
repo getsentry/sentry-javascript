@@ -3,6 +3,7 @@ import { getCurrentHub } from '@sentry/core';
 import type { RouteHandlerContext } from '../common/types';
 import { wrapRequestHandlerLikeFunctionWithErrorInstrumentation } from '../common/wrapRequestHandlerLikeFunctionWithErrorInstrumentation';
 import { wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation } from '../common/wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation';
+import { flush } from './utils/flush';
 
 type RouteHandlerArgs = [Request | undefined, { params?: Record<string, string> } | undefined];
 
@@ -50,6 +51,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: RouteHandlerArgs)
             baggageHeader: context.baggageHeader || requestBaggageHeader,
             sentryTraceHeader: context.sentryTraceHeader || requestSentryTraceHeader,
           }),
+          afterSpanFinish: () => {
+            void flush(2000);
+          },
           spanInfoCreator: ({ willCreateTransaction }) => {
             if (willCreateTransaction) {
               return {
@@ -72,8 +76,12 @@ export function wrapRouteHandlerWithSentry<F extends (...args: RouteHandlerArgs)
         },
       );
 
-      const { returnValue } = errorAndPerformanceWrappedFunction.apply(thisArg, args);
-      return returnValue;
+      try {
+        const { returnValue } = errorAndPerformanceWrappedFunction.apply(thisArg, args);
+        return returnValue;
+      } finally {
+        void flush(2000);
+      }
     },
   });
 }

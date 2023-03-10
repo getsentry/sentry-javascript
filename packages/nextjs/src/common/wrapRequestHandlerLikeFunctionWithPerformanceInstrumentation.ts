@@ -54,7 +54,8 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
   options: {
     wrapperContextExtractor?: WrapperContextExtractor;
     spanInfoCreator: SpanInfoCreator;
-    onFunctionEnd?: OnFunctionEndHook<ReturnType<F>>;
+    afterFunctionEnd?: OnFunctionEndHook<ReturnType<F>>;
+    afterSpanFinish?: () => void;
   },
 ): (...args: Parameters<F>) => WrappedReturnValue<ReturnType<F>> {
   return new Proxy(originalFunction, {
@@ -155,9 +156,10 @@ export function wrapRequestHandlerLikeFunctionWithPerformanceInstrumentation<
       };
 
       const handleFunctionEnd = (res: ReturnType<F> | undefined, err: unknown | undefined): void => {
-        void (options.onFunctionEnd || defaultOnFunctionEnd)(span, res, err).then(beforeFinishResult => {
+        void (options.afterFunctionEnd || defaultOnFunctionEnd)(span, res, err).then(beforeFinishResult => {
           if (beforeFinishResult.shouldFinishSpan) {
             span.finish();
+            options.afterSpanFinish?.();
           }
         });
       };
