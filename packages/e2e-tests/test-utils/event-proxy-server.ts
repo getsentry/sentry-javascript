@@ -7,6 +7,7 @@ import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
+import * as zlib from 'zlib';
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -44,7 +45,12 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     });
 
     proxyRequest.addListener('end', () => {
-      const proxyRequestBody = Buffer.concat(proxyRequestChunks).toString();
+      const proxyRequestBody = (
+        proxyRequest.headers['content-encoding'] === 'gzip'
+          ? zlib.unzipSync(Buffer.concat(proxyRequestChunks), { flush: zlib.constants.Z_FULL_FLUSH })
+          : Buffer.concat(proxyRequestChunks)
+      ).toString();
+
       const envelopeHeader: { dsn?: string } = JSON.parse(proxyRequestBody.split('\n')[0]);
 
       if (!envelopeHeader.dsn) {
