@@ -12,7 +12,7 @@ const mockCaptureException = vi.fn();
 let mockScope = new Scope();
 
 vi.mock('@sentry/node', async () => {
-  const original = (await vi.importActual('@sentry/core')) as any;
+  const original = (await vi.importActual('@sentry/node')) as any;
   return {
     ...original,
     captureException: (err: unknown, cb: (arg0: unknown) => unknown) => {
