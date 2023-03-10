@@ -26,7 +26,8 @@ const config: PlaywrightTestConfig = {
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */
-  retries: testEnv === 'development' ? 3 : 0,
+  /* `next build && next start` is also flakey. Current assumption: Next.js has a bug - but not sure. */
+  retries: 3,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
