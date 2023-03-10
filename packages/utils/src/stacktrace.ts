@@ -64,28 +64,31 @@ export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
 
   let localStack = stack;
 
-  const firstFrameFunction = localStack[0].function || '';
-  const lastFrameFunction = localStack[localStack.length - 1].function || '';
-
-  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
-    localStack = localStack.slice(1);
+  if (stack.length >= STACKTRACE_LIMIT) {
+    localStack.slice(0, STACKTRACE_LIMIT);
   }
 
+  const lastFrameFunction = localStack[localStack.length - 1].function;
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
-    localStack = localStack.slice(0, -1);
+  if (lastFrameFunction && /sentryWrapped/.test(lastFrameFunction)) {
+    localStack.pop();
+  }
+
+  // Reversing in the middle of the procedure allows us to just pop the values off the stack
+  localStack = localStack.reverse();
+
+  const firstFrameFunction = localStack[localStack.length - 1].function;
+  // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
+  if (firstFrameFunction && /captureMessage|captureException/.test(firstFrameFunction)) {
+    localStack.pop();
   }
 
   // The frame where the crash happened, should be the last entry in the array
-  return localStack
-    .slice(0, STACKTRACE_LIMIT)
-    .map(frame => ({
-      ...frame,
-      filename: frame.filename || localStack[0].filename,
-      function: frame.function || '?',
-    }))
-    .reverse();
+  return localStack.map(frame => ({
+    ...frame,
+    filename: frame.filename || localStack[0].filename,
+    function: frame.function || '?',
+  }));
 }
 
 const defaultFunctionName = '<anonymous>';
