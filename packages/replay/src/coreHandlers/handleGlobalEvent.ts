@@ -1,27 +1,31 @@
 import { addBreadcrumb } from '@sentry/core';
-import type { ErrorEvent, Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { REPLAY_EVENT_NAME } from '../constants';
 import type { ReplayContainer } from '../types';
+import { isErrorEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { handleAfterSendError } from './handleAfterSendError';
+import { handleAfterSendEvent } from './handleAfterSendEvent';
 
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
  */
 export function handleGlobalEventListener(
   replay: ReplayContainer,
-  includeErrorHandling = false,
+  includeAfterSendEventHandling = false,
 ): (event: Event, hint: EventHint) => Event | null {
-  const errorHandler = includeErrorHandling ? handleAfterSendError(replay) : undefined;
+  const afterSendHandler = includeAfterSendEventHandling ? handleAfterSendEvent(replay) : undefined;
 
   return (event: Event, hint: EventHint) => {
-    // Do not apply replayId to the root event
-    if (event.type === REPLAY_EVENT_NAME) {
+    if (isReplayEvent(event)) {
       // Replays have separate set of breadcrumbs, do not include breadcrumbs
       // from core SDK
       delete event.breadcrumbs;
+      return event;
+    }
+
+    // We only want to handle errors & transactions, nothing else
+    if (!isErrorEvent(event) && !isTransactionEvent(event)) {
       return event;
     }
 
@@ -33,28 +37,20 @@ export function handleGlobalEventListener(
     }
 
     // Only tag transactions with replayId if not waiting for an error
-    // @ts-ignore private
-    if (!event.type || replay.recordingMode === 'session') {
+    if (isErrorEvent(event) || (isTransactionEvent(event) && replay.recordingMode === 'session')) {
       event.tags = { ...event.tags, replayId: replay.getSessionId() };
     }
 
-    // Collect traceIds in _context regardless of `recordingMode` - if it's true,
-    // _context gets cleared on every checkout
-    if (event.type === 'transaction' && event.contexts && event.contexts.trace && event.contexts.trace.trace_id) {
-      replay.getContext().traceIds.add(event.contexts.trace.trace_id as string);
-      return event;
-    }
-
-    if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals) {
+    if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals && isErrorEvent(event)) {
       const exc = getEventExceptionValues(event);
       addInternalBreadcrumb({
         message: `Tagging event (${event.event_id}) - ${event.message} - ${exc.type}: ${exc.value}`,
       });
     }
 
-    if (errorHandler && !event.type) {
+    if (afterSendHandler) {
       // Pretend the error had a 200 response so we capture it
-      errorHandler(event as ErrorEvent, { statusCode: 200 });
+      afterSendHandler(event, { statusCode: 200 });
     }
 
     return event;

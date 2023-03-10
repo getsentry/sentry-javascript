@@ -322,8 +322,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       }
 
       const promise = this._sendEnvelope(env);
-      if (promise && isErrorEvent(event)) {
-        promise.then(sendResponse => this.emit('afterSendErrorEvent', event, sendResponse), null);
+      if (promise) {
+        promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
       }
     }
   }
@@ -369,8 +369,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(
-    hook: 'afterSendErrorEvent',
-    callback: (event: ErrorEvent, sendResponse: TransportMakeRequestResponse | void) => void,
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
   ): void;
 
   /** @inheritdoc */
@@ -390,7 +390,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterSendErrorEvent', event: ErrorEvent, sendResponse: TransportMakeRequestResponse | void): void;
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {

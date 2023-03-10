@@ -1,22 +1,23 @@
 import { getCurrentHub } from '@sentry/core';
-import type { ErrorEvent } from '@sentry/types';
+import type { ErrorEvent, Event } from '@sentry/types';
 
 import { UNABLE_TO_SEND_REPLAY } from '../../../src/constants';
-import { handleAfterSendError } from '../../../src/coreHandlers/handleAfterSendError';
+import { handleAfterSendEvent } from '../../../src/coreHandlers/handleAfterSendEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
 import { useFakeTimers } from '../../utils/use-fake-timers';
+import { Transaction } from '../../fixtures/transaction';
 
 useFakeTimers();
 let replay: ReplayContainer;
 
-describe('Integration | coreHandlers | handleAfterSendError', () => {
+describe('Integration | coreHandlers | handleAfterSendEvent', () => {
   afterEach(() => {
     replay.stop();
   });
 
-  it('records errorIds sent error events', async () => {
+  it('records errorIds from sent error events', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
         stickySession: false,
@@ -32,7 +33,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
     const error3 = Error({ event_id: 'err3' });
     const error4 = Error({ event_id: 'err4' });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     // With undefined response: Don't capture
     handler(error1, undefined);
@@ -44,6 +45,48 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
     handler(error4, { statusCode: undefined });
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err2']);
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+  });
+
+  it('records traceIds from sent transaction events', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 1.0,
+      },
+    }));
+
+    const transaction1 = Transaction('tr1');
+    const transaction2 = Transaction('tr2');
+    const transaction3 = Transaction('tr3');
+    const transaction4 = Transaction('tr4');
+
+    const handler = handleAfterSendEvent(replay);
+
+    // With undefined response: Don't capture
+    handler(transaction1, undefined);
+    // With "successful" response: Capture
+    handler(transaction2, { statusCode: 200 });
+    // With "unsuccessful" response: Don't capture
+    handler(transaction3, { statusCode: 0 });
+    // With no statusCode response: Don't Capture
+    handler(transaction4, { statusCode: undefined });
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
+
+    // Does not affect error session
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('error');
   });
 
   it('allows undefined send response when using custom transport', async () => {
@@ -66,7 +109,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
     const error3 = Error({ event_id: 'err3' });
     const error4 = Error({ event_id: 'err4' });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     // With undefined response: Capture
     handler(error1, undefined);
@@ -95,7 +138,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
 
     const error1 = Error({ event_id: 'err1' });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     expect(replay.recordingMode).toBe('error');
 
@@ -130,7 +173,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
 
     const error1 = Error({ event_id: 'err1' });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     expect(replay.recordingMode).toBe('session');
 
@@ -149,6 +192,41 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
     expect(replay.recordingMode).toBe('session');
   });
 
+  it('ignores profile & replay events', async () => {
+    ({ replay } = await resetSdkMock({
+      replayOptions: {
+        stickySession: false,
+      },
+      sentryOptions: {
+        replaysSessionSampleRate: 0.0,
+        replaysOnErrorSampleRate: 1.0,
+      },
+    }));
+
+    const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+
+    const profileEvent: Event = { type: 'profile' };
+    const replayEvent: Event = { type: 'replay_event' };
+
+    const handler = handleAfterSendEvent(replay);
+
+    expect(replay.recordingMode).toBe('error');
+
+    handler(profileEvent, { statusCode: 200 });
+    handler(replayEvent, { statusCode: 200 });
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(mockSend).toHaveBeenCalledTimes(0);
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('error');
+  });
+
   it('does not flush in error mode when failing to send the error', async () => {
     ({ replay } = await resetSdkMock({
       replayOptions: {
@@ -164,7 +242,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
 
     const error1 = Error({ event_id: 'err1' });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     expect(replay.recordingMode).toBe('error');
 
@@ -198,7 +276,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
 
     const error1: ErrorEvent = { event_id: 'err1', type: undefined };
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     expect(replay.recordingMode).toBe('error');
 
@@ -232,7 +310,7 @@ describe('Integration | coreHandlers | handleAfterSendError', () => {
 
     const error1 = Error({ event_id: 'err1', message: UNABLE_TO_SEND_REPLAY });
 
-    const handler = handleAfterSendError(replay);
+    const handler = handleAfterSendEvent(replay);
 
     expect(replay.recordingMode).toBe('error');
 

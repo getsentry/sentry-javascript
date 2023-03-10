@@ -1643,7 +1643,7 @@ describe('BaseClient', () => {
       jest.useRealTimers();
     });
 
-    it('emits `afterSendErrorEvent` when sending an error', async () => {
+    it('emits `afterSendEvent` when sending an error', async () => {
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: PUBLIC_DSN,
@@ -1657,7 +1657,7 @@ describe('BaseClient', () => {
       const errorEvent: Event = { message: 'error' };
 
       const callback = jest.fn();
-      client.on('afterSendErrorEvent', callback);
+      client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();
@@ -1671,7 +1671,35 @@ describe('BaseClient', () => {
       expect(callback).toBeCalledWith(errorEvent, {});
     });
 
-    it('still triggers `afterSendErrorEvent` when transport.send rejects', async () => {
+    it('emits `afterSendEvent` when sending a transaction', async () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+        }),
+      );
+
+      // @ts-ignore
+      const mockSend = jest.spyOn(client._transport, 'send');
+
+      const transactionEvent: Event = { type: 'transaction', event_id: 'tr1' };
+
+      const callback = jest.fn();
+      client.on('afterSendEvent', callback);
+
+      client.sendEvent(transactionEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(1);
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(transactionEvent, {});
+    });
+
+    it('still triggers `afterSendEvent` when transport.send rejects', async () => {
       expect.assertions(3);
 
       const client = new TestClient(
@@ -1689,7 +1717,7 @@ describe('BaseClient', () => {
       const errorEvent: Event = { message: 'error' };
 
       const callback = jest.fn();
-      client.on('afterSendErrorEvent', callback);
+      client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();
@@ -1721,7 +1749,7 @@ describe('BaseClient', () => {
       const errorEvent: Event = { message: 'error' };
 
       const callback = jest.fn();
-      client.on('afterSendErrorEvent', callback);
+      client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();

@@ -68,7 +68,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
   });
 
-  it('adds transactions to traceIds & does not add replayId for transactions in error mode', async () => {
+  it('does not add replayId for transactions in error mode', async () => {
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
@@ -81,8 +81,6 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.objectContaining({ replayId: expect.any(String) }),
       }),
     );
-
-    expect(replay.getContext().traceIds).toContain('trace_id');
   });
 
   it('tags errors and transactions with replay id for session samples', async () => {
@@ -128,6 +126,60 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     handler(error3, {});
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err2', 'err3']);
+  });
+
+  it('does not collect traceIds when hooks are available', async () => {
+    const transaction1 = Transaction('tr1');
+    const transaction2 = Transaction('tr2');
+    const transaction3 = Transaction('tr3');
+
+    const handler = handleGlobalEventListener(replay);
+
+    handler(transaction1, {});
+    handler(transaction2, {});
+    handler(transaction3, {});
+
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+  });
+
+  it('collects traceIds when hooks are not available', async () => {
+    const transaction1 = Transaction('tr1');
+    const transaction2 = Transaction('tr2');
+    const transaction3 = Transaction('tr3');
+
+    const handler = handleGlobalEventListener(replay, true);
+
+    handler(transaction1, {});
+    handler(transaction2, {});
+    handler(transaction3, {});
+
+    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr1', 'tr2', 'tr3']);
+  });
+
+  it('ignores profile & replay events', async () => {
+    const profileEvent: Event = { type: 'profile' };
+    const replayEvent: Event = { type: 'replay_event' };
+
+    const handler = handleGlobalEventListener(replay);
+    const handler2 = handleGlobalEventListener(replay, true);
+
+    expect(replay.recordingMode).toBe('error');
+
+    handler(profileEvent, {});
+    handler(replayEvent, {});
+    handler2(profileEvent, {});
+    handler2(replayEvent, {});
+
+    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    expect(Array.from(replay.getContext().errorIds)).toEqual([]);
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('error');
   });
 
   it('does not skip non-rrweb errors', () => {

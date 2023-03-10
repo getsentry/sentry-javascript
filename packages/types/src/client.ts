@@ -2,7 +2,7 @@ import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
 import type { Envelope } from './envelope';
-import type { ErrorEvent, Event, EventHint } from './event';
+import type { Event, EventHint } from './event';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
 import type { Scope } from './scope';
@@ -167,8 +167,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Register a callback for when an event has been sent.
    */
   on?(
-    hook: 'afterSendErrorEvent',
-    callback: (event: ErrorEvent, sendResponse: TransportMakeRequestResponse | void) => void,
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
   ): void;
 
   /**
@@ -184,8 +184,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /*
-   * Fire a hook event after sending an error event. Expects to be given an ErrorEvent as the
+   * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit?(hook: 'afterSendErrorEvent', event: ErrorEvent, sendResponse: TransportMakeRequestResponse | void): void;
+  emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 }

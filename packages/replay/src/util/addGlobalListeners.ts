@@ -2,7 +2,7 @@ import type { BaseClient } from '@sentry/core';
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { addInstrumentationHandler } from '@sentry/utils';
 
-import { handleAfterSendError } from '../coreHandlers/handleAfterSendError';
+import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleDomListener } from '../coreHandlers/handleDom';
 import { handleFetchSpanListener } from '../coreHandlers/handleFetch';
 import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
@@ -36,6 +36,6 @@ export function addGlobalListeners(replay: ReplayContainer): void {
 
   if (hasHooks) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (client as BaseClient<any>).on('afterSendErrorEvent', handleAfterSendError(replay));
+    (client as BaseClient<any>).on('afterSendEvent', handleAfterSendEvent(replay));
   }
 }
