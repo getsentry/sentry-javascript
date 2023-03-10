@@ -5,12 +5,12 @@ import { UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
 
+type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse | void) => void;
+
 /**
  * Returns a listener to be added to `client.on('afterSendErrorEvent, listener)`.
  */
-export function handleAfterSendEvent(
-  replay: ReplayContainer,
-): (event: Event, sendResponse: TransportMakeRequestResponse | void) => void {
+export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCallback {
   // Custom transports may still be returning `Promise<void>`, which means we cannot expect the status code to be available there
   const enforceStatusCode = isBaseTransportSend();
 
