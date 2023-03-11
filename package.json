@@ -60,6 +60,7 @@
     "packages/svelte",
     "packages/sveltekit",
     "packages/tracing",
+    "packages/tracing-internal",
     "packages/types",
     "packages/typescript",
     "packages/utils",
