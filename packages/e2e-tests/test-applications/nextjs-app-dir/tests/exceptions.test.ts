@@ -34,7 +34,7 @@ if (process.env.TEST_ENV !== 'development') {
     await pollEventOnSentry(exceptionEventId!);
   });
 
-  test.only('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
+  test('Sends an ingestable edge route handler exception to Sentry', async ({ page }) => {
     const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'I am an error inside an edge route!';
     });
