@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.43.0
+
+- feat(nextjs): Run source map upload in Vercel develop and preview environments (#7436)
+- feat(types): Add `profilesSampler` option to node client type (#7385)
+- fix(core): Avoid using `Array.findIndex()` as it is ES5 incompatible (#7400)
+- fix(nextjs): Add better error messages for missing params during next build (#7434)
+- fix(nextjs): Don't crash build when auth token is missing
+- fix(node): Revert to dynamic `require` call to fix monkey patching (#7430)
+- fix(types): Fix node types & add E2E test (#7429)
+
+
 ## 7.42.0
 
 - feat(core): Add lifecycle hooks (#7370)
