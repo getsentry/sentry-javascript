@@ -83,11 +83,7 @@ export function sendProfile(profileId: string, profile: ProcessedJSSelfProfile):
   }
 
   // Wrap in try/catch because send will throw in case of a network error.
-  transport.send(envelope).then(null, error => {
-    if (error) {
-      if (__DEBUG_BUILD__) {
-        logger.log('[Profiling] Envelope constructed, sending it');
-      }
-    }
+  transport.send(envelope).then(null, reason => {
+      __DEBUG_BUILD__ && logger.log('[Profiling] Error while sending event:', reason');
   });
 }
