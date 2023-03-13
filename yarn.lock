@@ -4205,10 +4205,10 @@
   dependencies:
     highlight.js "^9.15.6"
 
-"@sveltejs/kit@^1.10.0":
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-1.10.0.tgz#17d3565e5903f6d2c0730197fd875c2cf921ad01"
-  integrity sha512-0P35zHrByfbF3Ym3RdQL+RvzgsCDSyO3imSwuZ67XAD5HoCQFF3a8Mhh0V3sObz3rc5aJd4Qn82UpAihJqZ6gQ==
+"@sveltejs/kit@^1.11.0":
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-1.11.0.tgz#23f233c351e5956356ba6f3206e40637c5f5dbda"
+  integrity sha512-PwViZcMoLgEU/jhLoSyjf5hSrHS67wvSm0ifBo4prP9irpGa5HuPOZeVDTL5tPDSBoKxtdYi1zlGdoiJfO86jA==
   dependencies:
     "@sveltejs/vite-plugin-svelte" "^2.0.0"
     "@types/cookie" "^0.5.1"
@@ -12057,7 +12057,7 @@ esbuild@0.13.8:
     esbuild-windows-64 "0.13.8"
     esbuild-windows-arm64 "0.13.8"
 
-esbuild@^0.16.14:
+esbuild@^0.16.3:
   version "0.16.17"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.16.17.tgz#fc2c3914c57ee750635fee71b89f615f25065259"
   integrity sha512-G8LEkV0XzDMNwXKgM0Jwu3nY3lSTwSGY6XbxM9cr9+s0T/qSV1q1JVPBGzm3dcjhCic9+emZDmMffkwgPeOeLg==
@@ -21687,7 +21687,7 @@ postcss@^8.1.10, postcss@^8.1.7, postcss@^8.2.15:
     picocolors "^1.0.0"
     source-map-js "^1.0.2"
 
-postcss@^8.2.4, postcss@^8.3.5, postcss@^8.3.7, postcss@^8.4.21:
+postcss@^8.2.4, postcss@^8.3.5, postcss@^8.3.7, postcss@^8.4.19:
   version "8.4.21"
   resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.4.21.tgz#c639b719a57efc3187b13a1d765675485f4134f4"
   integrity sha512-tP7u/Sn/dVxK2NnruI4H9BG+x+Wxz6oeZ1cJ8P6G/PZY0IKk4k/63TDsQf2kQq3+qoJeLm2kIBUNlZe3zgb4Zg==
@@ -23284,7 +23284,7 @@ rollup@^2.45.1:
   optionalDependencies:
     fsevents "~2.3.2"
 
-rollup@^3.10.0:
+rollup@^3.7.0:
   version "3.18.0"
   resolved "https://registry.yarnpkg.com/rollup/-/rollup-3.18.0.tgz#2354ba63ba66d6a09c652c3ea0dbcd9dad72bbde"
   integrity sha512-J8C6VfEBjkvYPESMQYxKHxNOh4A5a3FlP+0BETGo34HEcE4eTlgCrO2+eWzlu2a/sHs2QUkZco+wscH7jhhgWg==
@@ -25983,7 +25983,7 @@ typescript@^3.9.5, typescript@^3.9.7:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.9.9.tgz#e69905c54bc0681d0518bd4d587cc6f2d0b1a674"
   integrity sha512-kdMjTiekY+z/ubJCATUPlRDl39vXYiMV9iyeMuEuXZh2we6zz80uovNN2WlAxmmdE/Z/YQe+EbOEXB5RHEED3w==
 
-typescript@^4.9.4:
+typescript@^4.9.3, typescript@^4.9.4:
   version "4.9.5"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
   integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
@@ -26518,15 +26518,15 @@ verror@1.10.0:
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
 
-vite@^4.0.0:
-  version "4.1.4"
-  resolved "https://registry.yarnpkg.com/vite/-/vite-4.1.4.tgz#170d93bcff97e0ebc09764c053eebe130bfe6ca0"
-  integrity sha512-3knk/HsbSTKEin43zHu7jTwYWv81f8kgAL99G5NWBcA1LKvtvcVAC4JjBH1arBunO9kQka+1oGbrMKOjk4ZrBg==
+vite@4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/vite/-/vite-4.0.0.tgz#b81b88349a06b2faaa53ae14cf96c942548e3454"
+  integrity sha512-ynad+4kYs8Jcnn8J7SacS9vAbk7eMy0xWg6E7bAhS1s79TK+D7tVFGXVZ55S7RNLRROU1rxoKlvZ/qjaB41DGA==
   dependencies:
-    esbuild "^0.16.14"
-    postcss "^8.4.21"
+    esbuild "^0.16.3"
+    postcss "^8.4.19"
     resolve "^1.22.1"
-    rollup "^3.10.0"
+    rollup "^3.7.0"
   optionalDependencies:
     fsevents "~2.3.2"
 
