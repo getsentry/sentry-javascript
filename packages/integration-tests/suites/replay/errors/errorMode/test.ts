@@ -98,16 +98,18 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button#error',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
+                'aria-label': '***** *****',
+                class: 'btn btn-error',
                 id: 'error',
+                role: 'button',
               },
               id: expect.any(Number),
-              tagName: 'button',
-              textContent: 'Throw Error',
+              tagName: 'div',
+              textContent: '***** *****',
             },
           },
         },
@@ -144,13 +146,12 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button#log',
           data: {
             node: {
               attributes: { id: 'log' },
               id: expect.any(Number),
               tagName: 'button',
-              textContent: 'Log stuff to the console',
+              textContent: '*** ***** ** *** *******',
             },
             nodeId: expect.any(Number),
           },
