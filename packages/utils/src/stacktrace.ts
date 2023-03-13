@@ -1,6 +1,8 @@
 import type { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
+// Used to sanitize webpack (error: *) wrapped stack errors
+const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -25,7 +27,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
       // https://github.com/getsentry/sentry-javascript/issues/5459
       // Remove webpack (error: *) wrappers
-      const cleanedLine = line.replace(/\(error: (.*)\)/, '$1');
+      const cleanedLine = WEBPACK_ERROR_REGEXP.test(line) ? line.replace(WEBPACK_ERROR_REGEXP, '$1') : line;
 
       for (const parser of sortedParsers) {
         const frame = parser(cleanedLine);

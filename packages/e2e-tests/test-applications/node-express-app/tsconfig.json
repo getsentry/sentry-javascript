@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "esModuleInterop": true,
+    "lib": ["ES6"],
+    "strict": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}
