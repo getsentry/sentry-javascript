@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@sentry/browser": "7.43.0",
-    "@sentry-internal/integration-shims": "7.42.0",
+    "@sentry-internal/integration-shims": "7.43.0",
     "@types/express": "^4.17.14"
   },
   "scripts": {

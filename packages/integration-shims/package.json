@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-shims",
-  "version": "7.42.0",
+  "version": "7.43.0",
   "description": "Shims for integrations in Sentry SDK.",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "@sentry/types": "7.42.0"
+    "@sentry/types": "7.43.0"
   },
   "engines": {
     "node": ">=12"
