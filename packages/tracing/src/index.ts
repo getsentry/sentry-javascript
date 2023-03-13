@@ -10,5 +10,3 @@ if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
   // We are patching the global object with our hub extension methods
   addExtensionMethods();
 }
-
-export { addExtensionMethods };
