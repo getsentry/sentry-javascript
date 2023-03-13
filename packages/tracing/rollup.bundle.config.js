@@ -8,7 +8,7 @@ const builds = [];
     entrypoints: ['src/index.bundle.ts'],
     jsVersion,
     licenseTitle: '@sentry/tracing & @sentry/browser',
-    includeReplay: 'shim',
+    includeReplay: false,
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
