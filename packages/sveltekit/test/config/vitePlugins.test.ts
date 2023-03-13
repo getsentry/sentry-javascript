@@ -1,6 +1,15 @@
-import * as fs from 'fs';
+import type * as fs from 'fs';
+import { vi } from 'vitest';
 
 import { injectSentryInitPlugin } from '../../src/config/vitePlugins';
+
+vi.mock('fs', async () => {
+  const original = await vi.importActual<typeof fs>('fs');
+  return {
+    ...original,
+    existsSync: vi.fn().mockReturnValue(true),
+  };
+});
 
 describe('injectSentryInitPlugin', () => {
   it('has its basic properties set', () => {
@@ -9,9 +18,7 @@ describe('injectSentryInitPlugin', () => {
     expect(typeof injectSentryInitPlugin.transform).toBe('function');
   });
 
-  describe('tansform', () => {
-    jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-
+  describe('transform', () => {
     it('transforms the server index file', () => {
       const code = 'foo();';
       const id = '/node_modules/@sveltejs/kit/src/runtime/server/index.js';
