@@ -136,7 +136,6 @@ sentryTest(
               },
               id: expect.any(Number),
               tagName: 'button',
-              textContent: 'Throw Error but drop it',
               textContent: '***** ***** *** **** **',
             },
             nodeId: expect.any(Number),
