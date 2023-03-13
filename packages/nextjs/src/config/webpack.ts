@@ -626,7 +626,38 @@ export function getWebpackPluginOptions(
 
   checkWebpackPluginOverrides(defaultPluginOptions, userPluginOptions);
 
-  return { ...defaultPluginOptions, ...userPluginOptions };
+  return {
+    ...defaultPluginOptions,
+    ...userPluginOptions,
+    errorHandler(err, invokeErr, compilation) {
+      // Hardcoded way to check for missing auth token until we have a better way of doing this.
+      if (err && err.message.includes('Authentication credentials were not provided.')) {
+        const warningPrefix = `${chalk.yellow('warn')}  -`;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `${warningPrefix} ${
+            `${chalk.bold('No Sentry auth token configured.')} Source maps will not be uploaded.\n` +
+            'You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/\n' +
+            `After generating a Sentry auth token, set it via the ${chalk.bold.cyan(
+              'SENTRY_AUTH_TOKEN',
+            )} environment variable during the build.\n`
+          }${
+            process.env.VERCEL
+              ? "If you're deploying to Vercel, use the Vercel integration: https://vercel.com/integrations/sentry\n"
+              : ''
+          }`,
+        );
+
+        return;
+      }
+
+      if (userPluginOptions.errorHandler) {
+        return userPluginOptions.errorHandler(err, invokeErr, compilation);
+      }
+
+      return invokeErr();
+    },
+  };
 }
 
 /** Check various conditions to decide if we should run the plugin */
