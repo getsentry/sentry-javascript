@@ -31,7 +31,7 @@ export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
         captureException(objectifiedErr, scope => {
           scope.addEventProcessor(event => {
             addExceptionMechanism(event, {
-              type: 'instrument',
+              type: 'sveltekit',
               handled: false,
               data: {
                 function: 'load',

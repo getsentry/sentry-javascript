@@ -102,7 +102,7 @@ describe('wrapLoadWithSentry', () => {
     expect(mockAddExceptionMechanism).toBeCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledWith(
       {},
-      { handled: false, type: 'instrument', data: { function: 'load' } },
+      { handled: false, type: 'sveltekit', data: { function: 'load' } },
     );
   });
 });

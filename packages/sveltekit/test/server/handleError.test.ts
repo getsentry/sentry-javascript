@@ -76,6 +76,6 @@ describe('handleError', () => {
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);
     expect(mockAddExceptionMechanism).toBeCalledTimes(1);
-    expect(mockAddExceptionMechanism).toBeCalledWith({}, { handled: false, type: 'instrument' });
+    expect(mockAddExceptionMechanism).toBeCalledWith({}, { handled: false, type: 'sveltekit' });
   });
 });

@@ -16,7 +16,7 @@ export function handleErrorWithSentry(handleError?: HandleClientError): HandleCl
     captureException(input.error, scope => {
       scope.addEventProcessor(event => {
         addExceptionMechanism(event, {
-          type: 'instrument',
+          type: 'sveltekit',
           handled: false,
         });
         return event;
