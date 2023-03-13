@@ -8,8 +8,8 @@ import {
   parseSemver,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import * as http from 'http';
-import * as https from 'https';
+import type * as http from 'http';
+import type * as https from 'https';
 import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
@@ -101,17 +101,25 @@ export class Http implements Integration {
     // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
     const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
 
-    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, http);
-    fill(http, 'get', wrappedHttpHandlerMaker);
-    fill(http, 'request', wrappedHttpHandlerMaker);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const httpModule = require('http');
+    const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, httpModule);
+    fill(httpModule, 'get', wrappedHttpHandlerMaker);
+    fill(httpModule, 'request', wrappedHttpHandlerMaker);
 
     // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
     // If we do, we'd get double breadcrumbs and double spans for `https` calls.
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
     if (NODE_VERSION.major && NODE_VERSION.major > 8) {
-      const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, https);
-      fill(https, 'get', wrappedHttpsHandlerMaker);
-      fill(https, 'request', wrappedHttpsHandlerMaker);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const httpsModule = require('https');
+      const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
+        this._breadcrumbs,
+        tracingOptions,
+        httpsModule,
+      );
+      fill(httpsModule, 'get', wrappedHttpsHandlerMaker);
+      fill(httpsModule, 'request', wrappedHttpsHandlerMaker);
     }
   }
 }
