@@ -5,12 +5,12 @@ import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../../src/server/sdk';
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'init');
 
 describe('Sentry server SDK', () => {
   describe('init', () => {
     afterEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       GLOBAL_OBJ.__SENTRY__.hub = undefined;
     });
 
