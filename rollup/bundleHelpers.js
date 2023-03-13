@@ -18,7 +18,7 @@ import {
   makeTSPlugin,
   makeExcludeBlockPlugin,
   makeSetSDKSourcePlugin,
-  makeShimReplayPlugin,
+  makeReplayShimPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -47,7 +47,7 @@ export function makeBaseBundleConfig(options) {
   const excludeReplayShimPlugin = makeExcludeBlockPlugin('REPLAY_SHIM');
   const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
   const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
-  const replayShimPlugin = makeShimReplayPlugin();
+  const replayShimPlugin = makeReplayShimPlugin();
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included

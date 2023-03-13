@@ -216,7 +216,7 @@ export function makeExcludeBlockPlugin(type) {
   return plugin;
 }
 
-export function makeShimReplayPlugin() {
+export function makeReplayShimPlugin() {
   // This is designed to replace the re-export in browser/index.ts to export the shim
   const plugin = modify({
     find: '@sentry/replay',
