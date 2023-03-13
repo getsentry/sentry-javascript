@@ -23,6 +23,7 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry-internal/integration-shims": "7.42.0",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",

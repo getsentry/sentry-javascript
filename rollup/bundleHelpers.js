@@ -44,6 +44,7 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
   const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
+  const excludeReplayShimPlugin = makeExcludeBlockPlugin('REPLAY_SHIM');
   const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
   const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
   const replayShimPlugin = makeShimReplayPlugin();
@@ -65,7 +66,11 @@ export function makeBaseBundleConfig(options) {
 
   if (includeReplay === 'shim') {
     standAloneBundleConfig.plugins.push(replayShimPlugin);
-  } else if (!includeReplay) {
+  } else {
+    standAloneBundleConfig.plugins.push(excludeReplayShimPlugin);
+  }
+
+  if (!includeReplay) {
     standAloneBundleConfig.plugins.push(excludeReplayPlugin);
   }
 

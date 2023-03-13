@@ -220,7 +220,7 @@ export function makeShimReplayPlugin() {
   // This is designed to replace the re-export in browser/index.ts to export the shim
   const plugin = modify({
     find: '@sentry/replay',
-    replace: './shims/Replay',
+    replace: '@sentry-internal/integration-shims',
   });
 
   // give it a nicer name for later, when we'll need to sort the plugins

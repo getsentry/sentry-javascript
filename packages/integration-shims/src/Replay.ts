@@ -5,7 +5,7 @@ import type { Integration } from '@sentry/types';
  * It is needed in order for the CDN bundles to continue working when users add/remove replay
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-export class ReplayShim implements Integration {
+class ReplayShim implements Integration {
   /**
    * @inheritDoc
    */

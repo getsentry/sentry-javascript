@@ -47,6 +47,7 @@
     "packages/hub",
     "packages/integration-tests",
     "packages/integrations",
+    "packages/integration-shims",
     "packages/overhead-metrics",
     "packages/nextjs",
     "packages/node",
