@@ -3,8 +3,7 @@ module.exports = {
   rootDir: process.cwd(),
   collectCoverage: true,
   transform: {
-    '^.+\\.ts$': 'ts-jest',
-    '^.+\\.tsx$': 'ts-jest',
+    '^.+\\.(t|j)sx?$': '@swc/jest',
   },
   coverageDirectory: '<rootDir>/coverage',
   moduleFileExtensions: ['js', 'ts', 'tsx'],
