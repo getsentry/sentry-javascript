@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(types): add `profilesSampler` option to node client type (#7385)
+
+## 7.42.1
+
+- fix(core): Avoid using `Array.findIndex()` as it is ES5 incompatible (#7400)
+- fix(nextjs): Don't crash build when auth token is missing
+- fix(node): Revert to dynamic `require` call to fix monkey patching (#7430)
+- fix(types): Fix node types & add E2E test (#7429)
+
+
 ## 7.42.0
 
 - feat(core): Add lifecycle hooks (#7370)
