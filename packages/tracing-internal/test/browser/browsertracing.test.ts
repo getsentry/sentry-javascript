@@ -5,13 +5,13 @@ import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry
 import type { InstrumentHandlerCallback, InstrumentHandlerType } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import type { IdleTransaction } from '../../src';
-import { getActiveTransaction } from '../../src';
+import type { IdleTransaction } from '../../../tracing/src';
+import { getActiveTransaction } from '../../../tracing/src';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
-import { getDefaultBrowserClientOptions } from '../testutils';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 

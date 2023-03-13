@@ -53,12 +53,10 @@ export {
 } from '@sentry/browser';
 export { SDK_VERSION } from '@sentry/browser';
 
+import { addExtensionMethods, BrowserTracing } from '@sentry-internal/tracing';
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
-
-import { BrowserTracing } from './browser';
-import { addExtensionMethods } from './extensions';
 
 export { Span } from '@sentry/core';
 
@@ -79,12 +77,7 @@ const INTEGRATIONS: Record<
   BrowserTracing,
 };
 
-export { INTEGRATIONS as Integrations };
-// Though in this case exporting `BrowserTracing` separately (in addition to exporting it as part of
-// `Sentry.Integrations`) doesn't gain us any bundle size advantage (we're making the bundle here, not the user, and we
-// can't leave anything out of ours), it does bring the API for using the integration in line with that recommended for
-// users bundling Sentry themselves.
-export { BrowserTracing };
+export { INTEGRATIONS as Integrations, BrowserTracing };
 
 // We are patching the global object with our hub extension methods
 addExtensionMethods();

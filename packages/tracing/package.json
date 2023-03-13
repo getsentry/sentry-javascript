@@ -16,14 +16,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.43.0",
-    "@sentry/types": "7.43.0",
-    "@sentry/utils": "7.43.0",
-    "tslib": "^1.9.3"
+    "@sentry-internal/tracing": "7.43.0"
   },
   "devDependencies": {
     "@sentry/browser": "7.43.0",
-    "@types/express": "^4.17.14"
+    "@types/express": "^4.17.14",
+    "@sentry/core": "7.43.0",
+    "@sentry/types": "7.43.0",
+    "@sentry/utils": "7.43.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
