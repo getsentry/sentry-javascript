@@ -12,6 +12,7 @@ type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestR
  */
 export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCallback {
   // Custom transports may still be returning `Promise<void>`, which means we cannot expect the status code to be available there
+  // TODO (v8): remove this check as it will no longer be necessary
   const enforceStatusCode = isBaseTransportSend();
 
   return (event: Event, sendResponse: TransportMakeRequestResponse | void) => {
