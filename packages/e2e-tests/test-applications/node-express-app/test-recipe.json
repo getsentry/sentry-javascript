@@ -1,0 +1,12 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "Node Express App",
+  "buildCommand": "yarn install && yarn build",
+  "tests": [
+    {
+      "testName": "Test express server",
+      "testCommand": "yarn test",
+      "timeoutSeconds": 60
+    }
+  ]
+}
