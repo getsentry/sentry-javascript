@@ -21,8 +21,10 @@ let flusherIntervalId = flusher?._intervalId;
 
 clearInterval(flusherIntervalId);
 
+const id = setInterval(() => flusher?.flush(), 2000);
+flusherIntervalId = id;
 // @ts-ignore: need access to `_intervalId`
-flusherIntervalId = flusher?._intervalId = setInterval(() => flusher?.flush(), 2000);
+flusher._intervalId = id;
 
 setTimeout(() => clearInterval(flusherIntervalId), 4000);
 
