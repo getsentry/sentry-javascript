@@ -649,7 +649,7 @@ export function getWebpackPluginOptions(
         }
 
         // eslint-disable-next-line no-console
-        console.warn(
+        console.error(
           `${warningPrefix} ${chalk.bold(
             'No Sentry auth token configured.',
           )} Source maps will not be uploaded.\n${msg}\n`,
