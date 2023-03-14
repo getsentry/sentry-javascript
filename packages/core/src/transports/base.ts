@@ -24,6 +24,8 @@ import {
   updateRateLimits,
 } from '@sentry/utils';
 
+import { getCurrentHub } from '../hub';
+
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 
 /**
@@ -40,11 +42,14 @@ export function createTransport(
   ),
 ): Transport {
   let rateLimits: RateLimits = {};
-
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
+  const client = getCurrentHub().getClient();
 
   function send(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
+    if (client && client.emit) {
+      client.emit('beforeEnvelope', envelope);
+    }
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
