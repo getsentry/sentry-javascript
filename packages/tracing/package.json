@@ -19,11 +19,12 @@
     "@sentry-internal/tracing": "7.43.0"
   },
   "devDependencies": {
+    "@sentry-internal/integration-shims": "7.43.0",
     "@sentry/browser": "7.43.0",
-    "@types/express": "^4.17.14",
     "@sentry/core": "7.43.0",
     "@sentry/types": "7.43.0",
-    "@sentry/utils": "7.43.0"
+    "@sentry/utils": "7.43.0",
+    "@types/express": "^4.17.14"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
