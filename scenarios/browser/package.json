@@ -5,7 +5,7 @@
   "version": "0.0.0",
   "devDependencies": {
     "html-webpack-plugin": "^5.5.0",
-    "webpack": "^5.62.1",
+    "webpack": "^5.76.0",
     "webpack-bundle-analyzer": "^4.5.0",
     "inquirer": "^8.2.0"
   }
