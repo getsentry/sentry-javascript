@@ -21,7 +21,7 @@ export { Integrations };
 // const instance = new BrowserTracing();
 //
 // For an example of of the new usage of BrowserTracing, see @sentry/nextjs index.client.ts
-export const BrowserTracing = Integrations.BrowserTracing;
+export { BrowserTracing } from './browser';
 
 export {
   BROWSER_TRACING_INTEGRATION_ID,
