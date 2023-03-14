@@ -47,13 +47,12 @@ export function createTransport(
 
   function send(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
+    if (client && client.emit) {
+      client.emit('beforeEnvelope', envelope);
+    }
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
-      if (client && client.emit) {
-        client.emit('beforeEnvelope', envelope);
-      }
-
       const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
       if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
         const event: Event | undefined = getEventForEnvelopeItem(item, type);
