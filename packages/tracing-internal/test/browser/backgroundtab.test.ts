@@ -2,9 +2,9 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
-import { addExtensionMethods } from '../../src';
+import { addExtensionMethods } from '../../../tracing/src';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
-import { getDefaultBrowserClientOptions } from '../testutils';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};

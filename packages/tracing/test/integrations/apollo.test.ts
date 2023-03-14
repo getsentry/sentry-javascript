@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Span } from '../../src';
-import { Apollo } from '../../src/node/integrations/apollo';
+import { Integrations, Span } from '../../src';
 import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
@@ -69,7 +68,7 @@ describe('setupOnce', () => {
   let ApolloServer: ApolloServerBase;
 
   beforeAll(() => {
-    new Apollo().setupOnce(
+    new Integrations.Apollo().setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
     );
@@ -113,7 +112,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo();
+    const integration = new Integrations.Apollo();
     integration.setupOnce(
       () => {},
       () => hub,

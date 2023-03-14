@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Span } from '../../../src';
-import { Prisma } from '../../../src/node/integrations/prisma';
+import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
@@ -32,7 +31,7 @@ describe('setupOnce', function () {
   let childSpan: Span;
 
   beforeAll(() => {
-    new Prisma({ client: Client }).setupOnce(
+    new Integrations.Prisma({ client: Client }).setupOnce(
       () => undefined,
       () => new Hub(undefined, scope),
     );
@@ -66,7 +65,7 @@ describe('setupOnce', function () {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Prisma({ client: Client });
+    const integration = new Integrations.Prisma({ client: Client });
     integration.setupOnce(
       () => {},
       () => hub,

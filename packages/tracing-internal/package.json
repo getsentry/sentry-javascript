@@ -1,45 +1,41 @@
 {
-  "name": "@sentry/tracing",
+  "name": "@sentry-internal/tracing",
   "version": "7.43.0",
-  "description": "Sentry Performance Monitoring Package",
+  "description": "Sentry Internal Tracing Package",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/tracing-internal",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
     "node": ">=8"
   },
-  "main": "build/npm/cjs/index.js",
-  "module": "build/npm/esm/index.js",
-  "types": "build/npm/types/index.d.ts",
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.43.0"
-  },
-  "devDependencies": {
-    "@sentry-internal/integration-shims": "7.43.0",
-    "@sentry/browser": "7.43.0",
     "@sentry/core": "7.43.0",
     "@sentry/types": "7.43.0",
     "@sentry/utils": "7.43.0",
+    "tslib": "^1.9.3"
+  },
+  "devDependencies": {
+    "@sentry/browser": "7.43.0",
     "@types/express": "^4.17.14"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn rollup --config rollup.bundle.config.js",
-    "build:dev": "run-p build:transpile build:types",
+    "build": "run-p build:transpile build:types",
+    "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
-    "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
-    "build:bundle:watch": "rollup --config rollup.bundle.config.js --watch",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf build coverage sentry-tracing-*.tgz",
-    "circularDepCheck": "madge --circular src/index.ts",
     "fix": "run-s fix:eslint fix:prettier",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
@@ -52,12 +48,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sideEffects": [
-    "./cjs/index.js",
-    "./esm/index.js",
-    "./build/npm/cjs/index.js",
-    "./build/npm/esm/index.js",
-    "./src/index.ts"
-  ]
+  }
 }
