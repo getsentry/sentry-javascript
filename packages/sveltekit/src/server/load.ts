@@ -6,7 +6,7 @@ function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
 }
 
-function captureAndThrowError(e: unknown): void {
+function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
@@ -15,7 +15,7 @@ function captureAndThrowError(e: unknown): void {
   // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
   // could be noisy.
   if (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400) {
-    throw objectifiedErr;
+    return objectifiedErr;
   }
 
   captureException(objectifiedErr, scope => {
@@ -33,7 +33,7 @@ function captureAndThrowError(e: unknown): void {
     return scope;
   });
 
-  throw objectifiedErr;
+  return objectifiedErr;
 }
 
 /**
@@ -49,12 +49,12 @@ export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
       try {
         maybePromiseResult = wrappingTarget.apply(thisArg, args);
       } catch (e) {
-        captureAndThrowError(e);
+        throw sendErrorToSentry(e);
       }
 
       if (isThenable(maybePromiseResult)) {
         Promise.resolve(maybePromiseResult).then(null, e => {
-          captureAndThrowError(e);
+          sendErrorToSentry(e);
         });
       }
 
