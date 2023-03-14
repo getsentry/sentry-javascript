@@ -1,5 +1,5 @@
 import { captureException } from '@sentry/node';
-import { addExceptionMechanism, objectify, isThenable } from '@sentry/utils';
+import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
 import type { HttpError, ServerLoad } from '@sveltejs/kit';
 
 function isHttpError(err: unknown): err is HttpError {
