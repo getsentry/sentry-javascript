@@ -1,0 +1,1 @@
+export { withSentryViteConfig } from './withSentryViteConfig';

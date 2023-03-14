@@ -216,7 +216,7 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
 /**
  * Creates breadcrumbs from XHR API calls
  */
-function _xhrBreadcrumb(handlerData: HandlerData & { xhr: SentryWrappedXMLHttpRequest }): void {
+function _xhrBreadcrumb(handlerData: HandlerData & { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest }): void {
   if (handlerData.endTimestamp) {
     // We only capture complete, non-sentry requests
     if (handlerData.xhr.__sentry_own_request__) {
@@ -248,7 +248,7 @@ function _xhrBreadcrumb(handlerData: HandlerData & { xhr: SentryWrappedXMLHttpRe
 /**
  * Creates breadcrumbs from fetch API calls
  */
-function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch): void {
+function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { response?: Response }): void {
   // We only capture complete fetch requests
   if (!handlerData.endTimestamp) {
     return;

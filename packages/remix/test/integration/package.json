@@ -30,6 +30,7 @@
     "@sentry/react": "file:../../../react",
     "@sentry/replay": "file:../../../replay",
     "@sentry/tracing": "file:../../../tracing",
+    "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry/types": "file:../../../types",
     "@sentry/utils": "file:../../../utils"
   },

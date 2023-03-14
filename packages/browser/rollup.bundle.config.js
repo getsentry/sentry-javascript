@@ -8,6 +8,7 @@ const builds = [];
     entrypoints: ['src/index.ts'],
     jsVersion,
     licenseTitle: '@sentry/browser',
+    includeReplay: 'shim',
     outputFileBase: () => `bundles/bundle${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 

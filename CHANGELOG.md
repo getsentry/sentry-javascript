@@ -4,7 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- fix(replay): Ensure `<input type='submit' value='Btn text'>` is masked ([#69](https://github.com/getsentry/rrweb/pull/69))
+## 7.43.0
+
+- feat(nextjs): Run source map upload in Vercel develop and preview environments (#7436)
+- feat(types): Add `profilesSampler` option to node client type (#7385)
+- fix(core): Avoid using `Array.findIndex()` as it is ES5 incompatible (#7400)
+- fix(nextjs): Add better error messages for missing params during next build (#7434)
+- fix(nextjs): Don't crash build when auth token is missing
+- fix(node): Revert to dynamic `require` call to fix monkey patching (#7430)
+- fix(types): Fix node types & add E2E test (#7429)
+
+
+## 7.42.0
+
+- feat(core): Add lifecycle hooks (#7370)
+- feat(core): Emit hooks for transaction start/finish (#7387)
+- feat(nextjs): Connect traces for server components (#7320)
+- feat(replay): Attach an error `cause` to send exceptions (#7350)
+- feat(replay): Consider user input in form field as "user activity" (#7355)
+- feat(replay): Update rrweb to 1.105.0 & add breadcrumb when encountering large mutation (#7314)
+- feat(tracing): Expose cancelIdleTimeout and add option to make it permanent (#7236)
+- feat(tracing): Track PerformanceObserver interactions as spans (#7331)
+- fix(core): Ensure `originalException` has type `unknown` (#7361)
+- fix(core): Avoid using `Object.values()` (#7360)
+- fix(react): Make redux integration be configurable via `normalizeDepth` (#7379)
+- fix(tracing): Record LCP and CLS on transaction finish (#7386)
+- ref(browser): Improve type safety of breadcrumbs integration (#7382)
+- ref(node): Parallelize disk io when reading source files for context lines (#7374)
+- ref(node): Partially remove dynamic `require` calls (#7377)
+
+**Replay `rrweb` changes:**
+
+`@sentry-internal/rrweb` was updated from 1.104.1 to 1.105.0 (#7314):
+
+- feat: Add `onMutation` option to record ([#70](https://github.com/getsentry/rrweb/pull/69))
+- fix: Ensure `<input type='submit' value='Btn text'>` is masked ([#69](https://github.com/getsentry/rrweb/pull/69))
 
 ## 7.41.0
 

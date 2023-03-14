@@ -69,7 +69,7 @@ export function getIntegrationsToSetup(options: Options): Integration[] {
   // `beforeSendTransaction`. It therefore has to run after all other integrations, so that the changes of all event
   // processors will be reflected in the printed values. For lack of a more elegant way to guarantee that, we therefore
   // locate it and, assuming it exists, pop it out of its current spot and shove it onto the end of the array.
-  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
+  const debugIndex = findIndex(finalIntegrations, integration => integration.name === 'Debug');
   if (debugIndex !== -1) {
     const [debugInstance] = finalIntegrations.splice(debugIndex, 1);
     finalIntegrations.push(debugInstance);
@@ -106,4 +106,15 @@ export function setupIntegration(integration: Integration, integrationIndex: Int
     installedIntegrations.push(integration.name);
     __DEBUG_BUILD__ && logger.log(`Integration installed: ${integration.name}`);
   }
+}
+
+// Polyfill for Array.findIndex(), which is not supported in ES5
+function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
+  for (let i = 0; i < arr.length; i++) {
+    if (callback(arr[i]) === true) {
+      return i;
+    }
+  }
+
+  return -1;
 }

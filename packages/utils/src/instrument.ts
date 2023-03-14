@@ -208,7 +208,7 @@ function instrumentXHR(): void {
   const xhrproto = XMLHttpRequest.prototype;
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
-    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const xhr = this;
       const url = args[1];
@@ -259,7 +259,7 @@ function instrumentXHR(): void {
   });
 
   fill(xhrproto, 'send', function (originalSend: () => void): () => void {
-    return function (this: SentryWrappedXMLHttpRequest, ...args: any[]): void {
+    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
       if (this.__sentry_xhr__ && args[0] !== undefined) {
         this.__sentry_xhr__.body = args[0];
       }

@@ -1,6 +1,8 @@
 import type { StackFrame, StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
 
 const STACKTRACE_LIMIT = 50;
+// Used to sanitize webpack (error: *) wrapped stack errors
+const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 
 /**
  * Creates a stack parser with the supplied line parsers
@@ -25,7 +27,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
 
       // https://github.com/getsentry/sentry-javascript/issues/5459
       // Remove webpack (error: *) wrappers
-      const cleanedLine = line.replace(/\(error: (.*)\)/, '$1');
+      const cleanedLine = WEBPACK_ERROR_REGEXP.test(line) ? line.replace(WEBPACK_ERROR_REGEXP, '$1') : line;
 
       for (const parser of sortedParsers) {
         const frame = parser(cleanedLine);
@@ -55,37 +57,38 @@ export function stackParserFromStackParserOptions(stackParser: StackParser | Sta
 }
 
 /**
+ * Removes Sentry frames from the top and bottom of the stack if present and enforces a limit of max number of frames.
+ * Assumes stack input is ordered from top to bottom and returns the reverse representation so call site of the
+ * function that caused the crash is the last frame in the array.
  * @hidden
  */
-export function stripSentryFramesAndReverse(stack: StackFrame[]): StackFrame[] {
+export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): StackFrame[] {
   if (!stack.length) {
     return [];
   }
 
-  let localStack = stack;
+  const localStack = stack.slice(0, STACKTRACE_LIMIT);
 
-  const firstFrameFunction = localStack[0].function || '';
-  const lastFrameFunction = localStack[localStack.length - 1].function || '';
-
+  const lastFrameFunction = localStack[localStack.length - 1].function;
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (firstFrameFunction.indexOf('captureMessage') !== -1 || firstFrameFunction.indexOf('captureException') !== -1) {
-    localStack = localStack.slice(1);
+  if (lastFrameFunction && /sentryWrapped/.test(lastFrameFunction)) {
+    localStack.pop();
   }
 
+  // Reversing in the middle of the procedure allows us to just pop the values off the stack
+  localStack.reverse();
+
+  const firstFrameFunction = localStack[localStack.length - 1].function;
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (lastFrameFunction.indexOf('sentryWrapped') !== -1) {
-    localStack = localStack.slice(0, -1);
+  if (firstFrameFunction && /captureMessage|captureException/.test(firstFrameFunction)) {
+    localStack.pop();
   }
 
-  // The frame where the crash happened, should be the last entry in the array
-  return localStack
-    .slice(0, STACKTRACE_LIMIT)
-    .map(frame => ({
-      ...frame,
-      filename: frame.filename || localStack[0].filename,
-      function: frame.function || '?',
-    }))
-    .reverse();
+  return localStack.map(frame => ({
+    ...frame,
+    filename: frame.filename || localStack[localStack.length - 1].filename,
+    function: frame.function || '?',
+  }));
 }
 
 const defaultFunctionName = '<anonymous>';
