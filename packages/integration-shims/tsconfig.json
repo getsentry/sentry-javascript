@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "lib": ["ES6"],
+    "esModuleInterop": true,
+    "target": "es6",
+    "strictPropertyInitialization": false
+  },
+  "include": ["src/**/*.ts"]
+}
