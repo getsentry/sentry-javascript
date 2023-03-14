@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Span } from '../../../src';
-import { Postgres } from '../../../src/node/integrations/postgres';
+import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class PgClient {
@@ -51,7 +50,7 @@ describe('setupOnce', () => {
     let childSpan: Span;
 
     beforeAll(() => {
-      (pgApi === 'pg' ? new Postgres() : new Postgres({ usePgNative: true })).setupOnce(
+      (pgApi === 'pg' ? new Integrations.Postgres() : new Integrations.Postgres({ usePgNative: true })).setupOnce(
         () => undefined,
         () => new Hub(undefined, scope),
       );
@@ -107,7 +106,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Postgres();
+    const integration = new Integrations.Postgres();
     integration.setupOnce(
       () => {},
       () => hub,

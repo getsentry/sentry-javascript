@@ -53,12 +53,10 @@ export {
 } from '@sentry/browser';
 export { SDK_VERSION } from '@sentry/browser';
 
+import { addExtensionMethods, BrowserTracing } from '@sentry-internal/tracing';
 import { Integrations as BrowserIntegrations } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
-
-import { BrowserTracing } from './browser';
-import { addExtensionMethods } from './extensions';
 
 export { Span } from '@sentry/core';
 

@@ -2,11 +2,11 @@ import { BrowserClient } from '@sentry/browser';
 import * as sentryCore from '@sentry/core';
 import * as utils from '@sentry/utils';
 
-import type { Transaction } from '../../src';
-import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../src';
+import type { Transaction } from '../../../tracing/src';
+import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { FetchData, XHRData } from '../../src/browser/request';
 import { fetchCallback, instrumentOutgoingRequests, shouldAttachHeaders, xhrCallback } from '../../src/browser/request';
-import { getDefaultBrowserClientOptions } from '../testutils';
 
 beforeAll(() => {
   addExtensionMethods();
