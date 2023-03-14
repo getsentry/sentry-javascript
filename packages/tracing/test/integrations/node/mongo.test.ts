@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Span } from '../../../src';
-import { Mongo } from '../../../src/node/integrations/mongo';
+import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class Collection {
@@ -52,7 +51,7 @@ describe('patchOperation()', () => {
   let childSpan: Span;
 
   beforeAll(() => {
-    new Mongo({
+    new Integrations.Mongo({
       operations: ['insertOne', 'initializeOrderedBulkOp'],
     }).setupOnce(
       () => undefined,
@@ -124,7 +123,7 @@ describe('patchOperation()', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Mongo();
+    const integration = new Integrations.Mongo();
     integration.setupOnce(
       () => {},
       () => hub,
