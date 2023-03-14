@@ -81,6 +81,7 @@
     "@types/node": "~10.17.0",
     "@types/rimraf": "^3.0.2",
     "@types/sinon": "^7.0.11",
+    "@vitest/coverage-c8": "^0.29.2",
     "acorn": "^8.7.0",
     "chai": "^4.1.2",
     "codecov": "^3.6.5",
@@ -112,7 +113,8 @@
     "ts-node": "10.9.1",
     "tslib": "^2.3.1",
     "typedoc": "^0.18.0",
-    "typescript": "3.8.3"
+    "typescript": "3.8.3",
+    "vitest": "^0.29.2"
   },
   "resolutions": {
     "**/agent-base": "5"

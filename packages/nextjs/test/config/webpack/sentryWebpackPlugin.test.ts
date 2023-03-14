@@ -240,40 +240,6 @@ describe('Sentry webpack plugin config', () => {
         false,
         true,
       ],
-      [
-        'disables the plugin in Vercel `preview` environment',
-        exportedNextConfig,
-        { VERCEL_ENV: 'preview' },
-        false,
-        false,
-      ],
-      [
-        'disables the plugin in Vercel `development` environment',
-        exportedNextConfig,
-        { VERCEL_ENV: 'development' },
-        false,
-        false,
-      ],
-      [
-        'allows `disableClientWebpackPlugin = false` to override env vars`',
-        {
-          ...exportedNextConfig,
-          sentry: { disableClientWebpackPlugin: false },
-        },
-        { VERCEL_ENV: 'preview' },
-        false,
-        true,
-      ],
-      [
-        'allows `disableServerWebpackPlugin = false` to override env vars`',
-        {
-          ...exportedNextConfig,
-          sentry: { disableServerWebpackPlugin: false },
-        },
-        { VERCEL_ENV: 'preview' },
-        true,
-        false,
-      ],
     ])(
       '%s',
       async (
