@@ -63,6 +63,7 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
                     (node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text && node.__sn.textContent,
                   )
                   .filter(Boolean) // filter out empty values
+                  .map(text => (text as string).trim())
                   .join('')
               : '',
             attributes: getAttributesToRecord(serializedNode.attributes),

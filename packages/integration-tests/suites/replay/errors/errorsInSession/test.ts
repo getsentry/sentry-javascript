@@ -68,13 +68,10 @@ sentryTest(
           data: {
             node: {
               attributes: {
-                'aria-label': '***** *****',
-                class: 'btn btn-error',
                 id: 'error',
-                role: 'button',
               },
               id: expect.any(Number),
-              tagName: 'div',
+              tagName: 'button',
               textContent: '***** *****',
             },
             nodeId: expect.any(Number),
