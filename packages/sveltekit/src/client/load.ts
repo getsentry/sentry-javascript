@@ -2,7 +2,7 @@ import { captureException } from '@sentry/svelte';
 import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
 import type { ServerLoad } from '@sveltejs/kit';
 
-function captureAndThrowError(e: unknown): void {
+function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
@@ -22,7 +22,7 @@ function captureAndThrowError(e: unknown): void {
     return scope;
   });
 
-  throw objectifiedErr;
+  return objectifiedErr;
 }
 
 /**
@@ -38,12 +38,12 @@ export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
       try {
         maybePromiseResult = wrappingTarget.apply(thisArg, args);
       } catch (e) {
-        captureAndThrowError(e);
+        throw sendErrorToSentry(e);
       }
 
       if (isThenable(maybePromiseResult)) {
         Promise.resolve(maybePromiseResult).then(null, e => {
-          captureAndThrowError(e);
+          sendErrorToSentry(e);
         });
       }
 
