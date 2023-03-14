@@ -54,18 +54,20 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
         if (typeof maybePromiseResult === 'object' && maybePromiseResult !== null && 'then' in maybePromiseResult) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          return maybePromiseResult.then(
-            (res: unknown) => {
+          Promise.resolve(maybePromiseResult).then(
+            () => {
               transaction.finish();
-              return res;
             },
             (e: Error) => {
               transaction.setStatus('internal_error');
               captureException(e);
               transaction.finish();
-              throw e;
             },
           );
+
+          // It is very important that we return the original promise here, because Next.js attaches various properties
+          // to that promise and will throw if they are not on the returned value.
+          return maybePromiseResult;
         } else {
           transaction.finish();
           return maybePromiseResult;
