@@ -1,13 +1,7 @@
 import type { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import type { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
-  logger,
-  parseSemver,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, logger, stringMatchesSomePattern } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { LRUMap } from 'lru_map';
@@ -15,8 +9,14 @@ import { LRUMap } from 'lru_map';
 import type { NodeClient } from '../client';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
 import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
+// @ts-ignore this is JS on purpose
+import * as httpPatch from './utils/http-patch.cjs';
 
-const NODE_VERSION = parseSemver(process.versions.node);
+interface HttpPatchModule {
+  getHttpModules: () => { httpModule: typeof http; httpsModule?: typeof https };
+}
+
+const { getHttpModules } = httpPatch as HttpPatchModule;
 
 interface TracingOptions {
   /**
@@ -101,18 +101,13 @@ export class Http implements Integration {
     // and we will no longer have to do this optional merge, we can just pass `this._tracing` directly.
     const tracingOptions = this._tracing ? { ...clientOptions, ...this._tracing } : undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const httpModule = require('http');
+    const { httpModule, httpsModule } = getHttpModules();
+
     const wrappedHttpHandlerMaker = _createWrappedRequestMethodFactory(this._breadcrumbs, tracingOptions, httpModule);
     fill(httpModule, 'get', wrappedHttpHandlerMaker);
     fill(httpModule, 'request', wrappedHttpHandlerMaker);
 
-    // NOTE: Prior to Node 9, `https` used internals of `http` module, thus we don't patch it.
-    // If we do, we'd get double breadcrumbs and double spans for `https` calls.
-    // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
-    if (NODE_VERSION.major && NODE_VERSION.major > 8) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const httpsModule = require('https');
+    if (httpsModule) {
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
         this._breadcrumbs,
         tracingOptions,
