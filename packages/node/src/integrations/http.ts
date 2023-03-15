@@ -14,7 +14,7 @@ import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
-import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
+import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
@@ -130,6 +130,16 @@ type WrappedRequestMethod = RequestMethod;
 type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedRequestMethod;
 
 /**
+ * See https://develop.sentry.dev/sdk/data-handling/#structuring-data
+ */
+type RequestSpanData = {
+  url: string;
+  method: string;
+  'http.fragment'?: string;
+  'http.query'?: string;
+};
+
+/**
  * Function which creates a function which creates wrapped versions of internal `request` and `get` calls within `http`
  * and `https` modules. (NB: Not a typo - this is a creator^2!)
  *
@@ -180,6 +190,8 @@ function _createWrappedRequestMethodFactory(
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
       const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
+      // eslint-disable-next-line deprecation/deprecation
+      const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
@@ -192,31 +204,30 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
-      const spanData: Record<string, string> = {
+      const requestSpanData: RequestSpanData = {
         url: requestUrl,
         method: requestOptions.method || 'GET',
       };
       if (requestOptions.hash) {
         // strip leading "#"
-        spanData['http.fragment'] = requestOptions.hash.substring(1);
+        requestSpanData['http.fragment'] = requestOptions.hash.substring(1);
       }
       if (requestOptions.search) {
         // strip leading "?"
-        spanData['http.query'] = requestOptions.search.substring(1);
+        requestSpanData['http.query'] = requestOptions.search.substring(1);
       }
 
-      // TODO potential breaking change... shouldCreateSpanForRequest no longer has access to query + fragment, is that a problem?
-      if (scope && tracingOptions && shouldCreateSpan(requestUrl)) {
+      if (scope && tracingOptions && shouldCreateSpan(rawRequestUrl)) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
-            description: `${spanData.method} ${spanData.url}`,
+            description: `${requestSpanData.method} ${requestSpanData.url}`,
             op: 'http.client',
-            data: spanData,
+            data: requestSpanData,
           });
 
-          if (shouldAttachTraceData(requestUrl)) {
+          if (shouldAttachTraceData(rawRequestUrl)) {
             const sentryTraceHeader = requestSpan.toTraceparent();
             __DEBUG_BUILD__ &&
               logger.log(
@@ -268,7 +279,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', spanData, req, res);
+            addRequestBreadcrumb('response', requestSpanData, req, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
@@ -283,7 +294,7 @@ function _createWrappedRequestMethodFactory(
           const req = this;
 
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', spanData, req);
+            addRequestBreadcrumb('error', requestSpanData, req);
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
@@ -300,7 +311,7 @@ function _createWrappedRequestMethodFactory(
  */
 function addRequestBreadcrumb(
   event: string,
-  spanData: Record<string, string>,
+  requestSpanData: RequestSpanData,
   req: http.ClientRequest,
   res?: http.IncomingMessage,
 ): void {
@@ -314,7 +325,7 @@ function addRequestBreadcrumb(
       data: {
         method: req.method,
         status_code: res && res.statusCode,
-        ...spanData,
+        ...requestSpanData,
       },
       type: 'http',
     },

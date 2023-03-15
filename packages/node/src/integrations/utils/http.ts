@@ -16,6 +16,19 @@ export function isSentryRequest(url: string): boolean {
 }
 
 /**
+ * @deprecated Please use extractUrl instead. Only exists for backwards compatability as we sanitize spans and breadcrumbs.
+ */
+export function extractRawUrl(requestOptions: RequestOptions): string {
+  const protocol = requestOptions.protocol || '';
+  const hostname = requestOptions.hostname || requestOptions.host || '';
+  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
+  const port =
+    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
+  const path = requestOptions.path ? requestOptions.path : '/';
+  return `${protocol}//${hostname}${port}${path}`;
+}
+
+/**
  * Assemble a URL to be used for breadcrumbs and spans.
  *
  * @param requestOptions RequestOptions object containing the component parts for a URL
