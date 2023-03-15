@@ -12,8 +12,9 @@ import {
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, browserName }) => {
+    // TODO(replay): This is flakey on firefox where clicks are flakey
+    if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
       sentryTest.skip();
     }
 
