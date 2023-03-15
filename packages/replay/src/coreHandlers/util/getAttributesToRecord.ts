@@ -1,4 +1,5 @@
-// Attributes we are interested in:
+// Note that these are the serialized attributes and not attributes directly on
+// the DOM Node. Attributes we are interested in:
 const ATTRIBUTES_TO_RECORD = new Set([
   'id',
   'class',

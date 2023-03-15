@@ -4,23 +4,23 @@ it('records only included attributes', function () {
   expect(
     getAttributesToRecord({
       id: 'foo',
-      classList: ['btn', 'btn-primary'],
+      class: 'btn btn-primary',
     }),
   ).toEqual({
     id: 'foo',
-    classList: ['btn', 'btn-primary'],
+    class: 'btn btn-primary',
   });
 
   expect(
     getAttributesToRecord({
       id: 'foo',
-      classList: ['btn', 'btn-primary'],
+      class: 'btn btn-primary',
       tabIndex: 2,
       ariaDescribedBy: 'tooltip-1',
     }),
   ).toEqual({
     id: 'foo',
-    classList: ['btn', 'btn-primary'],
+    class: 'btn btn-primary',
   });
 
   expect(
