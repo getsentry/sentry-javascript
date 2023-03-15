@@ -39,6 +39,7 @@ for (let i = 0; i < 100; i++) {
         expect.arrayContaining([
           {
             ...expectedClickBreadcrumb,
+            message: 'body > div#error.btn.btn-error[aria-label="An Error"]',
             data: {
               nodeId: expect.any(Number),
               node: {
@@ -61,6 +62,7 @@ for (let i = 0; i < 100; i++) {
         expect.arrayContaining([
           {
             ...expectedClickBreadcrumb,
+            message: 'body > button > img#img[alt="Alt Text"]',
             data: {
               nodeId: expect.any(Number),
               node: {
@@ -81,6 +83,7 @@ for (let i = 0; i < 100; i++) {
         expect.arrayContaining([
           {
             ...expectedClickBreadcrumb,
+            message: 'body > button.sentry-unmask[aria-label="Unmasked label"]',
             data: {
               nodeId: expect.any(Number),
               node: {

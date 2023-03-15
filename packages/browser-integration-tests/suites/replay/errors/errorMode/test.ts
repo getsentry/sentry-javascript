@@ -98,6 +98,7 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
+          message: 'body > button#error',
           data: {
             nodeId: expect.any(Number),
             node: {
@@ -143,6 +144,7 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
+          message: 'body > button#log',
           data: {
             node: {
               attributes: { id: 'log' },

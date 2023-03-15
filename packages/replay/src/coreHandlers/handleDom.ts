@@ -1,6 +1,7 @@
 import type { INode } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
+import { htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
@@ -32,17 +33,15 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
  * An event handler to react to DOM events.
  */
 function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
+  let target;
   let targetNode: Node | INode | undefined;
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
     targetNode = getTargetNode(handlerData);
+    target = htmlTreeAsString(targetNode);
   } catch (e) {
-    // Nothing to do
-  }
-
-  if (!targetNode) {
-    return null;
+    target = '<unknown>';
   }
 
   // `__sn` property is the serialized node created by rrweb
@@ -51,6 +50,7 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
 
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
+    message: target,
     data: serializedNode
       ? {
           nodeId: serializedNode.id,
