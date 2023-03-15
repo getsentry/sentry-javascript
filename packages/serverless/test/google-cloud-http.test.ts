@@ -1,9 +1,9 @@
 import { BigQuery } from '@google-cloud/bigquery';
+import * as SentryNode from '@sentry/node';
 import * as fs from 'fs';
 import * as nock from 'nock';
 import * as path from 'path';
 
-import * as Sentry from '../src';
 import { GoogleCloudHttp } from '../src/google-cloud-http';
 
 /**
@@ -24,7 +24,7 @@ describe('GoogleCloudHttp tracing', () => {
   });
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    SentryNode.resetMocks();
   });
   afterAll(() => {
     nock.restore();
@@ -58,12 +58,12 @@ describe('GoogleCloudHttp tracing', () => {
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         description: 'POST /jobs',
       });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client.bigquery',
         description: expect.stringMatching(new RegExp('^GET /queries/.+')),
       });
