@@ -16,7 +16,8 @@
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",
     "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
-    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts"
+    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
+    "clean": "rimraf tmp test-applications/**/node_modules test-applications/**/dist"
   },
   "devDependencies": {
     "@sentry/utils": "7.43.0",
