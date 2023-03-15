@@ -6,3 +6,6 @@
 
 #  build: Add `@typescript-eslint/consistent-type-imports` rule (#6662)
 2aa4e94b036675245290596884959e06dcced044
+
+# chore: Rename `integration-tests` -> `browser-integration-tests` (#7455)
+ef6b3c7877d5fc8031c08bb28b0ffafaeb01f501
