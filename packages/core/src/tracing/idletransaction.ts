@@ -239,10 +239,10 @@ export class IdleTransaction extends Transaction {
       restartOnChildSpanChange: true,
     },
   ): void {
+    this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
     if (this._idleTimeoutID) {
       clearTimeout(this._idleTimeoutID);
       this._idleTimeoutID = undefined;
-      this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
 
       if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
@@ -269,7 +269,7 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    this.cancelIdleTimeout();
+    this.cancelIdleTimeout(undefined, { restartOnChildSpanChange: !this._idleTimeoutCanceledPermanently });
     __DEBUG_BUILD__ && logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     __DEBUG_BUILD__ && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);

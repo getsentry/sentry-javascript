@@ -248,6 +248,40 @@ describe('IdleTransaction', () => {
   });
 
   describe('cancelIdleTimeout', () => {
+    it('permanent idle timeout cancel is not restarted by child span start', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const firstSpan = transaction.startChild({});
+      transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
+      const secondSpan = transaction.startChild({});
+      firstSpan.finish();
+      secondSpan.finish();
+
+      expect(transaction.endTimestamp).toBeDefined();
+    });
+
+    it('permanent idle timeout cancel finished the transaction with the last child', () => {
+      const idleTimeout = 10;
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      transaction.initSpanRecorder(10);
+
+      const firstSpan = transaction.startChild({});
+      transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
+      const secondSpan = transaction.startChild({});
+      const thirdSpan = transaction.startChild({});
+
+      firstSpan.finish();
+      expect(transaction.endTimestamp).toBeUndefined();
+
+      secondSpan.finish();
+      expect(transaction.endTimestamp).toBeUndefined();
+
+      thirdSpan.finish();
+      expect(transaction.endTimestamp).toBeDefined();
+    });
+
     it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
       const idleTimeout = 10;
       const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
