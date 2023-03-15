@@ -9,4 +9,4 @@ Sentry.Integrations.Replay = Replay;
 
 export { Replay };
 
-export * from './index.bundle';
+export * from './index.bundle.base';
