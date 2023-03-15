@@ -18,6 +18,7 @@ import {
   makeTSPlugin,
   makeExcludeBlockPlugin,
   makeSetSDKSourcePlugin,
+  makeReplayShimPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -33,6 +34,7 @@ export function makeBaseBundleConfig(options) {
     packageSpecificConfig,
     includeReplay,
     includeOffline,
+    includeBrowserProfiling,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -42,7 +44,10 @@ export function makeBaseBundleConfig(options) {
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
   const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
+  const excludeReplayShimPlugin = makeExcludeBlockPlugin('REPLAY_SHIM');
   const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
+  const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
+  const replayShimPlugin = makeReplayShimPlugin();
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -59,12 +64,22 @@ export function makeBaseBundleConfig(options) {
     plugins: [markAsBrowserBuildPlugin],
   };
 
+  if (includeReplay === 'shim') {
+    standAloneBundleConfig.plugins.push(replayShimPlugin);
+  } else {
+    standAloneBundleConfig.plugins.push(excludeReplayShimPlugin);
+  }
+
   if (!includeReplay) {
     standAloneBundleConfig.plugins.push(excludeReplayPlugin);
   }
 
   if (!includeOffline) {
     standAloneBundleConfig.plugins.push(excludeOfflineTransport);
+  }
+
+  if (!includeBrowserProfiling) {
+    standAloneBundleConfig.plugins.push(excludeBrowserProfiling);
   }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)

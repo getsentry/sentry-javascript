@@ -1,1 +1,1 @@
-export * from '../../../../../../integration-tests/utils/helpers';
+export * from '../../../../../../browser-integration-tests/utils/helpers';

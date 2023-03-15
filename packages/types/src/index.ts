@@ -5,7 +5,7 @@ export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
-export type { DebugImage, DebugImageType, DebugMeta } from './debugMeta';
+export type { DebugImage, DebugMeta } from './debugMeta';
 export type {
   AttachmentItem,
   BaseEnvelopeHeaders,
@@ -94,5 +94,6 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
+export type { HandlerDataFetch, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions } from './browseroptions';

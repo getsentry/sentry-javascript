@@ -30,6 +30,7 @@ import {
   uuid4,
 } from '@sentry/utils';
 
+import { DEFAULT_ENVIRONMENT } from './constants';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 
@@ -182,8 +183,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public captureException(exception: any, hint?: EventHint): string {
+  public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error('Sentry syntheticException');
     this._withClient((client, scope) => {
@@ -409,7 +409,7 @@ export class Hub implements HubInterface {
    */
   public startSession(context?: SessionContext): Session {
     const { scope, client } = this.getStackTop();
-    const { release, environment } = (client && client.getOptions()) || {};
+    const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
 
     // Will fetch userAgent if called from browser sdk
     const { userAgent } = GLOBAL_OBJ.navigator || {};

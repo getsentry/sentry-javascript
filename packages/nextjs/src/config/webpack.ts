@@ -87,12 +87,18 @@ export function constructWebpackConfigFunction(
     });
 
     let pagesDirPath: string;
-    let appDirPath: string;
-    if (fs.existsSync(path.join(projectDir, 'pages')) && fs.lstatSync(path.join(projectDir, 'pages')).isDirectory()) {
+    const maybePagesDirPath = path.join(projectDir, 'pages');
+    if (fs.existsSync(maybePagesDirPath) && fs.lstatSync(maybePagesDirPath).isDirectory()) {
       pagesDirPath = path.join(projectDir, 'pages');
-      appDirPath = path.join(projectDir, 'app');
     } else {
       pagesDirPath = path.join(projectDir, 'src', 'pages');
+    }
+
+    let appDirPath: string;
+    const maybeAppDirPath = path.join(projectDir, 'app');
+    if (fs.existsSync(maybeAppDirPath) && fs.lstatSync(maybeAppDirPath).isDirectory()) {
+      appDirPath = path.join(projectDir, 'app');
+    } else {
       appDirPath = path.join(projectDir, 'src', 'app');
     }
 
@@ -199,7 +205,7 @@ export function constructWebpackConfigFunction(
           // https://beta.nextjs.org/docs/routing/pages-and-layouts#pages:~:text=.js%2C%20.jsx%2C%20or%20.tsx%20file%20extensions%20can%20be%20used%20for%20Pages.
           return (
             normalizedAbsoluteResourcePath.startsWith(appDirPath) &&
-            !!normalizedAbsoluteResourcePath.match(/[\\/]page\.(js|jsx|tsx)$/)
+            !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
           );
         },
         use: [
@@ -207,7 +213,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'page-server-component',
+              wrappingTargetKind: 'server-component',
             },
           },
         ],
@@ -620,7 +626,93 @@ export function getWebpackPluginOptions(
 
   checkWebpackPluginOverrides(defaultPluginOptions, userPluginOptions);
 
-  return { ...defaultPluginOptions, ...userPluginOptions };
+  return {
+    ...defaultPluginOptions,
+    ...userPluginOptions,
+    errorHandler(err, invokeErr, compilation) {
+      if (err) {
+        const errorMessagePrefix = `${chalk.red('error')} -`;
+
+        // Hardcoded way to check for missing auth token until we have a better way of doing this.
+        if (err.message.includes('Authentication credentials were not provided.')) {
+          let msg;
+
+          if (process.env.VERCEL) {
+            msg = `To fix this, use Sentry's Vercel integration to automatically set the ${chalk.bold.cyan(
+              'SENTRY_AUTH_TOKEN',
+            )} environment variable: https://vercel.com/integrations/sentry`;
+          } else {
+            msg =
+              'You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/\n' +
+              `After generating a Sentry auth token, set it via the ${chalk.bold.cyan(
+                'SENTRY_AUTH_TOKEN',
+              )} environment variable during the build.`;
+          }
+
+          // eslint-disable-next-line no-console
+          console.error(
+            `${errorMessagePrefix} ${chalk.bold(
+              'No Sentry auth token configured.',
+            )} Source maps will not be uploaded.\n${msg}\n`,
+          );
+
+          return;
+        }
+
+        // Hardcoded way to check for missing org slug until we have a better way of doing this.
+        if (err.message.includes('An organization slug is required')) {
+          let msg;
+          if (process.env.VERCEL) {
+            msg = `To fix this, use Sentry's Vercel integration to automatically set the ${chalk.bold.cyan(
+              'SENTRY_ORG',
+            )} environment variable: https://vercel.com/integrations/sentry`;
+          } else {
+            msg = `To fix this, set the ${chalk.bold.cyan(
+              'SENTRY_ORG',
+            )} environment variable to the to your organization slug during the build.`;
+          }
+
+          // eslint-disable-next-line no-console
+          console.error(
+            `${errorMessagePrefix} ${chalk.bold(
+              'No Sentry organization slug configured.',
+            )} Source maps will not be uploaded.\n${msg}\n`,
+          );
+
+          return;
+        }
+
+        // Hardcoded way to check for missing project slug until we have a better way of doing this.
+        if (err.message.includes('A project slug is required')) {
+          let msg;
+          if (process.env.VERCEL) {
+            msg = `To fix this, use Sentry's Vercel integration to automatically set the ${chalk.bold.cyan(
+              'SENTRY_PROJECT',
+            )} environment variable: https://vercel.com/integrations/sentry`;
+          } else {
+            msg = `To fix this, set the ${chalk.bold.cyan(
+              'SENTRY_PROJECT',
+            )} environment variable to the name of your Sentry project during the build.`;
+          }
+
+          // eslint-disable-next-line no-console
+          console.error(
+            `${errorMessagePrefix} ${chalk.bold(
+              'No Sentry project slug configured.',
+            )} Source maps will not be uploaded.\n${msg}\n`,
+          );
+
+          return;
+        }
+      }
+
+      if (userPluginOptions.errorHandler) {
+        return userPluginOptions.errorHandler(err, invokeErr, compilation);
+      }
+
+      return invokeErr();
+    },
+  };
 }
 
 /** Check various conditions to decide if we should run the plugin */
@@ -635,6 +727,10 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
   // with the `--ignore-scripts` option, this will be blocked and the missing binary will cause an error when users
   // try to build their apps.
   if (!SentryWebpackPlugin.cliBinaryExists()) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `${chalk.red('error')} - ${chalk.bold('Sentry CLI binary not found.')} Source maps will not be uploaded.\n`,
+    );
     return false;
   }
 
@@ -655,10 +751,6 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
     // `silent`, so for the vast majority of users, it's as if the plugin doesn't run at all in dev. Making that
     // official is technically a breaking change, though, so we probably should wait until v8.
     // return false
-  }
-
-  if (process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'development') {
-    return false;
   }
 
   // We've passed all of the tests!

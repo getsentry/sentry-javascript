@@ -1,5 +1,4 @@
 import * as sentryCore from '@sentry/core';
-import { Hub, makeMain, Scope } from '@sentry/core';
 import { Transaction } from '@sentry/tracing';
 import type { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -47,7 +46,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
@@ -60,7 +59,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
@@ -73,7 +72,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
@@ -94,7 +93,7 @@ describe('requestHandler', () => {
   it('autoSessionTracking is disabled, does not call _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options);
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
@@ -138,7 +137,7 @@ describe('requestHandler', () => {
   });
 
   it('stores request and request data options in `sdkProcessingMetadata`', () => {
-    const hub = new Hub(new NodeClient(getDefaultNodeClientOptions()));
+    const hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions()));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
     const requestHandlerOptions = { include: { ip: false } };
@@ -165,7 +164,7 @@ describe('tracingHandler', () => {
 
   const sentryTracingMiddleware = tracingHandler();
 
-  let hub: Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+  let hub: sentryCore.Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
 
   function createNoOpSpy() {
     const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
@@ -173,7 +172,7 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
-    hub = new Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
+    hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     req = {
       headers,
@@ -271,7 +270,7 @@ describe('tracingHandler', () => {
   it('extracts request data for sampling context', () => {
     const tracesSampler = jest.fn();
     const options = getDefaultNodeClientOptions({ tracesSampler });
-    const hub = new Hub(new NodeClient(options));
+    const hub = new sentryCore.Hub(new NodeClient(options));
     hub.run(() => {
       sentryTracingMiddleware(req, res, next);
 
@@ -291,7 +290,7 @@ describe('tracingHandler', () => {
 
   it('puts its transaction on the scope', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new Hub(new NodeClient(options));
+    const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
@@ -411,7 +410,7 @@ describe('tracingHandler', () => {
 
   it('stores request in transaction metadata', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new Hub(new NodeClient(options));
+    const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
@@ -465,7 +464,7 @@ describe('errorHandler()', () => {
     client.initSessionFlusher();
 
     const scope = sentryCore.getCurrentHub().getScope();
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -481,7 +480,7 @@ describe('errorHandler()', () => {
     client = new NodeClient(options);
 
     const scope = sentryCore.getCurrentHub().getScope();
-    const hub = new Hub(client);
+    const hub = new sentryCore.Hub(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -498,8 +497,8 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new Scope();
-    const hub = new Hub(client, scope);
+    const scope = new sentryCore.Scope();
+    const hub = new sentryCore.Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -517,8 +516,8 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new Scope();
-    const hub = new Hub(client, scope);
+    const scope = new sentryCore.Scope();
+    const hub = new sentryCore.Hub(client, scope);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
@@ -532,12 +531,12 @@ describe('errorHandler()', () => {
     const options = getDefaultNodeClientOptions({});
     client = new NodeClient(options);
 
-    const hub = new Hub(client);
-    makeMain(hub);
+    const hub = new sentryCore.Hub(client);
+    sentryCore.makeMain(hub);
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
-    hub.captureException = function (this: Hub, _exception: any) {
+    hub.captureException = function (this: sentryCore.Hub, _exception: any) {
       const scope = this.getScope();
       expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);
     } as any;

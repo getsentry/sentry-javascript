@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "7.37.2",
+  "version": "7.43.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -16,13 +16,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.37.2",
-    "@sentry/replay": "7.37.2",
-    "@sentry/types": "7.37.2",
-    "@sentry/utils": "7.37.2",
+    "@sentry/core": "7.43.0",
+    "@sentry/replay": "7.43.0",
+    "@sentry/types": "7.43.0",
+    "@sentry/utils": "7.43.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@sentry-internal/integration-shims": "7.43.0",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
@@ -40,7 +41,7 @@
     "karma-typescript-es6-transform": "^4.0.0",
     "karma-webkit-launcher": "^1.0.2",
     "node-fetch": "^2.6.0",
-    "playwright": "^1.27.1",
+    "playwright": "^1.31.1",
     "sinon": "^7.3.2",
     "webpack": "^4.30.0"
   },

@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
-import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
@@ -46,7 +46,7 @@ describe('Integration | rate-limiting behaviour', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession'](0);
+    replay['_loadAndCheckSession']();
 
     mockSendReplayRequest.mockClear();
   });
@@ -57,7 +57,7 @@ describe('Integration | rate-limiting behaviour', () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
     jest.clearAllMocks();
-    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+    replay['_loadAndCheckSession']();
   });
 
   afterAll(() => {

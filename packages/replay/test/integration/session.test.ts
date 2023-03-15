@@ -5,10 +5,11 @@ import {
   DEFAULT_FLUSH_MIN_DELAY,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  VISIBILITY_CHANGE_TIMEOUT,
+  SESSION_IDLE_DURATION,
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import type { Session } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { BASE_TIMESTAMP } from '../index';
@@ -55,7 +56,9 @@ describe('Integration | session', () => {
     });
   });
 
-  it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
+  // Require a "user interaction" to start a new session, visibility is not enough. This can be noisy
+  // (e.g. rapidly switching tabs/window focus) and leads to empty sessions.
+  it('does not create a new session when document becomes visible after [SESSION_IDLE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -63,20 +66,29 @@ describe('Integration | session', () => {
       },
     });
 
-    const initialSession = replay.session;
+    const initialSession = { ...replay.session } as Session;
 
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
-    expect(mockRecord.takeFullSnapshot).toHaveBeenLastCalledWith(true);
-
-    // Should have created a new session
-    expect(replay).not.toHaveSameSession(initialSession);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session if user hides the tab and comes back within [VISIBILITY_CHANGE_TIMEOUT] seconds', () => {
-    const initialSession = replay.session;
+  it('does not create a new session when document becomes focused after [SESSION_IDLE_DURATION]ms', () => {
+    const initialSession = { ...replay.session } as Session;
+
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+
+    WINDOW.dispatchEvent(new Event('focus'));
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).toHaveSameSession(initialSession);
+  });
+
+  it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_DURATION] seconds', () => {
+    const initialSession = { ...replay.session } as Session;
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -88,8 +100,8 @@ describe('Integration | session', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSameSession(initialSession);
 
-    // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 1);
+    // User comes back before `SESSION_IDLE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -103,34 +115,65 @@ describe('Integration | session', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('creates a new session if user has been idle for more than 15 minutes and comes back to move their mouse', async () => {
-    const initialSession = replay.session;
+  it('creates a new session if user has been idle for more than SESSION_IDLE_DURATION and comes back to click their mouse', async () => {
+    const initialSession = { ...replay.session } as Session;
 
     expect(initialSession?.id).toBeDefined();
+    expect(replay.getContext()).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://localhost/',
+        initialTimestamp: BASE_TIMESTAMP,
+      }),
+    );
 
-    // Idle for 15 minutes
-    const FIFTEEN_MINUTES = 15 * 60000;
-    jest.advanceTimersByTime(FIFTEEN_MINUTES);
+    const url = 'http://dummy/';
+    Object.defineProperty(WINDOW, 'location', {
+      value: new URL(url),
+    });
 
-    // TBD: We are currently deciding that this event will get dropped, but
-    // this could/should change in the future.
+    const ELAPSED = SESSION_IDLE_DURATION + 1;
+    jest.advanceTimersByTime(ELAPSED);
+
+    // Session has become in an idle state
+    //
+    // This event will put the Replay SDK into a paused state
     const TEST_EVENT = {
       data: { name: 'lost event' },
       timestamp: BASE_TIMESTAMP,
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveLastSentReplay();
+
+    // performance events can still be collected while recording is stopped
+    // TODO: we may want to prevent `addEvent` from adding to buffer when user is inactive
+    replay.addUpdate(() => {
+      createPerformanceSpans(replay, [
+        {
+          type: 'navigation.navigate',
+          name: 'foo',
+          start: BASE_TIMESTAMP + ELAPSED,
+          end: BASE_TIMESTAMP + ELAPSED + 100,
+        },
+      ]);
+      return true;
+    });
 
     await new Promise(process.nextTick);
 
-    // Instead of recording the above event, a full snapshot will occur.
-    //
-    // TODO: We could potentially figure out a way to save the last session,
-    // and produce a checkout based on a previous checkout + updates, and then
-    // replay the event on top. Or maybe replay the event on top of a refresh
-    // snapshot.
-    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
+    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.isPaused()).toBe(true);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).toHaveSameSession(initialSession);
+    expect(mockRecord).toHaveBeenCalledTimes(1);
+
+    // Now do a click which will create a new session and start recording again
+    domHandler({
+      name: 'click',
+    });
+
+    // This is not called because we have to start recording
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(mockRecord).toHaveBeenCalledTimes(2);
 
     // Should be a new session
     expect(replay).not.toHaveSameSession(initialSession);
@@ -138,26 +181,21 @@ describe('Integration | session', () => {
     // Replay does not send immediately because checkout was due to expired session
     expect(replay).not.toHaveLastSentReplay();
 
-    // Now do a click
-    domHandler({
-      name: 'click',
-    });
-
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
-    const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
-    const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
+    const newTimestamp = BASE_TIMESTAMP + ELAPSED + 20;
 
     expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
-          timestamp: breadcrumbTimestamp,
+          timestamp: newTimestamp,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: breadcrumbTimestamp / 1000,
+              timestamp: newTimestamp / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -166,6 +204,16 @@ describe('Integration | session', () => {
           },
         },
       ]),
+    });
+
+    // `_context` should be reset when a new session is created
+    expect(replay.getContext()).toEqual({
+      earliestEvent: null,
+      initialUrl: 'http://dummy/',
+      initialTimestamp: newTimestamp,
+      urls: [],
+      errorIds: new Set(),
+      traceIds: new Set(),
     });
   });
 
@@ -184,163 +232,10 @@ describe('Integration | session', () => {
     expect(replay.session).toBe(undefined);
   });
 
-  it('creates a new session and triggers a full dom snapshot when document becomes visible after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      get: function () {
-        return 'visible';
-      },
-    });
-
-    const initialSession = replay.session;
-
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
-
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(mockRecord.takeFullSnapshot).toHaveBeenLastCalledWith(true);
-
-    // Should have created a new session
-    expect(replay).not.toHaveSameSession(initialSession);
-  });
-
-  it('creates a new session and triggers a full dom snapshot when document becomes focused after [VISIBILITY_CHANGE_TIMEOUT]ms', () => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      get: function () {
-        return 'visible';
-      },
-    });
-
-    const initialSession = replay.session;
-
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT + 1);
-
-    WINDOW.dispatchEvent(new Event('focus'));
-
-    expect(mockRecord.takeFullSnapshot).toHaveBeenLastCalledWith(true);
-
-    // Should have created a new session
-    expect(replay).not.toHaveSameSession(initialSession);
-  });
-
-  it('does not create a new session if user hides the tab and comes back within [VISIBILITY_CHANGE_TIMEOUT] seconds', () => {
-    const initialSession = replay.session;
-
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      get: function () {
-        return 'hidden';
-      },
-    });
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).toHaveSameSession(initialSession);
-
-    // User comes back before `VISIBILITY_CHANGE_TIMEOUT` elapses
-    jest.advanceTimersByTime(VISIBILITY_CHANGE_TIMEOUT - 1);
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      get: function () {
-        return 'visible';
-      },
-    });
-    document.dispatchEvent(new Event('visibilitychange'));
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    // Should NOT have created a new session
-    expect(replay).toHaveSameSession(initialSession);
-  });
-
-  it('creates a new session if user has been idle for 15 minutes and comes back to click their mouse', async () => {
-    const initialSession = replay.session;
-
-    expect(initialSession?.id).toBeDefined();
-    expect(replay.getContext()).toEqual(
-      expect.objectContaining({
-        initialUrl: 'http://localhost/',
-        initialTimestamp: BASE_TIMESTAMP,
-      }),
-    );
-
-    const url = 'http://dummy/';
-    Object.defineProperty(WINDOW, 'location', {
-      value: new URL(url),
-    });
-
-    // Idle for 15 minutes
-    const FIFTEEN_MINUTES = 15 * 60000;
-    jest.advanceTimersByTime(FIFTEEN_MINUTES);
-
-    // TBD: We are currently deciding that this event will get dropped, but
-    // this could/should change in the future.
-    const TEST_EVENT = {
-      data: { name: 'lost event' },
-      timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
-    mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveLastSentReplay();
-
-    await new Promise(process.nextTick);
-
-    // Instead of recording the above event, a full snapshot will occur.
-    //
-    // TODO: We could potentially figure out a way to save the last session,
-    // and produce a checkout based on a previous checkout + updates, and then
-    // replay the event on top. Or maybe replay the event on top of a refresh
-    // snapshot.
-    expect(mockRecord.takeFullSnapshot).toHaveBeenCalledWith(true);
-
-    expect(replay).not.toHaveLastSentReplay();
-
-    // Should be a new session
-    expect(replay).not.toHaveSameSession(initialSession);
-
-    // Now do a click
-    domHandler({
-      name: 'click',
-    });
-
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-
-    const newTimestamp = BASE_TIMESTAMP + FIFTEEN_MINUTES;
-    const breadcrumbTimestamp = newTimestamp + 20; // I don't know where this 20ms comes from
-
-    expect(replay).toHaveLastSentReplay({
-      recordingPayloadHeader: { segment_id: 0 },
-      recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
-        {
-          type: 5,
-          timestamp: breadcrumbTimestamp,
-          data: {
-            tag: 'breadcrumb',
-            payload: {
-              timestamp: breadcrumbTimestamp / 1000,
-              type: 'default',
-              category: 'ui.click',
-              message: '<unknown>',
-              data: {},
-            },
-          },
-        },
-      ]),
-    });
-
-    // `_context` should be reset when a new session is created
-    expect(replay.getContext()).toEqual(
-      expect.objectContaining({
-        initialUrl: 'http://dummy/',
-        initialTimestamp: newTimestamp,
-      }),
-    );
-  });
-
-  it('does not record if user has been idle for more than MAX_SESSION_LIFE and only starts a new session after a user action', async () => {
+  it('creates a new session if current session exceeds MAX_SESSION_LIFE', async () => {
     jest.clearAllMocks();
 
-    const initialSession = replay.session;
+    const initialSession = { ...replay.session } as Session;
 
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(
@@ -355,68 +250,43 @@ describe('Integration | session', () => {
       value: new URL(url),
     });
 
-    // Idle for MAX_SESSION_LIFE
-    jest.advanceTimersByTime(MAX_SESSION_LIFE);
+    // Advanced past MAX_SESSION_LIFE
+    const ELAPSED = MAX_SESSION_LIFE + 1;
+    jest.advanceTimersByTime(ELAPSED);
+    // Update activity so as to not consider session to be idling
+    replay['_updateUserActivity']();
+    replay['_updateSessionActivity']();
 
-    // These events will not get flushed and will eventually be dropped because user is idle and session is expired
+    // This should trigger a new session
     const TEST_EVENT = {
       data: { name: 'lost event' },
-      timestamp: MAX_SESSION_LIFE,
+      timestamp: ELAPSED,
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    // performance events can still be collected while recording is stopped
-    // TODO: we may want to prevent `addEvent` from adding to buffer when user is inactive
-    replay.addUpdate(() => {
-      createPerformanceSpans(replay, [
-        {
-          type: 'navigation.navigate',
-          name: 'foo',
-          start: BASE_TIMESTAMP + MAX_SESSION_LIFE,
-          end: BASE_TIMESTAMP + MAX_SESSION_LIFE + 100,
-        },
-      ]);
-      return true;
-    });
 
-    WINDOW.dispatchEvent(new Event('blur'));
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveSameSession(initialSession);
+    expect(mockRecord.takeFullSnapshot).toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
-    // Should be the same session because user has been idle and no events have caused a new session to be created
-    expect(replay).toHaveSameSession(initialSession);
-
     // @ts-ignore private
-    expect(replay._stopRecording).toBeUndefined();
+    expect(replay._stopRecording).toBeDefined();
 
     // Now do a click
     domHandler({
       name: 'click',
     });
-    // This should still be thrown away
-    mockRecord._emitter(TEST_EVENT);
+
+    const newTimestamp = BASE_TIMESTAMP + ELAPSED;
 
     const NEW_TEST_EVENT = {
       data: { name: 'test' },
-      timestamp: BASE_TIMESTAMP + MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 20,
+      timestamp: newTimestamp + DEFAULT_FLUSH_MIN_DELAY + 20,
       type: 3,
     };
-
     mockRecord._emitter(NEW_TEST_EVENT);
 
-    // new session is created
     jest.runAllTimers();
-    await new Promise(process.nextTick);
-
-    expect(replay).not.toHaveSameSession(initialSession);
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
-
-    const newTimestamp = BASE_TIMESTAMP + MAX_SESSION_LIFE + DEFAULT_FLUSH_MIN_DELAY + 20; // I don't know where this 20ms comes from
-    const breadcrumbTimestamp = newTimestamp;
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -424,11 +294,11 @@ describe('Integration | session', () => {
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
         {
           type: 5,
-          timestamp: breadcrumbTimestamp,
+          timestamp: newTimestamp,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: breadcrumbTimestamp / 1000,
+              timestamp: newTimestamp / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -451,7 +321,7 @@ describe('Integration | session', () => {
 
   it('increases segment id after each event', async () => {
     clearSession(replay);
-    replay['_loadAndCheckSession'](0);
+    replay['_loadAndCheckSession']();
 
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/replay",
-  "version": "7.37.2",
+  "version": "7.43.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -25,7 +25,7 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/*.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts,worker}/**/*.ts\"",
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",
@@ -43,15 +43,15 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/replay-worker": "7.37.2",
-    "@sentry-internal/rrweb": "1.103.0",
+    "@sentry-internal/replay-worker": "7.43.0",
+    "@sentry-internal/rrweb": "1.105.0",
     "jsdom-worker": "^0.2.1",
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@sentry/core": "7.37.2",
-    "@sentry/types": "7.37.2",
-    "@sentry/utils": "7.37.2"
+    "@sentry/core": "7.43.0",
+    "@sentry/types": "7.43.0",
+    "@sentry/utils": "7.43.0"
   },
   "engines": {
     "node": ">=12"

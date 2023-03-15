@@ -4,13 +4,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import {
-  ERROR_CHECKOUT_TIME,
-  MAX_SESSION_LIFE,
-  SESSION_IDLE_DURATION,
-  VISIBILITY_CHANGE_TIMEOUT,
-  WINDOW,
-} from './constants';
+import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { getSession } from './session/getSession';
@@ -22,11 +16,11 @@ import type {
   EventBuffer,
   InternalEventContext,
   PopEventContext,
-  RecordingEvent,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
   Session,
+  Timeouts,
 } from './types';
 import { addEvent } from './util/addEvent';
 import { addGlobalListeners } from './util/addGlobalListeners';
@@ -35,6 +29,7 @@ import { createBreadcrumb } from './util/createBreadcrumb';
 import { createPerformanceEntries } from './util/createPerformanceEntries';
 import { createPerformanceSpans } from './util/createPerformanceSpans';
 import { debounce } from './util/debounce';
+import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
@@ -59,6 +54,15 @@ export class ReplayContainer implements ReplayContainerInterface {
    * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
    */
   public recordingMode: ReplayRecordingMode = 'session';
+
+  /**
+   * These are here so we can overwrite them in tests etc.
+   * @hidden
+   */
+  public readonly timeouts: Timeouts = {
+    sessionIdle: SESSION_IDLE_DURATION,
+    maxSessionLife: MAX_SESSION_LIFE,
+  } as const;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -151,7 +155,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
-    this._setInitialState();
+    this.setInitialState();
 
     if (!this._loadAndCheckSession()) {
       return;
@@ -203,7 +207,24 @@ export class ReplayContainer implements ReplayContainerInterface {
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
-        emit: this._handleRecordingEmit,
+        emit: getHandleRecordingEmit(this),
+        onMutation: (mutations: unknown[]) => {
+          if (this._options._experiments.captureMutationSize) {
+            const count = mutations.length;
+
+            if (count > 500) {
+              const breadcrumb = createBreadcrumb({
+                category: 'replay.mutations',
+                data: {
+                  count,
+                },
+              });
+              this._createCustomBreadcrumb(breadcrumb);
+            }
+          }
+          // `true` means we use the regular mutation handling by rrweb
+          return true;
+        },
       });
     } catch (err) {
       this._handleException(err);
@@ -367,22 +388,30 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Returns true if session is not expired, false otherwise.
    * @hidden
    */
-  public checkAndHandleExpiredSession(expiry?: number): boolean | void {
+  public checkAndHandleExpiredSession(): boolean | void {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
-    // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
+    // SESSION_IDLE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, MAX_SESSION_LIFE)) {
-      // Pause recording
+    if (
+      this._lastActivity &&
+      isExpired(this._lastActivity, this.timeouts.sessionIdle) &&
+      this.session &&
+      this.session.sampled === 'session'
+    ) {
+      // Pause recording only for session-based replays. Otherwise, resuming
+      // will create a new replay and will conflict with users who only choose
+      // to record error-based replays only. (e.g. the resumed replay will not
+      // contain a reference to an error)
       this.pause();
       return;
     }
 
     // --- There is recent user activity --- //
     // This will create a new session if expired, based on expiry length
-    if (!this._loadAndCheckSession(expiry)) {
+    if (!this._loadAndCheckSession()) {
       return;
     }
 
@@ -399,6 +428,25 @@ export class ReplayContainer implements ReplayContainerInterface {
     return false;
   }
 
+  /**
+   * Capture some initial state that can change throughout the lifespan of the
+   * replay. This is required because otherwise they would be captured at the
+   * first flush.
+   */
+  public setInitialState(): void {
+    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
+    const url = `${WINDOW.location.origin}${urlPath}`;
+
+    this.performanceEvents = [];
+
+    // Reset _context as well
+    this._clearContext();
+
+    this._context.initialUrl = url;
+    this._context.initialTimestamp = new Date().getTime();
+    this._context.urls.push(url);
+  }
+
   /** A wrapper to conditionally capture exceptions. */
   private _handleException(error: unknown): void {
     __DEBUG_BUILD__ && logger.error('[Replay]', error);
@@ -412,9 +460,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Loads (or refreshes) the current session.
    * Returns false if session is not recorded.
    */
-  private _loadAndCheckSession(expiry = SESSION_IDLE_DURATION): boolean {
+  private _loadAndCheckSession(): boolean {
     const { type, session } = getSession({
-      expiry,
+      timeouts: this.timeouts,
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
@@ -424,7 +472,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // If session was newly created (i.e. was not loaded from storage), then
     // enable flag to create the root replay
     if (type === 'new') {
-      this._setInitialState();
+      this.setInitialState();
     }
 
     const currentSessionId = this.getSessionId();
@@ -440,25 +488,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     return true;
-  }
-
-  /**
-   * Capture some initial state that can change throughout the lifespan of the
-   * replay. This is required because otherwise they would be captured at the
-   * first flush.
-   */
-  private _setInitialState(): void {
-    const urlPath = `${WINDOW.location.pathname}${WINDOW.location.hash}${WINDOW.location.search}`;
-    const url = `${WINDOW.location.origin}${urlPath}`;
-
-    this.performanceEvents = [];
-
-    // Reset _context as well
-    this._clearContext();
-
-    this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
-    this._context.urls.push(url);
   }
 
   /**
@@ -513,72 +542,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Handler for recording events.
-   *
-   * Adds to event buffer, and has varying flushing behaviors if the event was a checkout.
-   */
-  private _handleRecordingEmit: (event: RecordingEvent, isCheckout?: boolean) => void = (
-    event: RecordingEvent,
-    isCheckout?: boolean,
-  ) => {
-    // If this is false, it means session is expired, create and a new session and wait for checkout
-    if (!this.checkAndHandleExpiredSession()) {
-      __DEBUG_BUILD__ && logger.error('[Replay] Received replay event after session expired.');
-
-      return;
-    }
-
-    this.addUpdate(() => {
-      // The session is always started immediately on pageload/init, but for
-      // error-only replays, it should reflect the most recent checkout
-      // when an error occurs. Clear any state that happens before this current
-      // checkout. This needs to happen before `addEvent()` which updates state
-      // dependent on this reset.
-      if (this.recordingMode === 'error' && event.type === 2) {
-        this._setInitialState();
-      }
-
-      // We need to clear existing events on a checkout, otherwise they are
-      // incremental event updates and should be appended
-      void addEvent(this, event, isCheckout);
-
-      // Different behavior for full snapshots (type=2), ignore other event types
-      // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
-      if (event.type !== 2) {
-        return false;
-      }
-
-      // If there is a previousSessionId after a full snapshot occurs, then
-      // the replay session was started due to session expiration. The new session
-      // is started before triggering a new checkout and contains the id
-      // of the previous session. Do not immediately flush in this case
-      // to avoid capturing only the checkout and instead the replay will
-      // be captured if they perform any follow-up actions.
-      if (this.session && this.session.previousSessionId) {
-        return true;
-      }
-
-      // See note above re: session start needs to reflect the most recent
-      // checkout.
-      if (this.recordingMode === 'error' && this.session && this._context.earliestEvent) {
-        this.session.started = this._context.earliestEvent;
-        this._maybeSaveSession();
-      }
-
-      // Flush immediately so that we do not miss the first segment, otherwise
-      // it can prevent loading on the UI. This will cause an increase in short
-      // replays (e.g. opening and closing a tab quickly), but these can be
-      // filtered on the UI.
-      if (this.recordingMode === 'session') {
-        // We want to ensure the worker is ready, as otherwise we'd always send the first event uncompressed
-        void this.flushImmediate();
-      }
-
-      return true;
-    });
-  };
-
-  /**
    * Handle when visibility of the page content changes. Opening a new tab will
    * cause the state to change to hidden because of content of current page will
    * be hidden. Likewise, moving a different window to cover the contents of the
@@ -626,7 +589,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const expired = isSessionExpired(this.session, VISIBILITY_CHANGE_TIMEOUT);
+    const expired = isSessionExpired(this.session, this.timeouts);
 
     if (breadcrumb && !expired) {
       this._createCustomBreadcrumb(breadcrumb);
@@ -646,10 +609,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const isSessionActive = this.checkAndHandleExpiredSession(VISIBILITY_CHANGE_TIMEOUT);
+    const isSessionActive = this.checkAndHandleExpiredSession();
 
     if (!isSessionActive) {
-      // If the user has come back to the page within VISIBILITY_CHANGE_TIMEOUT
+      // If the user has come back to the page within SESSION_IDLE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
       __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');

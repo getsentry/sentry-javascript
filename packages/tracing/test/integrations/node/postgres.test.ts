@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Postgres } from '../../../src/integrations/node/postgres';
-import { Span } from '../../../src/span';
+import { Integrations, Span } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class PgClient {
@@ -23,6 +22,10 @@ class PgClient {
   }
 }
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockClient = PgClient;
+
 // mock for 'pg' / 'pg-native' package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
@@ -30,9 +33,9 @@ jest.mock('@sentry/utils', () => {
     ...actual,
     loadModule() {
       return {
-        Client: PgClient,
+        Client: mockClient,
         native: {
-          Client: PgClient,
+          Client: mockClient,
         },
       };
     },
@@ -47,7 +50,7 @@ describe('setupOnce', () => {
     let childSpan: Span;
 
     beforeAll(() => {
-      (pgApi === 'pg' ? new Postgres() : new Postgres({ usePgNative: true })).setupOnce(
+      (pgApi === 'pg' ? new Integrations.Postgres() : new Integrations.Postgres({ usePgNative: true })).setupOnce(
         () => undefined,
         () => new Hub(undefined, scope),
       );
@@ -103,7 +106,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Postgres();
+    const integration = new Integrations.Postgres();
     integration.setupOnce(
       () => {},
       () => hub,

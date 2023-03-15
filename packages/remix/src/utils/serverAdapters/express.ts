@@ -1,6 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
+import { getCurrentHub, hasTracingEnabled } from '@sentry/core';
 import { flush } from '@sentry/node';
-import { hasTracingEnabled } from '@sentry/tracing';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, isString, logger } from '@sentry/utils';
 import { cwd } from 'process';

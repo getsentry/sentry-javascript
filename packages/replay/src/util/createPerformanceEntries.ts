@@ -104,17 +104,32 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
 // TODO: type definition!
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
-  const { duration, entryType, startTime, size } = entry;
+  const { entryType, startTime, size } = entry;
 
-  const start = getAbsoluteTime(startTime);
+  let startTimeOrNavigationActivation = 0;
+
+  if (WINDOW.performance) {
+    const navEntry = WINDOW.performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming & {
+      activationStart: number;
+    };
+
+    // See https://github.com/GoogleChrome/web-vitals/blob/9f11c4c6578fb4c5ee6fa4e32b9d1d756475f135/src/lib/getActivationStart.ts#L21
+    startTimeOrNavigationActivation = (navEntry && navEntry.activationStart) || 0;
+  }
+
+  // value is in ms
+  const value = Math.max(startTime - startTimeOrNavigationActivation, 0);
+  // LCP doesn't have a "duration", it just happens at a single point in time.
+  // But the UI expects both, so use end (in seconds) for both timestamps.
+  const end = getAbsoluteTime(startTimeOrNavigationActivation) + value / 1000;
 
   return {
     type: entryType,
     name: entryType,
-    start,
-    end: start + duration,
+    start: end,
+    end,
     data: {
-      duration,
+      value, // LCP "duration" in ms
       size,
       // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

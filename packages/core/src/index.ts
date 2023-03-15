@@ -2,6 +2,7 @@ export type { ClientClass } from './sdk';
 export type { Carrier, Layer } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 
+export * from './tracing';
 export {
   addBreadcrumb,
   captureException,
@@ -30,6 +31,8 @@ export { SDK_VERSION } from './version';
 export { getIntegrationsToSetup } from './integration';
 export { FunctionToString, InboundFilters } from './integrations';
 export { prepareEvent } from './utils/prepareEvent';
+export { hasTracingEnabled } from './utils/hasTracingEnabled';
+export { DEFAULT_ENVIRONMENT } from './constants';
 
 import * as Integrations from './integrations';
 

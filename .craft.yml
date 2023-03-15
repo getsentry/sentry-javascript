@@ -22,31 +22,34 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: npm
+    excludeNames: /^sentry-sveltekit-.*$/
   - name: registry
     sdks:
       'npm:@sentry/browser':
-        onlyIfPresent: /^sentry-browser-.*\.tgz$/
+        onlyIfPresent: /^sentry-browser-\d.*\.tgz$/
         includeNames: /\.js$/
         checksums:
           - algorithm: sha384
             format: base64
       'npm:@sentry/node':
-        onlyIfPresent: /^sentry-node-.*\.tgz$/
+        onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
-        onlyIfPresent: /^sentry-react-.*\.tgz$/
+        onlyIfPresent: /^sentry-react-\d.*\.tgz$/
       'npm:@sentry/vue':
-        onlyIfPresent: /^sentry-vue-.*\.tgz$/
+        onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/gatsby':
-        onlyIfPresent: /^sentry-gatsby-.*\.tgz$/
+        onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
+      'npm:@sentry/angular-ivy':
+        onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
-        onlyIfPresent: /^sentry-angular-.*\.tgz$/
+        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
       'npm:@sentry/wasm':
-        onlyIfPresent: /^sentry-wasm-.*\.tgz$/
+        onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
       'npm:@sentry/nextjs':
-        onlyIfPresent: /^sentry-nextjs-.*\.tgz$/
+        onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/remix':
-        onlyIfPresent: /^sentry-remix-.*\.tgz$/
+        onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/svelte':
-        onlyIfPresent: /^sentry-svelte-.*\.tgz$/
+        onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/opentelemetry-node':
-        onlyIfPresent: /^sentry-opentelemetry-node-.*\.tgz$/
+        onlyIfPresent: /^sentry-opentelemetry-node-\d.*\.tgz$/

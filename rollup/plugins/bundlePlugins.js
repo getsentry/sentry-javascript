@@ -18,6 +18,7 @@ import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
 import MagicString from 'magic-string';
+import modify from 'rollup-plugin-modify';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -116,9 +117,8 @@ export function makeTerserPlugin() {
           '_driver',
           '_initStorage',
           '_support',
-          // We want to keept he _replay and _isEnabled variable unmangled to enable integration tests to access it
+          // We want to keep some replay fields unmangled to enable integration tests to access them
           '_replay',
-          '_isEnabled',
           // We also can't mangle rrweb private fields when bundling rrweb in the replay CDN bundles
           '_cssText',
           // We want to keep the _integrations variable unmangled to send all installed integrations from replay
@@ -212,6 +212,19 @@ export function makeExcludeBlockPlugin(type) {
   };
 
   plugin.name = 'excludeReplay';
+
+  return plugin;
+}
+
+export function makeReplayShimPlugin() {
+  // This is designed to replace the re-export in browser/index.ts to export the shim
+  const plugin = modify({
+    find: '@sentry/replay',
+    replace: '@sentry-internal/integration-shims',
+  });
+
+  // give it a nicer name for later, when we'll need to sort the plugins
+  plugin.name = 'replayShim';
 
   return plugin;
 }

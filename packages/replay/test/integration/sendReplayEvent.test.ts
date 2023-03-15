@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_DURATION, WINDOW } from '../../src/constants';
+import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { addEvent } from '../../src/util/addEvent';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
@@ -59,7 +59,7 @@ describe('Integration | sendReplayEvent', () => {
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
     clearSession(replay);
-    replay['_loadAndCheckSession'](0);
+    replay['_loadAndCheckSession']();
 
     mockSendReplayRequest.mockClear();
   });
@@ -69,7 +69,7 @@ describe('Integration | sendReplayEvent', () => {
     await new Promise(process.nextTick);
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
-    replay['_loadAndCheckSession'](SESSION_IDLE_DURATION);
+    replay['_loadAndCheckSession']();
   });
 
   afterAll(() => {
@@ -124,6 +124,26 @@ describe('Integration | sendReplayEvent', () => {
 
     domHandler({
       name: 'click',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+  });
+
+  it('update last activity when user uses keyboard input', async () => {
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    domHandler({
+      name: 'input',
+    });
+
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
+
+    // Pretend 5 seconds have passed
+    const ELAPSED = 5000;
+    jest.advanceTimersByTime(ELAPSED);
+
+    domHandler({
+      name: 'input',
     });
 
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
@@ -370,6 +390,11 @@ describe('Integration | sendReplayEvent', () => {
     // + last exception is max retries exceeded
     expect(spyHandleException).toHaveBeenCalledTimes(5);
     expect(spyHandleException).toHaveBeenLastCalledWith(new Error('Unable to send Replay - max retries exceeded'));
+
+    const spyHandleExceptionCall = spyHandleException.mock.calls;
+    expect(spyHandleExceptionCall[spyHandleExceptionCall.length - 1][0].cause.message).toEqual(
+      'Something bad happened',
+    );
 
     // No activity has occurred, session's last activity should remain the same
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);

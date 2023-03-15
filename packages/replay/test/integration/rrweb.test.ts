@@ -17,7 +17,7 @@ describe('Integration | rrweb', () => {
     });
     expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
       Object {
-        "blockSelector": ".sentry-block,[data-sentry-block],img,image,svg,video,object,picture,embed,map,audio",
+        "blockSelector": ".sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]",
         "collectFonts": true,
         "emit": [Function],
         "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore]",
@@ -32,6 +32,7 @@ describe('Integration | rrweb', () => {
         "maskInputSelector": ".sentry-mask,[data-sentry-mask]",
         "maskTextFn": undefined,
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
+        "onMutation": [Function],
         "slimDOMOptions": "all",
         "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
         "unmaskInputSelector": ".sentry-unmask,[data-sentry-unmask]",

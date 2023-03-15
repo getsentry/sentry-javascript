@@ -16,7 +16,9 @@ export default [
 
       // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
       // the name doesn't match an SDK dependency)
-      packageSpecificConfig: { external: ['next/router', 'next/constants'] },
+      packageSpecificConfig: {
+        external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
+      },
     }),
   ),
   ...makeNPMConfigVariants(
@@ -41,7 +43,7 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', '__SENTRY_WRAPPING_TARGET_FILE__'],
+        external: ['@sentry/nextjs', 'next/headers', '__SENTRY_WRAPPING_TARGET_FILE__'],
       },
     }),
   ),

@@ -17,6 +17,7 @@ import type {
   SessionAggregates,
   Severity,
   SeverityLevel,
+  Transaction,
   TransactionEvent,
   Transport,
 } from '@sentry/types';
@@ -96,6 +97,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Holds flushable  */
   private _outcomes: { [key: string]: number } = {};
+
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private _hooks: Record<string, Function[]> = {};
 
   /**
    * Initializes this client instance.
@@ -351,6 +355,38 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
   }
 
+  // Keep on() & emit() signatures in sync with types' client.ts interface
+
+  /** @inheritdoc */
+  public on(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: string, callback: unknown): void {
+    if (!this._hooks[hook]) {
+      this._hooks[hook] = [];
+    }
+
+    // @ts-ignore We assue the types are correct
+    this._hooks[hook].push(callback);
+  }
+
+  /** @inheritdoc */
+  public emit(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /** @inheritdoc */
+  public emit(hook: string, ...rest: unknown[]): void {
+    if (this._hooks[hook]) {
+      // @ts-ignore we cannot enforce the callback to match the hook
+      this._hooks[hook].forEach(callback => callback(...rest));
+    }
+  }
+
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
     let crashed = false;
@@ -560,7 +596,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           data: {
             __sentry__: true,
           },
-          originalException: reason as Error,
+          originalException: reason,
         });
         throw new SentryError(
           `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${reason}`,

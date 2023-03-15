@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Apollo } from '../../src/integrations/node/apollo';
-import { Span } from '../../src/span';
+import { Integrations, Span } from '../../src';
 import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
@@ -43,6 +42,10 @@ class GraphQLFactory {
   }
 }
 
+// Jest mocks get hoisted. vars starting with `mock` are hoisted before imports.
+/* eslint-disable no-var */
+var mockFactory = GraphQLFactory;
+
 // mock for @nestjs/graphql package
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
@@ -50,7 +53,7 @@ jest.mock('@sentry/utils', () => {
     ...actual,
     loadModule() {
       return {
-        GraphQLFactory,
+        GraphQLFactory: mockFactory,
       };
     },
   };
@@ -63,7 +66,7 @@ describe('setupOnce', () => {
   let GraphQLFactoryInstance: GraphQLFactory;
 
   beforeAll(() => {
-    new Apollo({
+    new Integrations.Apollo({
       useNestjs: true,
     }).setupOnce(
       () => undefined,
@@ -109,7 +112,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo({ useNestjs: true });
+    const integration = new Integrations.Apollo({ useNestjs: true });
     integration.setupOnce(
       () => {},
       () => hub,

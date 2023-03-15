@@ -34,7 +34,7 @@ type LoaderOptions = {
   appDir: string;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'page-server-component';
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
 };
 
 /**
@@ -95,14 +95,14 @@ export default function wrappingLoader(
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
-  } else if (wrappingTargetKind === 'page-server-component') {
+  } else if (wrappingTargetKind === 'server-component') {
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
-      .replace(/\/page\.(js|jsx|tsx)$/, '')
+      .replace(/\/[^/]+\.(js|jsx|tsx)$/, '')
       // Remove routing groups: https://beta.nextjs.org/docs/routing/defining-routes#example-creating-multiple-root-layouts
       .replace(/\/(\(.*?\)\/)+/g, '/')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
@@ -119,12 +119,42 @@ export default function wrappingLoader(
     // https://github.com/vercel/next.js/blob/295f9da393f7d5a49b0c2e15a2f46448dbdc3895/packages/next/build/analysis/get-page-static-info.ts#L37
     // https://github.com/vercel/next.js/blob/a1c15d84d906a8adf1667332a3f0732be615afa0/packages/next-swc/crates/core/src/react_server_components.rs#L247
     // We do not want to wrap client components
-    if (userCode.includes('/* __next_internal_client_entry_do_not_use__ */')) {
+    if (userCode.includes('__next_internal_client_entry_do_not_use__')) {
       this.callback(null, userCode, userModuleSourceMap);
       return;
     }
 
     templateCode = serverComponentWrapperTemplateCode;
+
+    templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
+
+    const componentTypeMatch = path.posix
+      .normalize(path.relative(appDir, this.resourcePath))
+      .match(/\/?([^/]+)\.(?:js|jsx|tsx)$/);
+
+    if (componentTypeMatch && componentTypeMatch[1]) {
+      let componentType;
+      switch (componentTypeMatch[1]) {
+        case 'page':
+          componentType = 'Page';
+          break;
+        case 'layout':
+          componentType = 'Layout';
+          break;
+        case 'head':
+          componentType = 'Head';
+          break;
+        case 'not-found':
+          componentType = 'Not-found';
+          break;
+        default:
+          componentType = 'Unknown';
+      }
+
+      templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, componentType);
+    } else {
+      templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
+    }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
   } else {

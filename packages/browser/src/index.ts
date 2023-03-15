@@ -32,3 +32,8 @@ export { Replay } from '@sentry/replay';
 // __ROLLUP_EXCLUDE_OFFLINE_FROM_BUNDLES_BEGIN__
 export { makeBrowserOfflineTransport } from './transports/offline';
 // __ROLLUP_EXCLUDE_OFFLINE_FROM_BUNDLES_END__
+
+// __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_BEGIN__
+export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
+export { BrowserProfilingIntegration } from './profiling/integration';
+// __ROLLUP_EXCLUDE_BROWSER_PROFILING_FROM_BUNDLES_END__

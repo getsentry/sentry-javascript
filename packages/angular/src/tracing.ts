@@ -1,7 +1,12 @@
 /* eslint-disable max-lines */
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { Directive, Injectable, Input, NgModule } from '@angular/core';
-import type { ActivatedRouteSnapshot, Event, Router } from '@angular/router';
+import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
+// Duplicated import to work around a TypeScript bug where it'd complain that `Router` isn't imported as a type.
+// We need to import it as a value to satisfy Angular dependency injection. So:
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports, import/no-duplicates
+import { Router } from '@angular/router';
+// eslint-disable-next-line import/no-duplicates
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { getCurrentHub, WINDOW } from '@sentry/browser';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
@@ -113,7 +118,9 @@ export class TraceService implements OnDestroy {
   public resEnd$: Observable<Event> = this._router.events.pipe(
     filter((event): event is ResolveEnd => event instanceof ResolveEnd),
     tap(event => {
-      const route = getParameterizedRouteFromSnapshot(event.state.root);
+      const route = getParameterizedRouteFromSnapshot(
+        (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
+      );
 
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
