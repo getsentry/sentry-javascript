@@ -308,18 +308,20 @@ describe('BrowserTracing', () => {
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
 
-      it('sets transaction name source to default `custom` if name is not changed', () => {
+      it('sets transaction name source to default `url` if name is not changed', () => {
         const mockBeforeNavigation = jest.fn(ctx => ({
           ...ctx,
         }));
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
-          routingInstrumentation: customInstrumentRouting,
+          routingInstrumentation: (customStartTransaction: (obj: any) => void) => {
+            customStartTransaction({ name: 'a/path', op: 'pageload', metadata: { source: 'url' } });
+          },
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.name).toBe('a/path');
-        expect(transaction.metadata.source).toBe('custom');
+        expect(transaction.metadata.source).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
