@@ -160,6 +160,7 @@ export function fetchCallback(
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
+  console.log(2);
   if (!hasTracingEnabled() || !(handlerData.fetchData && shouldCreateSpan(handlerData.fetchData.url))) {
     return;
   }
@@ -294,6 +295,7 @@ export function xhrCallback(
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
+  console.log(1);
   if (
     !hasTracingEnabled() ||
     (handlerData.xhr && handlerData.xhr.__sentry_own_request__) ||
