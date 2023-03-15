@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
-  "testApplicationName": "Node Express App",
+  "testApplicationName": "node-express-app",
   "buildCommand": "yarn install && yarn build",
   "tests": [
     {

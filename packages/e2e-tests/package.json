@@ -19,9 +19,11 @@
     "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts"
   },
   "devDependencies": {
+    "@sentry/utils": "7.43.0",
     "@types/glob": "8.0.0",
     "@types/node": "^14.6.4",
     "dotenv": "16.0.3",
+    "fs-extra": "11.1.0",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
     "typescript": "3.8.3",
