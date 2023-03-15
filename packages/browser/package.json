@@ -20,6 +20,7 @@
     "@sentry/replay": "7.43.0",
     "@sentry/types": "7.43.0",
     "@sentry/utils": "7.43.0",
+    "@sentry-internal/tracing": "7.43.0",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
