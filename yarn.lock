@@ -4401,7 +4401,7 @@
   resolved "https://registry.yarnpkg.com/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.3.40.tgz#ae929f37223ced34d76f51225d95233310d50bbe"
   integrity sha512-73DGsjsJYSzmoRbfomPj5jcQawtK2H0bCDi/1wgfl8NKVOuzrq+PpaTry3lzx+gvTHxUX6mUHV22i7C9ITL74Q==
 
-"@swc/core@^1.2.0":
+"@swc/core@^1.3.40":
   version "1.3.40"
   resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.3.40.tgz#47d7b9b6c830437a13ca007b9f8b9d0e6cdc074a"
   integrity sha512-ZQJ+NID24PQkPIHnbO2B68YNQ6aMEyDz6dcsZucpRK4r7+aPqQ2yVLaqFcQU9VcGMyo4JJydmokzyTr1roWPIQ==
@@ -16609,10 +16609,10 @@ jest@^27.5.1:
     import-local "^3.0.2"
     jest-cli "^27.5.1"
 
-jest_workaround@^0.1.14:
-  version "0.1.14"
-  resolved "https://registry.yarnpkg.com/jest_workaround/-/jest_workaround-0.1.14.tgz#0c82f35d75eeebd9f5ee183887588db44ae61bb6"
-  integrity sha512-9FqnkYn0mihczDESOMazSIOxbKAZ2HQqE8e12F3CsVNvEJkLBebQj/CT1xqviMOTMESJDYh6buWtsw2/zYUepw==
+jest_workaround@^0.1.16:
+  version "0.1.16"
+  resolved "https://registry.yarnpkg.com/jest_workaround/-/jest_workaround-0.1.16.tgz#88a6acab89ea6f7050530a19b64b1a60fa4193da"
+  integrity sha512-RVkhz0XGraaRhVb1HkByFUj2AuFTUlDFUcVNIKYX6CFau68MdvbCXPqFsQc1HszCOu1dXn6xYuknnnj8Negbhg==
 
 jmespath@0.15.0:
   version "0.15.0"
