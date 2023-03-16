@@ -1,4 +1,5 @@
 import type { Hub } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -15,6 +16,10 @@ export class GraphQL implements Integration {
    * @inheritDoc
    */
   public name: string = GraphQL.id;
+
+  public constructor() {
+    addTracingExtensions();
+  }
 
   /**
    * @inheritDoc

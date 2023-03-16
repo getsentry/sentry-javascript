@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { addTracingExtensions } from '@sentry/core';
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import { extractPathForTransaction, getNumberOfUrlSegments, isRegExp, logger } from '@sentry/utils';
 
@@ -102,6 +103,7 @@ export class Express implements Integration {
   public constructor(options: { app?: Router; router?: Router; methods?: Method[] } = {}) {
     this._router = options.router || options.app;
     this._methods = (Array.isArray(options.methods) ? options.methods : []).concat('use');
+    addTracingExtensions();
   }
 
   /**

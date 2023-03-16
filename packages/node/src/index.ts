@@ -45,6 +45,7 @@ export {
   setUser,
   withScope,
 } from '@sentry/core';
+export * from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';

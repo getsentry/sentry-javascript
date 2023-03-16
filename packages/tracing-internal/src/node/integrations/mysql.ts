@@ -1,4 +1,5 @@
 import type { Hub } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
@@ -19,6 +20,10 @@ export class Mysql implements Integration {
    * @inheritDoc
    */
   public name: string = Mysql.id;
+
+  public constructor() {
+    addTracingExtensions();
+  }
 
   /**
    * @inheritDoc

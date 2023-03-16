@@ -1,4 +1,5 @@
 import type { Hub } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -30,6 +31,7 @@ export class Postgres implements Integration {
 
   public constructor(options: PgOptions = {}) {
     this._usePgNative = !!options.usePgNative;
+    addTracingExtensions();
   }
 
   /**
