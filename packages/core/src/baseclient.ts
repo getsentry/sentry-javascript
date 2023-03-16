@@ -20,6 +20,7 @@ import type {
   Transaction,
   TransactionEvent,
   Transport,
+  TransportMakeRequestResponse,
 } from '@sentry/types';
 import {
   addItemToEnvelope,
@@ -320,7 +321,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         );
       }
 
-      this._sendEnvelope(env);
+      const promise = this._sendEnvelope(env);
+      if (promise) {
+        promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
+      }
     }
   }
 
@@ -330,7 +334,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     if (this._dsn) {
       const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-      this._sendEnvelope(env);
+      void this._sendEnvelope(env);
     }
   }
 
@@ -364,6 +368,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
+  public on(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
+  ): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -378,6 +388,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
@@ -624,9 +637,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  protected _sendEnvelope(envelope: Envelope): void {
+  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
     if (this._transport && this._dsn) {
-      this._transport.send(envelope).then(null, reason => {
+      return this._transport.send(envelope).then(null, reason => {
         __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });
     } else {

@@ -1,6 +1,6 @@
 import type { Event, SeverityLevel } from '@sentry/types';
 
-export function Transaction(obj?: Partial<Event>): any {
+export function Transaction(traceId?: string, obj?: Partial<Event>): any {
   const timestamp = new Date().getTime() / 1000;
 
   return {
@@ -22,7 +22,7 @@ export function Transaction(obj?: Partial<Event>): any {
           hardwareConcurrency: '10',
           sentry_reportAllChanges: false,
         },
-        trace_id: 'trace_id',
+        trace_id: traceId || 'trace_id',
       },
     }, // }}}
     spans: [

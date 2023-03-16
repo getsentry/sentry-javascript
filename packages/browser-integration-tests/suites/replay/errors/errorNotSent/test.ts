@@ -1,11 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../../utils/helpers';
-import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
 
 sentryTest(
-  '[error-mode] should not start recording if an error occurred when the error was dropped',
+  '[error-mode] should handle errors that result in API error response',
   async ({ getLocalTestPath, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
@@ -14,17 +13,11 @@ sentryTest(
     let callsToSentry = 0;
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      const req = route.request();
-      const event = envelopeRequestParser(req);
-
-      if (isReplayEvent(event)) {
-        callsToSentry++;
-      }
+      callsToSentry++;
 
       return route.fulfill({
-        status: 200,
+        status: 422,
         contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
       });
     });
 
@@ -39,7 +32,8 @@ sentryTest(
     await page.click('#log');
     await forceFlushReplay();
 
-    expect(callsToSentry).toEqual(0);
+    // Only sent once, but since API failed we do not go into session mode
+    expect(callsToSentry).toEqual(1);
 
     const replay = await getReplaySnapshot(page);
     expect(replay.recordingMode).toBe('error');

@@ -10,7 +10,7 @@ import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Transaction } from './transaction';
-import type { Transport } from './transport';
+import type { Transport, TransportMakeRequestResponse } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -164,6 +164,14 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
+   * Register a callback for when an event has been sent.
+   */
+  on?(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
+  ): void;
+
+  /**
    * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
    * second argument.
    */
@@ -174,4 +182,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /*
+   * Fire a hook event after sending an event. Expects to be given an Event as the
+   * second argument.
+   */
+  emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 }

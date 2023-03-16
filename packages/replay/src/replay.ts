@@ -32,7 +32,6 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
 
 /**
@@ -499,9 +498,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.addEventListener('blur', this._handleWindowBlur);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
 
-      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      overwriteRecordDroppedEvent(this._context.errorIds);
-
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
         addGlobalListeners(this);
@@ -529,8 +525,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
-
-      restoreRecordDroppedEvent();
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();

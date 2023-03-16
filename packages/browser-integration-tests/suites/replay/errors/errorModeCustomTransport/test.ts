@@ -1,30 +1,26 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser } from '../../../../utils/helpers';
-import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
-  '[error-mode] should not start recording if an error occurred when the error was dropped',
+  '[error-mode] should handle errors with custom transport',
   async ({ getLocalTestPath, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
 
+    const promiseReq0 = waitForReplayRequest(page, 0);
+    const promiseReq1 = waitForReplayRequest(page, 1);
+
     let callsToSentry = 0;
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      const req = route.request();
-      const event = envelopeRequestParser(req);
-
-      if (isReplayEvent(event)) {
-        callsToSentry++;
-      }
+      callsToSentry++;
 
       return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
+        // Only error out for error, then succeed
+        status: callsToSentry === 1 ? 422 : 200,
       });
     });
 
@@ -35,13 +31,12 @@ sentryTest(
     expect(callsToSentry).toEqual(0);
 
     await page.click('#error');
+    await promiseReq0;
 
-    await page.click('#log');
     await forceFlushReplay();
-
-    expect(callsToSentry).toEqual(0);
+    await promiseReq1;
 
     const replay = await getReplaySnapshot(page);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('session');
   },
 );
