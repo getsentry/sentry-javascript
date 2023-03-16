@@ -437,6 +437,7 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
@@ -445,6 +446,8 @@ describe('Integration | errorSampleRate', () => {
     // Now wait after session expires - should stop recording
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+
+    expect(replay).not.toHaveLastSentReplay();
 
     // Go idle
     jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
