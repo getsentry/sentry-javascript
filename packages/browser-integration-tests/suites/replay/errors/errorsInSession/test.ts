@@ -12,7 +12,7 @@ import {
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestPath, page, browserName, forceFlushReplay }) => {
     // TODO(replay): This is flakey on firefox where clicks are flakey
     if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
       sentryTest.skip();
@@ -43,7 +43,7 @@ sentryTest(
     const req0 = await reqPromise0;
 
     await page.click('#error');
-    await page.click('#go-background');
+    await forceFlushReplay();
     const req1 = await reqPromise1;
 
     const event0 = getReplayEvent(req0);
@@ -86,7 +86,7 @@ sentryTest(
 
 sentryTest(
   '[session-mode] replay event should not contain an error id of a dropped error while recording',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestPath, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
@@ -108,7 +108,7 @@ sentryTest(
     await reqPromise0;
 
     await page.click('#drop');
-    await page.click('#go-background');
+    await forceFlushReplay();
     const req1 = await reqPromise1;
 
     const event1 = getReplayEvent(req1);
