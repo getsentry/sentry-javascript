@@ -63,6 +63,8 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
@@ -109,7 +111,9 @@ describe('Integration | errorSampleRate', () => {
           },
         },
       }),
-      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 40, type: 2 },
+      ]),
     });
 
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
@@ -120,7 +124,7 @@ describe('Integration | errorSampleRate', () => {
       recordingData: JSON.stringify([
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 20,
+          timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 40,
           type: 2,
         },
       ]),
@@ -138,11 +142,11 @@ describe('Integration | errorSampleRate', () => {
       recordingData: JSON.stringify([
         {
           type: 5,
-          timestamp: BASE_TIMESTAMP + 10000 + 40,
+          timestamp: BASE_TIMESTAMP + 10000 + 60,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: (BASE_TIMESTAMP + 10000 + 40) / 1000,
+              timestamp: (BASE_TIMESTAMP + 10000 + 60) / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -347,6 +351,7 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
@@ -358,7 +363,7 @@ describe('Integration | errorSampleRate', () => {
         // (advance timers + waiting for flush after the checkout) and
         // extra time is likely due to async of `addMemoryEntry()`
 
-        timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + DEFAULT_FLUSH_MIN_DELAY + 20) / 1000,
+        timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + DEFAULT_FLUSH_MIN_DELAY + 40) / 1000,
         error_ids: [expect.any(String)],
         trace_ids: [],
         urls: ['http://localhost/'],
@@ -394,6 +399,7 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
+    await new Promise(process.nextTick);
     jest.runAllTimers();
     jest.advanceTimersByTime(20);
     await new Promise(process.nextTick);
@@ -431,6 +437,7 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
+    await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
@@ -439,6 +446,8 @@ describe('Integration | errorSampleRate', () => {
     // Now wait after session expires - should stop recording
     mockRecord.takeFullSnapshot.mockClear();
     (getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>).mockClear();
+
+    expect(replay).not.toHaveLastSentReplay();
 
     // Go idle
     jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
@@ -534,6 +543,7 @@ it('sends a replay after loading the session multiple times', async () => {
 
   captureException(new Error('testing'));
 
+  await new Promise(process.nextTick);
   jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
   await new Promise(process.nextTick);
 
@@ -544,6 +554,6 @@ it('sends a replay after loading the session multiple times', async () => {
   // Latest checkout when we call `startRecording` again after uploading segment
   // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
-    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5020, type: 2 }]),
+    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 5040, type: 2 }]),
   });
 });

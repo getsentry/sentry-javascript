@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import type { Event as SentryEvent, HandlerDataFetch, Integration, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { Event as SentryEvent, HandlerDataFetch, HandlerDataXhr, Integration } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -216,33 +216,29 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
 /**
  * Creates breadcrumbs from XHR API calls
  */
-function _xhrBreadcrumb(handlerData: HandlerData & { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest }): void {
-  if (handlerData.endTimestamp) {
-    // We only capture complete, non-sentry requests
-    if (handlerData.xhr.__sentry_own_request__) {
-      return;
-    }
-
-    const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
-
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'xhr',
-        data: {
-          method,
-          url,
-          status_code,
-        },
-        type: 'http',
-      },
-      {
-        xhr: handlerData.xhr,
-        input: body,
-      },
-    );
-
+function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
+  // We only capture complete, non-sentry requests
+  if (!handlerData.endTimestamp || !handlerData.xhr.__sentry_xhr__) {
     return;
   }
+
+  const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__;
+
+  getCurrentHub().addBreadcrumb(
+    {
+      category: 'xhr',
+      data: {
+        method,
+        url,
+        status_code,
+      },
+      type: 'http',
+    },
+    {
+      xhr: handlerData.xhr,
+      input: body,
+    },
+  );
 }
 
 /**

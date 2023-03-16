@@ -4,5 +4,5 @@
 {
   "extends": "../tsconfig.test.json",
 
-  "include": ["./**/*"]
+  "include": ["./**/*", "../../replay/test/unit/coreHandlers/extendednetworkbreadcrumbs.test.ts"]
 }

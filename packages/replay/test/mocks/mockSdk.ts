@@ -1,4 +1,4 @@
-import type { Envelope, Transport } from '@sentry/types';
+import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
 
 import type { Replay as ReplayIntegration } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
@@ -13,9 +13,21 @@ export interface MockSdkParams {
 }
 
 class MockTransport implements Transport {
-  send: (request: Envelope) => PromiseLike<void> = jest.fn(async () => {
-    return;
-  });
+  send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
+
+  constructor() {
+    const send: ((request: Envelope) => PromiseLike<TransportMakeRequestResponse>) & {
+      __sentry__baseTransport__?: boolean;
+    } = jest.fn(async () => {
+      return {
+        statusCode: 200,
+      };
+    });
+
+    send.__sentry__baseTransport__ = true;
+    this.send = send;
+  }
+
   async flush() {
     return true;
   }
