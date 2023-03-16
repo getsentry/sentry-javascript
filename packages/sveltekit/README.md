@@ -130,4 +130,4 @@ Take a look at our [SvelteKit SDK Development Roadmap](https://github.com/getsen
   This is on our roadmap but it will come at a later time.
 
 - We're aiming to **simplify SDK setup** in the future so that you don't have to go in and manually add our wrappers to all your `load` functions and hooks.
-  This will be addressed once we the SDK supports all Sentry features.
+  This will be addressed once the SDK supports all Sentry features.
