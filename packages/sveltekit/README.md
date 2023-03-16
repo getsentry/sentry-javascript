@@ -37,7 +37,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
 
 1. Ensure you've set up the [`@sveltejs/adapter-node` adapter](https://kit.svelte.dev/docs/adapter-node)
 
-2. Install the SvelteKit SDK:
+2. Install the Sentry SvelteKit SDK:
 
    ```bash
    # Using npm
@@ -63,7 +63,18 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     });
    ```
 
-4. Create a `sentry.server.config.(js|ts)` file in the root directory of your SvelteKit project.
+4. Add our `withSentryViteConfig` wrapper around your Vite config so that the Sentry SDK is added to your application in `vite.config.(js|ts)`:
+   ```javascript
+    import { sveltekit } from '@sveltejs/kit/vite';
+    import { withSentryViteConfig } from '@sentry/sveltekit';
+
+    export default withSentryViteConfig({
+      plugins: [sveltekit()],
+      // ...
+    });
+   ```
+
+5. Create a `sentry.server.config.(js|ts)` file in the root directory of your SvelteKit project.
    In this file you can configure the server-side Sentry SDK, like the Sentry Node SDK:
 
    ```javascript
@@ -74,7 +85,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     });
    ```
 
-5. To catch errors in your `load` functions in `+page.(js|ts)`, wrap our `wrapLoadWithSentry` function:
+6. To catch errors in your `load` functions in `+page.(js|ts)`, wrap our `wrapLoadWithSentry` function:
 
    ```javascript
     import { wrapLoadWithSentry } from '@sentry/sveltekit';
@@ -84,7 +95,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     });
    ```
 
-6. In your `hooks.client.(js|ts)` or `hooks.server.(js|ts)`, you can wrap the `handleError` function as follows:
+7. In your `hooks.client.(js|ts)` or `hooks.server.(js|ts)`, you can wrap the `handleError` function as follows:
 
    ```javascript
     import { handleErrorWithSentry } from '@sentry/sveltekit';
