@@ -1,7 +1,7 @@
+import * as SentryNode from '@sentry/node';
 import * as AWS from 'aws-sdk';
 import * as nock from 'nock';
 
-import * as Sentry from '../src';
 import { AWSServices } from '../src/awsservices';
 
 /**
@@ -17,7 +17,7 @@ describe('AWSServices', () => {
   });
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    SentryNode.resetMocks();
   });
   afterAll(() => {
     nock.restore();
@@ -31,12 +31,12 @@ describe('AWSServices', () => {
       const data = await s3.getObject({ Bucket: 'foo', Key: 'bar' }).promise();
       expect(data.Body?.toString('utf-8')).toEqual('contents');
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
         description: 'aws.s3.getObject foo',
       });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeSpan.finish).toBeCalled();
+      expect(SentryNode.fakeSpan.finish).toBeCalled();
     });
 
     test('getObject with callback', done => {
@@ -48,7 +48,7 @@ describe('AWSServices', () => {
         done();
       });
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
         description: 'aws.s3.getObject foo',
       });
@@ -63,7 +63,7 @@ describe('AWSServices', () => {
       const data = await lambda.invoke({ FunctionName: 'foo' }).promise();
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'http.client',
         description: 'aws.lambda.invoke foo',
       });
