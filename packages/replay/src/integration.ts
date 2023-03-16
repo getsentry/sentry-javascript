@@ -226,6 +226,14 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     return this._replay.flushImmediate();
   }
 
+  /** returns the current replayId if there is an existing session */
+  public getCurrentReplayId(): string | undefined {
+    if (!this._replay || !this._replay.session) {
+      return;
+    }
+    return this._replay.session.id;
+  }
+
   /** Setup the integration. */
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce

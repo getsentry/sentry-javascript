@@ -258,10 +258,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const source = this.metadata.source;
 
     const replay = client.getIntegration(Replay);
-
-    console.log(replay);
-    // @ts-ignore
-    const replayId = replay?._replay.session.id;
+    let replay_id;
+    if (replay) {
+      replay_id = replay.getCurrentReplayId();
+    }
 
     // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
     const transaction = source && source !== 'url' ? this.name : undefined;
@@ -274,7 +274,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
       public_key,
       trace_id: this.traceId,
       sample_rate,
-      replayId,
+      replay_id,
     });
 
     // Uncomment if we want to make DSC immutable

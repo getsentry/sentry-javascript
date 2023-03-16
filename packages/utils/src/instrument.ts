@@ -48,7 +48,7 @@ function instrument(type: InstrumentHandlerType): void {
 
   switch (type) {
     case 'console':
-      // instrumentConsole();
+      instrumentConsole();
       break;
     case 'dom':
       instrumentDOM();
