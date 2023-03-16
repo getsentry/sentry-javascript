@@ -161,6 +161,14 @@ export const expectedClickBreadcrumb = {
   message: expect.any(String),
   data: {
     nodeId: expect.any(Number),
+    node: {
+      attributes: {
+        id: expect.any(String),
+      },
+      id: expect.any(Number),
+      tagName: expect.any(String),
+      textContent: expect.any(String),
+    },
   },
 };
 

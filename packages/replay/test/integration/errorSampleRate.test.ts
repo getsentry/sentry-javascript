@@ -54,7 +54,7 @@ describe('Integration | errorSampleRate', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
 
-    // Does not capture mouse click
+    // Does not capture on mouse click
     domHandler({
       name: 'click',
     });

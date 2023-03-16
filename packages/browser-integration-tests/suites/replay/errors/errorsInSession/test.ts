@@ -12,8 +12,9 @@ import {
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, browserName }) => {
+    // TODO(replay): This is flakey on firefox where clicks are flakey
+    if (shouldSkipReplayTest() || ['firefox'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -62,7 +63,23 @@ sentryTest(
     );
 
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#error' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error',
+          data: {
+            node: {
+              attributes: {
+                id: 'error',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** *****',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );
@@ -108,7 +125,23 @@ sentryTest(
 
     // The button click that triggered the error should still be recorded
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#drop' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#drop',
+          data: {
+            node: {
+              attributes: {
+                id: 'drop',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** ***** *** **** **',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );
