@@ -78,7 +78,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Timestamp of the last user activity. This lives across sessions.
    */
-  private _lastActivity: number = new Date().getTime();
+  private _lastActivity: number = Date.now();
 
   /**
    * Is the integration currently active?
@@ -108,7 +108,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     traceIds: new Set(),
     urls: [],
     earliestEvent: null,
-    initialTimestamp: new Date().getTime(),
+    initialTimestamp: Date.now(),
     initialUrl: '',
   };
 
@@ -442,7 +442,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._clearContext();
 
     this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
+    this._context.initialTimestamp = Date.now();
     this._context.urls.push(url);
   }
 
@@ -634,14 +634,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Update user activity (across session lifespans)
    */
-  private _updateUserActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateUserActivity(_lastActivity: number = Date.now()): void {
     this._lastActivity = _lastActivity;
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  private _updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateSessionActivity(_lastActivity: number = Date.now()): void {
     if (this.session) {
       this.session.lastActivity = _lastActivity;
       this._maybeSaveSession();
@@ -768,7 +768,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
-        timestamp: new Date().getTime(),
+        timestamp: Date.now(),
       });
     } catch (err) {
       this._handleException(err);
