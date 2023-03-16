@@ -11,6 +11,8 @@ targets:
           - nodejs10.x
           - nodejs12.x
           - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
     license: MIT
   - name: gcs
     includeNames: /.*\.js.*$/
