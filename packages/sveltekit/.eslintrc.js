@@ -11,6 +11,12 @@ module.exports = {
         'import/no-unresolved': 'off',
       },
     },
+    {
+      files: ['vite.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
+      },
+    },
   ],
   extends: ['../../.eslintrc.js'],
 };
