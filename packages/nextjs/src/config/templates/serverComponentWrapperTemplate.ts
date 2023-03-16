@@ -13,9 +13,19 @@ import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 import * as Sentry from '@sentry/nextjs';
 // @ts-ignore This template is only used with the app directory so we know that this dependency exists.
 // eslint-disable-next-line import/no-unresolved
+import { staticGenerationAsyncStorage } from 'next/dist/client/components/static-generation-async-storage';
+// @ts-ignore This template is only used with the app directory so we know that this dependency exists.
+// eslint-disable-next-line import/no-unresolved
 import { headers } from 'next/headers';
 
 declare function headers(): { get: (header: string) => string | undefined };
+
+declare const staticGenerationAsyncStorage: {
+  getStore: () => {
+    isStaticGeneration: boolean;
+    dynamicShouldError: boolean;
+  };
+};
 
 type ServerComponentModule = {
   default: unknown;
@@ -38,9 +48,15 @@ if (typeof serverComponent === 'function') {
       // If we call the headers function inside the build phase, Next.js will automatically mark the server component as
       // dynamic(SSR) which we do not want in case the users have a static component.
       if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        const headersList = headers();
-        sentryTraceHeader = headersList.get('sentry-trace');
-        baggageHeader = headersList.get('baggage');
+        // The headers function can also not be used for revalidaton of previously statically generated pages as that
+        // results in a Runtime error because the page switches from static to dynamic
+        const staticGenerationStore = staticGenerationAsyncStorage.getStore();
+        const dynamicAllowed = !staticGenerationStore?.isStaticGeneration && !staticGenerationStore?.dynamicShouldError;
+        if (dynamicAllowed) {
+          const headersList = headers();
+          sentryTraceHeader = headersList.get('sentry-trace');
+          baggageHeader = headersList.get('baggage');
+        }
       }
 
       return Sentry.wrapServerComponentWithSentry(originalFunction, {
