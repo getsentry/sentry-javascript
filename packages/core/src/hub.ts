@@ -271,6 +271,10 @@ export class Hub implements HubInterface {
 
     if (finalBreadcrumb === null) return;
 
+    if (client.emit) {
+      client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
+    }
+
     scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
   }
 

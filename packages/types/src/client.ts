@@ -1,3 +1,4 @@
+import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
@@ -172,6 +173,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * Register a callback before a breadcrumb is added.
+   */
+  on?(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+
+  /**
    * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
    * second argument.
    */
@@ -188,4 +194,9 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+
+  /**
+   * Fire a hook for when a bredacrumb is added. Expects the breadcrumb as second argument.
+   */
+  emit?(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 }

@@ -4,24 +4,38 @@
 type XHRSendInput = unknown;
 
 export interface SentryWrappedXMLHttpRequest {
-  [key: string]: any;
-  __sentry_xhr__?: {
-    method?: string;
-    url?: string;
-    status_code?: number;
-    body?: XHRSendInput;
-  };
+  __sentry_xhr__?: SentryXhrData;
+  __sentry_own_request__?: boolean;
+}
+
+export interface SentryXhrData {
+  method?: string;
+  url?: string;
+  status_code?: number;
+  body?: XHRSendInput;
+  request_body_size?: number;
+  response_body_size?: number;
+}
+
+export interface HandlerDataXhr {
+  args: [string, string];
+  xhr: SentryWrappedXMLHttpRequest;
+  startTimestamp?: number;
+  endTimestamp?: number;
 }
 
 interface SentryFetchData {
   method: string;
   url: string;
+  request_body_size?: number;
+  response_body_size?: number;
 }
 
 export interface HandlerDataFetch {
   args: any[];
   fetchData: SentryFetchData;
   startTimestamp: number;
+  endTimestamp?: number;
   // This is actually `Response`, make sure to cast this where needed (not available in Node)
   response?: unknown;
 }
