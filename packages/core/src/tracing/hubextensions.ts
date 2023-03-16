@@ -6,6 +6,7 @@ import { getMainCarrier } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
+import { registerErrorInstrumentation } from './errors';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
@@ -237,4 +238,6 @@ export function addTracingExtensions(): void {
   if (!carrier.__SENTRY__.extensions.traceHeaders) {
     carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
+
+  registerErrorInstrumentation();
 }
