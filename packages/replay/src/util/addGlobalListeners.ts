@@ -2,14 +2,12 @@ import type { BaseClient } from '@sentry/core';
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
 import { addInstrumentationHandler } from '@sentry/utils';
 
-import { extendNetworkBreadcrumbs } from '../coreHandlers/extendNetworkBreadcrumbs';
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleDomListener } from '../coreHandlers/handleDom';
-import { handleFetchSpanListener } from '../coreHandlers/handleFetch';
 import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from '../coreHandlers/handleHistory';
+import { handleNetworkBreadcrumbs } from '../coreHandlers/handleNetworkBreadcrumbs';
 import { handleScopeListener } from '../coreHandlers/handleScope';
-import { handleXhrSpanListener } from '../coreHandlers/handleXhr';
 import type { ReplayContainer } from '../types';
 
 /**
@@ -24,8 +22,6 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     scope.addScopeListener(handleScopeListener(replay));
   }
   addInstrumentationHandler('dom', handleDomListener(replay));
-  addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
-  addInstrumentationHandler('xhr', handleXhrSpanListener(replay));
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
@@ -40,5 +36,5 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     (client as BaseClient<any>).on('afterSendEvent', handleAfterSendEvent(replay));
   }
 
-  extendNetworkBreadcrumbs();
+  handleNetworkBreadcrumbs(replay);
 }
