@@ -9,6 +9,7 @@ const builds = [];
     jsVersion,
     licenseTitle: '@sentry/browser',
     includeReplay: 'shim',
+    includeBrowserTracing: 'shim',
     outputFileBase: () => `bundles/bundle${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
@@ -23,6 +24,7 @@ const replayBaseBundleConfig = makeBaseBundleConfig({
   licenseTitle: '@sentry/browser & @sentry/replay',
   outputFileBase: () => 'bundles/bundle.replay',
   includeReplay: true,
+  includeBrowserTracing: 'shim',
 });
 
 builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));

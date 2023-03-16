@@ -183,9 +183,8 @@ export function makeTSPlugin(jsVersion) {
 
 /**
  * Creates a Rollup plugin that removes all code between the `__ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__`
- * and `__ROLLUP_EXCLUDE_FROM_BUNDLES_END__` comment guards. This is used to exclude the Replay integration
- * from the browser and browser+tracing bundles.
- * If we need to add more such guards in the future, we might want to refactor this into a more generic plugin.
+ * and `__ROLLUP_EXCLUDE_FROM_BUNDLES_END__` comment guards.
+ * This is used to exclude certain exports from variants of the browser bundle.
  */
 export function makeExcludeBlockPlugin(type) {
   const replacementRegex = new RegExp(
@@ -197,8 +196,10 @@ export function makeExcludeBlockPlugin(type) {
 
   const plugin = {
     transform(code, id) {
-      const isBrowserIndexFile = path.resolve(id) === browserIndexFilePath;
-      if (!isBrowserIndexFile || !replacementRegex.test(code)) {
+      const resolvedPath = path.resolve(id);
+      const shouldReplaceInFile = resolvedPath === browserIndexFilePath;
+
+      if (!shouldReplaceInFile || !replacementRegex.test(code)) {
         return null;
       }
 
@@ -211,20 +212,20 @@ export function makeExcludeBlockPlugin(type) {
     },
   };
 
-  plugin.name = 'excludeReplay';
+  plugin.name = 'excludeBlock';
 
   return plugin;
 }
 
-export function makeReplayShimPlugin() {
+export function makeIntegrationShimPlugin(originalImportName) {
   // This is designed to replace the re-export in browser/index.ts to export the shim
   const plugin = modify({
-    find: '@sentry/replay',
+    find: originalImportName,
     replace: '@sentry-internal/integration-shims',
   });
 
   // give it a nicer name for later, when we'll need to sort the plugins
-  plugin.name = 'replayShim';
+  plugin.name = 'integrationShimPlugin';
 
   return plugin;
 }
