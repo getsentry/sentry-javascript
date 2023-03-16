@@ -48,8 +48,10 @@ export function handleGlobalEventListener(
       });
     }
 
+    // In cases where a custom client is used that does not support the new hooks (yet),
+    // we manually call this hook method here
     if (afterSendHandler) {
-      // Pretend the error had a 200 response so we capture it
+      // Pretend the error had a 200 response so we always capture it
       afterSendHandler(event, { statusCode: 200 });
     }
 
