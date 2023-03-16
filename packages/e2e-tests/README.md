@@ -7,6 +7,10 @@ current state.
 
 Prerequisites: Docker
 
+- Copy `.env.example` to `.env`
+- Fill in auth information in `.env` for an example Sentry project
+  - The `E2E_TEST_AUTH_TOKEN` must have all the default permissions
+
 ```bash
 yarn test:e2e
 ```

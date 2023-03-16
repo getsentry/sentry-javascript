@@ -16,11 +16,9 @@ describe('Integration | autoSaveSession', () => {
     ['with stickySession=true', true, 1],
     ['with stickySession=false', false, 0],
   ])('%s', async (_: string, stickySession: boolean, addSummand: number) => {
-    let saveSessionSpy;
+    const saveSessionSpy = jest.fn();
 
     jest.mock('../../src/session/saveSession', () => {
-      saveSessionSpy = jest.fn();
-
       return {
         saveSession: saveSessionSpy,
       };

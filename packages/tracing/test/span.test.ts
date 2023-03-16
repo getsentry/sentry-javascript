@@ -2,8 +2,7 @@ import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain, Scope } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
-import { Span, Transaction } from '../src';
-import { TRACEPARENT_REGEXP } from '../src/utils';
+import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('Span', () => {

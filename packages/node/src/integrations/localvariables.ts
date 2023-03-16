@@ -28,6 +28,19 @@ class AsyncSession implements DebugSession {
 
   /** Throws is inspector API is not available */
   public constructor() {
+    /*
+    TODO: We really should get rid of this require statement below for a couple of reasons:
+    1. It makes the integration unusable in the SvelteKit SDK, as it's not possible to use `require`
+       in SvelteKit server code (at least not by default).
+    2. Throwing in a constructor is bad practice
+
+    More context for a future attempt to fix this:
+    We already tried replacing it with import but didn't get it to work because of async problems.
+    We still called import in the constructor but assigned to a promise which we "awaited" in
+    `configureAndConnect`. However, this broke the Node integration tests as no local variables
+    were reported any more. We probably missed a place where we need to await the promise, too.
+    */
+
     // Node can be build without inspector support so this can throw
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Session } = require('inspector');

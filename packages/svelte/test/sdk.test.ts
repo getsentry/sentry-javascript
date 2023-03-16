@@ -1,23 +1,21 @@
-import { addGlobalEventProcessor, init as browserInit, SDK_VERSION } from '@sentry/browser';
+import { SDK_VERSION } from '@sentry/browser';
+import * as SentryBrowser from '@sentry/browser';
 import type { EventProcessor } from '@sentry/types';
 
 import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 
 let passedEventProcessor: EventProcessor | undefined;
 
-jest.mock('@sentry/browser', () => {
-  const actual = jest.requireActual('@sentry/browser');
-  return {
-    ...actual,
-    init: jest.fn().mockImplementation(actual.init),
-    addGlobalEventProcessor: jest.fn().mockImplementation(proc => {
-      passedEventProcessor = proc;
-    }),
-  };
-});
+const browserInit = jest.spyOn(SentryBrowser, 'init');
+const addGlobalEventProcessor = jest
+  .spyOn(SentryBrowser, 'addGlobalEventProcessor')
+  .mockImplementation((eventProcessor: EventProcessor) => {
+    passedEventProcessor = eventProcessor;
+    return () => {};
+  });
 
 describe('Initialize Svelte SDk', () => {
-  afterAll(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
@@ -37,13 +35,45 @@ describe('Initialize Svelte SDk', () => {
     };
 
     expect(browserInit).toHaveBeenCalledTimes(1);
-    expect(browserInit).toHaveBeenCalledWith(expect.objectContaining(expectedMetadata));
+    expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+  });
+
+  it("doesn't add the default svelte metadata, if metadata is already passed", () => {
+    svelteInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      _metadata: {
+        sdk: {
+          name: 'sentry.javascript.sveltekit',
+          version: SDK_VERSION,
+          packages: [
+            { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
+            { name: 'npm:@sentry/svelte', version: SDK_VERSION },
+          ],
+        },
+      },
+    });
+
+    expect(browserInit).toHaveBeenCalledTimes(1);
+    expect(browserInit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        _metadata: {
+          sdk: {
+            name: 'sentry.javascript.sveltekit',
+            version: SDK_VERSION,
+            packages: [
+              { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
+              { name: 'npm:@sentry/svelte', version: SDK_VERSION },
+            ],
+          },
+        },
+      }),
+    );
   });
 });
 
 describe('detectAndReportSvelteKit()', () => {
   const originalHtmlBody = document.body.innerHTML;
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
     document.body.innerHTML = originalHtmlBody;
     passedEventProcessor = undefined;

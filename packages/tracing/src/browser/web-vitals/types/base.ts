@@ -104,3 +104,5 @@ export interface ReportOpts {
  *   loading. This is equivalent to the corresponding `readyState` value.
  */
 export type LoadState = 'loading' | 'dom-interactive' | 'dom-content-loaded' | 'complete';
+
+export type StopListening = () => void;

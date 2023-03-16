@@ -10,8 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
 
-**Note: Session Replay is currently in beta.** Functionality may change outside of major version bumps - while we try our best to avoid any breaking changes, semver cannot be guaranteed before Replay is out of beta. You can find more information about upgrading in [MIGRATION.md](./MIGRATION.md).
-
 ## Pre-requisites
 
 `@sentry/replay` requires Node 12+, and browsers newer than IE11.
@@ -112,11 +110,11 @@ The `replay.(min.)js` bundle will be removed in v8 of the JS SDKs.
 
 ```html
 <script
-  src="https://browser.sentry-cdn.com/7.31.1/bundle.min.js"
+  src="https://browser.sentry-cdn.com/7.41.0/bundle.min.js"
   crossorigin="anonymous"
 ></script>
 <script
-  src="https://browser.sentry-cdn.com/7.31.1/replay.min.js"
+  src="https://browser.sentry-cdn.com/7.41.0/replay.min.js"
   crossorigin="anonymous"
 ></script>
 ```

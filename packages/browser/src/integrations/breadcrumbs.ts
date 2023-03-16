@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import type { Event, Integration } from '@sentry/types';
+import type { Event as SentryEvent, HandlerDataFetch, Integration, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -13,6 +13,8 @@ import {
 } from '@sentry/utils';
 
 import { WINDOW } from '../helpers';
+
+type HandlerData = Record<string, unknown>;
 
 /** JSDoc */
 interface BreadcrumbsOptions {
@@ -99,7 +101,7 @@ export class Breadcrumbs implements Integration {
   /**
    * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
    */
-  public addSentryBreadcrumb(event: Event): void {
+  public addSentryBreadcrumb(event: SentryEvent): void {
     if (this.options.sentry) {
       getCurrentHub().addBreadcrumb(
         {
@@ -120,10 +122,8 @@ export class Breadcrumbs implements Integration {
  * A HOC that creaes a function that creates breadcrumbs from DOM API calls.
  * This is a HOC so that we get access to dom options in the closure.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: string]: any }) => void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function _innerDomBreadcrumb(handlerData: { [key: string]: any }): void {
+function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: HandlerData) => void {
+  function _innerDomBreadcrumb(handlerData: HandlerData): void {
     let target;
     let keyAttrs = typeof dom === 'object' ? dom.serializeAttribute : undefined;
 
@@ -143,9 +143,10 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
 
     // Accessing event.target can throw (see getsentry/raven-js#838, #768)
     try {
-      target = handlerData.event.target
-        ? htmlTreeAsString(handlerData.event.target as Node, { keyAttrs, maxStringLength })
-        : htmlTreeAsString(handlerData.event as unknown as Node, { keyAttrs, maxStringLength });
+      const event = handlerData.event as Event | Node;
+      target = _isEvent(event)
+        ? htmlTreeAsString(event.target, { keyAttrs, maxStringLength })
+        : htmlTreeAsString(event, { keyAttrs, maxStringLength });
     } catch (e) {
       target = '<unknown>';
     }
@@ -173,8 +174,7 @@ function _domBreadcrumb(dom: BreadcrumbsOptions['dom']): (handlerData: { [key: s
 /**
  * Creates breadcrumbs from console API calls
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
+function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level: string }): void {
   // This is a hack to fix a Vue3-specific bug that causes an infinite loop of
   // console warnings. This happens when a Vue template is rendered with
   // an undeclared variable, which we try to stringify, ultimately causing
@@ -216,8 +216,7 @@ function _consoleBreadcrumb(handlerData: { [key: string]: any }): void {
 /**
  * Creates breadcrumbs from XHR API calls
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
+function _xhrBreadcrumb(handlerData: HandlerData & { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest }): void {
   if (handlerData.endTimestamp) {
     // We only capture complete, non-sentry requests
     if (handlerData.xhr.__sentry_own_request__) {
@@ -249,8 +248,7 @@ function _xhrBreadcrumb(handlerData: { [key: string]: any }): void {
 /**
  * Creates breadcrumbs from fetch API calls
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
+function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { response?: Response }): void {
   // We only capture complete fetch requests
   if (!handlerData.endTimestamp) {
     return;
@@ -280,7 +278,7 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
         category: 'fetch',
         data: {
           ...handlerData.fetchData,
-          status_code: handlerData.response.status,
+          status_code: handlerData.response && handlerData.response.status,
         },
         type: 'http',
       },
@@ -295,10 +293,9 @@ function _fetchBreadcrumb(handlerData: { [key: string]: any }): void {
 /**
  * Creates breadcrumbs from history API calls
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _historyBreadcrumb(handlerData: { [key: string]: any }): void {
-  let from = handlerData.from;
-  let to = handlerData.to;
+function _historyBreadcrumb(handlerData: HandlerData & { from: string; to: string }): void {
+  let from: string | undefined = handlerData.from;
+  let to: string | undefined = handlerData.to;
   const parsedLoc = parseUrl(WINDOW.location.href);
   let parsedFrom = parseUrl(from);
   const parsedTo = parseUrl(to);
@@ -324,4 +321,8 @@ function _historyBreadcrumb(handlerData: { [key: string]: any }): void {
       to,
     },
   });
+}
+
+function _isEvent(event: unknown): event is Event {
+  return event && !!(event as Record<string, unknown>).target;
 }

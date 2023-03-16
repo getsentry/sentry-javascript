@@ -1,14 +1,16 @@
 /* eslint-disable max-lines */
-import type { Hub } from '@sentry/core';
+import type { Hub, IdleTransaction } from '@sentry/core';
+import { extractTraceparentData, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
 
-import { startIdleTransaction } from '../hubextensions';
-import type { IdleTransaction } from '../idletransaction';
-import { DEFAULT_FINAL_TIMEOUT, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_IDLE_TIMEOUT } from '../idletransaction';
-import { extractTraceparentData } from '../utils';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import { addPerformanceEntries, startTrackingLongTasks, startTrackingWebVitals } from './metrics';
+import {
+  addPerformanceEntries,
+  startTrackingInteractions,
+  startTrackingLongTasks,
+  startTrackingWebVitals,
+} from './metrics';
 import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
@@ -131,9 +133,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
-  idleTimeout: DEFAULT_IDLE_TIMEOUT,
-  finalTimeout: DEFAULT_FINAL_TIMEOUT,
-  heartbeatInterval: DEFAULT_HEARTBEAT_INTERVAL,
+  ...TRACING_DEFAULTS,
   markBackgroundTransactions: true,
   routingInstrumentation: instrumentRoutingWithDefaults,
   startTransactionOnLocationChange: true,
@@ -169,6 +169,8 @@ export class BrowserTracing implements Integration {
   private _latestRouteName?: string;
   private _latestRouteSource?: TransactionSource;
 
+  private _collectWebVitals: () => void;
+
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -190,9 +192,12 @@ export class BrowserTracing implements Integration {
       this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
-    startTrackingWebVitals();
+    this._collectWebVitals = startTrackingWebVitals();
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
+    }
+    if (this.options._experiments.enableInteractions) {
+      startTrackingInteractions();
     }
   }
 
@@ -308,6 +313,7 @@ export class BrowserTracing implements Integration {
       heartbeatInterval,
     );
     idleTransaction.registerBeforeFinishCallback(transaction => {
+      this._collectWebVitals();
       addPerformanceEntries(transaction);
     });
 

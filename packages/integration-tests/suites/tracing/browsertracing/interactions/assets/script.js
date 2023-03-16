@@ -1,4 +1,4 @@
-(() => {
+const delay = e => {
   const startTime = Date.now();
 
   function getElasped() {
@@ -6,7 +6,11 @@
     return time - startTime;
   }
 
-  while (getElasped() < 105) {
+  while (getElasped() < 70) {
     //
   }
-})();
+
+  e.target.classList.add('clicked');
+};
+
+document.querySelector('[data-test-id=interaction-button]').addEventListener('click', delay);

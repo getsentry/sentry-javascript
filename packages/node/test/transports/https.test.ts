@@ -19,11 +19,7 @@ jest.mock('@sentry/core', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const httpProxyAgent = require('https-proxy-agent');
-jest.mock('https-proxy-agent', () => {
-  return jest.fn().mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
-});
+import * as httpProxyAgent from 'https-proxy-agent';
 
 const SUCCESS = 200;
 const RATE_LIMIT = 429;
@@ -185,6 +181,11 @@ describe('makeNewHttpsTransport()', () => {
   });
 
   describe('proxy', () => {
+    const proxyAgentSpy = jest
+      .spyOn(httpProxyAgent, 'HttpsProxyAgent')
+      // @ts-ignore
+      .mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
+
     it('can be configured through option', () => {
       makeNodeTransport({
         ...defaultOptions,
@@ -193,8 +194,8 @@ describe('makeNewHttpsTransport()', () => {
         proxy: 'https://example.com',
       });
 
-      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
-      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
+      expect(proxyAgentSpy).toHaveBeenCalledTimes(1);
+      expect(proxyAgentSpy).toHaveBeenCalledWith('https://example.com');
     });
 
     it('can be configured through env variables option (http)', () => {
@@ -205,8 +206,8 @@ describe('makeNewHttpsTransport()', () => {
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
-      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
-      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
+      expect(proxyAgentSpy).toHaveBeenCalledTimes(1);
+      expect(proxyAgentSpy).toHaveBeenCalledWith('https://example.com');
       delete process.env.http_proxy;
     });
 
@@ -218,8 +219,8 @@ describe('makeNewHttpsTransport()', () => {
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
-      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
-      expect(httpProxyAgent).toHaveBeenCalledWith('https://example.com');
+      expect(proxyAgentSpy).toHaveBeenCalledTimes(1);
+      expect(proxyAgentSpy).toHaveBeenCalledWith('https://example.com');
       delete process.env.https_proxy;
     });
 
@@ -232,8 +233,8 @@ describe('makeNewHttpsTransport()', () => {
         proxy: 'https://bar.com',
       });
 
-      expect(httpProxyAgent).toHaveBeenCalledTimes(1);
-      expect(httpProxyAgent).toHaveBeenCalledWith('https://bar.com');
+      expect(proxyAgentSpy).toHaveBeenCalledTimes(1);
+      expect(proxyAgentSpy).toHaveBeenCalledWith('https://bar.com');
       delete process.env.https_proxy;
     });
 
@@ -246,7 +247,7 @@ describe('makeNewHttpsTransport()', () => {
         proxy: 'https://example.com',
       });
 
-      expect(httpProxyAgent).not.toHaveBeenCalled();
+      expect(proxyAgentSpy).not.toHaveBeenCalled();
 
       delete process.env.no_proxy;
     });
@@ -261,7 +262,7 @@ describe('makeNewHttpsTransport()', () => {
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
-      expect(httpProxyAgent).not.toHaveBeenCalled();
+      expect(proxyAgentSpy).not.toHaveBeenCalled();
 
       delete process.env.no_proxy;
       delete process.env.http_proxy;
@@ -277,7 +278,7 @@ describe('makeNewHttpsTransport()', () => {
         url: 'https://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
       });
 
-      expect(httpProxyAgent).not.toHaveBeenCalled();
+      expect(proxyAgentSpy).not.toHaveBeenCalled();
 
       delete process.env.no_proxy;
       delete process.env.http_proxy;

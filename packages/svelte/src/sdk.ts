@@ -7,7 +7,7 @@ import { getDomElement } from '@sentry/utils';
  */
 export function init(options: BrowserOptions): void {
   options._metadata = options._metadata || {};
-  options._metadata.sdk = {
+  options._metadata.sdk = options._metadata.sdk || {
     name: 'sentry.javascript.svelte',
     packages: [
       {

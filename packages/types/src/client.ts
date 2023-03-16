@@ -1,6 +1,7 @@
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
+import type { Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
@@ -8,6 +9,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
+import type { Transaction } from './transaction';
 import type { Transport } from './transport';
 
 /**
@@ -147,4 +149,29 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param event The dropped event.
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
+
+  // HOOKS
+  // TODO(v8): Make the hooks non-optional.
+
+  /**
+   * Register a callback for transaction start and finish.
+   */
+  on?(hook: 'startTransaction' | 'finishTransaction', callback: (transaction: Transaction) => void): void;
+
+  /**
+   * Register a callback for transaction start and finish.
+   */
+  on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+
+  /**
+   * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
+   * second argument.
+   */
+  emit?(hook: 'startTransaction' | 'finishTransaction', transaction: Transaction): void;
+
+  /*
+   * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
+   * second argument.
+   */
+  emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
 }

@@ -2,8 +2,8 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Prisma } from '../../../src/integrations/node/prisma';
-import { Span } from '../../../src/span';
+import { Span } from '../../../src';
+import { Prisma } from '../../../src/node/integrations/prisma';
 import { getTestClient } from '../../testutils';
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;

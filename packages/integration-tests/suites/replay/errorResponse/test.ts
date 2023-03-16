@@ -39,6 +39,5 @@ sentryTest('should stop recording after receiving an error response', async ({ g
 
   const replay = await getReplaySnapshot(page);
 
-  // @ts-ignore private API
   expect(replay._isEnabled).toBe(false);
 });
