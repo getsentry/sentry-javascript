@@ -31,7 +31,7 @@ This package is a wrapper around `@sentry/node` for the server and `@sentry/svel
 
 ## Usage
 
-Although the SDK is not yet stable, you're more than welcome to give it a try and provide us some early feedback.
+Although the SDK is not yet stable, you're more than welcome to give it a try and provide us with early feedback.
 
 **Here's how to get started:**
 
