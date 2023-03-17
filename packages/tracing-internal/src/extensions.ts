@@ -2,8 +2,6 @@ import { addTracingExtensions, getMainCarrier } from '@sentry/core';
 import type { Integration, IntegrationClass } from '@sentry/types';
 import { dynamicRequire, isNodeEnv, loadModule } from '@sentry/utils';
 
-import { registerErrorInstrumentation } from './errors';
-
 /**
  * @private
  */
@@ -66,7 +64,4 @@ export function addExtensionMethods(): void {
   if (isNodeEnv()) {
     _autoloadDatabaseIntegrations();
   }
-
-  // If an error happens globally, we should make sure transaction status is set to error.
-  registerErrorInstrumentation();
 }
