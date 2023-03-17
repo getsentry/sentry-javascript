@@ -29,7 +29,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",
-    "start:demo": "yarn build:dev && cd demo && yarn start"
+    "start:demo": "yarn build:dev && cd demo && yarn start",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "repository": {
     "type": "git",
