@@ -132,23 +132,26 @@ export const expectedFPPerformanceSpan = {
 
 export const expectedFetchPerformanceSpan = {
   op: 'resource.fetch',
-  description: expect.any(String),
+  description: 'https://example.com',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    method: expect.any(String),
-    statusCode: expect.any(Number),
+    method: 'POST',
+    statusCode: 200,
+    responseBodySize: 11,
+    requestBodySize: 3,
   },
 };
 
 export const expectedXHRPerformanceSpan = {
   op: 'resource.xhr',
-  description: expect.any(String),
+  description: 'https://example.com',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    method: expect.any(String),
-    statusCode: expect.any(Number),
+    method: 'GET',
+    statusCode: 200,
+    responseBodySize: 11,
   },
 };
 

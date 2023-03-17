@@ -2,15 +2,31 @@ import { getCurrentHub } from '@sentry/core';
 import type {
   Breadcrumb,
   BreadcrumbHint,
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
   HandlerDataFetch,
   SentryWrappedXMLHttpRequest,
   TextEncoderInternal,
+  XhrBreadcrumbData,
+  XhrBreadcrumbHint,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { addInstrumentationHandler, logger } from '@sentry/utils';
+
+import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
+import { handleFetchSpanListener } from './handleFetch';
+import { handleXhrSpanListener } from './handleXhr';
 
 type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
 
+type XhrHint = XhrBreadcrumbHint & { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest; input?: RequestBody };
+type FetchHint = FetchBreadcrumbHint & {
+  input: HandlerDataFetch['args'];
+  response: Response;
+};
+
 interface ExtendedNetworkBreadcrumbsOptions {
+  replay: ReplayContainer;
   textEncoder: TextEncoderInternal;
 }
 
@@ -23,25 +39,31 @@ interface ExtendedNetworkBreadcrumbsOptions {
  *
  * to the breadcrumb data.
  */
-export function extendNetworkBreadcrumbs(): void {
+export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
   const client = getCurrentHub().getClient();
 
   try {
     const textEncoder = new TextEncoder();
 
     const options: ExtendedNetworkBreadcrumbsOptions = {
+      replay,
       textEncoder,
     };
 
     if (client && client.on) {
-      client.on('beforeAddBreadcrumb', (breadcrumb, hint) => _beforeNetworkBreadcrumb(options, breadcrumb, hint));
+      client.on('beforeAddBreadcrumb', (breadcrumb, hint) => handleNetworkBreadcrumb(options, breadcrumb, hint));
+    } else {
+      // Fallback behavior
+      addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
+      addInstrumentationHandler('xhr', handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing
   }
 }
 
-function _beforeNetworkBreadcrumb(
+/** just exported for tests */
+export function handleNetworkBreadcrumb(
   options: ExtendedNetworkBreadcrumbsOptions,
   breadcrumb: Breadcrumb,
   hint?: BreadcrumbHint,
@@ -51,40 +73,80 @@ function _beforeNetworkBreadcrumb(
   }
 
   try {
-    if (breadcrumb.category === 'xhr' && hint && hint.xhr) {
-      _enrichXhrBreadcrumb(
-        breadcrumb as Breadcrumb & { data: object },
-        {
-          xhr: hint.xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest,
-          body: hint.input as RequestBody,
-        },
-        options,
-      );
+    if (_isXhrBreadcrumb(breadcrumb) && _isXhrHint(hint)) {
+      // Enriches the breadcrumb overall
+      _enrichXhrBreadcrumb(breadcrumb, hint, options);
+
+      // Create a replay performance entry from this breadcrumb
+      const result = _makeNetworkReplayBreadcrumb('resource.xhr', breadcrumb, hint);
+      addNetworkBreadcrumb(options.replay, result);
     }
 
-    if (breadcrumb.category === 'fetch' && hint) {
-      _enrichFetchBreadcrumb(
-        breadcrumb as Breadcrumb & { data: object },
-        {
-          input: hint.input as HandlerDataFetch['args'],
-          response: hint.response as Response,
-        },
-        options,
-      );
+    if (_isFetchBreadcrumb(breadcrumb) && _isFetchHint(hint)) {
+      // Enriches the breadcrumb overall
+      _enrichFetchBreadcrumb(breadcrumb, hint, options);
+
+      // Create a replay performance entry from this breadcrumb
+      const result = _makeNetworkReplayBreadcrumb('resource.fetch', breadcrumb, hint);
+      addNetworkBreadcrumb(options.replay, result);
     }
   } catch (e) {
     __DEBUG_BUILD__ && logger.warn('Error when enriching network breadcrumb');
   }
 }
 
+function _makeNetworkReplayBreadcrumb(
+  type: string,
+  breadcrumb: Breadcrumb & { data: FetchBreadcrumbData | XhrBreadcrumbData },
+  hint: FetchBreadcrumbHint | XhrBreadcrumbHint,
+): ReplayPerformanceEntry | null {
+  const { startTimestamp, endTimestamp } = hint;
+
+  if (!endTimestamp) {
+    return null;
+  }
+
+  const {
+    url,
+    method,
+    status_code: statusCode,
+    request_body_size: requestBodySize,
+    response_body_size: responseBodySize,
+  } = breadcrumb.data;
+
+  if (url === undefined) {
+    return null;
+  }
+
+  const result: ReplayPerformanceEntry & { data: object } = {
+    type,
+    start: startTimestamp / 1000,
+    end: endTimestamp / 1000,
+    name: url,
+    data: {
+      method,
+      statusCode,
+    },
+  };
+
+  if (requestBodySize) {
+    result.data.requestBodySize = requestBodySize;
+  }
+  if (responseBodySize) {
+    result.data.responseBodySize = responseBodySize;
+  }
+
+  return result;
+}
+
 function _enrichXhrBreadcrumb(
-  breadcrumb: Breadcrumb & { data: object },
-  hint: { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest; body?: RequestBody },
+  breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
+  hint: XhrHint,
   options: ExtendedNetworkBreadcrumbsOptions,
 ): void {
-  const { xhr, body } = hint;
+  const { xhr, input } = hint;
 
-  const reqSize = getBodySize(body, options.textEncoder);
+  const reqSize = getBodySize(input, options.textEncoder);
   const resSize = xhr.getResponseHeader('content-length')
     ? parseContentSizeHeader(xhr.getResponseHeader('content-length'))
     : getBodySize(xhr.response, options.textEncoder);
@@ -98,11 +160,8 @@ function _enrichXhrBreadcrumb(
 }
 
 function _enrichFetchBreadcrumb(
-  breadcrumb: Breadcrumb & { data: object },
-  hint: {
-    input: HandlerDataFetch['args'];
-    response: Response;
-  },
+  breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
+  hint: FetchHint,
   options: ExtendedNetworkBreadcrumbsOptions,
 ): void {
   const { input, response } = hint;
@@ -178,4 +237,20 @@ function getFetchBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefine
   }
 
   return (fetchArgs[1] as RequestInit).body;
+}
+
+function _isXhrBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is Breadcrumb & { data: XhrBreadcrumbData } {
+  return breadcrumb.category === 'xhr';
+}
+
+function _isFetchBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is Breadcrumb & { data: FetchBreadcrumbData } {
+  return breadcrumb.category === 'fetch';
+}
+
+function _isXhrHint(hint?: BreadcrumbHint): hint is XhrHint {
+  return hint && hint.xhr;
+}
+
+function _isFetchHint(hint?: BreadcrumbHint): hint is FetchHint {
+  return hint && hint.response;
 }
