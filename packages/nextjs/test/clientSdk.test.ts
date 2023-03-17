@@ -3,11 +3,11 @@ import * as SentryReact from '@sentry/react';
 import { WINDOW } from '@sentry/react';
 import { Integrations as TracingIntegrations } from '@sentry/tracing';
 import type { Integration } from '@sentry/types';
+import type { UserIntegrationsFunction } from '@sentry/utils';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
 import { init, Integrations, nextRouterInstrumentation } from '../src/client';
-import type { UserIntegrationsFunction } from '../src/common/userIntegrations';
 
 const { BrowserTracing } = TracingIntegrations;
 
