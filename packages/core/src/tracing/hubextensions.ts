@@ -4,6 +4,7 @@ import { isNaN, logger } from '@sentry/utils';
 import type { Hub } from '../hub';
 import { getMainCarrier } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
 
@@ -237,4 +238,6 @@ export function addTracingExtensions(): void {
   if (!carrier.__SENTRY__.extensions.traceHeaders) {
     carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
+
+  registerErrorInstrumentation();
 }

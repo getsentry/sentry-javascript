@@ -1,11 +1,19 @@
-import type { SpanStatusType } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/core';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
+
+import type { SpanStatusType } from './span';
+import { getActiveTransaction } from './utils';
+
+let errorsInstrumented = false;
 
 /**
  * Configures global error listeners
  */
 export function registerErrorInstrumentation(): void {
+  if (errorsInstrumented) {
+    return;
+  }
+
+  errorsInstrumented = true;
   addInstrumentationHandler('error', errorCallback);
   addInstrumentationHandler('unhandledrejection', errorCallback);
 }
