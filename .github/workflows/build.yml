@@ -24,6 +24,9 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  # For swc jest
+  RUST_BACKTRACE: 1
+
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules

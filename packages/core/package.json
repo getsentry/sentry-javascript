@@ -38,7 +38,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
-    "test": "RUST_BACKTRACE=1 jest",
+    "test": "jest",
     "test:watch": "jest --watch",
     "version": "node ../../scripts/versionbump.js src/version.ts"
   },
