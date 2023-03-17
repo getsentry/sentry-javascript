@@ -21,5 +21,3 @@ export {
 export type { RequestInstrumentationOptions } from './browser';
 
 export { addExtensionMethods } from './extensions';
-
-export { registerErrorInstrumentation } from './errors';
