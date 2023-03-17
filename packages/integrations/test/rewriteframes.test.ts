@@ -6,6 +6,7 @@ let rewriteFrames: RewriteFrames;
 let exceptionEvent: Event;
 let exceptionWithoutStackTrace: Event;
 let windowsExceptionEvent: Event;
+let windowsLowerCaseExceptionEvent: Event;
 let multipleStacktracesEvent: Event;
 
 describe('RewriteFrames', () => {
@@ -27,6 +28,17 @@ describe('RewriteFrames', () => {
           {
             stacktrace: {
               frames: [{ filename: 'C:\\www\\src\\app\\file1.js' }, { filename: 'C:\\www\\src\\app\\file2.js' }],
+            },
+          },
+        ],
+      },
+    };
+    windowsLowerCaseExceptionEvent = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [{ filename: 'c:\\www\\src\\app\\file1.js' }, { filename: 'c:\\www\\src\\app\\file2.js' }],
             },
           },
         ],
@@ -93,13 +105,19 @@ describe('RewriteFrames', () => {
     });
   });
 
-  describe('default iteratee appends basename to `app:///` if frame starts with `C:\\`', () => {
+  describe('default iteratee appends basename to `app:///` if frame starts with Windows path prefix', () => {
     beforeEach(() => {
       rewriteFrames = new RewriteFrames();
     });
 
-    it('transforms windowsExceptionEvent frames', () => {
+    it('transforms windowsExceptionEvent frames (C:\\)', () => {
       const event = rewriteFrames.process(windowsExceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
+    });
+
+    it('transforms windowsExceptionEvent frames with lower-case prefix (c:\\)', () => {
+      const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
@@ -120,6 +138,12 @@ describe('RewriteFrames', () => {
 
     it('trasforms windowsExceptionEvent frames', () => {
       const event = rewriteFrames.process(windowsExceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('trasforms windowsExceptionEvent lower-case prefix frames', () => {
+      const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
