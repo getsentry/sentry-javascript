@@ -18,7 +18,7 @@ import type * as serverSdk from './server';
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(
-  handleError: T,
+  handleError?: T,
 ): ReturnType<T>;
 
 export declare function wrapLoadWithSentry<S extends ServerLoad>(origLoad: S): S;

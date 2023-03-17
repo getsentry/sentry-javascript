@@ -80,7 +80,7 @@ describe('Sentry.trackComponent()', () => {
   it('creates an update span, when the component is updated', async () => {
     // Make the finish() function actually end the initSpan
     testInitSpan.finish.mockImplementation(() => {
-      testInitSpan.endTimestamp = new Date().getTime();
+      testInitSpan.endTimestamp = Date.now();
     });
 
     // first we create the component
@@ -171,7 +171,7 @@ describe('Sentry.trackComponent()', () => {
   it("doesn't record update spans, if there's no ongoing transaction at that time", async () => {
     // Make the finish() function actually end the initSpan
     testInitSpan.finish.mockImplementation(() => {
-      testInitSpan.endTimestamp = new Date().getTime();
+      testInitSpan.endTimestamp = Date.now();
     });
 
     // first we create the component

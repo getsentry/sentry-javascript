@@ -9,7 +9,7 @@ export function createBreadcrumb(
   breadcrumb: Pick<Breadcrumb, RequiredProperties> & Partial<Omit<Breadcrumb, RequiredProperties>>,
 ): Breadcrumb {
   return {
-    timestamp: new Date().getTime() / 1000,
+    timestamp: Date.now() / 1000,
     type: 'default',
     ...breadcrumb,
   };

@@ -29,6 +29,10 @@ export { INTEGRATIONS as Integrations };
 export { Replay } from '@sentry/replay';
 // __ROLLUP_EXCLUDE_REPLAY_FROM_BUNDLES_END__
 
+// __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_BEGIN__
+export { BrowserTracing } from '@sentry-internal/tracing';
+// __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_END__
+
 // __ROLLUP_EXCLUDE_OFFLINE_FROM_BUNDLES_BEGIN__
 export { makeBrowserOfflineTransport } from './transports/offline';
 // __ROLLUP_EXCLUDE_OFFLINE_FROM_BUNDLES_END__
