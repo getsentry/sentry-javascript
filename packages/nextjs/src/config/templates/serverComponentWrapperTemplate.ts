@@ -38,9 +38,15 @@ if (typeof serverComponent === 'function') {
       // If we call the headers function inside the build phase, Next.js will automatically mark the server component as
       // dynamic(SSR) which we do not want in case the users have a static component.
       if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        const headersList = headers();
-        sentryTraceHeader = headersList.get('sentry-trace');
-        baggageHeader = headersList.get('baggage');
+        // try/catch because calling headers() when a previously statically generated page is being revalidated causes a
+        // runtime error in next.js as switching a page from static to dynamic during runtime is not allowed
+        try {
+          const headersList = headers();
+          sentryTraceHeader = headersList.get('sentry-trace');
+          baggageHeader = headersList.get('baggage');
+        } catch {
+          /** empty */
+        }
       }
 
       return Sentry.wrapServerComponentWithSentry(originalFunction, {
