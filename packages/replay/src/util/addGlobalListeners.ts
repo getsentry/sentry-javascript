@@ -23,6 +23,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   }
   addInstrumentationHandler('dom', handleDomListener(replay));
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
+  handleNetworkBreadcrumbs(replay);
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   const hasHooks = !!(client && client.on);
@@ -35,6 +36,4 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (client as BaseClient<any>).on('afterSendEvent', handleAfterSendEvent(replay));
   }
-
-  handleNetworkBreadcrumbs(replay);
 }

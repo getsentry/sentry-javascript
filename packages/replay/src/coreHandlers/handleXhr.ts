@@ -1,7 +1,7 @@
 import type { HandlerDataXhr } from '@sentry/types';
 
 import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addPerformanceEntryBreadcrumb } from './handleNetworkBreadcrumbs';
+import { addNetworkBreadcrumb } from './handleNetworkBreadcrumbs';
 
 /** only exported for tests */
 export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry | null {
@@ -48,6 +48,6 @@ export function handleXhrSpanListener(replay: ReplayContainer): (handlerData: Ha
 
     const result = handleXhr(handlerData);
 
-    addPerformanceEntryBreadcrumb(replay, result);
+    addNetworkBreadcrumb(replay, result);
   };
 }

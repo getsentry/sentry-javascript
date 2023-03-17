@@ -84,7 +84,7 @@ export function handleNetworkBreadcrumb(
 
       // Create a replay performance entry from this breadcrumb
       const result = _makeReplayBreadcrumb('resource.xhr', breadcrumb, hint);
-      addPerformanceEntryBreadcrumb(options.replay, result);
+      addNetworkBreadcrumb(options.replay, result);
     }
 
     if (_isFetchBreadcrumb(breadcrumb) && _isFetchHint(hint)) {
@@ -93,7 +93,7 @@ export function handleNetworkBreadcrumb(
 
       // Create a replay performance entry from this breadcrumb
       const result = _makeReplayBreadcrumb('resource.fetch', breadcrumb, hint);
-      addPerformanceEntryBreadcrumb(options.replay, result);
+      addNetworkBreadcrumb(options.replay, result);
     }
   } catch (e) {
     __DEBUG_BUILD__ && logger.warn('Error when enriching network breadcrumb');
@@ -245,7 +245,7 @@ function getFetchBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefine
 }
 
 /** Add a performance entry breadcrumb */
-export function addPerformanceEntryBreadcrumb(replay: ReplayContainer, result: ReplayPerformanceEntry | null): void {
+export function addNetworkBreadcrumb(replay: ReplayContainer, result: ReplayPerformanceEntry | null): void {
   if (!replay.isEnabled()) {
     return;
   }
