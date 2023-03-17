@@ -1,22 +1,21 @@
-import { TextEncoder } from 'util';
-
-import {
-  getBodySize,
-  parseContentSizeHeader,
-  handleNetworkBreadcrumb,
-} from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
-import {
+import type {
   Breadcrumb,
   BreadcrumbHint,
-  TextEncoderInternal,
-  XhrBreadcrumbData,
-  XhrBreadcrumbHint,
   FetchBreadcrumbHint,
+  TextEncoderInternal,
+  XhrBreadcrumbHint,
 } from '@sentry/types';
-import { setupReplayContainer } from '../../utils/setupReplayContainer';
-import { ReplayContainer } from '../../../src/types';
-import { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
+import { TextEncoder } from 'util';
+
 import { BASE_TIMESTAMP } from '../..';
+import {
+  getBodySize,
+  handleNetworkBreadcrumb,
+  parseContentSizeHeader,
+} from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
+import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
+import type { ReplayContainer } from '../../../src/types';
+import { setupReplayContainer } from '../../utils/setupReplayContainer';
 
 jest.useFakeTimers();
 

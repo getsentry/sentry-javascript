@@ -1,7 +1,7 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
 import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addNetworkBreadcrumb } from './handleNetworkBreadcrumbs';
+import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 
 /** only exported for tests */
 export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry {

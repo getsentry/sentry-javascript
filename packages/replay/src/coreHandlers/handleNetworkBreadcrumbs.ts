@@ -5,7 +5,6 @@ import type {
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataFetch,
-  HandlerDataXhr,
   SentryWrappedXMLHttpRequest,
   TextEncoderInternal,
   XhrBreadcrumbData,
@@ -14,8 +13,7 @@ import type {
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
 import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { createPerformanceSpans } from '../util/createPerformanceSpans';
-import { shouldFilterRequest } from '../util/shouldFilterRequest';
+import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import { handleFetchSpanListener } from './handleFetch';
 import { handleXhrSpanListener } from './handleXhr';
 
@@ -242,29 +240,6 @@ function getFetchBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefine
   }
 
   return (fetchArgs[1] as RequestInit).body;
-}
-
-/** Add a performance entry breadcrumb */
-export function addNetworkBreadcrumb(replay: ReplayContainer, result: ReplayPerformanceEntry | null): void {
-  if (!replay.isEnabled()) {
-    return;
-  }
-
-  if (result === null) {
-    return;
-  }
-
-  if (shouldFilterRequest(replay, result.name)) {
-    return;
-  }
-
-  replay.addUpdate(() => {
-    createPerformanceSpans(replay, [result]);
-    // Returning true will cause `addUpdate` to not flush
-    // We do not want network requests to cause a flush. This will prevent
-    // recurring/polling requests from keeping the replay session alive.
-    return true;
-  });
 }
 
 function _isXhrBreadcrumb(breadcrumb: Breadcrumb): breadcrumb is Breadcrumb & { data: XhrBreadcrumbData } {

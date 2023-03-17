@@ -1,7 +1,7 @@
 import type { HandlerDataXhr } from '@sentry/types';
 
 import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addNetworkBreadcrumb } from './handleNetworkBreadcrumbs';
+import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 
 /** only exported for tests */
 export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry | null {
