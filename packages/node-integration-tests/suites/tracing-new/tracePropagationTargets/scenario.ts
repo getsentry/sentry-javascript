@@ -1,8 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import '@sentry/tracing';
-
 import * as Sentry from '@sentry/node';
 import * as http from 'http';
+
+Sentry.addTracingExtensions();
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

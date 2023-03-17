@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 import { randomBytes } from 'crypto';
 
 const client = new PrismaClient();
@@ -10,7 +9,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  integrations: [new Tracing.Integrations.Prisma({ client })],
+  integrations: [new Sentry.Prisma({ client })],
 });
 
 async function run(): Promise<void> {
