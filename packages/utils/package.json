@@ -45,7 +45,8 @@
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:package": "node test/types/index.js"
+    "test:package": "node test/types/index.js",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"
