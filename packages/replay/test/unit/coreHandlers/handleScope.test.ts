@@ -24,7 +24,7 @@ describe('Unit | coreHandlers | handleScope', () => {
     }
 
     const testMsg = {
-      timestamp: new Date().getTime() / 1000,
+      timestamp: Date.now() / 1000,
       message: 'testing',
       category: 'console',
     };

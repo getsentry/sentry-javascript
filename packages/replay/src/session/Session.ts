@@ -7,7 +7,7 @@ import { isSampled } from '../util/isSampled';
  * Get a session with defaults & applied sampling.
  */
 export function makeSession(session: Partial<Session> & { sampled: Sampled }): Session {
-  const now = new Date().getTime();
+  const now = Date.now();
   const id = session.id || uuid4();
   // Note that this means we cannot set a started/lastActivity of `0`, but this should not be relevant outside of tests.
   const started = session.started || now;
