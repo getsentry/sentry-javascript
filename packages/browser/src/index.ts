@@ -31,6 +31,7 @@ export { Replay } from '@sentry/replay';
 
 // __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_BEGIN__
 export { BrowserTracing } from '@sentry-internal/tracing';
+export { addTracingExtensions } from '@sentry/core';
 // __ROLLUP_EXCLUDE_BROWSER_TRACING_FROM_BUNDLES_END__
 
 // __ROLLUP_EXCLUDE_OFFLINE_FROM_BUNDLES_BEGIN__
