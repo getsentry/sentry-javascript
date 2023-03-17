@@ -81,7 +81,7 @@ export function handleNetworkBreadcrumb(
       _enrichXhrBreadcrumb(breadcrumb, hint, options);
 
       // Create a replay performance entry from this breadcrumb
-      const result = _makeReplayBreadcrumb('resource.xhr', breadcrumb, hint);
+      const result = _makeNetworkReplayBreadcrumb('resource.xhr', breadcrumb, hint);
       addNetworkBreadcrumb(options.replay, result);
     }
 
@@ -90,7 +90,7 @@ export function handleNetworkBreadcrumb(
       _enrichFetchBreadcrumb(breadcrumb, hint, options);
 
       // Create a replay performance entry from this breadcrumb
-      const result = _makeReplayBreadcrumb('resource.fetch', breadcrumb, hint);
+      const result = _makeNetworkReplayBreadcrumb('resource.fetch', breadcrumb, hint);
       addNetworkBreadcrumb(options.replay, result);
     }
   } catch (e) {
@@ -98,7 +98,7 @@ export function handleNetworkBreadcrumb(
   }
 }
 
-function _makeReplayBreadcrumb(
+function _makeNetworkReplayBreadcrumb(
   type: string,
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData | XhrBreadcrumbData },
   hint: FetchBreadcrumbHint | XhrBreadcrumbHint,
