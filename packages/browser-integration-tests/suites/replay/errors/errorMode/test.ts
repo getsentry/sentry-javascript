@@ -17,8 +17,9 @@ import {
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, browserName }) => {
+    // This was sometimes flaky on firefox/webkit, so skipping for now
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 

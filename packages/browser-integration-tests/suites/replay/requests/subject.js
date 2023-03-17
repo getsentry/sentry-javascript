@@ -6,7 +6,7 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('fetch').addEventListener('click', () => {
-  fetch('https://example.com');
+  fetch('https://example.com', { method: 'POST', body: 'foo' });
 });
 
 document.getElementById('xhr').addEventListener('click', () => {
