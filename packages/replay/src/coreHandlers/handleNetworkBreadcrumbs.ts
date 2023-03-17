@@ -45,9 +45,6 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
   try {
     const textEncoder = new TextEncoder();
 
-    const handleFetch = handleFetchSpanListener(replay);
-    const handleXhr = handleXhrSpanListener(replay);
-
     const options: ExtendedNetworkBreadcrumbsOptions = {
       replay,
       textEncoder,
@@ -57,8 +54,8 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       client.on('beforeAddBreadcrumb', (breadcrumb, hint) => handleNetworkBreadcrumb(options, breadcrumb, hint));
     } else {
       // Fallback behavior
-      addInstrumentationHandler('fetch', handleFetch);
-      addInstrumentationHandler('xhr', handleXhr);
+      addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
+      addInstrumentationHandler('xhr', handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing
