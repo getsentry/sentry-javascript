@@ -6,7 +6,7 @@
 
 ## 7.44.1
 
-- ref(core): move beforeEnvelope to client (#7527)
+- ref(core): Move beforeEnvelope to client (#7527)
 
 ## 7.44.0
 
