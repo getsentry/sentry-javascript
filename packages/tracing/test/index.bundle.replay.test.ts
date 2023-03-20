@@ -1,20 +1,23 @@
-import * as Sentry from '../src/index.bundle.replay';
+import { BrowserTracing } from '@sentry-internal/tracing';
+import { Replay } from '@sentry/browser';
 
-// Because of the way how we re-export stuff for the replay bundle, we only have a single default export
-const { Integrations } = Sentry;
+import * as TracingReplayBundle from '../src/index.bundle.replay';
 
-describe('Integrations export', () => {
-  it('is exported correctly', () => {
-    Object.keys(Integrations).forEach(key => {
+describe('index.bundle.replay', () => {
+  it('has correct exports', () => {
+    Object.keys(TracingReplayBundle.Integrations).forEach(key => {
       // Skip BrowserTracing because it doesn't have a static id field.
       if (key === 'BrowserTracing') {
         return;
       }
 
-      expect((Integrations[key] as any).id).toStrictEqual(expect.any(String));
+      expect((TracingReplayBundle.Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
 
-    expect(Integrations.Replay).toBeDefined();
-    expect(Sentry.Replay).toBeDefined();
+    expect(TracingReplayBundle.Integrations.Replay).toBe(Replay);
+    expect(TracingReplayBundle.Replay).toBe(Replay);
+
+    expect(TracingReplayBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
+    expect(TracingReplayBundle.BrowserTracing).toBe(BrowserTracing);
   });
 });

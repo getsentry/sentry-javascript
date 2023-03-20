@@ -9,7 +9,7 @@ interface HistoryHandlerData {
 function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
   const { from, to } = handlerData;
 
-  const now = new Date().getTime() / 1000;
+  const now = Date.now() / 1000;
 
   return {
     type: 'navigation.push',

@@ -56,7 +56,8 @@
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "yarn ts-node scripts/pretest.ts && yarn jest",
-    "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch"
+    "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

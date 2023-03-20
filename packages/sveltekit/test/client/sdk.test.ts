@@ -1,14 +1,16 @@
 import { getCurrentHub } from '@sentry/core';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW } from '@sentry/svelte';
+import { vi } from 'vitest';
 
 import { init } from '../../src/client/sdk';
-const svelteInit = jest.spyOn(SentrySvelte, 'init');
+
+const svelteInit = vi.spyOn(SentrySvelte, 'init');
 
 describe('Sentry client SDK', () => {
   describe('init', () => {
     afterEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       WINDOW.__SENTRY__.hub = undefined;
     });
 

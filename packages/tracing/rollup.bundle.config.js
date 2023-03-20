@@ -21,7 +21,6 @@ const replayBaseBundleConfig = makeBaseBundleConfig({
   jsVersion: 'es6',
   licenseTitle: '@sentry/tracing & @sentry/browser & @sentry/replay',
   outputFileBase: () => 'bundles/bundle.tracing.replay',
-  includeReplay: true,
 });
 
 builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));

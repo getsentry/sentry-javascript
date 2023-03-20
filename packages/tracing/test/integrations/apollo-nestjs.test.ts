@@ -2,8 +2,7 @@
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Span } from '../../src';
-import { Apollo } from '../../src/node/integrations/apollo';
+import { Integrations, Span } from '../../src';
 import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
@@ -67,7 +66,7 @@ describe('setupOnce', () => {
   let GraphQLFactoryInstance: GraphQLFactory;
 
   beforeAll(() => {
-    new Apollo({
+    new Integrations.Apollo({
       useNestjs: true,
     }).setupOnce(
       () => undefined,
@@ -113,7 +112,7 @@ describe('setupOnce', () => {
     const client = getTestClient({ instrumenter: 'otel' });
     const hub = new Hub(client);
 
-    const integration = new Apollo({ useNestjs: true });
+    const integration = new Integrations.Apollo({ useNestjs: true });
     integration.setupOnce(
       () => {},
       () => hub,

@@ -13,6 +13,17 @@ export const TRACING_DEFAULTS = {
   heartbeatInterval: 5000,
 };
 
+const FINISH_REASON_TAG = 'finishReason';
+
+const IDLE_TRANSACTION_FINISH_REASONS = [
+  'heartbeatFailed',
+  'idleTimeout',
+  'documentHidden',
+  'finalTimeout',
+  'externalFinish',
+  'cancelled',
+];
+
 /**
  * @inheritDoc
  */
@@ -79,6 +90,8 @@ export class IdleTransaction extends Transaction {
    */
   private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
+  private _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
+
   public constructor(
     transactionContext: TransactionContext,
     private readonly _idleHub: Hub,
@@ -111,6 +124,7 @@ export class IdleTransaction extends Transaction {
     setTimeout(() => {
       if (!this._finished) {
         this.setStatus('deadline_exceeded');
+        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[3];
         this.finish();
       }
     }, this._finalTimeout);
@@ -120,6 +134,10 @@ export class IdleTransaction extends Transaction {
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     this._finished = true;
     this.activities = {};
+
+    if (this.op === 'ui.action.click') {
+      this.setTag(FINISH_REASON_TAG, this._finishReason);
+    }
 
     if (this.spanRecorder) {
       __DEBUG_BUILD__ &&
@@ -221,12 +239,13 @@ export class IdleTransaction extends Transaction {
       restartOnChildSpanChange: true,
     },
   ): void {
+    this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
     if (this._idleTimeoutID) {
       clearTimeout(this._idleTimeoutID);
       this._idleTimeoutID = undefined;
-      this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
 
       if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
+        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
         this.finish(endTimestamp);
       }
     }
@@ -239,6 +258,7 @@ export class IdleTransaction extends Transaction {
     this.cancelIdleTimeout();
     this._idleTimeoutID = setTimeout(() => {
       if (!this._finished && Object.keys(this.activities).length === 0) {
+        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[1];
         this.finish(endTimestamp);
       }
     }, this._idleTimeout);
@@ -249,7 +269,7 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    this.cancelIdleTimeout();
+    this.cancelIdleTimeout(undefined, { restartOnChildSpanChange: !this._idleTimeoutCanceledPermanently });
     __DEBUG_BUILD__ && logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     __DEBUG_BUILD__ && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -270,6 +290,7 @@ export class IdleTransaction extends Transaction {
     if (Object.keys(this.activities).length === 0) {
       const endTimestamp = timestampWithMs();
       if (this._idleTimeoutCanceledPermanently) {
+        this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
         this.finish(endTimestamp);
       } else {
         // We need to add the timeout here to have the real endtimestamp of the transaction
@@ -302,6 +323,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       __DEBUG_BUILD__ && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
       this.setStatus('deadline_exceeded');
+      this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
       this.finish();
     } else {
       this._pingHeartbeat();

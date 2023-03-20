@@ -1,6 +1,7 @@
 jest.mock('dns');
 
 import { PubSub } from '@google-cloud/pubsub';
+import * as SentryNode from '@sentry/node';
 import * as dns from 'dns';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
@@ -8,7 +9,6 @@ import * as http2 from 'http2';
 import * as nock from 'nock';
 import * as path from 'path';
 
-import * as Sentry from '../src';
 import { GoogleCloudGrpc } from '../src/google-cloud-grpc';
 
 /**
@@ -86,7 +86,7 @@ describe('GoogleCloudGrpc tracing', () => {
   });
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    SentryNode.resetMocks();
     spyConnect.mockClear();
   });
   afterAll(() => {
@@ -127,7 +127,7 @@ describe('GoogleCloudGrpc tracing', () => {
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.startChild).toBeCalledWith({
+      expect(SentryNode.fakeTransaction.startChild).toBeCalledWith({
         op: 'grpc.pubsub',
         description: 'unary call publish',
       });

@@ -194,7 +194,7 @@ function prepopulateEvents(count: number = 1): void {
   for (let i = 0; i < count; i++) {
     events.push({
       message: 'There was an error!',
-      timestamp: new Date().getTime(),
+      timestamp: Date.now(),
     });
   }
 }

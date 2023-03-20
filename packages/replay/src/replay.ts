@@ -32,7 +32,6 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
 
 /**
@@ -79,7 +78,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Timestamp of the last user activity. This lives across sessions.
    */
-  private _lastActivity: number = new Date().getTime();
+  private _lastActivity: number = Date.now();
 
   /**
    * Is the integration currently active?
@@ -109,7 +108,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     traceIds: new Set(),
     urls: [],
     earliestEvent: null,
-    initialTimestamp: new Date().getTime(),
+    initialTimestamp: Date.now(),
     initialUrl: '',
   };
 
@@ -392,11 +391,19 @@ export class ReplayContainer implements ReplayContainerInterface {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
-    // MAX_SESSION_LIFE. Otherwise non-user activity can trigger a new
+    // SESSION_IDLE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
-    if (this._lastActivity && isExpired(this._lastActivity, this.timeouts.maxSessionLife)) {
-      // Pause recording
+    if (
+      this._lastActivity &&
+      isExpired(this._lastActivity, this.timeouts.sessionIdle) &&
+      this.session &&
+      this.session.sampled === 'session'
+    ) {
+      // Pause recording only for session-based replays. Otherwise, resuming
+      // will create a new replay and will conflict with users who only choose
+      // to record error-based replays only. (e.g. the resumed replay will not
+      // contain a reference to an error)
       this.pause();
       return;
     }
@@ -435,7 +442,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._clearContext();
 
     this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
+    this._context.initialTimestamp = Date.now();
     this._context.urls.push(url);
   }
 
@@ -491,9 +498,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.addEventListener('blur', this._handleWindowBlur);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
 
-      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      overwriteRecordDroppedEvent(this._context.errorIds);
-
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
         addGlobalListeners(this);
@@ -521,8 +525,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
-
-      restoreRecordDroppedEvent();
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
@@ -632,14 +634,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Update user activity (across session lifespans)
    */
-  private _updateUserActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateUserActivity(_lastActivity: number = Date.now()): void {
     this._lastActivity = _lastActivity;
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  private _updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateSessionActivity(_lastActivity: number = Date.now()): void {
     if (this.session) {
       this.session.lastActivity = _lastActivity;
       this._maybeSaveSession();
@@ -766,7 +768,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
-        timestamp: new Date().getTime(),
+        timestamp: Date.now(),
       });
     } catch (err) {
       this._handleException(err);

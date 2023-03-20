@@ -12,11 +12,11 @@
     "build:types:watch": "ts-node scripts/build-types-watch.ts",
     "build:tarball": "lerna run build:tarball",
     "circularDepCheck": "lerna run circularDepCheck",
-    "clean": "run-p clean:build clean:caches",
+    "clean": "run-s clean:build clean:caches",
     "clean:build": "lerna run clean",
     "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
-    "clean:all": "run-p clean:build clean:caches clean:deps",
+    "clean:all": "run-s clean:build clean:caches clean:deps",
     "codecov": "codecov",
     "fix": "lerna run fix",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
@@ -28,7 +28,8 @@
     "test:unit": "lerna run --ignore @sentry-internal/* test:unit",
     "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby}\" --ignore @sentry-internal/*",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
-    "test:update-snapshots": "lerna run test:update-snapshots"
+    "test:update-snapshots": "lerna run test:update-snapshots",
+    "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
     "node": "16.19.0",
@@ -38,6 +39,7 @@
     "packages/angular",
     "packages/angular-ivy",
     "packages/browser",
+    "packages/browser-integration-tests",
     "packages/core",
     "packages/e2e-tests",
     "packages/ember",
@@ -45,8 +47,8 @@
     "packages/eslint-plugin-sdk",
     "packages/gatsby",
     "packages/hub",
-    "packages/integration-tests",
     "packages/integrations",
+    "packages/integration-shims",
     "packages/overhead-metrics",
     "packages/nextjs",
     "packages/node",
@@ -60,6 +62,7 @@
     "packages/svelte",
     "packages/sveltekit",
     "packages/tracing",
+    "packages/tracing-internal",
     "packages/types",
     "packages/typescript",
     "packages/utils",
@@ -81,6 +84,7 @@
     "@types/node": "~10.17.0",
     "@types/rimraf": "^3.0.2",
     "@types/sinon": "^7.0.11",
+    "@vitest/coverage-c8": "^0.29.2",
     "acorn": "^8.7.0",
     "chai": "^4.1.2",
     "codecov": "^3.6.5",
@@ -93,7 +97,6 @@
     "karma-firefox-launcher": "^1.1.0",
     "lerna": "6.5.0-alpha.2",
     "madge": "4.0.2",
-    "magic-string": "^0.27.0",
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",
@@ -112,7 +115,9 @@
     "ts-node": "10.9.1",
     "tslib": "^2.3.1",
     "typedoc": "^0.18.0",
-    "typescript": "3.8.3"
+    "typescript": "3.8.3",
+    "vitest": "^0.29.2",
+    "yalc": "^1.0.0-pre.53"
   },
   "resolutions": {
     "**/agent-base": "5"

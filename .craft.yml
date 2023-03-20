@@ -11,6 +11,8 @@ targets:
           - nodejs10.x
           - nodejs12.x
           - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
     license: MIT
   - name: gcs
     includeNames: /.*\.js.*$/
@@ -22,7 +24,6 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: npm
-    excludeNames: /^sentry-sveltekit-.*$/
   - name: registry
     sdks:
       'npm:@sentry/browser':

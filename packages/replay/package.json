@@ -29,7 +29,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "bootstrap:demo": "cd demo && yarn",
-    "start:demo": "yarn build:dev && cd demo && yarn start"
+    "start:demo": "yarn build:dev && cd demo && yarn start",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "repository": {
     "type": "git",
@@ -44,7 +45,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "7.43.0",
-    "@sentry-internal/rrweb": "1.105.0",
+    "@sentry-internal/rrweb": "1.106.0",
+    "@sentry-internal/rrweb-snapshot": "1.106.0",
     "jsdom-worker": "^0.2.1",
     "tslib": "^1.9.3"
   },
