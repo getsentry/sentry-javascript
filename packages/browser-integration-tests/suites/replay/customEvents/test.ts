@@ -163,10 +163,7 @@ sentryTest(
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                // TODO(rrweb): This is a bug in our rrweb fork!
-                // This attribute should be unmasked.
-                // 'aria-label': 'Unmasked label',
-                'aria-label': '******** *****',
+                'aria-label': 'Unmasked label',
                 class: 'sentry-unmask',
               },
               id: expect.any(Number),

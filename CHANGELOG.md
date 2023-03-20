@@ -4,6 +4,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+**Replay `rrweb` changes:**
+
+`@sentry-internal/rrweb` was updated from 1.105.0 to 1.106.0:
+
+- feat: Ensure password inputs are always masked ([#78](https://github.com/getsentry/rrweb/pull/78))
+- fix: Ensure text masking for updated attributes works ([#83](https://github.com/getsentry/rrweb/pull/83))
+- fix: Ensure unmaskTextSelector is used for masked attributes ([#81](https://github.com/getsentry/rrweb/pull/81))
+- fix: Mask <option> values for selects & radio/checkbox value ([#75](https://github.com/getsentry/rrweb/pull/75))
+
 ## 7.43.0
 
 - feat(nextjs): Run source map upload in Vercel develop and preview environments (#7436)

@@ -4,7 +4,7 @@ module.exports = {
     node: true,
   },
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: ['suites/**/subject.js', 'suites/**/dist/*'],
+  ignorePatterns: ['suites/**/subject.js', 'suites/**/dist/*', 'scripts/**'],
   parserOptions: {
     sourceType: 'module',
   },

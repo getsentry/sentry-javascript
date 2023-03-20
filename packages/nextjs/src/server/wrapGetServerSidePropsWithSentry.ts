@@ -44,7 +44,7 @@ export function wrapGetServerSidePropsWithSentry(
           typeof tracedGetServerSideProps
         >);
 
-        if ('props' in serverSideProps) {
+        if (serverSideProps && 'props' in serverSideProps) {
           const requestTransaction = getTransactionFromRequest(req);
           if (requestTransaction) {
             serverSideProps.props._sentryTraceData = requestTransaction.toTraceparent();

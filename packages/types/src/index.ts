@@ -1,5 +1,12 @@
 export type { Attachment } from './attachment';
-export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+export type {
+  Breadcrumb,
+  BreadcrumbHint,
+  FetchBreadcrumbData,
+  XhrBreadcrumbData,
+  FetchBreadcrumbHint,
+  XhrBreadcrumbHint,
+} from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
