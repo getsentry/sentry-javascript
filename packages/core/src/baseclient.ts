@@ -646,9 +646,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritdoc
    */
   protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    this.emit('beforeEnvelope', envelope);
-
     if (this._transport && this._dsn) {
+      this.emit('beforeEnvelope', envelope);
+
       return this._transport.send(envelope).then(null, reason => {
         __DEBUG_BUILD__ && logger.error('Error while sending event:', reason);
       });
