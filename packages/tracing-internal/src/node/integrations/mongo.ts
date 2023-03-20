@@ -1,5 +1,4 @@
 import type { Hub } from '@sentry/core';
-import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -122,7 +121,6 @@ export class Mongo implements Integration {
     this._operations = Array.isArray(options.operations) ? options.operations : (OPERATIONS as unknown as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
     this._useMongoose = !!options.useMongoose;
-    addTracingExtensions();
   }
 
   /**

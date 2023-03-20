@@ -1,5 +1,4 @@
 import type { Hub } from '@sentry/core';
-import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { isThenable, logger } from '@sentry/utils';
 
@@ -72,7 +71,6 @@ export class Prisma implements Integration {
           `Unsupported Prisma client provided to PrismaIntegration. Provided client: ${JSON.stringify(options.client)}`,
         );
     }
-    addTracingExtensions();
   }
 
   /**

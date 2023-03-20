@@ -21,10 +21,6 @@ export class Mysql implements Integration {
    */
   public name: string = Mysql.id;
 
-  public constructor() {
-    addTracingExtensions();
-  }
-
   /**
    * @inheritDoc
    */

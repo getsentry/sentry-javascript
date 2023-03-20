@@ -36,8 +36,6 @@ export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
-export declare function addTracingExtensions(): void;
-
 export declare const Span: typeof edgeSdk.Span;
 
 /**

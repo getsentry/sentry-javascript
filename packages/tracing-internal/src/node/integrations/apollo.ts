@@ -1,5 +1,4 @@
 import type { Hub } from '@sentry/core';
-import { addTracingExtensions } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -40,7 +39,6 @@ export class Apollo implements Integration {
     },
   ) {
     this._useNest = !!options.useNestjs;
-    addTracingExtensions();
   }
 
   /**
