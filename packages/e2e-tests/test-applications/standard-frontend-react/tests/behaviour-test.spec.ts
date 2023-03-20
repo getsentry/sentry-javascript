@@ -251,7 +251,4 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
       status: 200,
       data: ReplayRecordingData,
     });
-
-  context.close();
-  page.close();
 });
