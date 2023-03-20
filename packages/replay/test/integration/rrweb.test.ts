@@ -20,7 +20,7 @@ describe('Integration | rrweb', () => {
         "blockSelector": ".sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]",
         "collectFonts": true,
         "emit": [Function],
-        "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore]",
+        "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
         "inlineImages": false,
         "inlineStylesheet": true,
         "maskAllInputs": true,
