@@ -26,7 +26,7 @@ export interface DebugSession {
 class AsyncSession implements DebugSession {
   private readonly _session: Session;
 
-  /** Throws is inspector API is not available */
+  /** Throws if inspector API is not available */
   public constructor() {
     /*
     TODO: We really should get rid of this require statement below for a couple of reasons:
