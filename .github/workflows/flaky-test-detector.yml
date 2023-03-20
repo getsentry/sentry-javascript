@@ -1,0 +1,81 @@
+name: 'Detect flaky tests'
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packages/browser-integration-tests/suites/**'
+
+env:
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+
+  NX_CACHE_RESTORE_KEYS: |
+    nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
+    nx-Linux-${{ github.ref }}
+    nx-Linux
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  flaky-detector:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    name: 'Check tests for flakiness'
+    steps:
+      - name: Check out current branch
+        uses: actions/checkout@v3
+      - name: Set up Node
+        uses: volta-cli/action@v4
+
+      - name: Install dependencies
+        run: yarn install --ignore-engines --frozen-lockfile
+
+      - name: NX cache
+        uses: actions/cache/restore@v3
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        name: Check if Playwright browser is cached
+        id: playwright-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
+      - name: Install Playwright browser if not cached
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
+      - name: Install OS dependencies of Playwright if cache hit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Determine changed tests
+        uses: getsentry/paths-filter@v2.11.1
+        id: changed
+        with:
+          list-files: json
+          filters: |
+            browser_integration: packages/browser-integration-tests/suites/**
+
+      - name: Detect flaky tests
+        run: yarn test:detect-flaky
+        working-directory: packages/browser-integration-tests
+        env:
+          CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
+          # Run 100 times when detecting changed test(s), else run all tests 5x
+          TEST_RUN_COUNT: ${{ steps.changed.outputs.browser_integration == 'true' && 100 || 5 }}
