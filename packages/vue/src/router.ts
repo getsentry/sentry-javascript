@@ -65,7 +65,8 @@ export function vueRouterInstrumentation(
 
     // We have to start the pageload transaction as early as possible (before the router's `beforeEach` hook
     // is called) to not miss child spans of the pageload.
-    if (startTransactionOnPageLoad) {
+    // We check that window & window.location exists in order to not run this code in SSR environments.
+    if (startTransactionOnPageLoad && WINDOW && WINDOW.location) {
       startTransaction({
         name: WINDOW.location.pathname,
         op: 'pageload',
