@@ -217,7 +217,7 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
     )
     .toBe(200);
 
-  // now fetch the first recoridng segment
+  // now fetch the first recording segment
   await expect
     .poll(
       async () => {
