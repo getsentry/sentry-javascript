@@ -31,7 +31,7 @@ export const ReplayRecordingData = [
                     {
                       type: 2,
                       tagName: 'meta',
-                      attributes: { name: 'theme-color', content: '#expect.any(Number)' },
+                      attributes: { name: 'theme-color', content: '#000000' },
                       childNodes: [],
                       id: 7,
                     },
@@ -154,7 +154,7 @@ export const ReplayRecordingData = [
         tag: 'performanceSpan',
         payload: {
           op: 'resource.script',
-          description: 'http://localhost:3000/static/js/main.2517f1d8.js',
+          description: expect.stringMatching(/http:\/\/localhost:3000\/static\/js\/main.(\w+).js/),
           startTimestamp: expect.any(Number),
           endTimestamp: expect.any(Number),
           data: { size: expect.any(Number), encodedBodySize: expect.any(Number) },
