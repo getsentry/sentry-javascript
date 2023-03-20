@@ -75,7 +75,8 @@
     "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
     "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
     "test:unit:watch": "jest --watch",
-    "test:integration:watch": "test/integration/run.js --watch"
+    "test:integration:watch": "test/integration/run.js --watch",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "volta": {
     "extends": "../../package.json"

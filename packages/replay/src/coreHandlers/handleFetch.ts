@@ -1,8 +1,7 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
 import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { createPerformanceSpans } from '../util/createPerformanceSpans';
-import { shouldFilterRequest } from '../util/shouldFilterRequest';
+import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 
 /** only exported for tests */
 export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry {
@@ -39,20 +38,6 @@ export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: 
 
     const result = handleFetch(handlerData);
 
-    if (result === null) {
-      return;
-    }
-
-    if (shouldFilterRequest(replay, result.name)) {
-      return;
-    }
-
-    replay.addUpdate(() => {
-      createPerformanceSpans(replay, [result]);
-      // Returning true will cause `addUpdate` to not flush
-      // We do not want network requests to cause a flush. This will prevent
-      // recurring/polling requests from keeping the replay session alive.
-      return true;
-    });
+    addNetworkBreadcrumb(replay, result);
   };
 }

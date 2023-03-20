@@ -28,7 +28,8 @@
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
-    "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots"
+    "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots",
+    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
@@ -39,6 +40,10 @@
     "playwright": "^1.31.1",
     "typescript": "^4.5.2",
     "webpack": "^5.52.0"
+  },
+  "devDependencies": {
+    "glob": "8.0.3",
+    "@types/glob": "8.0.0"
   },
   "volta": {
     "extends": "../../package.json"

@@ -4032,17 +4032,17 @@
     semver "7.3.2"
     semver-intersect "1.4.0"
 
-"@sentry-internal/rrweb-snapshot@1.105.0":
-  version "1.105.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.105.0.tgz#b95d056e3602ab075049b31354942051137f3de2"
-  integrity sha512-UsrCVB5PVKTd3nXidUQSFQPjMHi2p5RzcujdBVuZfOJmRAqkHW6fN3CM4H6vJh0L5bgs+O/MFTNSv+iiAyVrBQ==
+"@sentry-internal/rrweb-snapshot@1.106.0":
+  version "1.106.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-1.106.0.tgz#24714d4005a918855eeb09d4deda457198f77caf"
+  integrity sha512-jLX6uGAW8StwPlQOScLhERVa6VOPmbQRFdhTx70Flkt0ocxg2vBJSdaI4Efu3jU0mtA0gHR01LB5xd1ODMRXow==
 
-"@sentry-internal/rrweb@1.105.0":
-  version "1.105.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.105.0.tgz#c4238692753ed910d0fc23887361cc4d5d5112ab"
-  integrity sha512-RwJiQXaYzvLhqkAJtvwxu6WuO3OnedTpWtfdJX73kYujleSzoIBRNUXBs03Ir9E48UN5gzKu/eRG76QdH+e8Ow==
+"@sentry-internal/rrweb@1.106.0":
+  version "1.106.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-1.106.0.tgz#251026e42cf142119eed0616808a279099aa0573"
+  integrity sha512-/YtV8EoWmMoTE592aVdrgGH5EBiCILdKOt228pM+juGaxRqFxsX26UIeTJG7fihSweUz6NLbKXZjS0+cFYmhrQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "1.105.0"
+    "@sentry-internal/rrweb-snapshot" "1.106.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -15070,7 +15070,7 @@ ini@1.3.6:
   resolved "https://registry.yarnpkg.com/ini/-/ini-1.3.6.tgz#f1c46a2a93a253e7b3905115e74d527cd23061a1"
   integrity sha512-IZUoxEjNjubzrmvzZU4lKP7OnYmX72XRl3sqkfJhBKweKi5rnGi5+IUdlj/H1M+Ip5JQ1WzaDMOBRY90Ajc5jg==
 
-ini@2.0.0:
+ini@2.0.0, ini@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ini/-/ini-2.0.0.tgz#e5fd556ecdd5726be978fa1001862eacb0a94bc5"
   integrity sha512-7PnF4oN3CvZF23ADhA5wRaYEQpJ8qygSkbtTXWBeXWXmEVRXK+1ITciHWwHhsjv1TmW0MgacIv6hEi5pX5NQdA==
@@ -19450,6 +19450,16 @@ npm-packlist@^2.1.4:
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/npm-packlist/-/npm-packlist-2.1.5.tgz#43ef5bbb9f59b7c0ef91e0905f1dd707b4cfb33c"
   integrity sha512-KCfK3Vi2F+PH1klYauoQzg81GQ8/GGjQRKYY6tRnpQUPKTs/1gBZSRWtTEd7jGdSn1LZL7gpAmJT+BcS55k2XQ==
+  dependencies:
+    glob "^7.1.6"
+    ignore-walk "^3.0.3"
+    npm-bundled "^1.1.1"
+    npm-normalize-package-bin "^1.0.1"
+
+npm-packlist@^2.1.5:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/npm-packlist/-/npm-packlist-2.2.2.tgz#076b97293fa620f632833186a7a8f65aaa6148c8"
+  integrity sha512-Jt01acDvJRhJGthnUJVF/w6gumWOZxO7IkpY/lsX9//zqQgnF7OJaxgQXcerd4uQOLu7W5bkb4mChL9mdfm+Zg==
   dependencies:
     glob "^7.1.6"
     ignore-walk "^3.0.3"
@@ -27797,6 +27807,20 @@ y18n@^5.0.5:
   version "5.0.8"
   resolved "https://registry.yarnpkg.com/y18n/-/y18n-5.0.8.tgz#7f4934d0f7ca8c56f95314939ddcd2dd91ce1d55"
   integrity sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==
+
+yalc@^1.0.0-pre.53:
+  version "1.0.0-pre.53"
+  resolved "https://registry.yarnpkg.com/yalc/-/yalc-1.0.0-pre.53.tgz#c51db2bb924a6908f4cb7e82af78f7e5606810bc"
+  integrity sha512-tpNqBCpTXplnduzw5XC+FF8zNJ9L/UXmvQyyQj7NKrDNavbJtHvzmZplL5ES/RCnjX7JR7W9wz5GVDXVP3dHUQ==
+  dependencies:
+    chalk "^4.1.0"
+    detect-indent "^6.0.0"
+    fs-extra "^8.0.1"
+    glob "^7.1.4"
+    ignore "^5.0.4"
+    ini "^2.0.0"
+    npm-packlist "^2.1.5"
+    yargs "^16.1.1"
 
 yallist@^3.0.0, yallist@^3.0.2, yallist@^3.1.1:
   version "3.1.1"
