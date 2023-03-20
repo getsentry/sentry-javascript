@@ -2,9 +2,15 @@
 import type { Scope } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
 import type { Integration } from '@sentry/types';
-import { baggageHeaderToDynamicSamplingContext, dsnFromString, dsnToString, isString, logger } from '@sentry/utils';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dsnFromString,
+  dsnToString,
+  extractTraceparentData,
+  isString,
+  logger,
+} from '@sentry/utils';
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
 import type { Context, Handler } from 'aws-lambda';
