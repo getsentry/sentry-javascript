@@ -24,7 +24,6 @@ targets:
   - name: github
     includeNames: /^sentry-.*$/
   - name: npm
-    excludeNames: /^sentry-sveltekit-.*$/
   - name: registry
     sdks:
       'npm:@sentry/browser':
