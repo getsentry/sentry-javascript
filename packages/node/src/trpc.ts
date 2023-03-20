@@ -18,7 +18,7 @@ interface TrpcMiddlewareArguments<T> {
  * Use the Sentry tRPC middleware in combination with the Sentry server integration. (e.g. express integration or
  * Next.js SDK)
  */
-export async function sentryTrpcMiddleware(options: SentryTrpcMiddlewareOptions) {
+export async function sentryTrpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return async function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): Promise<T> {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
