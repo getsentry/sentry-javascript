@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "7.43.0",
+  "version": "7.44.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -42,8 +42,8 @@
     "webpack": "^5.52.0"
   },
   "devDependencies": {
-    "glob": "8.0.3",
-    "@types/glob": "8.0.0"
+    "@types/glob": "8.0.0",
+    "glob": "8.0.3"
   },
   "volta": {
     "extends": "../../package.json"

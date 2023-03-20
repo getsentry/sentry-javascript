@@ -4,6 +4,34 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.44.0
+
+This release introduces the first alpha version of `@sentry/sveltekit`, our newest JavaScript SDK for Sveltekit. Check out the [README](./packages/sveltekit/README.md) for usage instructions and what to expect from this alpha release.
+
+- feat(replay): Add `request_body_size` & `response_body_size` to fetch/xhr (#7407)
+- feat(replay): Add additional properties for UI clicks (#7395)
+- feat(replay): Reduce time limit before pausing a recording (#7356)
+- feat(replay): Upgrade `rrweb` and `rrweb-player` (#7508)
+- feat(replay): Use new afterSend hook to improve error linking (#7390)
+- feat(serverless): Publish lambda layer for Node 16/18 (#7483)
+- feat(sveltekit): Add wrapper for client load function (#7447)
+- feat(sveltekit): Add wrapper for server load function (#7416)
+- feat(sveltekit): Add server-side `handleError` wrapper (#7411)
+- feat(sveltekit): Introduce client-side `handleError` wrapper (#7406)
+- feat(sveltekit): Add SvelteKit client and server `init` functions (#7408)
+- feat(sveltekit): Inject `Sentry.init` calls into server and client bundles (#7391)
+- feat(tracing): Expose `BrowserTracing` in non-tracing bundles (#7479)
+- fix(core): Permanent idle timeout cancel finishes the transaction with the last finished child
+- fix(integrations): Handle lower-case prefix windows paths in `RewriteFrames` (#7506)
+- fix(next): Guard against missing serverSideProps (#7517)
+- fix(nextjs): Fix broken server component wrapping because of interrupted promise chain (#7456)
+- fix(nextjs): Fix runtime error for static pages (#7476)
+- fix(profiling): Catch sendProfile rejection (#7446)
+- fix(replay): Never capture file input changes (#7485)
+- fix(serverless): Explicitly export node package exports (#7457)
+- fix(vue): Do not depend on `window.location` for SSR environments (#7518)
+
+
 **Replay `rrweb` changes:**
 
 `@sentry-internal/rrweb` was updated from 1.105.0 to 1.106.0:
