@@ -8,7 +8,7 @@ interface SentryTrpcMiddlewareOptions {
 interface TrpcMiddlewareArguments<T> {
   path: string;
   type: 'query' | 'mutation' | 'subscription';
-  next: () => Promise<T>;
+  next: () => T;
   rawInput: unknown;
 }
 
@@ -19,7 +19,7 @@ interface TrpcMiddlewareArguments<T> {
  * Next.js SDK)
  */
 export async function sentryTrpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return async function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): Promise<T> {
+  return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
     const sentryTransaction = hub.getScope()?.getTransaction();
@@ -39,6 +39,6 @@ export async function sentryTrpcMiddleware(options: SentryTrpcMiddlewareOptions 
       sentryTransaction.setData('trpc', trpcData);
     }
 
-    return await next();
+    return next();
   };
 }
