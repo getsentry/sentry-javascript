@@ -106,6 +106,9 @@ describe('handleSentry', () => {
     client = new NodeClient(options);
     hub = new Hub(client);
     makeMain(hub);
+
+    mockCaptureException.mockClear();
+    mockAddExceptionMechanism.mockClear();
   });
 
   describe.each([
@@ -247,7 +250,9 @@ describe('handleSentry', () => {
       try {
         await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
+        expect(mockCaptureException).toBeCalledTimes(1);
         expect(addEventProcessorSpy).toBeCalledTimes(1);
+        expect(mockAddExceptionMechanism).toBeCalledTimes(1);
         expect(mockAddExceptionMechanism).toBeCalledWith(
           {},
           { handled: false, type: 'sveltekit', data: { function: 'handle' } },
