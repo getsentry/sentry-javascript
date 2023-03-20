@@ -1,5 +1,6 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
+import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
@@ -57,7 +58,8 @@ export const sentryHandle: Handle = ({ event, resolve }) => {
     const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
     const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
-    const transaction = startTransaction({
+    // transaction could be undefined if hub extensions were not added.
+    const transaction: Transaction | undefined = startTransaction({
       op: 'http.server',
       name: `${event.request.method} ${event.route.id}`,
       status: 'ok',
