@@ -1,7 +1,6 @@
-import { Replay as ReplayShim } from '@sentry-internal/integration-shims';
-import { BrowserTracing } from '@sentry-internal/tracing';
+import { BrowserTracing as BrowserTracingShim, Replay as ReplayShim } from '@sentry-internal/integration-shims';
 
-import * as TracingBundle from '../src/index.bundle';
+import * as TracingBundle from '../../src/index.bundle';
 
 describe('index.bundle', () => {
   it('has correct exports', () => {
@@ -17,7 +16,7 @@ describe('index.bundle', () => {
     expect(TracingBundle.Integrations.Replay).toBe(ReplayShim);
     expect(TracingBundle.Replay).toBe(ReplayShim);
 
-    expect(TracingBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
-    expect(TracingBundle.BrowserTracing).toBe(BrowserTracing);
+    expect(TracingBundle.Integrations.BrowserTracing).toBe(BrowserTracingShim);
+    expect(TracingBundle.BrowserTracing).toBe(BrowserTracingShim);
   });
 });
