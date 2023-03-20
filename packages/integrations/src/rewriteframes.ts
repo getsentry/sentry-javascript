@@ -72,12 +72,12 @@ export class RewriteFrames implements Integration {
       return frame;
     }
     // Check if the frame filename begins with `/` or a Windows-style prefix such as `C:\`
-    const isWindowsFrame = /^[A-Z]:\\/.test(frame.filename);
+    const isWindowsFrame = /^[a-zA-Z]:\\/.test(frame.filename);
     const startsWithSlash = /^\//.test(frame.filename);
     if (isWindowsFrame || startsWithSlash) {
       const filename = isWindowsFrame
         ? frame.filename
-            .replace(/^[A-Z]:/, '') // remove Windows-style prefix
+            .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
             .replace(/\\/g, '/') // replace all `\\` instances with `/`
         : frame.filename;
       const base = this._root ? relative(this._root, filename) : basename(filename);
