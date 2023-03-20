@@ -3,11 +3,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 
 sentryTest(
-  'exports a shim Replay integration for non-replay bundles',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  'exports a shim Integrations.BrowserTracing integration for non-tracing bundles',
+  async ({ getLocalTestPath, page }) => {
     const bundle = process.env.PW_BUNDLE;
+    const tracingOnly = Boolean(process.env.PW_TRACING_ONLY);
 
-    if (!bundle || !bundle.startsWith('bundle_') || bundle.includes('replay')) {
+    if (!bundle || !bundle.startsWith('bundle_') || tracingOnly) {
       sentryTest.skip();
     }
 
@@ -27,9 +28,10 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await forceFlushReplay();
 
     expect(requestCount).toBe(0);
-    expect(consoleMessages).toEqual(['You are using new Replay() even though this bundle does not include replay.']);
+    expect(consoleMessages).toEqual([
+      'You are using new BrowserTracing() even though this bundle does not include tracing.',
+    ]);
   },
 );

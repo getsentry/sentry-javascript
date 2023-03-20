@@ -8,7 +8,6 @@ const builds = [];
     entrypoints: ['src/index.bundle.ts'],
     jsVersion,
     licenseTitle: '@sentry/tracing & @sentry/browser',
-    includeReplay: false,
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
@@ -22,7 +21,6 @@ const replayBaseBundleConfig = makeBaseBundleConfig({
   jsVersion: 'es6',
   licenseTitle: '@sentry/tracing & @sentry/browser & @sentry/replay',
   outputFileBase: () => 'bundles/bundle.tracing.replay',
-  includeReplay: true,
 });
 
 builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));

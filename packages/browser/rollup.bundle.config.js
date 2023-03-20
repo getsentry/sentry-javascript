@@ -5,10 +5,9 @@ const builds = [];
 ['es5', 'es6'].forEach(jsVersion => {
   const baseBundleConfig = makeBaseBundleConfig({
     bundleType: 'standalone',
-    entrypoints: ['src/index.ts'],
+    entrypoints: ['src/index.bundle.ts'],
     jsVersion,
     licenseTitle: '@sentry/browser',
-    includeReplay: 'shim',
     outputFileBase: () => `bundles/bundle${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
@@ -18,11 +17,10 @@ const builds = [];
 // Full bundle incl. replay only available for es6
 const replayBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
-  entrypoints: ['src/index.ts'],
+  entrypoints: ['src/index.bundle.replay.ts'],
   jsVersion: 'es6',
   licenseTitle: '@sentry/browser & @sentry/replay',
   outputFileBase: () => 'bundles/bundle.replay',
-  includeReplay: true,
 });
 
 builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));
