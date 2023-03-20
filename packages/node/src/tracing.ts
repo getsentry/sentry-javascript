@@ -1,5 +1,4 @@
 export { Apollo, Express, GraphQL, Mongo, Mysql, Postgres, Prisma } from '@sentry-internal/tracing';
-export { addTracingExtensions } from '@sentry/core';
 
 import { lazyLoadedNodePerformanceMonitoringIntegrations } from '@sentry-internal/tracing';
 import type { Integration } from '@sentry/types';
