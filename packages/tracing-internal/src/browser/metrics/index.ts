@@ -87,11 +87,14 @@ export function startTrackingLongTasks(): void {
 /**
  * Start tracking interaction events.
  */
-export function startTrackingInteractions(): void {
+export function startTrackingInteractions(interactionClassName: string | undefined): void {
   const entryHandler = (entries: PerformanceEventTiming[]): void => {
     for (const entry of entries) {
       const transaction = getActiveTransaction() as IdleTransaction | undefined;
-      if (!transaction) {
+      if (
+        !transaction ||
+        !(interactionClassName && entry.target?.parentElement?.classList.contains(interactionClassName))
+      ) {
         return;
       }
 

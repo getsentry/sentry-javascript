@@ -105,6 +105,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   _experiments: Partial<{
     enableLongTask: boolean;
     enableInteractions: boolean;
+    interactionClassName: string;
     onStartRouteTransaction: (t: Transaction | undefined, ctx: TransactionContext, getCurrentHub: () => Hub) => void;
   }>;
 
@@ -199,7 +200,7 @@ export class BrowserTracing implements Integration {
       startTrackingLongTasks();
     }
     if (this.options._experiments.enableInteractions) {
-      startTrackingInteractions();
+      startTrackingInteractions(this.options._experiments.interactionClassName);
     }
   }
 
