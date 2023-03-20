@@ -18,15 +18,6 @@ faster, so we can get back to enjoying technology. If you want to join us
 This is the next line of Sentry JavaScript SDKs, comprised in the `@sentry/` namespace. It will provide a more
 convenient interface and improved consistency between various JavaScript environments.
 
----
-
-**Sentry is Hiring!!!**
-
-Would you like to work on Open Source software and help maintain this repository? Apply today:
-https://boards.greenhouse.io/sentry.
-
----
-
 ## Links
 
 - [![Documentation](https://img.shields.io/badge/documentation-sentry.io-green.svg)](https://docs.sentry.io/quickstart/)
