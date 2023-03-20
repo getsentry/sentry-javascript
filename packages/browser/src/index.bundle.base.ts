@@ -1,6 +1,7 @@
 export * from './exports';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
+import type { Integration } from '@sentry/types';
 
 import { WINDOW } from './helpers';
 import * as BrowserIntegrations from './integrations';
@@ -12,17 +13,11 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
   windowIntegrations = WINDOW.Sentry.Integrations;
 }
 
-const INTEGRATIONS = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const INTEGRATIONS: Record<string, new (...args: any[]) => Integration> = {
   ...windowIntegrations,
   ...CoreIntegrations,
   ...BrowserIntegrations,
 };
 
 export { INTEGRATIONS as Integrations };
-
-export { Replay } from '@sentry/replay';
-export { BrowserTracing } from '@sentry-internal/tracing';
-export { addTracingExtensions } from '@sentry/core';
-export { makeBrowserOfflineTransport } from './transports/offline';
-export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export { BrowserProfilingIntegration } from './profiling/integration';

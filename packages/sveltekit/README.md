@@ -54,7 +54,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     import * as Sentry from '@sentry/sveltekit';
 
     Sentry.init({
-      dsn: 'https://27dbca58093d401f9b18f88c40ec718f@o447951.ingest.sentry.io/4504796902588416',
+      dsn: '__DSN__',
 
       // For instance, initialize Session Replay:
       replaysSessionSampleRate: 0.1,
@@ -81,7 +81,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     import * as Sentry from '@sentry/sveltekit';
 
     Sentry.init({
-      dsn: 'https://27dbca58093d401f9b18f88c40ec718f@o447951.ingest.sentry.io/4504796902588416',
+      dsn: '__DSN__',
     });
    ```
 
