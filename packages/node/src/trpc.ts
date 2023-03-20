@@ -15,8 +15,8 @@ interface TrpcMiddlewareArguments<T> {
 /**
  * Sentry tRPC middleware that names the handling transaction after the called procedure.
  *
- * Use the Sentry tRPC middleware in combination with the Sentry server integration. (e.g. express integration or
- * Next.js SDK)
+ * Use the Sentry tRPC middleware in combination with the Sentry server integration,
+ * e.g. Express Request Handlers or Next.js SDK.
  */
 export async function sentryTrpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
