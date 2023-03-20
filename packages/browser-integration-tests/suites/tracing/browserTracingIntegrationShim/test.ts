@@ -6,8 +6,9 @@ sentryTest(
   'exports a shim Integrations.BrowserTracing integration for non-tracing bundles',
   async ({ getLocalTestPath, page }) => {
     const bundle = process.env.PW_BUNDLE;
+    const tracingOnly = Boolean(process.env.PW_TRACING_ONLY);
 
-    if (!bundle || !bundle.startsWith('bundle_') || bundle.includes('tracing')) {
+    if (!bundle || !bundle.startsWith('bundle_') || tracingOnly) {
       sentryTest.skip();
     }
 
