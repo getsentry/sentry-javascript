@@ -8,5 +8,4 @@ import * as Sentry from './index.bundle';
 Sentry.Integrations.Replay = Replay;
 
 export { Replay };
-
 export * from './index.bundle.base';

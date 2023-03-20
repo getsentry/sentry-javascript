@@ -67,11 +67,8 @@ if (GLOBAL_OBJ.Sentry && GLOBAL_OBJ.Sentry.Integrations) {
   windowIntegrations = GLOBAL_OBJ.Sentry.Integrations;
 }
 
-// For whatever reason, it does not recognize BrowserTracing or some of the BrowserIntegrations as Integration
-const INTEGRATIONS: Record<
-  string,
-  Integration | typeof BrowserTracing | typeof BrowserIntegrations[keyof typeof BrowserIntegrations]
-> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const INTEGRATIONS: Record<string, new (...args: any[]) => Integration> = {
   ...windowIntegrations,
   ...BrowserIntegrations,
   BrowserTracing,

@@ -5,7 +5,7 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1,
-  integrations: [new Sentry.BrowserTracing()],
+  integrations: [new Sentry.Integrations.BrowserTracing()],
 });
 
 // This should not fail

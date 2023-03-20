@@ -29,3 +29,8 @@ class BrowserTracingShim implements Integration {
 }
 
 export { BrowserTracingShim as BrowserTracing };
+
+/** Shim function */
+export function addTracingExtensions(): void {
+  // noop
+}

@@ -1,2 +1,2 @@
 export { Replay } from './Replay';
-export { BrowserTracing } from './BrowserTracing';
+export { BrowserTracing, addTracingExtensions } from './BrowserTracing';

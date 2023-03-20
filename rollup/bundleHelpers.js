@@ -16,27 +16,14 @@ import {
   makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
-  makeExcludeBlockPlugin,
   makeSetSDKSourcePlugin,
-  makeIntegrationShimPlugin,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const {
-    bundleType,
-    entrypoints,
-    jsVersion,
-    licenseTitle,
-    outputFileBase,
-    packageSpecificConfig,
-    includeReplay,
-    includeOffline,
-    includeBrowserProfiling,
-    includeBrowserTracing,
-  } = options;
+  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -44,12 +31,6 @@ export function makeBaseBundleConfig(options) {
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
   const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
-  const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
-  const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
-  const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
-  const excludeBrowserTracing = makeExcludeBlockPlugin('BROWSER_TRACING');
-  const replayShimPlugin = makeIntegrationShimPlugin('@sentry/replay');
-  const browserTracingShimPlugin = makeIntegrationShimPlugin('@sentry-internal/tracing');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -65,27 +46,6 @@ export function makeBaseBundleConfig(options) {
     context: 'window',
     plugins: [markAsBrowserBuildPlugin],
   };
-
-  if (includeReplay === 'shim') {
-    standAloneBundleConfig.plugins.push(replayShimPlugin);
-  } else if (!includeReplay) {
-    standAloneBundleConfig.plugins.push(excludeReplayPlugin);
-  }
-
-  if (!includeOffline) {
-    standAloneBundleConfig.plugins.push(excludeOfflineTransport);
-  }
-
-  if (!includeBrowserProfiling) {
-    standAloneBundleConfig.plugins.push(excludeBrowserProfiling);
-  }
-
-  if (includeBrowserTracing === 'shim') {
-    standAloneBundleConfig.plugins.push(browserTracingShimPlugin);
-  }
-  if (!includeBrowserTracing) {
-    standAloneBundleConfig.plugins.push(excludeBrowserTracing);
-  }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
   const addOnBundleConfig = {
