@@ -5,7 +5,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  integrations: [new Sentry.GraphQL(), new Sentry.Apollo()],
+  integrations: [new Sentry.Integrations.GraphQL(), new Sentry.Integrations.Apollo()],
 });
 
 const typeDefs = gql`

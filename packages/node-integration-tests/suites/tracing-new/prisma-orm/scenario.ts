@@ -9,7 +9,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  integrations: [new Sentry.Prisma({ client })],
+  integrations: [new Sentry.Integrations.Prisma({ client })],
 });
 
 async function run(): Promise<void> {

@@ -1,5 +1,3 @@
-export { Apollo, Express, GraphQL, Mongo, Mysql, Postgres, Prisma } from '@sentry-internal/tracing';
-
 import { lazyLoadedNodePerformanceMonitoringIntegrations } from '@sentry-internal/tracing';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';

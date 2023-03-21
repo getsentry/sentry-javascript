@@ -45,7 +45,7 @@ export {
   setUser,
   withScope,
 } from '@sentry/core';
-export * from './tracing';
+export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
@@ -58,10 +58,12 @@ import * as domain from 'domain';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
+import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
+  ...TracingIntegrations,
 };
 
 export { INTEGRATIONS as Integrations, Handlers };
