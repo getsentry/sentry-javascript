@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.44.1
+
+- ref(core): Move beforeEnvelope to client (#7527)
+
 ## 7.44.0
 
 This release introduces the first alpha version of `@sentry/sveltekit`, our newest JavaScript SDK for Sveltekit. Check out the [README](./packages/sveltekit/README.md) for usage instructions and what to expect from this alpha release.
@@ -40,6 +44,8 @@ This release introduces the first alpha version of `@sentry/sveltekit`, our newe
 - fix: Ensure text masking for updated attributes works ([#83](https://github.com/getsentry/rrweb/pull/83))
 - fix: Ensure unmaskTextSelector is used for masked attributes ([#81](https://github.com/getsentry/rrweb/pull/81))
 - fix: Mask <option> values for selects & radio/checkbox value ([#75](https://github.com/getsentry/rrweb/pull/75))
+
+Work in this release contributed by @woochanleee and @baked-dev. Thank you for your contribution!
 
 ## 7.43.0
 

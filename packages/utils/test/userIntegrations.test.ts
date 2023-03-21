@@ -1,8 +1,5 @@
-import type {
-  IntegrationWithExclusionOption as Integration,
-  UserIntegrations,
-} from '../../src/common/userIntegrations';
-import { addOrUpdateIntegration } from '../../src/common/userIntegrations';
+import type { IntegrationWithExclusionOption as Integration, UserIntegrations } from '../src/userIntegrations';
+import { addOrUpdateIntegration } from '../src/userIntegrations';
 
 type MockIntegrationOptions = {
   name: string;

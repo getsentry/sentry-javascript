@@ -4,11 +4,11 @@ import type { BrowserOptions } from '@sentry/react';
 import { configureScope, init as reactInit, Integrations } from '@sentry/react';
 import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
 import type { EventProcessor } from '@sentry/types';
+import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
-import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { nextRouterInstrumentation } from './performance';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
