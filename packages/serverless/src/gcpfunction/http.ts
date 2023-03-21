@@ -1,8 +1,8 @@
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
-import { extractTraceparentData } from '@sentry/tracing';
 import {
   baggageHeaderToDynamicSamplingContext,
+  extractTraceparentData,
   isString,
   isThenable,
   logger,
