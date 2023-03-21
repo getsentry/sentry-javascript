@@ -30,7 +30,7 @@ export function makeBaseBundleConfig(options) {
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
-  const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
+  const tsPlugin = makeTSPlugin('es5');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
