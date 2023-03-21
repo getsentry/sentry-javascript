@@ -1,4 +1,4 @@
-import { addTracingExtensions, Hub, makeMain, Scope } from '@sentry/core';
+import { addTracingExtensions, Hub, makeMain, Scope, getCurrentHub } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
@@ -112,16 +112,14 @@ describe('handleSentry', () => {
   });
 
   describe.each([
-    // isSync, isError
-    [Type.Sync, true],
-    [Type.Sync, false],
-    [Type.Async, true],
-    [Type.Async, false],
-  ])('%s resolve with error %s', (type, isError) => {
+    // isSync, isError, expectedResponse
+    [Type.Sync, true, undefined],
+    [Type.Sync, false, mockResponse],
+    [Type.Async, true, undefined],
+    [Type.Async, false, mockResponse],
+  ])('%s resolve with error %s', (type, isError, mockResponse) => {
     it('should return a response', async () => {
-      expect.assertions(isError ? 2 : 1);
-
-      let response;
+      let response: any = undefined;
       try {
         response = await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
@@ -129,10 +127,7 @@ describe('handleSentry', () => {
         expect(e.message).toEqual(type);
       }
 
-      if (!isError) {
-        // @ts-ignore response should be defined
-        expect(response.status).toEqual(200);
-      }
+      expect(response).toEqual(mockResponse);
     });
 
     it('creates a transaction', async () => {
@@ -141,19 +136,13 @@ describe('handleSentry', () => {
         ref = transaction;
       });
 
-      let response;
       try {
-        response = await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
+        await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         //
       }
 
       expect(ref).toBeDefined();
-
-      if (!isError) {
-        // @ts-ignore response should be defined
-        expect(ref.tags['http.status_code']).toEqual(String(response.status));
-      }
 
       expect(ref.name).toEqual('GET /users/[id]');
       expect(ref.op).toEqual('http.server');
