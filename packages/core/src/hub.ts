@@ -326,7 +326,7 @@ export class Hub implements HubInterface {
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const { scope, client } = this.getStackTop();
-    if (scope && client) {
+    if (client) {
       callback(scope);
     }
   }
@@ -413,7 +413,7 @@ export class Hub implements HubInterface {
     const session = makeSession({
       release,
       environment,
-      ...(scope && { user: scope.getUser() }),
+      user: scope.getUser(),
       ...(userAgent && { userAgent }),
       ...context,
     });
