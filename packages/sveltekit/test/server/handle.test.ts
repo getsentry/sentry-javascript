@@ -1,4 +1,4 @@
-import { addTracingExtensions, Hub, makeMain, Scope, getCurrentHub } from '@sentry/core';
+import { addTracingExtensions, Hub, makeMain, Scope } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
