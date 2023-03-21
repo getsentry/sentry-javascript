@@ -2,11 +2,6 @@ import type { Integration } from '@sentry/types';
 
 export type UserIntegrationsFunction = (integrations: Integration[]) => Integration[];
 export type UserIntegrations = Integration[] | UserIntegrationsFunction;
-
-type ForcedIntegrationOptions = {
-  [keyPath: string]: unknown;
-};
-
 export type IntegrationWithExclusionOption = Integration & {
   /**
    * Allow the user to exclude this integration by not returning it from a function provided as the `integrations` option
@@ -14,6 +9,10 @@ export type IntegrationWithExclusionOption = Integration & {
    * an integration out, we should be able to respect that choice if we wish.
    */
   allowExclusionByUser?: boolean;
+};
+
+type ForcedIntegrationOptions = {
+  [keyPath: string]: unknown;
 };
 
 /**
