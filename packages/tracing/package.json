@@ -46,6 +46,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "validate:es5": "es5-validator build/bundles/bundle.tracing.es5.js",
     "test:unit": "jest",
     "test": "jest",
     "test:watch": "jest --watch",
