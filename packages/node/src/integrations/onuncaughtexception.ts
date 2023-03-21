@@ -99,8 +99,10 @@ export class OnUncaughtException implements Integration {
         .listeners('uncaughtException')
         .reduce<number>((acc, listener) => {
           if (
+            // There are 3 listeners we ignore:
             listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-            listener === this.handler // filter the handler we registered ourselves)
+            listener.name === 'tracingErrorCallback' || // the handler we register for tracing
+            listener === this.handler // the handler we register in this integration
           ) {
             return acc;
           } else {
