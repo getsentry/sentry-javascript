@@ -132,24 +132,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
     __DEBUG_BUILD__ && logger.log('Sending outcomes:', outcomes);
 
-    const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, this._options);
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
-
-    try {
-      const isRealNavigator = Object.prototype.toString.call(WINDOW && WINDOW.navigator) === '[object Navigator]';
-      const hasSendBeacon = isRealNavigator && typeof WINDOW.navigator.sendBeacon === 'function';
-      // Make sure beacon is not used if user configures custom transport options
-      if (hasSendBeacon && !this._options.transportOptions) {
-        // Prevent illegal invocations - https://xgwang.me/posts/you-may-not-know-beacon/#it-may-throw-error%2C-be-sure-to-catch
-        const sendBeacon = WINDOW.navigator.sendBeacon.bind(WINDOW.navigator);
-        sendBeacon(url, serializeEnvelope(envelope));
-      } else {
-        // If beacon is not supported or if they are using the tunnel option
-        // use our regular transport to send client reports to Sentry.
-        void this._sendEnvelope(envelope);
-      }
-    } catch (e) {
-      __DEBUG_BUILD__ && logger.error(e);
-    }
+    void this._sendEnvelope(envelope);
   }
 }
