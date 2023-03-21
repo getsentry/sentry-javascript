@@ -19,6 +19,7 @@
     "@sentry/core": "7.44.2",
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2",
+    "@sentry-internal/tracing": "7.44.2",
     "cookie": "^0.4.1",
     "https-proxy-agent": "^5.0.0",
     "lru_map": "^0.3.3",
