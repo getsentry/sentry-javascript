@@ -25,6 +25,7 @@
     "@sentry/svelte": "7.44.2",
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2",
+    "@sentry-internal/tracing": "7.44.2",
     "magic-string": "^0.30.0"
   },
   "devDependencies": {
