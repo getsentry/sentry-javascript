@@ -101,7 +101,7 @@ export class OnUncaughtException implements Integration {
           if (
             // There are 3 listeners we ignore:
             listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-            listener.name === 'tracingErrorCallback' || // the handler we register for tracing
+            listener.name === 'sentry_tracingErrorCallback' || // the handler we register for tracing
             listener === this.handler // the handler we register in this integration
           ) {
             return acc;
