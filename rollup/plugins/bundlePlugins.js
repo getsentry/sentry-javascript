@@ -147,6 +147,8 @@ export function makeTSPlugin(jsVersion) {
           '@sentry/hub': ['../hub/src'],
           '@sentry/types': ['../types/src'],
           '@sentry/utils': ['../utils/src'],
+          '@sentry-internal/integration-shims': ['../integration-shims/src'],
+          '@sentry-internal/tracing': ['../tracing-internal/src'],
         },
         baseUrl: '.',
       },
