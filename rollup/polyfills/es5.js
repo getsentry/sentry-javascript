@@ -34,6 +34,7 @@ if (!('startsWith' in String.prototype)) {
 }
 if (!('endsWith' in String.prototype)) {
   String.prototype.endsWith = function (searchElement) {
-    return this.indexOf(searchElement) === this.length - searchElement.length;
+    var i = this.indexOf(searchElement);
+    return i > -1 && i === this.length - searchElement.length;
   };
 }
