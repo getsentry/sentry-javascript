@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/core';
-import { BaseClient, getEnvelopeEndpointWithUrlEncodedAuth, SDK_VERSION } from '@sentry/core';
+import { BaseClient, SDK_VERSION } from '@sentry/core';
 import type {
   BrowserClientReplayOptions,
   ClientOptions,
@@ -9,7 +9,7 @@ import type {
   Severity,
   SeverityLevel,
 } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, getSDKSource, logger, serializeEnvelope } from '@sentry/utils';
+import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
 
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
