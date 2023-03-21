@@ -30,10 +30,9 @@ export function makeFetchTransport(
       // frequently sending events right before the user is switching pages (eg. whenfinishing navigation transactions).
       // Gotchas:
       // - `keepalive` isn't supported by Firefox
-      // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch), a request with `keepalive: true`
-      //   and a content length of > 64 kibibytes returns a network error. We will therefore only activate the flag when
-      //   we're below that limit.
-      // Note that the limit is for all pending requests, not per request, so we need to check this based on all current requests.
+      // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch):
+      //   If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
+      //   We will therefore only activate the flag when we're below that limit.
       keepalive: pendingBodySize <= 65536,
       ...options.fetchOptions,
     };
