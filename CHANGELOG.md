@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.44.2
+
+- fix(cdn): Fix ES5 CDN bundles (#7544)
+
 ## 7.44.1
 
 - ref(core): Move beforeEnvelope to client (#7527)
