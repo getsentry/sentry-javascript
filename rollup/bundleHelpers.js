@@ -17,6 +17,7 @@ import {
   makeTerserPlugin,
   makeTSPlugin,
   makeSetSDKSourcePlugin,
+  getEs5Polyfills,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
@@ -24,6 +25,8 @@ const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
   const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+
+  const isEs5 = jsVersion.toLowerCase() === 'es5';
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
@@ -42,6 +45,10 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'iife',
       name: 'Sentry',
+      outro: () => {
+        // Add polyfills for ES6 array/string methods at the end of the bundle
+        return isEs5 ? getEs5Polyfills() : '';
+      },
     },
     context: 'window',
     plugins: [markAsBrowserBuildPlugin],
@@ -101,10 +108,9 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins:
-      jsVersion === 'es5'
-        ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
-        : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    plugins: isEs5
+      ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
+      : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
     treeshake: 'smallest',
   };
 
