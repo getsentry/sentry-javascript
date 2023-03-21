@@ -8,6 +8,10 @@ import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
+type TaggedListener = NodeJS.UncaughtExceptionListener & {
+  tag?: string;
+};
+
 // CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
 interface OnUncaughtExceptionOptions {
   // TODO(v8): Evaluate whether we should switch the default behaviour here.
@@ -95,20 +99,21 @@ export class OnUncaughtException implements Integration {
       // exit behaviour of the SDK accordingly:
       // - If other listeners are attached, do not exit.
       // - If the only listener attached is ours, exit.
-      const userProvidedListenersCount = global.process
-        .listeners('uncaughtException')
-        .reduce<number>((acc, listener) => {
-          if (
-            // There are 3 listeners we ignore:
-            listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-            listener.name === 'sentry_tracingErrorCallback' || // the handler we register for tracing
-            listener === this.handler // the handler we register in this integration
-          ) {
-            return acc;
-          } else {
-            return acc + 1;
-          }
-        }, 0);
+      const userProvidedListenersCount = (
+        global.process.listeners('uncaughtException') as TaggedListener[]
+      ).reduce<number>((acc, listener) => {
+        if (
+          // There are 3 listeners we ignore:
+          listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
+          listener === this.handler // the handler we register in this integration
+        ) {
+          return acc;
+        } else {
+          return acc + 1;
+        }
+      }, 0);
 
       const processWouldExit = userProvidedListenersCount === 0;
       const shouldApplyFatalHandlingLogic = this._options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;

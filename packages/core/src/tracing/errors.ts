@@ -32,4 +32,4 @@ function errorCallback(): void {
 
 // The function name will be lost when bundling but we need to be able to identify this listener later to maintain the
 // node.js default exit behaviour
-errorCallback.name = 'sentry_tracingErrorCallback';
+errorCallback.tag = 'sentry_tracingErrorCallback';
