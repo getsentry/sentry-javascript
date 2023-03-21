@@ -44,6 +44,9 @@ This page serves as a checklist of what to do when releasing a new SDK for the f
     - **This is especially important, if you're adding new CDN bundles!**
     - Tarballs (*.tgz archives) should work OOTB
 
+
+- [ ] Make sure it is added to `bundlePlugins.ts:makeTSPlugin` as `paths`, otherwise it will not be ES5 transpiled correctly for CDN builds.
+
 ## Cutting the Release
 
 When you’re ready to make the first release, there are a couple of steps that need to be performed in the **correct order**. Note that you can prepare the PRs at any time but the **merging oder** is important:
