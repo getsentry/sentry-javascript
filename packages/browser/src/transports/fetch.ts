@@ -14,10 +14,12 @@ export function makeFetchTransport(
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): Transport {
   let pendingBodySize = 0;
+  let pendingCount = 0;
 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestSize = request.body.length;
     pendingBodySize += requestSize;
+    pendingCount++;
 
     const requestOptions: RequestInit = {
       body: request.body,
@@ -33,13 +35,16 @@ export function makeFetchTransport(
       // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch):
       //   If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
       //   We will therefore only activate the flag when we're below that limit.
-      keepalive: pendingBodySize <= 65536,
+      // There is also a limit of requests that can be open at the same time, so we also limit this to 15
+      // See https://github.com/getsentry/sentry-javascript/pull/7553 for details
+      keepalive: pendingBodySize <= 60_000 && pendingCount < 15,
       ...options.fetchOptions,
     };
 
     try {
       return nativeFetch(options.url, requestOptions).then(response => {
         pendingBodySize -= requestSize;
+        pendingCount--;
         return {
           statusCode: response.status,
           headers: {
@@ -51,6 +56,7 @@ export function makeFetchTransport(
     } catch (e) {
       clearCachedFetchImplementation();
       pendingBodySize -= requestSize;
+      pendingCount--;
       return rejectedSyncPromise(e);
     }
   }

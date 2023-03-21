@@ -18,7 +18,7 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 
 const LARGE_ERROR_ENVELOPE = createEnvelope<EventEnvelope>(
   { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
-  [[{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', message: 'x'.repeat(10 * 1024) }] as EventItem],
+  [[{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', message: 'x'.repeat(10 * 900) }] as EventItem],
 );
 
 class Headers {
@@ -146,16 +146,19 @@ describe('NewFetchTransport', () => {
       expect(mockFetch).toHaveBeenNthCalledWith(i, expect.any(String), expect.objectContaining({ keepalive }));
     }
 
+    (mockFetch as jest.Mock<unknown>).mockClear();
+
     // Limit resets when requests have resolved
+    // Now try based on # of pending requests
     const promises2 = [];
-    for (let i = 0; i < 10; i++) {
-      promises2.push(transport.send(LARGE_ERROR_ENVELOPE));
+    for (let i = 0; i < 20; i++) {
+      promises2.push(transport.send(ERROR_ENVELOPE));
     }
 
     await Promise.all(promises2);
 
-    for (let i = 1; i <= 10; i++) {
-      const keepalive = i < 7;
+    for (let i = 1; i <= 20; i++) {
+      const keepalive = i < 15;
       expect(mockFetch).toHaveBeenNthCalledWith(i, expect.any(String), expect.objectContaining({ keepalive }));
     }
   });
