@@ -13,7 +13,12 @@ export function makeFetchTransport(
   options: BrowserTransportOptions,
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): Transport {
+  let pendingBodySize = 0;
+
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+    const requestSize = request.body.length;
+    pendingBodySize += requestSize;
+
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
@@ -28,20 +33,25 @@ export function makeFetchTransport(
       // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch), a request with `keepalive: true`
       //   and a content length of > 64 kibibytes returns a network error. We will therefore only activate the flag when
       //   we're below that limit.
-      keepalive: request.body.length <= 65536,
+      // Note that the limit is for all pending requests, not per request, so we need to check this based on all current requests.
+      keepalive: pendingBodySize <= 65536,
       ...options.fetchOptions,
     };
 
     try {
-      return nativeFetch(options.url, requestOptions).then(response => ({
-        statusCode: response.status,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-      }));
+      return nativeFetch(options.url, requestOptions).then(response => {
+        pendingBodySize -= requestSize;
+        return {
+          statusCode: response.status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
+      });
     } catch (e) {
       clearCachedFetchImplementation();
+      pendingBodySize -= requestSize;
       return rejectedSyncPromise(e);
     }
   }

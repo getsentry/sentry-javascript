@@ -16,6 +16,11 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
+const LARGE_ERROR_ENVELOPE = createEnvelope<EventEnvelope>(
+  { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+  [[{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', message: 'x'.repeat(10 * 1024) }] as EventItem],
+);
+
 class Headers {
   headers: { [key: string]: string } = {};
   get(key: string) {
@@ -106,5 +111,52 @@ describe('NewFetchTransport', () => {
     expect(mockFetch).toHaveBeenCalledTimes(0);
     await expect(() => transport.send(ERROR_ENVELOPE)).not.toThrow();
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('correctly sets keepalive flag', async () => {
+    const mockFetch = jest.fn(() =>
+      Promise.resolve({
+        headers: new Headers(),
+        status: 200,
+        text: () => Promise.resolve({}),
+      }),
+    ) as unknown as FetchImpl;
+
+    const REQUEST_OPTIONS: RequestInit = {
+      referrerPolicy: 'strict-origin',
+      referrer: 'http://example.org',
+    };
+
+    const transport = makeFetchTransport(
+      { ...DEFAULT_FETCH_TRANSPORT_OPTIONS, fetchOptions: REQUEST_OPTIONS },
+      mockFetch,
+    );
+
+    const promises: PromiseLike<unknown>[] = [];
+    for (let i = 0; i < 30; i++) {
+      promises.push(transport.send(LARGE_ERROR_ENVELOPE));
+    }
+
+    await Promise.all(promises);
+
+    for (let i = 1; i <= 30; i++) {
+      // After 7 requests, we hit the total limit of >64kb of size
+      // Starting there, keepalive should be false
+      const keepalive = i < 7;
+      expect(mockFetch).toHaveBeenNthCalledWith(i, expect.any(String), expect.objectContaining({ keepalive }));
+    }
+
+    // Limit resets when requests have resolved
+    const promises2 = [];
+    for (let i = 0; i < 10; i++) {
+      promises2.push(transport.send(LARGE_ERROR_ENVELOPE));
+    }
+
+    await Promise.all(promises2);
+
+    for (let i = 1; i <= 10; i++) {
+      const keepalive = i < 7;
+      expect(mockFetch).toHaveBeenNthCalledWith(i, expect.any(String), expect.objectContaining({ keepalive }));
+    }
   });
 });
