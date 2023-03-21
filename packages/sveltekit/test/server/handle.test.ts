@@ -33,7 +33,6 @@ vi.mock('@sentry/utils', async () => {
 });
 
 function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0]['event'] {
-  // From https://github.com/sveltejs/kit/blob/34fd2a5adfc4408984a4eeb5dda38d7073b587b8/packages/kit/src/runtime/server/respond.js#L124
   const event: Parameters<Handle>[0]['event'] = {
     cookies: {} as any,
     fetch: () => Promise.resolve({} as any),
