@@ -3,9 +3,13 @@ import type { EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
-import { getReplaySnapshot } from '../../../utils/replayHelpers';
+import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
 sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipReplayTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
