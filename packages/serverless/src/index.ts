@@ -20,6 +20,7 @@ export {
   captureMessage,
   configureScope,
   createTransport,
+  getActiveTransaction,
   getCurrentHub,
   getHubFromCarrier,
   makeMain,
