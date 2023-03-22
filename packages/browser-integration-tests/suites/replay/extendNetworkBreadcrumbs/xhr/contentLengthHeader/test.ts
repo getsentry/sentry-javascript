@@ -2,7 +2,11 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
-import { shouldSkipReplayTest } from '../../../../../utils/replayHelpers';
+import {
+  getCustomRecordingEvents,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../../../utils/replayHelpers';
 
 sentryTest(
   'parses response_body_size from Content-Length header if available',
@@ -25,7 +29,17 @@ sentryTest(
       });
     });
 
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
     const requestPromise = waitForErrorRequest(page);
+    const replayRequestPromise1 = waitForReplayRequest(page, 0);
+
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 
@@ -65,5 +79,21 @@ sentryTest(
         url: 'http://localhost:7654/foo',
       },
     });
+
+    const replayReq1 = await replayRequestPromise1;
+    const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
+    expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+      {
+        data: {
+          method: 'GET',
+          responseBodySize: 789,
+          statusCode: 200,
+        },
+        description: 'http://localhost:7654/foo',
+        endTimestamp: expect.any(Number),
+        op: 'resource.xhr',
+        startTimestamp: expect.any(Number),
+      },
+    ]);
   },
 );
