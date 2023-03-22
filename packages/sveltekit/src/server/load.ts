@@ -1,7 +1,14 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
+import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
-import type { HttpError, Load, ServerLoad } from '@sveltejs/kit';
+import type { TransactionContext } from '@sentry/types';
+import {
+  addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
+  extractTraceparentData,
+  objectify,
+} from '@sentry/utils';
+import type { HttpError, Load, LoadEvent, ServerLoad, ServerLoadEvent } from '@sveltejs/kit';
 import * as domain from 'domain';
 
 function isHttpError(err: unknown): err is HttpError {
@@ -43,27 +50,55 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * @param origLoad SvelteKit user defined load function
  */
-export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T {
+export function wrapLoadWithSentry<T extends Load | ServerLoad>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad | Load>) => {
       return domain.create().bind(() => {
-        let maybePromiseResult: ReturnType<T>;
+        const [event] = args;
+        const routeId = event.route && event.route.id;
 
-        try {
-          maybePromiseResult = wrappingTarget.apply(thisArg, args);
-        } catch (e) {
-          sendErrorToSentry(e);
-          throw e;
+        const traceSharedLoadContext: TransactionContext = {
+          op: 'function.sveltekit.load',
+          name: routeId ? routeId : event.url.pathname,
+          status: 'ok',
+          metadata: {
+            source: routeId ? 'route' : 'url',
+          },
+        };
+
+        let finalTraceLoadContext = { ...traceSharedLoadContext };
+
+        if (isServerOnlyLoad(event)) {
+          const sentryTraceHeader = event.request.headers.get('sentry-trace');
+          const baggageHeader = event.request.headers.get('baggage');
+          const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
+          const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
+
+          const traceSeverOnlyLoadContext = {
+            ...traceparentData,
+            metadata: {
+              ...traceSharedLoadContext.metadata,
+              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+            },
+          };
+
+          finalTraceLoadContext = { ...traceSharedLoadContext, ...traceSeverOnlyLoadContext };
         }
 
-        if (isThenable(maybePromiseResult)) {
-          Promise.resolve(maybePromiseResult).then(null, e => {
-            sendErrorToSentry(e);
-          });
-        }
-
-        return maybePromiseResult;
+        return trace(finalTraceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
       })();
     },
   });
+}
+
+/**
+ * Our server-side wrapLoadWithSentry can be used to wrap two different kinds of `load` functions:
+ *  - load functions from `+(page|layout).ts`: These can be called both on client and on server
+ *  - load functions from `+(page|layout).server.ts`: These are only called on the server
+ *
+ * In both cases, load events look differently. We can distinguish them by checking if the
+ * event has a `request` field (which only the server-exclusive load event has).
+ */
+function isServerOnlyLoad(event: ServerLoadEvent | LoadEvent): event is ServerLoadEvent {
+  return 'request' in event;
 }

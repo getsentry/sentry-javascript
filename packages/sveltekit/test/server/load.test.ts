@@ -54,6 +54,15 @@ const MOCK_LOAD_ARGS: any = {
     id: '/users/[id]',
   },
   url: new URL('http://localhost:3000/users/123'),
+};
+
+const MOCK_LOAD_NO_ROUTE_ARGS: any = {
+  params: { id: '123' },
+  url: new URL('http://localhost:3000/users/123'),
+};
+
+const MOCK_SERVER_ONLY_LOAD_ARGS: any = {
+  ...MOCK_LOAD_ARGS,
   request: {
     headers: {
       get: (key: string) => {
@@ -67,6 +76,32 @@ const MOCK_LOAD_ARGS: any = {
             'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
             'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
           );
+        }
+
+        return null;
+      },
+    },
+  },
+};
+
+const MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS: any = {
+  ...MOCK_LOAD_ARGS,
+  request: {
+    headers: {
+      get: (_: string) => {
+        return null;
+      },
+    },
+  },
+};
+
+const MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS: any = {
+  ...MOCK_LOAD_ARGS,
+  request: {
+    headers: {
+      get: (key: string) => {
+        if (key === 'sentry-trace') {
+          return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
         }
 
         return null;
@@ -101,42 +136,125 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
   });
 
-  // TODO: enable this once we figured out how tracing the load function doesn't result in creating a new transaction
-  it.skip('calls trace function', async () => {
+  describe('calls trace', () => {
     async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
       return {
         post: params.id,
       };
     }
 
-    const wrappedLoad = wrapLoadWithSentry(load);
-    await wrappedLoad(MOCK_LOAD_ARGS);
+    describe('for server-only load', () => {
+      it('attaches trace data if available', async () => {
+        const wrappedLoad = wrapLoadWithSentry(load);
+        await wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
 
-    expect(mockTrace).toHaveBeenCalledTimes(1);
-    expect(mockTrace).toHaveBeenCalledWith(
-      {
-        op: 'function.sveltekit.load',
-        name: '/users/[id]',
-        parentSampled: true,
-        parentSpanId: '1234567890abcdef',
-        status: 'ok',
-        traceId: '1234567890abcdef1234567890abcdef',
-        metadata: {
-          dynamicSamplingContext: {
-            environment: 'production',
-            public_key: 'dogsarebadatkeepingsecrets',
-            release: '1.0.0',
-            sample_rate: '1',
-            trace_id: '1234567890abcdef1234567890abcdef',
-            transaction: 'dogpark',
-            user_segment: 'segmentA',
+        expect(mockTrace).toHaveBeenCalledTimes(1);
+        expect(mockTrace).toHaveBeenCalledWith(
+          {
+            op: 'function.sveltekit.load',
+            name: '/users/[id]',
+            parentSampled: true,
+            parentSpanId: '1234567890abcdef',
+            status: 'ok',
+            traceId: '1234567890abcdef1234567890abcdef',
+            metadata: {
+              dynamicSamplingContext: {
+                environment: 'production',
+                public_key: 'dogsarebadatkeepingsecrets',
+                release: '1.0.0',
+                sample_rate: '1',
+                trace_id: '1234567890abcdef1234567890abcdef',
+                transaction: 'dogpark',
+                user_segment: 'segmentA',
+              },
+              source: 'route',
+            },
           },
-          source: 'route',
+          expect.any(Function),
+          expect.any(Function),
+        );
+      });
+
+      it("doesn't attach trace data if it's not available", async () => {
+        const wrappedLoad = wrapLoadWithSentry(load);
+        await wrappedLoad(MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS);
+
+        expect(mockTrace).toHaveBeenCalledTimes(1);
+        expect(mockTrace).toHaveBeenCalledWith(
+          {
+            op: 'function.sveltekit.load',
+            name: '/users/[id]',
+            status: 'ok',
+            metadata: {
+              source: 'route',
+            },
+          },
+          expect.any(Function),
+          expect.any(Function),
+        );
+      });
+
+      it("doesn't attach the DSC data if the baggage header not available", async () => {
+        const wrappedLoad = wrapLoadWithSentry(load);
+        await wrappedLoad(MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS);
+
+        expect(mockTrace).toHaveBeenCalledTimes(1);
+        expect(mockTrace).toHaveBeenCalledWith(
+          {
+            op: 'function.sveltekit.load',
+            name: '/users/[id]',
+            parentSampled: true,
+            parentSpanId: '1234567890abcdef',
+            status: 'ok',
+            traceId: '1234567890abcdef1234567890abcdef',
+            metadata: {
+              dynamicSamplingContext: {},
+              source: 'route',
+            },
+          },
+          expect.any(Function),
+          expect.any(Function),
+        );
+      });
+    });
+
+    it('for shared load', async () => {
+      const wrappedLoad = wrapLoadWithSentry(load);
+      await wrappedLoad(MOCK_LOAD_ARGS);
+
+      expect(mockTrace).toHaveBeenCalledTimes(1);
+      expect(mockTrace).toHaveBeenCalledWith(
+        {
+          op: 'function.sveltekit.load',
+          name: '/users/[id]',
+          status: 'ok',
+          metadata: {
+            source: 'route',
+          },
         },
-      },
-      expect.any(Function),
-      expect.any(Function),
-    );
+        expect.any(Function),
+        expect.any(Function),
+      );
+    });
+
+    it('falls back to the raw url if `event.route.id` is not available', async () => {
+      const wrappedLoad = wrapLoadWithSentry(load);
+      await wrappedLoad(MOCK_LOAD_NO_ROUTE_ARGS);
+
+      expect(mockTrace).toHaveBeenCalledTimes(1);
+      expect(mockTrace).toHaveBeenCalledWith(
+        {
+          op: 'function.sveltekit.load',
+          name: '/users/123',
+          status: 'ok',
+          metadata: {
+            source: 'url',
+          },
+        },
+        expect.any(Function),
+        expect.any(Function),
+      );
+    });
   });
 
   describe('with error() helper', () => {
