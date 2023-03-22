@@ -108,10 +108,10 @@ async function _handleFetchBreadcrumb(
   hint: FetchHint,
   options: ExtendedNetworkBreadcrumbsOptions,
 ): Promise<void> {
-  await _parseFetchResponse(breadcrumb, hint, options);
+  const fullBreadcrumb = await _parseFetchResponse(breadcrumb, hint, options);
 
   // Create a replay performance entry from this breadcrumb
-  const result = _makeNetworkReplayBreadcrumb('resource.fetch', breadcrumb, hint);
+  const result = _makeNetworkReplayBreadcrumb('resource.fetch', fullBreadcrumb, hint);
   addNetworkBreadcrumb(options.replay, result);
 }
 
@@ -120,9 +120,9 @@ async function _parseFetchResponse(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: FetchBreadcrumbHint,
   options: ExtendedNetworkBreadcrumbsOptions,
-): Promise<void> {
+): Promise<Breadcrumb & { data: FetchBreadcrumbData }> {
   if (breadcrumb.data.response_body_size || !hint.response) {
-    return;
+    return breadcrumb;
   }
 
   // If no Content-Length header exists, we try to get the size from the response body
@@ -132,11 +132,16 @@ async function _parseFetchResponse(
     const body = await response.text();
 
     if (body.length) {
-      breadcrumb.data.response_body_size = getBodySize(body, options.textEncoder);
+      return {
+        ...breadcrumb,
+        data: { ...breadcrumb.data, response_body_size: getBodySize(body, options.textEncoder) },
+      };
     }
   } catch {
     // just ignore if something fails here
   }
+
+  return breadcrumb;
 }
 
 function _makeNetworkReplayBreadcrumb(
