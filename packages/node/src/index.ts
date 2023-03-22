@@ -30,6 +30,7 @@ export {
   captureMessage,
   configureScope,
   createTransport,
+  getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
