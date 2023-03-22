@@ -114,20 +114,8 @@ describe('wrapLoadWithSentry', () => {
       {
         op: 'function.sveltekit.load',
         name: '/users/[id]',
-        parentSampled: true,
-        parentSpanId: '1234567890abcdef',
         status: 'ok',
-        traceId: '1234567890abcdef1234567890abcdef',
         metadata: {
-          dynamicSamplingContext: {
-            environment: 'production',
-            public_key: 'dogsarebadatkeepingsecrets',
-            release: '1.0.0',
-            sample_rate: '1',
-            trace_id: '1234567890abcdef1234567890abcdef',
-            transaction: 'dogpark',
-            user_segment: 'segmentA',
-          },
           source: 'route',
         },
       },
