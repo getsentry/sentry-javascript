@@ -15,7 +15,6 @@ Sentry.init({
   tracesSampleRate: 1,
   replaysSessionSampleRate: 0.0,
   replaysOnErrorSampleRate: 1.0,
-  debug: true,
 });
 
 Sentry.configureScope(scope => {
