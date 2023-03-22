@@ -99,6 +99,43 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
   });
 
+  it('calls trace function', async () => {
+    async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      return {
+        post: params.id,
+      };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    await wrappedLoad(MOCK_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.load',
+        name: '/users/[id]',
+        parentSampled: true,
+        parentSpanId: '1234567890abcdef',
+        status: 'ok',
+        traceId: '1234567890abcdef1234567890abcdef',
+        metadata: {
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'dogsarebadatkeepingsecrets',
+            release: '1.0.0',
+            sample_rate: '1',
+            trace_id: '1234567890abcdef1234567890abcdef',
+            transaction: 'dogpark',
+            user_segment: 'segmentA',
+          },
+          source: 'route',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
   it('adds an exception mechanism', async () => {
     const addEventProcessorSpy = vi.spyOn(mockScope, 'addEventProcessor').mockImplementationOnce(callback => {
       void callback({}, { event_id: 'fake-event-id' });
