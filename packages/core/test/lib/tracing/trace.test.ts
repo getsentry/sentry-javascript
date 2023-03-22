@@ -47,6 +47,21 @@ describe('trace', () => {
       }
     });
 
+    it('should return the same value as the callback if transactions are undefined', async () => {
+      // @ts-ignore we are force overriding the transaction return to be undefined
+      // The `startTransaction` types are actually wrong - it can return undefined
+      // if tracingExtensions are not enabled
+      jest.spyOn(hub, 'startTransaction').mockReturnValue(undefined);
+      try {
+        const result = await trace({ name: 'GET users/[id]' }, () => {
+          return callback();
+        });
+        expect(result).toEqual(expected);
+      } catch (e) {
+        expect(e).toEqual(expected);
+      }
+    });
+
     it('creates a transaction', async () => {
       let ref: any = undefined;
       client.on('finishTransaction', transaction => {
@@ -99,7 +114,9 @@ describe('trace', () => {
       });
       try {
         await trace({ name: 'GET users/[id]' }, span => {
-          span.op = 'http.server';
+          if (span) {
+            span.op = 'http.server';
+          }
           return callback();
         });
       } catch (e) {
@@ -138,7 +155,9 @@ describe('trace', () => {
       try {
         await trace({ name: 'GET users/[id]', parentSampled: true }, () => {
           return trace({ name: 'SELECT * from users' }, childSpan => {
-            childSpan.op = 'db.query';
+            if (childSpan) {
+              childSpan.op = 'db.query';
+            }
             return callback();
           });
         });
