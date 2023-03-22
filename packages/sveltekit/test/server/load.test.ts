@@ -98,9 +98,6 @@ describe('wrapLoadWithSentry', () => {
     const res = wrappedLoad(MOCK_LOAD_ARGS);
     await expect(res).rejects.toThrow();
 
-    // create promise that waits for timeout
-    await new Promise(resolve => setTimeout(resolve, 1000, 'timeout'));
-
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
   });
 
