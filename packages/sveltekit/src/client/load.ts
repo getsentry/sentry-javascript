@@ -1,6 +1,6 @@
 import { trace } from '@sentry/core';
-import { captureException, getCurrentHub } from '@sentry/svelte';
-import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
+import { captureException } from '@sentry/svelte';
+import { addExceptionMechanism, objectify } from '@sentry/utils';
 import type { Load } from '@sveltejs/kit';
 
 function sendErrorToSentry(e: unknown): unknown {
