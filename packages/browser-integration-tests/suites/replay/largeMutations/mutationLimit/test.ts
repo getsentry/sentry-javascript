@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
-  'handles large mutations with _experiments.fullSnapshotOnMutationsOver configured',
+  'handles large mutations with _experiments.mutationLimit configured',
   async ({ getLocalTestPath, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();

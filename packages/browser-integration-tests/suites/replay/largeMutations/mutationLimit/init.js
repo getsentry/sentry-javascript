@@ -5,7 +5,7 @@ window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   _experiments: {
-    fullSnapshotOnMutationsOver: 250,
+    mutationLimit: 250,
   },
 });
 
