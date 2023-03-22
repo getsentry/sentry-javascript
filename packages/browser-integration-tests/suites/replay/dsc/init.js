@@ -5,6 +5,7 @@ window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
+  useCompression: false,
 });
 
 Sentry.init({

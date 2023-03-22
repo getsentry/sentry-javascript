@@ -9,11 +9,11 @@ sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestP
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
+  const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
+
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session?.id).toBeDefined();
-
-  const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
   expect(envHeader.trace).toBeDefined();
   expect(envHeader.trace).toEqual({
