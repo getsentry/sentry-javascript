@@ -30,6 +30,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       startChild: vi.fn().mockImplementation(ctx => {
         return { ...mockedRoutingSpan, ...ctx };
       }),
+      setTag: vi.fn(),
     };
     return returnedTransaction;
   });
@@ -50,9 +51,12 @@ describe('sveltekitRoutingInstrumentation', () => {
 
     expect(mockedStartTransaction).toHaveBeenCalledTimes(1);
     expect(mockedStartTransaction).toHaveBeenCalledWith({
-      name: 'pageload',
+      name: '/',
       op: 'pageload',
       description: '/',
+      tags: {
+        'routing.instrumentation': '@sentry/sveltekit',
+      },
     });
 
     // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
@@ -101,17 +105,17 @@ describe('sveltekitRoutingInstrumentation', () => {
       metadata: {
         source: 'route',
       },
+      tags: {
+        'routing.instrumentation': '@sentry/sveltekit',
+      },
     });
 
     expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
       description: 'SvelteKit Route Change',
-      tags: {
-        'routing.instrumentation': '@sentry/sveltekit',
-        from: 'testNavigationOrigin',
-        to: 'testNavigationDestination',
-      },
     });
+
+    expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', 'testNavigationOrigin');
 
     // We emit `null` here to simulate the end of the navigation lifecycle
     // @ts-ignore this is fine

@@ -1,7 +1,12 @@
-import { getCurrentHub, WINDOW } from '@sentry/svelte';
+import { getActiveTransaction } from '@sentry/core';
+import { WINDOW } from '@sentry/svelte';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 
 import { navigating, page } from '$app/stores';
+
+const DEFAULT_TAGS = {
+  'routing.instrumentation': '@sentry/sveltekit',
+};
 
 /**
  *
@@ -25,7 +30,16 @@ export function svelteKitRoutingInstrumentation<T extends Transaction>(
 }
 
 function instrumentPageload(startTransactionFn: (context: TransactionContext) => Transaction | undefined): void {
-  const pageloadTransaction = createPageloadTxn(startTransactionFn);
+  const initialPath = WINDOW && WINDOW.location && WINDOW.location.pathname;
+
+  const pageloadTransaction = startTransactionFn({
+    name: initialPath,
+    op: 'pageload',
+    description: initialPath,
+    tags: {
+      ...DEFAULT_TAGS,
+    },
+  });
 
   page.subscribe(page => {
     if (!page) {
@@ -62,13 +76,20 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
     const routeDestination = navigation.to && navigation.to.route.id;
     const routeOrigin = navigation.from && navigation.from.route.id;
 
+    if (routeOrigin === routeDestination) {
+      return;
+    }
+
     activeTransaction = getActiveTransaction();
 
     if (!activeTransaction) {
       activeTransaction = startTransactionFn({
-        name: routeDestination || 'unknown',
+        name: routeDestination || (WINDOW && WINDOW.location && WINDOW.location.pathname),
         op: 'navigation',
         metadata: { source: 'route' },
+        tags: {
+          ...DEFAULT_TAGS,
+        },
       });
     }
 
@@ -78,31 +99,10 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         routingSpan.finish();
       }
       routingSpan = activeTransaction.startChild({
-        description: 'SvelteKit Route Change',
         op: 'ui.sveltekit.routing',
-        tags: {
-          'routing.instrumentation': '@sentry/sveltekit',
-          from: routeOrigin,
-          to: routeDestination,
-        },
+        description: 'SvelteKit Route Change',
       });
+      activeTransaction.setTag('from', routeOrigin);
     }
   });
-}
-
-function createPageloadTxn(
-  startTransactionFn: (context: TransactionContext) => Transaction | undefined,
-): Transaction | undefined {
-  const ctx: TransactionContext = {
-    name: 'pageload',
-    op: 'pageload',
-    description: WINDOW.location.pathname,
-  };
-
-  return startTransactionFn(ctx);
-}
-
-function getActiveTransaction(): Transaction | undefined {
-  const scope = getCurrentHub().getScope();
-  return scope && scope.getTransaction();
 }
