@@ -25,7 +25,6 @@
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2",
     "@sentry/webpack-plugin": "1.20.0",
-    "@sentry-internal/tracing": "7.44.2",
     "chalk": "3.0.0",
     "rollup": "2.78.0",
     "stacktrace-parser": "^0.1.10",
