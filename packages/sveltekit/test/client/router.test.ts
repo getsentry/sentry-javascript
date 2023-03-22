@@ -123,4 +123,18 @@ describe('sveltekitRoutingInstrumentation', () => {
 
     expect(routingSpanFinishSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("doesn't start a navigation transaction if navigation origin and destination are equal", () => {
+    svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
+
+    // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
+    // @ts-ignore This is fine because we testUtils/stores.ts defines `navigating` as a writable store
+    navigating.set({
+      from: { route: { id: 'testRoute' } },
+      to: { route: { id: 'testRoute' } },
+    });
+
+    // This should update the transaction name with the parameterized route:
+    expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
+  });
 });
