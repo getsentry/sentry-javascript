@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, trace } from '@opentelemetry/api';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { addGlobalEventProcessor, getCurrentHub, Transaction } from '@sentry/core';
+import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 
@@ -22,6 +22,8 @@ export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = 
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
   public constructor() {
+    addTracingExtensions();
+
     addGlobalEventProcessor(event => {
       const otelSpan = trace && trace.getActiveSpan && (trace.getActiveSpan() as OtelSpan | undefined);
       if (!otelSpan) {
