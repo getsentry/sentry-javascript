@@ -105,7 +105,6 @@ export class OnUncaughtException implements Integration {
         if (
           // There are 3 listeners we ignore:
           listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
           listener === this.handler // the handler we register in this integration
         ) {
