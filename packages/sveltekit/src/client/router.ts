@@ -9,11 +9,14 @@ const DEFAULT_TAGS = {
 };
 
 /**
+ * Automatically creates pageload and navigation transactions for the client-side SvelteKit router.
  *
- * @param startTransactionFn
- * @param startTransactionOnPageLoad
- * @param startTransactionOnLocationChange
- * @returns
+ * This instrumentation makes use of SvelteKit's `page` and `navigating` stores which can be accessed
+ * anywhere on the client side.
+ *
+ * @param startTransactionFn the function used to start (idle) transactions
+ * @param startTransactionOnPageLoad controls if pageload transactions should be created (defaults to `true`)
+ * @param startTransactionOnLocationChange controls if navigation transactions should be created (defauls to `true`)
  */
 export function svelteKitRoutingInstrumentation<T extends Transaction>(
   startTransactionFn: (context: TransactionContext) => T | undefined,
