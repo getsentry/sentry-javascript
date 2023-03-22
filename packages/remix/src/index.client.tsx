@@ -1,12 +1,10 @@
 /* eslint-disable import/export */
-import { configureScope, init as reactInit, Integrations } from '@sentry/react';
+import { configureScope, init as reactInit } from '@sentry/react';
 
 import { buildMetadata } from './utils/metadata';
 import type { RemixOptions } from './utils/remixOptions';
 export { remixRouterInstrumentation, withSentry } from './performance/client';
 export * from '@sentry/react';
-
-export { Integrations };
 
 export function init(options: RemixOptions): void {
   buildMetadata(options, ['remix', 'react']);
