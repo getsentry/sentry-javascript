@@ -4,8 +4,16 @@ import { Resource } from '@opentelemetry/resources';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { SpanStatusType, Scope } from '@sentry/core';
-import { addTracingExtensions, createTransport, Hub, makeMain, Span as SentrySpan, Transaction } from '@sentry/core';
+import type { SpanStatusType } from '@sentry/core';
+import {
+  addTracingExtensions,
+  createTransport,
+  Hub,
+  makeMain,
+  Scope,
+  Span as SentrySpan,
+  Transaction,
+} from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
