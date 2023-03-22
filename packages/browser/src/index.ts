@@ -21,8 +21,8 @@ const INTEGRATIONS = {
 export { INTEGRATIONS as Integrations };
 
 export { Replay } from '@sentry/replay';
-export { BrowserTracing } from '@sentry-internal/tracing';
-export { addTracingExtensions } from '@sentry/core';
+export { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry-internal/tracing';
+export { addTracingExtensions, getActiveTransaction } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
 export { BrowserProfilingIntegration } from './profiling/integration';

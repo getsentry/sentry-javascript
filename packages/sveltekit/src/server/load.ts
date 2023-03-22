@@ -1,6 +1,14 @@
+/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
+import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
+import {
+  addExceptionMechanism,
+  baggageHeaderToDynamicSamplingContext,
+  extractTraceparentData,
+  objectify,
+} from '@sentry/utils';
 import type { HttpError, ServerLoad } from '@sveltejs/kit';
+import * as domain from 'domain';
 
 function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
@@ -44,21 +52,30 @@ function sendErrorToSentry(e: unknown): unknown {
 export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad>) => {
-      let maybePromiseResult;
+      return domain.create().bind(() => {
+        const [event] = args;
 
-      try {
-        maybePromiseResult = wrappingTarget.apply(thisArg, args);
-      } catch (e) {
-        throw sendErrorToSentry(e);
-      }
+        const sentryTraceHeader = event.request.headers.get('sentry-trace');
+        const baggageHeader = event.request.headers.get('baggage');
+        const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
+        const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
-      if (isThenable(maybePromiseResult)) {
-        Promise.resolve(maybePromiseResult).then(null, e => {
-          sendErrorToSentry(e);
-        });
-      }
-
-      return maybePromiseResult;
+        const routeId = event.route.id;
+        return trace(
+          {
+            op: 'function.sveltekit.load',
+            name: routeId ? routeId : event.url.pathname,
+            status: 'ok',
+            ...traceparentData,
+            metadata: {
+              source: routeId ? 'route' : 'url',
+              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+            },
+          },
+          () => wrappingTarget.apply(thisArg, args),
+          sendErrorToSentry,
+        );
+      })();
     },
   });
 }

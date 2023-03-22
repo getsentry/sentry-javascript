@@ -1,11 +1,11 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
-import type { Transaction } from '@sentry/types';
+import type { Span } from '@sentry/core';
+import { trace } from '@sentry/core';
+import { captureException } from '@sentry/node';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
   extractTraceparentData,
-  isThenable,
   objectify,
 } from '@sentry/utils';
 import type { Handle } from '@sveltejs/kit';
@@ -51,53 +51,30 @@ function sendErrorToSentry(e: unknown): unknown {
  */
 export const sentryHandle: Handle = ({ event, resolve }) => {
   return domain.create().bind(() => {
-    let maybePromiseResult;
-
     const sentryTraceHeader = event.request.headers.get('sentry-trace');
     const baggageHeader = event.request.headers.get('baggage');
     const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
     const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
-    // transaction could be undefined if hub extensions were not added.
-    const transaction: Transaction | undefined = startTransaction({
-      op: 'http.server',
-      name: `${event.request.method} ${event.route.id}`,
-      status: 'ok',
-      ...traceparentData,
-      metadata: {
-        source: 'route',
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+    return trace(
+      {
+        op: 'http.server',
+        name: `${event.request.method} ${event.route.id}`,
+        status: 'ok',
+        ...traceparentData,
+        metadata: {
+          source: 'route',
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        },
       },
-    });
-
-    getCurrentHub().getScope()?.setSpan(transaction);
-
-    try {
-      maybePromiseResult = resolve(event);
-    } catch (e) {
-      transaction?.setStatus('internal_error');
-      const sentryError = sendErrorToSentry(e);
-      transaction?.finish();
-      throw sentryError;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        response => {
-          transaction?.setHttpStatus(response.status);
-          transaction?.finish();
-        },
-        e => {
-          transaction?.setStatus('internal_error');
-          sendErrorToSentry(e);
-          transaction?.finish();
-        },
-      );
-    } else {
-      transaction?.setHttpStatus(maybePromiseResult.status);
-      transaction?.finish();
-    }
-
-    return maybePromiseResult;
+      async (span?: Span) => {
+        const res = await resolve(event);
+        if (span) {
+          span.setHttpStatus(res.status);
+        }
+        return res;
+      },
+      sendErrorToSentry,
+    );
   })();
 };

@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/core';
-import { BaseClient, SDK_VERSION } from '@sentry/core';
+import { addTracingExtensions, BaseClient, SDK_VERSION } from '@sentry/core';
 import type { ClientOptions, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
@@ -27,6 +27,9 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
       ],
       version: SDK_VERSION,
     };
+
+    // The Edge client always supports tracing
+    addTracingExtensions();
 
     super(options);
   }
