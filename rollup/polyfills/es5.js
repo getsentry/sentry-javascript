@@ -20,6 +20,7 @@ if (!('findIndex' in Array.prototype)) {
         return i;
       }
     }
+    return -1;
   };
 }
 if (!('includes' in String.prototype)) {
