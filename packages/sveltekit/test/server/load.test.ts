@@ -1,3 +1,4 @@
+import { addTracingExtensions } from '@sentry/core';
 import { Scope } from '@sentry/node';
 import type { ServerLoad } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
@@ -26,7 +27,7 @@ vi.mock('@sentry/core', async () => {
   const original = (await vi.importActual('@sentry/core')) as any;
   return {
     ...original,
-    trace: (...args) => {
+    trace: (...args: unknown[]) => {
       mockTrace(...args);
       return original.trace(...args);
     },
@@ -48,10 +49,11 @@ function getById(_id?: string) {
 }
 
 const MOCK_LOAD_ARGS: any = {
-  params: { id: '1' },
+  params: { id: '123' },
   route: {
     id: '/users/[id]',
   },
+  url: new URL('http://localhost:3000/users/123'),
   request: {
     headers: {
       get: (key: string) => {
@@ -73,6 +75,10 @@ const MOCK_LOAD_ARGS: any = {
   },
 };
 
+beforeAll(() => {
+  addTracingExtensions();
+});
+
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
@@ -81,7 +87,7 @@ describe('wrapLoadWithSentry', () => {
     mockScope = new Scope();
   });
 
-  it.only('calls captureException', async () => {
+  it('calls captureException', async () => {
     async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
       return {
         post: getById(params.id),
@@ -106,18 +112,33 @@ describe('wrapLoadWithSentry', () => {
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    await wrappedLoad({
-      params: { id: '1' },
-      route: {
-        id: '',
-      },
-      headers: { 'sentry-trace': '1234567890abcdef1234567890abcdef-1234567890abcdef-1' },
-    } as any);
+    await wrappedLoad(MOCK_LOAD_ARGS);
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
-    expect(mockTrace).toHaveBeenCalledWith({
-      op: 'function.sveltekit.load',
-    });
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.load',
+        name: '/users/[id]',
+        parentSampled: true,
+        parentSpanId: '1234567890abcdef',
+        status: 'ok',
+        traceId: '1234567890abcdef1234567890abcdef',
+        metadata: {
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'dogsarebadatkeepingsecrets',
+            release: '1.0.0',
+            sample_rate: '1',
+            trace_id: '1234567890abcdef1234567890abcdef',
+            transaction: 'dogpark',
+            user_segment: 'segmentA',
+          },
+          source: 'route',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 
   describe('with error() helper', () => {
@@ -140,7 +161,7 @@ describe('wrapLoadWithSentry', () => {
       }
 
       const wrappedLoad = wrapLoadWithSentry(load);
-      const res = wrappedLoad({ params: { id: '1' } } as any);
+      const res = wrappedLoad(MOCK_LOAD_ARGS);
       await expect(res).rejects.toThrow();
 
       expect(mockCaptureException).toHaveBeenCalledTimes(times);
@@ -160,7 +181,7 @@ describe('wrapLoadWithSentry', () => {
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad({ params: { id: '1' } } as any);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
     await expect(res).rejects.toThrow();
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);

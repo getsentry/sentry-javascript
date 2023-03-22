@@ -60,14 +60,15 @@ export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
         const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
         const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
 
+        const routeId = event.route.id;
         return trace(
           {
             op: 'function.sveltekit.load',
-            name: event.route.id || 'load',
+            name: routeId ? routeId : event.url.pathname,
             status: 'ok',
             ...traceparentData,
             metadata: {
-              source: 'route',
+              source: routeId ? 'route' : 'url',
               dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
             },
           },
