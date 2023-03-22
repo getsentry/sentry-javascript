@@ -134,7 +134,6 @@ describe('sveltekitRoutingInstrumentation', () => {
       to: { route: { id: 'testRoute' } },
     });
 
-    // This should update the transaction name with the parameterized route:
     expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
   });
 });
