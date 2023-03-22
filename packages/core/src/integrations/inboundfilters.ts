@@ -103,7 +103,8 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
 }
 
 function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): boolean {
-  if (!ignoreErrors || !ignoreErrors.length) {
+  // If event.type, this is not an error
+  if (event.type || !ignoreErrors || !ignoreErrors.length) {
     return false;
   }
 
