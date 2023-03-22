@@ -341,6 +341,45 @@ describe('ErrorBoundary', () => {
       expect(cause.message).toEqual(thirdError.message);
     });
 
+    it('handles when `error.cause` is recursive', () => {
+      const mockOnError = jest.fn();
+
+      function CustomBam(): JSX.Element {
+        const firstError = new Error('bam');
+        const secondError = new Error('bam2');
+        // @ts-ignore Need to set cause on error
+        firstError.cause = secondError;
+        // @ts-ignore Need to set cause on error
+        secondError.cause = firstError;
+        throw firstError;
+      }
+
+      render(
+        <TestApp fallback={<p>You have hit an error</p>} onError={mockOnError} errorComp={<CustomBam />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockOnError).toHaveBeenCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
+        contexts: { react: { componentStack: expect.any(String) } },
+      });
+
+      expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
+
+      const error = mockCaptureException.mock.calls[0][0];
+      const cause = error.cause;
+      // We need to make sure that recursive error.cause does not cause infinite loop
+      expect(cause.stack).not.toEqual(mockCaptureException.mock.calls[0][1].contexts.react.componentStack);
+      expect(cause.name).not.toContain('React ErrorBoundary');
+    });
+
     it('calls `beforeCapture()` when an error occurs', () => {
       const mockBeforeCapture = jest.fn();
 

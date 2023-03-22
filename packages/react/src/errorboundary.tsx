@@ -67,10 +67,22 @@ const INITIAL_STATE = {
 };
 
 function setCause(error: Error & { cause?: Error }, cause: Error): void {
-  if (error.cause) {
-    return setCause(error.cause, cause);
+  const seenErrors = new Map<Error, boolean>();
+
+  function recurse(error: Error & { cause?: Error }, cause: Error): void {
+    // If we've already seen the error, there is a recursive loop somewhere in the error's
+    // cause chain. Let's just bail out then to prevent a stack overflow.
+    if (seenErrors.has(error)) {
+      return;
+    }
+    if (error.cause) {
+      seenErrors.set(error, true);
+      return recurse(error.cause, cause);
+    }
+    error.cause = cause;
   }
-  error.cause = cause;
+
+  recurse(error, cause);
 }
 
 /**
