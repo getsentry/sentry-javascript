@@ -110,7 +110,7 @@ export interface ReplayPluginOptions extends SessionOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
-    captureMutationSize: boolean;
+    fullSnapshotOnMutationsOver: number;
   }>;
 }
 

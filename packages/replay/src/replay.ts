@@ -207,23 +207,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
-        onMutation: (mutations: unknown[]) => {
-          if (this._options._experiments.captureMutationSize) {
-            const count = mutations.length;
-
-            if (count > 500) {
-              const breadcrumb = createBreadcrumb({
-                category: 'replay.mutations',
-                data: {
-                  count,
-                },
-              });
-              this._createCustomBreadcrumb(breadcrumb);
-            }
-          }
-          // `true` means we use the regular mutation handling by rrweb
-          return true;
-        },
+        onMutation: this._onMutationHandler,
       });
     } catch (err) {
       this._handleException(err);
@@ -622,10 +606,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Trigger rrweb to take a full snapshot which will cause this plugin to
    * create a new Replay event.
    */
-  private _triggerFullSnapshot(): void {
+  private _triggerFullSnapshot(checkout = true): void {
     try {
       __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
-      record.takeFullSnapshot(true);
+      record.takeFullSnapshot(checkout);
     } catch (err) {
       this._handleException(err);
     }
@@ -839,4 +823,33 @@ export class ReplayContainer implements ReplayContainerInterface {
       saveSession(this.session);
     }
   }
+
+  /** Handler for rrweb.record.onMutation */
+  private _onMutationHandler = (mutations: unknown[]): boolean => {
+    const count = mutations.length;
+
+    const fullSnapshotOnMutationsOver = this._options._experiments.fullSnapshotOnMutationsOver || 0;
+
+    // Create a breadcrumb if a lot of mutations happen at the same time
+    // We can show this in the UI as an information with potential performance improvements
+    if (count > 500 || (fullSnapshotOnMutationsOver && count > fullSnapshotOnMutationsOver)) {
+      const breadcrumb = createBreadcrumb({
+        category: 'replay.mutations',
+        data: {
+          count,
+        },
+      });
+      this._createCustomBreadcrumb(breadcrumb);
+    }
+
+    if (fullSnapshotOnMutationsOver && count > fullSnapshotOnMutationsOver) {
+      // We want to skip doing an incremental snapshot if there are too many mutations
+      // Instead, we do a full snapshot
+      this._triggerFullSnapshot(false);
+      return false;
+    }
+
+    // `true` means we use the regular mutation handling by rrweb
+    return true;
+  };
 }
