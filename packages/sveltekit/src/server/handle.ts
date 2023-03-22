@@ -67,9 +67,11 @@ export const sentryHandle: Handle = ({ event, resolve }) => {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       },
-      async (span: Span) => {
+      async (span?: Span) => {
         const res = await resolve(event);
-        span.setHttpStatus(res.status);
+        if (span) {
+          span.setHttpStatus(res.status);
+        }
         return res;
       },
       sendErrorToSentry,
