@@ -67,7 +67,7 @@ const INITIAL_STATE = {
 };
 
 function setCause(error: Error & { cause?: Error }, cause: Error): void {
-  const seenErrors = new Map<Error, boolean>();
+  const seenErrors = new WeakMap<Error, boolean>();
 
   function recurse(error: Error & { cause?: Error }, cause: Error): void {
     // If we've already seen the error, there is a recursive loop somewhere in the error's
