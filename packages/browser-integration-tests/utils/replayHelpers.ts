@@ -99,6 +99,16 @@ function isCustomSnapshot(event: RecordingEvent): event is RecordingEvent & { da
   return event.type === EventType.Custom;
 }
 
+/** Wait for replay to be running & available. */
+export async function waitForReplayRunning(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replay = replayIntegration._replay;
+
+    return replay.isEnabled() && replay.session?.id !== undefined;
+  });
+}
+
 /**
  * This returns the replay container (assuming it exists).
  * Note that due to how this works with playwright, this is a POJO copy of replay.

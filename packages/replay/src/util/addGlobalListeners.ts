@@ -1,5 +1,6 @@
 import type { BaseClient } from '@sentry/core';
 import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
+import type { Client, DynamicSamplingContext } from '@sentry/types';
 import { addInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
@@ -25,15 +26,23 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   addInstrumentationHandler('history', handleHistorySpanListener(replay));
   handleNetworkBreadcrumbs(replay);
 
-  // If a custom client has no hooks yet, we continue to use the "old" implementation
-  const hasHooks = !!(client && client.on);
-
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
-  addGlobalEventProcessor(handleGlobalEventListener(replay, !hasHooks));
+  addGlobalEventProcessor(handleGlobalEventListener(replay, !hasHooks(client)));
 
-  if (hasHooks) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (client as BaseClient<any>).on('afterSendEvent', handleAfterSendEvent(replay));
+  // If a custom client has no hooks yet, we continue to use the "old" implementation
+  if (hasHooks(client)) {
+    client.on('afterSendEvent', handleAfterSendEvent(replay));
+    client.on('createDsc', (dsc: DynamicSamplingContext) => {
+      const replayId = replay.getSessionId();
+      if (replayId) {
+        dsc.replay_id = replayId;
+      }
+    });
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasHooks(client: Client | undefined): client is BaseClient<any> {
+  return !!(client && client.on);
 }
