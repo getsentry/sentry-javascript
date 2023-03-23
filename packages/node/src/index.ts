@@ -11,11 +11,12 @@ export type {
   // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
+  Span,
   StackFrame,
   Stacktrace,
   Thread,
+  Transaction,
   User,
-  Span,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
@@ -30,6 +31,7 @@ export {
   captureMessage,
   configureScope,
   createTransport,
+  extractTraceparentData,
   getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
@@ -44,8 +46,11 @@ export {
   setTag,
   setTags,
   setUser,
+  spanStatusfromHttpCode,
+  trace,
   withScope,
 } from '@sentry/core';
+export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';

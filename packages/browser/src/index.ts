@@ -22,7 +22,14 @@ export { INTEGRATIONS as Integrations };
 
 export { Replay } from '@sentry/replay';
 export { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry-internal/tracing';
-export { addTracingExtensions, getActiveTransaction } from '@sentry/core';
+export {
+  addTracingExtensions,
+  extractTraceparentData,
+  getActiveTransaction,
+  spanStatusfromHttpCode,
+  trace,
+} from '@sentry/core';
+export type { SpanStatusType } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
 export { BrowserProfilingIntegration } from './profiling/integration';

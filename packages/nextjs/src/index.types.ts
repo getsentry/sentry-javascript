@@ -37,6 +37,7 @@ export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const Span: typeof edgeSdk.Span;
+export declare const Transaction: typeof edgeSdk.Transaction;
 
 /**
  * @deprecated Use `wrapApiHandlerWithSentry` instead
