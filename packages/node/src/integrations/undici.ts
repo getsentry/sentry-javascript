@@ -63,7 +63,7 @@ export class Undici implements Integration {
 
   private readonly _options: UndiciOptions;
 
-  public constructor(_options: UndiciOptions) {
+  public constructor(_options: Partial<UndiciOptions> = {}) {
     this._options = {
       ...DEFAULT_UNDICI_OPTIONS,
       ..._options,
@@ -114,13 +114,19 @@ export class Undici implements Integration {
           : true;
 
         if (shouldCreateSpan) {
+          const data: Record<string, unknown> = {};
+          const params = url.searchParams.toString();
+          if (params) {
+            data['http.query'] = `?${params}`;
+          }
+          if (url.hash) {
+            data['http.fragment'] = url.hash;
+          }
+
           const span = activeSpan.startChild({
             op: 'http.client',
             description: `${request.method || 'GET'} ${stripUrlQueryAndFragment(stringUrl)}`,
-            data: {
-              'http.query': `?${url.searchParams.toString()}`,
-              'http.fragment': url.hash,
-            },
+            data,
           });
           request.__sentry__ = span;
 
