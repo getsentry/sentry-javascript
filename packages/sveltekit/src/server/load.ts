@@ -49,7 +49,7 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * @param origLoad SvelteKit user defined load function
  */
-export function wrapLoadWithSentry<T extends Load | ServerLoad>(origLoad: T): T {
+export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T {
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad | Load>) => {
       const [event] = args;
