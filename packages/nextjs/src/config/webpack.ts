@@ -778,12 +778,12 @@ function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions
   if (isServer && userSentryOptions.hideSourceMaps === undefined) {
     // eslint-disable-next-line no-console
     console.warn(
-      `\n${_warningPrefix_} In order to be able to deminify errors, ${_sentryNextjs_} creates sourcemaps and uploads ` +
-        'them to the Sentry server. Depending on your deployment setup, this means your original code may be visible ' +
-        `in browser devtools in production. To prevent this, set ${_hideSourceMaps_} to ${_true_} in the ${_sentry_} ` +
-        `options in your ${_nextConfigJS_}. To disable this warning without changing sourcemap behavior, set ` +
-        `${_hideSourceMaps_} to ${_false_}. (In ${_sentryNextjs_} version 8.0.0 and beyond, this option will default ` +
-        `to ${_true_}.) See https://webpack.js.org/configuration/devtool/ and ` +
+      `\n${_warningPrefix_} To deminify errors, ${_sentryNextjs_} creates and uploads sourcemaps to Sentry.` +
+        'Depending on your deployment setup, your original code may be visible in browser devtools in production' +
+        `To prevent this, set ${_hideSourceMaps_} to ${_true_} in the ${_sentry_} options in your ${_nextConfigJS_}.` +
+        `Disable this warning without changing sourcemap behavior, set ${_hideSourceMaps_} to ${_false_}.` +
+        `(In ${_sentryNextjs_} version 8.0, this option will default to ${_true_}.)` +
+        `See https://webpack.js.org/configuration/devtool/ and See https://webpack.js.org/configuration/devtool/ and ` +
         'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
         'information.\n',
     );
