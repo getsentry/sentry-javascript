@@ -77,7 +77,7 @@ see `ErrorHandlerOptions` interface in `src/errorhandler.ts`.
 ### Tracing
 
 `@sentry/angular` exports a Trace Service, Directive and Decorators that leverage the tracing
-features to add Angular related spans to transactions. If the tracing features are not enabled, this functionality
+features to add Angular related spans to transactions. If tracing is not enabled, this functionality
 will not work. The service itself tracks route changes and durations, where directive and decorators are tracking
 components initializations.
 
