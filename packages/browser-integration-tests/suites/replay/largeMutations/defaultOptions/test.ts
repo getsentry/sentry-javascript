@@ -11,9 +11,6 @@ sentryTest(
     }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
-    const reqPromise1 = waitForReplayRequest(page, 1);
-    const reqPromise2 = waitForReplayRequest(page, 2);
-    const reqPromise3 = waitForReplayRequest(page, 3);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -28,15 +25,21 @@ sentryTest(
     await page.goto(url);
     const res0 = await reqPromise0;
 
-    await page.click('#button-add');
+    const reqPromise1 = waitForReplayRequest(page);
+
+    void page.click('#button-add');
     await forceFlushReplay();
     const res1 = await reqPromise1;
 
-    await page.click('#button-modify');
+    const reqPromise2 = waitForReplayRequest(page);
+
+    void page.click('#button-modify');
     await forceFlushReplay();
     const res2 = await reqPromise2;
 
-    await page.click('#button-remove');
+    const reqPromise3 = waitForReplayRequest(page);
+
+    void page.click('#button-remove');
     await forceFlushReplay();
     const res3 = await reqPromise3;
 
