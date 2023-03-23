@@ -480,7 +480,15 @@ export class Hub implements HubInterface {
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    __DEBUG_BUILD__ && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
+    throw new Error(`Extension method '${method}' couldn't be found. Tracing extensions have not been added.
+Call 'addTracingExtensions' before calling 'init':
+
+Sentry.addTracingExtensions();
+
+Sentry.init({
+  ...
+});
+`);
   }
 }
 
