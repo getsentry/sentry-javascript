@@ -9,7 +9,7 @@ export * from './server';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 // eslint-disable-next-line import/no-unresolved
-import type { HandleClientError, HandleServerError, ServerLoad } from '@sveltejs/kit';
+import type { HandleClientError, HandleServerError, Load, ServerLoad } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
@@ -21,7 +21,7 @@ export declare function handleErrorWithSentry<T extends HandleClientError | Hand
   handleError?: T,
 ): ReturnType<T>;
 
-export declare function wrapLoadWithSentry<S extends ServerLoad>(origLoad: S): S;
+export declare function wrapLoadWithSentry<S extends ServerLoad | Load>(origLoad: S): S;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
