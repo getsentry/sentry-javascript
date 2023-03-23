@@ -1,15 +1,10 @@
 import * as SentryCore from '@sentry/core';
-import { addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/server';
 
 const startTransactionSpy = jest.spyOn(SentryCore, 'startTransaction');
-
-// The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
-// constructor but the client isn't used in these tests.
-addTracingExtensions();
 
 describe('data-fetching function wrappers', () => {
   const route = '/tricks/[trickName]';

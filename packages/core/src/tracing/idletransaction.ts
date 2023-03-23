@@ -346,7 +346,10 @@ export class IdleTransaction extends Transaction {
  */
 function clearActiveTransaction(hub: Hub): void {
   const scope = hub.getScope();
-  if (scope.getTransaction()) {
-    scope.setSpan(undefined);
+  if (scope) {
+    const transaction = scope.getTransaction();
+    if (transaction) {
+      scope.setSpan(undefined);
+    }
   }
 }

@@ -21,7 +21,7 @@ export { TRACEPARENT_REGEXP, extractTraceparentData } from '@sentry/utils';
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   const hub = maybeHub || getCurrentHub();
   const scope = hub.getScope();
-  return scope.getTransaction() as T | undefined;
+  return scope && (scope.getTransaction() as T | undefined);
 }
 
 // so it can be used in manual instrumentation without necessitating a hard dependency on @sentry/utils

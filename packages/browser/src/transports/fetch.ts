@@ -13,14 +13,7 @@ export function makeFetchTransport(
   options: BrowserTransportOptions,
   nativeFetch: FetchImpl = getNativeFetchImplementation(),
 ): Transport {
-  let pendingBodySize = 0;
-  let pendingCount = 0;
-
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
-    const requestSize = request.body.length;
-    pendingBodySize += requestSize;
-    pendingCount++;
-
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
@@ -32,31 +25,23 @@ export function makeFetchTransport(
       // frequently sending events right before the user is switching pages (eg. whenfinishing navigation transactions).
       // Gotchas:
       // - `keepalive` isn't supported by Firefox
-      // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch):
-      //   If the sum of contentLength and inflightKeepaliveBytes is greater than 64 kibibytes, then return a network error.
-      //   We will therefore only activate the flag when we're below that limit.
-      // There is also a limit of requests that can be open at the same time, so we also limit this to 15
-      // See https://github.com/getsentry/sentry-javascript/pull/7553 for details
-      keepalive: pendingBodySize <= 60_000 && pendingCount < 15,
+      // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch), a request with `keepalive: true`
+      //   and a content length of > 64 kibibytes returns a network error. We will therefore only activate the flag when
+      //   we're below that limit.
+      keepalive: request.body.length <= 65536,
       ...options.fetchOptions,
     };
 
     try {
-      return nativeFetch(options.url, requestOptions).then(response => {
-        pendingBodySize -= requestSize;
-        pendingCount--;
-        return {
-          statusCode: response.status,
-          headers: {
-            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-            'retry-after': response.headers.get('Retry-After'),
-          },
-        };
-      });
+      return nativeFetch(options.url, requestOptions).then(response => ({
+        statusCode: response.status,
+        headers: {
+          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+          'retry-after': response.headers.get('Retry-After'),
+        },
+      }));
     } catch (e) {
       clearCachedFetchImplementation();
-      pendingBodySize -= requestSize;
-      pendingCount--;
       return rejectedSyncPromise(e);
     }
   }

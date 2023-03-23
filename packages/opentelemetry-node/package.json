@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@sentry/core": "7.44.2",
+    "@sentry/tracing": "7.44.2",
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2"
   },

@@ -77,5 +77,5 @@ jobs:
         working-directory: packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
-          # Run 50 times when detecting changed test(s), else run all tests 5x
-          TEST_RUN_COUNT: ${{ steps.changed.outputs.browser_integration == 'true' && 50 || 5 }}
+          # Run 100 times when detecting changed test(s), else run all tests 5x
+          TEST_RUN_COUNT: ${{ steps.changed.outputs.browser_integration == 'true' && 100 || 5 }}

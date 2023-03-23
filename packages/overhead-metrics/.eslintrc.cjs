@@ -10,7 +10,6 @@ module.exports = {
         'import/no-unresolved': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
-        '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',
         'jsdoc/require-jsdoc': 'off',
       },
     },

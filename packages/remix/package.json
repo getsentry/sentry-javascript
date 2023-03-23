@@ -25,6 +25,7 @@
     "@sentry/integrations": "7.44.2",
     "@sentry/node": "7.44.2",
     "@sentry/react": "7.44.2",
+    "@sentry/tracing": "7.44.2",
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2",
     "@sentry/webpack-plugin": "1.19.0",

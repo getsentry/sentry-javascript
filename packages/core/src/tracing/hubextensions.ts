@@ -11,13 +11,15 @@ import { Transaction } from './transaction';
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
   const scope = this.getScope();
-  const span = scope.getSpan();
-
-  return span
-    ? {
+  if (scope) {
+    const span = scope.getSpan();
+    if (span) {
+      return {
         'sentry-trace': span.toTraceparent(),
-      }
-    : {};
+      };
+    }
+  }
+  return {};
 }
 
 /**

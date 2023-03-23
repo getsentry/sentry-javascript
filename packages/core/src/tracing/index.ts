@@ -6,4 +6,3 @@ export { extractTraceparentData, getActiveTransaction, stripUrlQueryAndFragment,
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
 export type { SpanStatusType } from './span';
-export { trace } from './trace';

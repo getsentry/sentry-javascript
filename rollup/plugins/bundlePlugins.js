@@ -8,9 +8,6 @@
  * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-
 import commonjs from '@rollup/plugin-commonjs';
 import deepMerge from 'deepmerge';
 import license from 'rollup-plugin-license';
@@ -39,11 +36,6 @@ export function makeLicensePlugin(title) {
   plugin.name = 'license';
 
   return plugin;
-}
-
-export function getEs5Polyfills() {
-  // Note: __dirname resolves to e.g. packages/browser or packages/tracing
-  return fs.readFileSync(path.join(__dirname, '../../rollup/polyfills/es5.js'), 'utf-8');
 }
 
 /**

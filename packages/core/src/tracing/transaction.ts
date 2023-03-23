@@ -256,7 +256,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     const maybeSampleRate = this.metadata.sampleRate;
     const sample_rate = maybeSampleRate !== undefined ? maybeSampleRate.toString() : undefined;
 
-    const { segment: user_segment } = hub.getScope().getUser() || {};
+    const scope = hub.getScope();
+    const { segment: user_segment } = (scope && scope.getUser()) || {};
 
     const source = this.metadata.source;
 
@@ -275,8 +276,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // Uncomment if we want to make DSC immutable
     // this._frozenDynamicSamplingContext = dsc;
-
-    client.emit && client.emit('createDsc', dsc);
 
     return dsc;
   }
