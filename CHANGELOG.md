@@ -19,7 +19,6 @@
 - fix(node): Consider tracing error handler for process exit (#7558)
 - fix(otel): Make sure we use correct hub on finish (#7577)
 - fix(react): Handle case where error.cause already defined (#7557)
-- fix(sveltekit): Handle same origin and destination navigations correctly (#7584)
 - fix(tracing): Account for case where startTransaction returns undefined (#7566)
 
 ## 7.44.2
