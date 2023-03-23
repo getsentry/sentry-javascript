@@ -166,6 +166,21 @@ declare module 'diagnostics_channel' {
      */
     public unsubscribe(onMessage: ChannelListener): void;
   }
+  // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/types/diagnostics-channel.d.ts
+  interface Request {
+    origin?: string | URL;
+    completed: boolean;
+    // Originally was Dispatcher.HttpMethod, but did not want to vendor that in.
+    method?: string;
+    path: string;
+    headers: string;
+    addHeader(key: string, value: string): Request;
+  }
+  interface Response {
+    statusCode: number;
+    statusText: string;
+    headers: Array<Buffer>;
+  }
 }
 declare module 'node:diagnostics_channel' {
   export * from 'diagnostics_channel';
