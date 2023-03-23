@@ -177,6 +177,11 @@ const MALFORMED_EVENT: Event = {
   },
 };
 
+const TRANSACTION_EVENT: Event = {
+  message: 'transaction message',
+  type: 'transaction',
+};
+
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
@@ -200,6 +205,13 @@ describe('InboundFilters', () => {
         ignoreErrors: ['capture'],
       });
       expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
+    });
+
+    it('ignores transaction event for filtering', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreErrors: ['transaction'],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
     });
 
     it('string filter with exact match', () => {
