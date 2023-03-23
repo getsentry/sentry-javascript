@@ -1,5 +1,5 @@
-import { addTracingExtensions, Scope } from '@sentry/svelte';
-import type { Load } from '@sveltejs/kit';
+import { Scope } from '@sentry/svelte';
+import type { ServerLoad } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry } from '../../src/client/load';
@@ -19,19 +19,6 @@ vi.mock('@sentry/svelte', async () => {
   };
 });
 
-const mockTrace = vi.fn();
-
-vi.mock('@sentry/core', async () => {
-  const original = (await vi.importActual('@sentry/core')) as any;
-  return {
-    ...original,
-    trace: (...args: unknown[]) => {
-      mockTrace(...args);
-      return original.trace(...args);
-    },
-  };
-});
-
 const mockAddExceptionMechanism = vi.fn();
 
 vi.mock('@sentry/utils', async () => {
@@ -46,82 +33,25 @@ function getById(_id?: string) {
   throw new Error('error');
 }
 
-const MOCK_LOAD_ARGS: any = {
-  params: { id: '123' },
-  route: {
-    id: '/users/[id]',
-  },
-  url: new URL('http://localhost:3000/users/123'),
-  request: {
-    headers: {
-      get: (key: string) => {
-        if (key === 'sentry-trace') {
-          return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
-        }
-
-        if (key === 'baggage') {
-          return (
-            'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-            'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-            'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
-          );
-        }
-
-        return null;
-      },
-    },
-  },
-};
-
-beforeAll(() => {
-  addTracingExtensions();
-});
-
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
     mockAddExceptionMechanism.mockClear();
-    mockTrace.mockClear();
     mockScope = new Scope();
   });
 
   it('calls captureException', async () => {
-    async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+    async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
       return {
         post: getById(params.id),
       };
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    const res = wrappedLoad({ params: { id: '1' } } as any);
     await expect(res).rejects.toThrow();
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls trace function', async () => {
-    async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
-      return {
-        post: params.id,
-      };
-    }
-
-    const wrappedLoad = wrapLoadWithSentry(load);
-    await wrappedLoad(MOCK_LOAD_ARGS);
-
-    expect(mockTrace).toHaveBeenCalledTimes(1);
-    expect(mockTrace).toHaveBeenCalledWith(
-      {
-        op: 'function.sveltekit.load',
-        name: '/users/[id]',
-        status: 'ok',
-        metadata: {
-          source: 'route',
-        },
-      },
-      expect.any(Function),
-      expect.any(Function),
-    );
   });
 
   it('adds an exception mechanism', async () => {
@@ -130,14 +60,14 @@ describe('wrapLoadWithSentry', () => {
       return mockScope;
     });
 
-    async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+    async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
       return {
         post: getById(params.id),
       };
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    const res = wrappedLoad({ params: { id: '1' } } as any);
     await expect(res).rejects.toThrow();
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);

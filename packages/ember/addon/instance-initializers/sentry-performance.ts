@@ -386,7 +386,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
-  const { BrowserTracing } = await import('@sentry/browser');
+  const tracing = await import('@sentry/tracing');
 
   const idleTimeout = config.transitionTimeout || 5000;
 
@@ -394,7 +394,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
   sentryConfig['integrations'] = [
     ...existingIntegrations,
-    new BrowserTracing({
+    new tracing.Integrations.BrowserTracing({
       routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
         const routerMain = appInstance.lookup('router:main');
         let routerService = appInstance.lookup('service:router') as
@@ -421,7 +421,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   ];
 
   class FakeBrowserTracingClass {
-    static id = 'BrowserTracing';
+    static id = tracing.BROWSER_TRACING_INTEGRATION_ID;
     public name = FakeBrowserTracingClass.id;
     setupOnce() {
       // noop - We're just faking  this class for a lookup

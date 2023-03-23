@@ -72,13 +72,15 @@ export class SessionFlusher implements SessionFlusherLike {
       return;
     }
     const scope = getCurrentHub().getScope();
-    const requestSession = scope.getRequestSession();
+    const requestSession = scope && scope.getRequestSession();
 
     if (requestSession && requestSession.status) {
       this._incrementSessionStatusCount(requestSession.status, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
-      scope.setRequestSession(undefined);
+      if (scope) {
+        scope.setRequestSession(undefined);
+      }
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
   }

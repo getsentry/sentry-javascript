@@ -1,8 +1,6 @@
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import { captureException } from '@sentry/node';
 import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
-import type { HttpError, Load, ServerLoad } from '@sveltejs/kit';
-import * as domain from 'domain';
+import type { HttpError, ServerLoad } from '@sveltejs/kit';
 
 function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
@@ -43,27 +41,24 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * @param origLoad SvelteKit user defined load function
  */
-export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T {
+export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad>) => {
-      return domain.create().bind(() => {
-        let maybePromiseResult: ReturnType<T>;
+      let maybePromiseResult;
 
-        try {
-          maybePromiseResult = wrappingTarget.apply(thisArg, args);
-        } catch (e) {
+      try {
+        maybePromiseResult = wrappingTarget.apply(thisArg, args);
+      } catch (e) {
+        throw sendErrorToSentry(e);
+      }
+
+      if (isThenable(maybePromiseResult)) {
+        Promise.resolve(maybePromiseResult).then(null, e => {
           sendErrorToSentry(e);
-          throw e;
-        }
+        });
+      }
 
-        if (isThenable(maybePromiseResult)) {
-          Promise.resolve(maybePromiseResult).then(null, e => {
-            sendErrorToSentry(e);
-          });
-        }
-
-        return maybePromiseResult;
-      })();
+      return maybePromiseResult;
     },
   });
 }

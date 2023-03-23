@@ -6,7 +6,6 @@ import type {
   ClientOptions,
   DataCategory,
   DsnComponents,
-  DynamicSamplingContext,
   Envelope,
   ErrorEvent,
   Event,
@@ -380,9 +379,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -403,9 +399,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
-
-  /** @inheritdoc */
-  public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {

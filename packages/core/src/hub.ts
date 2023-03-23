@@ -56,7 +56,7 @@ const DEFAULT_BREADCRUMBS = 100;
  */
 export interface Layer {
   client?: Client;
-  scope: Scope;
+  scope?: Scope;
 }
 
 /**
@@ -87,7 +87,7 @@ export interface Carrier {
  */
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
-  private readonly _stack: Layer[];
+  private readonly _stack: Layer[] = [{}];
 
   /** Contains the last event id of a captured event.  */
   private _lastEventId?: string;
@@ -101,7 +101,7 @@ export class Hub implements HubInterface {
    * @param version number, higher number means higher priority.
    */
   public constructor(client?: Client, scope: Scope = new Scope(), private readonly _version: number = API_VERSION) {
-    this._stack = [{ scope }];
+    this.getStackTop().scope = scope;
     if (client) {
       this.bindClient(client);
     }
@@ -166,7 +166,7 @@ export class Hub implements HubInterface {
   }
 
   /** Returns the scope of the top stack. */
-  public getScope(): Scope {
+  public getScope(): Scope | undefined {
     return this.getStackTop().scope;
   }
 
@@ -256,7 +256,7 @@ export class Hub implements HubInterface {
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     const { scope, client } = this.getStackTop();
 
-    if (!client) return;
+    if (!scope || !client) return;
 
     const { beforeBreadcrumb = null, maxBreadcrumbs = DEFAULT_BREADCRUMBS } =
       (client.getOptions && client.getOptions()) || {};
@@ -282,35 +282,40 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): void {
-    this.getScope().setUser(user);
+    const scope = this.getScope();
+    if (scope) scope.setUser(user);
   }
 
   /**
    * @inheritDoc
    */
   public setTags(tags: { [key: string]: Primitive }): void {
-    this.getScope().setTags(tags);
+    const scope = this.getScope();
+    if (scope) scope.setTags(tags);
   }
 
   /**
    * @inheritDoc
    */
   public setExtras(extras: Extras): void {
-    this.getScope().setExtras(extras);
+    const scope = this.getScope();
+    if (scope) scope.setExtras(extras);
   }
 
   /**
    * @inheritDoc
    */
   public setTag(key: string, value: Primitive): void {
-    this.getScope().setTag(key, value);
+    const scope = this.getScope();
+    if (scope) scope.setTag(key, value);
   }
 
   /**
    * @inheritDoc
    */
   public setExtra(key: string, extra: Extra): void {
-    this.getScope().setExtra(key, extra);
+    const scope = this.getScope();
+    if (scope) scope.setExtra(key, extra);
   }
 
   /**
@@ -318,7 +323,8 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
-    this.getScope().setContext(name, context);
+    const scope = this.getScope();
+    if (scope) scope.setContext(name, context);
   }
 
   /**
@@ -326,7 +332,7 @@ export class Hub implements HubInterface {
    */
   public configureScope(callback: (scope: Scope) => void): void {
     const { scope, client } = this.getStackTop();
-    if (client) {
+    if (scope && client) {
       callback(scope);
     }
   }
@@ -389,15 +395,17 @@ export class Hub implements HubInterface {
    */
   public endSession(): void {
     const layer = this.getStackTop();
-    const scope = layer.scope;
-    const session = scope.getSession();
+    const scope = layer && layer.scope;
+    const session = scope && scope.getSession();
     if (session) {
       closeSession(session);
     }
     this._sendSessionUpdate();
 
     // the session is over; take it off of the scope
-    scope.setSession();
+    if (scope) {
+      scope.setSession();
+    }
   }
 
   /**
@@ -413,20 +421,22 @@ export class Hub implements HubInterface {
     const session = makeSession({
       release,
       environment,
-      user: scope.getUser(),
+      ...(scope && { user: scope.getUser() }),
       ...(userAgent && { userAgent }),
       ...context,
     });
 
-    // End existing session if there's one
-    const currentSession = scope.getSession && scope.getSession();
-    if (currentSession && currentSession.status === 'ok') {
-      updateSession(currentSession, { status: 'exited' });
-    }
-    this.endSession();
+    if (scope) {
+      // End existing session if there's one
+      const currentSession = scope.getSession && scope.getSession();
+      if (currentSession && currentSession.status === 'ok') {
+        updateSession(currentSession, { status: 'exited' });
+      }
+      this.endSession();
 
-    // Afterwards we set the new session on the scope
-    scope.setSession(session);
+      // Afterwards we set the new session on the scope
+      scope.setSession(session);
+    }
 
     return session;
   }
@@ -462,7 +472,7 @@ export class Hub implements HubInterface {
    * @param method The method to call on the client.
    * @param args Arguments to pass to the client function.
    */
-  private _withClient(callback: (client: Client, scope: Scope) => void): void {
+  private _withClient(callback: (client: Client, scope: Scope | undefined) => void): void {
     const { scope, client } = this.getStackTop();
     if (client) {
       callback(client, scope);

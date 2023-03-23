@@ -2,7 +2,7 @@ import * as SentryNode from '@sentry/node';
 import { getCurrentHub } from '@sentry/node';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { init, Integrations } from '../src/index.server';
+import { init } from '../src/index.server';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
@@ -56,10 +56,5 @@ describe('Server init()', () => {
 
     // @ts-ignore need access to protected _tags attribute
     expect(currentScope._tags).toEqual({ runtime: 'node' });
-  });
-
-  it('has both node and tracing integrations', () => {
-    expect(Integrations.Apollo).not.toBeUndefined();
-    expect(Integrations.Http).not.toBeUndefined();
   });
 });

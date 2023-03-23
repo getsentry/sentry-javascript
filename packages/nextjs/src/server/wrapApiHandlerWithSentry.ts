@@ -1,10 +1,10 @@
 import { hasTracingEnabled } from '@sentry/core';
 import { captureException, getCurrentHub, startTransaction } from '@sentry/node';
+import { extractTraceparentData } from '@sentry/tracing';
 import type { Transaction } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
   isString,
   logger,
   objectify,

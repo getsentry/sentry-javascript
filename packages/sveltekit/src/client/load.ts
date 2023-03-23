@@ -1,7 +1,6 @@
-import { trace } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { addExceptionMechanism, objectify } from '@sentry/utils';
-import type { Load } from '@sveltejs/kit';
+import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
+import type { ServerLoad } from '@sveltejs/kit';
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
@@ -31,24 +30,24 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * @param origLoad SvelteKit user defined load function
  */
-export function wrapLoadWithSentry(origLoad: Load): Load {
+export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<Load>) => {
-      const [event] = args;
+    apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad>) => {
+      let maybePromiseResult;
 
-      const routeId = event.route.id;
-      return trace(
-        {
-          op: 'function.sveltekit.load',
-          name: routeId ? routeId : event.url.pathname,
-          status: 'ok',
-          metadata: {
-            source: routeId ? 'route' : 'url',
-          },
-        },
-        () => wrappingTarget.apply(thisArg, args),
-        sendErrorToSentry,
-      );
+      try {
+        maybePromiseResult = wrappingTarget.apply(thisArg, args);
+      } catch (e) {
+        throw sendErrorToSentry(e);
+      }
+
+      if (isThenable(maybePromiseResult)) {
+        Promise.resolve(maybePromiseResult).then(null, e => {
+          sendErrorToSentry(e);
+        });
+      }
+
+      return maybePromiseResult;
     },
   });
 }

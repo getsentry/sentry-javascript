@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/core';
-import { addTracingExtensions, BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
+import { BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
 import type { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
 import * as os from 'os';
@@ -39,9 +39,6 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
       textEncoder: new TextEncoder(),
       ...options.transportOptions,
     };
-
-    // The Node client always supports tracing
-    addTracingExtensions();
 
     super(options);
   }

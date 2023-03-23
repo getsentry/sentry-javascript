@@ -5,7 +5,6 @@ import { SDK_VERSION, WINDOW } from '@sentry/svelte';
 import { vi } from 'vitest';
 
 import { BrowserTracing, init } from '../../src/client';
-import { svelteKitRoutingInstrumentation } from '../../src/client/router';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
 
@@ -88,7 +87,6 @@ describe('Sentry client SDK', () => {
         // This is the closest we can get to unit-testing the `__SENTRY_TRACING__` tree-shaking guard
         // IRL, the code to add the integration would most likely be removed by the bundler.
 
-        // @ts-ignore this is fine in the test
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -102,35 +100,24 @@ describe('Sentry client SDK', () => {
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
 
-        // @ts-ignore this is fine in the test
         delete globalThis.__SENTRY_TRACING__;
       });
 
-      it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
+      // TODO: this test is only meaningful once we have a routing instrumentation which we always want to add
+      // to a user-provided BrowserTracing integration (see NextJS SDK)
+      it.skip('Merges the user-provided BrowserTracing integration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [
-            new BrowserTracing({ tracePropagationTargets: ['myDomain.com'], startTransactionOnLocationChange: false }),
-          ],
+          integrations: [new BrowserTracing({ tracePropagationTargets: ['myDomain.com'] })],
           enableTracing: true,
         });
 
         const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-
-        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById(
-          'BrowserTracing',
-        ) as BrowserTracing;
-        const options = browserTracing.options;
+        const browserTracing = (getCurrentHub().getClient() as BrowserClient)?.getIntegrationById('BrowserTracing');
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeDefined();
-
-        // This shows that the user-configured options are still here
-        expect(options.tracePropagationTargets).toEqual(['myDomain.com']);
-        expect(options.startTransactionOnLocationChange).toBe(false);
-
-        // But we force the routing instrumentation to be ours
-        expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
+        expect((browserTracing as BrowserTracing).options.tracePropagationTargets).toEqual(['myDomain.com']);
       });
     });
   });

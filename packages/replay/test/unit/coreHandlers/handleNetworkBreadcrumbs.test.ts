@@ -9,8 +9,8 @@ import { TextEncoder } from 'util';
 
 import { BASE_TIMESTAMP } from '../..';
 import {
-  beforeAddNetworkBreadcrumb,
   getBodySize,
+  handleNetworkBreadcrumb,
   parseContentSizeHeader,
 } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
@@ -78,7 +78,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
     });
   });
 
-  describe('beforeAddNetworkBreadcrumb()', () => {
+  describe('handleNetworkBreadcrumb()', () => {
     let options: {
       replay: ReplayContainer;
       textEncoder: TextEncoderInternal;
@@ -98,7 +98,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
     it('ignores breadcrumb without data', () => {
       const breadcrumb: Breadcrumb = {};
       const hint: BreadcrumbHint = {};
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({});
       expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([]);
@@ -110,7 +110,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         data: {},
       };
       const hint: BreadcrumbHint = {};
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({
         category: 'foo',
@@ -138,7 +138,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         startTimestamp: BASE_TIMESTAMP + 1000,
         endTimestamp: BASE_TIMESTAMP + 2000,
       };
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({
         category: 'xhr',
@@ -192,7 +192,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         startTimestamp: BASE_TIMESTAMP + 1000,
         endTimestamp: BASE_TIMESTAMP + 2000,
       };
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({
         category: 'xhr',
@@ -246,7 +246,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         startTimestamp: BASE_TIMESTAMP + 1000,
         endTimestamp: BASE_TIMESTAMP + 2000,
       };
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({
         category: 'fetch',
@@ -260,7 +260,6 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
       });
 
       jest.runAllTimers();
-      await Promise.resolve();
 
       expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
         {
@@ -306,7 +305,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         startTimestamp: BASE_TIMESTAMP + 1000,
         endTimestamp: BASE_TIMESTAMP + 2000,
       };
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+      handleNetworkBreadcrumb(options, breadcrumb, hint);
 
       expect(breadcrumb).toEqual({
         category: 'fetch',
@@ -317,7 +316,6 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
       });
 
       jest.runAllTimers();
-      await Promise.resolve();
 
       expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
         {
@@ -328,64 +326,6 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
             payload: {
               data: {
                 statusCode: 200,
-              },
-              description: 'https://example.com',
-              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
-              op: 'resource.fetch',
-              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
-            },
-          },
-        },
-      ]);
-    });
-
-    it('parses fetch response body if necessary', async () => {
-      const breadcrumb: Breadcrumb = {
-        category: 'fetch',
-        data: {
-          url: 'https://example.com',
-          status_code: 200,
-        },
-      };
-
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve('test response'),
-      } as unknown as Response;
-
-      const hint: FetchBreadcrumbHint = {
-        input: [],
-        response: mockResponse,
-        startTimestamp: BASE_TIMESTAMP + 1000,
-        endTimestamp: BASE_TIMESTAMP + 2000,
-      };
-      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
-
-      expect(breadcrumb).toEqual({
-        category: 'fetch',
-        data: {
-          status_code: 200,
-          url: 'https://example.com',
-        },
-      });
-
-      await Promise.resolve();
-      jest.runAllTimers();
-      await Promise.resolve();
-
-      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
-        {
-          type: 5,
-          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
-          data: {
-            tag: 'performanceSpan',
-            payload: {
-              data: {
-                statusCode: 200,
-                responseBodySize: 13,
               },
               description: 'https://example.com',
               endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
