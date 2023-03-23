@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.45.0
+
+- build(cdn): Ensure ES5 bundles do not use non-ES5 code (#7550)
+- feat(core): Add trace function (#7556)
+- feat(hub): Make scope always defined on the hub (#7551)
+- feat(replay): Add `replay_id` to transaction DSC (#7571)
+- feat(replay): Capture fetch body size for replay events (#7524)
+- feat(sveltekit): Add performance monitoring for client load (#7537)
+- feat(sveltekit): Add performance monitoring to Sveltekit server handle (#7532)
+- feat(sveltekit): Add SvelteKit routing instrumentation (#7565)
+- fix(browser): Ensure keepalive flag is correctly set for parallel requests (#7553)
+- fix(core): Ensure `ignoreErrors` only applies to error events (#7573)
+- fix(node): Consider tracing error handler for process exit (#7558)
+- fix(otel): Make sure we use correct hub on finish (#7577)
+- fix(react): Handle case where error.cause already defined (#7557)
+- fix(sveltekit): Handle same origin and destination navigations correctly (#7584)
+- fix(tracing): Account for case where startTransaction returns undefined (#7566)
+
 ## 7.44.2
 
 - fix(cdn): Fix ES5 CDN bundles (#7544)
