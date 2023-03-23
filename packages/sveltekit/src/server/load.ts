@@ -1,7 +1,7 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import type { TransactionContext } from '@sentry/types';
+import type { DynamicSamplingContext, TraceparentData, TransactionContext } from '@sentry/types';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
@@ -9,7 +9,6 @@ import {
   objectify,
 } from '@sentry/utils';
 import type { HttpError, Load, LoadEvent, ServerLoad, ServerLoadEvent } from '@sveltejs/kit';
-import * as domain from 'domain';
 
 function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
@@ -53,42 +52,41 @@ function sendErrorToSentry(e: unknown): unknown {
 export function wrapLoadWithSentry<T extends Load | ServerLoad>(origLoad: T): T {
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad | Load>) => {
-      return domain.create().bind(() => {
-        const [event] = args;
-        const routeId = event.route && event.route.id;
+      const [event] = args;
+      const routeId = event.route && event.route.id;
 
-        const traceSharedLoadContext: TransactionContext = {
-          op: 'function.sveltekit.load',
-          name: routeId ? routeId : event.url.pathname,
-          status: 'ok',
-          metadata: {
-            source: routeId ? 'route' : 'url',
-          },
-        };
+      const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
 
-        let finalTraceLoadContext = { ...traceSharedLoadContext };
+      const traceLoadContext: TransactionContext = {
+        op: 'function.sveltekit.load',
+        name: routeId ? routeId : event.url.pathname,
+        status: 'ok',
+        metadata: {
+          source: routeId ? 'route' : 'url',
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        },
+        ...traceparentData,
+      };
 
-        if (isServerOnlyLoad(event)) {
-          const sentryTraceHeader = event.request.headers.get('sentry-trace');
-          const baggageHeader = event.request.headers.get('baggage');
-          const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-          const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-          const traceSeverOnlyLoadContext = {
-            ...traceparentData,
-            metadata: {
-              ...traceSharedLoadContext.metadata,
-              dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            },
-          };
-
-          finalTraceLoadContext = { ...traceSharedLoadContext, ...traceSeverOnlyLoadContext };
-        }
-
-        return trace(finalTraceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
-      })();
+      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
     },
   });
+}
+
+function getTracePropagationData(event: ServerLoadEvent | LoadEvent): {
+  traceparentData?: TraceparentData;
+  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
+} {
+  if (!isServerOnlyLoad(event)) {
+    return {};
+  }
+
+  const sentryTraceHeader = event.request.headers.get('sentry-trace');
+  const baggageHeader = event.request.headers.get('baggage');
+  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
+
+  return { traceparentData, dynamicSamplingContext };
 }
 
 /**

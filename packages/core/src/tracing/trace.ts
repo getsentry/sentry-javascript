@@ -31,6 +31,7 @@ export function trace<T>(
   const scope = hub.getScope();
 
   const parentSpan = scope.getSpan();
+
   const activeSpan = parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
   scope.setSpan(activeSpan);
 
