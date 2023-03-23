@@ -161,6 +161,9 @@ module.exports = {
 
         // All imports should be accounted for
         'import/no-extraneous-dependencies': 'error',
+
+        // Do not allow usage of functions we do not polyfill for ES5
+        '@sentry-internal/sdk/no-unsupported-es6-methods': 'error',
       },
     },
     {

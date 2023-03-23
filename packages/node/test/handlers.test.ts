@@ -1,5 +1,5 @@
 import * as sentryCore from '@sentry/core';
-import { Transaction } from '@sentry/tracing';
+import { Transaction } from '@sentry/core';
 import type { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';

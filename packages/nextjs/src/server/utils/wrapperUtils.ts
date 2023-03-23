@@ -1,5 +1,4 @@
-import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
-import { getActiveTransaction } from '@sentry/tracing';
+import { captureException, getActiveTransaction, getCurrentHub, startTransaction } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';

@@ -30,7 +30,6 @@
   "dependencies": {
     "@embroider/macros": "^1.9.0",
     "@sentry/browser": "7.44.2",
-    "@sentry/tracing": "7.44.2",
     "@sentry/types": "7.44.2",
     "@sentry/utils": "7.44.2",
     "ember-auto-import": "^1.12.1 || ^2.4.3",

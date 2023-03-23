@@ -4,10 +4,9 @@ import { Resource } from '@opentelemetry/resources';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { createTransport, Hub, makeMain } from '@sentry/core';
+import type { SpanStatusType } from '@sentry/core';
+import { addTracingExtensions, createTransport, Hub, makeMain, Span as SentrySpan, Transaction } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
-import type { SpanStatusType } from '@sentry/tracing';
-import { addExtensionMethods, Span as SentrySpan, Transaction } from '@sentry/tracing';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SENTRY_SPAN_PROCESSOR_MAP, SentrySpanProcessor } from '../src/spanprocessor';
@@ -24,7 +23,7 @@ const DEFAULT_NODE_CLIENT_OPTIONS = {
 // Integration Test of SentrySpanProcessor
 
 beforeAll(() => {
-  addExtensionMethods();
+  addTracingExtensions();
 });
 
 describe('SentrySpanProcessor', () => {

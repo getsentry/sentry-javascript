@@ -321,8 +321,10 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run linter
+      - name: Lint source files
         run: yarn lint
+      - name: Validate ES5 builds
+        run: yarn validate:es5
 
   job_circular_dep_check:
     name: Circular Dependency Check

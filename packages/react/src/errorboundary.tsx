@@ -66,6 +66,25 @@ const INITIAL_STATE = {
   eventId: null,
 };
 
+function setCause(error: Error & { cause?: Error }, cause: Error): void {
+  const seenErrors = new WeakMap<Error, boolean>();
+
+  function recurse(error: Error & { cause?: Error }, cause: Error): void {
+    // If we've already seen the error, there is a recursive loop somewhere in the error's
+    // cause chain. Let's just bail out then to prevent a stack overflow.
+    if (seenErrors.has(error)) {
+      return;
+    }
+    if (error.cause) {
+      seenErrors.set(error, true);
+      return recurse(error.cause, cause);
+    }
+    error.cause = cause;
+  }
+
+  recurse(error, cause);
+}
+
 /**
  * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
  * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
@@ -93,7 +112,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         errorBoundaryError.stack = componentStack;
 
         // Using the `LinkedErrors` integration to link the errors together.
-        error.cause = errorBoundaryError;
+        setCause(error, errorBoundaryError);
       }
 
       if (beforeCapture) {

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import axios, { AxiosError } from 'axios';
+import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
 
 const EVENT_POLLING_TIMEOUT = 30_000;
 
@@ -168,4 +169,86 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   );
 
   expect(hadPageNavigationTransaction).toBe(true);
+});
+
+test('Sends a Replay recording to Sentry', async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto('/');
+
+  const replayId = await page.waitForFunction(() => {
+    return window.sentryReplayId;
+  });
+
+  // Wait for replay to be sent
+
+  if (replayId === undefined) {
+    throw new Error("Application didn't set a replayId");
+  }
+
+  console.log(`Polling for replay with ID: ${replayId}`);
+
+  await expect
+    .poll(
+      async () => {
+        try {
+          const response = await axios.get(
+            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/`,
+            { headers: { Authorization: `Bearer ${authToken}` } },
+          );
+
+          return response.status;
+        } catch (e) {
+          if (e instanceof AxiosError && e.response) {
+            if (e.response.status !== 404) {
+              throw e;
+            } else {
+              return e.response.status;
+            }
+          } else {
+            throw e;
+          }
+        }
+      },
+      {
+        timeout: EVENT_POLLING_TIMEOUT,
+      },
+    )
+    .toBe(200);
+
+  // now fetch the first recording segment
+  await expect
+    .poll(
+      async () => {
+        try {
+          const response = await axios.get(
+            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/recording-segments/?cursor=100%3A0%3A1`,
+            { headers: { Authorization: `Bearer ${authToken}` } },
+          );
+
+          return {
+            status: response.status,
+            data: response.data,
+          };
+        } catch (e) {
+          if (e instanceof AxiosError && e.response) {
+            if (e.response.status !== 404) {
+              throw e;
+            } else {
+              return e.response.status;
+            }
+          } else {
+            throw e;
+          }
+        }
+      },
+      {
+        timeout: EVENT_POLLING_TIMEOUT,
+      },
+    )
+    .toEqual({
+      status: 200,
+      data: ReplayRecordingData,
+    });
 });
