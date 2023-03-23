@@ -145,7 +145,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     if (sentrySpan instanceof Transaction) {
       updateTransactionWithOtelData(sentrySpan, otelSpan);
-      // @ts-ignore TODO: fix this
       sentrySpan.setHub(getCurrentHub());
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
