@@ -23,7 +23,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  public readonly _hub: Hub;
+  public _hub: Hub;
 
   private _name: string;
 
@@ -279,5 +279,15 @@ export class Transaction extends SpanClass implements TransactionInterface {
     client.emit && client.emit('createDsc', dsc);
 
     return dsc;
+  }
+
+  /**
+   * Override the current hub with a new one.
+   * Used if you want another hub to finish the transaction.
+   *
+   * @internal
+   */
+  public setHub(hub: Hub): void {
+    this._hub = hub;
   }
 }

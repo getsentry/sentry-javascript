@@ -50,17 +50,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onStart(otelSpan: OtelSpan, parentContext: Context): void {
-    const hub = getCurrentHub();
-    if (!hub) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
-      return;
-    }
-    const scope = hub.getScope();
-    if (!scope) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a scope has been setup.');
-      return;
-    }
-
     const otelSpanId = otelSpan.spanContext().spanId;
     const otelParentSpanId = otelSpan.parentSpanId;
 
@@ -79,7 +68,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan, parentContext);
-      const transaction = hub.startTransaction({
+      const transaction = getCurrentHub().startTransaction({
         name: otelSpan.name,
         ...traceCtx,
         instrumenter: 'otel',
@@ -95,12 +84,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onEnd(otelSpan: OtelSpan): void {
-    const hub = getCurrentHub();
-    if (!hub) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onEnd before a hub has been setup.');
-      return;
-    }
-
     const otelSpanId = otelSpan.spanContext().spanId;
     const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 
@@ -143,7 +126,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         syntheticError.name = type;
       }
 
-      hub.captureException(syntheticError, {
+      getCurrentHub().captureException(syntheticError, {
         captureContext: {
           contexts: {
             otel: {
@@ -162,6 +145,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     if (sentrySpan instanceof Transaction) {
       updateTransactionWithOtelData(sentrySpan, otelSpan);
+      sentrySpan.setHub(getCurrentHub());
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
     }

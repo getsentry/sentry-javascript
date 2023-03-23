@@ -5,7 +5,15 @@ import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
-import { addTracingExtensions, createTransport, Hub, makeMain, Span as SentrySpan, Transaction } from '@sentry/core';
+import {
+  addTracingExtensions,
+  createTransport,
+  Hub,
+  makeMain,
+  Scope,
+  Span as SentrySpan,
+  Transaction,
+} from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
@@ -79,13 +87,9 @@ describe('SentrySpanProcessor', () => {
     expect(sentrySpanTransaction?.parentSpanId).toEqual(otelSpan.parentSpanId);
     expect(sentrySpanTransaction?.spanId).toEqual(otelSpan.spanContext().spanId);
 
-    expect(hub.getScope()?.getSpan()).toBeUndefined();
-
     otelSpan.end(endTime);
 
     expect(sentrySpanTransaction?.endTimestamp).toBe(endTimestampMs / 1000);
-
-    expect(hub.getScope()?.getSpan()).toBeUndefined();
   });
 
   it('creates a child span if there is a running transaction', () => {
@@ -788,6 +792,46 @@ describe('SentrySpanProcessor', () => {
       span_id: otelSpan.spanContext().spanId,
       trace_id: otelSpan.spanContext().traceId,
     });
+  });
+
+  // Regression test for https://github.com/getsentry/sentry-javascript/issues/7538
+  // Since otel context does not map to when Sentry hubs are cloned
+  // we can't rely on the original hub at transaction creation to contain all
+  // the scope information we want. Let's test to make sure that the information is
+  // grabbed from the new hub.
+  it('handles when a different hub creates the transaction', () => {
+    let sentryTransaction: any;
+
+    client = new NodeClient({
+      ...DEFAULT_NODE_CLIENT_OPTIONS,
+      tracesSampleRate: 1.0,
+    });
+
+    client.on('finishTransaction', transaction => {
+      sentryTransaction = transaction;
+    });
+
+    hub = new Hub(client);
+    makeMain(hub);
+
+    const newHub = new Hub(client, Scope.clone(hub.getScope()));
+    newHub.configureScope(scope => {
+      scope.setTag('foo', 'bar');
+    });
+
+    const tracer = provider.getTracer('default');
+
+    tracer.startActiveSpan('GET /users', parentOtelSpan => {
+      tracer.startActiveSpan('SELECT * FROM users;', child => {
+        makeMain(newHub);
+        child.end();
+      });
+
+      parentOtelSpan.end();
+    });
+
+    // @ts-ignore Accessing private attributes
+    expect(sentryTransaction._hub.getScope()._tags.foo).toEqual('bar');
   });
 });
 
