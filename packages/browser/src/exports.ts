@@ -9,9 +9,11 @@ export type {
   // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
+  Span,
   StackFrame,
   Stacktrace,
   Thread,
+  Transaction,
   User,
   Session,
 } from '@sentry/types';
