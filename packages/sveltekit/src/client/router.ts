@@ -42,6 +42,9 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     tags: {
       ...DEFAULT_TAGS,
     },
+    metadata: {
+      source: 'url',
+    },
   });
 
   page.subscribe(page => {
@@ -76,20 +79,30 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       return;
     }
 
-    const routeDestination = navigation.to && navigation.to.route.id;
-    const routeOrigin = navigation.from && navigation.from.route.id;
+    const from = navigation.from;
+    const to = navigation.to;
 
-    if (routeOrigin === routeDestination) {
+    // for the origin we can fall back to window.location.pathname because in this emission, it still is set to the origin path
+    const rawRouteOrigin = (from && from.url.pathname) || (WINDOW && WINDOW.location && WINDOW.location.pathname);
+
+    const rawRouteDestination = to && to.url.pathname;
+
+    // We don't want to create transactions for navigations of same origin and destination.
+    // We need to look at the raw URL here because parameterized routes can still differ in their raw parameters.
+    if (rawRouteOrigin === rawRouteDestination) {
       return;
     }
+
+    const parameterizedRouteOrigin = from && from.route.id;
+    const parameterizedRouteDestination = to && to.route.id;
 
     activeTransaction = getActiveTransaction();
 
     if (!activeTransaction) {
       activeTransaction = startTransactionFn({
-        name: routeDestination || (WINDOW && WINDOW.location && WINDOW.location.pathname),
+        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
-        metadata: { source: 'route' },
+        metadata: { source: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,
         },
@@ -105,7 +118,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         op: 'ui.sveltekit.routing',
         description: 'SvelteKit Route Change',
       });
-      activeTransaction.setTag('from', routeOrigin);
+      activeTransaction.setTag('from', parameterizedRouteOrigin);
     }
   });
 }

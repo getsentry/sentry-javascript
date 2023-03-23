@@ -57,6 +57,9 @@ describe('sveltekitRoutingInstrumentation', () => {
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
+      metadata: {
+        source: 'url',
+      },
     });
 
     // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
@@ -73,15 +76,15 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
   });
 
-  it("doesn't starts a navigation transaction when `startTransactionOnLocationChange` is false", () => {
+  it("doesn't start a navigation transaction when `startTransactionOnLocationChange` is false", () => {
     svelteKitRoutingInstrumentation(mockedStartTransaction, false, false);
 
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
     // @ts-ignore This is fine because we testUtils/stores.ts defines `navigating` as a writable store
-    navigating.set(
-      { from: { route: { id: 'testNavigationOrigin' } } },
-      { to: { route: { id: 'testNavigationDestination' } } },
-    );
+    navigating.set({
+      from: { route: { id: '/users' }, url: { pathname: '/users' } },
+      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+    });
 
     // This should update the transaction name with the parameterized route:
     expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
@@ -93,14 +96,14 @@ describe('sveltekitRoutingInstrumentation', () => {
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
     // @ts-ignore This is fine because we testUtils/stores.ts defines `navigating` as a writable store
     navigating.set({
-      from: { route: { id: 'testNavigationOrigin' } },
-      to: { route: { id: 'testNavigationDestination' } },
+      from: { route: { id: '/users' }, url: { pathname: '/users' } },
+      to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
     });
 
     // This should update the transaction name with the parameterized route:
     expect(mockedStartTransaction).toHaveBeenCalledTimes(1);
     expect(mockedStartTransaction).toHaveBeenCalledWith({
-      name: 'testNavigationDestination',
+      name: '/users/[id]',
       op: 'navigation',
       metadata: {
         source: 'route',
@@ -115,7 +118,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       description: 'SvelteKit Route Change',
     });
 
-    expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', 'testNavigationOrigin');
+    expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', '/users');
 
     // We emit `null` here to simulate the end of the navigation lifecycle
     // @ts-ignore this is fine
@@ -124,16 +127,60 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(routingSpanFinishSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("doesn't start a navigation transaction if navigation origin and destination are equal", () => {
-    svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
+  describe('handling same origin and destination navigations', () => {
+    it("doesn't start a navigation transaction if the raw navigation origin and destination are equal", () => {
+      svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
 
-    // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
-    // @ts-ignore This is fine because we testUtils/stores.ts defines `navigating` as a writable store
-    navigating.set({
-      from: { route: { id: 'testRoute' } },
-      to: { route: { id: 'testRoute' } },
+      // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
+      // @ts-ignore This is fine because we testUtils/stores.ts defines `navigating` as a writable store
+      navigating.set({
+        from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+        to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+      });
+
+      expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
     });
 
-    expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
+    it('starts a navigation transaction if the raw navigation origin and destination are not equal', () => {
+      svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
+
+      // @ts-ignore This is fine
+      navigating.set({
+        from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+        to: { route: { id: '/users/[id]' }, url: { pathname: '/users/223412' } },
+      });
+
+      expect(mockedStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockedStartTransaction).toHaveBeenCalledWith({
+        name: '/users/[id]',
+        op: 'navigation',
+        metadata: {
+          source: 'route',
+        },
+        tags: {
+          'routing.instrumentation': '@sentry/sveltekit',
+        },
+      });
+
+      expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
+        op: 'ui.sveltekit.routing',
+        description: 'SvelteKit Route Change',
+      });
+
+      expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', '/users/[id]');
+    });
+
+    it('falls back to `window.location.pathname` to determine the raw origin', () => {
+      svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
+
+      // window.location.pathame is "/" in tests
+
+      // @ts-ignore This is fine
+      navigating.set({
+        to: { route: {}, url: { pathname: '/' } },
+      });
+
+      expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
+    });
   });
 });
