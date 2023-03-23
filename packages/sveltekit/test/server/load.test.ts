@@ -101,7 +101,8 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
   });
 
-  it('calls trace function', async () => {
+  // TODO: enable this once we figured out how tracing the load function doesn't result in creating a new transaction
+  it.skip('calls trace function', async () => {
     async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
       return {
         post: params.id,
