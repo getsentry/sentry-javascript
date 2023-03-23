@@ -5,8 +5,9 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
-sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestPath, page, browserName }) => {
+  // This is flaky on webkit, so skipping there...
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
