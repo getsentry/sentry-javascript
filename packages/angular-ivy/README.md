@@ -80,8 +80,7 @@ see `ErrorHandlerOptions` interface in `src/errorhandler.ts`.
 
 ### Tracing
 
-`@sentry/angular-ivy` exports a Trace Service, Directive and Decorators that leverage the `@sentry/tracing` Tracing
-integration to add Angular related spans to transactions. If the Tracing integration is not enabled, this functionality
+`@sentry/angular-ivy` exports a Trace Service, Directive and Decorators that leverage the tracing features to add Angular related spans to transactions. If the tracing features are not enabled, this functionality
 will not work. The service itself tracks route changes and durations, where directive and decorators are tracking
 components initializations.
 
@@ -89,17 +88,16 @@ components initializations.
 
 Registering a Trace Service is a 3-step process.
 
-1. Register and configure the `BrowserTracing` integration from `@sentry/tracing`, including custom Angular routing
+1. Register and configure the `BrowserTracing` integration, including custom Angular routing
    instrumentation:
 
 ```javascript
-import { init, instrumentAngularRouting } from '@sentry/angular-ivy';
-import { Integrations as TracingIntegrations } from '@sentry/tracing';
+import { init, instrumentAngularRouting, BrowserTracing } from '@sentry/angular-ivy';
 
 init({
   dsn: '__DSN__',
   integrations: [
-    new TracingIntegrations.BrowserTracing({
+    new BrowserTracing({
       tracingOrigins: ['localhost', 'https://yourserver.io/api'],
       routingInstrumentation: instrumentAngularRouting,
     }),
