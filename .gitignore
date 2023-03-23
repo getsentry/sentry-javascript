@@ -11,6 +11,7 @@ dist/
 coverage/
 scratch/
 *.d.ts
+!diagnostics_channel.d.ts
 *.js.map
 *.pyc
 *.tsbuildinfo
