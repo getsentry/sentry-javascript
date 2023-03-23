@@ -64,32 +64,40 @@ export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk'
  * // export const handle = sequence(sentryHandle, yourCustomHandle);
  * ```
  */
-export const sentryHandle: Handle = ({ event, resolve }) => {
+export const sentryHandle: Handle = input => {
+  // @ts-ignore domain.active exists if there is an active domain, TS just doesn't know
+  if (domain.active) {
+    return handleInDomain(input);
+  }
   return domain.create().bind(() => {
-    const sentryTraceHeader = event.request.headers.get('sentry-trace');
-    const baggageHeader = event.request.headers.get('baggage');
-    const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-    return trace(
-      {
-        op: 'http.server',
-        name: `${event.request.method} ${event.route.id}`,
-        status: 'ok',
-        ...traceparentData,
-        metadata: {
-          source: 'route',
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-        },
-      },
-      async (span?: Span) => {
-        const res = await resolve(event, { transformPageChunk });
-        if (span) {
-          span.setHttpStatus(res.status);
-        }
-        return res;
-      },
-      sendErrorToSentry,
-    );
+    return handleInDomain(input);
   })();
 };
+
+function handleInDomain({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
+  const sentryTraceHeader = event.request.headers.get('sentry-trace');
+  const baggageHeader = event.request.headers.get('baggage');
+  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
+
+  return trace(
+    {
+      op: 'http.server',
+      name: `${event.request.method} ${event.route.id}`,
+      status: 'ok',
+      ...traceparentData,
+      metadata: {
+        source: 'route',
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      },
+    },
+    async (span?: Span) => {
+      const res = await resolve(event, { transformPageChunk });
+      if (span) {
+        span.setHttpStatus(res.status);
+      }
+      return res;
+    },
+    sendErrorToSentry,
+  );
+}
