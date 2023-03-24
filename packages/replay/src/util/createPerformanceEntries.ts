@@ -7,7 +7,9 @@ import type {
   PerformanceNavigationTiming,
   PerformancePaintTiming,
   ReplayPerformanceEntry,
+  ExperimentalPerformanceResourceTiming,
 } from '../types';
+
 
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type
@@ -81,7 +83,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
 
 // TODO: type definition!
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createResourceEntry(entry: PerformanceResourceTiming) {
+function createResourceEntry(entry: ExperimentalPerformanceResourceTiming) {
   const { entryType, initiatorType, name, responseEnd, startTime, decodedBodySize, encodedBodySize, responseStatus, transferSize } = entry;
 
   // Core SDK handles these

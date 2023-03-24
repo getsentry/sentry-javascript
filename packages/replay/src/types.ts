@@ -40,6 +40,11 @@ export type PerformanceNavigationTiming = PerformanceEntry & {
   transferSize: number;
   domComplete: number;
 };
+export type ExperimentalPerformanceResourceTiming = PerformanceResourceTiming & {
+  // Experimental, see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
+  // Requires Chrome 109
+  responseStatus?: number;
+}
 /**
  * The response from the worker
  */
