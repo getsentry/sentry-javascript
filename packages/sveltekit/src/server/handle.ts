@@ -40,10 +40,10 @@ export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk'
   if (transaction) {
     const traceparentData = transaction.toTraceparent();
     const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(transaction.getDynamicSamplingContext());
-    const content = `<meta name="sentry-trace" content="${traceparentData}"/>
-      <meta name="baggage" content="${dynamicSamplingContext}"/>
-      %sveltekit.head%`;
-    return html.replace('%sveltekit.head%', content);
+    const content = `<head>
+      <meta name="sentry-trace" content="${traceparentData}"/>
+      <meta name="baggage" content="${dynamicSamplingContext}"/>`;
+    return html.replace('<head>', content);
   }
 
   return html;
