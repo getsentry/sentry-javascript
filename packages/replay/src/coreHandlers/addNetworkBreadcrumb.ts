@@ -1,9 +1,12 @@
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
 import { shouldFilterRequest } from '../util/shouldFilterRequest';
 
 /** Add a performance entry breadcrumb */
-export function addNetworkBreadcrumb(replay: ReplayContainer, result: ReplayPerformanceEntry | null): void {
+export function addNetworkBreadcrumb(
+  replay: ReplayContainer,
+  result: ReplayPerformanceEntry<NetworkRequestData> | null,
+): void {
   if (!replay.isEnabled()) {
     return;
   }
