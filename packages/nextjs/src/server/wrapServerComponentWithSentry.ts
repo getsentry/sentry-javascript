@@ -1,4 +1,4 @@
-import { captureException, getCurrentHub, startTransaction } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentHub, startTransaction } from '@sentry/core';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 
@@ -11,6 +11,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   appDirComponent: F,
   context: ServerComponentContext,
 ): F {
+  addTracingExtensions();
+
   const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles

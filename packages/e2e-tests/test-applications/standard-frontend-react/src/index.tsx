@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
 import {
   Routes,
   BrowserRouter,
@@ -14,10 +13,12 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 
+const replay = new Sentry.Replay();
+
 Sentry.init({
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    new BrowserTracing({
+    new Sentry.BrowserTracing({
       routingInstrumentation: Sentry.reactRouterV6Instrumentation(
         React.useEffect,
         useLocation,
@@ -26,11 +27,22 @@ Sentry.init({
         matchRoutes,
       ),
     }),
+    replay,
   ],
   // We recommend adjusting this value in production, or using tracesSampler
   // for finer control
   tracesSampleRate: 1.0,
   release: 'e2e-test',
+
+  // Always capture replays, so we can test this properly
+  replaysSessionSampleRate: 1.0,
+  replaysOnErrorSampleRate: 0.0,
+});
+
+Object.defineProperty(window, 'sentryReplayId', {
+  get() {
+    return replay['_replay'].session.id;
+  },
 });
 
 Sentry.addGlobalEventProcessor(event => {

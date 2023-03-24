@@ -11,11 +11,12 @@ export type {
   // eslint-disable-next-line deprecation/deprecation
   Severity,
   SeverityLevel,
+  Span,
   StackFrame,
   Stacktrace,
   Thread,
+  Transaction,
   User,
-  Span,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
@@ -30,6 +31,8 @@ export {
   captureMessage,
   configureScope,
   createTransport,
+  extractTraceparentData,
+  getActiveTransaction,
   getHubFromCarrier,
   getCurrentHub,
   Hub,
@@ -43,8 +46,12 @@ export {
   setTag,
   setTags,
   setUser,
+  spanStatusfromHttpCode,
+  trace,
   withScope,
 } from '@sentry/core';
+export type { SpanStatusType } from '@sentry/core';
+export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
@@ -57,10 +64,12 @@ import * as domain from 'domain';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
+import * as TracingIntegrations from './tracing/integrations';
 
 const INTEGRATIONS = {
   ...CoreIntegrations,
   ...NodeIntegrations,
+  ...TracingIntegrations,
 };
 
 export { INTEGRATIONS as Integrations, Handlers };

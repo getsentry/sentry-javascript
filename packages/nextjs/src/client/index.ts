@@ -1,8 +1,13 @@
 import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
-import { configureScope, init as reactInit, Integrations } from '@sentry/react';
-import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
+import {
+  BrowserTracing,
+  configureScope,
+  defaultRequestInstrumentationOptions,
+  init as reactInit,
+  Integrations,
+} from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
 import { addOrUpdateIntegration } from '@sentry/utils';
 

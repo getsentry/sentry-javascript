@@ -51,7 +51,7 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
     };
 
     if (client && client.on) {
-      client.on('beforeAddBreadcrumb', (breadcrumb, hint) => handleNetworkBreadcrumb(options, breadcrumb, hint));
+      client.on('beforeAddBreadcrumb', (breadcrumb, hint) => beforeAddNetworkBreadcrumb(options, breadcrumb, hint));
     } else {
       // Fallback behavior
       addInstrumentationHandler('fetch', handleFetchSpanListener(replay));
@@ -63,7 +63,7 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
 }
 
 /** just exported for tests */
-export function handleNetworkBreadcrumb(
+export function beforeAddNetworkBreadcrumb(
   options: ExtendedNetworkBreadcrumbsOptions,
   breadcrumb: Breadcrumb,
   hint?: BreadcrumbHint,
@@ -74,25 +74,74 @@ export function handleNetworkBreadcrumb(
 
   try {
     if (_isXhrBreadcrumb(breadcrumb) && _isXhrHint(hint)) {
-      // Enriches the breadcrumb overall
-      _enrichXhrBreadcrumb(breadcrumb, hint, options);
-
-      // Create a replay performance entry from this breadcrumb
-      const result = _makeNetworkReplayBreadcrumb('resource.xhr', breadcrumb, hint);
-      addNetworkBreadcrumb(options.replay, result);
+      _handleXhrBreadcrumb(breadcrumb, hint, options);
     }
 
     if (_isFetchBreadcrumb(breadcrumb) && _isFetchHint(hint)) {
-      // Enriches the breadcrumb overall
+      // This has to be sync, as we need to ensure the breadcrumb is enriched in the same tick
+      // Because the hook runs synchronously, and the breadcrumb is afterwards passed on
+      // So any async mutations to it will not be reflected in the final breadcrumb
       _enrichFetchBreadcrumb(breadcrumb, hint, options);
 
-      // Create a replay performance entry from this breadcrumb
-      const result = _makeNetworkReplayBreadcrumb('resource.fetch', breadcrumb, hint);
-      addNetworkBreadcrumb(options.replay, result);
+      void _handleFetchBreadcrumb(breadcrumb, hint, options);
     }
   } catch (e) {
     __DEBUG_BUILD__ && logger.warn('Error when enriching network breadcrumb');
   }
+}
+
+function _handleXhrBreadcrumb(
+  breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
+  hint: XhrHint,
+  options: ExtendedNetworkBreadcrumbsOptions,
+): void {
+  // Enriches the breadcrumb overall
+  _enrichXhrBreadcrumb(breadcrumb, hint, options);
+
+  // Create a replay performance entry from this breadcrumb
+  const result = _makeNetworkReplayBreadcrumb('resource.xhr', breadcrumb, hint);
+  addNetworkBreadcrumb(options.replay, result);
+}
+
+async function _handleFetchBreadcrumb(
+  breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
+  hint: FetchHint,
+  options: ExtendedNetworkBreadcrumbsOptions,
+): Promise<void> {
+  const fullBreadcrumb = await _parseFetchResponse(breadcrumb, hint, options);
+
+  // Create a replay performance entry from this breadcrumb
+  const result = _makeNetworkReplayBreadcrumb('resource.fetch', fullBreadcrumb, hint);
+  addNetworkBreadcrumb(options.replay, result);
+}
+
+// This does async operations on the breadcrumb for replay
+async function _parseFetchResponse(
+  breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
+  hint: FetchBreadcrumbHint,
+  options: ExtendedNetworkBreadcrumbsOptions,
+): Promise<Breadcrumb & { data: FetchBreadcrumbData }> {
+  if (breadcrumb.data.response_body_size || !hint.response) {
+    return breadcrumb;
+  }
+
+  // If no Content-Length header exists, we try to get the size from the response body
+  try {
+    // We have to clone this, as the body can only be read once
+    const response = (hint.response as Response).clone();
+    const body = await response.text();
+
+    if (body.length) {
+      return {
+        ...breadcrumb,
+        data: { ...breadcrumb.data, response_body_size: getBodySize(body, options.textEncoder) },
+      };
+    }
+  } catch {
+    // just ignore if something fails here
+  }
+
+  return breadcrumb;
 }
 
 function _makeNetworkReplayBreadcrumb(
