@@ -22,7 +22,6 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/browser": "7.45.0",
     "@types/express": "^4.17.14"
   },
   "scripts": {
