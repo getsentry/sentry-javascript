@@ -19,6 +19,7 @@ describe('registerBackgroundTabDetection', () => {
     makeMain(hub);
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined
+    // eslint-disable-next-line deprecation/deprecation
     addExtensionMethods();
 
     // @ts-ignore need to override global document

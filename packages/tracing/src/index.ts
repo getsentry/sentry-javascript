@@ -34,7 +34,6 @@ import {
 // here.
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
- *
  * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
  *
  * import { BrowserTracing } from '@sentry/browser';
@@ -47,7 +46,6 @@ export const BrowserTracing = BrowserTracingT;
 // here.
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
- *
  * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
  *
  * import { BrowserTracing } from '@sentry/browser';
@@ -189,7 +187,6 @@ export type RequestInstrumentationOptions = RequestInstrumentationOptionsT;
 export const Integrations = {
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
    *
    * import { BrowserTracing } from '@sentry/browser';
@@ -199,7 +196,6 @@ export const Integrations = {
   BrowserTracing: BrowserTracing,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Apollo` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -209,7 +205,6 @@ export const Integrations = {
   Apollo: Apollo,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Express` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -219,7 +214,6 @@ export const Integrations = {
   Express: Express,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `GraphQL` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -229,7 +223,6 @@ export const Integrations = {
   GraphQL: GraphQL,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Mongo` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -239,7 +232,6 @@ export const Integrations = {
   Mongo: Mongo,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Mysql` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -249,7 +241,6 @@ export const Integrations = {
   Mysql: Mysql,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Postgres` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -259,7 +250,6 @@ export const Integrations = {
   Postgres: Postgres,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
-   *
    * `Prisma` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
