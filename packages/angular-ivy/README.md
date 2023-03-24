@@ -81,9 +81,9 @@ see `ErrorHandlerOptions` interface in `src/errorhandler.ts`.
 ### Tracing
 
 `@sentry/angular-ivy` exports a Trace Service, Directive and Decorators that leverage the tracing features to add
-Angular related spans to transactions. If tracing is not enabled, this functionality will not work. The service itself
-tracks route changes and durations, where directive and decorators are tracking
-components initializations.
+Angular-related spans to transactions. If tracing is not enabled, this functionality will not work. The SDK's
+`TraceService` itself tracks route changes and durations, while directive and decorators are tracking components
+initializations.
 
 #### Install
 
