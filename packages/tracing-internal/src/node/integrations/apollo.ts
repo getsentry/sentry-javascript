@@ -1,7 +1,8 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface ApolloOptions {
@@ -16,8 +17,24 @@ type ApolloModelResolvers = {
   [key: string]: ApolloResolverGroup;
 };
 
+type GraphQLModule = {
+  GraphQLFactory: {
+    prototype: {
+      create: (resolvers: ApolloModelResolvers[]) => unknown;
+    };
+  };
+};
+
+type ApolloModule = {
+  ApolloServerBase: {
+    prototype: {
+      constructSchema: (config: unknown) => unknown;
+    };
+  };
+};
+
 /** Tracing integration for Apollo */
-export class Apollo implements Integration {
+export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModule> {
   /**
    * @inheritDoc
    */
@@ -30,6 +47,8 @@ export class Apollo implements Integration {
 
   private readonly _useNest: boolean;
 
+  private _module?: GraphQLModule & ApolloModule;
+
   /**
    * @inheritDoc
    */
@@ -39,6 +58,17 @@ export class Apollo implements Integration {
     },
   ) {
     this._useNest = !!options.useNestjs;
+  }
+
+  /** @inheritdoc */
+  public loadDependency(): (GraphQLModule & ApolloModule) | undefined {
+    if (this._useNest) {
+      this._module = this._module || loadModule('@nestjs/graphql');
+    } else {
+      this._module = this._module || loadModule('apollo-server-core');
+    }
+
+    return this._module;
   }
 
   /**
@@ -51,13 +81,7 @@ export class Apollo implements Integration {
     }
 
     if (this._useNest) {
-      const pkg = loadModule<{
-        GraphQLFactory: {
-          prototype: {
-            create: (resolvers: ApolloModelResolvers[]) => unknown;
-          };
-        };
-      }>('@nestjs/graphql');
+      const pkg = this.loadDependency();
 
       if (!pkg) {
         __DEBUG_BUILD__ && logger.error('Apollo-NestJS Integration was unable to require @nestjs/graphql package.');
@@ -90,13 +114,7 @@ export class Apollo implements Integration {
         },
       );
     } else {
-      const pkg = loadModule<{
-        ApolloServerBase: {
-          prototype: {
-            constructSchema: (config: unknown) => unknown;
-          };
-        };
-      }>('apollo-server-core');
+      const pkg = this.loadDependency();
 
       if (!pkg) {
         __DEBUG_BUILD__ && logger.error('Apollo Integration was unable to require apollo-server-core package.');
