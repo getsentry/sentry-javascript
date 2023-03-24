@@ -1,3 +1,4 @@
+import type { LazyLoadedIntegration } from '@sentry-internal/tracing';
 import { lazyLoadedNodePerformanceMonitoringIntegrations } from '@sentry-internal/tracing';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -14,11 +15,12 @@ export function autoDiscoverNodePerformanceMonitoringIntegrations(): Integration
         return undefined;
       }
     })
-    .filter(integration => !!integration) as Integration[];
+    .filter(integration => !!integration) as LazyLoadedIntegration[];
 
   if (loadedIntegrations.length === 0) {
     logger.warn('Performance monitoring integrations could not be automatically loaded.');
   }
 
-  return loadedIntegrations;
+  // Only return integrations where their dependencies loaded successfully.
+  return loadedIntegrations.filter(integration => !!integration.loadDependency());
 }
