@@ -82,7 +82,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
 // TODO: type definition!
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function createResourceEntry(entry: PerformanceResourceTiming) {
-  const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
+  const { entryType, initiatorType, name, responseEnd, startTime, decodedBodySize, encodedBodySize, responseStatus, transferSize } = entry;
 
   // Core SDK handles these
   if (['fetch', 'xmlhttprequest'].includes(initiatorType)) {
@@ -96,6 +96,8 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
     name,
     data: {
       size: transferSize,
+      statusCode: responseStatus,
+      decodedBodySize,
       encodedBodySize,
     },
   };
