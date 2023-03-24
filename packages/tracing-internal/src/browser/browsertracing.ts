@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Hub, IdleTransaction } from '@sentry/core';
+import { getActiveTransaction, Hub, IdleTransaction } from '@sentry/core';
 import { addTracingExtensions, extractTraceparentData, startIdleTransaction, TRACING_DEFAULTS } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, getDomElement, logger } from '@sentry/utils';
@@ -327,8 +327,14 @@ export class BrowserTracing implements Integration {
     let inflightInteractionTransaction: IdleTransaction | undefined;
     const registerInteractionTransaction = (): void => {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
-
       const op = 'ui.action.click';
+
+      const currentTransaction = getActiveTransaction();
+      if (currentTransaction?.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
+        __DEBUG_BUILD__ && logger.warn(`[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`);
+        return undefined;
+      }
+
       if (inflightInteractionTransaction) {
         inflightInteractionTransaction.finish();
         inflightInteractionTransaction = undefined;
