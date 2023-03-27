@@ -77,10 +77,8 @@ function addClientIntegrations(options: BrowserOptions): void {
     // Turn `<origin>/<path>/_next/static/...` into `app:///_next/static/...`
     iteratee: frame => {
       try {
-        const { origin: absPathOrigin } = new URL(frame.abs_path as string);
-        const { origin: filenameOrigin } = new URL(frame.filename as string);
-        frame.abs_path = frame.abs_path?.replace(absPathOrigin, 'app://').replace(assetPrefixPath, '');
-        frame.filename = frame.filename?.replace(filenameOrigin, 'app://').replace(assetPrefixPath, '');
+        const { origin } = new URL(frame.filename as string);
+        frame.filename = frame.filename?.replace(origin, 'app://').replace(assetPrefixPath, '');
       } catch (err) {
         // Filename wasn't a properly formed URL, so there's nothing we can do
       }
@@ -90,13 +88,10 @@ function addClientIntegrations(options: BrowserOptions): void {
       if (frame.filename && frame.filename.startsWith('app:///_next')) {
         frame.filename = decodeURI(frame.filename);
       }
-      if (frame.abs_path && frame.abs_path.startsWith('app:///_next')) {
-        frame.abs_path = decodeURI(frame.abs_path);
-      }
 
       if (
-        frame.abs_path &&
-        frame.abs_path.match(
+        frame.filename &&
+        frame.filename.match(
           /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
         )
       ) {
