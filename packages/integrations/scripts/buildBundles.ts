@@ -33,7 +33,7 @@ async function buildBundle(integration: string, jsVersion: string): Promise<void
 if (runParallel) {
   // We're building a bundle for each integration and each JavaScript version.
   const tasks = getIntegrations().reduce(
-    (tasks, integration) => [...tasks, buildBundle(integration, 'ES5'), buildBundle(integration, 'ES6')],
+    (tasks, integration) => [...tasks, buildBundle(integration, 'es5'), buildBundle(integration, 'es6')],
     [] as Promise<void>[],
   );
 
@@ -49,8 +49,8 @@ if (runParallel) {
 } else {
   void (async () => {
     for (const integration of getIntegrations()) {
-      await buildBundle(integration, 'ES5');
-      await buildBundle(integration, 'ES6');
+      await buildBundle(integration, 'es5');
+      await buildBundle(integration, 'es6');
     }
     // eslint-disable-next-line no-console
     console.log('\nIntegration bundles built successfully');

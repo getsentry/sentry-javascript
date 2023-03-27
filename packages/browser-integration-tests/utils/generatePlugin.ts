@@ -6,8 +6,9 @@ import type { Compiler } from 'webpack';
 
 const PACKAGES_DIR = '../../packages';
 
-const tracingOnly = process.env.PW_TRACING_ONLY === 'true';
-
+/**
+ * Possible values: See BUNDLE_PATHS.browser
+ */
 const bundleKey = process.env.PW_BUNDLE;
 
 // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
@@ -26,16 +27,12 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es6_min: 'build/bundles/bundle.min.js',
     bundle_replay_es6: 'build/bundles/bundle.replay.js',
     bundle_replay_es6_min: 'build/bundles/bundle.replay.min.js',
-  },
-  tracing: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
-    bundle_es5: 'build/bundles/bundle.tracing.es5.js',
-    bundle_es5_min: 'build/bundles/bundle.tracing.es5.min.js',
-    bundle_es6: 'build/bundles/bundle.tracing.js',
-    bundle_es6_min: 'build/bundles/bundle.tracing.min.js',
-    bundle_replay_es6: 'build/bundles/bundle.tracing.replay.js',
-    bundle_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
+    bundle_tracing_es5: 'build/bundles/bundle.tracing.es5.js',
+    bundle_tracing_es5_min: 'build/bundles/bundle.tracing.es5.min.js',
+    bundle_tracing_es6: 'build/bundles/bundle.tracing.js',
+    bundle_tracing_es6_min: 'build/bundles/bundle.tracing.min.js',
+    bundle_tracing_replay_es6: 'build/bundles/bundle.tracing.replay.js',
+    bundle_tracing_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
   },
   integrations: {
     cjs: 'build/npm/cjs/index.js',
@@ -44,16 +41,12 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_es5_min: 'build/bundles/[INTEGRATION_NAME].es5.min.js',
     bundle_es6: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
-    bundle_replay_es6: 'build/bundles/[INTEGRATION_NAME].js',
-    bundle_replay_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
   wasm: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
     bundle_es6: 'build/bundles/wasm.js',
     bundle_es6_min: 'build/bundles/wasm.min.js',
-    bundle_replay_es6: 'build/bundles/wasm.js',
-    bundle_replay_es6_min: 'build/bundles/wasm.min.js',
   },
 };
 
@@ -100,7 +93,6 @@ function generateSentryAlias(): Record<string, string> {
 }
 
 class SentryScenarioGenerationPlugin {
-  public requiresTracing: boolean = false;
   public requiredIntegrations: string[] = [];
   public requiresWASMIntegration: boolean = false;
 
@@ -114,8 +106,8 @@ class SentryScenarioGenerationPlugin {
             // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
             '@sentry/browser': 'Sentry',
             '@sentry/tracing': 'Sentry',
-            '@sentry/integrations': 'Sentry.Integrations',
             '@sentry/replay': 'Sentry',
+            '@sentry/integrations': 'Sentry.Integrations',
             '@sentry/wasm': 'Sentry.Integrations',
           }
         : {};
@@ -127,9 +119,7 @@ class SentryScenarioGenerationPlugin {
         parser.hooks.import.tap(
           this._name,
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
-            if (source === '@sentry/tracing') {
-              this.requiresTracing = true;
-            } else if (source === '@sentry/integrations') {
+            if (source === '@sentry/integrations') {
               this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
             } else if (source === '@sentry/wasm') {
               this.requiresWASMIntegration = true;
@@ -142,10 +132,14 @@ class SentryScenarioGenerationPlugin {
     compiler.hooks.compilation.tap(this._name, compilation => {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
         if (useBundle && bundleKey) {
-          const useTracingBundle = tracingOnly || this.requiresTracing;
-          const bundleName = useTracingBundle ? 'tracing' : 'browser';
+          const bundleName = 'browser';
+          const bundlePath = BUNDLE_PATHS[bundleName][bundleKey];
+
+          // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
+          const integrationBundleKey = bundleKey.replace('_replay', '').replace('_tracing', '');
+
           const bundleObject = createHtmlTagObject('script', {
-            src: path.resolve(PACKAGES_DIR, bundleName, BUNDLE_PATHS[bundleName][bundleKey]),
+            src: path.resolve(PACKAGES_DIR, bundleName, bundlePath),
           });
 
           this.requiredIntegrations.forEach(integration => {
@@ -153,16 +147,16 @@ class SentryScenarioGenerationPlugin {
               src: path.resolve(
                 PACKAGES_DIR,
                 'integrations',
-                BUNDLE_PATHS['integrations'][bundleKey].replace('[INTEGRATION_NAME]', integration),
+                BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
               ),
             });
 
             data.assetTags.scripts.unshift(integrationObject);
           });
 
-          if (this.requiresWASMIntegration && BUNDLE_PATHS['wasm'][bundleKey]) {
+          if (this.requiresWASMIntegration && BUNDLE_PATHS['wasm'][integrationBundleKey]) {
             const wasmObject = createHtmlTagObject('script', {
-              src: path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][bundleKey]),
+              src: path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][integrationBundleKey]),
             });
 
             data.assetTags.scripts.unshift(wasmObject);

@@ -2,11 +2,19 @@ import { expect } from '@playwright/test';
 import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import {
+  envelopeHeaderRequestParser,
+  getFirstSentryEnvelopeRequest,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 sentryTest(
   'should create a pageload transaction based on `sentry-trace` <meta>',
   async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -24,6 +32,10 @@ sentryTest(
 sentryTest(
   'should pick up `baggage` <meta> tag, propagate the content in transaction and not add own data',
   async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
@@ -41,6 +53,10 @@ sentryTest(
 sentryTest(
   "should create a navigation that's not influenced by `sentry-trace` <meta>",
   async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);

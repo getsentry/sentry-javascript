@@ -11,3 +11,4 @@ Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 export * from './index.bundle.base';
 export { BrowserTracing, addTracingExtensions, Replay };
+// Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle

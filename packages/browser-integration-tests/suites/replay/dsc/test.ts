@@ -2,12 +2,16 @@ import { expect } from '@playwright/test';
 import type { EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
+import {
+  envelopeHeaderRequestParser,
+  getFirstSentryEnvelopeRequest,
+  shouldSkipTracingTest,
+} from '../../../utils/helpers';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
 sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestPath, page, browserName }) => {
   // This is flaky on webkit, so skipping there...
-  if (shouldSkipReplayTest() || browserName === 'webkit') {
+  if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 

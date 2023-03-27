@@ -58,7 +58,7 @@ export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T 
       const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
 
       const traceLoadContext: TransactionContext = {
-        op: 'function.sveltekit.load',
+        op: `function.sveltekit${isServerOnlyLoad(event) ? '.server' : ''}.load`,
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {

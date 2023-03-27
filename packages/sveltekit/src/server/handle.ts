@@ -1,14 +1,15 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { trace } from '@sentry/core';
+import { getActiveTransaction, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
   extractTraceparentData,
   objectify,
 } from '@sentry/utils';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import * as domain from 'domain';
 
 function sendErrorToSentry(e: unknown): unknown {
@@ -33,6 +34,20 @@ function sendErrorToSentry(e: unknown): unknown {
 
   return objectifiedErr;
 }
+
+export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk']> = ({ html }) => {
+  const transaction = getActiveTransaction();
+  if (transaction) {
+    const traceparentData = transaction.toTraceparent();
+    const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(transaction.getDynamicSamplingContext());
+    const content = `<head>
+      <meta name="sentry-trace" content="${traceparentData}"/>
+      <meta name="baggage" content="${dynamicSamplingContext}"/>`;
+    return html.replace('<head>', content);
+  }
+
+  return html;
+};
 
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and
@@ -68,7 +83,7 @@ export const sentryHandle: Handle = ({ event, resolve }) => {
         },
       },
       async (span?: Span) => {
-        const res = await resolve(event);
+        const res = await resolve(event, { transformPageChunk });
         if (span) {
           span.setHttpStatus(res.status);
         }

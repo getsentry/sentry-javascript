@@ -1,9 +1,9 @@
 import { BrowserTracing } from '@sentry-internal/tracing';
 import { Replay } from '@sentry/browser';
 
-import * as TracingReplayBundle from '../src/index.bundle.replay';
+import * as TracingReplayBundle from '../../src/index.bundle.tracing.replay';
 
-describe('index.bundle.replay', () => {
+describe('index.bundle.tracing.replay', () => {
   it('has correct exports', () => {
     Object.keys(TracingReplayBundle.Integrations).forEach(key => {
       // Skip BrowserTracing because it doesn't have a static id field.
