@@ -6,7 +6,6 @@ import {
   parseSemver,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
-  dynamicRequire,
 } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
