@@ -2,6 +2,7 @@ import type { Hub } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
+  parseSemver,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
@@ -9,6 +10,8 @@ import {
 import type { NodeClient } from '../../client';
 import { isSentryRequest } from '../utils/http';
 import type { DiagnosticsChannel, RequestCreateMessage, RequestEndMessage, RequestErrorMessage } from './types';
+
+const NODE_VERSION = parseSemver(process.versions.node);
 
 export enum ChannelName {
   // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md#undicirequestcreate
@@ -61,6 +64,11 @@ export class Undici implements Integration {
    * @inheritDoc
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    // Requires Node 14+ to use the diagnostics_channel API.
+    if (NODE_VERSION.major && NODE_VERSION.major < 14) {
+      return;
+    }
+
     let ds: DiagnosticsChannel | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
