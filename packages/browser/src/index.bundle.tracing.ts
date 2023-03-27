@@ -1,5 +1,6 @@
 // This is exported so the loader does not fail when switching off Replay
 import { Replay } from '@sentry-internal/integration-shims';
+import { addExtensionMethods, BrowserTracing, Span } from '@sentry-internal/tracing';
 
 import * as Sentry from './index.bundle.base';
 
@@ -8,5 +9,10 @@ import * as Sentry from './index.bundle.base';
 // with the NPM package version.
 Sentry.Integrations.Replay = Replay;
 
-export { Replay };
+Sentry.Integrations.BrowserTracing = BrowserTracing;
+
+// We are patching the global object with our hub extension methods
+addExtensionMethods();
+
+export { Replay, BrowserTracing, Span, addExtensionMethods };
 export * from './index.bundle.base';
