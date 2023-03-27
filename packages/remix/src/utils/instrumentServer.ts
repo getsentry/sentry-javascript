@@ -24,30 +24,15 @@ import type {
   ReactRouterDomPkg,
   RemixRequest,
   RequestHandler,
-  RouteMatch,
   ServerBuild,
   ServerRoute,
   ServerRouteManifest,
 } from './types';
+import { extractData, getRequestMatch, isResponse, json, matchServerRoutes } from './vendor/response';
 import { normalizeRemixRequest } from './web-fetch';
 
 // Flag to track if the core request handler is instrumented.
 export let isRequestHandlerWrapped = false;
-
-// Taken from Remix Implementation
-// https://github.com/remix-run/remix/blob/32300ec6e6e8025602cea63e17a2201989589eab/packages/remix-server-runtime/responses.ts#L60-L77
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isResponse(value: any): value is Response {
-  return (
-    value != null &&
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-    typeof value.status === 'number' &&
-    typeof value.statusText === 'string' &&
-    typeof value.headers === 'object' &&
-    typeof value.body !== 'undefined'
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-  );
-}
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -56,21 +41,6 @@ function isRedirectResponse(response: Response): boolean {
 
 function isCatchResponse(response: Response): boolean {
   return response.headers.get('X-Remix-Catch') != null;
-}
-
-// Based on Remix Implementation
-// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/data.ts#L131-L145
-async function extractData(response: Response): Promise<unknown> {
-  const contentType = response.headers.get('Content-Type');
-
-  // Cloning the response to avoid consuming the original body stream
-  const responseClone = response.clone();
-
-  if (contentType && /\bapplication\/json\b/.test(contentType)) {
-    return responseClone.json();
-  }
-
-  return responseClone.text();
 }
 
 async function extractResponseError(response: Response): Promise<unknown> {
@@ -94,9 +64,11 @@ async function captureRemixServerException(err: Error, name: string, request: Re
     return;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let normalizedRequest: Record<string, unknown> = request as unknown as any;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     normalizedRequest = normalizeRemixRequest(request as unknown as any);
   } catch (e) {
     __DEBUG_BUILD__ && logger.warn('Failed to normalize Remix request');
@@ -245,29 +217,6 @@ function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } 
   return {};
 }
 
-// https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L1-L4
-export type JsonFunction = <Data>(data: Data, init?: number | ResponseInit) => Response;
-
-/**
- * This is a shortcut for creating `application/json` responses. Converts `data`
- * to JSON and sets the `Content-Type` header.
- *
- * @see https://remix.run/api/remix#json
- *
- * https://github.com/remix-run/remix/blob/7688da5c75190a2e29496c78721456d6e12e3abe/packages/remix-server-runtime/responses.ts#L12-L24
- */
-const json: JsonFunction = (data, init = {}) => {
-  const responseInit = typeof init === 'number' ? { status: init } : init;
-  const headers = new Headers(responseInit.headers);
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json; charset=utf-8');
-  }
-  return new Response(JSON.stringify(data), {
-    ...responseInit,
-    headers,
-  });
-};
-
 function makeWrappedRootLoader(origLoader: DataFunction): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     const res = await origLoader.call(this, args);
@@ -305,31 +254,6 @@ export function createRoutes(manifest: ServerRouteManifest, parentId?: string): 
       ...route,
       children: createRoutes(manifest, id),
     }));
-}
-
-// Remix Implementation:
-// https://github.com/remix-run/remix/blob/38e127b1d97485900b9c220d93503de0deb1fc81/packages/remix-server-runtime/routeMatching.ts#L12-L24
-//
-// Changed so that `matchRoutes` function is passed in.
-function matchServerRoutes(
-  routes: ServerRoute[],
-  pathname: string,
-  pkg?: ReactRouterDomPkg,
-): RouteMatch<ServerRoute>[] | null {
-  if (!pkg) {
-    return null;
-  }
-
-  const matches = pkg.matchRoutes(routes, pathname);
-  if (!matches) {
-    return null;
-  }
-
-  return matches.map(match => ({
-    params: match.params,
-    pathname: match.pathname,
-    route: match.route,
-  }));
 }
 
 /**
@@ -443,33 +367,6 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return res;
     })();
   };
-}
-
-// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L573-L586
-function isIndexRequestUrl(url: URL): boolean {
-  for (const param of url.searchParams.getAll('index')) {
-    // only use bare `?index` params without a value
-    // ✅ /foo?index
-    // ✅ /foo?index&index=123
-    // ✅ /foo?index=123&index
-    // ❌ /foo?index=123
-    if (param === '') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L588-L596
-function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): RouteMatch<ServerRoute> {
-  const match = matches.slice(-1)[0];
-
-  if (!isIndexRequestUrl(url) && match.route.id.endsWith('/index')) {
-    return matches.slice(-2)[0];
-  }
-
-  return match;
 }
 
 /**
