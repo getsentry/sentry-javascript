@@ -1,7 +1,7 @@
-import { Transaction, getCurrentHub } from '@sentry/core';
+import type { Transaction } from '@sentry/core';
 import { Hub, makeMain } from '@sentry/core';
 import * as http from 'http';
-import { fetch } from 'undici';
+import type { fetch as FetchType } from 'undici';
 
 import { NodeClient } from '../../src/client';
 import { Undici } from '../../src/integrations/undici';
@@ -11,9 +11,18 @@ import { conditionalTest } from '../utils';
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
 let hub: Hub;
+let fetch: typeof FetchType;
 
 beforeAll(async () => {
   await setupTestServer();
+  try {
+    // need to conditionally require `undici` because it's not available in Node 10
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    fetch = require('undici').fetch;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Undici integration tests are skipped because undici is not installed.');
+  }
 });
 
 const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
