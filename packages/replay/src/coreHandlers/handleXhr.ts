@@ -1,10 +1,10 @@
 import type { HandlerDataXhr } from '@sentry/types';
 
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 
 /** only exported for tests */
-export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry | null {
+export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<NetworkRequestData> | null {
   const { startTimestamp, endTimestamp, xhr } = handlerData;
 
   if (!startTimestamp || !endTimestamp || !xhr.__sentry_xhr__) {
