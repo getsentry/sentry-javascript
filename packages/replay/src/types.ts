@@ -91,8 +91,10 @@ export type PaintData = undefined;
 
 /**
  * See https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming
+*
+* Note `navigation.push` will not have any data
  */
-export type NavigationData = Pick<
+export type NavigationData = Partial<Pick<
   PerformanceNavigationTiming,
   | 'decodedBodySize'
   | 'encodedBodySize'
@@ -104,11 +106,11 @@ export type NavigationData = Pick<
   | 'loadEventEnd'
   | 'domComplete'
   | 'redirectCount'
-> & {
+>> & {
   /**
    * Transfer size of resource
    */
-  size: number;
+  size?: number;
 };
 
 export type ResourceData = Pick<PerformanceResourceTiming, 'decodedBodySize' | 'encodedBodySize'> & {
