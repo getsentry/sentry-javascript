@@ -330,7 +330,7 @@ export class BrowserTracing implements Integration {
       const op = 'ui.action.click';
 
       const currentTransaction = getActiveTransaction();
-      if (currentTransaction?.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
+      if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
         __DEBUG_BUILD__ && logger.warn(`[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`);
         return undefined;
       }
