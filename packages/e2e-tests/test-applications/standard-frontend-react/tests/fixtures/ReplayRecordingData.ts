@@ -155,7 +155,7 @@ export const ReplayRecordingData = [
             domComplete: expect.any(Number),
             redirectCount: expect.any(Number),
             size: expect.any(Number),
-          }
+          },
         },
       },
     },
