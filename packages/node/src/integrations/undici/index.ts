@@ -5,6 +5,7 @@ import {
   parseSemver,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
+  dynamicRequire,
 } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
@@ -64,15 +65,15 @@ export class Undici implements Integration {
    * @inheritDoc
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // Requires Node 14+ to use the diagnostics_channel API.
-    if (NODE_VERSION.major && NODE_VERSION.major < 14) {
+    // Requires Node 16+ to use the diagnostics_channel API.
+    if (NODE_VERSION.major && NODE_VERSION.major < 16) {
       return;
     }
 
     let ds: DiagnosticsChannel | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ds = require('diagnostics_channel') as DiagnosticsChannel;
+      ds = dynamicRequire(module, 'diagnostics_channel') as DiagnosticsChannel;
     } catch (e) {
       // no-op
     }
