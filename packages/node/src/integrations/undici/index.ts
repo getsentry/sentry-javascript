@@ -1,11 +1,11 @@
 import type { Hub } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
 import {
+  dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
   parseSemver,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
-  dynamicRequire,
 } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
