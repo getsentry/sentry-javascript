@@ -1,0 +1,310 @@
+import { Transaction, getCurrentHub } from '@sentry/core';
+import { Hub, makeMain } from '@sentry/core';
+import * as http from 'http';
+import { fetch } from 'undici';
+
+import { NodeClient } from '../../src/client';
+import { Undici } from '../../src/integrations/undici';
+import { getDefaultNodeClientOptions } from '../helper/node-client-options';
+import { conditionalTest } from '../utils';
+
+const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
+
+let hub: Hub;
+
+beforeAll(async () => {
+  await setupTestServer();
+});
+
+const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
+  dsn: SENTRY_DSN,
+  tracesSampleRate: 1,
+  integrations: [new Undici()],
+});
+
+beforeEach(() => {
+  const client = new NodeClient(DEFAULT_OPTIONS);
+  hub = new Hub(client);
+  makeMain(hub);
+});
+
+afterEach(() => {
+  requestHeaders = {};
+  setTestServerOptions({ statusCode: 200 });
+});
+
+afterAll(() => {
+  getTestServer()?.close();
+});
+
+conditionalTest({ min: 16 })('Undici integration', () => {
+  it.each([
+    [
+      'simple url',
+      'http://localhost:18099',
+      undefined,
+      {
+        description: 'GET http://localhost:18099/',
+        op: 'http.client',
+      },
+    ],
+    [
+      'url with query',
+      'http://localhost:18099?foo=bar',
+      undefined,
+      {
+        description: 'GET http://localhost:18099/',
+        op: 'http.client',
+        data: {
+          'http.query': '?foo=bar',
+        },
+      },
+    ],
+    [
+      'url with POST method',
+      'http://localhost:18099',
+      { method: 'POST' },
+      {
+        description: 'POST http://localhost:18099/',
+      },
+    ],
+    [
+      'url with POST method',
+      'http://localhost:18099',
+      { method: 'POST' },
+      {
+        description: 'POST http://localhost:18099/',
+      },
+    ],
+    [
+      'url with GET as default',
+      'http://localhost:18099',
+      { method: undefined },
+      {
+        description: 'GET http://localhost:18099/',
+      },
+    ],
+  ])('creates a span with a %s', async (_: string, request, requestInit, expected) => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    await fetch(request, requestInit);
+
+    expect(transaction.spanRecorder?.spans.length).toBe(2);
+
+    const span = transaction.spanRecorder?.spans[1];
+    expect(span).toEqual(expect.objectContaining(expected));
+  });
+
+  it('creates a span with internal errors', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    try {
+      await fetch('http://a-url-that-no-exists.com');
+    } catch (e) {
+      // ignore
+    }
+
+    expect(transaction.spanRecorder?.spans.length).toBe(2);
+
+    const span = transaction.spanRecorder?.spans[1];
+    expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+  });
+
+  it('does not create a span for sentry requests', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    try {
+      await fetch(`${SENTRY_DSN}/sub/route`, {
+        method: 'POST',
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    expect(transaction.spanRecorder?.spans.length).toBe(1);
+  });
+
+  it('does not create a span for sentry requests', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    expect(transaction.spanRecorder?.spans.length).toBe(1);
+
+    try {
+      await fetch(`${SENTRY_DSN}/sub/route`, {
+        method: 'POST',
+      });
+    } catch (e) {
+      // ignore
+    }
+
+    expect(transaction.spanRecorder?.spans.length).toBe(1);
+  });
+
+  it('does not create a span if there is no active spans', async () => {
+    try {
+      await fetch(`${SENTRY_DSN}/sub/route`, { method: 'POST' });
+    } catch (e) {
+      // ignore
+    }
+
+    expect(hub.getScope().getSpan()).toBeUndefined();
+  });
+
+  it('does create a span if `shouldCreateSpanForRequest` is defined', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    const client = new NodeClient({ ...DEFAULT_OPTIONS, shouldCreateSpanForRequest: url => url.includes('yes') });
+    hub.bindClient(client);
+
+    await fetch('http://localhost:18099/no', { method: 'POST' });
+
+    expect(transaction.spanRecorder?.spans.length).toBe(1);
+
+    await fetch('http://localhost:18099/yes', { method: 'POST' });
+
+    expect(transaction.spanRecorder?.spans.length).toBe(2);
+  });
+
+  it('attaches the sentry trace and baggage headers', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    await fetch('http://localhost:18099', { method: 'POST' });
+
+    expect(transaction.spanRecorder?.spans.length).toBe(2);
+    const span = transaction.spanRecorder?.spans[1];
+
+    expect(requestHeaders['sentry-trace']).toEqual(span?.toTraceparent());
+    expect(requestHeaders['baggage']).toEqual(
+      `sentry-environment=production,sentry-transaction=test-transaction,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1`,
+    );
+  });
+
+  it('uses tracePropagationTargets', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    const client = new NodeClient({ ...DEFAULT_OPTIONS, tracePropagationTargets: ['/yes'] });
+    hub.bindClient(client);
+
+    expect(transaction.spanRecorder?.spans.length).toBe(1);
+
+    await fetch('http://localhost:18099/no', { method: 'POST' });
+
+    expect(transaction.spanRecorder?.spans.length).toBe(2);
+
+    expect(requestHeaders['sentry-trace']).toBeUndefined();
+    expect(requestHeaders['baggage']).toBeUndefined();
+
+    await fetch('http://localhost:18099/yes', { method: 'POST' });
+
+    expect(transaction.spanRecorder?.spans.length).toBe(3);
+
+    expect(requestHeaders['sentry-trace']).toBeDefined();
+    expect(requestHeaders['baggage']).toBeDefined();
+  });
+
+  it('adds a breadcrumb on request', async () => {
+    expect.assertions(1);
+
+    const client = new NodeClient({
+      ...DEFAULT_OPTIONS,
+      beforeBreadcrumb: breadcrumb => {
+        expect(breadcrumb).toEqual({
+          category: 'http',
+          data: {
+            method: 'POST',
+            status_code: 200,
+            url: 'http://localhost:18099/',
+          },
+          type: 'http',
+          timestamp: expect.any(Number),
+        });
+        return breadcrumb;
+      },
+    });
+    hub.bindClient(client);
+
+    await fetch('http://localhost:18099', { method: 'POST' });
+  });
+
+  it('adds a breadcrumb on errored request', async () => {
+    expect.assertions(1);
+
+    const client = new NodeClient({
+      ...DEFAULT_OPTIONS,
+      beforeBreadcrumb: breadcrumb => {
+        expect(breadcrumb).toEqual({
+          category: 'http',
+          data: {
+            method: 'GET',
+            url: 'http://a-url-that-no-exists.com/',
+          },
+          level: 'error',
+          type: 'http',
+          timestamp: expect.any(Number),
+        });
+        return breadcrumb;
+      },
+    });
+    hub.bindClient(client);
+
+    try {
+      await fetch('http://a-url-that-no-exists.com');
+    } catch (e) {
+      // ignore
+    }
+  });
+});
+
+interface TestServerOptions {
+  statusCode: number;
+  responseHeaders?: Record<string, string | string[] | undefined>;
+}
+
+let testServer: http.Server | undefined;
+
+let requestHeaders: any = {};
+
+let testServerOptions: TestServerOptions = {
+  statusCode: 200,
+};
+
+function setTestServerOptions(options: TestServerOptions): void {
+  testServerOptions = { ...options };
+}
+
+function getTestServer(): http.Server | undefined {
+  return testServer;
+}
+
+function setupTestServer() {
+  testServer = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+
+    req.on('data', data => {
+      chunks.push(data);
+    });
+
+    req.on('end', () => {
+      requestHeaders = req.headers;
+    });
+
+    res.writeHead(testServerOptions.statusCode, testServerOptions.responseHeaders);
+    res.end();
+
+    // also terminate socket because keepalive hangs connection a bit
+    res.connection.end();
+  });
+
+  testServer.listen(18099, 'localhost');
+
+  return new Promise(resolve => {
+    testServer?.on('listening', resolve);
+  });
+}

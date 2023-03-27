@@ -33,6 +33,10 @@ const DEFAULT_UNDICI_OPTIONS: UndiciOptions = {
   breadcrumbs: true,
 };
 
+// Please note that you cannot use `console.log` to debug the callbacks registered to the `diagnostics_channel` API.
+// To debug, you can use `writeFileSync` to write to a file:
+// https://nodejs.org/api/async_hooks.html#printing-in-asynchook-callbacks
+
 /**
  * Instruments outgoing HTTP requests made with the `undici` package via
  * Node's `diagnostics_channel` API.
@@ -89,7 +93,7 @@ export class Undici implements Integration {
       const url = new URL(request.path, request.origin);
       const stringUrl = url.toString();
 
-      if (isSentryRequest(stringUrl)) {
+      if (isSentryRequest(stringUrl) || request.__sentry__ !== undefined) {
         return;
       }
 
@@ -132,7 +136,6 @@ export class Undici implements Integration {
             : true;
 
           if (shouldPropagate) {
-            // TODO: Only do this based on tracePropagationTargets
             request.addHeader('sentry-trace', span.toTraceparent());
             if (span.transaction) {
               const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
