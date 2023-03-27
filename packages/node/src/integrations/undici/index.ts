@@ -39,7 +39,7 @@ const DEFAULT_UNDICI_OPTIONS: UndiciOptions = {
  *
  * Supports Undici 4.7.0 or higher.
  *
- * Requires Node 18.9.0 or higher.
+ * Requires Node 16.17.0 or higher.
  */
 export class Undici implements Integration {
   /**
