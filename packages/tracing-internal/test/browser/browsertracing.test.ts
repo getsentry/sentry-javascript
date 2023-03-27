@@ -1,4 +1,3 @@
-import { BrowserClient, WINDOW } from '@sentry/browser';
 import { Hub, makeMain, TRACING_DEFAULTS } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
@@ -12,6 +11,8 @@ import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
+import { WINDOW } from '../../src/browser/types';
+import { TestClient } from '../utils/TestClient';
 
 let mockChangeHistory: ({ to, from }: { to: string; from?: string }) => void = () => undefined;
 
@@ -61,7 +62,7 @@ describe('BrowserTracing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options));
+    hub = new Hub(new TestClient(options));
     makeMain(hub);
     document.head.innerHTML = '';
 
@@ -599,7 +600,7 @@ describe('BrowserTracing', () => {
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });
-      hub.bindClient(new BrowserClient(options));
+      hub.bindClient(new TestClient(options));
       // setting up the BrowserTracing integration automatically starts a pageload transaction
       createBrowserTracing(true);
 
@@ -616,7 +617,7 @@ describe('BrowserTracing', () => {
 
       const tracesSampler = jest.fn();
       const options = getDefaultBrowserClientOptions({ tracesSampler });
-      hub.bindClient(new BrowserClient(options));
+      hub.bindClient(new TestClient(options));
       // setting up the BrowserTracing integration normally automatically starts a pageload transaction, but that's not
       // what we're testing here
       createBrowserTracing(true, { startTransactionOnPageLoad: false });

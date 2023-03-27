@@ -1,10 +1,10 @@
-import { BrowserClient } from '@sentry/browser';
 import { Hub, makeMain } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
+import { TestClient } from '../utils/TestClient';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
@@ -15,7 +15,7 @@ describe('registerBackgroundTabDetection', () => {
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options));
+    hub = new Hub(new TestClient(options));
     makeMain(hub);
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined

@@ -1,11 +1,16 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
+type GraphQLModule = {
+  [method: string]: (...args: unknown[]) => unknown;
+};
+
 /** Tracing integration for graphql package */
-export class GraphQL implements Integration {
+export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
   /**
    * @inheritDoc
    */
@@ -16,6 +21,13 @@ export class GraphQL implements Integration {
    */
   public name: string = GraphQL.id;
 
+  private _module?: GraphQLModule;
+
+  /** @inheritdoc */
+  public loadDependency(): GraphQLModule | undefined {
+    return (this._module = this._module || loadModule('graphql/execution/execute.js'));
+  }
+
   /**
    * @inheritDoc
    */
@@ -25,9 +37,7 @@ export class GraphQL implements Integration {
       return;
     }
 
-    const pkg = loadModule<{
-      [method: string]: (...args: unknown[]) => unknown;
-    }>('graphql/execution/execute.js');
+    const pkg = this.loadDependency();
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('GraphQL Integration was unable to require graphql/execution package.');

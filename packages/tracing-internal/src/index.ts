@@ -10,6 +10,7 @@ export {
   Prisma,
   lazyLoadedNodePerformanceMonitoringIntegrations,
 } from './node';
+export type { LazyLoadedIntegration } from './node';
 
 export {
   BrowserTracing,
