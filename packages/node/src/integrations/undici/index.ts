@@ -29,7 +29,14 @@ const DEFAULT_UNDICI_OPTIONS: UndiciOptions = {
   breadcrumbs: true,
 };
 
-/** */
+/**
+ * Instruments outgoing HTTP requests made with the `undici` package via
+ * Node's `diagnostics_channel` API.
+ *
+ * Supports Undici 4.7.0 or higher.
+ *
+ * Requires Node 18.9.0 or higher.
+ */
 export class Undici implements Integration {
   /**
    * @inheritDoc
