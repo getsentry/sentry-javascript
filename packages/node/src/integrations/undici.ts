@@ -56,11 +56,6 @@ export class Undici implements Integration {
    */
   public name: string = Undici.id;
 
-  // Have to hold all built channels in memory otherwise they get garbage collected
-  // See: https://github.com/nodejs/node/pull/42714
-  // This has been fixed in Node 19+
-  private _channels = new Set<DiagnosticsChannel.Channel>();
-
   private readonly _options: UndiciOptions;
 
   public constructor(_options: Partial<UndiciOptions> = {}) {
@@ -82,13 +77,12 @@ export class Undici implements Integration {
       // no-op
     }
 
-    if (!ds) {
+    if (!ds || !ds.subscribe) {
       return;
     }
 
     // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md
-    const requestCreateChannel = this._setupChannel(ds, ChannelName.RequestCreate);
-    requestCreateChannel.subscribe(message => {
+    ds.subscribe(ChannelName.RequestCreate, message => {
       const { request } = message as RequestCreateMessage;
 
       const url = new URL(request.path, request.origin);
@@ -105,12 +99,12 @@ export class Undici implements Integration {
       const activeSpan = scope.getSpan();
 
       if (activeSpan && client) {
-        const options = client.getOptions();
+        const clientOptions = client.getOptions();
 
         // eslint-disable-next-line deprecation/deprecation
-        const shouldCreateSpan = options.shouldCreateSpanForRequest
+        const shouldCreateSpan = clientOptions.shouldCreateSpanForRequest
           ? // eslint-disable-next-line deprecation/deprecation
-            options.shouldCreateSpanForRequest(stringUrl)
+            clientOptions.shouldCreateSpanForRequest(stringUrl)
           : true;
 
         if (shouldCreateSpan) {
@@ -131,9 +125,9 @@ export class Undici implements Integration {
           request.__sentry__ = span;
 
           // eslint-disable-next-line deprecation/deprecation
-          const shouldPropagate = options.tracePropagationTargets
+          const shouldPropagate = clientOptions.tracePropagationTargets
             ? // eslint-disable-next-line deprecation/deprecation
-              stringMatchesSomePattern(stringUrl, options.tracePropagationTargets)
+              stringMatchesSomePattern(stringUrl, clientOptions.tracePropagationTargets)
             : true;
 
           if (shouldPropagate) {
@@ -151,8 +145,7 @@ export class Undici implements Integration {
       }
     });
 
-    const requestEndChannel = this._setupChannel(ds, ChannelName.RequestEnd);
-    requestEndChannel.subscribe(message => {
+    ds.subscribe(ChannelName.RequestEnd, message => {
       const { request, response } = message as RequestEndMessage;
 
       const url = new URL(request.path, request.origin);
@@ -188,8 +181,7 @@ export class Undici implements Integration {
       }
     });
 
-    const requestErrorChannel = this._setupChannel(ds, ChannelName.RequestError);
-    requestErrorChannel.subscribe(message => {
+    ds.subscribe(ChannelName.RequestError, message => {
       const { request } = message as RequestErrorMessage;
 
       const url = new URL(request.path, request.origin);
@@ -223,15 +215,5 @@ export class Undici implements Integration {
         );
       }
     });
-  }
-
-  /** */
-  private _setupChannel(
-    ds: typeof DiagnosticsChannel,
-    name: Parameters<typeof DiagnosticsChannel.channel>[0],
-  ): DiagnosticsChannel.Channel {
-    const channel = ds.channel(name);
-    this._channels.add(channel);
-    return channel;
   }
 }
