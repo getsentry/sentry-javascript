@@ -11,10 +11,18 @@ const builds = [];
     outputFileBase: () => `bundles/bundle${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
-  builds.push(...makeBundleConfigVariants(baseBundleConfig));
+  const tracingBaseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'standalone',
+    entrypoints: ['src/index.bundle.tracing.ts'],
+    jsVersion,
+    licenseTitle: '@sentry/browser & @sentry/tracing',
+    outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
+  });
+
+  builds.push(...makeBundleConfigVariants(baseBundleConfig), ...makeBundleConfigVariants(tracingBaseBundleConfig));
 });
 
-// Full bundle incl. replay only available for es6
+// Replay bundles only available for es6
 const replayBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.ts'],
@@ -23,6 +31,17 @@ const replayBaseBundleConfig = makeBaseBundleConfig({
   outputFileBase: () => 'bundles/bundle.replay',
 });
 
-builds.push(...makeBundleConfigVariants(replayBaseBundleConfig));
+const tracingReplayBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.tracing.replay.ts'],
+  jsVersion: 'es6',
+  licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay',
+  outputFileBase: () => 'bundles/bundle.tracing.replay',
+});
+
+builds.push(
+  ...makeBundleConfigVariants(replayBaseBundleConfig),
+  ...makeBundleConfigVariants(tracingReplayBaseBundleConfig),
+);
 
 export default builds;

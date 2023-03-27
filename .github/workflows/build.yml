@@ -371,7 +371,6 @@ jobs:
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
-            ${{ github.workspace }}/packages/tracing/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
 
@@ -499,16 +498,13 @@ jobs:
           - bundle_es6_min
           - bundle_replay_es6
           - bundle_replay_es6_min
-        tracing_only:
-          - true
-          - false
-        exclude:
-          # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
-          # tracing tests
-          - bundle: esm
-            tracing_only: false
-          - bundle: cjs
-            tracing_only: false
+          - bundle_tracing_es5
+          - bundle_tracing_es5_min
+          - bundle_tracing_es6
+          - bundle_tracing_es6_min
+          - bundle_tracing_replay_es6
+          - bundle_tracing_replay_es6_min
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -543,7 +539,6 @@ jobs:
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
-          PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/browser-integration-tests
           yarn test:ci

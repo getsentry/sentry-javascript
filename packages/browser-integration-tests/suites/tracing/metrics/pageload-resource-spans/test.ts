@@ -3,9 +3,13 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestPath, page, browser }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   // Intercepting asset requests to avoid network-related flakiness and random retries (on Firefox).
   await page.route('**/path/to/image.svg', (route: Route) => route.fulfill({ path: `${__dirname}/assets/image.svg` }));
   await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));

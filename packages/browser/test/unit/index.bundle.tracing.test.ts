@@ -1,9 +1,9 @@
 import { Replay as ReplayShim } from '@sentry-internal/integration-shims';
 import { BrowserTracing } from '@sentry-internal/tracing';
 
-import * as TracingBundle from '../src/index.bundle';
+import * as TracingBundle from '../../src/index.bundle.tracing';
 
-describe('index.bundle', () => {
+describe('index.bundle.tracing', () => {
   it('has correct exports', () => {
     Object.keys(TracingBundle.Integrations).forEach(key => {
       // Skip BrowserTracing because it doesn't have a static id field.

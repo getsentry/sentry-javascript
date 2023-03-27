@@ -1,12 +1,6 @@
 {
   "extends": "./tsconfig.json",
 
-  // We don't need types for this because we don't ship it in our npm bundle. Skipping it here also lets us get around
-  // the fact that it introduces a dependency on `@sentry/browser` which doesn't exist anywhere else in the SDK, which
-  // then prevents us from building that and this at the same time when doing a parallellized build from the repo root
-  // level.
-  "exclude": ["src/index.bundle.ts", "src/index.bundle.replay.ts"],
-
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,

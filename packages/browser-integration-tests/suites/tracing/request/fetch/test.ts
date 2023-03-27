@@ -3,9 +3,13 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
+import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should create spans for multiple fetch requests', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
   // Because we fetch from http://example.com, fetch will throw a CORS error in firefox and webkit.
@@ -38,6 +42,10 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
 });
 
 sentryTest('should attach `sentry-trace` header to multiple fetch requests', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const requests = (
