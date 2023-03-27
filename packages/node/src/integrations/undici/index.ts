@@ -1,38 +1,23 @@
-import type { Hub, Span } from '@sentry/core';
-import { stripUrlQueryAndFragment } from '@sentry/core';
+import type { Hub } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, stringMatchesSomePattern } from '@sentry/utils';
-import type DiagnosticsChannel from 'diagnostics_channel';
+import {
+  dynamicSamplingContextToSentryBaggageHeader,
+  stringMatchesSomePattern,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 
-import type { NodeClient } from '../client';
-import { isSentryRequest } from './utils/http';
+import type { NodeClient } from '../../client';
+import { isSentryRequest } from '../utils/http';
+import type { DiagnosticsChannel, RequestCreateMessage, RequestEndMessage, RequestErrorMessage } from './types';
 
-enum ChannelName {
+export enum ChannelName {
   // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md#undicirequestcreate
   RequestCreate = 'undici:request:create',
   RequestEnd = 'undici:request:headers',
   RequestError = 'undici:request:error',
 }
 
-interface RequestWithSentry extends DiagnosticsChannel.Request {
-  __sentry__?: Span;
-}
-
-interface RequestCreateMessage {
-  request: RequestWithSentry;
-}
-
-interface RequestEndMessage {
-  request: RequestWithSentry;
-  response: DiagnosticsChannel.Response;
-}
-
-interface RequestErrorMessage {
-  request: RequestWithSentry;
-  error: Error;
-}
-
-interface UndiciOptions {
+export interface UndiciOptions {
   /**
    * Whether breadcrumbs should be recorded for requests
    * Defaults to true
@@ -69,10 +54,10 @@ export class Undici implements Integration {
    * @inheritDoc
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    let ds: typeof DiagnosticsChannel | undefined;
+    let ds: DiagnosticsChannel | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ds = require('diagnostics_channel') as typeof DiagnosticsChannel;
+      ds = require('diagnostics_channel') as DiagnosticsChannel;
     } catch (e) {
       // no-op
     }
