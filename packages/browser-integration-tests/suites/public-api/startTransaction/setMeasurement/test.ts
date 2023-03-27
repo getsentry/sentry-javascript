@@ -9,9 +9,6 @@ sentryTest('should attach measurement to transaction', async ({ getLocalTestPath
     sentryTest.skip();
   }
 
-  page.on('console', msg => console.log(msg.text()));
-  page.on('pageerror', err => console.log(err));
-
   const url = await getLocalTestPath({ testDir: __dirname });
   const event = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
