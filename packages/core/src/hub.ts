@@ -361,7 +361,17 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
+    const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
+
+    if (__DEBUG_BUILD__ && !result) {
+      throw new Error(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+
+Sentry.addTracingExtensions();
+Sentry.init({...});
+`);
+    }
+
+    return result;
   }
 
   /**
@@ -480,10 +490,14 @@ export class Hub implements HubInterface {
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    throw new Error(`Tracing extension '${method}' has not been added. Call 'addTracingExtensions' before calling 'init':
+    throw new Error(`Tracing extension '${method}' has not been added.
+Call 'addTracingExtensions' before calling 'init':
 
 Sentry.addTracingExtensions();
-Sentry.init({...});
+
+Sentry.init({
+  ...
+});
 `);
   }
 }
