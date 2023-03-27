@@ -14,5 +14,5 @@ Sentry.Integrations.BrowserTracing = BrowserTracing;
 // We are patching the global object with our hub extension methods
 addExtensionMethods();
 
-export { Replay, BrowserTracing, Span };
+export { Replay, BrowserTracing, Span, addExtensionMethods };
 export * from './index.bundle.base';
