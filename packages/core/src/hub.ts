@@ -490,15 +490,7 @@ Sentry.init({...});
     if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
-    throw new Error(`Tracing extension '${method}' has not been added.
-Call 'addTracingExtensions' before calling 'init':
-
-Sentry.addTracingExtensions();
-
-Sentry.init({
-  ...
-});
-`);
+    __DEBUG_BUILD__ && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 
