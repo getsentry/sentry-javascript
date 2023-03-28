@@ -1,4 +1,11 @@
-import type { ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
+import type {
+  FetchBreadcrumbHint,
+  HandlerDataFetch,
+  ReplayRecordingData,
+  ReplayRecordingMode,
+  SentryWrappedXMLHttpRequest,
+  XhrBreadcrumbHint,
+} from '@sentry/types';
 
 import type { eventWithTime, recordOptions } from './types/rrweb';
 
@@ -236,6 +243,7 @@ export interface ReplayPluginOptions extends SessionOptions {
     traceInternals: boolean;
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
+    captureNetworkBodies: boolean;
   }>;
 }
 
@@ -469,3 +477,38 @@ export interface ReplayPerformanceEntry<T> {
    */
   data: T;
 }
+
+type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;
+
+export type XhrHint = XhrBreadcrumbHint & {
+  xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest;
+  input?: RequestBody;
+};
+export type FetchHint = FetchBreadcrumbHint & {
+  input: HandlerDataFetch['args'];
+  response: Response;
+};
+
+export type NetworkBody = Record<string, unknown> | string;
+
+type NetworkMetaError = 'MAX_BODY_SIZE_EXCEEDED';
+
+interface NetworkMeta {
+  errors?: NetworkMetaError[];
+}
+
+export interface ReplayNetworkRequestOrResponse {
+  size?: number;
+  body?: NetworkBody;
+  _meta?: NetworkMeta;
+}
+
+export type ReplayNetworkRequestData = {
+  startTimestamp: number;
+  endTimestamp: number;
+  url: string;
+  method?: string;
+  statusCode: number;
+  request?: ReplayNetworkRequestOrResponse;
+  response?: ReplayNetworkRequestOrResponse;
+};

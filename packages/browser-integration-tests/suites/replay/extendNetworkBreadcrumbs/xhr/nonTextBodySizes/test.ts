@@ -8,18 +8,18 @@ import {
   waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request_body_size when body is sent', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('calculates body sizes for non-string bodies', async ({ getLocalTestPath, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('**/foo', async route => {
     return route.fulfill({
       status: 200,
+      body: Buffer.from('<html>Hello world</html>'),
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': '',
       },
     });
   });
@@ -38,15 +38,17 @@ sentryTest('captures request_body_size when body is sent', async ({ getLocalTest
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  void page.evaluate(() => {
+  await page.evaluate(() => {
     /* eslint-disable */
     const xhr = new XMLHttpRequest();
+
+    const blob = new Blob(['<html>Hello world!!</html>'], { type: 'text/html' });
 
     xhr.open('POST', 'http://localhost:7654/foo');
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Cache', 'no-cache');
-    xhr.send('{"foo":"bar"}');
+    xhr.send(blob);
 
     xhr.addEventListener('readystatechange', function () {
       if (xhr.readyState === 4) {
@@ -69,7 +71,8 @@ sentryTest('captures request_body_size when body is sent', async ({ getLocalTest
     type: 'http',
     data: {
       method: 'POST',
-      request_body_size: 13,
+      request_body_size: 26,
+      response_body_size: 24,
       status_code: 200,
       url: 'http://localhost:7654/foo',
     },
@@ -81,8 +84,9 @@ sentryTest('captures request_body_size when body is sent', async ({ getLocalTest
     {
       data: {
         method: 'POST',
-        requestBodySize: 13,
         statusCode: 200,
+        request: { size: 26 },
+        response: { size: 24 },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),

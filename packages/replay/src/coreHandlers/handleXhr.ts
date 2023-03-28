@@ -1,7 +1,7 @@
 import type { HandlerDataXhr } from '@sentry/types';
 
 import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
+import { addNetworkBreadcrumb } from './util/addNetworkBreadcrumb';
 
 /** only exported for tests */
 export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<NetworkRequestData> | null {
@@ -11,13 +11,8 @@ export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<N
     return null;
   }
 
-  const {
-    method,
-    url,
-    status_code: statusCode,
-    request_body_size: requestBodySize,
-    response_body_size: responseBodySize,
-  } = xhr.__sentry_xhr__;
+  // This is only used as a fallback, so we know the body sizes are never set here
+  const { method, url, status_code: statusCode } = xhr.__sentry_xhr__;
 
   if (url === undefined) {
     return null;
@@ -31,8 +26,6 @@ export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<N
     data: {
       method,
       statusCode,
-      requestBodySize,
-      responseBodySize,
     },
   };
 }

@@ -5,7 +5,7 @@ import { htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
-import { addBreadcrumbEvent } from './addBreadcrumbEvent';
+import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getAttributesToRecord } from './util/getAttributesToRecord';
 
 interface DomHandlerData {
