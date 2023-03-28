@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create a pageload transaction', async ({ getLocalTestPath, page }) => {
+sentryTest('should create a pageload transaction when initialized delayed', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -13,10 +13,12 @@ sentryTest('should create a pageload transaction', async ({ getLocalTestPath, pa
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
+  const timeoutTimestamp = await page.evaluate<number>('window._testTimeoutTimestamp');
 
   const { start_timestamp: startTimestamp } = eventData;
 
   expect(startTimestamp).toBeCloseTo(timeOrigin);
+  expect(startTimestamp).toBeLessThan(timeoutTimestamp);
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');
   expect(eventData.spans?.length).toBeGreaterThan(0);
