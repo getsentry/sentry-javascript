@@ -13,9 +13,17 @@ import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
 import * as Sentry from '@sentry/nextjs';
 // @ts-ignore This template is only used with the app directory so we know that this dependency exists.
 // eslint-disable-next-line import/no-unresolved
-import { headers } from 'next/headers';
+import { requestAsyncStorage } from 'next/dist/client/components/request-async-storage';
 
-declare function headers(): { get: (header: string) => string | undefined };
+declare const requestAsyncStorage: {
+  getStore: () =>
+    | {
+        headers: {
+          get: Headers['get'];
+        };
+      }
+    | undefined;
+};
 
 type ServerComponentModule = {
   default: unknown;
@@ -32,21 +40,16 @@ if (typeof serverComponent === 'function') {
   // is technically a userfile so it gets the loader magic applied.
   wrappedServerComponent = new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
-      let sentryTraceHeader: string | undefined = undefined;
-      let baggageHeader: string | undefined = undefined;
+      let sentryTraceHeader: string | undefined | null = undefined;
+      let baggageHeader: string | undefined | null = undefined;
 
-      // If we call the headers function inside the build phase, Next.js will automatically mark the server component as
-      // dynamic(SSR) which we do not want in case the users have a static component.
-      if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        // try/catch because calling headers() when a previously statically generated page is being revalidated causes a
-        // runtime error in next.js as switching a page from static to dynamic during runtime is not allowed
-        try {
-          const headersList = headers();
-          sentryTraceHeader = headersList.get('sentry-trace');
-          baggageHeader = headersList.get('baggage');
-        } catch {
-          /** empty */
-        }
+      // TODO: Explain this try catch
+      try {
+        const requestAsyncStore = requestAsyncStorage.getStore();
+        sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace');
+        baggageHeader = requestAsyncStore?.headers.get('baggage');
+      } catch (e) {
+        /** empty */
       }
 
       return Sentry.wrapServerComponentWithSentry(originalFunction, {
