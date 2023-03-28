@@ -13,12 +13,12 @@ interface ThrowOn {
 }
 
 class MockDebugSession implements DebugSession {
-  private _onPause?: (message: InspectorNotification<Debugger.PausedEventDataType>) => void;
+  private _onPause?: (message: InspectorNotification<Debugger.PausedEventDataType>, callback: () => void) => void;
 
   constructor(private readonly _vars: Record<string, Record<string, unknown>>, private readonly _throwOn?: ThrowOn) {}
 
   public configureAndConnect(
-    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
+    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>, callback: () => void) => void,
     _captureAll: boolean,
   ): void {
     if (this._throwOn?.configureAndConnect) {
@@ -28,16 +28,18 @@ class MockDebugSession implements DebugSession {
     this._onPause = onPause;
   }
 
-  public async getLocalVariables(objectId: string): Promise<Record<string, unknown>> {
+  public getLocalVariables(objectId: string, callback: (vars: Record<string, unknown>) => void): void {
     if (this._throwOn?.getLocalVariables) {
       throw new Error('getLocalVariables should not be called');
     }
 
-    return this._vars[objectId];
+    callback(this._vars[objectId]);
   }
 
-  public runPause(message: InspectorNotification<Debugger.PausedEventDataType>) {
-    this._onPause?.(message);
+  public runPause(message: InspectorNotification<Debugger.PausedEventDataType>): Promise<void> {
+    return new Promise(resolve => {
+      this._onPause?.(message, resolve);
+    });
   }
 }
 
@@ -128,7 +130,7 @@ describe('LocalVariables', () => {
 
     expect(eventProcessor).toBeDefined();
 
-    session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
 
@@ -223,7 +225,7 @@ describe('LocalVariables', () => {
       params: { ...exceptionEvent.params, reason: 'non-exception-reason' },
     };
 
-    session.runPause(nonExceptionEvent);
+    await session.runPause(nonExceptionEvent);
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(0);
   });
@@ -278,11 +280,11 @@ describe('LocalVariables', () => {
 
     (localVariables as unknown as LocalVariablesPrivate)._setup(_ => {}, options);
 
-    session.runPause(exceptionEvent);
-    session.runPause(exceptionEvent);
-    session.runPause(exceptionEvent);
-    session.runPause(exceptionEvent);
-    session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
+    await session.runPause(exceptionEvent);
 
     expect((localVariables as unknown as LocalVariablesPrivate)._cachedFrames.size).toBe(1);
   });
