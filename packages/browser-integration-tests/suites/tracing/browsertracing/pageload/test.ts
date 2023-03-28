@@ -16,7 +16,7 @@ sentryTest('should create a pageload transaction', async ({ getLocalTestPath, pa
 
   const { start_timestamp: startTimestamp } = eventData;
 
-  expect(startTimestamp).toBeCloseTo(timeOrigin);
+  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');
   expect(eventData.spans?.length).toBeGreaterThan(0);

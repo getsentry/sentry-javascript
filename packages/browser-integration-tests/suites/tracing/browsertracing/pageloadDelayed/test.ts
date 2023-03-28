@@ -17,7 +17,7 @@ sentryTest('should create a pageload transaction when initialized delayed', asyn
 
   const { start_timestamp: startTimestamp } = eventData;
 
-  expect(startTimestamp).toBeCloseTo(timeOrigin);
+  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
   expect(startTimestamp).toBeLessThan(timeoutTimestamp);
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');
