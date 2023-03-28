@@ -10,6 +10,7 @@ export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
   denyUrls: Array<string | RegExp>;
   ignoreErrors: Array<string | RegExp>;
+  ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
 }
 
@@ -63,6 +64,7 @@ export function _mergeOptions(
       ...(clientOptions.ignoreErrors || []),
       ...DEFAULT_IGNORE_ERRORS,
     ],
+    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
@@ -78,6 +80,13 @@ export function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOp
     __DEBUG_BUILD__ &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+      );
+    return true;
+  }
+  if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
+    __DEBUG_BUILD__ &&
+      logger.warn(
+        `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
       );
     return true;
   }
@@ -109,6 +118,15 @@ function _isIgnoredError(event: Event, ignoreErrors?: Array<string | RegExp>): b
   }
 
   return _getPossibleEventMessages(event).some(message => stringMatchesSomePattern(message, ignoreErrors));
+}
+
+function _isIgnoredTransaction(event: Event, ignoreTransactions?: Array<string | RegExp>): boolean {
+  if (event.type !== 'transaction' || !ignoreTransactions || !ignoreTransactions.length) {
+    return false;
+  }
+
+  const name = event.transaction;
+  return name ? stringMatchesSomePattern(name, ignoreTransactions) : false;
 }
 
 function _isDeniedUrl(event: Event, denyUrls?: Array<string | RegExp>): boolean {
