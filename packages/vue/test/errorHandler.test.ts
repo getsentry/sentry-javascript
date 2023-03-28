@@ -1,8 +1,8 @@
 import { getCurrentHub } from '@sentry/browser';
 
-import { generateComponentTrace } from '../src/components';
 import { attachErrorHandler } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
+import { generateComponentTrace } from '../src/vendor/components';
 
 describe('attachErrorHandler', () => {
   describe('attachProps', () => {
