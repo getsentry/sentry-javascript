@@ -1,35 +1,20 @@
-/*
- * This file is a template for the code which will be substituted when our webpack loader handles non-API files in the
- * `pages/` directory.
- *
- * We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
- * this causes both TS and ESLint to complain, hence the pragma comments below.
- */
-
-// @ts-ignore See above
+// @ts-ignore Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
+// API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 // eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
+import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
+// @ts-ignore We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped.
+// eslint-disable-next-line import/no-unresolved
+import * as serverComponentModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
-// @ts-ignore This template is only used with the app directory so we know that this dependency exists.
-// eslint-disable-next-line import/no-unresolved
-import { requestAsyncStorage } from 'next/dist/client/components/request-async-storage';
 
-declare const requestAsyncStorage: {
-  getStore: () =>
-    | {
-        headers: {
-          get: Headers['get'];
-        };
-      }
-    | undefined;
-};
+import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
-type ServerComponentModule = {
+declare const requestAsyncStorage: RequestAsyncStorage;
+
+declare const serverComponentModule: {
   default: unknown;
 };
-
-const serverComponentModule = wrapee as ServerComponentModule;
 
 const serverComponent = serverComponentModule.default;
 
