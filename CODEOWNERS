@@ -1,0 +1,2 @@
+packages/replay                                   @getsentry/replay-sdk
+packages/browser-integration-tests/suites/replay  @getsentry/replay-sdk
