@@ -66,7 +66,16 @@ export const expectedNavigationPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
+    decodedBodySize: expect.any(Number),
+    encodedBodySize: expect.any(Number),
     duration: expect.any(Number),
+    domInteractive: expect.any(Number),
+    domContentLoadedEventEnd: expect.any(Number),
+    domContentLoadedEventStart: expect.any(Number),
+    loadEventStart: expect.any(Number),
+    loadEventEnd: expect.any(Number),
+    domComplete: expect.any(Number),
+    redirectCount: expect.any(Number),
     size: expect.any(Number),
   },
 };
@@ -85,7 +94,16 @@ export const expectedReloadPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
+    decodedBodySize: expect.any(Number),
+    encodedBodySize: expect.any(Number),
     duration: expect.any(Number),
+    domInteractive: expect.any(Number),
+    domContentLoadedEventEnd: expect.any(Number),
+    domContentLoadedEventStart: expect.any(Number),
+    loadEventStart: expect.any(Number),
+    loadEventEnd: expect.any(Number),
+    domComplete: expect.any(Number),
+    redirectCount: expect.any(Number),
     size: expect.any(Number),
   },
 };

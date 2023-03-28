@@ -12,7 +12,7 @@ import type {
 } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import { handleFetchSpanListener } from './handleFetch';
 import { handleXhrSpanListener } from './handleXhr';
@@ -148,7 +148,7 @@ function _makeNetworkReplayBreadcrumb(
   type: string,
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData | XhrBreadcrumbData },
   hint: FetchBreadcrumbHint | XhrBreadcrumbHint,
-): ReplayPerformanceEntry | null {
+): ReplayPerformanceEntry<NetworkRequestData> | null {
   const { startTimestamp, endTimestamp } = hint;
 
   if (!endTimestamp) {
@@ -167,7 +167,7 @@ function _makeNetworkReplayBreadcrumb(
     return null;
   }
 
-  const result: ReplayPerformanceEntry & { data: object } = {
+  const result: ReplayPerformanceEntry<NetworkRequestData> = {
     type,
     start: startTimestamp / 1000,
     end: endTimestamp / 1000,

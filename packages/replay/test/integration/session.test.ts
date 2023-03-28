@@ -149,10 +149,23 @@ describe('Integration | session', () => {
     replay.addUpdate(() => {
       createPerformanceSpans(replay, [
         {
-          type: 'navigation.navigate',
+          type: 'navigation.navigate' as const,
           name: 'foo',
           start: BASE_TIMESTAMP + ELAPSED,
           end: BASE_TIMESTAMP + ELAPSED + 100,
+          data: {
+            decodedBodySize: 1,
+            encodedBodySize: 2,
+            duration: 0,
+            domInteractive: 0,
+            domContentLoadedEventEnd: 0,
+            domContentLoadedEventStart: 0,
+            loadEventStart: 0,
+            loadEventEnd: 0,
+            domComplete: 0,
+            redirectCount: 0,
+            size: 0,
+          },
         },
       ]);
       return true;

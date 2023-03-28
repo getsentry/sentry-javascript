@@ -1,10 +1,10 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 
 /** only exported for tests */
-export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry {
+export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry<NetworkRequestData> {
   const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
 
   if (!endTimestamp) {
