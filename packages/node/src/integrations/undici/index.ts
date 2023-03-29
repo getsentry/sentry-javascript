@@ -27,11 +27,12 @@ export interface UndiciOptions {
    * Defaults to true
    */
   breadcrumbs: boolean;
+  /**
+   * Function determining whether or not to create spans to track outgoing requests to the given URL.
+   * By default, spans will be created for all outgoing requests.
+   */
+  shouldCreateSpanForRequest: (url: string) => boolean;
 }
-
-const DEFAULT_UNDICI_OPTIONS: UndiciOptions = {
-  breadcrumbs: true,
-};
 
 // Please note that you cannot use `console.log` to debug the callbacks registered to the `diagnostics_channel` API.
 // To debug, you can use `writeFileSync` to write to a file:
@@ -60,8 +61,8 @@ export class Undici implements Integration {
 
   public constructor(_options: Partial<UndiciOptions> = {}) {
     this._options = {
-      ...DEFAULT_UNDICI_OPTIONS,
-      ..._options,
+      breadcrumbs: _options.breadcrumbs === undefined ? true : _options.breadcrumbs,
+      shouldCreateSpanForRequest: _options.shouldCreateSpanForRequest || (() => true),
     };
   }
 
@@ -88,6 +89,11 @@ export class Undici implements Integration {
 
     // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md
     ds.subscribe(ChannelName.RequestCreate, message => {
+      const hub = getCurrentHub();
+      if (!hub.getIntegration(Undici)) {
+        return;
+      }
+
       const { request } = message as RequestCreateMessage;
 
       const url = new URL(request.path, request.origin);
@@ -97,7 +103,6 @@ export class Undici implements Integration {
         return;
       }
 
-      const hub = getCurrentHub();
       const client = hub.getClient<NodeClient>();
       const scope = hub.getScope();
 
@@ -105,12 +110,7 @@ export class Undici implements Integration {
 
       if (activeSpan && client) {
         const clientOptions = client.getOptions();
-
-        // eslint-disable-next-line deprecation/deprecation
-        const shouldCreateSpan = clientOptions.shouldCreateSpanForRequest
-          ? // eslint-disable-next-line deprecation/deprecation
-            clientOptions.shouldCreateSpanForRequest(stringUrl)
-          : true;
+        const shouldCreateSpan = this._options.shouldCreateSpanForRequest(stringUrl);
 
         if (shouldCreateSpan) {
           const data: Record<string, unknown> = {};
@@ -129,10 +129,8 @@ export class Undici implements Integration {
           });
           request.__sentry__ = span;
 
-          // eslint-disable-next-line deprecation/deprecation
           const shouldPropagate = clientOptions.tracePropagationTargets
-            ? // eslint-disable-next-line deprecation/deprecation
-              stringMatchesSomePattern(stringUrl, clientOptions.tracePropagationTargets)
+            ? stringMatchesSomePattern(stringUrl, clientOptions.tracePropagationTargets)
             : true;
 
           if (shouldPropagate) {
@@ -150,6 +148,11 @@ export class Undici implements Integration {
     });
 
     ds.subscribe(ChannelName.RequestEnd, message => {
+      const hub = getCurrentHub();
+      if (!hub.getIntegration(Undici)) {
+        return;
+      }
+
       const { request, response } = message as RequestEndMessage;
 
       const url = new URL(request.path, request.origin);
@@ -166,7 +169,7 @@ export class Undici implements Integration {
       }
 
       if (this._options.breadcrumbs) {
-        getCurrentHub().addBreadcrumb(
+        hub.addBreadcrumb(
           {
             category: 'http',
             data: {
@@ -186,6 +189,11 @@ export class Undici implements Integration {
     });
 
     ds.subscribe(ChannelName.RequestError, message => {
+      const hub = getCurrentHub();
+      if (!hub.getIntegration(Undici)) {
+        return;
+      }
+
       const { request } = message as RequestErrorMessage;
 
       const url = new URL(request.path, request.origin);
@@ -202,7 +210,7 @@ export class Undici implements Integration {
       }
 
       if (this._options.breadcrumbs) {
-        getCurrentHub().addBreadcrumb(
+        hub.addBreadcrumb(
           {
             category: 'http',
             data: {

@@ -4,6 +4,7 @@ import * as http from 'http';
 import type { fetch as FetchType } from 'undici';
 
 import { NodeClient } from '../../src/client';
+import type { UndiciOptions } from '../../src/integrations/undici';
 import { Undici } from '../../src/integrations/undici';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 import { conditionalTest } from '../utils';
@@ -150,8 +151,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     hub.getScope().setSpan(transaction);
 
-    const client = new NodeClient({ ...DEFAULT_OPTIONS, shouldCreateSpanForRequest: url => url.includes('yes') });
-    hub.bindClient(client);
+    const undoPatch = patchUndici(hub, { shouldCreateSpanForRequest: url => url.includes('yes') });
 
     await fetch('http://localhost:18099/no', { method: 'POST' });
 
@@ -160,6 +160,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     await fetch('http://localhost:18099/yes', { method: 'POST' });
 
     expect(transaction.spanRecorder?.spans.length).toBe(2);
+
+    undoPatch();
   });
 
   it('attaches the sentry trace and baggage headers', async () => {
@@ -181,8 +183,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
     hub.getScope().setSpan(transaction);
 
-    const client = new NodeClient({ ...DEFAULT_OPTIONS, shouldCreateSpanForRequest: url => url.includes('yes') });
-    hub.bindClient(client);
+    const undoPatch = patchUndici(hub, { shouldCreateSpanForRequest: url => url.includes('yes') });
 
     await fetch('http://localhost:18099/no', { method: 'POST' });
 
@@ -193,6 +194,8 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
     expect(requestHeaders['sentry-trace']).toBeDefined();
     expect(requestHeaders['baggage']).toBeDefined();
+
+    undoPatch();
   });
 
   it('uses tracePropagationTargets', async () => {
@@ -270,6 +273,16 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       // ignore
     }
   });
+
+  it('does not add a breadcrumb if disabled', async () => {
+    expect.assertions(0);
+
+    const undoPatch = patchUndici(hub, { breadcrumbs: false });
+
+    await fetch('http://localhost:18099', { method: 'POST' });
+
+    undoPatch();
+  });
 });
 
 interface TestServerOptions {
@@ -317,4 +330,29 @@ function setupTestServer() {
   return new Promise(resolve => {
     testServer?.on('listening', resolve);
   });
+}
+
+function patchUndici(hub: Hub, userOptions: Partial<UndiciOptions>): () => void {
+  let options: any = {};
+  const client = hub.getClient();
+  if (client) {
+    const undici = client.getIntegration(Undici);
+    if (undici) {
+      // @ts-ignore need to access private property
+      options = { ...undici._options };
+      // @ts-ignore need to access private property
+      undici._options = Object.assign(undici._options, userOptions);
+    }
+  }
+
+  return () => {
+    const client = hub.getClient();
+    if (client) {
+      const undici = client.getIntegration(Undici);
+      if (undici) {
+        // @ts-ignore need to access private property
+        undici._options = { ...options };
+      }
+    }
+  };
 }
