@@ -17,26 +17,36 @@ type Next<T> = (result: T) => void;
 type Add<T> = (fn: Next<T>) => void;
 type CallbackWrapper<T> = { add: Add<T>; next: Next<T> };
 
-function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
+/** Creates a container for callbacks to be called sequentially */
+export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
   // A collection of callbacks to be executed last to first
-  const callbacks: Next<T>[] = [complete];
+  let callbacks: Next<T>[] = [];
+
+  let completedCalled = false;
+  function checkedComplete(result: T): void {
+    callbacks = [];
+    if (completedCalled) {
+      return;
+    }
+    completedCalled = true;
+    complete(result);
+  }
+
+  // complete should be called last
+  callbacks.push(checkedComplete);
 
   function add(fn: Next<T>): void {
     callbacks.push(fn);
   }
 
   function next(result: T): void {
-    const popped = callbacks.pop();
-
-    if (popped === undefined) {
-      throw new Error('next was called without any callbacks remaining');
-    }
+    const popped = callbacks.pop() || checkedComplete;
 
     try {
       popped(result);
     } catch (_) {
       // If there is an error, we still want to call the complete callback
-      complete(result);
+      checkedComplete(result);
     }
   }
 
