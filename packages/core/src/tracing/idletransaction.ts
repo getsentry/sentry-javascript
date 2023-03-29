@@ -340,6 +340,15 @@ export class IdleTransaction extends Transaction {
     }, this._heartbeatInterval);
   }
 
+  /**
+   * Temporary method used to externally set the transaction's `finishReason`
+   *
+   * ** WARNING**
+   * This is for the purpose of experimentation only and will be removed in the near future, do not use!
+   *
+   * @internal
+   *
+   */
   public setFinishReason(reason: string): void {
     this._finishReason = reason;
   }
