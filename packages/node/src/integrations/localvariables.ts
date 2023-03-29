@@ -26,7 +26,11 @@ function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
   }
 
   function next(result: T): void {
-    const popped = callbacks.pop() || complete;
+    const popped = callbacks.pop();
+
+    if (popped === undefined) {
+      throw new Error('next was called without any callbacks remaining');
+    }
 
     try {
       popped(result);
@@ -111,7 +115,7 @@ class AsyncSession implements DebugSession {
   /**
    * Gets all the PropertyDescriptors of an object
    */
-  private _getProperties(objectId: string, complete: (result: Runtime.PropertyDescriptor[]) => void): void {
+  private _getProperties(objectId: string, next: (result: Runtime.PropertyDescriptor[]) => void): void {
     this._session.post(
       'Runtime.getProperties',
       {
@@ -120,9 +124,9 @@ class AsyncSession implements DebugSession {
       },
       (err, params) => {
         if (err) {
-          complete([]);
+          next([]);
         } else {
-          complete(params.result);
+          next(params.result);
         }
       },
     );
@@ -131,21 +135,21 @@ class AsyncSession implements DebugSession {
   /**
    * Unrolls an array property
    */
-  private _unrollArray(objectId: string, name: string, vars: Variables, complete: (vars: Variables) => void): void {
+  private _unrollArray(objectId: string, name: string, vars: Variables, next: (vars: Variables) => void): void {
     this._getProperties(objectId, props => {
       vars[name] = props
         .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
         .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
         .map(v => v?.value?.value);
 
-      complete(vars);
+      next(vars);
     });
   }
 
   /**
    * Unrolls an object property
    */
-  private _unrollObject(objectId: string, name: string, vars: Variables, complete: (obj: Variables) => void): void {
+  private _unrollObject(objectId: string, name: string, vars: Variables, next: (obj: Variables) => void): void {
     this._getProperties(objectId, props => {
       vars[name] = props
         .map<[string, unknown]>(v => [v.name, v?.value?.value])
@@ -154,21 +158,21 @@ class AsyncSession implements DebugSession {
           return obj;
         }, {} as Variables);
 
-      complete(vars);
+      next(vars);
     });
   }
 
   /**
    * Unrolls other properties
    */
-  private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, complete: (vars: Variables) => void): void {
+  private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, next: (vars: Variables) => void): void {
     if (prop?.value?.value) {
       vars[prop.name] = prop.value.value;
     } else if (prop?.value?.description && prop?.value?.type !== 'function') {
       vars[prop.name] = `<${prop.value.description}>`;
     }
 
-    complete(vars);
+    next(vars);
   }
 }
 
