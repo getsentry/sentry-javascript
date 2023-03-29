@@ -7,8 +7,21 @@ module.exports = {
   extends: ['../../.eslintrc.js'],
   overrides: [
     {
-      files: ['src/**/*.ts'],
-      rules: {},
+      files: ['worker/**/*.ts'],
+      parserOptions: {
+        // TODO: figure out if we need a worker-specific tsconfig
+        project: ['tsconfig.worker.json'],
+      },
+      rules: {
+        // We cannot use backticks, as that conflicts with the stringified worker
+        'prefer-template': 'off',
+      },
+    },
+    {
+      files: ['src/worker/**/*.js'],
+      parserOptions: {
+        sourceType: 'module',
+      },
     },
     {
       files: ['jest.setup.ts', 'jest.config.ts'],
