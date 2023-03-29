@@ -31,7 +31,8 @@
     "@types/lru-cache": "^5.1.0",
     "@types/node": "~10.17.0",
     "express": "^4.17.1",
-    "nock": "^13.0.5"
+    "nock": "^13.0.5",
+    "undici": "^5.21.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

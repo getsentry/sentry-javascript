@@ -20,7 +20,7 @@ import type { Span } from '@sentry/core';
 
 // Vendored code starts here:
 
-type ChannelListener = (message: unknown, name: string | symbol) => void;
+export type ChannelListener = (message: unknown, name: string | symbol) => void;
 
 /**
  * The `diagnostics_channel` module provides an API to create named channels
