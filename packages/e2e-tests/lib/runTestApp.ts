@@ -1,13 +1,14 @@
 /* eslint-disable no-console */
 
-import { uuid4 } from '@sentry/utils';
 import * as fs from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
 
 import { buildApp } from './buildApp';
-import { TMP_DIR } from './constants';
 import { testApp } from './testApp';
 import type { Env, RecipeInstance, RecipeTestResult } from './types';
+
+let tmpDirCount = 0;
 
 // This should never throw, we always return a result here
 export async function buildAndTestApp(
@@ -17,7 +18,7 @@ export async function buildAndTestApp(
   const { recipe, port } = recipeInstance;
   const recipeDirname = path.dirname(recipe.path);
 
-  const targetDir = path.join(TMP_DIR, `${recipe.testApplicationName}-${uuid4()}`);
+  const targetDir = path.join(os.tmpdir(), `${recipe.testApplicationName}-${tmpDirCount++}`);
 
   await fs.copy(recipeDirname, targetDir);
 
