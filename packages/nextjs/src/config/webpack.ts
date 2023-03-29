@@ -28,6 +28,13 @@ const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
   edge: './edge',
 } as const;
 
+// Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
+// warnings 3 times, we keep track of them here.
+let showedMissingAuthTokenErrorMsg = false;
+let showedMissingOrgSlugErrorMsg = false;
+let showedMissingProjectSlugErrorMsg = false;
+let showedHiddenSourceMapsWarningMsg = false;
+
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
@@ -649,12 +656,15 @@ export function getWebpackPluginOptions(
               )} environment variable during the build.`;
           }
 
-          // eslint-disable-next-line no-console
-          console.error(
-            `${errorMessagePrefix} ${chalk.bold(
-              'No Sentry auth token configured.',
-            )} Source maps will not be uploaded.\n${msg}\n`,
-          );
+          if (!showedMissingAuthTokenErrorMsg) {
+            // eslint-disable-next-line no-console
+            console.error(
+              `${errorMessagePrefix} ${chalk.bold(
+                'No Sentry auth token configured.',
+              )} Source maps will not be uploaded.\n${msg}\n`,
+            );
+            showedMissingAuthTokenErrorMsg = true;
+          }
 
           return;
         }
@@ -672,12 +682,15 @@ export function getWebpackPluginOptions(
             )} environment variable to the to your organization slug during the build.`;
           }
 
-          // eslint-disable-next-line no-console
-          console.error(
-            `${errorMessagePrefix} ${chalk.bold(
-              'No Sentry organization slug configured.',
-            )} Source maps will not be uploaded.\n${msg}\n`,
-          );
+          if (!showedMissingOrgSlugErrorMsg) {
+            // eslint-disable-next-line no-console
+            console.error(
+              `${errorMessagePrefix} ${chalk.bold(
+                'No Sentry organization slug configured.',
+              )} Source maps will not be uploaded.\n${msg}\n`,
+            );
+            showedMissingOrgSlugErrorMsg = true;
+          }
 
           return;
         }
@@ -695,12 +708,15 @@ export function getWebpackPluginOptions(
             )} environment variable to the name of your Sentry project during the build.`;
           }
 
-          // eslint-disable-next-line no-console
-          console.error(
-            `${errorMessagePrefix} ${chalk.bold(
-              'No Sentry project slug configured.',
-            )} Source maps will not be uploaded.\n${msg}\n`,
-          );
+          if (!showedMissingProjectSlugErrorMsg) {
+            // eslint-disable-next-line no-console
+            console.error(
+              `${errorMessagePrefix} ${chalk.bold(
+                'No Sentry project slug configured.',
+              )} Source maps will not be uploaded.\n${msg}\n`,
+            );
+            showedMissingProjectSlugErrorMsg = true;
+          }
 
           return;
         }
@@ -775,7 +791,7 @@ function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions
   const _sentry_ = codeFormat('sentry');
   const _nextConfigJS_ = codeFormat('next.config.js');
 
-  if (isServer && userSentryOptions.hideSourceMaps === undefined) {
+  if (isServer && userSentryOptions.hideSourceMaps === undefined && !showedHiddenSourceMapsWarningMsg) {
     // eslint-disable-next-line no-console
     console.warn(
       `\n${_warningPrefix_} In order to be able to deminify errors, ${_sentryNextjs_} creates sourcemaps and uploads ` +
@@ -787,6 +803,7 @@ function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions
         'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
         'information.\n',
     );
+    showedHiddenSourceMapsWarningMsg = true;
   }
 
   // TODO (v8): Remove the check above in favor of the one below
