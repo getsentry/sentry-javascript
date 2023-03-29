@@ -78,7 +78,7 @@ class AsyncSession implements DebugSession {
 
     this._session.on('Debugger.paused', event => {
       onPause(event, () => {
-        // After the pause work is complete, resume execution or the exception context memory is leaks
+        // After the pause work is complete, resume execution or the exception context memory is leaked
         this._session.post('Debugger.resume');
       });
     });
@@ -159,7 +159,7 @@ class AsyncSession implements DebugSession {
   }
 
   /**
-   * Unrolls an array property
+   * Unrolls other properties
    */
   private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, complete: (vars: Variables) => void): void {
     if (prop?.value?.value) {
@@ -299,7 +299,7 @@ export class LocalVariables implements Integration {
       return;
     }
 
-    const { add, next } = createCallbackList<FrameVariables[]>((frames): void => {
+    const { add, next } = createCallbackList<FrameVariables[]>(frames => {
       this._cachedFrames.set(exceptionHash, frames);
       complete();
     });
@@ -319,17 +319,15 @@ export class LocalVariables implements Integration {
           frames[i] = { function: fn };
           next(frames);
         });
-
-        continue;
+      } else {
+        const id = localScope.object.objectId;
+        add(frames =>
+          this._session?.getLocalVariables(id, vars => {
+            frames[i] = { function: fn, vars };
+            next(frames);
+          }),
+        );
       }
-
-      const id = localScope.object.objectId;
-      add(frames =>
-        this._session?.getLocalVariables(id, vars => {
-          frames[i] = { function: fn, vars };
-          next(frames);
-        }),
-      );
     }
 
     next([]);
