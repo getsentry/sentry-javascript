@@ -1,7 +1,8 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration, SpanContext } from '@sentry/types';
+import type { EventProcessor, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
@@ -98,8 +99,10 @@ function isCursor(maybeCursor: MongoCursor): maybeCursor is MongoCursor {
   return maybeCursor && typeof maybeCursor === 'object' && maybeCursor.once && typeof maybeCursor.once === 'function';
 }
 
+type MongoModule = { Collection: MongoCollection };
+
 /** Tracing integration for mongo package */
-export class Mongo implements Integration {
+export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
@@ -114,6 +117,8 @@ export class Mongo implements Integration {
   private _describeOperations?: boolean | Operation[];
   private _useMongoose: boolean;
 
+  private _module?: MongoModule;
+
   /**
    * @inheritDoc
    */
@@ -121,6 +126,12 @@ export class Mongo implements Integration {
     this._operations = Array.isArray(options.operations) ? options.operations : (OPERATIONS as unknown as Operation[]);
     this._describeOperations = 'describeOperations' in options ? options.describeOperations : true;
     this._useMongoose = !!options.useMongoose;
+  }
+
+  /** @inheritdoc */
+  public loadDependency(): MongoModule | undefined {
+    const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
+    return (this._module = this._module || loadModule(moduleName));
   }
 
   /**
@@ -132,10 +143,10 @@ export class Mongo implements Integration {
       return;
     }
 
-    const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
-    const pkg = loadModule<{ Collection: MongoCollection }>(moduleName);
+    const pkg = this.loadDependency();
 
     if (!pkg) {
+      const moduleName = this._useMongoose ? 'mongoose' : 'mongodb';
       __DEBUG_BUILD__ && logger.error(`Mongo Integration was unable to require \`${moduleName}\` package.`);
       return;
     }

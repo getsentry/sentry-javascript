@@ -1,8 +1,0 @@
-// TODO Once https://github.com/microsoft/TypeScript/issues/33094 is done (if it ever is), this file can disappear, as
-// it's purely a placeholder to satisfy VSCode.
-
-{
-  "extends": "../tsconfig.test.json",
-
-  "include": ["./**/*"]
-}

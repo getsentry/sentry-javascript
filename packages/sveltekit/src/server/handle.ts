@@ -1,14 +1,15 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { trace } from '@sentry/core';
+import { getActiveTransaction, getCurrentHub, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import {
   addExceptionMechanism,
   baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
   extractTraceparentData,
   objectify,
 } from '@sentry/utils';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import * as domain from 'domain';
 
 function sendErrorToSentry(e: unknown): unknown {
@@ -34,6 +35,20 @@ function sendErrorToSentry(e: unknown): unknown {
   return objectifiedErr;
 }
 
+export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk']> = ({ html }) => {
+  const transaction = getActiveTransaction();
+  if (transaction) {
+    const traceparentData = transaction.toTraceparent();
+    const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(transaction.getDynamicSamplingContext());
+    const content = `<head>
+      <meta name="sentry-trace" content="${traceparentData}"/>
+      <meta name="baggage" content="${dynamicSamplingContext}"/>`;
+    return html.replace('<head>', content);
+  }
+
+  return html;
+};
+
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and
  * performance monitoring.
@@ -49,32 +64,42 @@ function sendErrorToSentry(e: unknown): unknown {
  * // export const handle = sequence(sentryHandle, yourCustomHandle);
  * ```
  */
-export const sentryHandle: Handle = ({ event, resolve }) => {
+export const sentryHandle: Handle = input => {
+  // if there is an active transaction, we know that this handle call is nested and hence
+  // we don't create a new domain for it. If we created one, nested server calls would
+  // create new transactions instead of adding a child span to the currently active span.
+  if (getCurrentHub().getScope().getSpan()) {
+    return instrumentHandle(input);
+  }
   return domain.create().bind(() => {
-    const sentryTraceHeader = event.request.headers.get('sentry-trace');
-    const baggageHeader = event.request.headers.get('baggage');
-    const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-    const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-    return trace(
-      {
-        op: 'http.server',
-        name: `${event.request.method} ${event.route.id}`,
-        status: 'ok',
-        ...traceparentData,
-        metadata: {
-          source: 'route',
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-        },
-      },
-      async (span?: Span) => {
-        const res = await resolve(event);
-        if (span) {
-          span.setHttpStatus(res.status);
-        }
-        return res;
-      },
-      sendErrorToSentry,
-    );
+    return instrumentHandle(input);
   })();
 };
+
+function instrumentHandle({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
+  const sentryTraceHeader = event.request.headers.get('sentry-trace');
+  const baggageHeader = event.request.headers.get('baggage');
+  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
+
+  return trace(
+    {
+      op: 'http.server',
+      name: `${event.request.method} ${event.route.id}`,
+      status: 'ok',
+      ...traceparentData,
+      metadata: {
+        source: 'route',
+        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      },
+    },
+    async (span?: Span) => {
+      const res = await resolve(event, { transformPageChunk });
+      if (span) {
+        span.setHttpStatus(res.status);
+      }
+      return res;
+    },
+    sendErrorToSentry,
+  );
+}

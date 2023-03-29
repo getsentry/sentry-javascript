@@ -8,8 +8,7 @@ export {
   SpanStatus,
   spanStatusfromHttpCode,
   startIdleTransaction,
-  stripUrlQueryAndFragment,
-  TRACEPARENT_REGEXP,
   Transaction,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
+export { stripUrlQueryAndFragment, TRACEPARENT_REGEXP } from '@sentry/utils';
