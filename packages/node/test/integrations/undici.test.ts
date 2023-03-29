@@ -136,23 +136,6 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     expect(transaction.spanRecorder?.spans.length).toBe(1);
   });
 
-  it('does not create a span for sentry requests', async () => {
-    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
-    hub.getScope().setSpan(transaction);
-
-    expect(transaction.spanRecorder?.spans.length).toBe(1);
-
-    try {
-      await fetch(`${SENTRY_DSN}/sub/route`, {
-        method: 'POST',
-      });
-    } catch (e) {
-      // ignore
-    }
-
-    expect(transaction.spanRecorder?.spans.length).toBe(1);
-  });
-
   it('does not create a span if there is no active spans', async () => {
     try {
       await fetch(`${SENTRY_DSN}/sub/route`, { method: 'POST' });
@@ -192,6 +175,24 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     expect(requestHeaders['baggage']).toEqual(
       `sentry-environment=production,sentry-transaction=test-transaction,sentry-public_key=0,sentry-trace_id=${transaction.traceId},sentry-sample_rate=1`,
     );
+  });
+
+  it('does not attach headers if `shouldCreateSpanForRequest` does not create a span', async () => {
+    const transaction = hub.startTransaction({ name: 'test-transaction' }) as Transaction;
+    hub.getScope().setSpan(transaction);
+
+    const client = new NodeClient({ ...DEFAULT_OPTIONS, shouldCreateSpanForRequest: url => url.includes('yes') });
+    hub.bindClient(client);
+
+    await fetch('http://localhost:18099/no', { method: 'POST' });
+
+    expect(requestHeaders['sentry-trace']).toBeUndefined();
+    expect(requestHeaders['baggage']).toBeUndefined();
+
+    await fetch('http://localhost:18099/yes', { method: 'POST' });
+
+    expect(requestHeaders['sentry-trace']).toBeDefined();
+    expect(requestHeaders['baggage']).toBeDefined();
   });
 
   it('uses tracePropagationTargets', async () => {
