@@ -90,7 +90,7 @@ export class IdleTransaction extends Transaction {
    */
   private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
-  _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
+  private _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
 
   public constructor(
     transactionContext: TransactionContext,
@@ -338,6 +338,10 @@ export class IdleTransaction extends Transaction {
     setTimeout(() => {
       this._beat();
     }, this._heartbeatInterval);
+  }
+
+  public setFinishReason(reason: string): void {
+    this._finishReason = reason;
   }
 }
 
