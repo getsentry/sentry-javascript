@@ -10,8 +10,6 @@ export interface RequestAsyncStorage {
 
 export const requestAsyncStorage: RequestAsyncStorage = {
   getStore: () => {
-    // eslint-disable-next-line no-console
-    console.warn('[sentry] Warning: Could not access `RequestAsyncStorage` module. Certain features may not work.');
     return undefined;
   },
 };

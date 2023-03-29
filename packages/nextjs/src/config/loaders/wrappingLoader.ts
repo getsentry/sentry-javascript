@@ -1,5 +1,6 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { stringMatchesSomePattern } from '@sentry/utils';
+import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { rollup } from 'rollup';
@@ -13,7 +14,7 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
 // Non-public API. Can be found here: https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
-const NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH = 'next/dist/client/components/request-async-storage';
+const NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH = 'next/dist/client/components/request-async-storagee';
 
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
@@ -26,6 +27,7 @@ const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplateP
 
 const requestAsyncStorageShimPath = path.resolve(__dirname, '..', 'templates', 'requestAsyncStorageShim.js');
 const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
+let showedMissingAsyncStorageModuleWarning = false;
 
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
@@ -147,6 +149,15 @@ export default function wrappingLoader(
         NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH,
       );
     } else {
+      if (!showedMissingAsyncStorageModuleWarning) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
+            'RequestAsyncStorage',
+          )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
+        );
+        showedMissingAsyncStorageModuleWarning = true;
+      }
       templateCode = templateCode.replace(/__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g, requestAsyncStorageShimPath);
     }
 
