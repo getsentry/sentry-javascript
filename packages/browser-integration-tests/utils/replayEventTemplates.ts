@@ -156,8 +156,8 @@ export const expectedFetchPerformanceSpan = {
   data: {
     method: 'POST',
     statusCode: 200,
-    responseBodySize: 11,
-    requestBodySize: 3,
+    request: { size: 3 },
+    response: { size: 11 },
   },
 };
 
@@ -169,7 +169,7 @@ export const expectedXHRPerformanceSpan = {
   data: {
     method: 'GET',
     statusCode: 200,
-    responseBodySize: 11,
+    response: { size: 11 },
   },
 };
 

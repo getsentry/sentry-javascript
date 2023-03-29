@@ -9,22 +9,18 @@ import {
 } from '../../../../../utils/replayHelpers';
 
 sentryTest(
-  'parses response_body_size from Content-Length header if available',
-  async ({ getLocalTestPath, page, browserName }) => {
-    // These are a bit flaky on non-chromium browsers
-    if (shouldSkipReplayTest() || browserName !== 'chromium') {
+  'captures non-text fetch requestBody & responseBody when experiment is configured',
+  async ({ getLocalTestPath, page }) => {
+    if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
 
     await page.route('**/foo', route => {
       return route.fulfill({
         status: 200,
-        body: JSON.stringify({
-          userNames: ['John', 'Jane'],
-        }),
+        body: Buffer.from('<html>Hello world</html>'),
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': '789',
         },
       });
     });
@@ -44,20 +40,21 @@ sentryTest(
     await page.goto(url);
 
     await page.evaluate(() => {
+      const body = new URLSearchParams();
+      body.append('name', 'Anne');
+      body.append('age', '32');
+
       /* eslint-disable */
-      const xhr = new XMLHttpRequest();
-
-      xhr.open('GET', 'http://localhost:7654/foo');
-      xhr.setRequestHeader('Accept', 'application/json');
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Cache', 'no-cache');
-      xhr.send();
-
-      xhr.addEventListener('readystatechange', function () {
-        if (xhr.readyState === 4) {
-          // @ts-ignore Sentry is a global
-          setTimeout(() => Sentry.captureException('test error', 0));
-        }
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Cache: 'no-cache',
+        },
+        body: body,
+      }).then(() => {
+        // @ts-ignore Sentry is a global
+        Sentry.captureException('test error');
       });
       /* eslint-enable */
     });
@@ -70,11 +67,12 @@ sentryTest(
     expect(eventData?.breadcrumbs?.length).toBe(1);
     expect(eventData!.breadcrumbs![0]).toEqual({
       timestamp: expect.any(Number),
-      category: 'xhr',
+      category: 'fetch',
       type: 'http',
       data: {
-        method: 'GET',
-        response_body_size: 789,
+        method: 'POST',
+        request_body_size: 16,
+        response_body_size: 24,
         status_code: 200,
         url: 'http://localhost:7654/foo',
       },
@@ -82,16 +80,23 @@ sentryTest(
 
     const replayReq1 = await replayRequestPromise1;
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-    expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+    expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
       {
         data: {
-          method: 'GET',
+          method: 'POST',
           statusCode: 200,
-          response: { size: 789 },
+          request: {
+            size: 16,
+            body: 'name=Anne&age=32',
+          },
+          response: {
+            size: 24,
+            body: '<html>Hello world</html>',
+          },
         },
         description: 'http://localhost:7654/foo',
         endTimestamp: expect.any(Number),
-        op: 'resource.xhr',
+        op: 'resource.fetch',
         startTimestamp: expect.any(Number),
       },
     ]);

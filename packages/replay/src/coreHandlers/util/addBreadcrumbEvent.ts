@@ -1,8 +1,8 @@
 import { EventType } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
 
-import type { ReplayContainer } from '../types';
-import { addEvent } from '../util/addEvent';
+import type { ReplayContainer } from '../../types';
+import { addEvent } from '../../util/addEvent';
 
 /**
  * Add a breadcrumb event to replay.

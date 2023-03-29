@@ -81,9 +81,13 @@ sentryTest('calculates body sizes for non-string bodies', async ({ getLocalTestP
     {
       data: {
         method: 'POST',
-        requestBodySize: 26,
-        responseBodySize: 24,
         statusCode: 200,
+        request: {
+          size: 26,
+        },
+        response: {
+          size: 24,
+        },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),
