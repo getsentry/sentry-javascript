@@ -46,7 +46,7 @@ export default [
         },
         external: [
           '@sentry/nextjs',
-          'next/dist/client/components/request-async-storagee',
+          'next/dist/client/components/request-async-storage',
           '__SENTRY_WRAPPING_TARGET_FILE__',
           '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__',
         ],
