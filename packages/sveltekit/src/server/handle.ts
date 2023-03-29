@@ -1,5 +1,5 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import type { Span } from '@sentry/core';
+import { getCurrentHub, Span } from '@sentry/core';
 import { getActiveTransaction, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import {
@@ -65,16 +65,18 @@ export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk'
  * ```
  */
 export const sentryHandle: Handle = input => {
-  // @ts-ignore domain.active exists if there is an active domain, TS just doesn't know
-  if (domain.active) {
-    return handleInDomain(input);
+  // if there is an active transaction, we know that this handle call is nested and hence
+  // we don't create a new domain for it. If we created one, nested server calls would
+  // create new transactions instead of adding a child span to the currently active span.
+  if (getCurrentHub().getScope().getSpan()) {
+    return instrumentHandle(input);
   }
   return domain.create().bind(() => {
-    return handleInDomain(input);
+    return instrumentHandle(input);
   })();
 };
 
-function handleInDomain({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
+function instrumentHandle({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
   const sentryTraceHeader = event.request.headers.get('sentry-trace');
   const baggageHeader = event.request.headers.get('baggage');
   const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
