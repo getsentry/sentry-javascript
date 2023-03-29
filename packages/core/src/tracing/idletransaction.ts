@@ -90,7 +90,7 @@ export class IdleTransaction extends Transaction {
    */
   private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
-  _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
+  private _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
 
   public constructor(
     transactionContext: TransactionContext,
@@ -134,8 +134,6 @@ export class IdleTransaction extends Transaction {
   public finish(endTimestamp: number = timestampWithMs()): string | undefined {
     this._finished = true;
     this.activities = {};
-
-    console.log(`finishing transaction [${this.op}] - Reason: ${this._finishReason}`)
 
     if (this.op === 'ui.action.click') {
       this.setTag(FINISH_REASON_TAG, this._finishReason);
@@ -183,12 +181,6 @@ export class IdleTransaction extends Transaction {
     if (this._onScope) {
       clearActiveTransaction(this._idleHub);
     }
-
-    if (this.spanRecorder) {
-      const spanMap = this.spanRecorder.spans.map(s => `${s.op} - ${s.description}`)
-      console.dir(spanMap)
-    }
-
 
     return super.finish(endTimestamp);
   }
