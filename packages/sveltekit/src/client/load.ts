@@ -28,12 +28,13 @@ function sendErrorToSentry(e: unknown): unknown {
 
 /**
  * Wrap load function with Sentry
+ * TODO: usage
  *
  * @param origLoad SvelteKit user defined load function
  */
-export function wrapLoadWithSentry(origLoad: Load): Load {
+export function wrapLoadWithSentry<T extends Load>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<Load>) => {
+    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
       const [event] = args;
 
       const routeId = event.route.id;
