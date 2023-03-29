@@ -331,11 +331,15 @@ export class BrowserTracing implements Integration {
 
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-        __DEBUG_BUILD__ && logger.warn(`[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`);
+        __DEBUG_BUILD__ &&
+          logger.warn(
+            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
+          );
         return undefined;
       }
 
       if (inflightInteractionTransaction) {
+        inflightInteractionTransaction._finishReason = 'interactionInterrupted';
         inflightInteractionTransaction.finish();
         inflightInteractionTransaction = undefined;
       }
