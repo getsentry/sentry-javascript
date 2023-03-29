@@ -18,7 +18,7 @@ import type { User } from './user';
 /** JSDoc */
 export interface Event {
   event_id?: string;
-  message?: string;
+  message?: string | undefined;
   timestamp?: number;
   start_timestamp?: number;
   // eslint-disable-next-line deprecation/deprecation
