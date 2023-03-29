@@ -1,6 +1,6 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { getCurrentHub, Span } from '@sentry/core';
-import { getActiveTransaction, trace } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { getActiveTransaction, getCurrentHub, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import {
   addExceptionMechanism,
