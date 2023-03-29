@@ -329,7 +329,7 @@ export class BrowserTracing implements Integration {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
 
       const op = 'ui.action.click';
-      if (inflightInteractionTransaction) {
+      if (inflightInteractionTransaction && !inflightInteractionTransaction.endTimestamp) {
         inflightInteractionTransaction.finish();
         inflightInteractionTransaction = undefined;
       }
