@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
 
 import * as fs from 'fs-extra';
-import * as os from 'os';
 import * as path from 'path';
 
 import { buildApp } from './buildApp';
+import { TMP_DIR } from './constants';
 import { testApp } from './testApp';
 import type { Env, RecipeInstance, RecipeTestResult } from './types';
 
@@ -18,7 +18,7 @@ export async function buildAndTestApp(
   const { recipe, port } = recipeInstance;
   const recipeDirname = path.dirname(recipe.path);
 
-  const targetDir = path.join(os.tmpdir(), `${recipe.testApplicationName}-${tmpDirCount++}`);
+  const targetDir = path.join(TMP_DIR, `${recipe.testApplicationName}-${tmpDirCount++}`);
 
   await fs.copy(recipeDirname, targetDir);
 
