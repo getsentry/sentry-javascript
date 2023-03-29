@@ -15,9 +15,6 @@ export function isSentryRequest(url: string): boolean {
   return dsn ? url.includes(dsn.host) : false;
 }
 
-/**
- * @deprecated Please use extractUrl instead. Only exists for backwards compatability as we sanitize spans and breadcrumbs.
- */
 export function extractRawUrl(requestOptions: RequestOptions): string {
   const protocol = requestOptions.protocol || '';
   const hostname = requestOptions.hostname || requestOptions.host || '';
