@@ -2,6 +2,7 @@ import { addTracingExtensions, captureException, getCurrentHub, startTransaction
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import * as domain from 'domain';
 
+import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 
 /**
@@ -60,9 +61,17 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             () => {
               transaction.finish();
             },
-            (e: Error) => {
-              transaction.setStatus('internal_error');
-              captureException(e);
+            e => {
+              if (isNotFoundNavigationError(e)) {
+                // We don't want to report "not-found"s
+                transaction.setStatus('not_found');
+              } else if (isRedirectNavigationError(e)) {
+                // We don't want to report redirects
+              } else {
+                transaction.setStatus('internal_error');
+                captureException(e);
+              }
+
               transaction.finish();
             },
           );
