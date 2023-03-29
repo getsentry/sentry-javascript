@@ -182,6 +182,9 @@ export default function wrappingLoader(
         case 'not-found':
           componentType = 'Not-found';
           break;
+        case 'loading':
+          componentType = 'Loading';
+          break;
         default:
           componentType = 'Unknown';
       }
