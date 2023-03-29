@@ -1,10 +1,31 @@
 // Based on Remix's implementation of Fetch API
-// https://github.com/remix-run/web-std-io/tree/main/packages/fetch
+// https://github.com/remix-run/web-std-io/blob/d2a003fe92096aaf97ab2a618b74875ccaadc280/packages/fetch/
+// The MIT License (MIT)
+
+// Copyright (c) 2016 - 2020 Node Fetch Team
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 import { logger } from '@sentry/utils';
 
-import { getClientIPAddress } from './getIpAddress';
 import type { RemixRequest } from './types';
+import { getClientIPAddress } from './vendor/getIpAddress';
 
 /*
  * Symbol extractor utility to be able to access internal fields of Remix requests.
@@ -17,7 +38,9 @@ const getInternalSymbols = (
 } => {
   const symbols = Object.getOwnPropertySymbols(request);
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     bodyInternalsSymbol: symbols.find(symbol => symbol.toString().includes('Body internals')) as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     requestInternalsSymbol: symbols.find(symbol => symbol.toString().includes('Request internals')) as any,
   };
 };
@@ -42,6 +65,7 @@ export const getSearch = (parsedURL: URL): string => {
  * Vendored / modified from:
  * https://github.com/remix-run/web-std-io/blob/f715b354c8c5b8edc550c5442dec5712705e25e7/packages/fetch/src/request.js#L259
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const normalizeRemixRequest = (request: RemixRequest): Record<string, any> => {
   const { requestInternalsSymbol, bodyInternalsSymbol } = getInternalSymbols(request);
 

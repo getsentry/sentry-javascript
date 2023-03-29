@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular-ivy",
-  "version": "7.43.0",
+  "version": "7.45.0",
   "description": "Official Sentry SDK for Angular with full Ivy Support",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy",
@@ -21,9 +21,9 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.43.0",
-    "@sentry/types": "7.43.0",
-    "@sentry/utils": "7.43.0",
+    "@sentry/browser": "7.45.0",
+    "@sentry/types": "7.45.0",
+    "@sentry/utils": "7.45.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
@@ -56,7 +56,8 @@
     "fix:prettier": "prettier --write \"{src,test,scripts}/**/**.ts\"",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
-    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\""
+    "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

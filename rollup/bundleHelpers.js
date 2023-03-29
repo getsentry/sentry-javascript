@@ -16,38 +16,24 @@ import {
   makeSucrasePlugin,
   makeTerserPlugin,
   makeTSPlugin,
-  makeExcludeBlockPlugin,
   makeSetSDKSourcePlugin,
-  makeReplayShimPlugin,
+  getEs5Polyfills,
 } from './plugins/index.js';
 import { mergePlugins } from './utils';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const {
-    bundleType,
-    entrypoints,
-    jsVersion,
-    licenseTitle,
-    outputFileBase,
-    packageSpecificConfig,
-    includeReplay,
-    includeOffline,
-    includeBrowserProfiling,
-  } = options;
+  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+
+  const isEs5 = jsVersion.toLowerCase() === 'es5';
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
-  const tsPlugin = makeTSPlugin(jsVersion.toLowerCase());
-  const excludeReplayPlugin = makeExcludeBlockPlugin('REPLAY');
-  const excludeReplayShimPlugin = makeExcludeBlockPlugin('REPLAY_SHIM');
-  const excludeOfflineTransport = makeExcludeBlockPlugin('OFFLINE');
-  const excludeBrowserProfiling = makeExcludeBlockPlugin('BROWSER_PROFILING');
-  const replayShimPlugin = makeReplayShimPlugin();
+  const tsPlugin = makeTSPlugin('es5');
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
@@ -59,28 +45,14 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'iife',
       name: 'Sentry',
+      outro: () => {
+        // Add polyfills for ES6 array/string methods at the end of the bundle
+        return isEs5 ? getEs5Polyfills() : '';
+      },
     },
     context: 'window',
     plugins: [markAsBrowserBuildPlugin],
   };
-
-  if (includeReplay === 'shim') {
-    standAloneBundleConfig.plugins.push(replayShimPlugin);
-  } else {
-    standAloneBundleConfig.plugins.push(excludeReplayShimPlugin);
-  }
-
-  if (!includeReplay) {
-    standAloneBundleConfig.plugins.push(excludeReplayPlugin);
-  }
-
-  if (!includeOffline) {
-    standAloneBundleConfig.plugins.push(excludeOfflineTransport);
-  }
-
-  if (!includeBrowserProfiling) {
-    standAloneBundleConfig.plugins.push(excludeBrowserProfiling);
-  }
 
   // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
   const addOnBundleConfig = {
@@ -136,10 +108,9 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins:
-      jsVersion === 'es5'
-        ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
-        : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    plugins: isEs5
+      ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
+      : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
     treeshake: 'smallest',
   };
 

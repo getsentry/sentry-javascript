@@ -1,10 +1,20 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { stringMatchesSomePattern } from '@sentry/utils';
+import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { rollup } from 'rollup';
 
 import type { LoaderThis } from './types';
+
+// Just a simple placeholder to make referencing module consistent
+const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
+
+// Needs to end in .cjs in order for the `commonjs` plugin to pick it up
+const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
+
+// Non-public API. Can be found here: https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
+const NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH = 'next/dist/client/components/request-async-storage';
 
 const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
@@ -15,6 +25,10 @@ const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encod
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
+const requestAsyncStorageShimPath = path.resolve(__dirname, '..', 'templates', 'requestAsyncStorageShim.js');
+const requestAsyncStorageModuleExists = moduleExists(NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH);
+let showedMissingAsyncStorageModuleWarning = false;
+
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
   '..',
@@ -23,12 +37,6 @@ const serverComponentWrapperTemplatePath = path.resolve(
 );
 const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
 
-// Just a simple placeholder to make referencing module consistent
-const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
-
-// Needs to end in .cjs in order for the `commonjs` plugin to pick it up
-const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
-
 type LoaderOptions = {
   pagesDir: string;
   appDir: string;
@@ -36,6 +44,15 @@ type LoaderOptions = {
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
 };
+
+function moduleExists(id: string): boolean {
+  try {
+    require.resolve(id);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 /**
  * Replace the loaded file with a wrapped version the original file. In the wrapped version, the original file is loaded,
@@ -126,6 +143,24 @@ export default function wrappingLoader(
 
     templateCode = serverComponentWrapperTemplateCode;
 
+    if (requestAsyncStorageModuleExists) {
+      templateCode = templateCode.replace(
+        /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
+        NEXTJS_REQUEST_ASYNC_STORAGE_MODULE_PATH,
+      );
+    } else {
+      if (!showedMissingAsyncStorageModuleWarning) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
+            'RequestAsyncStorage',
+          )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
+        );
+        showedMissingAsyncStorageModuleWarning = true;
+      }
+      templateCode = templateCode.replace(/__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g, requestAsyncStorageShimPath);
+    }
+
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
 
     const componentTypeMatch = path.posix
@@ -146,6 +181,9 @@ export default function wrappingLoader(
           break;
         case 'not-found':
           componentType = 'Not-found';
+          break;
+        case 'loading':
+          componentType = 'Loading';
           break;
         default:
           componentType = 'Unknown';

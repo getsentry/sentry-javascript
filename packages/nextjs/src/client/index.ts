@@ -1,14 +1,19 @@
 import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { BrowserOptions } from '@sentry/react';
-import { configureScope, init as reactInit, Integrations } from '@sentry/react';
-import { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry/tracing';
+import {
+  BrowserTracing,
+  configureScope,
+  defaultRequestInstrumentationOptions,
+  init as reactInit,
+  Integrations,
+} from '@sentry/react';
 import type { EventProcessor } from '@sentry/types';
+import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { buildMetadata } from '../common/metadata';
-import { addOrUpdateIntegration } from '../common/userIntegrations';
 import { nextRouterInstrumentation } from './performance';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -78,9 +83,9 @@ function addClientIntegrations(options: BrowserOptions): void {
         // Filename wasn't a properly formed URL, so there's nothing we can do
       }
 
+      // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.
+      // The corresponding sources that Next.js generates have proper brackets so we also need proper brackets in the frame so that source map resolving works.
       if (frame.filename && frame.filename.startsWith('app:///_next')) {
-        // We need to URI-decode the filename because Next.js has wildcard routes like "/users/[id].js" which show up as "/users/%5id%5.js" in Error stacktraces.
-        // The corresponding sources that Next.js generates have proper brackets so we also need proper brackets in the frame so that source map resolving works.
         frame.filename = decodeURI(frame.filename);
       }
 

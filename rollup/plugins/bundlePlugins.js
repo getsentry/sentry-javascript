@@ -8,7 +8,8 @@
  * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
  */
 
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import commonjs from '@rollup/plugin-commonjs';
 import deepMerge from 'deepmerge';
@@ -17,8 +18,6 @@ import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
-import MagicString from 'magic-string';
-import modify from 'rollup-plugin-modify';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -40,6 +39,11 @@ export function makeLicensePlugin(title) {
   plugin.name = 'license';
 
   return plugin;
+}
+
+export function getEs5Polyfills() {
+  // Note: __dirname resolves to e.g. packages/browser or packages/tracing
+  return fs.readFileSync(path.join(__dirname, '../../rollup/polyfills/es5.js'), 'utf-8');
 }
 
 /**
@@ -151,6 +155,8 @@ export function makeTSPlugin(jsVersion) {
           '@sentry/hub': ['../hub/src'],
           '@sentry/types': ['../types/src'],
           '@sentry/utils': ['../utils/src'],
+          '@sentry-internal/integration-shims': ['../integration-shims/src'],
+          '@sentry-internal/tracing': ['../tracing-internal/src'],
         },
         baseUrl: '.',
       },
@@ -177,54 +183,6 @@ export function makeTSPlugin(jsVersion) {
 
   // give it a nicer name for later, when we'll need to sort the plugins
   plugin.name = 'typescript';
-
-  return plugin;
-}
-
-/**
- * Creates a Rollup plugin that removes all code between the `__ROLLUP_EXCLUDE_FROM_BUNDLES_BEGIN__`
- * and `__ROLLUP_EXCLUDE_FROM_BUNDLES_END__` comment guards. This is used to exclude the Replay integration
- * from the browser and browser+tracing bundles.
- * If we need to add more such guards in the future, we might want to refactor this into a more generic plugin.
- */
-export function makeExcludeBlockPlugin(type) {
-  const replacementRegex = new RegExp(
-    `\\/\\/ __ROLLUP_EXCLUDE_${type}_FROM_BUNDLES_BEGIN__(.|\n)*__ROLLUP_EXCLUDE_${type}_FROM_BUNDLES_END__`,
-    'm',
-  );
-
-  const browserIndexFilePath = path.resolve(__dirname, '../../packages/browser/src/index.ts');
-
-  const plugin = {
-    transform(code, id) {
-      const isBrowserIndexFile = path.resolve(id) === browserIndexFilePath;
-      if (!isBrowserIndexFile || !replacementRegex.test(code)) {
-        return null;
-      }
-
-      const ms = new MagicString(code);
-      const transformedCode = ms.replace(replacementRegex, '');
-      return {
-        code: transformedCode.toString(),
-        map: transformedCode.generateMap({ hires: true }),
-      };
-    },
-  };
-
-  plugin.name = 'excludeReplay';
-
-  return plugin;
-}
-
-export function makeReplayShimPlugin() {
-  // This is designed to replace the re-export in browser/index.ts to export the shim
-  const plugin = modify({
-    find: '@sentry/replay',
-    replace: '@sentry-internal/integration-shims',
-  });
-
-  // give it a nicer name for later, when we'll need to sort the plugins
-  plugin.name = 'replayShim';
 
   return plugin;
 }

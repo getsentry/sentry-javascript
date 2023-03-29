@@ -1,6 +1,11 @@
 import * as coreSdk from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 
 import { withEdgeWrapping } from '../../src/edge/utils/edgeWrapperUtils';
+
+// The wrap* functions require the hub to have tracing extensions. This is normally called by the EdgeClient
+// constructor but the client isn't used in these tests.
+addTracingExtensions();
 
 // @ts-ignore Request does not exist on type Global
 const origRequest = global.Request;

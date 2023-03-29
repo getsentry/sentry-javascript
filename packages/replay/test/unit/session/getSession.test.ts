@@ -17,7 +17,7 @@ const SAMPLE_RATES = {
   errorSampleRate: 0,
 };
 
-function createMockSession(when: number = new Date().getTime()) {
+function createMockSession(when: number = Date.now()) {
   return makeSession({
     id: 'test_session_id',
     segmentId: 0,
@@ -66,7 +66,7 @@ describe('Unit | session | getSession', () => {
   });
 
   it('creates a non-sticky session, regardless of session existing in sessionStorage', function () {
-    saveSession(createMockSession(new Date().getTime() - 10000));
+    saveSession(createMockSession(Date.now() - 10000));
 
     const { session } = getSession({
       timeouts: {
@@ -93,8 +93,8 @@ describe('Unit | session | getSession', () => {
       ...SAMPLE_RATES,
       currentSession: makeSession({
         id: 'old_session_id',
-        lastActivity: new Date().getTime() - 1001,
-        started: new Date().getTime() - 1001,
+        lastActivity: Date.now() - 1001,
+        started: Date.now() - 1001,
         segmentId: 0,
         sampled: 'session',
       }),
@@ -142,7 +142,7 @@ describe('Unit | session | getSession', () => {
   });
 
   it('fetches an existing sticky session', function () {
-    const now = new Date().getTime();
+    const now = Date.now();
     saveSession(createMockSession(now));
 
     const { session } = getSession({
@@ -168,8 +168,8 @@ describe('Unit | session | getSession', () => {
   });
 
   it('fetches an expired sticky session', function () {
-    const now = new Date().getTime();
-    saveSession(createMockSession(new Date().getTime() - 2000));
+    const now = Date.now();
+    saveSession(createMockSession(Date.now() - 2000));
 
     const { session } = getSession({
       timeouts: {

@@ -7,7 +7,7 @@ import type {
   Session,
 } from '@sentry/replay/build/npm/types/types';
 import type { eventWithTime } from '@sentry/replay/build/npm/types/types/rrweb';
-import type { Breadcrumb, Event, ReplayEvent } from '@sentry/types';
+import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
 import pako from 'pako';
 import type { Page, Request, Response } from 'playwright';
 
@@ -99,14 +99,28 @@ function isCustomSnapshot(event: RecordingEvent): event is RecordingEvent & { da
   return event.type === EventType.Custom;
 }
 
+/** Wait for replay to be running & available. */
+export async function waitForReplayRunning(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replay = replayIntegration._replay;
+
+    return replay.isEnabled() && replay.session?.id !== undefined;
+  });
+}
+
 /**
  * This returns the replay container (assuming it exists).
  * Note that due to how this works with playwright, this is a POJO copy of replay.
  * This means that we cannot access any methods on it, and also not mutate it in any way.
  */
-export async function getReplaySnapshot(
-  page: Page,
-): Promise<{ _isPaused: boolean; _isEnabled: boolean; _context: InternalEventContext; session: Session | undefined }> {
+export async function getReplaySnapshot(page: Page): Promise<{
+  _isPaused: boolean;
+  _isEnabled: boolean;
+  _context: InternalEventContext;
+  session: Session | undefined;
+  recordingMode: ReplayRecordingMode;
+}> {
   return await page.evaluate(() => {
     const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
     const replay = replayIntegration._replay;
@@ -116,6 +130,7 @@ export async function getReplaySnapshot(
       _isEnabled: replay.isEnabled(),
       _context: replay.getContext(),
       session: replay.session,
+      recordingMode: replay.recordingMode,
     };
 
     return replaySnapshot;

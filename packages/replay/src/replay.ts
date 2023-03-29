@@ -32,7 +32,6 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { overwriteRecordDroppedEvent, restoreRecordDroppedEvent } from './util/monkeyPatchRecordDroppedEvent';
 import { sendReplay } from './util/sendReplay';
 
 /**
@@ -79,7 +78,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Timestamp of the last user activity. This lives across sessions.
    */
-  private _lastActivity: number = new Date().getTime();
+  private _lastActivity: number = Date.now();
 
   /**
    * Is the integration currently active?
@@ -109,7 +108,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     traceIds: new Set(),
     urls: [],
     earliestEvent: null,
-    initialTimestamp: new Date().getTime(),
+    initialTimestamp: Date.now(),
     initialUrl: '',
   };
 
@@ -208,23 +207,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // instead, we'll always keep the last 60 seconds of replay before an error happened
         ...(this.recordingMode === 'error' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
-        onMutation: (mutations: unknown[]) => {
-          if (this._options._experiments.captureMutationSize) {
-            const count = mutations.length;
-
-            if (count > 500) {
-              const breadcrumb = createBreadcrumb({
-                category: 'replay.mutations',
-                data: {
-                  count,
-                },
-              });
-              this._createCustomBreadcrumb(breadcrumb);
-            }
-          }
-          // `true` means we use the regular mutation handling by rrweb
-          return true;
-        },
+        onMutation: this._onMutationHandler,
       });
     } catch (err) {
       this._handleException(err);
@@ -443,7 +426,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._clearContext();
 
     this._context.initialUrl = url;
-    this._context.initialTimestamp = new Date().getTime();
+    this._context.initialTimestamp = Date.now();
     this._context.urls.push(url);
   }
 
@@ -499,9 +482,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.addEventListener('blur', this._handleWindowBlur);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
 
-      // We need to filter out dropped events captured by `addGlobalEventProcessor(this.handleGlobalEvent)` below
-      overwriteRecordDroppedEvent(this._context.errorIds);
-
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
         addGlobalListeners(this);
@@ -529,8 +509,6 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
-
-      restoreRecordDroppedEvent();
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
@@ -628,10 +606,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Trigger rrweb to take a full snapshot which will cause this plugin to
    * create a new Replay event.
    */
-  private _triggerFullSnapshot(): void {
+  private _triggerFullSnapshot(checkout = true): void {
     try {
       __DEBUG_BUILD__ && logger.log('[Replay] Taking full rrweb snapshot');
-      record.takeFullSnapshot(true);
+      record.takeFullSnapshot(checkout);
     } catch (err) {
       this._handleException(err);
     }
@@ -640,14 +618,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Update user activity (across session lifespans)
    */
-  private _updateUserActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateUserActivity(_lastActivity: number = Date.now()): void {
     this._lastActivity = _lastActivity;
   }
 
   /**
    * Updates the session's last activity timestamp
    */
-  private _updateSessionActivity(_lastActivity: number = new Date().getTime()): void {
+  private _updateSessionActivity(_lastActivity: number = Date.now()): void {
     if (this.session) {
       this.session.lastActivity = _lastActivity;
       this._maybeSaveSession();
@@ -774,7 +752,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         eventContext,
         session: this.session,
         options: this.getOptions(),
-        timestamp: new Date().getTime(),
+        timestamp: Date.now(),
       });
     } catch (err) {
       this._handleException(err);
@@ -845,4 +823,35 @@ export class ReplayContainer implements ReplayContainerInterface {
       saveSession(this.session);
     }
   }
+
+  /** Handler for rrweb.record.onMutation */
+  private _onMutationHandler = (mutations: unknown[]): boolean => {
+    const count = mutations.length;
+
+    const mutationLimit = this._options._experiments.mutationLimit || 0;
+    const mutationBreadcrumbLimit = this._options._experiments.mutationBreadcrumbLimit || 1000;
+    const overMutationLimit = mutationLimit && count > mutationLimit;
+
+    // Create a breadcrumb if a lot of mutations happen at the same time
+    // We can show this in the UI as an information with potential performance improvements
+    if (count > mutationBreadcrumbLimit || overMutationLimit) {
+      const breadcrumb = createBreadcrumb({
+        category: 'replay.mutations',
+        data: {
+          count,
+        },
+      });
+      this._createCustomBreadcrumb(breadcrumb);
+    }
+
+    if (overMutationLimit) {
+      // We want to skip doing an incremental snapshot if there are too many mutations
+      // Instead, we do a full snapshot
+      this._triggerFullSnapshot(false);
+      return false;
+    }
+
+    // `true` means we use the regular mutation handling by rrweb
+    return true;
+  };
 }

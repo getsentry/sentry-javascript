@@ -1,8 +1,8 @@
 import { WINDOW } from '../constants';
-import type { AddEventResult, ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { AddEventResult, MemoryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from './createPerformanceSpans';
 
-type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
+type ReplayMemoryEntry = ReplayPerformanceEntry<MemoryData> & { data: { memory: MemoryInfo } };
 
 interface MemoryInfo {
   jsHeapSizeLimit: number;
@@ -33,7 +33,7 @@ function createMemoryEntry(memoryEntry: MemoryInfo): ReplayMemoryEntry {
   const { jsHeapSizeLimit, totalJSHeapSize, usedJSHeapSize } = memoryEntry;
   // we don't want to use `getAbsoluteTime` because it adds the event time to the
   // time origin, so we get the current timestamp instead
-  const time = new Date().getTime() / 1000;
+  const time = Date.now() / 1000;
   return {
     type: 'memory',
     name: 'memory',

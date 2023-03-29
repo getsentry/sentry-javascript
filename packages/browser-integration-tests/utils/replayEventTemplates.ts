@@ -66,7 +66,16 @@ export const expectedNavigationPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
+    decodedBodySize: expect.any(Number),
+    encodedBodySize: expect.any(Number),
     duration: expect.any(Number),
+    domInteractive: expect.any(Number),
+    domContentLoadedEventEnd: expect.any(Number),
+    domContentLoadedEventStart: expect.any(Number),
+    loadEventStart: expect.any(Number),
+    loadEventEnd: expect.any(Number),
+    domComplete: expect.any(Number),
+    redirectCount: expect.any(Number),
     size: expect.any(Number),
   },
 };
@@ -85,7 +94,16 @@ export const expectedReloadPerformanceSpan = {
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
+    decodedBodySize: expect.any(Number),
+    encodedBodySize: expect.any(Number),
     duration: expect.any(Number),
+    domInteractive: expect.any(Number),
+    domContentLoadedEventEnd: expect.any(Number),
+    domContentLoadedEventStart: expect.any(Number),
+    loadEventStart: expect.any(Number),
+    loadEventEnd: expect.any(Number),
+    domComplete: expect.any(Number),
+    redirectCount: expect.any(Number),
     size: expect.any(Number),
   },
 };
@@ -132,23 +150,26 @@ export const expectedFPPerformanceSpan = {
 
 export const expectedFetchPerformanceSpan = {
   op: 'resource.fetch',
-  description: expect.any(String),
+  description: 'https://example.com',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    method: expect.any(String),
-    statusCode: expect.any(Number),
+    method: 'POST',
+    statusCode: 200,
+    request: { size: 3 },
+    response: { size: 11 },
   },
 };
 
 export const expectedXHRPerformanceSpan = {
   op: 'resource.xhr',
-  description: expect.any(String),
+  description: 'https://example.com',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
-    method: expect.any(String),
-    statusCode: expect.any(Number),
+    method: 'GET',
+    statusCode: 200,
+    response: { size: 11 },
   },
 };
 
@@ -161,6 +182,14 @@ export const expectedClickBreadcrumb = {
   message: expect.any(String),
   data: {
     nodeId: expect.any(Number),
+    node: {
+      attributes: {
+        id: expect.any(String),
+      },
+      id: expect.any(Number),
+      tagName: expect.any(String),
+      textContent: expect.any(String),
+    },
   },
 };
 

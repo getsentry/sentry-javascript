@@ -20,7 +20,7 @@ describe('Unit | util | getPrivacyOptions', () => {
     ).toMatchInlineSnapshot(`
       Object {
         "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore]",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
         "maskInputSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
@@ -48,7 +48,7 @@ describe('Unit | util | getPrivacyOptions', () => {
     ).toMatchInlineSnapshot(`
       Object {
         "blockSelector": ".custom-block,.deprecated-block-selector,.sentry-block,[data-sentry-block],base[href=\\"/\\"],.deprecated-block-class",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],.deprecated-ignore-class",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"],.deprecated-ignore-class",
         "maskInputSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
         "maskTextSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
         "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
@@ -74,7 +74,7 @@ describe('Unit | util | getPrivacyOptions', () => {
       Object {
         "blockClass": /deprecated-block-\\*/,
         "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore]",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
         "maskInputSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "maskTextClass": /deprecated-mask-\\*/,
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",

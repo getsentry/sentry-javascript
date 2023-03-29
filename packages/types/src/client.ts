@@ -1,7 +1,8 @@
+import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
-import type { Envelope } from './envelope';
+import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { Integration, IntegrationClass } from './integration';
 import type { ClientOptions } from './options';
@@ -10,7 +11,7 @@ import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { Severity, SeverityLevel } from './severity';
 import type { Transaction } from './transaction';
-import type { Transport } from './transport';
+import type { Transport, TransportMakeRequestResponse } from './transport';
 
 /**
  * User-Facing Sentry SDK Client.
@@ -164,6 +165,24 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
+   * Register a callback for when an event has been sent.
+   */
+  on?(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
+  ): void;
+
+  /**
+   * Register a callback before a breadcrumb is added.
+   */
+  on?(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+
+  /**
+   * Register a callback whena  DSC (Dynamic Sampling Context) is created.
+   */
+  on?(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+
+  /**
    * Fire a hook event for transaction start and finish. Expects to be given a transaction as the
    * second argument.
    */
@@ -174,4 +193,20 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /*
+   * Fire a hook event after sending an event. Expects to be given an Event as the
+   * second argument.
+   */
+  emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+
+  /**
+   * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
+   */
+  emit?(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
+
+  /**
+   * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
+   */
+  emit?(hook: 'createDsc', dsc: DynamicSamplingContext): void;
 }

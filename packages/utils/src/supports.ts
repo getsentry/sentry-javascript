@@ -4,6 +4,8 @@ import { getGlobalObject } from './worldwide';
 // eslint-disable-next-line deprecation/deprecation
 const WINDOW = getGlobalObject<Window>();
 
+export { supportsHistory } from './vendor/supportsHistory';
+
 /**
  * Tells whether current environment supports ErrorEvent objects
  * {@link supportsErrorEvent}.
@@ -155,24 +157,4 @@ export function supportsReferrerPolicy(): boolean {
   } catch (e) {
     return false;
   }
-}
-
-/**
- * Tells whether current environment supports History API
- * {@link supportsHistory}.
- *
- * @returns Answer to the given question.
- */
-export function supportsHistory(): boolean {
-  // NOTE: in Chrome App environment, touching history.pushState, *even inside
-  //       a try/catch block*, will cause Chrome to output an error to console.error
-  // borrowed from: https://github.com/angular/angular.js/pull/13945/files
-  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chrome = (WINDOW as any).chrome;
-  const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
-  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-  const hasHistoryApi = 'history' in WINDOW && !!WINDOW.history.pushState && !!WINDOW.history.replaceState;
-
-  return !isChromePackagedApp && hasHistoryApi;
 }

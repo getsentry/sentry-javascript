@@ -1,6 +1,6 @@
 import { EventType } from '@sentry-internal/rrweb';
 
-import type { AddEventResult, ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { AddEventResult, AllEntryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { addEvent } from './addEvent';
 
 /**
@@ -8,7 +8,7 @@ import { addEvent } from './addEvent';
  */
 export function createPerformanceSpans(
   replay: ReplayContainer,
-  entries: ReplayPerformanceEntry[],
+  entries: ReplayPerformanceEntry<AllEntryData>[],
 ): Promise<AddEventResult | null>[] {
   return entries.map(({ type, start, end, name, data }) =>
     addEvent(replay, {

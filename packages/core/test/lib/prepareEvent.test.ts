@@ -15,7 +15,7 @@ describe('applyDebugMetadata', () => {
       'filename4.js\nfilename4.js': 'cccccccc-cccc-4ccc-cccc-cccccccccc',
     };
 
-    const stackParser = createStackParser([0, line => ({ filename: line, abs_path: line })]);
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
 
     const event: Event = {
       exception: {
@@ -23,10 +23,10 @@ describe('applyDebugMetadata', () => {
           {
             stacktrace: {
               frames: [
-                { abs_path: 'filename1.js', filename: 'filename1.js' },
-                { abs_path: 'filename2.js', filename: 'filename2.js' },
-                { abs_path: 'filename1.js', filename: 'filename1.js' },
-                { abs_path: 'filename3.js', filename: 'filename3.js' },
+                { filename: 'filename1.js' },
+                { filename: 'filename2.js' },
+                { filename: 'filename1.js' },
+                { filename: 'filename3.js' },
               ],
             },
           },

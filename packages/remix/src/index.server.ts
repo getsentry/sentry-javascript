@@ -8,7 +8,6 @@ import type { RemixOptions } from './utils/remixOptions';
 
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './performance/client';
-export { BrowserTracing, Integrations } from '@sentry/tracing';
 export * from '@sentry/node';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 

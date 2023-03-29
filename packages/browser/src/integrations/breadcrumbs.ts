@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines */
 import { getCurrentHub } from '@sentry/core';
-import type { Event as SentryEvent, HandlerDataFetch, Integration, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { Event as SentryEvent, HandlerDataFetch, HandlerDataXhr, Integration } from '@sentry/types';
+import type {
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
+  XhrBreadcrumbData,
+  XhrBreadcrumbHint,
+} from '@sentry/types/build/types/breadcrumb';
 import {
   addInstrumentationHandler,
   getEventDescription,
@@ -216,41 +222,47 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
 /**
  * Creates breadcrumbs from XHR API calls
  */
-function _xhrBreadcrumb(handlerData: HandlerData & { xhr: XMLHttpRequest & SentryWrappedXMLHttpRequest }): void {
-  if (handlerData.endTimestamp) {
-    // We only capture complete, non-sentry requests
-    if (handlerData.xhr.__sentry_own_request__) {
-      return;
-    }
+function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
+  const { startTimestamp, endTimestamp } = handlerData;
 
-    const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__ || {};
-
-    getCurrentHub().addBreadcrumb(
-      {
-        category: 'xhr',
-        data: {
-          method,
-          url,
-          status_code,
-        },
-        type: 'http',
-      },
-      {
-        xhr: handlerData.xhr,
-        input: body,
-      },
-    );
-
+  // We only capture complete, non-sentry requests
+  if (!startTimestamp || !endTimestamp || !handlerData.xhr.__sentry_xhr__) {
     return;
   }
+
+  const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__;
+
+  const data: XhrBreadcrumbData = {
+    method,
+    url,
+    status_code,
+  };
+
+  const hint: XhrBreadcrumbHint = {
+    xhr: handlerData.xhr,
+    input: body,
+    startTimestamp,
+    endTimestamp,
+  };
+
+  getCurrentHub().addBreadcrumb(
+    {
+      category: 'xhr',
+      data,
+      type: 'http',
+    },
+    hint,
+  );
 }
 
 /**
  * Creates breadcrumbs from fetch API calls
  */
 function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { response?: Response }): void {
+  const { startTimestamp, endTimestamp } = handlerData;
+
   // We only capture complete fetch requests
-  if (!handlerData.endTimestamp) {
+  if (!endTimestamp) {
     return;
   }
 
@@ -260,32 +272,41 @@ function _fetchBreadcrumb(handlerData: HandlerData & HandlerDataFetch & { respon
   }
 
   if (handlerData.error) {
+    const data: FetchBreadcrumbData = handlerData.fetchData;
+    const hint: FetchBreadcrumbHint = {
+      data: handlerData.error,
+      input: handlerData.args,
+      startTimestamp,
+      endTimestamp,
+    };
+
     getCurrentHub().addBreadcrumb(
       {
         category: 'fetch',
-        data: handlerData.fetchData,
+        data,
         level: 'error',
         type: 'http',
       },
-      {
-        data: handlerData.error,
-        input: handlerData.args,
-      },
+      hint,
     );
   } else {
+    const data: FetchBreadcrumbData = {
+      ...handlerData.fetchData,
+      status_code: handlerData.response && handlerData.response.status,
+    };
+    const hint: FetchBreadcrumbHint = {
+      input: handlerData.args,
+      response: handlerData.response,
+      startTimestamp,
+      endTimestamp,
+    };
     getCurrentHub().addBreadcrumb(
       {
         category: 'fetch',
-        data: {
-          ...handlerData.fetchData,
-          status_code: handlerData.response && handlerData.response.status,
-        },
+        data,
         type: 'http',
       },
-      {
-        input: handlerData.args,
-        response: handlerData.response,
-      },
+      hint,
     );
   }
 }

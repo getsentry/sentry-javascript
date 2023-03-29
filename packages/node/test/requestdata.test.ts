@@ -310,7 +310,7 @@ describe.each([oldExtractRequestData, newExtractRequestData])(
           });
         });
 
-        it('includes the `Cookie` header in requestdata.headers, if `cookies` is not set in the options', () => {
+        it('includes the `Cookie` header in requestdata.headers, if `cookies` is set in the options', () => {
           const mockReq = {
             cookies: { foo: 'bar' },
             headers: { cookie: 'foo=bar', otherHeader: 'hello' },

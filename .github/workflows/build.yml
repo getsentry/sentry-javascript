@@ -321,8 +321,10 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run linter
+      - name: Lint source files
         run: yarn lint
+      - name: Validate ES5 builds
+        run: yarn validate:es5
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -369,7 +371,6 @@ jobs:
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/integrations/build/bundles/**
-            ${{ github.workspace }}/packages/tracing/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
 
@@ -480,7 +481,7 @@ jobs:
           yarn test:integration
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }})${{ (matrix.tracing_only && ' tracing only') || '' }} Tests
+    name: Playwright (${{ matrix.bundle }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -497,16 +498,13 @@ jobs:
           - bundle_es6_min
           - bundle_replay_es6
           - bundle_replay_es6_min
-        tracing_only:
-          - true
-          - false
-        exclude:
-          # `tracing_only` only makes a difference for bundles - tests of the esm and cjs builds always include the
-          # tracing tests
-          - bundle: esm
-            tracing_only: false
-          - bundle: cjs
-            tracing_only: false
+          - bundle_tracing_es5
+          - bundle_tracing_es5_min
+          - bundle_tracing_es6
+          - bundle_tracing_es6_min
+          - bundle_tracing_replay_es6
+          - bundle_tracing_replay_es6_min
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -541,7 +539,6 @@ jobs:
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
-          PW_TRACING_ONLY: ${{ matrix.tracing_only }}
         run: |
           cd packages/browser-integration-tests
           yarn test:ci

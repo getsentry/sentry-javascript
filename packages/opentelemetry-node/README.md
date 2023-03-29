@@ -66,9 +66,8 @@ const sdk = new opentelemetry.NodeSDK({
 
   // Sentry config
   spanProcessor: new SentrySpanProcessor(),
+  textMapPropagator: new SentryPropagator(),
 });
-
-otelApi.propagation.setGlobalPropagator(new SentryPropagator());
 
 sdk.start();
 ```

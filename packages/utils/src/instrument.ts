@@ -1,7 +1,13 @@
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import type { HandlerDataFetch, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
+import type {
+  HandlerDataFetch,
+  HandlerDataXhr,
+  SentryWrappedXMLHttpRequest,
+  SentryXhrData,
+  WrappedFunction,
+} from '@sentry/types';
 
 import { isInstanceOf, isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
@@ -209,10 +215,8 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhr = this;
       const url = args[1];
-      const xhrInfo: SentryWrappedXMLHttpRequest['__sentry_xhr__'] = (xhr.__sentry_xhr__ = {
+      const xhrInfo: SentryXhrData = (this.__sentry_xhr__ = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
@@ -221,40 +225,47 @@ function instrumentXHR(): void {
       // if Sentry key appears in URL, don't capture it as a request
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (isString(url) && xhrInfo.method === 'POST' && url.match(/sentry_key/)) {
-        xhr.__sentry_own_request__ = true;
+        this.__sentry_own_request__ = true;
       }
 
-      const onreadystatechangeHandler = function (): void {
-        if (xhr.readyState === 4) {
+      const onreadystatechangeHandler: () => void = () => {
+        // For whatever reason, this is not the same instance here as from the outer method
+        const xhrInfo = this.__sentry_xhr__;
+
+        if (!xhrInfo) {
+          return;
+        }
+
+        if (this.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
             // an exception
-            xhrInfo.status_code = xhr.status;
+            xhrInfo.status_code = this.status;
           } catch (e) {
             /* do nothing */
           }
 
           triggerHandlers('xhr', {
-            args,
+            args: args as [string, string],
             endTimestamp: Date.now(),
             startTimestamp: Date.now(),
-            xhr,
-          });
+            xhr: this,
+          } as HandlerDataXhr);
         }
       };
 
-      if ('onreadystatechange' in xhr && typeof xhr.onreadystatechange === 'function') {
-        fill(xhr, 'onreadystatechange', function (original: WrappedFunction): Function {
-          return function (...readyStateArgs: any[]): void {
+      if ('onreadystatechange' in this && typeof this.onreadystatechange === 'function') {
+        fill(this, 'onreadystatechange', function (original: WrappedFunction): Function {
+          return function (this: SentryWrappedXMLHttpRequest, ...readyStateArgs: any[]): void {
             onreadystatechangeHandler();
-            return original.apply(xhr, readyStateArgs);
+            return original.apply(this, readyStateArgs);
           };
         });
       } else {
-        xhr.addEventListener('readystatechange', onreadystatechangeHandler);
+        this.addEventListener('readystatechange', onreadystatechangeHandler);
       }
 
-      return originalOpen.apply(xhr, args);
+      return originalOpen.apply(this, args);
     };
   });
 

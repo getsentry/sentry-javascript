@@ -23,30 +23,9 @@ describe('Tracekit - IE Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'bar',
-            lineno: 82,
-            colno: 1,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'foo',
-            lineno: 46,
-            colno: 9,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'Anonymous function',
-            lineno: 48,
-            colno: 13,
-            in_app: true,
-          },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 82, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 46, colno: 9, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 48, colno: 13, in_app: true },
         ],
       },
     });
@@ -73,30 +52,9 @@ describe('Tracekit - IE Tests', () => {
       type: 'TypeError',
       stacktrace: {
         frames: [
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'bar',
-            lineno: 108,
-            colno: 1,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'foo',
-            lineno: 45,
-            colno: 13,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'Anonymous function',
-            lineno: 47,
-            colno: 21,
-            in_app: true,
-          },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 108, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 45, colno: 13, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'Anonymous function', lineno: 47, colno: 21, in_app: true },
         ],
       },
     });
@@ -122,23 +80,9 @@ describe('Tracekit - IE Tests', () => {
       type: 'ReferenceError',
       stacktrace: {
         frames: [
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'bar',
-            lineno: 109,
-            colno: 1,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'foo',
-            lineno: 58,
-            colno: 17,
-            in_app: true,
-          },
-          { filename: 'eval code', abs_path: 'eval code', function: 'eval code', lineno: 1, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'bar', lineno: 109, colno: 1, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 58, colno: 17, in_app: true },
+          { filename: 'eval code', function: 'eval code', lineno: 1, colno: 1, in_app: true },
         ],
       },
     });

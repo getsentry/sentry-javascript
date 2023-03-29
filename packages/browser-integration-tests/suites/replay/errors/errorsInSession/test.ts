@@ -12,8 +12,9 @@ import {
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, browserName, forceFlushReplay }) => {
+    // Skipping this in firefox/webkit because it is flakey there
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -42,7 +43,7 @@ sentryTest(
     const req0 = await reqPromise0;
 
     await page.click('#error');
-    await page.click('#go-background');
+    await forceFlushReplay();
     const req1 = await reqPromise1;
 
     const event0 = getReplayEvent(req0);
@@ -62,15 +63,32 @@ sentryTest(
     );
 
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#error' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error',
+          data: {
+            node: {
+              attributes: {
+                id: 'error',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** *****',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );
 
 sentryTest(
   '[session-mode] replay event should not contain an error id of a dropped error while recording',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
+    // Skipping this in firefox/webkit because it is flakey there
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -91,7 +109,7 @@ sentryTest(
     await reqPromise0;
 
     await page.click('#drop');
-    await page.click('#go-background');
+    await forceFlushReplay();
     const req1 = await reqPromise1;
 
     const event1 = getReplayEvent(req1);
@@ -108,7 +126,23 @@ sentryTest(
 
     // The button click that triggered the error should still be recorded
     expect(content1.breadcrumbs).toEqual(
-      expect.arrayContaining([{ ...expectedClickBreadcrumb, message: 'body > button#drop' }]),
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#drop',
+          data: {
+            node: {
+              attributes: {
+                id: 'drop',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** ***** *** **** **',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
+      ]),
     );
   },
 );

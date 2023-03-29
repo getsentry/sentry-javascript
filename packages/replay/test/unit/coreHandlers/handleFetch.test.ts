@@ -1,6 +1,8 @@
+import type { HandlerDataFetch } from '@sentry/types';
+
 import { handleFetch } from '../../../src/coreHandlers/handleFetch';
 
-const DEFAULT_DATA = {
+const DEFAULT_DATA: HandlerDataFetch = {
   args: ['/api/0/organizations/sentry/', { method: 'GET', headers: {}, credentials: 'include' }] as Parameters<
     typeof fetch
   >,
@@ -15,7 +17,7 @@ const DEFAULT_DATA = {
     redirected: false,
     status: 200,
     ok: true,
-  },
+  } as Response,
   startTimestamp: 10000,
 };
 
@@ -36,13 +38,27 @@ describe('Unit | coreHandlers | handleFetch', () => {
   it('ignores fetches that have not completed yet', function () {
     const data = {
       ...DEFAULT_DATA,
+      endTimestamp: undefined,
+      response: undefined,
     };
 
-    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
-    delete data.endTimestamp;
-    // @ts-ignore: The operand of a 'delete' operator must be optional.ts(2790)
-    delete data.response;
-
     expect(handleFetch(data)).toEqual(null);
+  });
+
+  // This cannot happen as of now, this test just shows the expected behavior
+  it('ignores request/response sizes', function () {
+    const data = {
+      ...DEFAULT_DATA,
+      fetchData: {
+        ...DEFAULT_DATA.fetchData,
+        request_body_size: 123,
+        response_body_size: 456,
+      },
+    };
+
+    expect(handleFetch(data)?.data).toEqual({
+      method: 'GET',
+      statusCode: 200,
+    });
   });
 });
