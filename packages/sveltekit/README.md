@@ -37,6 +37,8 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
 
 **Here's how to get started:**
 
+### 1. Prerequesits & Installation
+
 1. Ensure you've set up the [`@sveltejs/adapter-node` adapter](https://kit.svelte.dev/docs/adapter-node)
 
 2. Install the Sentry SvelteKit SDK:
@@ -49,8 +51,13 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
    yarn add @sentry/sveltekit
    ```
 
-3. Create a `sentry.client.config.(js|ts)` file in the root directory of your SvelteKit project.
-   In this file you can configure the client-side Sentry SDK just like every other browser-based SDK:
+### 2. Client-side Setup
+
+The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.dev/docs/hooks) to capture error and performance data.
+
+1. If you don't already have a `hooks.client.(js|ts)` file, create a new one.
+
+2. On the top of your `hooks.client.(js|ts)` file, initialize the Sentry SDK:
 
    ```javascript
     import * as Sentry from '@sentry/sveltekit';
@@ -61,42 +68,17 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
       // For instance, initialize Session Replay:
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,
-      integrations: [new Sentry.Replay()]
+      integrations: [new Sentry.Replay()],
     });
    ```
 
-
-4. Create a `sentry.server.config.(js|ts)` file in the root directory of your SvelteKit project.
-   In this file you can configure the server-side Sentry SDK, like the Sentry Node SDK:
-
-   ```javascript
-    import * as Sentry from '@sentry/sveltekit';
-
-    Sentry.init({
-      dsn: '__DSN__',
-      traceSampleRate: 1.0,
-    });
-   ```
-
-5. Add our `withSentryViteConfig` wrapper around your Vite config so that the Sentry SDK is added to your application in `vite.config.(js|ts)`:
-   ```javascript
-    import { sveltekit } from '@sveltejs/kit/vite';
-    import { withSentryViteConfig } from '@sentry/sveltekit';
-
-    export default withSentryViteConfig({
-      plugins: [sveltekit()],
-      // ...
-    });
-   ```
-
-6. In your `hooks.client.(js|ts)` or `hooks.server.(js|ts)`, wrap the `handleError` functions as follows:
+3. Add our `handleErrorWithSentry` function to the `handleError` hook:
 
    ```javascript
     import { handleErrorWithSentry } from '@sentry/sveltekit';
 
-    const myErrorHandler = ((input) => {
-      console.error('An error occurred on the client-side');
-      return error;
+    const myErrorHandler = (({ error, event }) => {
+      console.error('An error occurred on the client side:', error, event);
     });
 
     export const handleError = handleErrorWithSentry(myErrorHandler);
@@ -104,7 +86,36 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     // export const handleError = handleErrorWithSentry();
    ```
 
-7. To capture performance data on the server-side, add our handler to the `handle` hook in `hooks.server.ts`:
+### 3. Server-side Setup
+
+1. If you don't already have a `hooks.server.(js|ts)` file, create a new one.
+
+2. On the top of your `hooks.server.(js|ts)` file, initialize the Sentry SDK:
+
+    ```javascript
+    import * as Sentry from '@sentry/sveltekit';
+
+    Sentry.init({
+      dsn: '__DSN__',
+      tracesSampleRate: 1.0,
+    });
+   ```
+
+3. Add our `handleErrorWithSentry` function to the `handleError` hook:
+
+   ```javascript
+    import { handleErrorWithSentry } from '@sentry/sveltekit';
+
+    const myErrorHandler = (({ error, event }) => {
+      console.error('An error occurred on the server side:', error, event);
+    });
+
+    export const handleError = handleErrorWithSentry(myErrorHandler);
+    // or alternatively, if you don't have a custom error handler:
+    // export const handleError = handleErrorWithSentry();
+   ```
+
+4. Add our request handler to the `handle` hook in `hooks.server.ts`:
 
    ```javascript
     import { sentryHandle } from '@sentry/sveltekit';
@@ -115,7 +126,9 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     // export const handle = sequence(sentryHandle, yourHandler);
    ```
 
-8. To catch errors and performance data in your universal `load` functions (e.g. in `+page.(js|ts)`), wrap our `wrapLoadWithSentry` function around your load code:
+### 4. Configuring `load` Functions
+
+5. To catch errors and performance data in your universal `load` functions (e.g. in `+page.(js|ts)`), wrap our `wrapLoadWithSentry` function around your load code:
 
     ```javascript
     import { wrapLoadWithSentry } from '@sentry/sveltekit';
@@ -125,7 +138,7 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
     });
     ```
 
-9. To catch errors and performance data in your server `load` functions (e.g. in `+page.server.(js|ts)`), wrap our `wrapServerLoadWithSentry` function around your load code:
+6. To catch errors and performance data in your server `load` functions (e.g. in `+page.server.(js|ts)`), wrap our `wrapServerLoadWithSentry` function around your load code:
 
     ```javascript
     import { wrapServerLoadWithSentry } from '@sentry/sveltekit';
@@ -134,6 +147,23 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
       //... your server load code
     });
     ```
+
+### 5. Vite Setup
+
+3. Add our `withSentryViteConfig` wrapper around your Vite config so that the Sentry SDK can add its plugins to your Vite config `vite.config.(js|ts)`:
+   ```javascript
+    import { sveltekit } from '@sveltejs/kit/vite';
+    import { withSentryViteConfig } from '@sentry/sveltekit';
+
+    export default withSentryViteConfig({
+      plugins: [sveltekit()],
+      // ...
+    });
+   ```
+
+   At this time (alpha, 7.46.0), the `withSentryViteConfig` wrapper is not required.
+   If you prefer to intialize the Sentry SDK in dedicated files, instead of the hook files, you can move the `Sentry.init` code to `sentry.(client|server).config.(js|ts)` files and `withSentryViteConfig` will take care of adding them to your server and client bundles.
+   We still recommend setting it up because in the near future it will also add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
 
 ## Known Limitations
 
