@@ -317,6 +317,7 @@ export function errorHandler(options?: {
 }
 
 interface SentryTrpcMiddlewareOptions {
+  /** Whether to include procedure inputs in reported events. Defaults to `false`. */
   attachRpcInput?: boolean;
 }
 
