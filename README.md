@@ -41,18 +41,14 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node including
   integrations for Express
-- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK with
-  Angular integration enabled
-- [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy): Browser SDK with
-  Angular integration enabled including native support for Angular's Ivy rendering engine.
-- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): Browser SDK with Ember
-  integration enabled
-- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): Browser SDK with React
-  integration enabled
-- [`@sentry/svelte`](https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte): Browser SDK with
-  Svelte integration enabled
-- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK with Vue
-  integration enabled
+- [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK for Angular
+- [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy): Browser SDK for
+  Angular with native support for Angular's Ivy rendering engine.
+- [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): Browser SDK for Ember
+- [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): Browser SDK for React
+- [`@sentry/svelte`](https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte): Browser SDK for Svelte
+- [`@sentry/sveltekit`](https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit):  SDK for SvelteKit
+- [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK for Vue
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
