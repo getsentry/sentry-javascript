@@ -15,6 +15,15 @@ export function isSentryRequest(url: string): boolean {
   return dsn ? url.includes(dsn.host) : false;
 }
 
+/**
+ * Assembles a URL that's passed to the users to filter on.
+ * It can include raw (potentially PII containing) data, which we'll allow users to access to filter
+ * but won't include in spans or breadcrumbs.
+ *
+ * @param requestOptions RequestOptions object containing the component parts for a URL
+ * @returns Fully-formed URL
+ */
+// TODO (v8): This function should include auth, query and fragment (it's breaking, so we need to wait for v8)
 export function extractRawUrl(requestOptions: RequestOptions): string {
   const protocol = requestOptions.protocol || '';
   const hostname = requestOptions.hostname || requestOptions.host || '';
@@ -71,6 +80,7 @@ export function cleanSpanDescription(
   if (requestOptions.host && !requestOptions.protocol) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     requestOptions.protocol = (request as any)?.agent?.protocol; // worst comes to worst, this is undefined and nothing changes
+    // This URL contains the filtered authority ([filtered]:[filtered]@example.com) but no fragment or query params
     requestUrl = extractUrl(requestOptions);
   }
 
