@@ -345,11 +345,11 @@ export async function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) 
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {
-        'Procedure Type': type,
+        procedure_type: type,
       };
 
       if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
-        trpcContext['Input'] = normalize(rawInput);
+        trpcContext.input = normalize(rawInput);
       }
 
       sentryTransaction.setContext('trpc', trpcContext);
