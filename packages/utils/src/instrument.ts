@@ -578,12 +578,12 @@ function instrumentDOM(): void {
   });
 }
 
-let _oldOnErrorHandler: OnErrorEventHandler = null;
+let _oldOnErrorHandler: typeof WINDOW['onerror'] | null = null;
 /** JSDoc */
 function instrumentError(): void {
   _oldOnErrorHandler = WINDOW.onerror;
 
-  WINDOW.onerror = function (msg: any, url: any, line: any, column: any, error: any): boolean {
+  WINDOW.onerror = function (msg: unknown, url: unknown, line: unknown, column: unknown, error: unknown): boolean {
     triggerHandlers('error', {
       column,
       error,
@@ -592,16 +592,18 @@ function instrumentError(): void {
       url,
     });
 
-    if (_oldOnErrorHandler) {
+    if (_oldOnErrorHandler && !_oldOnErrorHandler.__SENTRY_LOADER__) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
 
     return false;
   };
+
+  WINDOW.onerror.__SENTRY_INSTRUMENTED__ = true;
 }
 
-let _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
+let _oldOnUnhandledRejectionHandler: typeof WINDOW['onunhandledrejection'] | null = null;
 /** JSDoc */
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = WINDOW.onunhandledrejection;
@@ -609,11 +611,13 @@ function instrumentUnhandledRejection(): void {
   WINDOW.onunhandledrejection = function (e: any): boolean {
     triggerHandlers('unhandledrejection', e);
 
-    if (_oldOnUnhandledRejectionHandler) {
+    if (_oldOnUnhandledRejectionHandler && !_oldOnUnhandledRejectionHandler.__SENTRY_LOADER__) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
 
     return true;
   };
+
+  WINDOW.onunhandledrejection.__SENTRY_INSTRUMENTED__ = true;
 }
