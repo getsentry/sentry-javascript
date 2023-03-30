@@ -4,6 +4,82 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.46.0
+
+### Important Changes
+
+- **feat(sveltekit)**: Add Performance Monitoring for SvelteKit
+  - feat(sveltekit): Add meta tag for backend -> frontend (#7574)
+  - fix(sveltekit): Explicitly export Node SDK exports (#7644)
+  - fix(sveltekit): Handle nested server calls in `sentryHandle` (#7598)
+  - ref(sveltekit): Split up universal and server load wrappers (#7652)
+
+This release adds support for Performance Monitoring in our SvelteKit SDK for the client/server. We've also changed how you should initialize your SDK. Please read our updated [SvelteKit README instructions](./packages/sveltekit/README.md) for more details.
+
+- **feat(core)**: Add `ignoreTransactions` option (#7594)
+
+You can now easily filter out certain transactions from being sent to Sentry based on their name.
+
+```ts
+Sentry.init({
+  ignoreTransactions: ['/api/healthcheck', '/ping'],
+})
+```
+
+- **feat(node)**: Undici integration (#7582)
+  - feat(nextjs): Add Undici integration automatically (#7648)
+  - feat(sveltekit): Add Undici integration by default (#7650)
+
+We've added an integration that automatically instruments [Undici](https://github.com/nodejs/undici) and Node server side fetch. This supports Undici `v4.7.0` or higher and requires Node `v16.7.0` or higher. After adding the integration outgoing requests made by Undici will have associated spans and breadcrumbs in Sentry.
+
+```ts
+Sentry.init({
+  integrations: [new Sentry.Integrations.Undici()],
+})
+```
+
+In our Next.js and SvelteKit SDKs, this integration is automatically added.
+
+- **feat(node)**: Add Sentry tRPC middleware (#7511)
+
+We've added a new middleware for [trpc](https://trpc.io/) that automatically adds TRPC information to Sentry transactions. This middleware is meant to be used in combination with a Sentry server integration (Next.js, Express, etc).
+
+```ts
+import { initTRPC } from '@trpc/server';
+import * as Sentry from '@sentry/node';
+
+const t = initTRPC.context().create();
+const sentryMiddleware = t.middleware(
+  Sentry.Handlers.trpcMiddleware({
+    attachRpcInput: true,
+  }),
+);
+
+const sentrifiedProcedure = t.procedure.use(sentryMiddleware);
+```
+
+- **fix(node)**: Convert debugging code to callbacks to fix memory leak in `LocalVariables` integration (#7637)
+
+This fixes a memory leak in the opt-in [`LocalVariables` integration](https://blog.sentry.io/2023/02/01/local-variables-for-nodejs-in-sentry/), which adds local variables to the stacktraces sent to Sentry. The minimum recommended version to use the `LocalVariables` is now `7.46.0`.
+
+### Additional Features and Fixes
+
+- feat(node): Auto discovery only returns integrations where dependency loads (#7603)
+- feat(node): Sanitize URLs in Span descriptions and breadcrumbs (PII) (#7667)
+- feat(replay): Add `responseStatus`, `decodedBodySize` to perf entries (#7613)
+- feat(replay): Add experiment to capture request/response bodies (#7589)
+- feat(replay): Capture replay mutation breadcrumbs & add experiment (#7568)
+- feat(tracing): Ensure `pageload` transaction starts at timeOrigin (#7632)
+- fix(core): Remove `abs_path` from stack trace (reverting #7167) (#7623)
+- fix(nextjs): Add loading component type to server component wrapping (#7639)
+- fix(nextjs): Don't report `NEXT_NOT_FOUND` and `NEXT_REDIRECT` errors (#7642)
+- fix(nextjs): Rewrite `abs_path` frames (#7619)
+- fix(nextjs): Show errors and warnings only once during build (#7651)
+- fix(nextjs): Use Next.js internal AsyncStorage (#7630)
+- fix(nextjs): Gracefully handle undefined `beforeFiles` in rewrites (#7649)
+
+Work in this release contributed by @aldenquimby and @bertho-zero. Thank you for your contributions!
+
 ## 7.45.0
 
 - build(cdn): Ensure ES5 bundles do not use non-ES5 code (#7550)
