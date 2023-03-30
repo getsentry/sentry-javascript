@@ -2,15 +2,11 @@
 import type { Span } from '@sentry/core';
 import { getActiveTransaction, getCurrentHub, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import {
-  addExceptionMechanism,
-  baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
-  extractTraceparentData,
-  objectify,
-} from '@sentry/utils';
+import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import * as domain from 'domain';
+
+import { getTracePropagationData } from './utils';
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
@@ -77,10 +73,7 @@ export const sentryHandle: Handle = input => {
 };
 
 function instrumentHandle({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
-  const sentryTraceHeader = event.request.headers.get('sentry-trace');
-  const baggageHeader = event.request.headers.get('baggage');
-  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
+  const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
 
   return trace(
     {
