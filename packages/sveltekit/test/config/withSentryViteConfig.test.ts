@@ -147,6 +147,6 @@ describe('withSentryViteConfig', () => {
     expect(plugins[0].name).toBe('some plugin');
     expect((sentrifiedConfig as UserConfig).server?.fs?.allow).toStrictEqual(['./bar']);
 
-    existsFile = false;
+    existsFile = true;
   });
 });
