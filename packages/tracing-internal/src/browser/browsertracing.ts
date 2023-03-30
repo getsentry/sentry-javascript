@@ -330,6 +330,7 @@ export class BrowserTracing implements Integration {
 
       const op = 'ui.action.click';
       if (inflightInteractionTransaction) {
+        inflightInteractionTransaction.setFinishReason('interactionInterrupted');
         inflightInteractionTransaction.finish();
         inflightInteractionTransaction = undefined;
       }
