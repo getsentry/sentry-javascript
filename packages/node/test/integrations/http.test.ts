@@ -196,6 +196,39 @@ describe('tracing', () => {
     expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
   });
 
+  it('omits query and fragment from description and adds to span data instead', () => {
+    nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
+
+    const transaction = createTransactionOnScope();
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+    http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
+
+    expect(spans.length).toEqual(2);
+
+    // our span is at index 1 because the transaction itself is at index 0
+    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(spans[1].op).toEqual('http.client');
+    expect(spans[1].data.method).toEqual('GET');
+    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
+    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+  });
+
+  it('filters the authority (username and password) in span description', () => {
+    nock('http://username:password@dogs.are.great').get('/').reply(200);
+
+    const transaction = createTransactionOnScope();
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+    http.get('http://username:password@dogs.are.great/');
+
+    expect(spans.length).toEqual(2);
+
+    // our span is at index 1 because the transaction itself is at index 0
+    expect(spans[1].description).toEqual('GET http://[Filtered]:[Filtered]@dogs.are.great/');
+  });
+
   describe('Tracing options', () => {
     beforeEach(() => {
       // hacky way of restoring monkey patched functions
