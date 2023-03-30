@@ -45,14 +45,17 @@ const navigationEvent: NavigationEvent = {
   url: new URL('http://example.org/users/123'),
 };
 
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(_ => {});
+
 describe('handleError', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
     mockAddExceptionMechanism.mockClear();
+    consoleErrorSpy.mockClear();
     mockScope = new Scope();
   });
 
-  it('works when a handleError func is not provided', async () => {
+  it('falls back to default handler when handleError func is not provided', async () => {
     const wrappedHandleError = handleErrorWithSentry();
     const mockError = new Error('test');
     const returnVal = await wrappedHandleError({ error: mockError, event: navigationEvent });
@@ -60,6 +63,8 @@ describe('handleError', () => {
     expect(returnVal).not.toBeDefined();
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
     expect(mockCaptureException).toHaveBeenCalledWith(mockError, expect.any(Function));
+    // The default handler logs the error to the console
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
   });
 
   it('calls captureException', async () => {
