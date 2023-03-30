@@ -68,7 +68,7 @@ describe('handleError', () => {
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('invokes the user-procided error handler', async () => {
+    it('invokes the user-provided error handler', async () => {
       const wrappedHandleError = handleErrorWithSentry(handleError);
       const mockError = new Error('test');
       const returnVal = (await wrappedHandleError({ error: mockError, event: navigationEvent })) as any;
