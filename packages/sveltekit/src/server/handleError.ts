@@ -6,12 +6,20 @@ import { addExceptionMechanism } from '@sentry/utils';
 // eslint-disable-next-line import/no-unresolved
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 
+// The SvelteKit default error handler just logs the error's stack trace to the console
+// see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/runtime/server/index.js#L43
+function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): ReturnType<HandleServerError> {
+  // @ts-expect-error this conforms to the default implementation (including this ts-expect-error)
+  // eslint-disable-next-line no-console
+  console.error(error && error.stack);
+}
+
 /**
  * Wrapper for the SvelteKit error handler that sends the error to Sentry.
  *
  * @param handleError The original SvelteKit error handler.
  */
-export function handleErrorWithSentry(handleError?: HandleServerError): HandleServerError {
+export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
   return (input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> => {
     captureException(input.error, scope => {
       scope.addEventProcessor(event => {
@@ -23,8 +31,7 @@ export function handleErrorWithSentry(handleError?: HandleServerError): HandleSe
       });
       return scope;
     });
-    if (handleError) {
-      return handleError(input);
-    }
+
+    return handleError(input);
   };
 }
