@@ -58,6 +58,12 @@ const sentryMiddleware = t.middleware(
 const sentrifiedProcedure = t.procedure.use(sentryMiddleware);
 ```
 
+- **feat(tracing)**: Remove requirement for `@sentry/tracing` package
+
+With `7.46.0` you no longer require the `@sentry/tracing` package to use tracing and performance monitoring with the Sentry JavaScript SDKs. The `@sentry/tracing` package will be removed in a future major release, but can still be used with no changes.
+
+Please see the [Migration docs](./MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460) for more details.
+
 - **fix(node)**: Convert debugging code to callbacks to fix memory leak in `LocalVariables` integration (#7637)
 
 This fixes a memory leak in the opt-in [`LocalVariables` integration](https://blog.sentry.io/2023/02/01/local-variables-for-nodejs-in-sentry/), which adds local variables to the stacktraces sent to Sentry. The minimum recommended version to use the `LocalVariables` is now `7.46.0`.
