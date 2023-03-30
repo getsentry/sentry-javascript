@@ -692,10 +692,8 @@ jobs:
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
           E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
           E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
-        # yarn network mutex is necessary because we run multiple yarn install commands at the same time and they might conflict
         run: |
           cd packages/e2e-tests
-          yarn config set -- --mutex network
           yarn test:e2e
 
   job_required_tests:
