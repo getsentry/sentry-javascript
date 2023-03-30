@@ -30,8 +30,7 @@ export function handleErrorWithSentry(handleError: HandleClientError = defaultEr
       });
       return scope;
     });
-    if (handleError) {
-      return handleError(input);
-    }
+
+    return handleError(input);
   };
 }
