@@ -5,7 +5,7 @@
  * Resolve plugin docs: https://github.com/rollup/plugins/tree/master/packages/node-resolve
  * Terser plugin docs: https://github.com/TrySound/rollup-plugin-terser#options
  * Terser docs: https://github.com/terser/terser#api-reference
- * Typescript plugin docs: https://github.com/ezolenko/rollup-plugin-typescript2
+ * Typescript plugin docs: https://github.com/rollup/plugins/tree/master/packages/typescript/#readme
  */
 
 import * as fs from 'fs';
@@ -17,7 +17,7 @@ import license from 'rollup-plugin-license';
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
-import typescript from 'rollup-plugin-typescript2';
+import typescript from '@rollup/plugin-typescript';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -145,38 +145,27 @@ export function makeTerserPlugin() {
 export function makeTSPlugin(jsVersion) {
   const baseTSPluginOptions = {
     tsconfig: 'tsconfig.json',
-    tsconfigOverride: {
-      compilerOptions: {
-        declaration: false,
-        declarationMap: false,
-        paths: {
-          '@sentry/browser': ['../browser/src'],
-          '@sentry/core': ['../core/src'],
-          '@sentry/hub': ['../hub/src'],
-          '@sentry/types': ['../types/src'],
-          '@sentry/utils': ['../utils/src'],
-          '@sentry-internal/integration-shims': ['../integration-shims/src'],
-          '@sentry-internal/tracing': ['../tracing-internal/src'],
-        },
-        baseUrl: '.',
+    compilerOptions: {
+      declaration: false,
+      declarationMap: false,
+      paths: {
+        '@sentry/browser': ['../browser/src'],
+        '@sentry/core': ['../core/src'],
+        '@sentry/hub': ['../hub/src'],
+        '@sentry/types': ['../types/src'],
+        '@sentry/utils': ['../utils/src'],
+        '@sentry-internal/integration-shims': ['../integration-shims/src'],
+        '@sentry-internal/tracing': ['../tracing-internal/src'],
       },
+      baseUrl: '.',
     },
     include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-    // the typescript plugin doesn't handle concurrency very well, so clean the cache between builds
-    // (see https://github.com/ezolenko/rollup-plugin-typescript2/issues/15)
-    clean: true,
-    // TODO: For the moment, the above issue seems to have stopped spamming the build with (non-blocking) errors, as it
-    // was originally. If it starts again, this will suppress that output. If we get to the end of the bundle revamp and
-    // it still seems okay, we can take this out entirely.
-    // verbosity: 0,
   };
 
   const plugin = typescript(
     deepMerge(baseTSPluginOptions, {
-      tsconfigOverride: {
-        compilerOptions: {
-          target: jsVersion,
-        },
+      compilerOptions: {
+        target: jsVersion,
       },
     }),
   );
