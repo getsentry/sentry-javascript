@@ -692,6 +692,7 @@ jobs:
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
           E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
           E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+          YARN_CACHE_FOLDER: '/var/tmp/e2e-test-yarn-cache'
         run: |
           cd packages/e2e-tests
           yarn test:e2e
