@@ -2,7 +2,11 @@ import { expect } from '@playwright/test';
 
 export const ReplayRecordingData = [
   [
-    { type: 4, data: { href: 'http://localhost:3000/', width: 1280, height: 720 }, timestamp: expect.any(Number) },
+    {
+      type: 4,
+      data: { href: expect.stringMatching(/http:\/\/localhost:\d+\//), width: 1280, height: 720 },
+      timestamp: expect.any(Number),
+    },
     {
       type: 2,
       data: {
@@ -105,7 +109,7 @@ export const ReplayRecordingData = [
             node: {
               type: 2,
               tagName: 'a',
-              attributes: { id: 'navigation', href: 'http://localhost:3000/user/5' },
+              attributes: { id: 'navigation', href: expect.stringMatching(/http:\/\/localhost:\d+\/user\/5/) },
               childNodes: [],
               id: 14,
             },
@@ -140,7 +144,7 @@ export const ReplayRecordingData = [
         tag: 'performanceSpan',
         payload: {
           op: 'navigation.navigate',
-          description: 'http://localhost:3000/',
+          description: expect.stringMatching(/http:\/\/localhost:\d+\//),
           startTimestamp: expect.any(Number),
           endTimestamp: expect.any(Number),
           data: {
@@ -166,7 +170,7 @@ export const ReplayRecordingData = [
         tag: 'performanceSpan',
         payload: {
           op: 'resource.script',
-          description: expect.stringMatching(/http:\/\/localhost:3000\/static\/js\/main.(\w+).js/),
+          description: expect.stringMatching(/http:\/\/localhost:\d+\/static\/js\/main.(\w+).js/),
           startTimestamp: expect.any(Number),
           endTimestamp: expect.any(Number),
           data: {
