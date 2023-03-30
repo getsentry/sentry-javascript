@@ -40,6 +40,7 @@ body:
         - '@sentry/remix'
         - '@sentry/serverless'
         - '@sentry/svelte'
+        - '@sentry/sveltekit'
         - '@sentry/vue'
         - '@sentry/wasm'
         - Sentry Browser CDN bundle

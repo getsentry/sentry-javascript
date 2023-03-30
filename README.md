@@ -51,6 +51,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
   integration enabled
 - [`@sentry/svelte`](https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte): Browser SDK with
   Svelte integration enabled
+- [`@sentry/sveltekit`](https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit):  SDK for SvelteKit
 - [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK with Vue
   integration enabled
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
