@@ -65,8 +65,6 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations, Handlers };
 
-export { trpcMiddleware } from './trpc';
-
 // We need to patch domain on the global __SENTRY__ object to make it work for node in cross-platform packages like
 // @sentry/core. If we don't do this, browser bundlers will have troubles resolving `require('domain')`.
 const carrier = getMainCarrier();
