@@ -161,9 +161,8 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
     });
    ```
 
-   At this time (alpha, 7.46.0), the `withSentryViteConfig` wrapper is not required.
-   If you prefer to intialize the Sentry SDK in dedicated files, instead of the hook files, you can move the `Sentry.init` code to `sentry.(client|server).config.(js|ts)` files and `withSentryViteConfig` will take care of adding them to your server and client bundles.
-   We still recommend setting it up because in the near future it will also add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
+   In the near future this wrapper will add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
+   Furthermore, if you prefer to intialize the Sentry SDK in dedicated files, instead of the hook files, you can move the `Sentry.init` code to `sentry.(client|server).config.(js|ts)` files and `withSentryViteConfig` will take care of adding them to your server and client bundles.
 
 ## Known Limitations
 
