@@ -1,9 +1,8 @@
+import type { Span, Transaction } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { Hub } from '@sentry/core';
-import type { Span, Transaction } from '@sentry/tracing';
-import { addExtensionMethods, TRACEPARENT_REGEXP } from '@sentry/tracing';
+import { addTracingExtensions, Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { logger, parseSemver } from '@sentry/utils';
+import { logger, parseSemver, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -34,7 +33,7 @@ describe('tracing', () => {
       ...customOptions,
     });
     const hub = new Hub(new NodeClient(options));
-    addExtensionMethods();
+    addTracingExtensions();
 
     hub.configureScope(scope =>
       scope.setUser({
@@ -260,7 +259,7 @@ describe('tracing', () => {
     }
 
     function createTransactionAndPutOnScope(hub: Hub) {
-      addExtensionMethods();
+      addTracingExtensions();
       const transaction = hub.startTransaction({ name: 'dogpark' });
       hub.getScope()?.setSpan(transaction);
       return transaction;

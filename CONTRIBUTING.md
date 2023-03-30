@@ -33,6 +33,15 @@ Since we are using [`TypeScript`](https://www.typescriptlang.org/), you need to 
 - `yarn build:dev:filter <name of npm package>`, which runs `yarn build:dev` only in projects relevant to the given package (so, for example, running `yarn build:dev:filter @sentry/react` will build the `react` package, all of its dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))
 - `yarn build:dev:watch`, which runs `yarn build:dev` in watch mode (recommended)
 
+
+## Testing SDK Packages Locally
+
+To test local versions of SDK packages, for instance in test projects, you have a couple of options:
+
+* Use [`yarn link`](https://classic.yarnpkg.com/lang/en/docs/cli/link/) to symlink your package to the test project.
+* Use [`yalc` to install SDK packages](./docs/using-yalc.md) as if they were already published.
+* Run `build:tarball` in the repo and `yarn add ./path/to/tarball.tgz` in the project.
+
 ## Adding Tests
 
 **Any nontrivial fixes/features should include tests.** You'll find a `test` folder in each package.

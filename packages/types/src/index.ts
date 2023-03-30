@@ -1,5 +1,12 @@
 export type { Attachment } from './attachment';
-export type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+export type {
+  Breadcrumb,
+  BreadcrumbHint,
+  FetchBreadcrumbData,
+  XhrBreadcrumbData,
+  FetchBreadcrumbHint,
+  XhrBreadcrumbHint,
+} from './breadcrumb';
 export type { Client } from './client';
 export type { ClientReport, Outcome, EventDropReason } from './clientreport';
 export type { Context, Contexts, DeviceContext, OsContext, AppContext, CultureContext, TraceContext } from './context';
@@ -94,6 +101,6 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WrappedFunction } from './wrappedfunction';
 export type { Instrumenter } from './instrumenter';
-export type { HandlerDataFetch, SentryWrappedXMLHttpRequest } from './instrument';
+export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions } from './browseroptions';

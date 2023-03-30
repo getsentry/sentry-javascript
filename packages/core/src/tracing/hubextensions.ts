@@ -4,21 +4,20 @@ import { isNaN, logger } from '@sentry/utils';
 import type { Hub } from '../hub';
 import { getMainCarrier } from '../hub';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
   const scope = this.getScope();
-  if (scope) {
-    const span = scope.getSpan();
-    if (span) {
-      return {
+  const span = scope.getSpan();
+
+  return span
+    ? {
         'sentry-trace': span.toTraceparent(),
-      };
-    }
-  }
-  return {};
+      }
+    : {};
 }
 
 /**
@@ -237,4 +236,6 @@ export function addTracingExtensions(): void {
   if (!carrier.__SENTRY__.extensions.traceHeaders) {
     carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
+
+  registerErrorInstrumentation();
 }

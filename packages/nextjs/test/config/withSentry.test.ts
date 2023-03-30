@@ -1,10 +1,15 @@
 import * as hub from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import type { Client, ClientOptions } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { withSentry } from '../../src/server';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/server/types';
+
+// The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
+// constructor but the client isn't used in these tests.
+addTracingExtensions();
 
 const FLUSH_DURATION = 200;
 

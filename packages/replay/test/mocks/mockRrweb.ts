@@ -19,7 +19,7 @@ export type RecordMock = jest.MockedFunction<typeof rrwebRecord> & RecordAdditio
 function createCheckoutPayload(isCheckout: boolean = true) {
   return {
     data: { isCheckout },
-    timestamp: new Date().getTime(),
+    timestamp: Date.now(),
     type: isCheckout ? 2 : 3,
   };
 }

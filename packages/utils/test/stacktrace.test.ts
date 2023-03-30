@@ -1,4 +1,4 @@
-import { stripSentryFramesAndReverse } from '../src/stacktrace';
+import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src/stacktrace';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {
@@ -65,6 +65,203 @@ describe('Stacktrace', () => {
       expect(frames.length).toBe(2);
       expect(frames[0].function).toBe('bar');
       expect(frames[1].function).toBe('foo');
+    });
+  });
+});
+
+describe('node', () => {
+  const mockGetModule = jest.fn();
+  const parser = nodeStackLineParser(mockGetModule);
+  const node = parser[1];
+
+  beforeEach(() => {
+    mockGetModule.mockReset();
+  });
+
+  it('should return undefined for invalid input', () => {
+    expect(node('invalid input')).toBeUndefined();
+  });
+
+  it('should extract function, module, filename, lineno, colno, and in_app from valid input', () => {
+    const input = 'at myFunction (/path/to/file.js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path/to/file.js',
+      module: undefined,
+      function: 'myFunction',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('extracts module from getModule', () => {
+    const input = 'at myFunction (/path/to/file.js:10:5)';
+    mockGetModule.mockReturnValue('myModule');
+    expect(node(input)?.module).toEqual('myModule');
+  });
+
+  it('should extract anonymous function name correctly', () => {
+    const input = 'at /path/to/file.js:10:5';
+
+    const expectedOutput = {
+      filename: '/path/to/file.js',
+      module: undefined,
+      function: '<anonymous>',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('should extract method name and type name correctly', () => {
+    const input = 'at myObject.myMethod (/path/to/file.js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path/to/file.js',
+      module: undefined,
+      function: 'myObject.myMethod',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('should handle input with file:// protocol', () => {
+    const input = 'at myFunction (file:///path/to/file.js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path/to/file.js',
+      module: undefined,
+      function: 'myFunction',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('should handle input with no line or column number', () => {
+    const input = 'at myFunction (/path/to/file.js)';
+
+    const expectedOutput = {
+      filename: '/path/to/file.js',
+      module: undefined,
+      function: 'myFunction',
+      lineno: undefined,
+      colno: undefined,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('should handle input with "native" flag', () => {
+    const input = 'at myFunction (native)';
+
+    const expectedOutput = {
+      filename: undefined,
+      module: undefined,
+      function: 'myFunction',
+      lineno: undefined,
+      colno: undefined,
+      in_app: false,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('should correctly parse a stack trace line with a function name and file URL', () => {
+    const line = 'at myFunction (file:///path/to/myFile.js:10:20)';
+    const result = node(line);
+    expect(result).toEqual({
+      filename: '/path/to/myFile.js',
+      function: 'myFunction',
+      lineno: 10,
+      colno: 20,
+      in_app: true,
+    });
+  });
+
+  it('should correctly parse a stack trace line with a method name and filename', () => {
+    const line = 'at MyClass.myMethod (/path/to/myFile.js:10:20)';
+    const result = node(line);
+    expect(result).toEqual({
+      filename: '/path/to/myFile.js',
+      module: undefined,
+      function: 'MyClass.myMethod',
+      lineno: 10,
+      colno: 20,
+      in_app: true,
+    });
+  });
+
+  it('should correctly parse a stack trace line with an anonymous function', () => {
+    const line = 'at Object.<anonymous> (/path/to/myFile.js:10:20)';
+    const result = node(line);
+
+    expect(result).toEqual({
+      filename: '/path/to/myFile.js',
+      function: 'Object.<anonymous>',
+      lineno: 10,
+      colno: 20,
+      in_app: true,
+    });
+  });
+
+  it('should correctly parse a stack trace line with no function or filename', () => {
+    const line = 'at /path/to/myFile.js:10:20';
+    const result = node(line);
+    expect(result).toEqual({
+      filename: '/path/to/myFile.js',
+      function: '<anonymous>',
+      lineno: 10,
+      colno: 20,
+      in_app: true,
+    });
+  });
+
+  it('should correctly parse a stack trace line with a native function', () => {
+    const line = 'at Object.<anonymous> (native)';
+    const result = node(line);
+    expect(result).toEqual({
+      filename: undefined,
+      function: 'Object.<anonymous>',
+      lineno: undefined,
+      colno: undefined,
+      in_app: false,
+    });
+  });
+
+  it('should correctly parse a stack trace line with a module filename', () => {
+    const line = 'at Object.<anonymous> (/path/to/node_modules/myModule/index.js:10:20)';
+    const result = node(line);
+
+    expect(result).toEqual({
+      filename: '/path/to/node_modules/myModule/index.js',
+      function: 'Object.<anonymous>',
+      lineno: 10,
+      colno: 20,
+      in_app: false,
+    });
+  });
+
+  it('should correctly parse a stack trace line with a Windows filename', () => {
+    const line = 'at Object.<anonymous> (C:\\path\\to\\myFile.js:10:20)';
+    const result = node(line);
+    expect(result).toEqual({
+      filename: 'C:\\path\\to\\myFile.js',
+      function: 'Object.<anonymous>',
+      lineno: 10,
+      colno: 20,
+      in_app: true,
     });
   });
 });

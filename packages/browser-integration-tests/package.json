@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "7.43.0",
+  "version": "7.45.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -25,10 +25,17 @@
     "test:bundle:es6:min": "PW_BUNDLE=bundle_es6_min yarn test",
     "test:bundle:replay:es6": "PW_BUNDLE=bundle_replay_es6 yarn test",
     "test:bundle:replay:es6:min": "PW_BUNDLE=bundle_replay_es6_min yarn test",
+    "test:bundle:tracing:es5": "PW_BUNDLE=bundle_tracing_es5 yarn test",
+    "test:bundle:tracing:es5:min": "PW_BUNDLE=bundle_tracing_es5_min yarn test",
+    "test:bundle:tracing:es6": "PW_BUNDLE=bundle_tracing_es6 yarn test",
+    "test:bundle:tracing:es6:min": "PW_BUNDLE=bundle_tracing_es6_min yarn test",
+    "test:bundle:tracing:replay:es6": "PW_BUNDLE=bundle_tracing_replay_es6 yarn test",
+    "test:bundle:tracing:replay:es6:min": "PW_BUNDLE=bundle_tracing_replay_es6_min yarn test",
     "test:cjs": "PW_BUNDLE=cjs yarn test",
     "test:esm": "PW_BUNDLE=esm yarn test",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
-    "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots"
+    "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots",
+    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
@@ -39,6 +46,10 @@
     "playwright": "^1.31.1",
     "typescript": "^4.5.2",
     "webpack": "^5.52.0"
+  },
+  "devDependencies": {
+    "@types/glob": "8.0.0",
+    "glob": "8.0.3"
   },
   "volta": {
     "extends": "../../package.json"

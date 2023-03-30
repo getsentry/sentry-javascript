@@ -1,10 +1,12 @@
-import { record } from '@sentry-internal/rrweb';
+import type { INode } from '@sentry-internal/rrweb-snapshot';
+import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
-import { addBreadcrumbEvent } from './addBreadcrumbEvent';
+import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
+import { getAttributesToRecord } from './util/getAttributesToRecord';
 
 interface DomHandlerData {
   name: string;
@@ -31,9 +33,8 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
  * An event handler to react to DOM events.
  */
 function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
-  // Taken from https://github.com/getsentry/sentry-javascript/blob/master/packages/browser/src/integrations/breadcrumbs.ts#L112
   let target;
-  let targetNode;
+  let targetNode: Node | INode | undefined;
 
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
@@ -43,18 +44,32 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
     target = '<unknown>';
   }
 
-  if (target.length === 0) {
-    return null;
-  }
+  // `__sn` property is the serialized node created by rrweb
+  const serializedNode =
+    targetNode && '__sn' in targetNode && targetNode.__sn.type === NodeType.Element ? targetNode.__sn : null;
 
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
     message: target,
-    data: {
-      // Not sure why this errors, Node should be correct (Argument of type 'Node' is not assignable to parameter of type 'INode')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(targetNode ? { nodeId: record.mirror.getId(targetNode as any) } : {}),
-    },
+    data: serializedNode
+      ? {
+          nodeId: serializedNode.id,
+          node: {
+            id: serializedNode.id,
+            tagName: serializedNode.tagName,
+            textContent: targetNode
+              ? Array.from(targetNode.childNodes)
+                  .map(
+                    (node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text && node.__sn.textContent,
+                  )
+                  .filter(Boolean) // filter out empty values
+                  .map(text => (text as string).trim())
+                  .join('')
+              : '',
+            attributes: getAttributesToRecord(serializedNode.attributes),
+          },
+        }
+      : {},
   });
 }
 

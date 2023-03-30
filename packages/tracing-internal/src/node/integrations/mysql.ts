@@ -1,7 +1,8 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
+import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface MysqlConnection {
@@ -9,7 +10,7 @@ interface MysqlConnection {
 }
 
 /** Tracing integration for node-mysql package */
-export class Mysql implements Integration {
+export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
@@ -20,6 +21,13 @@ export class Mysql implements Integration {
    */
   public name: string = Mysql.id;
 
+  private _module?: MysqlConnection;
+
+  /** @inheritdoc */
+  public loadDependency(): MysqlConnection | undefined {
+    return (this._module = this._module || loadModule('mysql/lib/Connection.js'));
+  }
+
   /**
    * @inheritDoc
    */
@@ -29,7 +37,7 @@ export class Mysql implements Integration {
       return;
     }
 
-    const pkg = loadModule<MysqlConnection>('mysql/lib/Connection.js');
+    const pkg = this.loadDependency();
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Mysql Integration was unable to require `mysql` package.');

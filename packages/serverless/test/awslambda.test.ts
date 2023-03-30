@@ -1,5 +1,7 @@
 // NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 // eslint-disable-next-line import/no-unresolved
+import * as SentryNode from '@sentry/node';
+// eslint-disable-next-line import/no-unresolved
 import type { Callback, Handler } from 'aws-lambda';
 
 import * as Sentry from '../src';
@@ -40,15 +42,15 @@ const fakeCallback: Callback = (err, result) => {
 
 function expectScopeSettings(fakeTransactionContext: any) {
   // @ts-ignore see "Why @ts-ignore" note
-  const fakeTransaction = { ...Sentry.fakeTransaction, ...fakeTransactionContext };
+  const fakeTransaction = { ...SentryNode.fakeTransaction, ...fakeTransactionContext };
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
+  expect(SentryNode.fakeScope.setSpan).toBeCalledWith(fakeTransaction);
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
+  expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
+  expect(SentryNode.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setContext).toBeCalledWith(
+  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
     'aws.lambda',
     expect.objectContaining({
       aws_request_id: 'awsRequestId',
@@ -59,7 +61,7 @@ function expectScopeSettings(fakeTransactionContext: any) {
     }),
   );
   // @ts-ignore see "Why @ts-ignore" note
-  expect(Sentry.fakeScope.setContext).toBeCalledWith(
+  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
     'aws.cloudwatch.logs',
     expect.objectContaining({
       log_group: 'logGroupName',
@@ -77,7 +79,7 @@ describe('AWSLambda', () => {
 
   afterEach(() => {
     // @ts-ignore see "Why @ts-ignore" note
-    Sentry.resetMocks();
+    SentryNode.resetMocks();
   });
 
   describe('wrapHandler() options', () => {
@@ -88,7 +90,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
 
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(Sentry.flush).toBeCalledWith(1337);
+      expect(SentryNode.flush).toBeCalledWith(1337);
     });
 
     test('captureTimeoutWarning enabled (default)', async () => {
@@ -104,7 +106,7 @@ describe('AWSLambda', () => {
 
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
@@ -152,14 +154,14 @@ describe('AWSLambda', () => {
 
       expect(Sentry.captureMessage).toBeCalled();
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
+      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
       const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(Sentry.captureException).toBeCalledTimes(0);
+      expect(SentryNode.captureException).toBeCalledTimes(0);
     });
 
     test('captureAllSettledReasons enable', async () => {
@@ -173,9 +175,9 @@ describe('AWSLambda', () => {
         ]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(Sentry.captureException).toHaveBeenNthCalledWith(1, error);
-      expect(Sentry.captureException).toHaveBeenNthCalledWith(2, error2);
-      expect(Sentry.captureException).toBeCalledTimes(2);
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error);
+      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2);
+      expect(SentryNode.captureException).toBeCalledTimes(2);
     });
   });
 
@@ -197,11 +199,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.finish).toBeCalled();
-      expect(Sentry.flush).toBeCalledWith(2000);
+      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.flush).toBeCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
@@ -223,12 +225,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(Sentry.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeTransaction.finish).toBeCalled();
-        expect(Sentry.flush).toBeCalledWith(2000);
+        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.flush).toBeCalledWith(2000);
       }
     });
 
@@ -254,7 +256,7 @@ describe('AWSLambda', () => {
 
       const handler: Handler = (_event, _context, callback) => {
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeHub.startTransaction).toBeCalledWith(
+        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(
           expect.objectContaining({
             parentSpanId: '1121201211212012',
             parentSampled: false,
@@ -300,12 +302,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(Sentry.captureException).toBeCalledWith(e);
+        expect(SentryNode.captureException).toBeCalledWith(e);
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeTransaction.finish).toBeCalled();
-        expect(Sentry.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.flush).toBeCalled();
       }
     });
   });
@@ -328,11 +330,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.finish).toBeCalled();
-      expect(Sentry.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.flush).toBeCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -365,12 +367,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(Sentry.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeTransaction.finish).toBeCalled();
-        expect(Sentry.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.flush).toBeCalled();
       }
     });
 
@@ -408,11 +410,11 @@ describe('AWSLambda', () => {
 
       expect(rv).toStrictEqual(42);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+      expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
       expectScopeSettings(fakeTransactionContext);
       // @ts-ignore see "Why @ts-ignore" note
-      expect(Sentry.fakeTransaction.finish).toBeCalled();
-      expect(Sentry.flush).toBeCalled();
+      expect(SentryNode.fakeTransaction.finish).toBeCalled();
+      expect(SentryNode.flush).toBeCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -445,12 +447,12 @@ describe('AWSLambda', () => {
         };
 
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
+        expect(SentryNode.fakeHub.startTransaction).toBeCalledWith(fakeTransactionContext);
         expectScopeSettings(fakeTransactionContext);
-        expect(Sentry.captureException).toBeCalledWith(error);
+        expect(SentryNode.captureException).toBeCalledWith(error);
         // @ts-ignore see "Why @ts-ignore" note
-        expect(Sentry.fakeTransaction.finish).toBeCalled();
-        expect(Sentry.flush).toBeCalled();
+        expect(SentryNode.fakeTransaction.finish).toBeCalled();
+        expect(SentryNode.flush).toBeCalled();
       }
     });
   });

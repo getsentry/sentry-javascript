@@ -177,6 +177,22 @@ const MALFORMED_EVENT: Event = {
   },
 };
 
+const TRANSACTION_EVENT: Event = {
+  message: 'transaction message',
+  transaction: 'transaction name',
+  type: 'transaction',
+};
+
+const TRANSACTION_EVENT_2: Event = {
+  transaction: 'transaction name 2',
+  type: 'transaction',
+};
+
+const TRANSACTION_EVENT_3: Event = {
+  transaction: 'other name',
+  type: 'transaction',
+};
+
 describe('InboundFilters', () => {
   describe('_isSentryError', () => {
     it('should work as expected', () => {
@@ -200,6 +216,13 @@ describe('InboundFilters', () => {
         ignoreErrors: ['capture'],
       });
       expect(eventProcessor(MESSAGE_EVENT, {})).toBe(null);
+    });
+
+    it('ignores transaction event for filtering', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreErrors: ['transaction'],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
     });
 
     it('string filter with exact match', () => {
@@ -269,6 +292,58 @@ describe('InboundFilters', () => {
         });
         expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
       });
+    });
+  });
+
+  describe('ignoreTransactions', () => {
+    it('string filter with partial match', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: ['name'],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(null);
+    });
+
+    it('ignores error event for filtering', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: ['capture'],
+      });
+      expect(eventProcessor(MESSAGE_EVENT, {})).toBe(MESSAGE_EVENT);
+    });
+
+    it('string filter with exact match', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: ['transaction name'],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(null);
+    });
+
+    it('regexp filter with partial match', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: [/name/],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(null);
+    });
+
+    it('regexp filter with exact match', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: [/^transaction name$/],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_2, {})).toBe(TRANSACTION_EVENT_2);
+    });
+
+    it('can use multiple filters', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreTransactions: ['transaction name 2', /transaction/],
+      });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_2, {})).toBe(null);
+      expect(eventProcessor(TRANSACTION_EVENT_3, {})).toBe(TRANSACTION_EVENT_3);
+    });
+
+    it('uses default filters', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
     });
   });
 

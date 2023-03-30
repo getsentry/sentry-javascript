@@ -1,40 +1,55 @@
-import { basename, dirname } from '@sentry/utils';
+import { posix, sep } from 'path';
+
+const isWindowsPlatform = sep === '\\';
 
 /** normalizes Windows paths */
-function normalizePath(path: string): string {
+function normalizeWindowsPath(path: string): string {
   return path
     .replace(/^[A-Z]:/, '') // remove Windows-style prefix
     .replace(/\\/g, '/'); // replace all `\` instances with `/`
 }
 
 /** Gets the module from a filename */
-export function getModule(filename: string | undefined): string | undefined {
+export function getModule(
+  filename: string | undefined,
+  normalizeWindowsPathSeparator: boolean = isWindowsPlatform,
+): string | undefined {
   if (!filename) {
     return;
   }
 
-  const normalizedFilename = normalizePath(filename);
+  const normalizedFilename = normalizeWindowsPathSeparator ? normalizeWindowsPath(filename) : filename;
 
-  // We could use optional chaining here but webpack does like that mixed with require
-  const base = normalizePath(
-    `${(require && require.main && require.main.filename && dirname(require.main.filename)) || global.process.cwd()}/`,
-  );
+  // eslint-disable-next-line prefer-const
+  let { root, dir, base: basename, ext } = posix.parse(normalizedFilename);
+
+  const base = (require && require.main && require.main.filename && dir) || global.process.cwd();
+
+  const normalizedBase = `${base}/`;
 
   // It's specifically a module
-  const file = basename(normalizedFilename, '.js');
+  let file = basename;
 
-  const path = dirname(normalizedFilename);
-  let n = path.lastIndexOf('/node_modules/');
+  if (ext === '.js') {
+    file = file.slice(0, file.length - '.js'.length);
+  }
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    dir = '.';
+  }
+
+  let n = dir.lastIndexOf('/node_modules/');
   if (n > -1) {
     // /node_modules/ is 14 chars
-    return `${path.slice(n + 14).replace(/\//g, '.')}:${file}`;
+    return `${dir.slice(n + 14).replace(/\//g, '.')}:${file}`;
   }
   // Let's see if it's a part of the main module
   // To be a part of main module, it has to share the same base
-  n = `${path}/`.lastIndexOf(base, 0);
+  n = `${dir}/`.lastIndexOf(normalizedBase, 0);
 
   if (n === 0) {
-    let moduleName = path.slice(base.length).replace(/\//g, '.');
+    let moduleName = dir.slice(normalizedBase.length).replace(/\//g, '.');
     if (moduleName) {
       moduleName += ':';
     }

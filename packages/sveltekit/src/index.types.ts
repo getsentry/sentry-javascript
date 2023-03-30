@@ -9,7 +9,7 @@ export * from './server';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 // eslint-disable-next-line import/no-unresolved
-import type { HandleClientError, HandleServerError, ServerLoad } from '@sveltejs/kit';
+import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
@@ -18,10 +18,28 @@ import type * as serverSdk from './server';
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(
-  handleError: T,
+  handleError?: T,
 ): ReturnType<T>;
 
-export declare function wrapLoadWithSentry<S extends ServerLoad>(origLoad: S): S;
+/**
+ * Wrap a universal load function (e.g. +page.js or +layout.js) with Sentry functionality
+ *
+ * Usage:
+ *
+ * ```js
+ * // +page.js
+ *
+ * import { wrapLoadWithSentry }
+ *
+ * export const load = wrapLoadWithSentry((event) => {
+ *   // your load code
+ * });
+ * ```
+ *
+ * @param origLoad SvelteKit user defined universal `load` function
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export declare function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;

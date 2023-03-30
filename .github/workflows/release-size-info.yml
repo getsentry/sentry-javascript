@@ -17,18 +17,9 @@ jobs:
     name: 'Add size-limit info to release'
 
     steps:
-      # https://github.com/actions-ecosystem/action-regex-match
-      - name: Extract version from ref
-        uses: actions-ecosystem/action-regex-match@v2
-        id: head_version
-        with:
-          # Parse version from head ref, which is refs/tags/<tag_name>
-          text: ${{ env.GITHUB_REF }}
-          regex: '^refs\/tags\/([\d.]+)$'
-
       - name: Get version
         id: get_version
-        run: echo "version=${{ github.event.inputs.version || steps.head_version.outputs.group1 }}" >> $GITHUB_OUTPUT
+        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
 
       - name: Update Github Release
         if: steps.get_version.outputs.version != ''

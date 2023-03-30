@@ -1,40 +1,27 @@
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { createPerformanceSpans } from '../util/createPerformanceSpans';
-import { shouldFilterRequest } from '../util/shouldFilterRequest';
+import type { HandlerDataFetch } from '@sentry/types';
 
-interface FetchHandlerData {
-  args: Parameters<typeof fetch>;
-  fetchData: {
-    method: string;
-    url: string;
-  };
-  response: {
-    type: string;
-    url: string;
-    redirected: boolean;
-    status: number;
-    ok: boolean;
-  };
-  startTimestamp: number;
-  endTimestamp?: number;
-}
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
+import { addNetworkBreadcrumb } from './util/addNetworkBreadcrumb';
 
 /** only exported for tests */
-export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerformanceEntry {
-  if (!handlerData.endTimestamp) {
+export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry<NetworkRequestData> {
+  const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
+
+  if (!endTimestamp) {
     return null;
   }
 
-  const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
+  // This is only used as a fallback, so we know the body sizes are never set here
+  const { method, url } = fetchData;
 
   return {
     type: 'resource.fetch',
     start: startTimestamp / 1000,
     end: endTimestamp / 1000,
-    name: fetchData.url,
+    name: url,
     data: {
-      method: fetchData.method,
-      statusCode: response.status,
+      method,
+      statusCode: response && (response as Response).status,
     },
   };
 }
@@ -42,28 +29,14 @@ export function handleFetch(handlerData: FetchHandlerData): null | ReplayPerform
 /**
  * Returns a listener to be added to `addInstrumentationHandler('fetch', listener)`.
  */
-export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: FetchHandlerData) => void {
-  return (handlerData: FetchHandlerData) => {
+export function handleFetchSpanListener(replay: ReplayContainer): (handlerData: HandlerDataFetch) => void {
+  return (handlerData: HandlerDataFetch) => {
     if (!replay.isEnabled()) {
       return;
     }
 
     const result = handleFetch(handlerData);
 
-    if (result === null) {
-      return;
-    }
-
-    if (shouldFilterRequest(replay, result.name)) {
-      return;
-    }
-
-    replay.addUpdate(() => {
-      createPerformanceSpans(replay, [result]);
-      // Returning true will cause `addUpdate` to not flush
-      // We do not want network requests to cause a flush. This will prevent
-      // recurring/polling requests from keeping the replay session alive.
-      return true;
-    });
+    addNetworkBreadcrumb(replay, result);
   };
 }

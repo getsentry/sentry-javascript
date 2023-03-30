@@ -239,16 +239,29 @@ export class IdleTransaction extends Transaction {
       restartOnChildSpanChange: true,
     },
   ): void {
+    this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
     if (this._idleTimeoutID) {
       clearTimeout(this._idleTimeoutID);
       this._idleTimeoutID = undefined;
-      this._idleTimeoutCanceledPermanently = restartOnChildSpanChange === false;
 
       if (Object.keys(this.activities).length === 0 && this._idleTimeoutCanceledPermanently) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
         this.finish(endTimestamp);
       }
     }
+  }
+
+  /**
+   * Temporary method used to externally set the transaction's `finishReason`
+   *
+   * ** WARNING**
+   * This is for the purpose of experimentation only and will be removed in the near future, do not use!
+   *
+   * @internal
+   *
+   */
+  public setFinishReason(reason: string): void {
+    this._finishReason = reason;
   }
 
   /**
@@ -269,7 +282,7 @@ export class IdleTransaction extends Transaction {
    * @param spanId The span id that represents the activity
    */
   private _pushActivity(spanId: string): void {
-    this.cancelIdleTimeout();
+    this.cancelIdleTimeout(undefined, { restartOnChildSpanChange: !this._idleTimeoutCanceledPermanently });
     __DEBUG_BUILD__ && logger.log(`[Tracing] pushActivity: ${spanId}`);
     this.activities[spanId] = true;
     __DEBUG_BUILD__ && logger.log('[Tracing] new activities count', Object.keys(this.activities).length);
@@ -346,10 +359,7 @@ export class IdleTransaction extends Transaction {
  */
 function clearActiveTransaction(hub: Hub): void {
   const scope = hub.getScope();
-  if (scope) {
-    const transaction = scope.getTransaction();
-    if (transaction) {
-      scope.setSpan(undefined);
-    }
+  if (scope.getTransaction()) {
+    scope.setSpan(undefined);
   }
 }

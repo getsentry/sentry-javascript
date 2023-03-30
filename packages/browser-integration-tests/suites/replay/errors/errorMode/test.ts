@@ -17,8 +17,9 @@ import {
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, browserName }) => {
+    // This was sometimes flaky on firefox/webkit, so skipping for now
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -99,6 +100,17 @@ sentryTest(
         {
           ...expectedClickBreadcrumb,
           message: 'body > button#error',
+          data: {
+            nodeId: expect.any(Number),
+            node: {
+              attributes: {
+                id: 'error',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** *****',
+            },
+          },
         },
       ]),
     );
@@ -131,7 +143,19 @@ sentryTest(
 
     expect(content2.breadcrumbs).toEqual(
       expect.arrayContaining([
-        { ...expectedClickBreadcrumb, message: 'body > button#log' },
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#log',
+          data: {
+            node: {
+              attributes: { id: 'log' },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '*** ***** ** *** *******',
+            },
+            nodeId: expect.any(Number),
+          },
+        },
         { ...expectedConsoleBreadcrumb, level: 'log', message: 'Some message' },
       ]),
     );

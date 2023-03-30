@@ -3,11 +3,11 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should not capture long task when flag is disabled.', async ({ browserName, getLocalTestPath, page }) => {
   // Long tasks only work on chrome
-  if (browserName !== 'chromium') {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 

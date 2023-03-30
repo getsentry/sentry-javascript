@@ -1,7 +1,7 @@
 import type { Event } from '@sentry/types';
 
 export function Error(obj?: Event): any {
-  const timestamp = new Date().getTime() / 1000;
+  const timestamp = Date.now() / 1000;
 
   return {
     exception: {

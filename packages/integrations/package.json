@@ -1,6 +1,6 @@
 {
   "name": "@sentry/integrations",
-  "version": "7.43.0",
+  "version": "7.45.0",
   "description": "Pluggable integrations that can be used to enhance JS SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations",
@@ -16,18 +16,18 @@
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "dependencies": {
-    "@sentry/types": "7.43.0",
-    "@sentry/utils": "7.43.0",
+    "@sentry/types": "7.45.0",
+    "@sentry/utils": "7.45.0",
     "localforage": "^1.8.1",
     "tslib": "^1.9.3"
   },
   "devDependencies": {
-    "@sentry/browser": "7.43.0",
+    "@sentry/browser": "7.45.0",
     "chai": "^4.1.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "ts-node scripts/buildBundles.ts",
+    "build:bundle": "ts-node scripts/buildBundles.ts --parallel",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.js",
     "build:types": "tsc -p tsconfig.types.json",
@@ -45,7 +45,8 @@
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
   },
   "volta": {
     "extends": "../../package.json"

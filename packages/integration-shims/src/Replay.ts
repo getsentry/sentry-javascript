@@ -19,7 +19,7 @@ class ReplayShim implements Integration {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
     // eslint-disable-next-line no-console
-    console.error('You are using new Replay() even though this bundle does not include the replay integration.');
+    console.error('You are using new Replay() even though this bundle does not include replay.');
   }
 
   /** jsdoc */

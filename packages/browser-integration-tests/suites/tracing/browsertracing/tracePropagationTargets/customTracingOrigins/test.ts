@@ -2,10 +2,15 @@ import type { Request } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
+import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest(
   '[pre-v8] should attach `sentry-trace` and `baggage` header to request matching tracingOrigins',
   async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     const requests = (

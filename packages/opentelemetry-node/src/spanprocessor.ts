@@ -2,8 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, trace } from '@opentelemetry/api';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { addGlobalEventProcessor, getCurrentHub } from '@sentry/core';
-import { Transaction } from '@sentry/tracing';
+import { addGlobalEventProcessor, addTracingExtensions, getCurrentHub, Transaction } from '@sentry/core';
 import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 
@@ -23,6 +22,8 @@ export const SENTRY_SPAN_PROCESSOR_MAP: Map<SentrySpan['spanId'], SentrySpan> = 
  */
 export class SentrySpanProcessor implements OtelSpanProcessor {
   public constructor() {
+    addTracingExtensions();
+
     addGlobalEventProcessor(event => {
       const otelSpan = trace && trace.getActiveSpan && (trace.getActiveSpan() as OtelSpan | undefined);
       if (!otelSpan) {
@@ -49,17 +50,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onStart(otelSpan: OtelSpan, parentContext: Context): void {
-    const hub = getCurrentHub();
-    if (!hub) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a hub has been setup.');
-      return;
-    }
-    const scope = hub.getScope();
-    if (!scope) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onStart before a scope has been setup.');
-      return;
-    }
-
     const otelSpanId = otelSpan.spanContext().spanId;
     const otelParentSpanId = otelSpan.parentSpanId;
 
@@ -78,7 +68,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       SENTRY_SPAN_PROCESSOR_MAP.set(otelSpanId, sentryChildSpan);
     } else {
       const traceCtx = getTraceData(otelSpan, parentContext);
-      const transaction = hub.startTransaction({
+      const transaction = getCurrentHub().startTransaction({
         name: otelSpan.name,
         ...traceCtx,
         instrumenter: 'otel',
@@ -94,12 +84,6 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
    * @inheritDoc
    */
   public onEnd(otelSpan: OtelSpan): void {
-    const hub = getCurrentHub();
-    if (!hub) {
-      __DEBUG_BUILD__ && logger.error('SentrySpanProcessor has triggered onEnd before a hub has been setup.');
-      return;
-    }
-
     const otelSpanId = otelSpan.spanContext().spanId;
     const sentrySpan = SENTRY_SPAN_PROCESSOR_MAP.get(otelSpanId);
 
@@ -142,7 +126,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         syntheticError.name = type;
       }
 
-      hub.captureException(syntheticError, {
+      getCurrentHub().captureException(syntheticError, {
         captureContext: {
           contexts: {
             otel: {
@@ -161,6 +145,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
 
     if (sentrySpan instanceof Transaction) {
       updateTransactionWithOtelData(sentrySpan, otelSpan);
+      sentrySpan.setHub(getCurrentHub());
     } else {
       updateSpanWithOtelData(sentrySpan, otelSpan);
     }

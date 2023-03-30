@@ -1,4 +1,3 @@
-import { BrowserClient } from '@sentry/browser';
 import * as sentryCore from '@sentry/core';
 import * as utils from '@sentry/utils';
 
@@ -7,6 +6,7 @@ import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../trac
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { FetchData, XHRData } from '../../src/browser/request';
 import { fetchCallback, instrumentOutgoingRequests, shouldAttachHeaders, xhrCallback } from '../../src/browser/request';
+import { TestClient } from '../utils/TestClient';
 
 beforeAll(() => {
   addExtensionMethods();
@@ -54,7 +54,7 @@ describe('callbacks', () => {
 
   beforeAll(() => {
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new sentryCore.Hub(new BrowserClient(options));
+    hub = new sentryCore.Hub(new TestClient(options));
     sentryCore.makeMain(hub);
   });
 

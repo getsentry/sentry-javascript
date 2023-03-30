@@ -7,8 +7,7 @@ import {
   TraceFlags,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { Hub, makeMain } from '@sentry/core';
-import { addExtensionMethods, Transaction } from '@sentry/tracing';
+import { addTracingExtensions, Hub, makeMain, Transaction } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 
 import {
@@ -21,7 +20,7 @@ import { SentryPropagator } from '../src/propagator';
 import { SENTRY_SPAN_PROCESSOR_MAP } from '../src/spanprocessor';
 
 beforeAll(() => {
-  addExtensionMethods();
+  addTracingExtensions();
 });
 
 describe('SentryPropagator', () => {

@@ -88,7 +88,7 @@ export function getPrivacyOptions({
       blockSelector,
     ),
     unblockSelector: getOption(unblock, ['.sentry-unblock', '[data-sentry-unblock]']),
-    ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]'], ignoreClass),
+    ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]', 'input[type="file"]'], ignoreClass),
   };
 
   if (blockClass instanceof RegExp) {

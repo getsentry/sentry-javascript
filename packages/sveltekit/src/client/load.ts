@@ -1,6 +1,7 @@
+import { trace } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { addExceptionMechanism, isThenable, objectify } from '@sentry/utils';
-import type { ServerLoad } from '@sveltejs/kit';
+import { addExceptionMechanism, objectify } from '@sentry/utils';
+import type { LoadEvent } from '@sveltejs/kit';
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
@@ -26,28 +27,32 @@ function sendErrorToSentry(e: unknown): unknown {
 }
 
 /**
- * Wrap load function with Sentry
- *
- * @param origLoad SvelteKit user defined load function
+ * @inheritdoc
  */
-export function wrapLoadWithSentry(origLoad: ServerLoad): ServerLoad {
+// The liberal generic typing of `T` is necessary because we cannot let T extend `Load`.
+// This function needs to tell TS that it returns exactly the type that it was called with
+// because SvelteKit generates the narrowed down `PageLoad` or `LayoutLoad` types
+// at build time for every route.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad>) => {
-      let maybePromiseResult;
+    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+      // Type casting here because `T` cannot extend `Load` (see comment above function signature)
+      const event = args[0] as LoadEvent;
 
-      try {
-        maybePromiseResult = wrappingTarget.apply(thisArg, args);
-      } catch (e) {
-        throw sendErrorToSentry(e);
-      }
-
-      if (isThenable(maybePromiseResult)) {
-        Promise.resolve(maybePromiseResult).then(null, e => {
-          sendErrorToSentry(e);
-        });
-      }
-
-      return maybePromiseResult;
+      const routeId = event.route.id;
+      return trace(
+        {
+          op: 'function.sveltekit.load',
+          name: routeId ? routeId : event.url.pathname,
+          status: 'ok',
+          metadata: {
+            source: routeId ? 'route' : 'url',
+          },
+        },
+        () => wrappingTarget.apply(thisArg, args),
+        sendErrorToSentry,
+      );
     },
   });
 }

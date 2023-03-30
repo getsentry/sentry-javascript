@@ -1,0 +1,12 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "standard-frontend-react-tracing-import",
+  "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
+  "tests": [
+    {
+      "testName": "Playwright tests",
+      "testCommand": "yarn test"
+    }
+  ],
+  "canaryVersions": []
+}

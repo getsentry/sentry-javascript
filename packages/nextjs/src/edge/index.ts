@@ -1,5 +1,3 @@
-import '@sentry/tracing'; // Allow people to call tracing API methods without explicitly importing the tracing package.
-
 import { getCurrentHub, getIntegrationsToSetup, initAndBind, Integrations as CoreIntegrations } from '@sentry/core';
 import type { Options } from '@sentry/types';
 import {

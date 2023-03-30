@@ -4,6 +4,70 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.45.0
+
+- build(cdn): Ensure ES5 bundles do not use non-ES5 code (#7550)
+- feat(core): Add trace function (#7556)
+- feat(hub): Make scope always defined on the hub (#7551)
+- feat(replay): Add `replay_id` to transaction DSC (#7571)
+- feat(replay): Capture fetch body size for replay events (#7524)
+- feat(sveltekit): Add performance monitoring for client load (#7537)
+- feat(sveltekit): Add performance monitoring for server load (#7536)
+- feat(sveltekit): Add performance monitoring to Sveltekit server handle (#7532)
+- feat(sveltekit): Add SvelteKit routing instrumentation (#7565)
+- fix(browser): Ensure keepalive flag is correctly set for parallel requests (#7553)
+- fix(core): Ensure `ignoreErrors` only applies to error events (#7573)
+- fix(node): Consider tracing error handler for process exit (#7558)
+- fix(otel): Make sure we use correct hub on finish (#7577)
+- fix(react): Handle case where error.cause already defined (#7557)
+
+## 7.44.2
+
+- fix(cdn): Fix ES5 CDN bundles (#7544)
+
+## 7.44.1
+
+- ref(core): Move beforeEnvelope to client (#7527)
+
+## 7.44.0
+
+This release introduces the first alpha version of `@sentry/sveltekit`, our newest JavaScript SDK for Sveltekit. Check out the [README](./packages/sveltekit/README.md) for usage instructions and what to expect from this alpha release.
+
+- feat(replay): Add `request_body_size` & `response_body_size` to fetch/xhr (#7407)
+- feat(replay): Add additional properties for UI clicks (#7395)
+- feat(replay): Reduce time limit before pausing a recording (#7356)
+- feat(replay): Upgrade `rrweb` and `rrweb-player` (#7508)
+- feat(replay): Use new afterSend hook to improve error linking (#7390)
+- feat(serverless): Publish lambda layer for Node 16/18 (#7483)
+- feat(sveltekit): Add wrapper for client load function (#7447)
+- feat(sveltekit): Add wrapper for server load function (#7416)
+- feat(sveltekit): Add server-side `handleError` wrapper (#7411)
+- feat(sveltekit): Introduce client-side `handleError` wrapper (#7406)
+- feat(sveltekit): Add SvelteKit client and server `init` functions (#7408)
+- feat(sveltekit): Inject `Sentry.init` calls into server and client bundles (#7391)
+- feat(tracing): Expose `BrowserTracing` in non-tracing bundles (#7479)
+- fix(core): Permanent idle timeout cancel finishes the transaction with the last finished child
+- fix(integrations): Handle lower-case prefix windows paths in `RewriteFrames` (#7506)
+- fix(next): Guard against missing serverSideProps (#7517)
+- fix(nextjs): Fix broken server component wrapping because of interrupted promise chain (#7456)
+- fix(nextjs): Fix runtime error for static pages (#7476)
+- fix(profiling): Catch sendProfile rejection (#7446)
+- fix(replay): Never capture file input changes (#7485)
+- fix(serverless): Explicitly export node package exports (#7457)
+- fix(vue): Do not depend on `window.location` for SSR environments (#7518)
+
+
+**Replay `rrweb` changes:**
+
+`@sentry-internal/rrweb` was updated from 1.105.0 to 1.106.0:
+
+- feat: Ensure password inputs are always masked ([#78](https://github.com/getsentry/rrweb/pull/78))
+- fix: Ensure text masking for updated attributes works ([#83](https://github.com/getsentry/rrweb/pull/83))
+- fix: Ensure unmaskTextSelector is used for masked attributes ([#81](https://github.com/getsentry/rrweb/pull/81))
+- fix: Mask <option> values for selects & radio/checkbox value ([#75](https://github.com/getsentry/rrweb/pull/75))
+
+Work in this release contributed by @woochanleee and @baked-dev. Thank you for your contribution!
+
 ## 7.43.0
 
 - feat(nextjs): Run source map upload in Vercel develop and preview environments (#7436)
