@@ -16,6 +16,25 @@ export function isSentryRequest(url: string): boolean {
 }
 
 /**
+ * Assembles a URL that's passed to the users to filter on.
+ * It can include raw (potentially PII containing) data, which we'll allow users to access to filter
+ * but won't include in spans or breadcrumbs.
+ *
+ * @param requestOptions RequestOptions object containing the component parts for a URL
+ * @returns Fully-formed URL
+ */
+// TODO (v8): This function should include auth, query and fragment (it's breaking, so we need to wait for v8)
+export function extractRawUrl(requestOptions: RequestOptions): string {
+  const protocol = requestOptions.protocol || '';
+  const hostname = requestOptions.hostname || requestOptions.host || '';
+  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
+  const port =
+    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
+  const path = requestOptions.path ? requestOptions.path : '/';
+  return `${protocol}//${hostname}${port}${path}`;
+}
+
+/**
  * Assemble a URL to be used for breadcrumbs and spans.
  *
  * @param requestOptions RequestOptions object containing the component parts for a URL
@@ -27,9 +46,11 @@ export function extractUrl(requestOptions: RequestOptions): string {
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port =
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
-  const path = requestOptions.path ? requestOptions.path : '/';
+  // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  const path = requestOptions.pathname || '/';
+  const authority = requestOptions.auth ? `${requestOptions.auth}@` : '';
 
-  return `${protocol}//${hostname}${port}${path}`;
+  return `${protocol}//${authority}${hostname}${port}${path}`;
 }
 
 /**
@@ -59,6 +80,7 @@ export function cleanSpanDescription(
   if (requestOptions.host && !requestOptions.protocol) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     requestOptions.protocol = (request as any)?.agent?.protocol; // worst comes to worst, this is undefined and nothing changes
+    // This URL contains the filtered authority ([filtered]:[filtered]@example.com) but no fragment or query params
     requestUrl = extractUrl(requestOptions);
   }
 
@@ -101,7 +123,8 @@ export function urlToOptions(url: URL): RequestOptions {
     options.port = Number(url.port);
   }
   if (url.username || url.password) {
-    options.auth = `${url.username}:${url.password}`;
+    // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
+    options.auth = '[Filtered]:[Filtered]';
   }
   return options;
 }

@@ -2,9 +2,13 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should report a transaction in an envelope', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
@@ -13,6 +17,10 @@ sentryTest('should report a transaction in an envelope', async ({ getLocalTestPa
 });
 
 sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

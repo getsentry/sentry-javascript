@@ -4,7 +4,7 @@ import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { sentryHandle } from '../../src/server/handle';
+import { sentryHandle, transformPageChunk } from '../../src/server/handle';
 import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.fn();
@@ -94,22 +94,22 @@ function resolve(type: Type, isError: boolean): Parameters<Handle>[0]['resolve']
 let hub: Hub;
 let client: NodeClient;
 
+beforeAll(() => {
+  addTracingExtensions();
+});
+
+beforeEach(() => {
+  mockScope = new Scope();
+  const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
+  client = new NodeClient(options);
+  hub = new Hub(client);
+  makeMain(hub);
+
+  mockCaptureException.mockClear();
+  mockAddExceptionMechanism.mockClear();
+});
+
 describe('handleSentry', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
-  beforeEach(() => {
-    mockScope = new Scope();
-    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    client = new NodeClient(options);
-    hub = new Hub(client);
-    makeMain(hub);
-
-    mockCaptureException.mockClear();
-    mockAddExceptionMechanism.mockClear();
-  });
-
   describe.each([
     // isSync, isError, expectedResponse
     [Type.Sync, true, undefined],
@@ -129,7 +129,7 @@ describe('handleSentry', () => {
       expect(response).toEqual(mockResponse);
     });
 
-    it('creates a transaction', async () => {
+    it("creates a transaction if there's no active span", async () => {
       let ref: any = undefined;
       client.on('finishTransaction', (transaction: Transaction) => {
         ref = transaction;
@@ -149,6 +149,50 @@ describe('handleSentry', () => {
       expect(ref.metadata.source).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
+      expect(ref.spanRecorder.spans).toHaveLength(1);
+    });
+
+    it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+      let ref: any = undefined;
+      let txnCount = 0;
+      client.on('finishTransaction', (transaction: Transaction) => {
+        ref = transaction;
+        ++txnCount;
+      });
+
+      try {
+        await sentryHandle({
+          event: mockEvent(),
+          resolve: async _ => {
+            // simulateing a nested load call:
+            await sentryHandle({
+              event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
+              resolve: resolve(type, isError),
+            });
+            return mockResponse;
+          },
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(txnCount).toEqual(1);
+      expect(ref).toBeDefined();
+
+      expect(ref.name).toEqual('GET /users/[id]');
+      expect(ref.op).toEqual('http.server');
+      expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(ref.metadata.source).toEqual('route');
+
+      expect(ref.endTimestamp).toBeDefined();
+
+      expect(ref.spanRecorder.spans).toHaveLength(2);
+      expect(ref.spanRecorder.spans).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+        ]),
+      );
     });
 
     it('creates a transaction from sentry-trace header', async () => {
@@ -247,5 +291,47 @@ describe('handleSentry', () => {
         );
       }
     });
+
+    it('calls `transformPageChunk`', async () => {
+      const mockResolve = vi.fn().mockImplementation(resolve(type, isError));
+      const event = mockEvent();
+      try {
+        await sentryHandle({ event, resolve: mockResolve });
+      } catch (e) {
+        expect(e).toBeInstanceOf(Error);
+        expect(e.message).toEqual(type);
+      }
+
+      expect(mockResolve).toHaveBeenCalledTimes(1);
+      expect(mockResolve).toHaveBeenCalledWith(event, { transformPageChunk: expect.any(Function) });
+    });
+  });
+});
+
+describe('transformPageChunk', () => {
+  const html = `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+      <meta name="viewport" content="width=device-width" />
+    </head>
+    <body data-sveltekit-preload-data="hover">
+      <div style="display: contents">%sveltekit.body%</div>
+    </body>
+  </html>`;
+
+  it('does not add meta tags if no active transaction', () => {
+    const transformed = transformPageChunk({ html, done: true });
+    expect(transformed).toEqual(html);
+  });
+
+  it('adds meta tags if there is an active transaction', () => {
+    const transaction = hub.startTransaction({ name: 'test' });
+    hub.getScope().setSpan(transaction);
+    const transformed = transformPageChunk({ html, done: true }) as string;
+
+    expect(transformed.includes('<meta name="sentry-trace"')).toEqual(true);
+    expect(transformed.includes('<meta name="baggage"')).toEqual(true);
   });
 });

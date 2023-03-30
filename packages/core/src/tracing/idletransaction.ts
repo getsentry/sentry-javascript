@@ -252,6 +252,19 @@ export class IdleTransaction extends Transaction {
   }
 
   /**
+   * Temporary method used to externally set the transaction's `finishReason`
+   *
+   * ** WARNING**
+   * This is for the purpose of experimentation only and will be removed in the near future, do not use!
+   *
+   * @internal
+   *
+   */
+  public setFinishReason(reason: string): void {
+    this._finishReason = reason;
+  }
+
+  /**
    * Restarts idle timeout, if there is no running idle timeout it will start one.
    */
   private _restartIdleTimeout(endTimestamp?: Parameters<IdleTransaction['finish']>[0]): void {

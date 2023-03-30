@@ -1,7 +1,7 @@
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
 import { addExceptionMechanism, objectify } from '@sentry/utils';
-import type { Load } from '@sveltejs/kit';
+import type { LoadEvent } from '@sveltejs/kit';
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
@@ -27,14 +27,18 @@ function sendErrorToSentry(e: unknown): unknown {
 }
 
 /**
- * Wrap load function with Sentry
- *
- * @param origLoad SvelteKit user defined load function
+ * @inheritdoc
  */
-export function wrapLoadWithSentry(origLoad: Load): Load {
+// The liberal generic typing of `T` is necessary because we cannot let T extend `Load`.
+// This function needs to tell TS that it returns exactly the type that it was called with
+// because SvelteKit generates the narrowed down `PageLoad` or `LayoutLoad` types
+// at build time for every route.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<Load>) => {
-      const [event] = args;
+    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+      // Type casting here because `T` cannot extend `Load` (see comment above function signature)
+      const event = args[0] as LoadEvent;
 
       const routeId = event.route.id;
       return trace(

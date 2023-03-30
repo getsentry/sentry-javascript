@@ -39,7 +39,7 @@ To automatically capture the `release` value on Vercel you will need to register
 
 ## Sentry Performance
 
-To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options and make sure you have installed the `@sentry/tracing` package. This will also turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
+To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options. This will turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
 
 ```javascript
 module.exports = {

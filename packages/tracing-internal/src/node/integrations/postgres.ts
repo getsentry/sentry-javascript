@@ -1,7 +1,8 @@
 import type { Hub } from '@sentry/core';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
+import type { LazyLoadedIntegration } from './lazy';
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface PgClient {
@@ -14,8 +15,10 @@ interface PgOptions {
   usePgNative?: boolean;
 }
 
+type PGModule = { Client: PgClient; native: { Client: PgClient } };
+
 /** Tracing integration for node-postgres package */
-export class Postgres implements Integration {
+export class Postgres implements LazyLoadedIntegration<PGModule> {
   /**
    * @inheritDoc
    */
@@ -28,8 +31,15 @@ export class Postgres implements Integration {
 
   private _usePgNative: boolean;
 
+  private _module?: PGModule;
+
   public constructor(options: PgOptions = {}) {
     this._usePgNative = !!options.usePgNative;
+  }
+
+  /** @inheritdoc */
+  public loadDependency(): PGModule | undefined {
+    return (this._module = this._module || loadModule('pg'));
   }
 
   /**
@@ -41,7 +51,7 @@ export class Postgres implements Integration {
       return;
     }
 
-    const pkg = loadModule<{ Client: PgClient; native: { Client: PgClient } }>('pg');
+    const pkg = this.loadDependency();
 
     if (!pkg) {
       __DEBUG_BUILD__ && logger.error('Postgres Integration was unable to require `pg` package.');

@@ -1,0 +1,4 @@
+paths-ignore:
+  # Our tsconfig files contain comments, which CodeQL complains about
+  - '**/tsconfig.json'
+  - '**/tsconfig.*.json'

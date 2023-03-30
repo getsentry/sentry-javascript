@@ -4,14 +4,23 @@ import { browserPerformanceTimeOrigin } from '@sentry/utils';
 import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
+  AllPerformanceEntryData,
+  ExperimentalPerformanceResourceTiming,
+  LargestContentfulPaintData,
+  NavigationData,
+  PaintData,
   PerformanceNavigationTiming,
   PerformancePaintTiming,
   ReplayPerformanceEntry,
+  ResourceData,
 } from '../types';
 
 // Map entryType -> function to normalize data for event
 // @ts-ignore TODO: entry type does not fit the create* functions entry type
-const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry> = {
+const ENTRY_TYPES: Record<
+  string,
+  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
+> = {
   // @ts-ignore TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
   paint: createPaintEntry,
@@ -24,11 +33,13 @@ const ENTRY_TYPES: Record<string, (entry: AllPerformanceEntry) => null | ReplayP
 /**
  * Create replay performance entries from the browser performance entries.
  */
-export function createPerformanceEntries(entries: AllPerformanceEntry[]): ReplayPerformanceEntry[] {
-  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry[];
+export function createPerformanceEntries(
+  entries: AllPerformanceEntry[],
+): ReplayPerformanceEntry<AllPerformanceEntryData>[] {
+  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
 }
 
-function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry | null {
+function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
   if (ENTRY_TYPES[entry.entryType] === undefined) {
     return null;
   }
@@ -42,9 +53,7 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createPaintEntry(entry: PerformancePaintTiming) {
+function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -53,14 +62,28 @@ function createPaintEntry(entry: PerformancePaintTiming) {
     name,
     start,
     end: start + duration,
+    data: undefined,
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createNavigationEntry(entry: PerformanceNavigationTiming) {
-  // TODO: There looks to be some more interesting bits in here (domComplete, domContentLoaded)
-  const { entryType, name, duration, domComplete, startTime, transferSize, type } = entry;
+function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+  const {
+    entryType,
+    name,
+    decodedBodySize,
+    duration,
+    domComplete,
+    encodedBodySize,
+    domContentLoadedEventStart,
+    domContentLoadedEventEnd,
+    domInteractive,
+    loadEventStart,
+    loadEventEnd,
+    redirectCount,
+    startTime,
+    transferSize,
+    type,
+  } = entry;
 
   // Ignore entries with no duration, they do not seem to be useful and cause dupes
   if (duration === 0) {
@@ -74,15 +97,34 @@ function createNavigationEntry(entry: PerformanceNavigationTiming) {
     name,
     data: {
       size: transferSize,
+      decodedBodySize,
+      encodedBodySize,
       duration,
+      domInteractive,
+      domContentLoadedEventStart,
+      domContentLoadedEventEnd,
+      loadEventStart,
+      loadEventEnd,
+      domComplete,
+      redirectCount,
     },
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createResourceEntry(entry: PerformanceResourceTiming) {
-  const { entryType, initiatorType, name, responseEnd, startTime, encodedBodySize, transferSize } = entry;
+function createResourceEntry(
+  entry: ExperimentalPerformanceResourceTiming,
+): ReplayPerformanceEntry<ResourceData> | null {
+  const {
+    entryType,
+    initiatorType,
+    name,
+    responseEnd,
+    startTime,
+    decodedBodySize,
+    encodedBodySize,
+    responseStatus,
+    transferSize,
+  } = entry;
 
   // Core SDK handles these
   if (['fetch', 'xmlhttprequest'].includes(initiatorType)) {
@@ -96,14 +138,16 @@ function createResourceEntry(entry: PerformanceResourceTiming) {
     name,
     data: {
       size: transferSize,
+      statusCode: responseStatus,
+      decodedBodySize,
       encodedBodySize,
     },
   };
 }
 
-// TODO: type definition!
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function createLargestContentfulPaint(entry: PerformanceEntry & { size: number; element: Node }) {
+function createLargestContentfulPaint(
+  entry: PerformanceEntry & { size: number; element: Node },
+): ReplayPerformanceEntry<LargestContentfulPaintData> {
   const { entryType, startTime, size } = entry;
 
   let startTimeOrNavigationActivation = 0;

@@ -60,7 +60,11 @@ function addSentryConfigFileImport(
   return { code: ms.toString(), map: ms.generateMap() };
 }
 
-function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string | undefined {
+/**
+ * Looks up the sentry.{@param platform}.config.(ts|js) file
+ * @returns the file path to the file or undefined if it doesn't exist
+ */
+export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string | undefined {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
 
   for (const filename of possibilities) {
@@ -69,5 +73,5 @@ function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): s
     }
   }
 
-  throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
+  return undefined;
 }
