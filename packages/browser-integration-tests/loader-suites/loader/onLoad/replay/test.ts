@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayEvent,shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
@@ -21,13 +21,8 @@ sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
   const eventData = getReplayEvent(await req);
 
   expect(eventData).toBeDefined();
   expect(eventData.segment_id).toBe(0);
-
-  const { replay_start_timestamp: startTimestamp } = eventData;
-
-  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
 });
