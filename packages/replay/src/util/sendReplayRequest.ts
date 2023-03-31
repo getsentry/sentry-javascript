@@ -41,7 +41,6 @@ export async function sendReplayRequest({
   }
 
   const baseEvent: ReplayEvent = {
-    // @ts-ignore private api
     type: REPLAY_EVENT_NAME,
     ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
     timestamp: timestamp / 1000,
