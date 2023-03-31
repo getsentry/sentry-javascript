@@ -1,5 +1,5 @@
 import type { Package } from '@sentry/types';
-import { readdirSync, readFileSync } from 'fs';
+import fs from 'fs';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import path from 'path';
 import type { Compiler } from 'webpack';
@@ -9,13 +9,14 @@ const PACKAGES_DIR = '../../packages';
 /**
  * Possible values: See BUNDLE_PATHS.browser
  */
-const bundleKey = process.env.PW_BUNDLE;
+const bundleKey = process.env.PW_BUNDLE || '';
 
 // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
 const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
 
 // Bundles need to be injected into HTML before Sentry initialization.
-const useBundle = bundleKey && !useCompiledModule;
+const useBundleOrLoader = bundleKey && !useCompiledModule;
+const useLoader = bundleKey.startsWith('loader');
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
@@ -63,7 +64,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
  * so that the compiled versions aren't included
  */
 function generateSentryAlias(): Record<string, string> {
-  const packageNames = readdirSync(PACKAGES_DIR, { withFileTypes: true })
+  const packageNames = fs
+    .readdirSync(PACKAGES_DIR, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
     .filter(dir => !['apm', 'minimal', 'next-plugin-sentry'].includes(dir.name))
     .map(dir => dir.name);
@@ -71,7 +73,7 @@ function generateSentryAlias(): Record<string, string> {
   return Object.fromEntries(
     packageNames.map(packageName => {
       const packageJSON: Package = JSON.parse(
-        readFileSync(path.resolve(PACKAGES_DIR, packageName, 'package.json'), { encoding: 'utf-8' }).toString(),
+        fs.readFileSync(path.resolve(PACKAGES_DIR, packageName, 'package.json'), { encoding: 'utf-8' }).toString(),
       );
 
       const modulePath = path.resolve(PACKAGES_DIR, packageName);
@@ -82,7 +84,7 @@ function generateSentryAlias(): Record<string, string> {
         return [packageJSON['name'], bundlePath];
       }
 
-      if (useBundle && bundleKey) {
+      if (useBundleOrLoader) {
         // If we're injecting a bundle, ignore the webpack imports.
         return [packageJSON['name'], false];
       }
@@ -100,17 +102,16 @@ class SentryScenarioGenerationPlugin {
 
   public apply(compiler: Compiler): void {
     compiler.options.resolve.alias = generateSentryAlias();
-    compiler.options.externals =
-      useBundle && bundleKey
-        ? {
-            // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
-            '@sentry/browser': 'Sentry',
-            '@sentry/tracing': 'Sentry',
-            '@sentry/replay': 'Sentry',
-            '@sentry/integrations': 'Sentry.Integrations',
-            '@sentry/wasm': 'Sentry.Integrations',
-          }
-        : {};
+    compiler.options.externals = useBundleOrLoader
+      ? {
+          // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
+          '@sentry/browser': 'Sentry',
+          '@sentry/tracing': 'Sentry',
+          '@sentry/replay': 'Sentry',
+          '@sentry/integrations': 'Sentry.Integrations',
+          '@sentry/wasm': 'Sentry.Integrations',
+        }
+      : {};
 
     // Checking if the current scenario has imported `@sentry/tracing` or `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
@@ -131,16 +132,31 @@ class SentryScenarioGenerationPlugin {
 
     compiler.hooks.compilation.tap(this._name, compilation => {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
-        if (useBundle && bundleKey) {
+        if (useBundleOrLoader) {
           const bundleName = 'browser';
           const bundlePath = BUNDLE_PATHS[bundleName][bundleKey];
 
-          // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
-          const integrationBundleKey = bundleKey.replace('_replay', '').replace('_tracing', '');
+          let bundleObject =
+            bundlePath &&
+            createHtmlTagObject('script', {
+              src: path.resolve(PACKAGES_DIR, bundleName, bundlePath),
+            });
 
-          const bundleObject = createHtmlTagObject('script', {
-            src: path.resolve(PACKAGES_DIR, bundleName, bundlePath),
-          });
+          if (!bundleObject && useLoader) {
+            bundleObject = createHtmlTagObject('script', {
+              src: 'loader.js',
+            });
+          }
+
+          if (!bundleObject) {
+            throw new Error(`Could not find bundle or loader for key ${bundleKey}`);
+          }
+
+          // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
+          const integrationBundleKey = bundleKey
+            .replace('loader_', 'bundle_')
+            .replace('_replay', '')
+            .replace('_tracing', '');
 
           this.requiredIntegrations.forEach(integration => {
             const integrationObject = createHtmlTagObject('script', {

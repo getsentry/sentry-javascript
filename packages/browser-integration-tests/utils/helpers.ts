@@ -125,6 +125,23 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
   });
 }
 
+export function waitForTransactionRequest(page: Page): Promise<Request> {
+  return page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const event = envelopeRequestParser(req);
+
+      return event.type === 'transaction';
+    } catch {
+      return false;
+    }
+  });
+}
+
 /**
  * We can only test tracing tests in certain bundles/packages:
  * - NPM (ESM, CJS)
