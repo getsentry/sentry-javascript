@@ -446,13 +446,10 @@ export class Hub implements HubInterface {
    */
   private _sendSessionUpdate(): void {
     const { scope, client } = this.getStackTop();
-    if (!scope) return;
 
     const session = scope.getSession();
-    if (session) {
-      if (client && client.captureSession) {
-        client.captureSession(session);
-      }
+    if (session && client && client.captureSession) {
+      client.captureSession(session);
     }
   }
 
