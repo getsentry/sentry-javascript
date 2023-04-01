@@ -41,7 +41,7 @@ jobs:
       # https://github.com/marketplace/actions/enable-pull-request-automerge
       - name: Enable automerge for PR
         if: steps.open-pr.outputs.pr_number != ''
-        uses: peter-evans/enable-pull-request-automerge@v2
+        uses: peter-evans/enable-pull-request-automerge@v3
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           merge-method: merge
