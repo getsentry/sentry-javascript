@@ -390,57 +390,56 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
 
   const idleTimeout = config.transitionTimeout || 5000;
 
-  const existingIntegrations = (sentryConfig['integrations'] || []) as Integration[];
+  const browserTracing = new BrowserTracing({
+    routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
+      const routerMain = appInstance.lookup('router:main');
+      let routerService = appInstance.lookup('service:router') as
+        | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
 
-  sentryConfig['integrations'] = [
-    ...existingIntegrations,
-    new BrowserTracing({
-      routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
-        const routerMain = appInstance.lookup('router:main');
-        let routerService = appInstance.lookup('service:router') as
-          | RouterService & { externalRouter?: RouterService; _hasMountedSentryPerformanceRouting?: boolean };
+      if (routerService.externalRouter) {
+        // Using ember-engines-router-service in an engine.
+        routerService = routerService.externalRouter;
+      }
+      if (routerService._hasMountedSentryPerformanceRouting) {
+        // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
+        return;
+      }
+      if (!routerService.recognize) {
+        // Router is missing critical functionality to limit cardinality of the transaction names.
+        return;
+      }
+      routerService._hasMountedSentryPerformanceRouting = true;
+      _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
+    },
+    idleTimeout,
+    ...browserTracingOptions,
+  });
 
-        if (routerService.externalRouter) {
-          // Using ember-engines-router-service in an engine.
-          routerService = routerService.externalRouter;
-        }
-        if (routerService._hasMountedSentryPerformanceRouting) {
-          // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
-          return;
-        }
-        if (!routerService.recognize) {
-          // Router is missing critical functionality to limit cardinality of the transaction names.
-          return;
-        }
-        routerService._hasMountedSentryPerformanceRouting = true;
-        _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
-      },
-      idleTimeout,
-      ...browserTracingOptions,
-    }),
-  ];
+  if (macroCondition(isTesting())) {
+    class FakeBrowserTracingClass {
+      static id = 'BrowserTracing';
+      public name = FakeBrowserTracingClass.id;
+      setupOnce() {
+        // noop - We're just faking  this class for a lookup
+      }
+    }
 
-  class FakeBrowserTracingClass {
-    static id = 'BrowserTracing';
-    public name = FakeBrowserTracingClass.id;
-    setupOnce() {
-      // noop - We're just faking  this class for a lookup
+    if (
+      Sentry.getCurrentHub()?.getIntegration(
+        // This is a temporary hack because the BrowserTracing integration cannot have a static `id` field for tree
+        // shaking reasons. However, `getIntegration` needs that field.
+        FakeBrowserTracingClass,
+      )
+    ) {
+      // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
+      return;
     }
   }
 
-  if (
-    isTesting() &&
-    Sentry.getCurrentHub()?.getIntegration(
-      // This is a temporary hack because the BrowserTracing integration cannot have a static `id` field for tree
-      // shaking reasons. However, `getIntegration` needs that field.
-      FakeBrowserTracingClass,
-    )
-  ) {
-    // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
-    return;
+  const client = Sentry.getCurrentHub().getClient();
+  if (client && client.addIntegration) {
+    client.addIntegration(browserTracing);
   }
-
-  Sentry.init(sentryConfig); // Call init again to rebind client with new integration list in addition to the defaults
 
   _instrumentEmberRunloop(config);
   _instrumentComponents(config);
