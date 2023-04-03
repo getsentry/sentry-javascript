@@ -79,5 +79,6 @@
   },
   "volta": {
     "extends": "../../package.json"
-  }
+  },
+  "sideEffects": false
 }
