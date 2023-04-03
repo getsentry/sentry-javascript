@@ -202,7 +202,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledTimes(1);
         expect(mockTrace).toHaveBeenCalledWith(
           {
-            op: 'function.sveltekit.load',
+            op: 'function.sveltekit.server.load',
             name: '/users/[id]',
             parentSampled: true,
             parentSpanId: '1234567890abcdef',
@@ -233,7 +233,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledTimes(1);
         expect(mockTrace).toHaveBeenCalledWith(
           {
-            op: 'function.sveltekit.load',
+            op: 'function.sveltekit.server.load',
             name: '/users/[id]',
             status: 'ok',
             metadata: {
@@ -252,7 +252,7 @@ describe('wrapLoadWithSentry', () => {
         expect(mockTrace).toHaveBeenCalledTimes(1);
         expect(mockTrace).toHaveBeenCalledWith(
           {
-            op: 'function.sveltekit.load',
+            op: 'function.sveltekit.server.load',
             name: '/users/[id]',
             parentSampled: true,
             parentSpanId: '1234567890abcdef',
