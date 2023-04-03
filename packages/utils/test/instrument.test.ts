@@ -7,6 +7,11 @@ describe('instrument', () => {
       ['URL object only', [new URL('http://example.com')], { method: 'GET', url: 'http://example.com/' }],
       ['Request URL only', [{ url: 'http://example.com' }], { method: 'GET', url: 'http://example.com' }],
       [
+        'Request URL & method only',
+        [{ url: 'http://example.com', method: 'post' }],
+        { method: 'POST', url: 'http://example.com' },
+      ],
+      [
         'string URL & options',
         ['http://example.com', { method: 'post' }],
         { method: 'POST', url: 'http://example.com' },

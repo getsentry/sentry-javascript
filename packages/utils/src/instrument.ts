@@ -227,9 +227,10 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
     };
   }
 
+  const arg = fetchArgs[0];
   return {
-    url: getUrlFromResource(fetchArgs[0] as FetchResource),
-    method: 'GET',
+    url: getUrlFromResource(arg as FetchResource),
+    method: hasProp(arg, 'method') ? String(arg.method).toUpperCase() : 'GET',
   };
 }
 
