@@ -55,7 +55,14 @@ describe('Angular Tracing', () => {
 
   describe('getParameterizedRouteFromSnapshot', () => {
     it.each([
-      ['returns `/` empty object if the route no children', {}, '/'],
+      ['returns `/` if the route has no children', {}, '/'],
+      [
+        'returns `/` if the route has an empty child',
+        {
+          firstChild: { routeConfig: { path: '' } },
+        },
+        '/',
+      ],
       [
         'returns the route of a snapshot without children',
         {
@@ -75,6 +82,21 @@ describe('Angular Tracing', () => {
           },
         },
         '/orgs/:orgId/projects/:projId/overview/',
+      ],
+      [
+        'returns the route of a snapshot without children but with empty paths',
+        {
+          firstChild: {
+            routeConfig: { path: 'users' },
+            firstChild: {
+              routeConfig: { path: '' },
+              firstChild: {
+                routeConfig: { path: ':id' },
+              },
+            },
+          },
+        },
+        '/users/:id/',
       ],
     ])('%s', (_, routeSnapshot, expectedParams) => {
       expect(getParameterizedRouteFromSnapshot(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(
@@ -345,6 +367,7 @@ describe('Angular Tracing', () => {
       public ngOnInit() {
         origNgOnInitMock();
       }
+
       public ngAfterViewInit() {
         origNgAfterViewInitMock();
       }
@@ -398,6 +421,7 @@ describe('Angular Tracing', () => {
       public ngOnInit() {
         origNgOnInitMock();
       }
+
       @TraceMethodDecorator()
       public ngAfterViewInit() {
         origNgAfterViewInitMock();
