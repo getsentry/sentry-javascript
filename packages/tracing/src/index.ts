@@ -33,7 +33,7 @@ import {
 // backwards compatibility), but that interferes with treeshaking, so we also export it separately
 // here.
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
  *
  * import { BrowserTracing } from '@sentry/browser';
@@ -45,7 +45,7 @@ export const BrowserTracing = BrowserTracingT;
 // backwards compatibility), but that interferes with treeshaking, so we also export it separately
 // here.
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
  *
  * import { BrowserTracing } from '@sentry/browser';
@@ -54,139 +54,139 @@ export const BrowserTracing = BrowserTracingT;
 export type BrowserTracing = BrowserTracingT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export const addExtensionMethods = addExtensionMethodsT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `getActiveTransaction` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export const getActiveTransaction = getActiveTransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export const extractTraceparentData = extractTraceparentDataT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `spanStatusfromHttpCode` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export const spanStatusfromHttpCode = spanStatusfromHttpCodeT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `SpanStatusType` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export type SpanStatusType = SpanStatusTypeT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `Transaction` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export const Transaction = TransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `Transaction` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export type Transaction = TransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `Span` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export const Span = SpanT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `Span` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export type Span = SpanT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export const BROWSER_TRACING_INTEGRATION_ID = BROWSER_TRACING_INTEGRATION_ID_T;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `defaultRequestInstrumentationOptions` can be imported from `@sentry/browser`, or your framework SDK
  */
 export const defaultRequestInstrumentationOptions = defaultRequestInstrumentationOptionsT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `hasTracingEnabled` can be imported from `@sentry/utils`
  */
 export const hasTracingEnabled = hasTracingEnabledT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `stripUrlQueryAndFragment` can be imported from `@sentry/utils`
  */
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragmentT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
  * `TRACEPARENT_REGEXP` can be imported from `@sentry/utils`
  */
 export const TRACEPARENT_REGEXP = TRACEPARENT_REGEXP_T;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export const IdleTransaction = IdleTransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export type IdleTransaction = IdleTransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export const instrumentOutgoingRequests = instrumentOutgoingRequestsT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export const startIdleTransaction = startIdleTransactionT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const SpanStatus = SpanStatusT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 // eslint-disable-next-line deprecation/deprecation
 export type SpanStatus = SpanStatusT;
 
 /**
- * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+ * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  */
 export type RequestInstrumentationOptions = RequestInstrumentationOptionsT;
 
 export const Integrations = {
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
    *
    * import { BrowserTracing } from '@sentry/browser';
@@ -195,7 +195,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   BrowserTracing: BrowserTracing,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Apollo` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -204,7 +204,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   Apollo: Apollo,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Express` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -213,7 +213,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   Express: Express,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `GraphQL` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -222,7 +222,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   GraphQL: GraphQL,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Mongo` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -231,7 +231,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   Mongo: Mongo,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Mysql` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -240,7 +240,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   Mysql: Mysql,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Postgres` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
@@ -249,7 +249,7 @@ export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   Postgres: Postgres,
   /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be removed in the next major version.
+   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Prisma` can be imported from `@sentry/node`
    *
    * import { Integrations } from '@sentry/node';
