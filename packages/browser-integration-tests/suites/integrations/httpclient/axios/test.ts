@@ -49,7 +49,6 @@ sentryTest(
         headers: {
           Accept: 'application/json',
           Cache: 'no-cache',
-          'Content-Type': 'application/json',
         },
       },
       contexts: {
