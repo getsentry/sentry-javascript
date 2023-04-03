@@ -12,6 +12,10 @@ sentryTest(
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
     const frames = eventData.exception?.values?.[0].stacktrace?.frames;
 
+    expect(eventData).toBeDefined();
+    expect(eventData.exception?.values).toBeDefined();
+    expect(frames).toBeDefined();
+
     runInChromium(() => {
       expect(frames).toMatchObject([
         { function: '?' },
@@ -57,6 +61,9 @@ sentryTest(
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
+    expect(eventData).toBeDefined();
+    expect(eventData.exception?.values).toBeDefined();
+    expect(eventData.exception?.values?.[0].stacktrace).toBeDefined();
     expect(eventData.exception?.values?.[0].stacktrace?.frames).toMatchObject(
       Array(7).fill({ filename: expect.stringMatching(/^file:\/?/) }),
     );

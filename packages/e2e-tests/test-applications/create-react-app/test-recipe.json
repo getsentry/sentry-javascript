@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "create-react-app",
-  "buildCommand": "yarn install --pure-lockfile && yarn build",
+  "buildCommand": "yarn install --network-concurrency 1 && yarn build",
   "tests": []
 }

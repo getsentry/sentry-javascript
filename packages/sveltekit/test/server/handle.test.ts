@@ -129,7 +129,7 @@ describe('handleSentry', () => {
       expect(response).toEqual(mockResponse);
     });
 
-    it('creates a transaction', async () => {
+    it("creates a transaction if there's no active span", async () => {
       let ref: any = undefined;
       client.on('finishTransaction', (transaction: Transaction) => {
         ref = transaction;
@@ -149,6 +149,50 @@ describe('handleSentry', () => {
       expect(ref.metadata.source).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
+      expect(ref.spanRecorder.spans).toHaveLength(1);
+    });
+
+    it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+      let ref: any = undefined;
+      let txnCount = 0;
+      client.on('finishTransaction', (transaction: Transaction) => {
+        ref = transaction;
+        ++txnCount;
+      });
+
+      try {
+        await sentryHandle({
+          event: mockEvent(),
+          resolve: async _ => {
+            // simulateing a nested load call:
+            await sentryHandle({
+              event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
+              resolve: resolve(type, isError),
+            });
+            return mockResponse;
+          },
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(txnCount).toEqual(1);
+      expect(ref).toBeDefined();
+
+      expect(ref.name).toEqual('GET /users/[id]');
+      expect(ref.op).toEqual('http.server');
+      expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(ref.metadata.source).toEqual('route');
+
+      expect(ref.endTimestamp).toBeDefined();
+
+      expect(ref.spanRecorder.spans).toHaveLength(2);
+      expect(ref.spanRecorder.spans).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+        ]),
+      );
     });
 
     it('creates a transaction from sentry-trace header', async () => {
@@ -271,7 +315,6 @@ describe('transformPageChunk', () => {
       <meta charset="utf-8" />
       <link rel="icon" href="%sveltekit.assets%/favicon.png" />
       <meta name="viewport" content="width=device-width" />
-      %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">
       <div style="display: contents">%sveltekit.body%</div>

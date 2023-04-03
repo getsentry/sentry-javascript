@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'packages/browser-integration-tests/suites/**'
+    branches-ignore:
+      - master
+      - develop
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
@@ -77,5 +80,4 @@ jobs:
         working-directory: packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
-          # Run 50 times when detecting changed test(s), else run all tests 5x
-          TEST_RUN_COUNT: ${{ steps.changed.outputs.browser_integration == 'true' && 50 || 5 }}
+          TEST_RUN_COUNT: 'AUTO'

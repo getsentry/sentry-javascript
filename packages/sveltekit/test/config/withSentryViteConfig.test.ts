@@ -1,7 +1,17 @@
+import type fs from 'fs';
 import type { Plugin, UserConfig } from 'vite';
+import { vi } from 'vitest';
 
 import { withSentryViteConfig } from '../../src/config/withSentryViteConfig';
 
+let existsFile = true;
+vi.mock('fs', async () => {
+  const original = await vi.importActual<typeof fs>('fs');
+  return {
+    ...original,
+    existsSync: vi.fn().mockImplementation(() => existsFile),
+  };
+});
 describe('withSentryViteConfig', () => {
   const originalConfig = {
     plugins: [{ name: 'foo' }],
@@ -114,5 +124,29 @@ describe('withSentryViteConfig', () => {
     expect(plugins[0].name).toBe('sentry-init-injection-plugin');
 
     expect((sentrifiedConfig as UserConfig).server?.fs?.allow).toStrictEqual(['.']);
+  });
+
+  it("doesn't add the inject init plugin or the server config if sentry config files don't exist", () => {
+    existsFile = false;
+
+    const sentrifiedConfig = withSentryViteConfig({
+      plugins: [{ name: 'some plugin' }],
+      test: {
+        include: ['src/**/*.{test,spec}.{js,ts}'],
+      },
+      server: {
+        fs: {
+          allow: ['./bar'],
+        },
+      },
+    } as UserConfig);
+
+    expect(typeof sentrifiedConfig).toBe('object');
+    const plugins = (sentrifiedConfig as UserConfig).plugins as Plugin[];
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].name).toBe('some plugin');
+    expect((sentrifiedConfig as UserConfig).server?.fs?.allow).toStrictEqual(['./bar']);
+
+    existsFile = true;
   });
 });

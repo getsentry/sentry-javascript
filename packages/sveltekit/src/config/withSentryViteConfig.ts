@@ -1,6 +1,6 @@
 import type { UserConfig, UserConfigExport } from 'vite';
 
-import { injectSentryInitPlugin } from './vitePlugins';
+import { getUserConfigFile, injectSentryInitPlugin } from './vitePlugins';
 
 /**
  * This function adds Sentry-specific configuration to your Vite config.
@@ -31,17 +31,27 @@ export function withSentryViteConfig(originalConfig: UserConfigExport): UserConf
 }
 
 function addSentryConfig(originalConfig: UserConfig): UserConfig {
+  const sentryPlugins = [];
+
+  const shouldAddInjectInitPlugin = hasSentryInitFiles();
+
+  if (shouldAddInjectInitPlugin) {
+    sentryPlugins.push(injectSentryInitPlugin);
+  }
+
   const config = {
     ...originalConfig,
-    plugins: originalConfig.plugins ? [injectSentryInitPlugin, ...originalConfig.plugins] : [injectSentryInitPlugin],
+    plugins: originalConfig.plugins ? [...sentryPlugins, ...originalConfig.plugins] : [...sentryPlugins],
   };
 
-  const mergedDevServerFileSystemConfig: UserConfig['server'] = {
-    fs: {
-      ...(config.server && config.server.fs),
-      allow: [...((config.server && config.server.fs && config.server.fs.allow) || []), '.'],
-    },
-  };
+  const mergedDevServerFileSystemConfig: UserConfig['server'] = shouldAddInjectInitPlugin
+    ? {
+        fs: {
+          ...(config.server && config.server.fs),
+          allow: [...((config.server && config.server.fs && config.server.fs.allow) || []), '.'],
+        },
+      }
+    : {};
 
   config.server = {
     ...config.server,
@@ -49,4 +59,10 @@ function addSentryConfig(originalConfig: UserConfig): UserConfig {
   };
 
   return config;
+}
+
+function hasSentryInitFiles(): boolean {
+  const hasSentryServerInit = !!getUserConfigFile(process.cwd(), 'server');
+  const hasSentryClientInit = !!getUserConfigFile(process.cwd(), 'client');
+  return hasSentryServerInit || hasSentryClientInit;
 }

@@ -17,7 +17,11 @@
     },
     "buildTimeoutSeconds": {
       "type": "number",
-      "description": "Timeout for the build command in seconds. Default: 60"
+      "description": "Timeout for the build command in seconds. Default: 5 minutes"
+    },
+    "testTimeoutSeconds": {
+      "type": "number",
+      "description": "Timeout for the test command in seconds. Default: 2 minutes"
     },
     "tests": {
       "type": "array",

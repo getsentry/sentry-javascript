@@ -125,6 +125,35 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
   });
 }
 
+export function waitForTransactionRequest(page: Page): Promise<Request> {
+  return page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const event = envelopeRequestParser(req);
+
+      return event.type === 'transaction';
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * We can only test tracing tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain Tracing
+ *
+ * @returns `true` if we should skip the tracing test
+ */
+export function shouldSkipTracingTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
 /**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured

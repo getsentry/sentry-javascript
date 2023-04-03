@@ -23,6 +23,16 @@ export interface InternalGlobal {
   Sentry?: {
     Integrations?: Integration[];
   };
+  onerror?: {
+    (msg: unknown, url: unknown, line: unknown, column: unknown, error: unknown): boolean;
+    __SENTRY_INSTRUMENTED__?: true;
+    __SENTRY_LOADER__?: true;
+  };
+  onunhandledrejection?: {
+    (event: unknown): boolean;
+    __SENTRY_INSTRUMENTED__?: true;
+    __SENTRY_LOADER__?: true;
+  };
   SENTRY_ENVIRONMENT?: string;
   SENTRY_DSN?: string;
   SENTRY_RELEASE?: {

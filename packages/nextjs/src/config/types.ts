@@ -53,9 +53,9 @@ export type NextConfigObject = {
   rewrites?: () => Promise<
     | NextRewrite[]
     | {
-        beforeFiles: NextRewrite[];
-        afterFiles: NextRewrite[];
-        fallback: NextRewrite[];
+        beforeFiles?: NextRewrite[];
+        afterFiles?: NextRewrite[];
+        fallback?: NextRewrite[];
       }
   >;
 };

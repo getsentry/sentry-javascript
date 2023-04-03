@@ -19,27 +19,9 @@ describe('Tracekit - Misc Tests', () => {
       type: 'foo',
       stacktrace: {
         frames: [
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: '?',
-            lineno: 4287,
-            in_app: true,
-          },
-          {
-            filename: 'http://path/to/file.js',
-            abs_path: 'http://path/to/file.js',
-            function: 'foo',
-            lineno: 4283,
-            in_app: true,
-          },
-          {
-            filename: 'file:///path/to/file.js',
-            abs_path: 'file:///path/to/file.js',
-            function: '?',
-            lineno: 878,
-            in_app: true,
-          },
+          { filename: 'http://path/to/file.js', function: '?', lineno: 4287, in_app: true },
+          { filename: 'http://path/to/file.js', function: 'foo', lineno: 4283, in_app: true },
+          { filename: 'file:///path/to/file.js', function: '?', lineno: 878, in_app: true },
         ],
       },
     });
