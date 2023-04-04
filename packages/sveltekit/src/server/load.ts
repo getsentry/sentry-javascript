@@ -5,6 +5,7 @@ import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, objectify } from '@sentry/utils';
 import type { HttpError, LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
+import { isRedirect } from '../common/utils';
 import { getTracePropagationData } from './utils';
 
 function isHttpError(err: unknown): err is HttpError {
@@ -19,7 +20,12 @@ function sendErrorToSentry(e: unknown): unknown {
   // The error() helper is commonly used to throw errors in load functions: https://kit.svelte.dev/docs/modules#sveltejs-kit-error
   // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
   // could be noisy.
-  if (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400) {
+  // Also the `redirect(...)` helper is used to redirect users from one page to another. We don't want to capture thrown
+  // `Redirect`s as they're not errors but expected behaviour
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
     return objectifiedErr;
   }
 
