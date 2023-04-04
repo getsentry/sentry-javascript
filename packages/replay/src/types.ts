@@ -442,7 +442,8 @@ export interface ReplayContainer {
   resume(): void;
   startRecording(): void;
   stopRecording(): boolean;
-  flushImmediate(): void;
+  capture(continueOnError?: boolean): Promise<void>;
+  flushImmediate(): Promise<void>;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
