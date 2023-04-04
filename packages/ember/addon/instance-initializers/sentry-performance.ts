@@ -3,14 +3,14 @@ import { run, _backburner, scheduleOnce } from '@ember/runloop';
 import { subscribe } from '@ember/instrumentation';
 import * as Sentry from '@sentry/browser';
 import { ExtendedBackburner } from '@sentry/ember/runloop';
-import { Span, Transaction, Integration } from '@sentry/types';
+import { Span, Transaction } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
 import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampWithMs } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 import RouterService from '@ember/routing/router-service';
-import { BaseClient } from '@sentry/core';
+import type { BaseClient } from '@sentry/core';
 
 function getSentryConfig() {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
