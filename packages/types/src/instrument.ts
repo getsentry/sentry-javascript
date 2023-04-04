@@ -15,6 +15,7 @@ export interface SentryXhrData {
   body?: XHRSendInput;
   request_body_size?: number;
   response_body_size?: number;
+  request_headers: Record<string, string>;
 }
 
 export interface HandlerDataXhr {
