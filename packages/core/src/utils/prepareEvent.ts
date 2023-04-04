@@ -127,7 +127,8 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
   // Build a map of filename -> debug_id
   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     const parsedStack = stackParser(debugIdStackTrace);
-    for (const stackFrame of parsedStack) {
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
       if (stackFrame.filename) {
         acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
         break;
