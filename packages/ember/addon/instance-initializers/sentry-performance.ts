@@ -10,6 +10,7 @@ import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampWithMs } from '@sent
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 import RouterService from '@ember/routing/router-service';
+import { BaseClient } from '@sentry/core';
 
 function getSentryConfig() {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
@@ -416,20 +417,12 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   });
 
   if (macroCondition(isTesting())) {
-    class FakeBrowserTracingClass {
-      static id = 'BrowserTracing';
-      public name = FakeBrowserTracingClass.id;
-      setupOnce() {
-        // noop - We're just faking  this class for a lookup
-      }
-    }
+    const client = Sentry.getCurrentHub().getClient();
 
     if (
-      Sentry.getCurrentHub()?.getIntegration(
-        // This is a temporary hack because the BrowserTracing integration cannot have a static `id` field for tree
-        // shaking reasons. However, `getIntegration` needs that field.
-        FakeBrowserTracingClass,
-      )
+      client &&
+      (client as BaseClient<any>).getIntegrationById &&
+      (client as BaseClient<any>).getIntegrationById('BrowserTracing')
     ) {
       // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
       return;
