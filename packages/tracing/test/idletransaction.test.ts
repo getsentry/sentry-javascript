@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { TRACING_DEFAULTS } from '@sentry/core';
+import { TRACING_DEFAULTS, Transaction } from '@sentry/core';
 
 import { Hub, IdleTransaction, Span } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
@@ -73,6 +73,29 @@ describe('IdleTransaction', () => {
 
       hub.configureScope(s => {
         expect(s.getTransaction()).toBe(undefined);
+      });
+    });
+
+    it('does not remove transaction from scope on finish if another transaction was set there', () => {
+      const transaction = new IdleTransaction(
+        { name: 'foo' },
+        hub,
+        TRACING_DEFAULTS.idleTimeout,
+        TRACING_DEFAULTS.finalTimeout,
+        TRACING_DEFAULTS.heartbeatInterval,
+        true,
+      );
+      transaction.initSpanRecorder(10);
+
+      // @ts-ignore need to pass in hub
+      const otherTransaction = new Transaction({ name: 'bar' }, hub);
+      hub.getScope().setSpan(otherTransaction);
+
+      transaction.finish();
+      jest.runAllTimers();
+
+      hub.configureScope(s => {
+        expect(s.getTransaction()).toBe(otherTransaction);
       });
     });
   });
