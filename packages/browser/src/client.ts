@@ -8,6 +8,7 @@ import type {
   Options,
   Severity,
   SeverityLevel,
+  UserFeedback,
 } from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
 
@@ -16,6 +17,7 @@ import { WINDOW } from './helpers';
 import type { Breadcrumbs } from './integrations';
 import { BREADCRUMB_INTEGRATION_ID } from './integrations/breadcrumbs';
 import type { BrowserTransportOptions } from './transports/types';
+import { createUserFeedbackEnvelope } from './userfeedback';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -104,6 +106,18 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     }
 
     super.sendEvent(event, hint);
+  }
+
+  /**
+   * Sends user feedback to Sentry.
+   */
+  public captureUserFeedback(feedback: UserFeedback): void {
+    const envelope = createUserFeedbackEnvelope(feedback, {
+      metadata: this.getSdkMetadata(),
+      dsn: this.getDsn(),
+      tunnel: this.getOptions().tunnel,
+    });
+    void this._sendEnvelope(envelope);
   }
 
   /**
