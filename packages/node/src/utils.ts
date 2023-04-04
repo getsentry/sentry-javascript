@@ -1,3 +1,7 @@
+import type { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import * as domain from 'domain';
+import type { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -35,4 +39,20 @@ export function deepReadDirSync(targetDir: string): string[] {
   };
 
   return deepReadCurrentDir(targetDirAbsPath).map(absPath => path.relative(targetDirAbsPath, absPath));
+}
+
+/**
+ * Runs a callback in it's own domain and passes it the hub.
+ */
+export function runWithHub<T>(callback: (hub: Hub) => T, emitters: EventEmitter[] = []): T {
+  const local = domain.create();
+
+  for (const emitter of emitters) {
+    local.add(emitter);
+  }
+
+  return local.bind(() => {
+    const hub = getCurrentHub();
+    return callback(hub);
+  })();
 }

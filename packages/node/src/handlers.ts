@@ -12,7 +12,6 @@ import {
   logger,
   normalize,
 } from '@sentry/utils';
-import * as domain from 'domain';
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
@@ -20,6 +19,7 @@ import { extractRequestData } from './requestdata';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { flush, isAutoSessionTrackingEnabled } from './sdk';
+import { runWithHub } from './utils';
 
 /**
  * Express-compatible tracing handler.
@@ -181,46 +181,44 @@ export function requestHandler(
           });
       };
     }
-    const local = domain.create();
-    local.add(req);
-    local.add(res);
 
-    local.run(() => {
-      const currentHub = getCurrentHub();
+    runWithHub(
+      currentHub => {
+        currentHub.configureScope(scope => {
+          scope.setSDKProcessingMetadata({
+            request: req,
+            // TODO (v8): Stop passing this
+            requestDataOptionsFromExpressHandler: requestDataOptions,
+          });
 
-      currentHub.configureScope(scope => {
-        scope.setSDKProcessingMetadata({
-          request: req,
-          // TODO (v8): Stop passing this
-          requestDataOptionsFromExpressHandler: requestDataOptions,
+          const client = currentHub.getClient<NodeClient>();
+          if (isAutoSessionTrackingEnabled(client)) {
+            const scope = currentHub.getScope();
+            if (scope) {
+              // Set `status` of `RequestSession` to Ok, at the beginning of the request
+              scope.setRequestSession({ status: 'ok' });
+            }
+          }
         });
 
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
-          if (scope) {
-            // Set `status` of `RequestSession` to Ok, at the beginning of the request
-            scope.setRequestSession({ status: 'ok' });
-          }
-        }
-      });
-
-      res.once('finish', () => {
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          setImmediate(() => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (client && (client as any)._captureRequestSession) {
-              // Calling _captureRequestSession to capture request session at the end of the request by incrementing
-              // the correct SessionAggregates bucket i.e. crashed, errored or exited
+        res.once('finish', () => {
+          const client = currentHub.getClient<NodeClient>();
+          if (isAutoSessionTrackingEnabled(client)) {
+            setImmediate(() => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (client as any)._captureRequestSession();
-            }
-          });
-        }
-      });
-      next();
-    });
+              if (client && (client as any)._captureRequestSession) {
+                // Calling _captureRequestSession to capture request session at the end of the request by incrementing
+                // the correct SessionAggregates bucket i.e. crashed, errored or exited
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                (client as any)._captureRequestSession();
+              }
+            });
+          }
+        });
+        next();
+      },
+      [req, res],
+    );
   };
 }
 
