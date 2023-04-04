@@ -2,7 +2,7 @@ import type { Span, Transaction } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { addTracingExtensions, Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { logger, parseSemver, TRACEPARENT_REGEXP } from '@sentry/utils';
+import { logger, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -11,10 +11,9 @@ import * as nock from 'nock';
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { NODE_VERSION } from '../../src/nodeVersion';
 import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
