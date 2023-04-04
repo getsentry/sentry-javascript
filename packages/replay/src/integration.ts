@@ -226,6 +226,19 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     return this._replay.flushImmediate();
   }
 
+  /**
+   * If not in "session" recording mode, flush event buffer (i.e. creates a new replay).
+   * Unless `continueRecording` is false, the replay will continue to record and
+   * behave as a "session"-based replay.
+   */
+  public async capture(continueRecording: boolean = true): Promise<void> {
+    if (!this._replay) {
+      return;
+    }
+
+    return this._replay.capture(continueRecording);
+  }
+
   /** Setup the integration. */
   private _setup(): void {
     // Client is not available in constructor, so we need to wait until setupOnce

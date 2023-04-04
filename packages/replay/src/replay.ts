@@ -223,10 +223,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       if (this._stopRecording) {
         this._stopRecording();
         this._stopRecording = undefined;
-        return true;
       }
 
-      return false;
+      return true;
     } catch (err) {
       this._handleException(err);
       return false;
@@ -287,6 +286,36 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     this._isPaused = false;
     this.startRecording();
+  }
+
+  /**
+   * If not in "session" recording mode, flush event buffer (i.e. creates a new replay).
+   * Unless `continueRecording` is false, the replay will continue to record and
+   * behave as a "session"-based replay.
+   */
+  public async capture(continueRecording: boolean = true): Promise<void> {
+    // Don't allow if in session mode, use `flush()` instead
+    if (this.recordingMode === 'session') {
+      return;
+    }
+
+    // Allow flush to complete before resuming as a session recording, otherwise
+    // the checkout from `startRecording` may be included in the payload.
+    // Prefer to keep the error replay as a separate (and smaller) segment
+    // than the session replay.
+    await this.flushImmediate();
+
+    if (!continueRecording) {
+      return;
+    }
+
+    // Stop and re-start recording, but in "session" recording mode
+    if (this.stopRecording()) {
+      // Reset all "capture on error" configuration before
+      // starting a new recording
+      this.recordingMode = 'session';
+      this.startRecording();
+    }
   }
 
   /**
