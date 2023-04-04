@@ -111,9 +111,6 @@ export class IdleTransaction extends Transaction {
     super(transactionContext, _idleHub);
 
     if (_onScope) {
-      // There should only be one active transaction on the scope
-      clearActiveTransaction(_idleHub);
-
       // We set the transaction here on the scope so error events pick up the trace
       // context and attach it to the error.
       __DEBUG_BUILD__ && logger.log(`Setting idle transaction on scope. Span ID: ${this.spanId}`);
@@ -179,7 +176,10 @@ export class IdleTransaction extends Transaction {
 
     // if `this._onScope` is `true`, the transaction put itself on the scope when it started
     if (this._onScope) {
-      clearActiveTransaction(this._idleHub);
+      const scope = this._idleHub.getScope();
+      if (scope.getTransaction() === this) {
+        scope.setSpan(undefined);
+      }
     }
 
     return super.finish(endTimestamp);
@@ -351,15 +351,5 @@ export class IdleTransaction extends Transaction {
     setTimeout(() => {
       this._beat();
     }, this._heartbeatInterval);
-  }
-}
-
-/**
- * Reset transaction on scope to `undefined`
- */
-function clearActiveTransaction(hub: Hub): void {
-  const scope = hub.getScope();
-  if (scope.getTransaction()) {
-    scope.setSpan(undefined);
   }
 }
