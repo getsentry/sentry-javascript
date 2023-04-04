@@ -1,5 +1,6 @@
 import { addTracingExtensions, Scope } from '@sentry/svelte';
-import { Load, redirect } from '@sveltejs/kit';
+import type { Load } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry } from '../../src/client/load';
