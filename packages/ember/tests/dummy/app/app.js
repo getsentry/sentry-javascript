@@ -5,6 +5,8 @@ import config from './config/environment';
 import * as Sentry from '@sentry/ember';
 
 Sentry.init({
+  replaysSessionSampleRate: 1,
+  replaysOnErrorSampleRate: 1,
   browserTracingOptions: {
     _experiments: {
       // This lead to some flaky tests, as that is sometimes logged
