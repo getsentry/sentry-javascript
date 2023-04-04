@@ -3,12 +3,19 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE } from '../../constants';
 import type {
+  JsonArray,
+  JsonObject,
   NetworkBody,
+  NetworkMetaWarning,
   NetworkRequestData,
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
   ReplayPerformanceEntry,
 } from '../../types';
+
+// How many levels deep the body JSON payloads should be normalized.
+// Everything deeper than this will be replaced with [removed]
+const BODY_DEPTH = 6;
 
 /** Get the size of a body. */
 export function getBodySize(
@@ -138,7 +145,13 @@ export function buildNetworkRequestOrResponse(
   };
 
   if (bodySize < NETWORK_BODY_MAX_SIZE) {
-    info.body = body;
+    const { body: normalizedBody, warnings } = normalizeNetworkBody(body);
+    info.body = normalizedBody;
+    if (warnings.length > 0) {
+      info._meta = {
+        warnings,
+      };
+    }
   } else {
     info._meta = {
       errors: ['MAX_BODY_SIZE_EXCEEDED'],
@@ -153,4 +166,53 @@ function _serializeFormData(formData: FormData): string {
   // This converts e.g. { name: 'Anne Smith', age: 13 } to 'name=Anne+Smith&age=13'
   // @ts-ignore passing FormData to URLSearchParams actually works
   return new URLSearchParams(formData).toString();
+}
+
+function normalizeNetworkBody(body: NetworkBody | undefined): {
+  body: NetworkBody | undefined;
+  warnings: NetworkMetaWarning[];
+} {
+  if (!body || typeof body === 'string') {
+    return {
+      body,
+      warnings: [],
+    };
+  }
+
+  return processJsonBody(body);
+}
+
+// We know json comes from JSON.parse(), so we do not need to consider classes etc.
+function processJsonBody<Json extends JsonObject | JsonArray>(
+  json: Json,
+): { body: Json; warnings: NetworkMetaWarning[] } {
+  const warnings = new Set<NetworkMetaWarning>();
+
+  function traverse(item: unknown, currentDepth = 0): unknown {
+    const t = typeof item;
+    if (t === 'string' || t === 'number' || t === 'boolean' || !item) {
+      return item;
+    }
+
+    if (currentDepth >= BODY_DEPTH) {
+      warnings.add('MAX_JSON_DEPTH_EXCEEDED');
+      return '[~MaxDepth]';
+    }
+
+    if (Array.isArray(item)) {
+      return item.map(sub => traverse(sub, currentDepth + 1));
+    }
+
+    const json = item as JsonObject;
+
+    return Object.keys(json).reduce((acc, key) => {
+      acc[key] = traverse(json[key], currentDepth + 1);
+      return acc;
+    }, {} as JsonObject);
+  }
+
+  return {
+    body: traverse(json, 0) as Json,
+    warnings: Array.from(warnings),
+  };
 }

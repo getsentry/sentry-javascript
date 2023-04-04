@@ -1,6 +1,10 @@
 import { TextEncoder } from 'util';
 
-import { getBodySize, parseContentLengthHeader } from '../../../../src/coreHandlers/util/networkUtils';
+import {
+  buildNetworkRequestOrResponse,
+  getBodySize,
+  parseContentLengthHeader,
+} from '../../../../src/coreHandlers/util/networkUtils';
 
 jest.useFakeTimers();
 
@@ -60,6 +64,121 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
       const arrayBuffer = new ArrayBuffer(8);
 
       expect(getBodySize(arrayBuffer, textEncoder)).toBe(8);
+    });
+  });
+
+  describe('buildNetworkRequestOrResponse', () => {
+    it.each([
+      ['empty array', [], [], undefined],
+      ['simple array', [1, 'a', true, null, undefined], [1, 'a', true, null, undefined], undefined],
+      [
+        'nested array',
+        [1, [2, [3, [4, [5, [6, [7, [8]]]]]]]],
+        [1, [2, [3, [4, [5, [6, '[~MaxDepth]']]]]]],
+        { warnings: ['MAX_JSON_DEPTH_EXCEEDED'] },
+      ],
+      ['empty object', {}, {}, undefined],
+      [
+        'simple object',
+        { a: 1, b: true, c: 'yes', d: null, e: undefined },
+        { a: 1, b: true, c: 'yes', d: null, e: undefined },
+        undefined,
+      ],
+      [
+        'nested object',
+        {
+          a: 1,
+          b: {
+            c: 2,
+            d: {
+              e: 3,
+              f: {
+                g: 4,
+                h: {
+                  i: 5,
+                  j: {
+                    k: 6,
+                    l: {
+                      m: 7,
+                      n: {
+                        o: 8,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          a: 1,
+          b: {
+            c: 2,
+            d: {
+              e: 3,
+              f: {
+                g: 4,
+                h: {
+                  i: 5,
+                  j: {
+                    k: 6,
+                    l: '[~MaxDepth]',
+                  },
+                },
+              },
+            },
+          },
+        },
+        { warnings: ['MAX_JSON_DEPTH_EXCEEDED'] },
+      ],
+      [
+        'nested object with array',
+        {
+          data: {
+            user: {
+              name: 'John',
+              age: 42,
+              friends: [
+                {
+                  name: 'Jane',
+                },
+                {
+                  name: 'Bob',
+                  children: [
+                    { name: 'Alice' },
+                    {
+                      name: 'Rose',
+                      hobbies: [{ name: 'Dancing' }, { name: 'Programming' }, { name: 'Dueling' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        {
+          data: {
+            user: {
+              name: 'John',
+              age: 42,
+              friends: [
+                {
+                  name: 'Jane',
+                },
+                {
+                  name: 'Bob',
+                  children: ['[~MaxDepth]', '[~MaxDepth]'],
+                },
+              ],
+            },
+          },
+        },
+        { warnings: ['MAX_JSON_DEPTH_EXCEEDED'] },
+      ],
+    ])('works with %s', (_name, input, expectedBody, expectedMeta) => {
+      const actual = buildNetworkRequestOrResponse(1, input);
+
+      expect(actual).toEqual({ size: 1, body: expectedBody, _meta: expectedMeta });
     });
   });
 });
