@@ -9,6 +9,7 @@ import {
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
 import type { RecordMock } from '../index';
@@ -16,7 +17,6 @@ import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 

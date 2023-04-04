@@ -9,6 +9,7 @@ import {
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import type { Session } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
@@ -16,7 +17,6 @@ import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 

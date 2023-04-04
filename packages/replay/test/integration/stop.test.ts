@@ -3,11 +3,11 @@ import * as SentryUtils from '@sentry/utils';
 import type { Replay } from '../../src';
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 
@@ -97,7 +97,7 @@ describe('Integration | stop', () => {
     integration.start();
 
     // will be different session
-    expect(replay.session?.id).not.toEqual(previousSessionId)
+    expect(replay.session?.id).not.toEqual(previousSessionId);
 
     jest.advanceTimersByTime(ELAPSED);
 
@@ -155,9 +155,7 @@ describe('Integration | stop', () => {
 
     expect(replay.eventBuffer).toBe(null);
     expect(replay).toHaveLastSentReplay({
-      recordingData: JSON.stringify([
-        TEST_EVENT,
-      ]),
+      recordingData: JSON.stringify([TEST_EVENT]),
     });
   });
 

@@ -268,7 +268,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.stopRecording();
 
       // Flush event buffer before stopping
-      await this.flushImmediate()
+      await this.flushImmediate();
 
       this._shouldFinalFlush = false;
 
@@ -279,7 +279,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Clear session from session storage, note this means if a new session
       // is started after, it will not have `previousSessionId`
       clearSession(this);
-
     } catch (err) {
       this._handleException(err);
     } finally {
@@ -489,7 +488,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.session = session;
 
     if (!this.session.sampled) {
-      this.stop('session unsampled');
+      void this.stop('session unsampled');
       return false;
     }
 
