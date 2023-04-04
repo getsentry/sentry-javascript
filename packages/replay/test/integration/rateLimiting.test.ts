@@ -6,8 +6,8 @@ import type { ReplayContainer } from '../../src/replay';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockSdk } from '../index';
 import { mockRrweb } from '../mocks/mockRrweb';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
+import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 
@@ -86,8 +86,7 @@ describe('Integration | rate-limiting behaviour', () => {
     expect(replay.stop).toHaveBeenCalledTimes(1);
 
     // No user activity to trigger an update
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-    expect(replay.session?.segmentId).toBe(1);
+    expect(replay.session).toBe(undefined);
 
     // let's simulate the default rate-limit time of inactivity (60secs) and check that we
     // don't do anything in the meantime or after the time has passed

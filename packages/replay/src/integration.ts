@@ -207,12 +207,12 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public stop(): void {
+  public async stop(): Promise<void> {
     if (!this._replay) {
       return;
     }
 
-    this._replay.stop();
+    return this._replay.stop();
   }
 
   /**

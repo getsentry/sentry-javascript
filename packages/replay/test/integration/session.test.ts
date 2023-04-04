@@ -15,8 +15,8 @@ import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
+import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 

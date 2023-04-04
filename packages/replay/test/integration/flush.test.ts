@@ -8,8 +8,8 @@ import { createPerformanceEntries } from '../../src/util/createPerformanceEntrie
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
+import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 

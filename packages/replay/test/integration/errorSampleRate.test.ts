@@ -15,8 +15,8 @@ import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import type { DomHandler } from '../types';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
+import { clearSession } from '../../src/session/clearSession';
 
 useFakeTimers();
 

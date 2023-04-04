@@ -46,7 +46,7 @@ export async function addEvent(
     return await replay.eventBuffer.addEvent(event, isCheckout);
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
-    replay.stop('addEvent');
+    await replay.stop('addEvent');
 
     const client = getCurrentHub().getClient();
 

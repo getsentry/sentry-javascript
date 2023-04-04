@@ -7,6 +7,7 @@ import { logger } from '@sentry/utils';
 import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
+import { clearSession } from './session/clearSession';
 import { getSession } from './session/getSession';
 import { saveSession } from './session/saveSession';
 import type {
@@ -84,6 +85,11 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Is the integration currently active?
    */
   private _isEnabled: boolean = false;
+
+  /**
+   * If true, will flush regardless of `_isEnabled` property
+   */
+  private _shouldFinalFlush: boolean = false;
 
   /**
    * Paused is a state where:
@@ -237,7 +243,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public stop(reason?: string): void {
+  public async stop(reason?: string): Promise<void> {
     if (!this._isEnabled) {
       return;
     }
@@ -253,14 +259,31 @@ export class ReplayContainer implements ReplayContainerInterface {
         log(msg);
       }
 
+      // Set this property so that it ignores `_isEnabled` = false
+      // We can't move `_isEnabled` after awaiting a flush, otherwise we can
+      // enter into an infinite loop when `stop()` is called while flushing.
+      this._shouldFinalFlush = true;
       this._isEnabled = false;
       this._removeListeners();
       this.stopRecording();
+
+      // Flush event buffer before stopping
+      await this.flushImmediate()
+
+      this._shouldFinalFlush = false;
+
+      // After flush, destroy event buffer
       this.eventBuffer && this.eventBuffer.destroy();
       this.eventBuffer = null;
-      this._debouncedFlush.cancel();
+
+      // Clear session from session storage, note this means if a new session
+      // is started after, it will not have `previousSessionId`
+      clearSession(this);
+
     } catch (err) {
       this._handleException(err);
+    } finally {
+      this._shouldFinalFlush = false;
     }
   }
 
@@ -760,7 +783,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.
       // In this case, we want to completely stop the replay - otherwise, we may get inconsistent segments
-      this.stop('sendReplay');
+      void this.stop('sendReplay');
 
       const client = getCurrentHub().getClient();
 
@@ -775,7 +798,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * can be active at a time. Do not call this directly.
    */
   private _flush: () => Promise<void> = async () => {
-    if (!this._isEnabled) {
+    if (!this._isEnabled && !this._shouldFinalFlush) {
       // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
     }
