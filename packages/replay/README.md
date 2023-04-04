@@ -60,6 +60,9 @@ If you do not want to start Replay immediately (e.g. if you want to lazy-load it
 you can also use `addIntegration` to load it later:
 
 ```js
+import * as Sentry from "@sentry/react";
+import { BrowserClient } from "@sentry/browser";
+
 Sentry.init({
   // Do not load it initially
   integrations: []
@@ -67,7 +70,10 @@ Sentry.init({
 
 // Sometime later
 const { Replay } = await import('@sentry/browser');
-getCurrentHub().getClient().addIntegration(new Replay());
+const client = Sentry.getCurrentHub().getClient<BrowserClient>();
+
+// Client can be undefined
+client?.addIntegration(new Replay());
 ```
 
 ### Identifying Users
@@ -76,6 +82,7 @@ If you have only followed the above instructions to setup session replays, you w
 
 ```javascript
 import * as Sentry from "@sentry/browser";
+
 Sentry.setUser({ email: "jane.doe@example.com" });
 ```
 
@@ -84,17 +91,22 @@ Sentry.setUser({ email: "jane.doe@example.com" });
 Replay recording only starts when it is included in the `integrations` array when calling `Sentry.init` or calling `addIntegration` from the a Sentry client instance. To stop recording you can call the `stop()`.
 
 ```js
+import * as Sentry from "@sentry/react";
+import { BrowserClient } from "@sentry/browser";
+
 const replay = new Replay();
+
 Sentry.init({
   integrations: [replay]
 });
 
-const client = getClient();
+const client = Sentry.getCurrentHub().getClient<BrowserClient>();
 
 // Add replay integration, will start recoring
-client.addIntegration(replay);
+client?.addIntegration(replay);
 
-replay.stop(); // Stop recording
+// Stop recording
+replay.stop();
 ```
 
 ## Loading Replay as a CDN Bundle
