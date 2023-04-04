@@ -157,18 +157,18 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
  */
 export class BrowserTracing implements Integration {
-  // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
-  // @sentry/tracing from being treeshaken. Tree shakers do not like static fields, because they behave like side effects.
-  // TODO: Come up with a better plan, than using static fields on integration classes, and use that plan on all
-  // integrations.
-
-  /** Browser Tracing integration options */
-  public options: BrowserTracingOptions;
+  /**
+   * @inheritDoc
+   */
+  public static id: string = BROWSER_TRACING_INTEGRATION_ID;
 
   /**
    * @inheritDoc
    */
   public name: string = BROWSER_TRACING_INTEGRATION_ID;
+
+  /** Browser Tracing integration options */
+  public options: BrowserTracingOptions;
 
   private _getCurrentHub?: () => Hub;
 
