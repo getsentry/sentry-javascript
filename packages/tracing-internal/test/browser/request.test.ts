@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
 import * as utils from '@sentry/utils';
 

@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { extractTraceparentData, hasTracingEnabled } from '../src';
 
 describe('hasTracingEnabled (deprecated)', () => {

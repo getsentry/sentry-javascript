@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { Hub, makeMain, TRACING_DEFAULTS } from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents } from '@sentry/types';
