@@ -83,11 +83,23 @@ function isErrorOrErrorLikeObject(value: unknown): value is Error {
 class SentryErrorHandler implements AngularErrorHandler {
   protected readonly _options: ErrorHandlerOptions;
 
+  private readonly _openFallbackReportDialog;
+
   public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
     this._options = {
       logErrors: true,
       ...options,
     };
+
+    const client = Sentry.getCurrentHub().getClient();
+    this._openFallbackReportDialog = this._options.showDialog && !(client && client.on);
+    if (this._options.showDialog && client && client.on) {
+      client.on('afterSendEvent', event => {
+        if (!event.type) {
+          Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
+        }
+      });
+    }
   }
 
   /**
@@ -119,7 +131,7 @@ class SentryErrorHandler implements AngularErrorHandler {
     }
 
     // Optionally show user dialog to provide details on what happened.
-    if (this._options.showDialog) {
+    if (this._options.showDialog && this._openFallbackReportDialog) {
       Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
     }
   }
