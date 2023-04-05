@@ -4,7 +4,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
+import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
@@ -216,14 +216,18 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * Immediately send all pending events.
+   * If not in "session" recording mode, flush event buffer which will create a new replay.
+   * Unless `continueRecording` is false, the replay will continue to record and
+   * behave as a "session"-based replay.
+   *
+   * Otherwise, queue up a flush.
    */
-  public flush(): Promise<void> {
+  public flush(options?: SendBufferedReplayOptions): Promise<void> {
     if (!this._replay || !this._replay.isEnabled()) {
       return Promise.resolve();
     }
 
-    return this._replay.flushImmediate();
+    return this._replay.sendBufferedReplayOrFlush(options);
   }
 
   /**
@@ -235,19 +239,6 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     return this._replay.getSessionId();
-  }
-
-  /**
-   * If not in "session" recording mode, flush event buffer (i.e. creates a new replay).
-   * Unless `continueRecording` is false, the replay will continue to record and
-   * behave as a "session"-based replay.
-   */
-  public async capture(continueRecording: boolean = true): Promise<void> {
-    if (!this._replay) {
-      return;
-    }
-
-    return this._replay.capture(continueRecording);
   }
 
   /** Setup the integration. */
