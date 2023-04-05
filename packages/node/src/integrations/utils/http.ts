@@ -48,7 +48,7 @@ export function extractUrl(requestOptions: RequestOptions): string {
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
   // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const path = requestOptions.pathname || '/';
-  // // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const authority = requestOptions.auth ? '[Filtered]:[Filtered]@' : '';
 
   return `${protocol}//${authority}${hostname}${port}${path}`;
