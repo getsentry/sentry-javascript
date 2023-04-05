@@ -19,6 +19,7 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
+  SendBufferedReplayOptions,
   Session,
   Timeouts,
 } from './types';
@@ -216,7 +217,9 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /**
    * Stops the recording, if it was running.
-   * Returns true if it was stopped, else false.
+   *
+   * Returns true if it was previously stopped, or is now stopped,
+   *  * else false.
    */
   public stopRecording(): boolean {
     try {
@@ -293,10 +296,10 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
    */
-  public async capture(continueRecording: boolean = true): Promise<void> {
+  public async sendBufferedReplayOrFlush({ continueRecording = true }: SendBufferedReplayOptions = {}): Promise<void> {
     // Don't allow if in session mode, use `flush()` instead
     if (this.recordingMode === 'session') {
-      return;
+      return this._debouncedFlush() as Promise<void>;
     }
 
     // Allow flush to complete before resuming as a session recording, otherwise
