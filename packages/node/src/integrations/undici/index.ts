@@ -3,16 +3,14 @@ import type { EventProcessor, Integration } from '@sentry/types';
 import {
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
-  parseSemver,
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 
 import type { NodeClient } from '../../client';
+import { NODE_VERSION } from '../../nodeVersion';
 import { isSentryRequest } from '../utils/http';
 import type { DiagnosticsChannel, RequestCreateMessage, RequestEndMessage, RequestErrorMessage } from './types';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 export enum ChannelName {
   // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md#undicirequestcreate

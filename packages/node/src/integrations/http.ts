@@ -1,22 +1,15 @@
 import type { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import type { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
-  logger,
-  parseSemver,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, logger, stringMatchesSomePattern } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
+import { NODE_VERSION } from '../nodeVersion';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
 import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 interface TracingOptions {
   /**
