@@ -32,6 +32,8 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session).toBe(undefined);
+  expect(replay._isEnabled).toBe(false);
+  expect(replay.recordingMode).toBe('session');
 
   // Cannot wait on getFirstSentryEnvelopeRequest, as that never resolves
 });
