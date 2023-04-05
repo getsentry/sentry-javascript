@@ -112,6 +112,11 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * Sends user feedback to Sentry.
    */
   public captureUserFeedback(feedback: UserFeedback): void {
+    if (!this._isEnabled()) {
+      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture user feedback.');
+      return;
+    }
+
     const envelope = createUserFeedbackEnvelope(feedback, {
       metadata: this.getSdkMetadata(),
       dsn: this.getDsn(),
