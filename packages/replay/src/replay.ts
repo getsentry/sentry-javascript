@@ -225,7 +225,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Stops the recording, if it was running.
    *
    * Returns true if it was previously stopped, or is now stopped,
-   *  * else false.
+   * otherwise false.
    */
   public stopRecording(): boolean {
     try {
@@ -312,12 +312,14 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * If not in "session" recording mode, flush event buffer (i.e. creates a new replay).
+   * If not in "session" recording mode, flush event buffer which will create a new replay.
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
+   *
+   * Otherwise, queue up a flush.
    */
   public async sendBufferedReplayOrFlush({ continueRecording = true }: SendBufferedReplayOptions = {}): Promise<void> {
-    // Don't allow if in session mode, use `flush()` instead
+    // if in session mode, call debounced flush
     if (this.recordingMode === 'session') {
       return this._debouncedFlush() as Promise<void>;
     }
