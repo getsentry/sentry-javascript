@@ -11,16 +11,13 @@ export function captureUserFeedback(feedback: UserFeedback): void {
   const transport = client && client.getTransport();
 
   if (!client) {
-    if (__DEBUG_BUILD__) {
-      logger.log('[UserFeedback] getClient did not return a Client, user feedback will not be sent.');
-    }
+    __DEBUG_BUILD__ && logger.log('[UserFeedback] getClient did not return a Client, user feedback will not be sent.');
     return;
   }
 
   if (!transport) {
-    if (__DEBUG_BUILD__) {
+    __DEBUG_BUILD__ &&
       logger.log('[UserFeedback] getTransport did not return a Transport, user feedback will not be sent.');
-    }
     return;
   }
 
