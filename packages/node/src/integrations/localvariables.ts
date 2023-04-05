@@ -4,6 +4,7 @@ import { LRUMap } from 'lru_map';
 
 import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
+import { logger } from '@sentry/utils';
 
 type Variables = Record<string, unknown>;
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
@@ -282,11 +283,16 @@ export class LocalVariables implements Integration {
     addGlobalEventProcessor: (callback: EventProcessor) => void,
     clientOptions: NodeClientOptions | undefined,
   ): void {
-    // Only setup this integration if the Node version is >= v18
-    // https://github.com/getsentry/sentry-javascript/issues/7697
-    const supportedNodeVersion = (NODE_VERSION.major || 0) >= 18;
+    if (this._session && clientOptions?.includeLocalVariables) {
+      // Only setup this integration if the Node version is >= v18
+      // https://github.com/getsentry/sentry-javascript/issues/7697
+      const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
 
-    if (this._session && clientOptions?.includeLocalVariables && supportedNodeVersion) {
+      if (unsupportedNodeVersion) {
+        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
       this._session.configureAndConnect(
         (ev, complete) =>
           this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
