@@ -1,5 +1,5 @@
 export type { ClientClass } from './sdk';
-export type { Carrier, Layer } from './hub';
+export type { AsyncContextStrategy, Carrier, Layer } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 
 export * from './tracing';
