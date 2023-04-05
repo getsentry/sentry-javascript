@@ -3,10 +3,17 @@ import { captureException } from '@sentry/svelte';
 import { addExceptionMechanism, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
+import { isRedirect } from '../common/utils';
+
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
+
+  // We don't want to capture thrown `Redirect`s as these are not errors but expected behaviour
+  if (isRedirect(objectifiedErr)) {
+    return objectifiedErr;
+  }
 
   captureException(objectifiedErr, scope => {
     scope.addEventProcessor(event => {
