@@ -10,7 +10,9 @@ import {
 } from '../../../utils/replayHelpers';
 
 sentryTest('replay recording should be compressed with custom compressor', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+  // Only run this for esm/cjs, as otherwise the pako import does not work
+  const bundle = process.env.PW_BUNDLE || 'esm';
+  if (shouldSkipReplayTest() || bundle.startsWith('bundle_') || bundle.startsWith('loader_')) {
     sentryTest.skip();
   }
 

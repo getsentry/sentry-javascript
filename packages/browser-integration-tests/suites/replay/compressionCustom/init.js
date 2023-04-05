@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/browser';
+import pako from 'pako';
 
 window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 500,
   flushMaxDelay: 500,
-  useCompression: Sentry.replayEventCompressor,
+  useCompression: events => pako.deflate(JSON.stringify(events)),
 });
 
 Sentry.init({

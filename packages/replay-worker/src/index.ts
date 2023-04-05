@@ -7,5 +7,3 @@ export function getWorkerURL(): string {
   const workerBlob = new Blob([workerString]);
   return URL.createObjectURL(workerBlob);
 }
-
-export { compress } from './Compressor';
