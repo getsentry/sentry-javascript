@@ -210,9 +210,8 @@ function getUrlFromResource(resource: FetchResource): string {
 }
 
 /**
- * Exported only for tests.
- * @hidden
- *  */
+ * Parses the fetch arguments to find the used Http method and the url of the request
+ */
 export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: string } {
   if (fetchArgs.length === 0) {
     return { method: 'GET', url: '' };
