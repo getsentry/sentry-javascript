@@ -98,7 +98,7 @@ type PolymorphicRequestHeaders =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [key: string]: any;
       append: (key: string, value: string) => void;
-      get: (key: string) => string;
+      get: (key: string) => string | null | undefined;
     };
 
 export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions = {
@@ -221,8 +221,11 @@ export function fetchCallback(
   }
 }
 
-function addTracingHeadersToFetchRequest(
-  request: string | Request,
+/**
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers
+ */
+export function addTracingHeadersToFetchRequest(
+  request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
   dynamicSamplingContext: Partial<DynamicSamplingContext>,
   span: Span,
   options: {
@@ -230,7 +233,7 @@ function addTracingHeadersToFetchRequest(
       | {
           [key: string]: string[] | string | undefined;
         }
-      | Request['headers'];
+      | PolymorphicRequestHeaders;
   },
 ): PolymorphicRequestHeaders {
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
@@ -247,7 +250,7 @@ function addTracingHeadersToFetchRequest(
     newHeaders.append('sentry-trace', sentryTraceHeader);
 
     if (sentryBaggageHeader) {
-      // If the same header is appended miultiple times the browser will merge the values into a single request header.
+      // If the same header is appended multiple times the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
       newHeaders.append(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
     }
@@ -262,7 +265,7 @@ function addTracingHeadersToFetchRequest(
       newHeaders.push([BAGGAGE_HEADER_NAME, sentryBaggageHeader]);
     }
 
-    return newHeaders;
+    return newHeaders as PolymorphicRequestHeaders;
   } else {
     const existingBaggageHeader = 'baggage' in headers ? headers.baggage : undefined;
     const newBaggageHeaders: string[] = [];

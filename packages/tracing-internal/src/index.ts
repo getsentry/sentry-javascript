@@ -17,6 +17,7 @@ export {
   BROWSER_TRACING_INTEGRATION_ID,
   instrumentOutgoingRequests,
   defaultRequestInstrumentationOptions,
+  addTracingHeadersToFetchRequest,
 } from './browser';
 
 export type { RequestInstrumentationOptions } from './browser';
