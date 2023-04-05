@@ -525,13 +525,14 @@ it('sends a replay after loading the session multiple times', async () => {
     REPLAY_SESSION_KEY,
     `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
   );
-  const { mockRecord, replay } = await resetSdkMock({
+  const { mockRecord, replay, integration } = await resetSdkMock({
     replayOptions: {
       stickySession: true,
     },
     autoStart: false,
   });
-  replay.start();
+  // @ts-ignore this is protected, but we want to call it for this test
+  integration._initialize();
 
   jest.runAllTimers();
 
@@ -545,6 +546,7 @@ it('sends a replay after loading the session multiple times', async () => {
 
   await new Promise(process.nextTick);
   jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+  await new Promise(process.nextTick);
   await new Promise(process.nextTick);
 
   expect(replay).toHaveSentReplay({
