@@ -524,11 +524,9 @@ describe('SentryErrorHandler', () => {
     });
 
     describe('opens the report dialog if `showDialog` is true', () => {
-      it.only('by using SDK lifecycle hooks if available', () => {
+      it('by using SDK lifecycle hooks if available', () => {
         const client = {
-          cb: (_: Event) => {
-            console.log('wat');
-          },
+          cb: (_: Event) => {},
           on: jest.fn((_, cb) => {
             client.cb = cb;
           }),
@@ -536,8 +534,6 @@ describe('SentryErrorHandler', () => {
 
         // @ts-ignore this is a minmal hub, we're missing a few props but that's ok
         jest.spyOn(SentryBrowser, 'getCurrentHub').mockImplementationOnce(() => {
-          console.log('getcurrenthub');
-
           return { getClient: () => client };
         });
 
