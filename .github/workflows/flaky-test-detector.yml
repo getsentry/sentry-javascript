@@ -6,7 +6,6 @@ on:
       - 'packages/browser-integration-tests/suites/**'
     branches-ignore:
       - master
-      - develop
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
@@ -27,6 +26,8 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
+    # Also skip if PR is from master -> develop
+    if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
       - name: Check out current branch
         uses: actions/checkout@v3
