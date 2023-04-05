@@ -1,8 +1,8 @@
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
-import { parseSemver } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
+import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
 
 type Variables = Record<string, unknown>;
@@ -284,7 +284,7 @@ export class LocalVariables implements Integration {
   ): void {
     // Only setup this integration if the Node version is >= v18
     // https://github.com/getsentry/sentry-javascript/issues/7697
-    const supportedNodeVersion = (parseSemver(process.version).major || 0) >= 18;
+    const supportedNodeVersion = (NODE_VERSION.major || 0) >= 18;
 
     if (this._session && clientOptions?.includeLocalVariables && supportedNodeVersion) {
       this._session.configureAndConnect(
