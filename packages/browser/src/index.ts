@@ -20,7 +20,7 @@ const INTEGRATIONS = {
 
 export { INTEGRATIONS as Integrations };
 
-export { Replay } from '@sentry/replay';
+export { Replay, replayEventCompressor } from '@sentry/replay';
 export { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,

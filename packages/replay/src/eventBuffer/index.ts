@@ -1,12 +1,12 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 import { logger } from '@sentry/utils';
 
-import type { EventBuffer } from '../types';
+import type { EventBuffer, ReplayEventCompressor } from '../types';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
 
 interface CreateEventBufferParams {
-  useCompression: boolean;
+  useCompression: boolean | ReplayEventCompressor;
 }
 
 /**
@@ -14,7 +14,7 @@ interface CreateEventBufferParams {
  */
 export function createEventBuffer({ useCompression }: CreateEventBufferParams): EventBuffer {
   // eslint-disable-next-line no-restricted-globals
-  if (useCompression && window.Worker) {
+  if (useCompression === true && window.Worker) {
     try {
       const workerUrl = getWorkerURL();
 
@@ -28,5 +28,5 @@ export function createEventBuffer({ useCompression }: CreateEventBufferParams): 
   }
 
   __DEBUG_BUILD__ && logger.log('[Replay] Using simple buffer');
-  return new EventBufferArray();
+  return new EventBufferArray({ compressor: typeof useCompression === 'function' ? useCompression : undefined });
 }

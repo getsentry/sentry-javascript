@@ -1,4 +1,6 @@
-import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import type { ReplayRecordingData } from '@sentry/types';
+
+import type { AddEventResult, EventBuffer, RecordingEvent, ReplayEventCompressor } from '../types';
 
 /**
  * A basic event buffer that does not do any compression.
@@ -8,8 +10,12 @@ export class EventBufferArray implements EventBuffer {
   /** All the events that are buffered to be sent. */
   public events: RecordingEvent[];
 
-  public constructor() {
+  private _compressor: ReplayEventCompressor;
+
+  public constructor(options?: { compressor?: ReplayEventCompressor }) {
     this.events = [];
+
+    this._compressor = (options && options.compressor) || (events => JSON.stringify(events));
   }
 
   /** @inheritdoc */
@@ -34,14 +40,19 @@ export class EventBufferArray implements EventBuffer {
   }
 
   /** @inheritdoc */
-  public finish(): Promise<string> {
-    return new Promise<string>(resolve => {
+  public finish(): Promise<ReplayRecordingData> {
+    return new Promise<ReplayRecordingData>(resolve => {
       // Make a copy of the events array reference and immediately clear the
       // events member so that we do not lose new events while uploading
       // attachment.
       const eventsRet = this.events;
       this.events = [];
-      resolve(JSON.stringify(eventsRet));
+
+      try {
+        resolve(this._compressor(eventsRet));
+      } catch {
+        resolve(JSON.stringify(eventsRet));
+      }
     });
   }
 }

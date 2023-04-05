@@ -30,6 +30,8 @@ export interface Timeouts {
   maxSessionLife: number;
 }
 
+export type ReplayEventCompressor = (recordingEvents: RecordingEvent[]) => ReplayRecordingData;
+
 /**
  * The request payload to worker
  */
@@ -220,11 +222,13 @@ export interface ReplayPluginOptions extends SessionOptions {
   flushMaxDelay: number;
 
   /**
-   * Attempt to use compression when web workers are available
+   * Attempt to use compression when web workers are available.
+   * Optionally you can provide a custom compression function which will be called with the recording events
+   * and should return a string or Uint8Array of compressed data.
    *
    * (default is true)
    */
-  useCompression: boolean;
+  useCompression: boolean | ReplayEventCompressor;
 
   /**
    * Block all media (e.g. images, svg, video) in recordings.
