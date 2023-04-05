@@ -148,7 +148,7 @@ const exceptionEvent100Frames = {
   },
 };
 
-describeIf(NODE_VERSION >= 18)('LocalVariables', () => {
+describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   it('Adds local variables to stack frames', async () => {
     expect.assertions(7);
 
