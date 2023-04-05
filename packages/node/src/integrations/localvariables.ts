@@ -1,4 +1,5 @@
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import { parseSemver } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
@@ -281,7 +282,11 @@ export class LocalVariables implements Integration {
     addGlobalEventProcessor: (callback: EventProcessor) => void,
     clientOptions: NodeClientOptions | undefined,
   ): void {
-    if (this._session && clientOptions?.includeLocalVariables) {
+    // Only setup this integration if the Node version is >= v18
+    // https://github.com/getsentry/sentry-javascript/issues/7697
+    const supportedNodeVersion = (parseSemver(process.version).major || 0) >= 18;
+
+    if (this._session && clientOptions?.includeLocalVariables && supportedNodeVersion) {
       this._session.configureAndConnect(
         (ev, complete) =>
           this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
