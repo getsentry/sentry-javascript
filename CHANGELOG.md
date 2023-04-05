@@ -4,6 +4,74 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.47.0
+
+### Important Changes
+
+- **feat(browser)**: Add captureUserFeedback (#7729)
+
+This release adds a new API, `Sentry.captureUserFeedback`, to browser-side SDKs that allows you to send user feedback to Sentry without loading and opening Sentry's user feedback dialog. This allows you to obtain user feedback however and whenever you want to and simply send it to Sentry using the SDK.
+
+For instance, you can collect feedback, whenever convenient as shown in this example:
+
+```js
+const eventId = Sentry.captureMessage('User Feedback');
+const user = Sentry.getCurrentHub().getScope().getUser();
+const userFeedback = {
+  event_id: eventId;
+  email: user.email
+  name: user.username
+  comments: 'I really like your App, thanks!'
+}
+Sentry.captureUserFeedback(userFeedback);
+```
+
+Note that feedback needs to be coupled to an event but as in the example above, you can just use `Sentry.captureMessage` to generate one.
+
+You could also collect feedback in a custom way if an error happens and use the SDK to send it along:
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  beforeSend: event => {
+    const userFeedback = collectYourUserFeedback();
+    const feedback = {
+      ...userFeedback,
+      event_id: event.event_id.
+    }
+    Sentry.captureUserFeedback(feedback);
+    return event;
+  }
+})
+```
+
+- **feat(tracing)**: Deprecate `@sentry/tracing` exports (#7611)
+
+With this release, we officially deprecate all exports from the `@sentry/tracing` package, in favour of using them directly from the main SDK package. The `@sentry/tracing` package will be removed in a future major release.
+
+Please take a look at the [Migration docs](./MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460) for more details.
+
+### Additional Features and Fixes
+
+- feat(sveltekit): Add partial instrumentation for client-side `fetch` (#7626)
+- fix(angular): Handle routes with empty path (#7686)
+- fix(angular): Only open report dialog if error was sent (#7750)
+- fix(core): Determine debug ID paths from the top of the stack (#7722)
+- fix(ember): Ensure only one client is created & Replay works (#7712)
+- fix(integrations): Ensure HttpClient integration works with Axios (#7714)
+- fix(loader): Ensure JS loader works with tracing & add tests (#7662)
+- fix(nextjs): Restore tree shaking capabilities (#7710)
+- fix(node): Disable `LocalVariables` integration on Node < v18 (#7748)
+- fix(node): Redact URL authority only in breadcrumbs and spans (#7740)
+- fix(react): Only show report dialog if event was sent to Sentry (#7754)
+- fix(remix): Remove unnecessary dependencies  (#7708)
+- fix(replay): Ensure circular references are handled (#7752)
+- fix(sveltekit): Don't capture thrown `Redirect`s as exceptions (#7731)
+- fix(sveltekit): Log error to console by default in `handleErrorWithSentry` (#7674)
+- fix(tracing): Make sure idle transaction does not override other transactions (#7725)
+
+Work in this release contributed by @de-don and @TrySound. Thank you for your contributions!
+
+
 ## 7.46.0
 
 ### Important Changes
