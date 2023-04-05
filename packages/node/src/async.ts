@@ -6,7 +6,7 @@ import {
   setAsyncContextStrategy,
 } from '@sentry/core';
 import * as domain from 'domain';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 
 /**
  * Sets the async context strategy to use Node.js domains.
