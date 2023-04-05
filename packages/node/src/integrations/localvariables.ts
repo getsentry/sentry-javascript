@@ -1,10 +1,10 @@
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
 import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
-import { logger } from '@sentry/utils';
 
 type Variables = Record<string, unknown>;
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
