@@ -1,10 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { parseSemver } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { URL } from 'url';
 
-const NODE_VERSION = parseSemver(process.versions.node);
+import { NODE_VERSION } from '../../nodeVersion';
 
 /**
  * Checks whether given url points to Sentry server
