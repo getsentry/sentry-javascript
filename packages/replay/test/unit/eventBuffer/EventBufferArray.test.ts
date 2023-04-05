@@ -1,3 +1,4 @@
+import type { RecordingEvent } from '../../../src/types';
 import { createEventBuffer } from './../../../src/eventBuffer';
 import { BASE_TIMESTAMP } from './../../index';
 
@@ -41,5 +42,18 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
 
     expect(result1).toEqual(JSON.stringify([TEST_EVENT]));
     expect(result2).toEqual(JSON.stringify([]));
+  });
+
+  it('handles circular references', async function () {
+    const buffer = createEventBuffer({ useCompression: false });
+
+    const event: RecordingEvent = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    (event.data as any).child = event;
+
+    buffer.addEvent(event);
+
+    const result = await buffer.finish();
+
+    expect(result).toEqual(`[{"data":{"child":"[Circular ~]"},"timestamp":${BASE_TIMESTAMP},"type":3}]`);
   });
 });

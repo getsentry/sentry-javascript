@@ -1,3 +1,5 @@
+import { normalize } from '@sentry/utils';
+
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
 
 /**
@@ -41,7 +43,7 @@ export class EventBufferArray implements EventBuffer {
       // attachment.
       const eventsRet = this.events;
       this.events = [];
-      resolve(JSON.stringify(eventsRet));
+      resolve(JSON.stringify(normalize(eventsRet)));
     });
   }
 }

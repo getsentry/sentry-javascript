@@ -4,6 +4,7 @@ import pako from 'pako';
 
 import { BASE_TIMESTAMP } from '../..';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
+import type { RecordingEvent } from '../../../src/types';
 import { createEventBuffer } from './../../../src/eventBuffer';
 
 const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
@@ -144,5 +145,27 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     });
 
     await expect(() => buffer.addEvent({ data: { o: 3 }, timestamp: BASE_TIMESTAMP, type: 3 })).rejects.toBeDefined();
+  });
+
+  it('handles circular references', async function () {
+    const buffer = createEventBuffer({
+      useCompression: true,
+    }) as EventBufferProxy;
+
+    expect(buffer).toBeInstanceOf(EventBufferProxy);
+
+    // Ensure worker is ready
+    await buffer.ensureWorkerIsLoaded();
+
+    const event: RecordingEvent = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    (event.data as any).child = event;
+
+    buffer.addEvent(event);
+
+    const result = await buffer.finish();
+    expect(result).toBeInstanceOf(Uint8Array);
+    const restored = pako.inflate(result as Uint8Array, { to: 'string' });
+
+    expect(restored).toEqual(`[{"data":{"child":"[Circular ~]"},"timestamp":${BASE_TIMESTAMP},"type":3}]`);
   });
 });

@@ -1,4 +1,5 @@
 import type { ReplayRecordingData } from '@sentry/types';
+import { normalize } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
 import { WorkerHandler } from './WorkerHandler';
@@ -61,7 +62,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * Send the event to the worker.
    */
   private _sendEventToWorker(event: RecordingEvent): Promise<AddEventResult> {
-    return this._worker.postMessage<void>('addEvent', JSON.stringify(event));
+    return this._worker.postMessage<void>('addEvent', JSON.stringify(normalize(event)));
   }
 
   /**
