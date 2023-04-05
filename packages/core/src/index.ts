@@ -18,7 +18,15 @@ export {
   setUser,
   withScope,
 } from './exports';
-export { getCurrentHub, getHubFromCarrier, Hub, makeMain, getMainCarrier, setHubOnCarrier } from './hub';
+export {
+  getCurrentHub,
+  getHubFromCarrier,
+  Hub,
+  makeMain,
+  getMainCarrier,
+  setHubOnCarrier,
+  runWithAsyncContext,
+} from './hub';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { addGlobalEventProcessor, Scope } from './scope';
