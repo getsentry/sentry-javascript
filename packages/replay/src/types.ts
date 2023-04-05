@@ -424,6 +424,10 @@ export interface EventBuffer {
 
 export type AddUpdateCallback = () => boolean | void;
 
+export interface SendBufferedReplayOptions {
+  continueRecording?: boolean;
+}
+
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   performanceEvents: AllPerformanceEntry[];
@@ -442,7 +446,7 @@ export interface ReplayContainer {
   resume(): void;
   startRecording(): void;
   stopRecording(): boolean;
-  capture(continueOnError?: boolean): Promise<void>;
+  sendBufferedReplayOrFlush(options?: SendBufferedReplayOptions): Promise<void>;
   flushImmediate(): Promise<void>;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;

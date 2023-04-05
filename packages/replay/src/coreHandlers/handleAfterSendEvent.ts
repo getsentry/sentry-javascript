@@ -55,7 +55,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
     ) {
       setTimeout(() => {
         // Capture current event buffer as new replay
-        void replay.capture();
+        void replay.sendBufferedReplayOrFlush();
       });
     }
   };
