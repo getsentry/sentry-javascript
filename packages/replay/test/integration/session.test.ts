@@ -118,6 +118,7 @@ describe('Integration | session', () => {
   it('creates a new session if user has been idle for more than SESSION_IDLE_DURATION and comes back to click their mouse', async () => {
     const initialSession = { ...replay.session } as Session;
 
+    expect(mockRecord).toHaveBeenCalledTimes(1);
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(
       expect.objectContaining({

@@ -50,9 +50,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   public session: Session | undefined;
 
   /**
-   * Recording can happen in one of two modes:
-   * * session: Record the whole session, sending it continuously
-   * * error: Always keep the last 60s of recording, and when an error occurs, send it immediately
+   * Recording can happen in one of three modes:
+   *   - session: Record the whole session, sending it continuously
+   *   - error: Always keep the last 60s of recording, and when an error occurs, send the replay
+   *   - buffer: Always keep the last 60s of recording, requires calling `capture()` to send the replay
    */
   public recordingMode: ReplayRecordingMode = 'session';
 
@@ -155,49 +156,72 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Initializes the plugin.
+   * Initializes the plugin based on configuration options. Should not be called outside of constructor
+   */
+  public initializeSampling(): void {
+    const { errorSampleRate, sessionSampleRate } = this._options;
+
+    // if neither sample rate is > 0, then do nothing
+    if (errorSampleRate <= 0 && sessionSampleRate <= 0) {
+      return;
+    }
+
+    // Otherwise if there is _any_ sample rate set, try to load/create session
+    const isSessionSampled = this._loadAndCheckSession();
+
+    if (!isSessionSampled) {
+      // This should only occur if `errorSampleRate` is 0 and was unsampled for
+      // session-based replay. In this case there is nothing to do.
+      return;
+    }
+
+    if (!this.session) {
+      // This should not happen, something wrong has occurred
+      this._handleException(new Error('Unable to initialize and create session'));
+      return;
+    }
+
+    // Only call start if this session is sampled for session-based replays
+    if (this.session && this.session.sampled === 'session') {
+      this._initializeRecording();
+      return;
+    }
+
+    // If not sampled as session-based, it will always be sampled as
+    // error-based if `errorSampleRate` is > 0
+    if (this.session.sampled === 'error') {
+      // If session is sampled for errors, then we need to set the recordingMode
+      // to 'error', which will configure recording with different options.
+      this.recordingMode = 'error';
+      this._initializeRecording();
+    }
+
+    // There should be no other cases
+  }
+
+  /**
+   * Create and start a replay.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
-    this.setInitialState();
+    // TODO: Should we allow you to call start if there is an existing replay in progress?
 
-    if (!this._loadAndCheckSession()) {
-      return;
-    }
+    const previousSessionId = this.session && this.session.id;
 
-    // If there is no session, then something bad has happened - can't continue
-    if (!this.session) {
-      this._handleException(new Error('No session found'));
-      return;
-    }
-
-    if (!this.session.sampled) {
-      // If session was not sampled, then we do not initialize the integration at all.
-      return;
-    }
-
-    // If session is sampled for errors, then we need to set the recordingMode
-    // to 'error', which will configure recording with different options.
-    if (this.session.sampled === 'error') {
-      this.recordingMode = 'error';
-    }
-
-    // setup() is generally called on page load or manually - in both cases we
-    // should treat it as an activity
-    this._updateSessionActivity();
-
-    this.eventBuffer = createEventBuffer({
-      useCompression: this._options.useCompression,
+    const { session } = getSession({
+      timeouts: this.timeouts,
+      stickySession: Boolean(this._options.stickySession),
+      currentSession: this.session,
+      sessionSampleRate: 1,
+      errorSampleRate: 0,
     });
 
-    this._addListeners();
+    session.previousSessionId = previousSessionId;
+    this.session = session;
 
-    // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
-    this._isEnabled = true;
-
-    this.startRecording();
+    this._initializeRecording();
   }
 
   /**
@@ -481,6 +505,30 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._context.initialUrl = url;
     this._context.initialTimestamp = Date.now();
     this._context.urls.push(url);
+  }
+
+  /**
+   * Initialize and start all listeners to varying events (DOM,
+   * Performance Observer, Recording, Sentry SDK, etc)
+   */
+  private _initializeRecording(): void {
+    this.setInitialState();
+
+    // this method is generally called on page load or manually - in both cases
+    // we should treat it as an activity
+    this._updateSessionActivity();
+
+    this.eventBuffer = createEventBuffer({
+      useCompression: this._options.useCompression,
+    });
+
+    // TODO: we should probably remove listeners before adding listeners
+    this._addListeners();
+
+    // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
+    this._isEnabled = true;
+
+    this.startRecording();
   }
 
   /** A wrapper to conditionally capture exceptions. */

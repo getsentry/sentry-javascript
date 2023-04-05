@@ -440,6 +440,7 @@ export interface ReplayContainer {
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
+  initializeSampling(): void;
   start(): void;
   stop(reason?: string): Promise<void>;
   pause(): void;
