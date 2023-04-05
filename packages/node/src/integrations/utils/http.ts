@@ -49,9 +49,14 @@ export function extractUrl(requestOptions: RequestOptions): string {
   // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const path = requestOptions.pathname || '/';
   // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
-  const authority = requestOptions.auth ? '[Filtered]:[Filtered]@' : '';
+  const authority = requestOptions.auth ? redactAuthority(requestOptions.auth) : '';
 
   return `${protocol}//${authority}${hostname}${port}${path}`;
+}
+
+function redactAuthority(auth: string): string {
+  const [user, password] = auth.split(':');
+  return `${user ? '[Filtered]' : ''}:${password ? '[Filtered]' : ''}@`;
 }
 
 /**
