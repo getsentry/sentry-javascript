@@ -5,7 +5,10 @@ import type { LRUMap } from 'lru_map';
 import { defaultStackParser } from '../../src';
 import type { DebugSession, FrameVariables } from '../../src/integrations/localvariables';
 import { createCallbackList, LocalVariables } from '../../src/integrations/localvariables';
+import { NODE_VERSION } from '../../src/nodeVersion';
 import { getDefaultNodeClientOptions } from '../../test/helper/node-client-options';
+
+const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
 interface ThrowOn {
   configureAndConnect?: boolean;
@@ -145,7 +148,7 @@ const exceptionEvent100Frames = {
   },
 };
 
-describe('LocalVariables', () => {
+describeIf((NODE_VERSION.major || 0) >= 18)('LocalVariables', () => {
   it('Adds local variables to stack frames', async () => {
     expect.assertions(7);
 

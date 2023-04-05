@@ -1,13 +1,10 @@
 import type { Event } from '@sentry/node';
-import { parseSemver } from '@sentry/utils';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 
-const nodeMajor = parseSemver(process.version.slice(1)).major || 1;
+import { conditionalTest } from '../../../utils';
 
-const testIf = (condition: boolean, t: jest.It) => (condition ? t : t.skip);
-
-describe('LocalVariables integration', () => {
+conditionalTest({ min: 18 })('LocalVariables integration', () => {
   test('Should not include local variables by default', done => {
     expect.assertions(2);
 
@@ -57,7 +54,7 @@ describe('LocalVariables integration', () => {
     });
   });
 
-  testIf(nodeMajor > 10, test)('Should include local variables with ESM', done => {
+  test('Should include local variables with ESM', done => {
     expect.assertions(4);
 
     const testScriptPath = path.resolve(__dirname, 'local-variables-caught.mjs');
