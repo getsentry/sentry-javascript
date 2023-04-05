@@ -6,6 +6,7 @@ import {
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
+import type { UserFeedback } from '@sentry/types';
 import {
   addInstrumentationHandler,
   logger,
@@ -288,4 +289,14 @@ function startSessionTracking(): void {
       startSessionOnHub(getCurrentHub());
     }
   });
+}
+
+/**
+ * Captures user feedback and sends it to Sentry.
+ */
+export function captureUserFeedback(feedback: UserFeedback): void {
+  const client = getCurrentHub().getClient<BrowserClient>();
+  if (client) {
+    client.captureUserFeedback(feedback);
+  }
 }

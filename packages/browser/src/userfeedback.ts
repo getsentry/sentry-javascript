@@ -1,34 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
 import type { DsnComponents, EventEnvelope, SdkMetadata, UserFeedback, UserFeedbackItem } from '@sentry/types';
-import { createEnvelope, dsnToString, logger } from '@sentry/utils';
-
-/**
- * Sends user feedback to Sentry.
- */
-export function captureUserFeedback(feedback: UserFeedback): void {
-  const hub = getCurrentHub();
-  const client = hub.getClient();
-  const transport = client && client.getTransport();
-
-  if (!client) {
-    __DEBUG_BUILD__ && logger.log('No client configured, Sentry user feedback will not be sent.');
-    return;
-  }
-
-  if (!transport) {
-    __DEBUG_BUILD__ &&
-      logger.log('No transport configured, Sentry user feedback will not be sent.');
-    return;
-  }
-
-  const envelope = createUserFeedbackEnvelope(feedback, {
-    metadata: client.getSdkMetadata && client.getSdkMetadata(),
-    dsn: client.getDsn(),
-    tunnel: client.getOptions().tunnel,
-  });
-
-  void transport.send(envelope);
-}
+import { createEnvelope, dsnToString } from '@sentry/utils';
 
 /**
  * Creates an envelope from a user feedback.
