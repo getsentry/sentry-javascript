@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
 import { Scope } from '@sentry/browser';
+import type { Event } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
 import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
@@ -507,15 +508,6 @@ describe('SentryErrorHandler', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith('something happened', expect.any(Function));
     });
 
-    it('handleError method shows report dialog', () => {
-      const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
-
-      const errorHandler = createErrorHandler({ showDialog: true });
-      errorHandler.handleError(new Error('test'));
-
-      expect(showReportDialogSpy).toBeCalledTimes(1);
-    });
-
     it('extracts error with a custom extractor', () => {
       const customExtractor = (error: unknown) => {
         if (typeof error === 'string') {
@@ -529,6 +521,42 @@ describe('SentryErrorHandler', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith(new Error('custom error'), expect.any(Function));
+    });
+
+    describe('opens the report dialog if `showDialog` is true', () => {
+      it('by using SDK lifecycle hooks if available', () => {
+        const client = {
+          cb: (_: Event) => {},
+          on: jest.fn((_, cb) => {
+            client.cb = cb;
+          }),
+        };
+
+        // @ts-ignore this is a minmal hub, we're missing a few props but that's ok
+        jest.spyOn(SentryBrowser, 'getCurrentHub').mockImplementationOnce(() => {
+          return { getClient: () => client };
+        });
+
+        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+
+        const errorHandler = createErrorHandler({ showDialog: true });
+        errorHandler.handleError(new Error('test'));
+        expect(client.on).toHaveBeenCalledWith('afterSendEvent', expect.any(Function));
+
+        // this simulates the afterSend hook being called
+        client.cb({});
+
+        expect(showReportDialogSpy).toBeCalledTimes(1);
+      });
+
+      it('by just calling `showReportDialog` if hooks are not available', () => {
+        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+
+        const errorHandler = createErrorHandler({ showDialog: true });
+        errorHandler.handleError(new Error('test'));
+
+        expect(showReportDialogSpy).toBeCalledTimes(1);
+      });
     });
   });
 });

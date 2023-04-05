@@ -48,7 +48,7 @@ export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
-export type { QueryParams, Request } from './request';
+export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext } from './scope';
 export type { SdkInfo } from './sdkinfo';
