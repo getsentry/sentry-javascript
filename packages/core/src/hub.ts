@@ -74,7 +74,7 @@ export interface Layer {
 export interface Carrier {
   __SENTRY__?: {
     hub?: Hub;
-    asyncContextStrategy?: AsyncContextStrategy;
+    acs?: AsyncContextStrategy;
     /**
      * Extra Hub properties injected by various SDKs
      */
@@ -528,8 +528,8 @@ export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.asyncContextStrategy) {
-    const hub = registry.__SENTRY__.asyncContextStrategy.getCurrentHub();
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    const hub = registry.__SENTRY__.acs.getCurrentHub();
 
     if (hub) {
       return hub;
@@ -550,26 +550,30 @@ export function getCurrentHub(): Hub {
 }
 
 /**
+ * @private Private API with no semver guarantees!
+ *
  * Sets the global async context strategy
  */
 export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
   registry.__SENTRY__ = registry.__SENTRY__ || {};
-  registry.__SENTRY__.asyncContextStrategy = strategy;
+  registry.__SENTRY__.acs = strategy;
 }
 
 /**
+ * @private Private API with no semver guarantees!
+ *
  * Runs the given callback function with the global async context strategy
  */
 export function runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T {
   const registry = getMainCarrier();
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.asyncContextStrategy) {
-    return registry.__SENTRY__.asyncContextStrategy.runWithAsyncContext(callback, ...args);
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, ...args);
   }
 
-  // if there was no asyncContextStrategy, fallback to just calling the callback
+  // if there was no strategy, fallback to just calling the callback
   return callback(getCurrentHub(), ...args);
 }
 

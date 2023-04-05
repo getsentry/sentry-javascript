@@ -24,8 +24,9 @@ export {
   Hub,
   makeMain,
   getMainCarrier,
-  setHubOnCarrier,
   runWithAsyncContext,
+  setHubOnCarrier,
+  setAsyncContextStrategy,
 } from './hub';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
