@@ -18,17 +18,35 @@ class HappyIntegration {
   }
 }
 
-class HappyTransport extends Sentry.Transports.BaseTransport {
-  sendEvent(event) {
+function makeHappyTransport(options) {
+  function makeRequest(request) {
     console.log(
-      `This is the place where you'd implement your own sending logic. It'd get url: ${this.url} and an event itself:`,
-      event,
+      `This is the place to implement your own sending logic. It'd get url: ${options.url} and a raw envelope:`,
+      request.body,
     );
 
-    return Promise.resolve({
-      status: 'success',
-    });
+    // this is where your sending logic goes
+    const myCustomRequest = {
+      body: request.body,
+      method: 'POST',
+      referrerPolicy: 'origin',
+      headers: options.headers,
+      ...options.fetchOptions
+    };
+
+    // you define how `sendMyCustomRequest` works
+    const sendMyCustomRequest = (r) => fetch(options.url, r);
+    return sendMyCustomRequest(myCustomRequest).then(response => ({
+      statusCode: response.status,
+      headers: {
+        'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+        'retry-after': response.headers.get('Retry-After'),
+      },
+    }));
   }
+
+  // `createTransport` takes care of rate limiting and flushing
+  return Sentry.createTransport(options, makeRequest);
 }
 
 Sentry.init({
@@ -39,7 +57,7 @@ Sentry.init({
   // An array of strings or regexps that'll be used to ignore specific errors based on their origin url
   denyUrls: ['external-lib.js'],
   // An array of strings or regexps that'll be used to allow specific errors based on their origin url
-  allowUrls: ['http://localhost:5000', 'https://browser.sentry-cdn'],
+  allowUrls: ['http://localhost:3000', 'https://browser.sentry-cdn'],
   // Debug mode with valuable initialization/lifecycle informations.
   debug: true,
   // Whether SDK should be enabled or not.
@@ -53,7 +71,7 @@ Sentry.init({
   // An environment identifier.
   environment: 'staging',
   // Custom event transport that will be used to send things to Sentry
-  transport: HappyTransport,
+  transport: makeHappyTransport,
   // Method called for every captured event
   async beforeSend(event, hint) {
     // Because beforeSend and beforeBreadcrumb are async, user can fetch some data
