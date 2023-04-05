@@ -270,8 +270,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Flush event buffer before stopping
       await this.flushImmediate();
 
-      this._shouldFinalFlush = false;
-
       // After flush, destroy event buffer
       this.eventBuffer && this.eventBuffer.destroy();
       this.eventBuffer = null;
