@@ -536,17 +536,37 @@ export function getCurrentHub(): Hub {
     }
   }
 
+  // Prefer domains over global if they are there (applicable only to Node environment)
+  if (isNodeEnv()) {
+    return getHubFromActiveDomain(registry);
+  }
+
+  // Return hub that lives on a global object
+  return getGlobalHub(registry);
+}
+
+function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
   }
 
-  // Prefer domains over global if they are there (applicable only to Node environment)
-  if (isNodeEnv()) {
-    return getHubFromActiveDomain(registry);
-  }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Sets the hub on the supplied carrier. If the carrier does not contain a hub, a new hub is created with the global
+ * hubs client and scope.
+ */
+export function ensureHubOnCarrier(carrier: Carrier): void {
+  // If there's no hub on current domain, or it's an old API, assign a new one
+  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+    const globalHubTopStack = getGlobalHub().getStackTop();
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+  }
 }
 
 /**
