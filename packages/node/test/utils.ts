@@ -7,11 +7,12 @@ import { NODE_VERSION } from '../src/nodeVersion';
  * @return {*}  {jest.Describe}
  */
 export const conditionalTest = (allowedVersion: { min?: number; max?: number }): jest.Describe => {
-  if (!NODE_VERSION.major) {
+  const major = NODE_VERSION.major;
+  if (!major) {
     return describe.skip as jest.Describe;
   }
 
-  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
+  return major < (allowedVersion.min || -Infinity) || major > (allowedVersion.max || Infinity)
     ? (describe.skip as jest.Describe)
     : (describe as any);
 };
