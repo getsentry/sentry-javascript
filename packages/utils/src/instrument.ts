@@ -9,7 +9,7 @@ import type {
   WrappedFunction,
 } from '@sentry/types';
 
-import { isInstanceOf, isString } from './is';
+import { isString } from './is';
 import { CONSOLE_LEVELS, logger } from './logger';
 import { fill } from './object';
 import { getFunctionName } from './stacktrace';
@@ -142,11 +142,13 @@ function instrumentFetch(): void {
 
   fill(WINDOW, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
+      const { method, url } = parseFetchArgs(args);
+
       const handlerData: HandlerDataFetch = {
         args,
         fetchData: {
-          method: getFetchMethod(args),
-          url: getFetchUrl(args),
+          method,
+          url,
         },
         startTimestamp: Date.now(),
       };
@@ -181,29 +183,55 @@ function instrumentFetch(): void {
   });
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/** Extract `method` from fetch call arguments */
-function getFetchMethod(fetchArgs: any[] = []): string {
-  if ('Request' in WINDOW && isInstanceOf(fetchArgs[0], Request) && fetchArgs[0].method) {
-    return String(fetchArgs[0].method).toUpperCase();
-  }
-  if (fetchArgs[1] && fetchArgs[1].method) {
-    return String(fetchArgs[1].method).toUpperCase();
-  }
-  return 'GET';
+function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {
+  return !!obj && typeof obj === 'object' && !!(obj as Record<string, string>)[prop];
 }
 
-/** Extract `url` from fetch call arguments */
-function getFetchUrl(fetchArgs: any[] = []): string {
-  if (typeof fetchArgs[0] === 'string') {
-    return fetchArgs[0];
+type FetchResource = string | { toString(): string } | { url: string };
+
+function getUrlFromResource(resource: FetchResource): string {
+  if (typeof resource === 'string') {
+    return resource;
   }
-  if ('Request' in WINDOW && isInstanceOf(fetchArgs[0], Request)) {
-    return fetchArgs[0].url;
+
+  if (!resource) {
+    return '';
   }
-  return String(fetchArgs[0]);
+
+  if (hasProp(resource, 'url')) {
+    return resource.url;
+  }
+
+  if (resource.toString) {
+    return resource.toString();
+  }
+
+  return '';
 }
-/* eslint-enable @typescript-eslint/no-unsafe-member-access */
+
+/**
+ * Parses the fetch arguments to find the used Http method and the url of the request
+ */
+export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: string } {
+  if (fetchArgs.length === 0) {
+    return { method: 'GET', url: '' };
+  }
+
+  if (fetchArgs.length === 2) {
+    const [url, options] = fetchArgs as [FetchResource, object];
+
+    return {
+      url: getUrlFromResource(url),
+      method: hasProp(options, 'method') ? String(options.method).toUpperCase() : 'GET',
+    };
+  }
+
+  const arg = fetchArgs[0];
+  return {
+    url: getUrlFromResource(arg as FetchResource),
+    method: hasProp(arg, 'method') ? String(arg.method).toUpperCase() : 'GET',
+  };
+}
 
 /** JSDoc */
 function instrumentXHR(): void {
@@ -220,6 +248,7 @@ function instrumentXHR(): void {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
+        request_headers: {},
       });
 
       // if Sentry key appears in URL, don't capture it as a request
@@ -264,6 +293,23 @@ function instrumentXHR(): void {
       } else {
         this.addEventListener('readystatechange', onreadystatechangeHandler);
       }
+
+      // Intercepting `setRequestHeader` to access the request headers of XHR instance.
+      // This will only work for user/library defined headers, not for the default/browser-assigned headers.
+      // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
+      fill(this, 'setRequestHeader', function (original: WrappedFunction): Function {
+        return function (this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
+          const [header, value] = setRequestHeaderArgs as [string, string];
+
+          const xhrInfo = this.__sentry_xhr__;
+
+          if (xhrInfo) {
+            xhrInfo.request_headers[header] = value;
+          }
+
+          return original.apply(this, setRequestHeaderArgs);
+        };
+      });
 
       return originalOpen.apply(this, args);
     };
@@ -578,12 +624,12 @@ function instrumentDOM(): void {
   });
 }
 
-let _oldOnErrorHandler: OnErrorEventHandler = null;
+let _oldOnErrorHandler: typeof WINDOW['onerror'] | null = null;
 /** JSDoc */
 function instrumentError(): void {
   _oldOnErrorHandler = WINDOW.onerror;
 
-  WINDOW.onerror = function (msg: any, url: any, line: any, column: any, error: any): boolean {
+  WINDOW.onerror = function (msg: unknown, url: unknown, line: unknown, column: unknown, error: unknown): boolean {
     triggerHandlers('error', {
       column,
       error,
@@ -592,16 +638,18 @@ function instrumentError(): void {
       url,
     });
 
-    if (_oldOnErrorHandler) {
+    if (_oldOnErrorHandler && !_oldOnErrorHandler.__SENTRY_LOADER__) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
 
     return false;
   };
+
+  WINDOW.onerror.__SENTRY_INSTRUMENTED__ = true;
 }
 
-let _oldOnUnhandledRejectionHandler: ((e: any) => void) | null = null;
+let _oldOnUnhandledRejectionHandler: typeof WINDOW['onunhandledrejection'] | null = null;
 /** JSDoc */
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = WINDOW.onunhandledrejection;
@@ -609,11 +657,13 @@ function instrumentUnhandledRejection(): void {
   WINDOW.onunhandledrejection = function (e: any): boolean {
     triggerHandlers('unhandledrejection', e);
 
-    if (_oldOnUnhandledRejectionHandler) {
+    if (_oldOnUnhandledRejectionHandler && !_oldOnUnhandledRejectionHandler.__SENTRY_LOADER__) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
 
     return true;
   };
+
+  WINDOW.onunhandledrejection.__SENTRY_INSTRUMENTED__ = true;
 }

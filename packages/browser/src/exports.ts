@@ -59,5 +59,17 @@ export {
   winjsStackLineParser,
 } from './stack-parsers';
 export { eventFromException, eventFromMessage } from './eventbuilder';
-export { defaultIntegrations, forceLoad, init, lastEventId, onLoad, showReportDialog, flush, close, wrap } from './sdk';
+export { createUserFeedbackEnvelope } from './userfeedback';
+export {
+  defaultIntegrations,
+  forceLoad,
+  init,
+  lastEventId,
+  onLoad,
+  showReportDialog,
+  flush,
+  close,
+  wrap,
+  captureUserFeedback,
+} from './sdk';
 export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

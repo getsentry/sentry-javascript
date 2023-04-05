@@ -56,6 +56,8 @@ Sentry.init({
 });
 ```
 
+**Note:** If you imported `stripUrlQueryAndFragment` from `@sentry/tracing`, you'll need to import it from `@sentry/utils`, once you remove `@sentry/tracing`.
+
 ## Replay options changed (since 7.35.0) - #6645
 
 Some options for replay have been depracted in favor of new APIs.

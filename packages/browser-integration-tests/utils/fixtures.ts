@@ -3,7 +3,9 @@ import { test as base } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-import { generatePage } from './generatePage';
+import { generateLoader, generatePage } from './generatePage';
+
+export const TEST_HOST = 'http://sentry-test.io';
 
 const getAsset = (assetDir: string, asset: string): string => {
   const assetPath = `${assetDir}/${asset}`;
@@ -25,6 +27,7 @@ export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
+  getLocalTestUrl: (options: { testDir: string }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
   runInFirefox: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -45,32 +48,30 @@ const sentryTest = base.extend<TestFixtures>({
     { auto: true },
   ],
 
-  getLocalTestPath: ({}, use, testInfo) => {
+  getLocalTestUrl: ({ page }, use) => {
+    return use(async ({ testDir }) => {
+      const pagePath = `${TEST_HOST}/index.html`;
+
+      await build(testDir);
+      generateLoader(testDir);
+
+      // Serve all assets under
+      await page.route(`${TEST_HOST}/*.*`, route => {
+        const file = route.request().url().split('/').pop();
+        const filePath = path.resolve(testDir, `./dist/${file}`);
+
+        return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+      });
+
+      return pagePath;
+    });
+  },
+
+  getLocalTestPath: ({}, use) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
 
-      // Build test page if it doesn't exist
-      if (!fs.existsSync(pagePath)) {
-        const testDir = path.dirname(testInfo.file);
-        const subject = getAsset(testDir, 'subject.js');
-        const template = getAsset(testDir, 'template.html');
-        const init = getAsset(testDir, 'init.js');
-
-        await generatePage(init, subject, template, testDir);
-      }
-
-      const additionalPages = fs
-        .readdirSync(testDir)
-        .filter(filename => filename.startsWith('page-') && filename.endsWith('.html'));
-
-      const outDir = path.dirname(testInfo.file);
-      for (const pageFilename of additionalPages) {
-        // create a new page with the same subject and init as before
-        const subject = getAsset(testDir, 'subject.js');
-        const pageFile = getAsset(testDir, pageFilename);
-        const init = getAsset(testDir, 'init.js');
-        await generatePage(init, subject, pageFile, outDir, pageFilename);
-      }
+      await build(testDir);
 
       return pagePath;
     });
@@ -110,3 +111,23 @@ const sentryTest = base.extend<TestFixtures>({
 });
 
 export { sentryTest };
+
+async function build(testDir: string): Promise<void> {
+  const subject = getAsset(testDir, 'subject.js');
+  const template = getAsset(testDir, 'template.html');
+  const init = getAsset(testDir, 'init.js');
+
+  await generatePage(init, subject, template, testDir);
+
+  const additionalPages = fs
+    .readdirSync(testDir)
+    .filter(filename => filename.startsWith('page-') && filename.endsWith('.html'));
+
+  for (const pageFilename of additionalPages) {
+    // create a new page with the same subject and init as before
+    const subject = getAsset(testDir, 'subject.js');
+    const pageFile = getAsset(testDir, pageFilename);
+    const init = getAsset(testDir, 'init.js');
+    await generatePage(init, subject, pageFile, testDir, pageFilename);
+  }
+}

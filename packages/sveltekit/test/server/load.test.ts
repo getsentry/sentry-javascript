@@ -1,7 +1,7 @@
 import { addTracingExtensions } from '@sentry/core';
 import { Scope } from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
@@ -164,6 +164,18 @@ describe.each([
 
       expect(mockCaptureException).toHaveBeenCalledTimes(times);
     });
+  });
+
+  it("doesn't call captureException for thrown `Redirect`s", async () => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw redirect(300, 'other/route');
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
   it('adds an exception mechanism', async () => {

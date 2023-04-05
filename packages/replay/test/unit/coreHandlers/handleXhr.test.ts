@@ -1,4 +1,4 @@
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, SentryXhrData } from '@sentry/types';
 
 import { handleXhr } from '../../../src/coreHandlers/handleXhr';
 
@@ -9,6 +9,7 @@ const DEFAULT_DATA: HandlerDataXhr = {
       method: 'GET',
       url: '/api/0/organizations/sentry/',
       status_code: 200,
+      request_headers: {},
     },
   } as SentryWrappedXMLHttpRequest,
   startTimestamp: 10000,
@@ -45,7 +46,7 @@ describe('Unit | coreHandlers | handleXhr', () => {
       xhr: {
         ...DEFAULT_DATA.xhr,
         __sentry_xhr__: {
-          ...DEFAULT_DATA.xhr.__sentry_xhr__,
+          ...(DEFAULT_DATA.xhr.__sentry_xhr__ as SentryXhrData),
           request_body_size: 123,
           response_body_size: 456,
         },

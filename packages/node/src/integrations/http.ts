@@ -1,22 +1,15 @@
 import type { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
-import type { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
-  logger,
-  parseSemver,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import type { EventProcessor, Integration, SanitizedRequestData, Span, TracePropagationTargets } from '@sentry/types';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, logger, stringMatchesSomePattern } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
+import { NODE_VERSION } from '../nodeVersion';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
 import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 interface TracingOptions {
   /**
@@ -130,16 +123,6 @@ type WrappedRequestMethod = RequestMethod;
 type WrappedRequestMethodFactory = (original: OriginalRequestMethod) => WrappedRequestMethod;
 
 /**
- * See https://develop.sentry.dev/sdk/data-handling/#structuring-data
- */
-type RequestSpanData = {
-  url: string;
-  method: string;
-  'http.fragment'?: string;
-  'http.query'?: string;
-};
-
-/**
  * Function which creates a function which creates wrapped versions of internal `request` and `get` calls within `http`
  * and `https` modules. (NB: Not a typo - this is a creator^2!)
  *
@@ -204,7 +187,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
-      const requestSpanData: RequestSpanData = {
+      const requestSpanData: SanitizedRequestData = {
         url: requestUrl,
         method: requestOptions.method || 'GET',
       };
@@ -311,7 +294,7 @@ function _createWrappedRequestMethodFactory(
  */
 function addRequestBreadcrumb(
   event: string,
-  requestSpanData: RequestSpanData,
+  requestSpanData: SanitizedRequestData,
   req: http.ClientRequest,
   res?: http.IncomingMessage,
 ): void {
@@ -323,7 +306,6 @@ function addRequestBreadcrumb(
     {
       category: 'http',
       data: {
-        method: req.method,
         status_code: res && res.statusCode,
         ...requestSpanData,
       },

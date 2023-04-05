@@ -22,7 +22,8 @@ module.exports = function (environment) {
   ENV['@sentry/ember'] = {
     sentry: {
       tracesSampleRate: 1,
-      dsn: process.env.SENTRY_DSN,
+      // Include fake dsn so that instrumentation is enabled when running from cli
+      dsn: process.env.SENTRY_DSN || 'https://0@0.ingest.sentry.io/0',
       browserTracingOptions: {
         tracingOrigins: ['localhost', 'doesntexist.example'],
       },
@@ -50,9 +51,6 @@ module.exports = function (environment) {
 
     ENV.APP.rootElement = '#ember-testing';
     ENV.APP.autoboot = false;
-
-    // Include fake dsn so that instrumentation is enabled when running from cli
-    ENV['@sentry/ember'].sentry.dsn = 'https://0@0.ingest.sentry.io/0';
   }
 
   if (environment === 'production') {

@@ -64,7 +64,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
     Sentry.init({
       dsn: '__DSN__',
-      traceSampleRate: 1.0,
+      tracesSampleRate: 1.0,
       // For instance, initialize Session Replay:
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,

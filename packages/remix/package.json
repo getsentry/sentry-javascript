@@ -22,12 +22,10 @@
   "dependencies": {
     "@sentry/cli": "2.2.0",
     "@sentry/core": "7.46.0",
-    "@sentry/integrations": "7.46.0",
     "@sentry/node": "7.46.0",
     "@sentry/react": "7.46.0",
     "@sentry/types": "7.46.0",
     "@sentry/utils": "7.46.0",
-    "@sentry/webpack-plugin": "1.19.0",
     "tslib": "^1.9.3",
     "yargs": "^17.6.0"
   },

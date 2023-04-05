@@ -23,8 +23,25 @@ ${changedPaths.join('\n')}
     }
   }
 
+  let runCount: number;
+  if (process.env.TEST_RUN_COUNT === 'AUTO') {
+    // No test paths detected: run everything 5x
+    runCount = 5;
+
+    if (testPaths.length > 0) {
+      // Run everything up to 100x, assuming that total runtime is less than 60min.
+      // We assume an average runtime of 3s per test, times 4 (for different browsers) = 12s per detected testPaths
+      // We want to keep overall runtime under 30min
+      const testCount = testPaths.length * 4;
+      const expectedRuntimePerTestPath = testCount * 3;
+      const expectedRuntime = Math.floor((30 * 60) / expectedRuntimePerTestPath);
+      runCount = Math.min(50, Math.max(expectedRuntime, 5));
+    }
+  } else {
+    runCount = parseInt(process.env.TEST_RUN_COUNT || '10');
+  }
+
   const cwd = path.join(__dirname, '../');
-  const runCount = parseInt(process.env.TEST_RUN_COUNT || '10');
 
   try {
     await new Promise<void>((resolve, reject) => {

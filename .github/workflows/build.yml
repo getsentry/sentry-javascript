@@ -140,7 +140,7 @@ jobs:
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       # When merging into master, or from master
-      is_gitflow_sync: ${{ github.head_ref == 'refs/heads/master' || github.ref == 'refs/heads/master' }}
+      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
         ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
       force_skip_cache:
@@ -180,6 +180,21 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
+  job_check_branches:
+    name: Check PR branches
+    needs: job_get_metadata
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: PR is opened against master
+        uses: mshick/add-pr-comment@a65df5f64fc741e91c59b8359a4bc56e57aaf5b1
+        if: ${{ github.base_ref == 'master' && !startsWith(github.ref, 'refs/heads/prepare-release/') }}
+        with:
+          message: |
+            ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
 
   job_build:
     name: Build
@@ -543,6 +558,60 @@ jobs:
           cd packages/browser-integration-tests
           yarn test:ci
 
+  job_browser_loader_tests:
+    name: Playwright Loader (${{ matrix.bundle }}) Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        bundle:
+          - loader_base
+          - loader_eager
+          - loader_tracing
+          - loader_replay
+          - loader_tracing_replay
+
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: volta-cli/action@v4
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v3
+        name: Check if Playwright browser is cached
+        id: playwright-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
+      - name: Install Playwright browser if not cached
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
+      - name: Install OS dependencies of Playwright if cache hit
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+      - name: Run Playwright Loader tests
+        env:
+          PW_BUNDLE: ${{ matrix.bundle }}
+        run: |
+          cd packages/browser-integration-tests
+          yarn test:loader
+
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
@@ -709,6 +778,7 @@ jobs:
         job_browser_playwright_tests,
         job_browser_integration_tests,
         job_remix_integration_tests,
+        job_e2e_tests,
       ]
     # Always run this, even if a dependent job failed
     if: always()
