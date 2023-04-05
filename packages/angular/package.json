@@ -60,7 +60,7 @@
     "test": "yarn test:unit",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"
