@@ -55,7 +55,7 @@ const DEFAULT_BREADCRUMBS = 100;
  */
 export interface AsyncContextStrategy {
   getCurrentHub: () => Hub | undefined;
-  runWithHub<T>(callback: (hub: Hub) => T): T;
+  runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T;
 }
 
 /**
@@ -562,14 +562,15 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
 /**
  * Runs the given callback function with the global async context strategy
  */
-export function runWithHub<T>(callback: (hub: Hub) => T): T {
+export function runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.asyncContextStrategy) {
-    return registry.__SENTRY__.asyncContextStrategy.runWithHub(callback);
+    return registry.__SENTRY__.asyncContextStrategy.runWithAsyncContext(callback, ...args);
   }
 
-  return callback(getCurrentHub());
+  // if there was no asyncContextStrategy, fallback to just calling the callback
+  return callback(getCurrentHub(), ...args);
 }
 
 /**
