@@ -2,7 +2,7 @@ import { REPLAY_SESSION_KEY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/types';
 
 /**
- *
+ * Removes the session from Session Storage and unsets session in replay instance
  */
 export function clearSession(replay: ReplayContainer): void {
   deleteSession();
