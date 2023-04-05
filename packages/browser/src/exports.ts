@@ -60,6 +60,9 @@ export {
 } from './stack-parsers';
 export { eventFromException, eventFromMessage } from './eventbuilder';
 export {
+  createUserFeedbackEnvelope,
+} from './userfeedback';
+export {
   defaultIntegrations,
   forceLoad,
   init,
