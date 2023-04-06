@@ -591,7 +591,9 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
 /**
  * @private Private API with no semver guarantees!
  *
- * Runs the given callback function with the global async context strategy
+ * Runs the supplied callback in its own async context.
+ * @param reuseExisting Whether to reuse an existing async context if one exists. Defaults to false.
+ * @param args Instances that should be referenced and retained in the new context.
  */
 export function runWithAsyncContext<T>(
   callback: (hub: Hub) => T,
