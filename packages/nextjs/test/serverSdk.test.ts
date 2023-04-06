@@ -117,25 +117,25 @@ describe('Server init()', () => {
   it("initializes both global hub and domain hub when there's an active domain", () => {
     const globalHub = getCurrentHub();
 
-    runWithAsyncContext(domainHub => {
+    runWithAsyncContext(globalHub2 => {
       // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
       // strategy yet
-      expect(domainHub).toBe(globalHub);
+      expect(globalHub2).toBe(globalHub);
       expect(globalHub.getClient()).toBeUndefined();
-      expect(domainHub.getClient()).toBeUndefined();
+      expect(globalHub2.getClient()).toBeUndefined();
 
       init({});
 
-      runWithAsyncContext(domainHub2 => {
+      runWithAsyncContext(domainHub => {
         // this tag should end up only in the domain hub
-        domainHub2.setTag('dogs', 'areGreat');
+        domainHub.setTag('dogs', 'areGreat');
 
         expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
-        expect(domainHub2.getClient()).toBe(globalHub.getClient());
+        expect(domainHub.getClient()).toBe(globalHub.getClient());
         // @ts-ignore need access to protected _tags attribute
         expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
         // @ts-ignore need access to protected _tags attribute
-        expect(domainHub2.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
+        expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
       });
     });
   });
