@@ -558,8 +558,7 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
 /**
  * @private Private API with no semver guarantees!
  *
- * Sets the hub on the supplied carrier. If the carrier does not contain a hub, a new hub is created with the global
- * hubs client and scope.
+ * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
  */
 export function ensureHubOnCarrier(carrier: Carrier): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
