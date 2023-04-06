@@ -1,7 +1,12 @@
-import { captureException, getActiveTransaction, getCurrentHub, startTransaction } from '@sentry/core';
+import {
+  captureException,
+  getActiveTransaction,
+  getCurrentHub,
+  runWithAsyncContext,
+  startTransaction,
+} from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
-import * as domain from 'domain';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
@@ -75,7 +80,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   },
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
-    return domain.create().bind(async () => {
+    return runWithAsyncContext(async () => {
       let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
       let dataFetcherSpan;
 
@@ -154,7 +159,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           await flushQueue();
         }
       }
-    })();
+    });
   };
 }
 

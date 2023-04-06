@@ -1,8 +1,8 @@
+import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getCurrentHub, NodeClient } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
-import * as domain from 'domain';
 
 import { init } from '../src/server';
 
@@ -21,7 +21,7 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    GLOBAL_OBJ.__SENTRY__.hub = undefined;
+    delete GLOBAL_OBJ.__SENTRY__;
     delete process.env.VERCEL;
   });
 
@@ -116,26 +116,27 @@ describe('Server init()', () => {
 
   it("initializes both global hub and domain hub when there's an active domain", () => {
     const globalHub = getCurrentHub();
-    const local = domain.create();
-    local.run(() => {
-      const domainHub = getCurrentHub();
 
-      // they are in fact two different hubs, and neither one yet has a client
-      expect(domainHub).not.toBe(globalHub);
+    runWithAsyncContext(domainHub => {
+      // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
+      // strategy yet
+      expect(domainHub).toBe(globalHub);
       expect(globalHub.getClient()).toBeUndefined();
       expect(domainHub.getClient()).toBeUndefined();
 
-      // this tag should end up only in the domain hub
-      domainHub.setTag('dogs', 'areGreat');
-
       init({});
 
-      expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
-      expect(domainHub.getClient()).toBe(globalHub.getClient());
-      // @ts-ignore need access to protected _tags attribute
-      expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
-      // @ts-ignore need access to protected _tags attribute
-      expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
+      runWithAsyncContext(domainHub2 => {
+        // this tag should end up only in the domain hub
+        domainHub2.setTag('dogs', 'areGreat');
+
+        expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
+        expect(domainHub2.getClient()).toBe(globalHub.getClient());
+        // @ts-ignore need access to protected _tags attribute
+        expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
+        // @ts-ignore need access to protected _tags attribute
+        expect(domainHub2.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
+      });
     });
   });
 
