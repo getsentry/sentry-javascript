@@ -222,8 +222,7 @@ export function requestHandler(
         });
         next();
       },
-      req,
-      res,
+      { args: [req, res] },
     );
   };
 }
