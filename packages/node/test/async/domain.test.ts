@@ -39,8 +39,6 @@ describe('domains', () => {
   test('concurrent domain hubs', done => {
     setDomainAsyncContextStrategy();
 
-    getCurrentHub();
-
     let d1done = false;
     let d2done = false;
 
