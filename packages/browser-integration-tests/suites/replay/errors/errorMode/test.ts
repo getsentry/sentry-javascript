@@ -119,7 +119,6 @@ sentryTest(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
         replay_type: 'error', // although we're in session mode, we still send 'error' as replay_type
-        replay_start_timestamp: undefined,
         segment_id: 1,
         urls: [],
       }),
@@ -135,7 +134,6 @@ sentryTest(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
         replay_type: 'error',
-        replay_start_timestamp: undefined,
         segment_id: 2,
         urls: [],
       }),

@@ -71,9 +71,7 @@ sentryTest(
     const replayEvent1 = getReplayEvent(req1);
     const recording1 = getReplayRecordingContent(req1);
 
-    expect(replayEvent1).toEqual(
-      getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }),
-    );
+    expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
     expect(recording1.fullSnapshots.length).toEqual(0);
     expect(normalize(recording1.incrementalSnapshots)).toMatchSnapshot('seg-1-snap-incremental');
 
@@ -105,7 +103,7 @@ sentryTest(
     const replayEvent2 = getReplayEvent(req2);
     const recording2 = getReplayRecordingContent(req2);
 
-    expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2, replay_start_timestamp: undefined }));
+    expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2 }));
     expect(normalize(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
     expect(recording2.incrementalSnapshots.length).toEqual(0);
 
@@ -115,9 +113,7 @@ sentryTest(
     const replayEvent3 = getReplayEvent(req3);
     const recording3 = getReplayRecordingContent(req3);
 
-    expect(replayEvent3).toEqual(
-      getExpectedReplayEvent({ segment_id: 3, urls: [], replay_start_timestamp: undefined }),
-    );
+    expect(replayEvent3).toEqual(getExpectedReplayEvent({ segment_id: 3, urls: [] }));
     expect(recording3.fullSnapshots.length).toEqual(0);
     expect(normalize(recording3.incrementalSnapshots)).toMatchSnapshot('seg-3-snap-incremental');
 
@@ -150,7 +146,6 @@ sentryTest(
     expect(replayEvent4).toEqual(
       getExpectedReplayEvent({
         segment_id: 4,
-        replay_start_timestamp: undefined,
         // @ts-ignore this is fine
         urls: [expect.stringContaining('page-0.html')],
         request: {
@@ -176,7 +171,6 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 5,
         urls: [],
-        replay_start_timestamp: undefined,
         request: {
           // @ts-ignore this is fine
           url: expect.stringContaining('page-0.html'),
@@ -223,7 +217,7 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 6,
         urls: ['/spa'],
-        replay_start_timestamp: undefined,
+
         request: {
           // @ts-ignore this is fine
           url: expect.stringContaining('page-0.html'),
@@ -247,7 +241,7 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 7,
         urls: [],
-        replay_start_timestamp: undefined,
+
         request: {
           // @ts-ignore this is fine
           url: expect.stringContaining('page-0.html'),
@@ -294,7 +288,6 @@ sentryTest(
     expect(replayEvent8).toEqual(
       getExpectedReplayEvent({
         segment_id: 8,
-        replay_start_timestamp: undefined,
       }),
     );
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
@@ -310,7 +303,6 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 9,
         urls: [],
-        replay_start_timestamp: undefined,
       }),
     );
     expect(recording9.fullSnapshots.length).toEqual(0);

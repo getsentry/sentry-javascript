@@ -75,6 +75,7 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
     trace_ids: [],
     urls: [],
     replay_id: expect.stringMatching(/\w{32}/),
+    replay_start_timestamp: expect.any(Number),
     segment_id: 1,
     replay_type: 'session',
     event_id: expect.stringMatching(/\w{32}/),
