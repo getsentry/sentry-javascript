@@ -36,6 +36,29 @@ describe('domains', () => {
     });
   });
 
+  test('domain within a domain not reused', () => {
+    setDomainAsyncContextStrategy();
+
+    runWithAsyncContext(hub1 => {
+      runWithAsyncContext(hub2 => {
+        expect(hub1).not.toBe(hub2);
+      });
+    });
+  });
+
+  test('domain within a domain reused when requested', () => {
+    setDomainAsyncContextStrategy();
+
+    runWithAsyncContext(hub1 => {
+      runWithAsyncContext(
+        hub2 => {
+          expect(hub1).toBe(hub2);
+        },
+        { reuseExisting: true },
+      );
+    });
+  });
+
   test('concurrent domain hubs', done => {
     setDomainAsyncContextStrategy();
 

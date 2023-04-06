@@ -1,4 +1,4 @@
-import type { Carrier, Hub } from '@sentry/core';
+import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import {
   ensureHubOnCarrier,
   getCurrentHub as getCurrentHubCore,
@@ -8,9 +8,13 @@ import {
 import * as domain from 'domain';
 import { EventEmitter } from 'events';
 
-function getCurrentHub(): Hub | undefined {
+function getActiveDomain<T>(): T | undefined {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  const activeDomain = (domain as any).active as Carrier;
+  return (domain as any).active as T | undefined;
+}
+
+function getCurrentHub(): Hub | undefined {
+  const activeDomain = getActiveDomain<Carrier>();
 
   // If there's no active domain, just return undefined and the global hub will be used
   if (!activeDomain) {
@@ -22,10 +26,10 @@ function getCurrentHub(): Hub | undefined {
   return getHubFromCarrier(activeDomain);
 }
 
-function runWithAsyncContext<T, A>(callback: (hub: Hub) => T, ...args: A[]): T {
-  const local = domain.create();
+function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
+  const local = options?.reuseExisting ? getActiveDomain<domain.Domain>() || domain.create() : domain.create();
 
-  for (const emitter of args) {
+  for (const emitter of options.args || []) {
     if (emitter instanceof EventEmitter) {
       local.add(emitter);
     }
