@@ -1,3 +1,4 @@
+import type { CheckIn } from './checkin';
 import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
@@ -31,7 +32,8 @@ export type EnvelopeItemType =
   | 'event'
   | 'profile'
   | 'replay_event'
-  | 'replay_recording';
+  | 'replay_recording'
+  | 'check_in';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
@@ -68,6 +70,7 @@ type SessionAggregatesItemHeaders = { type: 'sessions' };
 type ClientReportItemHeaders = { type: 'client_report' };
 type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
+type CheckInItemHeaders = { type: 'check_in' };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
@@ -76,11 +79,13 @@ export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
+export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, CheckIn>;
 type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
+type CheckInEnvelopeHeaders = BaseEnvelopeHeaders;
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 
@@ -88,6 +93,7 @@ export type EventEnvelope = BaseEnvelope<EventEnvelopeHeaders, EventItem | Attac
 export type SessionEnvelope = BaseEnvelope<SessionEnvelopeHeaders, SessionItem>;
 export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, ClientReportItem>;
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
+export type CheckInEvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 
-export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope | ReplayEnvelope;
+export type Envelope = EventEnvelope | SessionEnvelope | ClientReportEnvelope | ReplayEnvelope | CheckInEvelope;
 export type EnvelopeItem = Envelope[1][number];
