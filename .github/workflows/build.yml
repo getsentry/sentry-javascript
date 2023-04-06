@@ -161,7 +161,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -207,8 +209,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
-
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Check dependency cache
         uses: actions/cache/restore@v3
         with:
@@ -262,7 +265,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -331,7 +336,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -352,7 +359,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -372,7 +381,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -526,7 +537,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -580,7 +593,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -631,7 +646,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -655,7 +672,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -745,7 +764,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -803,7 +824,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
