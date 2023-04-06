@@ -1,4 +1,4 @@
-import type { Carrier, Hub } from '@sentry/core';
+import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import {
   ensureHubOnCarrier,
   getCurrentHub as getCurrentHubCore,
@@ -26,10 +26,10 @@ function getCurrentHub(): Hub | undefined {
   return getHubFromCarrier(activeDomain);
 }
 
-function runWithAsyncContext<T, A>(callback: (hub: Hub) => T, reuseExisting: boolean, ...args: A[]): T {
-  const local = reuseExisting ? getActiveDomain<domain.Domain>() || domain.create() : domain.create();
+function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
+  const local = options?.reuseExisting ? getActiveDomain<domain.Domain>() || domain.create() : domain.create();
 
-  for (const emitter of args) {
+  for (const emitter of options.args || []) {
     if (emitter instanceof EventEmitter) {
       local.add(emitter);
     }

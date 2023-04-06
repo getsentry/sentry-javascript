@@ -50,7 +50,16 @@ export const API_VERSION = 4;
  */
 const DEFAULT_BREADCRUMBS = 100;
 
+export interface RunWithAsyncContextOptions {
+  /** Whether to reuse an existing async context if one exists. Defaults to false. */
+  reuseExisting?: boolean;
+  /** Instances that should be referenced and retained in the new context */
+  args?: unknown[];
+}
+
 /**
+ * @private Private API with no semver guarantees!
+ *
  * Strategy used to track async context.
  */
 export interface AsyncContextStrategy {
@@ -60,10 +69,8 @@ export interface AsyncContextStrategy {
   getCurrentHub: () => Hub | undefined;
   /**
    * Runs the supplied callback in its own async context.
-   * @param reuseExisting Whether to reuse an existing async context if one exists.
-   * @param args Instances that should be referenced and retained in the new context.
    */
-  runWithAsyncContext<T>(callback: (hub: Hub) => T, reuseExisting: boolean, ...args: unknown[]): T;
+  runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T;
 }
 
 /**
@@ -592,18 +599,12 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  * @private Private API with no semver guarantees!
  *
  * Runs the supplied callback in its own async context.
- * @param reuseExisting Whether to reuse an existing async context if one exists. Defaults to false.
- * @param args Instances that should be referenced and retained in the new context.
  */
-export function runWithAsyncContext<T>(
-  callback: (hub: Hub) => T,
-  reuseExisting: boolean = false,
-  ...args: unknown[]
-): T {
+export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    return registry.__SENTRY__.acs.runWithAsyncContext(callback, reuseExisting, ...args);
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, options);
   }
 
   // if there was no strategy, fallback to just calling the callback
