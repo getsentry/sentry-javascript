@@ -79,7 +79,7 @@ export function pop(store: Store): Promise<Uint8Array | string | undefined> {
   });
 }
 
-interface BrowserOfflineTransportOptions extends OfflineTransportOptions {
+export interface BrowserOfflineTransportOptions extends OfflineTransportOptions {
   /**
    * Name of indexedDb database to store envelopes in
    * Default: 'sentry-offline'
