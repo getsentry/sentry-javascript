@@ -54,8 +54,16 @@ const DEFAULT_BREADCRUMBS = 100;
  * Strategy used to track async context.
  */
 export interface AsyncContextStrategy {
+  /**
+   * Gets the current async context. Returns undefined if there is no current async context.
+   */
   getCurrentHub: () => Hub | undefined;
-  runWithAsyncContext<T>(callback: (hub: Hub) => T, ...args: unknown[]): T;
+  /**
+   * Runs the supplied callback in its own async context.
+   * @param reuseExisting Whether to reuse an existing async context if one exists.
+   * @param args Instances that should be referenced and retained in the new context.
+   */
+  runWithAsyncContext<T>(callback: (hub: Hub) => T, reuseExisting: boolean, ...args: unknown[]): T;
 }
 
 /**
@@ -585,11 +593,15 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  *
  * Runs the given callback function with the global async context strategy
  */
-export function runWithAsyncContext<T>(callback: (hub: Hub) => T, ...args: unknown[]): T {
+export function runWithAsyncContext<T>(
+  callback: (hub: Hub) => T,
+  reuseExisting: boolean = false,
+  ...args: unknown[]
+): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    return registry.__SENTRY__.acs.runWithAsyncContext(callback, ...args);
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, reuseExisting, ...args);
   }
 
   // if there was no strategy, fallback to just calling the callback
