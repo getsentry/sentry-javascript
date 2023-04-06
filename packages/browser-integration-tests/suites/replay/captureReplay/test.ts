@@ -4,7 +4,7 @@ import { SDK_VERSION } from '@sentry/browser';
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
