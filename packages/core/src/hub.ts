@@ -574,7 +574,7 @@ export function ensureHubOnCarrier(carrier: Carrier): void {
  *
  * Sets the global async context strategy
  */
-export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
+export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
   registry.__SENTRY__ = registry.__SENTRY__ || {};

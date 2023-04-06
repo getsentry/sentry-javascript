@@ -8,10 +8,7 @@ import {
 import * as domain from 'domain';
 import { EventEmitter } from 'events';
 
-/**
- * Returns the current hub.
- */
-export function getCurrentHub(): Hub | undefined {
+function getCurrentHub(): Hub | undefined {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   const activeDomain = (domain as any).active as Carrier;
 
@@ -25,10 +22,7 @@ export function getCurrentHub(): Hub | undefined {
   return getHubFromCarrier(activeDomain);
 }
 
-/**
- * Runs the given function inside a domain.
- */
-export function runWithAsyncContext<T, A>(callback: (hub: Hub) => T, ...args: A[]): T {
+function runWithAsyncContext<T, A>(callback: (hub: Hub) => T, ...args: A[]): T {
   const local = domain.create();
 
   for (const emitter of args) {
