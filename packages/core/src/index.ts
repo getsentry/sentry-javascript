@@ -26,6 +26,7 @@ export {
   getMainCarrier,
   runWithAsyncContext,
   setHubOnCarrier,
+  ensureHubOnCarrier,
   setAsyncContextStrategy,
 } from './hub';
 export { makeSession, closeSession, updateSession } from './session';

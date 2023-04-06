@@ -55,7 +55,7 @@ const DEFAULT_BREADCRUMBS = 100;
  */
 export interface AsyncContextStrategy {
   getCurrentHub: () => Hub | undefined;
-  runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T;
+  runWithAsyncContext<T>(callback: (hub: Hub) => T, ...args: unknown[]): T;
 }
 
 /**
@@ -536,15 +536,21 @@ export function getCurrentHub(): Hub {
     }
   }
 
+  // Prefer domains over global if they are there (applicable only to Node environment)
+  if (isNodeEnv()) {
+    return getHubFromActiveDomain(registry);
+  }
+
+  // Return hub that lives on a global object
+  return getGlobalHub(registry);
+}
+
+function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
   }
 
-  // Prefer domains over global if they are there (applicable only to Node environment)
-  if (isNodeEnv()) {
-    return getHubFromActiveDomain(registry);
-  }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
 }
@@ -552,9 +558,22 @@ export function getCurrentHub(): Hub {
 /**
  * @private Private API with no semver guarantees!
  *
+ * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
+ */
+export function ensureHubOnCarrier(carrier: Carrier): void {
+  // If there's no hub on current domain, or it's an old API, assign a new one
+  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+    const globalHubTopStack = getGlobalHub().getStackTop();
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+  }
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
  * Sets the global async context strategy
  */
-export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
+export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
   registry.__SENTRY__ = registry.__SENTRY__ || {};
@@ -566,7 +585,7 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
  *
  * Runs the given callback function with the global async context strategy
  */
-export function runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T {
+export function runWithAsyncContext<T>(callback: (hub: Hub) => T, ...args: unknown[]): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
@@ -574,7 +593,7 @@ export function runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => 
   }
 
   // if there was no strategy, fallback to just calling the callback
-  return callback(getCurrentHub(), ...args);
+  return callback(getCurrentHub());
 }
 
 /**
