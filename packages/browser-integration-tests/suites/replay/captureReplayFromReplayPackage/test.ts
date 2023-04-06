@@ -2,12 +2,10 @@ import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestPath, page }) => {
-  // For this test, we skip all bundle tests, as we're only interested in Replay being correctly
-  // exported from the `@sentry/browser` npm package.
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
