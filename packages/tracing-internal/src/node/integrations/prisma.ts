@@ -1,6 +1,7 @@
 import type { Hub } from '@sentry/core';
+import { trace } from '@sentry/core';
 import type { EventProcessor, Integration } from '@sentry/types';
-import { isThenable, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
@@ -88,28 +89,9 @@ export class Prisma implements Integration {
     }
 
     this._client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
-      const scope = getCurrentHub().getScope();
-      const parentSpan = scope?.getSpan();
-
       const action = params.action;
       const model = params.model;
-
-      const span = parentSpan?.startChild({
-        description: model ? `${model} ${action}` : action,
-        op: 'db.sql.prisma',
-      });
-
-      const rv = next(params);
-
-      if (isThenable(rv)) {
-        return rv.then((res: unknown) => {
-          span?.finish();
-          return res;
-        });
-      }
-
-      span?.finish();
-      return rv;
+      return trace({ name: model ? `${model} ${action}` : action, op: 'db.sql.prisma' }, () => next(params));
     });
   }
 }
