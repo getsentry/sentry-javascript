@@ -80,7 +80,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   },
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
-    return runWithAsyncContext(async () => {
+    return runWithAsyncContext(async hub => {
       let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
       let dataFetcherSpan;
 
@@ -139,7 +139,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         });
       }
 
-      const currentScope = getCurrentHub().getScope();
+      const currentScope = hub.getScope();
       if (currentScope) {
         currentScope.setSpan(dataFetcherSpan);
         currentScope.setSDKProcessingMetadata({ request: req });
