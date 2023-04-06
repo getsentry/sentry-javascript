@@ -1,5 +1,5 @@
 export type { ClientClass } from './sdk';
-export type { Carrier, Layer } from './hub';
+export type { AsyncContextStrategy, Carrier, Layer } from './hub';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 
 export * from './tracing';
@@ -18,7 +18,16 @@ export {
   setUser,
   withScope,
 } from './exports';
-export { getCurrentHub, getHubFromCarrier, Hub, makeMain, getMainCarrier, setHubOnCarrier } from './hub';
+export {
+  getCurrentHub,
+  getHubFromCarrier,
+  Hub,
+  makeMain,
+  getMainCarrier,
+  runWithAsyncContext,
+  setHubOnCarrier,
+  setAsyncContextStrategy,
+} from './hub';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { addGlobalEventProcessor, Scope } from './scope';

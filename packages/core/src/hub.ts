@@ -51,6 +51,14 @@ export const API_VERSION = 4;
 const DEFAULT_BREADCRUMBS = 100;
 
 /**
+ * Strategy used to track async context.
+ */
+export interface AsyncContextStrategy {
+  getCurrentHub: () => Hub | undefined;
+  runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T;
+}
+
+/**
  * A layer in the process stack.
  * @hidden
  */
@@ -66,6 +74,7 @@ export interface Layer {
 export interface Carrier {
   __SENTRY__?: {
     hub?: Hub;
+    acs?: AsyncContextStrategy;
     /**
      * Extra Hub properties injected by various SDKs
      */
@@ -519,6 +528,14 @@ export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    const hub = registry.__SENTRY__.acs.getCurrentHub();
+
+    if (hub) {
+      return hub;
+    }
+  }
+
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
@@ -530,6 +547,34 @@ export function getCurrentHub(): Hub {
   }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Sets the global async context strategy
+ */
+export function setAsyncContextStrategy(strategy: AsyncContextStrategy): void {
+  // Get main carrier (global for every environment)
+  const registry = getMainCarrier();
+  registry.__SENTRY__ = registry.__SENTRY__ || {};
+  registry.__SENTRY__.acs = strategy;
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Runs the given callback function with the global async context strategy
+ */
+export function runWithAsyncContext<T, A>(callback: (hub: Hub, ...args: A[]) => T, ...args: A[]): T {
+  const registry = getMainCarrier();
+
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, ...args);
+  }
+
+  // if there was no strategy, fallback to just calling the callback
+  return callback(getCurrentHub(), ...args);
 }
 
 /**
