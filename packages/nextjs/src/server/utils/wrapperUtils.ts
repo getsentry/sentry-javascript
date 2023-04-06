@@ -1,10 +1,4 @@
-import {
-  captureException,
-  getActiveTransaction,
-  getCurrentHub,
-  runWithAsyncContext,
-  startTransaction,
-} from '@sentry/core';
+import { captureException, getActiveTransaction, runWithAsyncContext, startTransaction } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import type { IncomingMessage, ServerResponse } from 'http';
