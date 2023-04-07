@@ -426,8 +426,6 @@ function _getRequest(requestInfo: RequestInfo, requestInit?: RequestInit): Reque
   // If both are set, we try to construct a new Request with the given arguments
   // However, if e.g. the original request has a `body`, this will throw an error because it was already accessed
   // In this case, as a fallback, we just use the original request - using both is rather an edge case
-  // This _should_ not happen, as we take a copy of the original request in `instrumentFetch`
-  // But to be on the safe side...
   if (requestInfo instanceof Request && requestInfo.bodyUsed) {
     return requestInfo;
   }
