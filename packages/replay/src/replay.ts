@@ -748,7 +748,6 @@ export class ReplayContainer implements ReplayContainerInterface {
         replayId,
         recordingData,
         segmentId,
-        includeReplayStartTimestamp: segmentId === 0,
         eventContext,
         session: this.session,
         options: this.getOptions(),

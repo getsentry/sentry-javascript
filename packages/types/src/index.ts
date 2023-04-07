@@ -30,6 +30,8 @@ export type {
   SessionEnvelope,
   SessionItem,
   UserFeedbackItem,
+  CheckInItem,
+  CheckInEvelope,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
@@ -104,3 +106,4 @@ export type { Instrumenter } from './instrumenter';
 export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions } from './browseroptions';
+export type { CheckIn } from './checkin';
