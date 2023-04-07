@@ -222,7 +222,7 @@ export function requestHandler(
         });
         next();
       },
-      { args: [req, res] },
+      { emitters: [req, res] },
     );
   };
 }
