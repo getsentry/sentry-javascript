@@ -1,8 +1,7 @@
-import { runWithAsyncContext } from '@sentry/core';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
-import { proxyFunction } from '../utils';
+import { domainify, proxyFunction } from '../utils';
 import type { CloudEventFunction, CloudEventFunctionWithCallback, WrapperOptions } from './general';
 
 export type CloudEventFunctionWrapperOptions = WrapperOptions;
@@ -18,9 +17,7 @@ export function wrapCloudEventFunction(
   fn: CloudEventFunction | CloudEventFunctionWithCallback,
   wrapOptions: Partial<CloudEventFunctionWrapperOptions> = {},
 ): CloudEventFunctionWithCallback {
-  return proxyFunction(fn, f =>
-    runWithAsyncContext(() => _wrapCloudEventFunction(f, wrapOptions), { reuseExisting: true }),
-  );
+  return proxyFunction(fn, f => domainify(_wrapCloudEventFunction(f, wrapOptions)));
 }
 
 /** */
@@ -50,24 +47,20 @@ function _wrapCloudEventFunction(
       scope.setSpan(transaction);
     });
 
-    const newCallback = (...args: unknown[]): void =>
-      runWithAsyncContext(
-        () => {
-          if (args[0] !== null && args[0] !== undefined) {
-            captureException(args[0]);
-          }
-          transaction.finish();
+    const newCallback = domainify((...args: unknown[]) => {
+      if (args[0] !== null && args[0] !== undefined) {
+        captureException(args[0]);
+      }
+      transaction.finish();
 
-          void flush(options.flushTimeout)
-            .then(null, e => {
-              __DEBUG_BUILD__ && logger.error(e);
-            })
-            .then(() => {
-              callback(...args);
-            });
-        },
-        { reuseExisting: true },
-      );
+      void flush(options.flushTimeout)
+        .then(null, e => {
+          __DEBUG_BUILD__ && logger.error(e);
+        })
+        .then(() => {
+          callback(...args);
+        });
+    });
 
     if (fn.length > 1) {
       let fnResult;
