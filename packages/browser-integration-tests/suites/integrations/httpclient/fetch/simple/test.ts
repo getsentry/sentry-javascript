@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
-import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { sentryTest } from '../../../../../utils/fixtures';
+import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
 sentryTest(
   'should assign request and response context from a failed 500 fetch request',

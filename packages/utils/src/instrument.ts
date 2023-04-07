@@ -141,7 +141,18 @@ function instrumentFetch(): void {
   }
 
   fill(WINDOW, 'fetch', function (originalFetch: () => void): () => void {
-    return function (...args: any[]): void {
+    return function (...originalArgs: any[]): void {
+      const args = originalArgs.slice();
+
+      // Make sure we store a copy of the request, to avoid body reading issues
+      if (args[0] instanceof Request) {
+        try {
+          args[0] = args[0].clone();
+        } catch {
+          // ignore, we tried
+        }
+      }
+
       const { method, url } = parseFetchArgs(args);
 
       const handlerData: HandlerDataFetch = {
@@ -158,7 +169,7 @@ function instrumentFetch(): void {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      return originalFetch.apply(WINDOW, args).then(
+      return originalFetch.apply(WINDOW, originalArgs).then(
         (response: Response) => {
           triggerHandlers('fetch', {
             ...handlerData,
