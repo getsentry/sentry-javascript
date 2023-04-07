@@ -2,7 +2,7 @@ import type fs from 'fs';
 import type { Plugin, UserConfig } from 'vite';
 import { vi } from 'vitest';
 
-import { withSentryViteConfig } from '../../src/config/withSentryViteConfig';
+import { withSentryViteConfig } from '../../src/vite/withSentryViteConfig';
 
 let existsFile = true;
 vi.mock('fs', async () => {

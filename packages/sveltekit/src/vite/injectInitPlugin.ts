@@ -1,8 +1,9 @@
 import { logger } from '@sentry/utils';
-import * as fs from 'fs';
 import MagicString from 'magic-string';
 import * as path from 'path';
 import type { Plugin, TransformResult } from 'vite';
+
+import { getUserConfigFile } from './utils';
 
 const serverIndexFilePath = path.join('@sveltejs', 'kit', 'src', 'runtime', 'server', 'index.js');
 const devClientAppFilePath = path.join('generated', 'client', 'app.js');
@@ -58,20 +59,4 @@ function addSentryConfigFileImport(
   ms.append(importStmt);
 
   return { code: ms.toString(), map: ms.generateMap() };
-}
-
-/**
- * Looks up the sentry.{@param platform}.config.(ts|js) file
- * @returns the file path to the file or undefined if it doesn't exist
- */
-export function getUserConfigFile(projectDir: string, platform: 'server' | 'client'): string | undefined {
-  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
-
-  for (const filename of possibilities) {
-    if (fs.existsSync(path.resolve(projectDir, filename))) {
-      return filename;
-    }
-  }
-
-  return undefined;
 }
