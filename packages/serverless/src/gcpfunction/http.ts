@@ -1,3 +1,4 @@
+import { runWithAsyncContext } from '@sentry/core';
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import {
@@ -9,7 +10,7 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 
-import { domainify, proxyFunction } from './../utils';
+import { proxyFunction } from './../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff
@@ -41,7 +42,8 @@ export function wrapHttpFunction(
   fn: HttpFunction,
   wrapOptions: Partial<HttpFunctionWrapperOptions> = {},
 ): HttpFunction {
-  const wrap = (f: HttpFunction): HttpFunction => domainify(_wrapHttpFunction(f, wrapOptions));
+  const wrap = (f: HttpFunction): HttpFunction =>
+    runWithAsyncContext(() => _wrapHttpFunction(f, wrapOptions), { reuseExisting: true });
 
   let overrides: Record<PropertyKey, unknown> | undefined;
 
