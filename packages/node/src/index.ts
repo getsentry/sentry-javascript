@@ -37,6 +37,7 @@ export {
   getCurrentHub,
   Hub,
   makeMain,
+  runWithAsyncContext,
   Scope,
   startTransaction,
   SDK_VERSION,
