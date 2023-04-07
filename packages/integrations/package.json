@@ -44,6 +44,7 @@
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
     "lint:prettier": "prettier --check \"{src,test,scripts}/**/**.ts\"",
+    "validate:es5": "es-check es5 'build/bundles/*.es5*.js'",
     "test": "jest",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push"
