@@ -27,7 +27,22 @@ function getCurrentHub(): Hub | undefined {
 }
 
 function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
-  const local = options?.reuseExisting ? getActiveDomain<domain.Domain>() || domain.create() : domain.create();
+  if (options?.reuseExisting) {
+    const activeDomain = getActiveDomain<domain.Domain & Carrier>();
+
+    if (activeDomain) {
+      for (const emitter of options.args || []) {
+        if (emitter instanceof EventEmitter) {
+          activeDomain.add(emitter);
+        }
+      }
+
+      // We're already in a domain, so we don't need to create a new one, just call the callback with the current hub
+      return callback(getHubFromCarrier(activeDomain));
+    }
+  }
+
+  const local = domain.create();
 
   for (const emitter of options.args || []) {
     if (emitter instanceof EventEmitter) {
