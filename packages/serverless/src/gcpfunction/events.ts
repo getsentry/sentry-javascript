@@ -1,7 +1,8 @@
+import { runWithAsyncContext } from '@sentry/core';
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
-import { domainify, proxyFunction } from '../utils';
+import { proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
@@ -17,7 +18,7 @@ export function wrapEventFunction(
   fn: EventFunction | EventFunctionWithCallback,
   wrapOptions: Partial<EventFunctionWrapperOptions> = {},
 ): EventFunctionWithCallback {
-  return proxyFunction(fn, f => domainify(_wrapEventFunction(f, wrapOptions)));
+  return proxyFunction(fn, f => runWithAsyncContext(() => _wrapEventFunction(f, wrapOptions), { reuseExisting: true }));
 }
 
 /** */
@@ -49,22 +50,26 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       scope.setSpan(transaction);
     });
 
-    const newCallback = domainify((...args: unknown[]) => {
-      if (args[0] !== null && args[0] !== undefined) {
-        captureException(args[0]);
-      }
-      transaction.finish();
-
-      void flush(options.flushTimeout)
-        .then(null, e => {
-          __DEBUG_BUILD__ && logger.error(e);
-        })
-        .then(() => {
-          if (typeof callback === 'function') {
-            callback(...args);
+    const newCallback = (...args: unknown[]): void =>
+      runWithAsyncContext(
+        () => {
+          if (args[0] !== null && args[0] !== undefined) {
+            captureException(args[0]);
           }
-        });
-    });
+          transaction.finish();
+
+          void flush(options.flushTimeout)
+            .then(null, e => {
+              __DEBUG_BUILD__ && logger.error(e);
+            })
+            .then(() => {
+              if (typeof callback === 'function') {
+                callback(...args);
+              }
+            });
+        },
+        { reuseExisting: true },
+      );
 
     if (fn.length > 2) {
       let fnResult;

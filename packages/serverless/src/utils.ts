@@ -1,4 +1,3 @@
-import { runWithAsyncContext } from '@sentry/core';
 import type { Event } from '@sentry/node';
 import { addExceptionMechanism } from '@sentry/utils';
 
@@ -15,14 +14,6 @@ export function serverlessEventProcessor(event: Event): Event {
   });
 
   return event;
-}
-
-/**
- * @param fn function to run
- * @returns function which runs in the newly created domain or in the existing one
- */
-export function domainify<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R | void {
-  return (...args) => runWithAsyncContext(() => fn(...args), { reuseExisting: true });
 }
 
 /**
