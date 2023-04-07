@@ -55,7 +55,6 @@ sentryTest(
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
-        replay_start_timestamp: undefined,
         segment_id: 1,
         error_ids: [errorEventId],
         urls: [],
@@ -117,7 +116,6 @@ sentryTest(
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
-        replay_start_timestamp: undefined,
         segment_id: 1,
         error_ids: [], // <-- no error id
         urls: [],

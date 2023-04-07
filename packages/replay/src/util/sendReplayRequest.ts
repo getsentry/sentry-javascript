@@ -15,7 +15,6 @@ export async function sendReplayRequest({
   recordingData,
   replayId,
   segmentId: segment_id,
-  includeReplayStartTimestamp,
   eventContext,
   timestamp,
   session,
@@ -42,7 +41,7 @@ export async function sendReplayRequest({
 
   const baseEvent: ReplayEvent = {
     type: REPLAY_EVENT_NAME,
-    ...(includeReplayStartTimestamp ? { replay_start_timestamp: initialTimestamp / 1000 } : {}),
+    replay_start_timestamp: initialTimestamp / 1000,
     timestamp: timestamp / 1000,
     error_ids: errorIds,
     trace_ids: traceIds,

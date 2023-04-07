@@ -18,7 +18,6 @@ export interface SendReplayData {
   recordingData: ReplayRecordingData;
   replayId: string;
   segmentId: number;
-  includeReplayStartTimestamp: boolean;
   eventContext: PopEventContext;
   timestamp: number;
   session: Session;

@@ -40,7 +40,7 @@ sentryTest('replay events are flushed after max flush delay was reached', async 
 
   // this must eventually lead to a flush after the max delay was reached
   const replayEvent1 = getReplayEvent(await reqPromise1);
-  expect(replayEvent1).toEqual(getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 1, urls: [] }));
+  expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
 
   // trigger mouse click every 100ms, it should still flush after the max delay even if clicks are ongoing
   for (let i = 0; i < 700; i++) {
@@ -54,5 +54,5 @@ sentryTest('replay events are flushed after max flush delay was reached', async 
   }
 
   const replayEvent2 = getReplayEvent(await reqPromise2);
-  expect(replayEvent2).toEqual(getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 2, urls: [] }));
+  expect(replayEvent2).toEqual(getExpectedReplayEvent({ segment_id: 2, urls: [] }));
 });
