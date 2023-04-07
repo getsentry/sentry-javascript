@@ -90,7 +90,7 @@ export class HttpClient implements Integration {
    */
   private _fetchResponseHandler(requestInfo: RequestInfo, response: Response, requestInit?: RequestInit): void {
     if (this._getCurrentHub && this._shouldCaptureResponse(response.status, response.url)) {
-      const request = new Request(requestInfo, requestInit);
+      const request = _getRequest(requestInfo, requestInit);
       const hub = this._getCurrentHub();
 
       let requestHeaders, responseHeaders, requestCookies, responseCookies;
@@ -416,4 +416,19 @@ export class HttpClient implements Integration {
 
     return event;
   }
+}
+
+function _getRequest(requestInfo: RequestInfo, requestInit?: RequestInit): Request {
+  if (!requestInit && requestInfo instanceof Request) {
+    return requestInfo;
+  }
+
+  // If both are set, we try to construct a new Request with the given arguments
+  // However, if e.g. the original request has a `body`, this will throw an error because it was already accessed
+  // In this case, as a fallback, we just use the original request - using both is rather an edge case
+  if (requestInfo instanceof Request && requestInfo.bodyUsed) {
+    return requestInfo;
+  }
+
+  return new Request(requestInfo, requestInit);
 }
