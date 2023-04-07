@@ -64,7 +64,7 @@ sentryTest('handles session that exceeds max age', async ({ getLocalTestPath, pa
   const req1 = await reqPromise1;
   const replayEvent1 = getReplayEvent(req1);
 
-  expect(replayEvent1).toEqual(getExpectedReplayEvent({ replay_start_timestamp: undefined, segment_id: 1, urls: [] }));
+  expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
 
   const replay1 = await getReplaySnapshot(page);
   const oldSessionId = replay1.session?.id;
