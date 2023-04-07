@@ -26,8 +26,8 @@ export function createCheckInEnvelope(
 }
 
 function createCheckInEnvelopeItem(checkIn: CheckIn): CheckInItem {
-  const feedbackHeaders: CheckInItem[0] = {
+  const checkInHeaders: CheckInItem[0] = {
     type: 'check_in',
   };
-  return [feedbackHeaders, checkIn];
+  return [checkInHeaders, checkIn];
 }
