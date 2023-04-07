@@ -60,9 +60,6 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
       }
       req.__withSentry_applied__ = true;
 
-      // `local.bind` causes everything to run inside a domain, just like `local.run` does, but it also lets the callback
-      // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
-      // getting that before it will finish the response.
       // eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
       const boundHandler = runWithAsyncContext(
         // eslint-disable-next-line complexity
