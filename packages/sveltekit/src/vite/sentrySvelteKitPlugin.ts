@@ -1,8 +1,5 @@
 import type { Plugin, UserConfig } from 'vite';
 
-import { injectSentryInitPlugin } from './injectInitPlugin';
-import { hasSentryInitFiles } from './utils';
-
 /**
  * Vite Plugin for the Sentry SvelteKit SDK, taking care of:
  *
@@ -23,31 +20,13 @@ export function sentrySvelteKitPlugin(): Plugin {
 }
 
 function addSentryConfig(originalConfig: UserConfig): UserConfig {
-  const sentryPlugins = [];
+  const sentryPlugins: Plugin[] = [];
 
-  const shouldAddInjectInitPlugin = hasSentryInitFiles();
+  // TODO: Add sentry vite plugin here
 
-  if (shouldAddInjectInitPlugin) {
-    sentryPlugins.push(injectSentryInitPlugin);
-  }
-
-  const config = {
+  const config: UserConfig = {
     ...originalConfig,
-    plugins: originalConfig.plugins ? [...sentryPlugins, ...originalConfig.plugins] : [...sentryPlugins],
-  };
-
-  const mergedDevServerFileSystemConfig: UserConfig['server'] = shouldAddInjectInitPlugin
-    ? {
-        fs: {
-          ...(config.server && config.server.fs),
-          allow: [...((config.server && config.server.fs && config.server.fs.allow) || []), '.'],
-        },
-      }
-    : {};
-
-  config.server = {
-    ...config.server,
-    ...mergedDevServerFileSystemConfig,
+    plugins: [...sentryPlugins, ...(originalConfig.plugins || [])],
   };
 
   return config;
