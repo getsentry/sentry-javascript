@@ -1,7 +1,7 @@
 import type * as fs from 'fs';
 import { vi } from 'vitest';
 
-import { injectSentryInitPlugin } from '../../src/config/vitePlugins';
+import { injectSentryInitPlugin } from '../../src/vite/injectInitPlugin';
 
 vi.mock('fs', async () => {
   const original = await vi.importActual<typeof fs>('fs');

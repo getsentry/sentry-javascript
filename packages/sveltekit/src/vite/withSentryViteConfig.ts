@@ -1,6 +1,7 @@
 import type { UserConfig, UserConfigExport } from 'vite';
 
-import { getUserConfigFile, injectSentryInitPlugin } from './vitePlugins';
+import { injectSentryInitPlugin } from './injectInitPlugin';
+import { hasSentryInitFiles } from './utils';
 
 /**
  * This function adds Sentry-specific configuration to your Vite config.
@@ -59,10 +60,4 @@ function addSentryConfig(originalConfig: UserConfig): UserConfig {
   };
 
   return config;
-}
-
-function hasSentryInitFiles(): boolean {
-  const hasSentryServerInit = !!getUserConfigFile(process.cwd(), 'server');
-  const hasSentryClientInit = !!getUserConfigFile(process.cwd(), 'client');
-  return hasSentryServerInit || hasSentryClientInit;
 }
