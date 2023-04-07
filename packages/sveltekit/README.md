@@ -150,19 +150,20 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
 ### 5. Vite Setup
 
-3. Add our `withSentryViteConfig` wrapper around your Vite config so that the Sentry SDK can add its plugins to your Vite config `vite.config.(js|ts)`:
+1. Add our `sentrySvelteKitPlugin` to your `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time features.
+  Make sure that it is added before the `sveltekit` plugin:
+
    ```javascript
     import { sveltekit } from '@sveltejs/kit/vite';
-    import { withSentryViteConfig } from '@sentry/sveltekit';
+    import { sentrySvelteKitPlugin } from '@sentry/sveltekit';
 
-    export default withSentryViteConfig({
-      plugins: [sveltekit()],
-      // ...
-    });
+    export default {
+      plugins: [sentrySvelteKitPlugin(), sveltekit()],
+      // ... rest of your Vite config
+    };
    ```
 
-   In the near future this wrapper will add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
-   Furthermore, if you prefer to intialize the Sentry SDK in dedicated files, instead of the hook files, you can move the `Sentry.init` code to `sentry.(client|server).config.(js|ts)` files and `withSentryViteConfig` will take care of adding them to your server and client bundles.
+   In the near future this plugin will add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
 
 ## Known Limitations
 
