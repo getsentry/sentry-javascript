@@ -1,34 +1,22 @@
 import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
-import {
-  ensureHubOnCarrier,
-  // getCurrentHub as getCurrentHubCore,
-  getHubFromCarrier,
-  setAsyncContextStrategy,
-} from '@sentry/core';
+import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import * as async_hooks from 'async_hooks';
 
 interface AsyncLocalStorage<T> {
-  disable(): void;
   getStore(): T | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exit<R, TArgs extends any[]>(callback: (...args: TArgs) => R, ...args: TArgs): R;
-  enterWith(store: T): void;
 }
 
-function createAsyncLocalStorage<T>(): AsyncLocalStorage<T> {
-  // async_hooks does not exist before Node v12.17
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { AsyncLocalStorage } = require('async_hooks');
-  return new AsyncLocalStorage();
-}
+type AsyncLocalStorageConstructor = { new <T>(): AsyncLocalStorage<T> };
+// AsyncLocalStorage only exists in async_hook after Node v12.17.0 or v13.10.0
+type NewerAsyncHooks = typeof async_hooks & { AsyncLocalStorage: AsyncLocalStorageConstructor };
 
 /**
- * Sets the async context strategy to use Node.js async_hooks.
+ * Sets the async context strategy to use AsyncLocalStorage which requires Node v12.17.0 or v13.10.0.
  */
 export function setHooksAsyncContextStrategy(): void {
-  const asyncStorage = createAsyncLocalStorage<Hub>();
+  const asyncStorage = new (async_hooks as NewerAsyncHooks).AsyncLocalStorage<Hub>();
 
   function getCurrentHub(): Hub | undefined {
     return asyncStorage.getStore();
