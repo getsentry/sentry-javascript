@@ -1,34 +1,49 @@
 import { getCurrentHub, Hub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
-import * as domain from 'domain';
 
 import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
 
-describe('async hooks', () => {
+describe('async_hooks', () => {
   afterAll(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);
   });
 
-  test('without hooks', () => {
-    // @ts-ignore property active does not exist on domain
-    expect(domain.active).toBeFalsy();
+  test('without context', () => {
     const hub = getCurrentHub();
     expect(hub).toEqual(new Hub());
   });
 
-  test('hub scope inheritance', () => {
-    const globalHub = getCurrentHub();
-    globalHub.configureScope(scope => {
-      scope.setExtra('a', 'b');
-      scope.setTag('a', 'b');
-      scope.addBreadcrumb({ message: 'a' });
-    });
-    runWithAsyncContext(hub => {
-      expect(globalHub).toEqual(hub);
+  test('without strategy hubs should be equal', () => {
+    runWithAsyncContext(hub1 => {
+      runWithAsyncContext(hub2 => {
+        expect(hub1).toBe(hub2);
+      });
     });
   });
 
-  test('hub single instance', () => {
+  test('hub scope inheritance', () => {
+    setHooksAsyncContextStrategy();
+
+    const globalHub = getCurrentHub();
+    globalHub.setExtra('a', 'b');
+
+    runWithAsyncContext(hub1 => {
+      expect(hub1).toEqual(globalHub);
+
+      hub1.setExtra('c', 'd');
+      expect(hub1).not.toEqual(globalHub);
+
+      runWithAsyncContext(hub2 => {
+        expect(hub2).toEqual(hub1);
+        expect(hub2).not.toEqual(globalHub);
+
+        hub2.setExtra('e', 'f');
+        expect(hub2).not.toEqual(hub1);
+      });
+    });
+  });
+
+  test('context single instance', () => {
     setHooksAsyncContextStrategy();
 
     runWithAsyncContext(hub => {
@@ -36,7 +51,7 @@ describe('async hooks', () => {
     });
   });
 
-  test('context within context', () => {
+  test('context within a context not reused', () => {
     setHooksAsyncContextStrategy();
 
     runWithAsyncContext(hub1 => {
@@ -46,7 +61,7 @@ describe('async hooks', () => {
     });
   });
 
-  test('context within context reused', () => {
+  test('context within a context reused when requested', () => {
     setHooksAsyncContextStrategy();
 
     runWithAsyncContext(hub1 => {
@@ -59,7 +74,7 @@ describe('async hooks', () => {
     });
   });
 
-  test('concurrent contexts', done => {
+  test('concurrent hub contexts', done => {
     setHooksAsyncContextStrategy();
 
     let d1done = false;

@@ -34,24 +34,22 @@ export function setHooksAsyncContextStrategy(): void {
     return asyncStorage.getStore();
   }
 
-  function createNewHub(): Hub {
+  function createNewHub(parent: Hub | undefined): Hub {
     const carrier: Carrier = {};
-    ensureHubOnCarrier(carrier);
+    ensureHubOnCarrier(carrier, parent);
     return getHubFromCarrier(carrier);
   }
 
   function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
-    if (options?.reuseExisting) {
-      const existingHub = getCurrentHub();
+    const existingHub = getCurrentHub();
 
-      if (existingHub) {
-        // We're already in an async context, so we don't need to create a new one
-        // just call the callback with the current hub
-        return callback(existingHub);
-      }
+    if (existingHub && options?.reuseExisting) {
+      // We're already in an async context, so we don't need to create a new one
+      // just call the callback with the current hub
+      return callback(existingHub);
     }
 
-    const newHub = createNewHub();
+    const newHub = createNewHub(existingHub);
 
     return asyncStorage.run(newHub, () => {
       return callback(newHub);
