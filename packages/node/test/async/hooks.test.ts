@@ -1,8 +1,9 @@
 import { getCurrentHub, Hub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
+import { conditionalTest } from '../utils';
 
-describe('async_hooks', () => {
+conditionalTest({ min: 12 })('async_hooks', () => {
   afterAll(() => {
     // clear the strategy
     setAsyncContextStrategy(undefined);
