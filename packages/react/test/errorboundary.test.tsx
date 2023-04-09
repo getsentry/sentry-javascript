@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/browser';
+import { getCurrentHub, Scope } from '@sentry/browser';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -8,6 +8,7 @@ import { ErrorBoundary, isAtLeastReact17, UNKNOWN_COMPONENT, withErrorBoundary }
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
+const mockClientOn = jest.fn();
 const EVENT_ID = 'test-id-123';
 
 jest.mock('@sentry/browser', () => {
@@ -82,6 +83,7 @@ describe('ErrorBoundary', () => {
   afterEach(() => {
     mockCaptureException.mockClear();
     mockShowReportDialog.mockClear();
+    mockClientOn.mockClear();
   });
 
   it('renders null if not given a valid `fallback` prop', () => {
@@ -405,7 +407,9 @@ describe('ErrorBoundary', () => {
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
     });
 
-    it('shows a Sentry Report Dialog with correct options', () => {
+    it('shows a Sentry Report Dialog with correct options if client does not have hooks', () => {
+      expect(getCurrentHub().getClient()).toBeUndefined();
+
       const options = { title: 'custom title' };
       render(
         <TestApp fallback={<p>You have hit an error</p>} showDialog dialogOptions={options}>
@@ -420,6 +424,36 @@ describe('ErrorBoundary', () => {
 
       expect(mockShowReportDialog).toHaveBeenCalledTimes(1);
       expect(mockShowReportDialog).toHaveBeenCalledWith({ ...options, eventId: EVENT_ID });
+    });
+
+    it('shows a Sentry Report Dialog with correct options if client has hooks', () => {
+      let callback: any;
+      const hub = getCurrentHub();
+      // @ts-ignore mock client
+      hub.bindClient({
+        on: (name: string, cb: any) => {
+          callback = cb;
+        },
+      });
+      const options = { title: 'custom title' };
+      render(
+        <TestApp fallback={<p>You have hit an error</p>} showDialog dialogOptions={options}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockShowReportDialog).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      // Simulate hook being fired
+      callback({ event_id: EVENT_ID });
+
+      expect(mockShowReportDialog).toHaveBeenCalledTimes(1);
+      expect(mockShowReportDialog).toHaveBeenCalledWith({ ...options, eventId: EVENT_ID });
+
+      hub.bindClient(undefined);
     });
 
     it('resets to initial state when reset', async () => {

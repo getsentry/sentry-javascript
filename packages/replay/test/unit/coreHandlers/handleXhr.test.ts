@@ -1,4 +1,4 @@
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, SentryXhrData } from '@sentry/types';
 
 import { handleXhr } from '../../../src/coreHandlers/handleXhr';
 
@@ -9,6 +9,7 @@ const DEFAULT_DATA: HandlerDataXhr = {
       method: 'GET',
       url: '/api/0/organizations/sentry/',
       status_code: 200,
+      request_headers: {},
     },
   } as SentryWrappedXMLHttpRequest,
   startTimestamp: 10000,
@@ -38,13 +39,14 @@ describe('Unit | coreHandlers | handleXhr', () => {
     expect(handleXhr(data)).toEqual(null);
   });
 
-  it('passes request/response size through if available', function () {
+  // This cannot happen as of now, this test just shows the expected behavior
+  it('ignores request/response sizes', function () {
     const data: HandlerDataXhr = {
       ...DEFAULT_DATA,
       xhr: {
         ...DEFAULT_DATA.xhr,
         __sentry_xhr__: {
-          ...DEFAULT_DATA.xhr.__sentry_xhr__,
+          ...(DEFAULT_DATA.xhr.__sentry_xhr__ as SentryXhrData),
           request_body_size: 123,
           response_body_size: 456,
         },
@@ -54,8 +56,6 @@ describe('Unit | coreHandlers | handleXhr', () => {
     expect(handleXhr(data)?.data).toEqual({
       method: 'GET',
       statusCode: 200,
-      requestBodySize: 123,
-      responseBodySize: 456,
     });
   });
 });

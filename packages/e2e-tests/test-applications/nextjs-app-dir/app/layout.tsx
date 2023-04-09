@@ -29,6 +29,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <li>
               <Link href="/server-component/parameter/foo/bar/baz">/server-component/parameter/foo/bar/baz</Link>
             </li>
+            <li>
+              <Link href="/not-found">/not-found</Link>
+            </li>
+            <li>
+              <Link href="/redirect">/redirect</Link>
+            </li>
           </ul>
           <TransactionContextProvider>{children}</TransactionContextProvider>
         </div>

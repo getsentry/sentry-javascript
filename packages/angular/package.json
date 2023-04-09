@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "7.45.0",
+  "version": "7.47.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -21,9 +21,9 @@
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.45.0",
-    "@sentry/types": "7.45.0",
-    "@sentry/utils": "7.45.0",
+    "@sentry/browser": "7.47.0",
+    "@sentry/types": "7.47.0",
+    "@sentry/utils": "7.47.0",
     "tslib": "^2.0.0"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     "test": "yarn test:unit",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
+    "yalc:publish": "yalc publish build --push"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,5 +1,63 @@
 # Deprecations in 7.x
 
+## Remove requirement for `@sentry/tracing` package (since 7.46.0)
+
+With `7.46.0` you no longer require the `@sentry/tracing` package to use tracing and performance monitoring with the Sentry JavaScript SDKs. The `@sentry/tracing` package will be removed in a future major release, but can still be used in the meantime.
+
+#### Browser:
+
+```js
+// Before
+import * as Sentry from "@sentry/browser";
+import { BrowserTracing } from "@sentry/tracing";
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: [
+    new BrowserTracing(),
+  ],
+});
+
+// After
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: [
+    new Sentry.BrowserTracing(),
+  ],
+});
+```
+
+#### Node:
+
+```js
+// Before
+const Sentry = require("@sentry/node");
+require("@sentry/tracing");
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// After
+const Sentry = require("@sentry/node");
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+  integrations: [
+    // Automatically instrument Node.js libraries and frameworks
+    ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
+  ],
+});
+```
+
+**Note:** If you imported `stripUrlQueryAndFragment` from `@sentry/tracing`, you'll need to import it from `@sentry/utils`, once you remove `@sentry/tracing`.
+
 ## Replay options changed (since 7.35.0) - #6645
 
 Some options for replay have been depracted in favor of new APIs.

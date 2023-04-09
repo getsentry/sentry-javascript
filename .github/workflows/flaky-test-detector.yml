@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'packages/browser-integration-tests/suites/**'
+    branches-ignore:
+      - master
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
@@ -24,12 +26,15 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
+    # Also skip if PR is from master -> develop
+    if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
       - name: Check out current branch
         uses: actions/checkout@v3
       - name: Set up Node
-        uses: volta-cli/action@v4
-
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Install dependencies
         run: yarn install --ignore-engines --frozen-lockfile
 
@@ -77,5 +82,4 @@ jobs:
         working-directory: packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
-          # Run 50 times when detecting changed test(s), else run all tests 5x
-          TEST_RUN_COUNT: ${{ steps.changed.outputs.browser_integration == 'true' && 50 || 5 }}
+          TEST_RUN_COUNT: 'AUTO'

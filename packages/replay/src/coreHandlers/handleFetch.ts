@@ -1,28 +1,27 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
+import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
+import { addNetworkBreadcrumb } from './util/addNetworkBreadcrumb';
 
 /** only exported for tests */
-export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry {
+export function handleFetch(handlerData: HandlerDataFetch): null | ReplayPerformanceEntry<NetworkRequestData> {
   const { startTimestamp, endTimestamp, fetchData, response } = handlerData;
 
   if (!endTimestamp) {
     return null;
   }
 
-  const { method, request_body_size: requestBodySize, response_body_size: responseBodySize } = fetchData;
+  // This is only used as a fallback, so we know the body sizes are never set here
+  const { method, url } = fetchData;
 
   return {
     type: 'resource.fetch',
     start: startTimestamp / 1000,
     end: endTimestamp / 1000,
-    name: fetchData.url,
+    name: url,
     data: {
       method,
       statusCode: response && (response as Response).status,
-      requestBodySize,
-      responseBodySize,
     },
   };
 }

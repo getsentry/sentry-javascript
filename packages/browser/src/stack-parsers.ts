@@ -1,3 +1,28 @@
+// This was originally forked from https://github.com/csnover/TraceKit, and was largely
+// re - written as part of raven - js.
+//
+// This code was later copied to the JavaScript mono - repo and further modified and
+// refactored over the years.
+
+// Copyright (c) 2013 Onur Can Cakmak onur.cakmak@gmail.com and all TraceKit contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this
+// software and associated documentation files(the 'Software'), to deal in the Software
+// without restriction, including without limitation the rights to use, copy, modify,
+// merge, publish, distribute, sublicense, and / or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to the following
+// conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies
+// or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+// PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+// CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+// OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
 import { createStackParser } from '@sentry/utils';
 
@@ -13,7 +38,6 @@ const GECKO_PRIORITY = 50;
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
-    abs_path: filename, // As opposed to filename, abs_path is immutable (I can't control your actions but don't touch it!)
     function: func,
     in_app: true, // All browser frames are considered in_app
   };

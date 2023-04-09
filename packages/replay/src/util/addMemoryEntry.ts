@@ -1,8 +1,8 @@
 import { WINDOW } from '../constants';
-import type { AddEventResult, ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { AddEventResult, MemoryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from './createPerformanceSpans';
 
-type ReplayMemoryEntry = ReplayPerformanceEntry & { data: { memory: MemoryInfo } };
+type ReplayMemoryEntry = ReplayPerformanceEntry<MemoryData> & { data: { memory: MemoryInfo } };
 
 interface MemoryInfo {
   jsHeapSizeLimit: number;

@@ -1,17 +1,58 @@
 import type { Event, EventProcessor, Exception, Hub, Integration, StackFrame, StackParser } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
 import { LRUMap } from 'lru_map';
 
+import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
 
+type Variables = Record<string, unknown>;
+type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
   /** Configures and connects to the debug session */
-  configureAndConnect(
-    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
-    captureAll: boolean,
-  ): void;
+  configureAndConnect(onPause: (message: OnPauseEvent, complete: () => void) => void, captureAll: boolean): void;
   /** Gets local variables for an objectId */
-  getLocalVariables(objectId: string): Promise<Record<string, unknown>>;
+  getLocalVariables(objectId: string, callback: (vars: Variables) => void): void;
+}
+
+type Next<T> = (result: T) => void;
+type Add<T> = (fn: Next<T>) => void;
+type CallbackWrapper<T> = { add: Add<T>; next: Next<T> };
+
+/** Creates a container for callbacks to be called sequentially */
+export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
+  // A collection of callbacks to be executed last to first
+  let callbacks: Next<T>[] = [];
+
+  let completedCalled = false;
+  function checkedComplete(result: T): void {
+    callbacks = [];
+    if (completedCalled) {
+      return;
+    }
+    completedCalled = true;
+    complete(result);
+  }
+
+  // complete should be called last
+  callbacks.push(checkedComplete);
+
+  function add(fn: Next<T>): void {
+    callbacks.push(fn);
+  }
+
+  function next(result: T): void {
+    const popped = callbacks.pop() || checkedComplete;
+
+    try {
+      popped(result);
+    } catch (_) {
+      // If there is an error, we still want to call the complete callback
+      checkedComplete(result);
+    }
+  }
+
+  return { add, next };
 }
 
 /**
@@ -41,86 +82,109 @@ class AsyncSession implements DebugSession {
     were reported any more. We probably missed a place where we need to await the promise, too.
     */
 
-    // Node can be build without inspector support so this can throw
+    // Node can be built without inspector support so this can throw
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Session } = require('inspector');
     this._session = new Session();
   }
 
   /** @inheritdoc */
-  public configureAndConnect(
-    onPause: (message: InspectorNotification<Debugger.PausedEventDataType>) => void,
-    captureAll: boolean,
-  ): void {
+  public configureAndConnect(onPause: (event: OnPauseEvent, complete: () => void) => void, captureAll: boolean): void {
     this._session.connect();
-    this._session.on('Debugger.paused', onPause);
+
+    this._session.on('Debugger.paused', event => {
+      onPause(event, () => {
+        // After the pause work is complete, resume execution or the exception context memory is leaked
+        this._session.post('Debugger.resume');
+      });
+    });
+
     this._session.post('Debugger.enable');
-    // We only want to pause on uncaught exceptions
     this._session.post('Debugger.setPauseOnExceptions', { state: captureAll ? 'all' : 'uncaught' });
   }
 
   /** @inheritdoc */
-  public async getLocalVariables(objectId: string): Promise<Record<string, unknown>> {
-    const props = await this._getProperties(objectId);
-    const unrolled: Record<string, unknown> = {};
+  public getLocalVariables(objectId: string, complete: (vars: Variables) => void): void {
+    this._getProperties(objectId, props => {
+      const { add, next } = createCallbackList<Variables>(complete);
 
-    for (const prop of props) {
-      if (prop?.value?.objectId && prop?.value.className === 'Array') {
-        unrolled[prop.name] = await this._unrollArray(prop.value.objectId);
-      } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
-        unrolled[prop.name] = await this._unrollObject(prop.value.objectId);
-      } else if (prop?.value?.value || prop?.value?.description) {
-        unrolled[prop.name] = prop.value.value || `<${prop.value.description}>`;
+      for (const prop of props) {
+        if (prop?.value?.objectId && prop?.value.className === 'Array') {
+          const id = prop.value.objectId;
+          add(vars => this._unrollArray(id, prop.name, vars, next));
+        } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
+          const id = prop.value.objectId;
+          add(vars => this._unrollObject(id, prop.name, vars, next));
+        } else if (prop?.value?.value || prop?.value?.description) {
+          add(vars => this._unrollOther(prop, vars, next));
+        }
       }
-    }
 
-    return unrolled;
+      next({});
+    });
   }
 
   /**
    * Gets all the PropertyDescriptors of an object
    */
-  private _getProperties(objectId: string): Promise<Runtime.PropertyDescriptor[]> {
-    return new Promise((resolve, reject) => {
-      this._session.post(
-        'Runtime.getProperties',
-        {
-          objectId,
-          ownProperties: true,
-        },
-        (err, params) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(params.result);
-          }
-        },
-      );
-    });
+  private _getProperties(objectId: string, next: (result: Runtime.PropertyDescriptor[]) => void): void {
+    this._session.post(
+      'Runtime.getProperties',
+      {
+        objectId,
+        ownProperties: true,
+      },
+      (err, params) => {
+        if (err) {
+          next([]);
+        } else {
+          next(params.result);
+        }
+      },
+    );
   }
 
   /**
    * Unrolls an array property
    */
-  private async _unrollArray(objectId: string): Promise<unknown> {
-    const props = await this._getProperties(objectId);
-    return props
-      .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
-      .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
-      .map(v => v?.value?.value);
+  private _unrollArray(objectId: string, name: string, vars: Variables, next: (vars: Variables) => void): void {
+    this._getProperties(objectId, props => {
+      vars[name] = props
+        .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+        .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
+        .map(v => v?.value?.value);
+
+      next(vars);
+    });
   }
 
   /**
    * Unrolls an object property
    */
-  private async _unrollObject(objectId: string): Promise<Record<string, unknown>> {
-    const props = await this._getProperties(objectId);
-    return props
-      .map<[string, unknown]>(v => [v.name, v?.value?.value])
-      .reduce((obj, [key, val]) => {
-        obj[key] = val;
-        return obj;
-      }, {} as Record<string, unknown>);
+  private _unrollObject(objectId: string, name: string, vars: Variables, next: (obj: Variables) => void): void {
+    this._getProperties(objectId, props => {
+      vars[name] = props
+        .map<[string, unknown]>(v => [v.name, v?.value?.value])
+        .reduce((obj, [key, val]) => {
+          obj[key] = val;
+          return obj;
+        }, {} as Variables);
+
+      next(vars);
+    });
+  }
+
+  /**
+   * Unrolls other properties
+   */
+  private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, next: (vars: Variables) => void): void {
+    if (prop?.value?.value) {
+      vars[prop.name] = prop.value.value;
+    } else if (prop?.value?.description && prop?.value?.type !== 'function') {
+      vars[prop.name] = `<${prop.value.description}>`;
+    }
+
+    next(vars);
   }
 }
 
@@ -178,7 +242,7 @@ function hashFromStack(stackParser: StackParser, stack: string | undefined): str
 
 export interface FrameVariables {
   function: string;
-  vars?: Record<string, unknown>;
+  vars?: Variables;
 }
 
 /** There are no options yet. This allows them to be added later without breaking changes */
@@ -200,7 +264,7 @@ export class LocalVariables implements Integration {
 
   public readonly name: string = LocalVariables.id;
 
-  private readonly _cachedFrames: LRUMap<string, Promise<FrameVariables[]>> = new LRUMap(20);
+  private readonly _cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
 
   public constructor(
     private readonly _options: Options = {},
@@ -220,8 +284,18 @@ export class LocalVariables implements Integration {
     clientOptions: NodeClientOptions | undefined,
   ): void {
     if (this._session && clientOptions?.includeLocalVariables) {
+      // Only setup this integration if the Node version is >= v18
+      // https://github.com/getsentry/sentry-javascript/issues/7697
+      const unsupportedNodeVersion = (NODE_VERSION.major || 0) < 18;
+
+      if (unsupportedNodeVersion) {
+        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
       this._session.configureAndConnect(
-        ev => this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>),
+        (ev, complete) =>
+          this._handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
         !!this._options.captureAllExceptions,
       );
 
@@ -232,11 +306,13 @@ export class LocalVariables implements Integration {
   /**
    * Handle the pause event
    */
-  private async _handlePaused(
+  private _handlePaused(
     stackParser: StackParser,
     { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
-  ): Promise<void> {
+    complete: () => void,
+  ): void {
     if (reason !== 'exception' && reason !== 'promiseRejection') {
+      complete();
       return;
     }
 
@@ -244,35 +320,50 @@ export class LocalVariables implements Integration {
     const exceptionHash = hashFromStack(stackParser, data?.description);
 
     if (exceptionHash == undefined) {
+      complete();
       return;
     }
 
-    const framePromises = callFrames.map(async ({ scopeChain, functionName, this: obj }) => {
+    const { add, next } = createCallbackList<FrameVariables[]>(frames => {
+      this._cachedFrames.set(exceptionHash, frames);
+      complete();
+    });
+
+    // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
+    // For this reason we only attempt to get local variables for the first 5 frames
+    for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
+      const { scopeChain, functionName, this: obj } = callFrames[i];
+
       const localScope = scopeChain.find(scope => scope.type === 'local');
 
       // obj.className is undefined in ESM modules
       const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
 
       if (localScope?.object.objectId === undefined) {
-        return { function: fn };
+        add(frames => {
+          frames[i] = { function: fn };
+          next(frames);
+        });
+      } else {
+        const id = localScope.object.objectId;
+        add(frames =>
+          this._session?.getLocalVariables(id, vars => {
+            frames[i] = { function: fn, vars };
+            next(frames);
+          }),
+        );
       }
+    }
 
-      const vars = await this._session?.getLocalVariables(localScope.object.objectId);
-
-      return { function: fn, vars };
-    });
-
-    // We add the un-awaited promise to the cache rather than await here otherwise the event processor
-    // can be called before we're finished getting all the vars
-    this._cachedFrames.set(exceptionHash, Promise.all(framePromises));
+    next([]);
   }
 
   /**
    * Adds local variables event stack frames.
    */
-  private async _addLocalVariables(event: Event): Promise<Event> {
+  private _addLocalVariables(event: Event): Event {
     for (const exception of event?.exception?.values || []) {
-      await this._addLocalVariablesToException(exception);
+      this._addLocalVariablesToException(exception);
     }
 
     return event;
@@ -281,7 +372,7 @@ export class LocalVariables implements Integration {
   /**
    * Adds local variables to the exception stack frames.
    */
-  private async _addLocalVariablesToException(exception: Exception): Promise<void> {
+  private _addLocalVariablesToException(exception: Exception): void {
     const hash = hashFrames(exception?.stacktrace?.frames);
 
     if (hash === undefined) {
@@ -290,7 +381,7 @@ export class LocalVariables implements Integration {
 
     // Check if we have local variables for an exception that matches the hash
     // delete is identical to get but also removes the entry from the cache
-    const cachedFrames = await this._cachedFrames.delete(hash);
+    const cachedFrames = this._cachedFrames.delete(hash);
 
     if (cachedFrames === undefined) {
       return;

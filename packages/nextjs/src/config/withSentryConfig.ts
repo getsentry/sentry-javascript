@@ -104,7 +104,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
     } else {
       return {
         ...originalRewritesResult,
-        beforeFiles: [injectedRewrite, ...originalRewritesResult.beforeFiles],
+        beforeFiles: [injectedRewrite, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
   };

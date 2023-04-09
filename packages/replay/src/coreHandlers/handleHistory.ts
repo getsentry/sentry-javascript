@@ -1,4 +1,4 @@
-import type { ReplayContainer, ReplayPerformanceEntry } from '../types';
+import type { HistoryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';
 
 interface HistoryHandlerData {
@@ -6,7 +6,7 @@ interface HistoryHandlerData {
   to: string;
 }
 
-function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry {
+function handleHistory(handlerData: HistoryHandlerData): ReplayPerformanceEntry<HistoryData> {
   const { from, to } = handlerData;
 
   const now = Date.now() / 1000;

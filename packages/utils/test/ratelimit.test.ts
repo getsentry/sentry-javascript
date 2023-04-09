@@ -186,4 +186,14 @@ describe('updateRateLimits()', () => {
     const updatedRateLimits = updateRateLimits(rateLimits, { statusCode: 200 }, 0);
     expect(updatedRateLimits).toEqual(rateLimits);
   });
+
+  test('should apply a global rate limit with a scope on a 429 status code', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '60::organization',
+    };
+    const updatedRateLimits = updateRateLimits(rateLimits, { statusCode: 429, headers }, 0);
+    expect(updatedRateLimits.all).toEqual(60_000);
+  });
 });

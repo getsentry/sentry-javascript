@@ -1,7 +1,7 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "standard-frontend-react-tracing-import",
-  "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
+  "buildCommand": "yarn install --network-concurrency 1 && npx playwright install && yarn build",
   "tests": [
     {
       "testName": "Playwright tests",

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "7.45.0",
+  "version": "7.47.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -16,12 +16,14 @@
     "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
     "test:run": "ts-node run.ts",
     "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
-    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts"
+    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
+    "clean": "rimraf tmp test-applications/**/node_modules test-applications/**/dist"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
     "@types/node": "^14.6.4",
     "dotenv": "16.0.3",
+    "fs-extra": "11.1.0",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
     "typescript": "3.8.3",

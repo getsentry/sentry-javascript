@@ -86,8 +86,8 @@ sentryTest(
       {
         data: {
           method: 'GET',
-          responseBodySize: 789,
           statusCode: 200,
+          response: { size: 789 },
         },
         description: 'http://localhost:7654/foo',
         endTimestamp: expect.any(Number),

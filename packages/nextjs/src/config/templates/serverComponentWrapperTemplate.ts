@@ -1,27 +1,20 @@
-/*
- * This file is a template for the code which will be substituted when our webpack loader handles non-API files in the
- * `pages/` directory.
- *
- * We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped. Because it's not a real package,
- * this causes both TS and ESLint to complain, hence the pragma comments below.
- */
-
-// @ts-ignore See above
+// @ts-ignore Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
+// API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
 // eslint-disable-next-line import/no-unresolved
-import * as wrapee from '__SENTRY_WRAPPING_TARGET_FILE__';
+import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
+// @ts-ignore We use `__SENTRY_WRAPPING_TARGET_FILE__` as a placeholder for the path to the file being wrapped.
+// eslint-disable-next-line import/no-unresolved
+import * as serverComponentModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from '@sentry/nextjs';
-// @ts-ignore This template is only used with the app directory so we know that this dependency exists.
-// eslint-disable-next-line import/no-unresolved
-import { headers } from 'next/headers';
 
-declare function headers(): { get: (header: string) => string | undefined };
+import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
-type ServerComponentModule = {
+declare const requestAsyncStorage: RequestAsyncStorage;
+
+declare const serverComponentModule: {
   default: unknown;
 };
-
-const serverComponentModule = wrapee as ServerComponentModule;
 
 const serverComponent = serverComponentModule.default;
 
@@ -32,21 +25,16 @@ if (typeof serverComponent === 'function') {
   // is technically a userfile so it gets the loader magic applied.
   wrappedServerComponent = new Proxy(serverComponent, {
     apply: (originalFunction, thisArg, args) => {
-      let sentryTraceHeader: string | undefined = undefined;
-      let baggageHeader: string | undefined = undefined;
+      let sentryTraceHeader: string | undefined | null = undefined;
+      let baggageHeader: string | undefined | null = undefined;
 
-      // If we call the headers function inside the build phase, Next.js will automatically mark the server component as
-      // dynamic(SSR) which we do not want in case the users have a static component.
-      if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        // try/catch because calling headers() when a previously statically generated page is being revalidated causes a
-        // runtime error in next.js as switching a page from static to dynamic during runtime is not allowed
-        try {
-          const headersList = headers();
-          sentryTraceHeader = headersList.get('sentry-trace');
-          baggageHeader = headersList.get('baggage');
-        } catch {
-          /** empty */
-        }
+      // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
+      try {
+        const requestAsyncStore = requestAsyncStorage.getStore();
+        sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace');
+        baggageHeader = requestAsyncStore?.headers.get('baggage');
+      } catch (e) {
+        /** empty */
       }
 
       return Sentry.wrapServerComponentWithSentry(originalFunction, {

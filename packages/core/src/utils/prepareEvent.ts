@@ -124,27 +124,28 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
     return;
   }
 
-  // Build a map of abs_path -> debug_id
-  const absPathDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     const parsedStack = stackParser(debugIdStackTrace);
-    for (const stackFrame of parsedStack) {
-      if (stackFrame.abs_path) {
-        acc[stackFrame.abs_path] = debugIdMap[debugIdStackTrace];
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      if (stackFrame.filename) {
+        acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
         break;
       }
     }
     return acc;
   }, {});
 
-  // Get a Set of abs_paths in the stack trace
-  const errorAbsPaths = new Set<string>();
+  // Get a Set of filenames in the stack trace
+  const errorFileNames = new Set<string>();
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.abs_path) {
-          errorAbsPaths.add(frame.abs_path);
+        if (frame.filename) {
+          errorFileNames.add(frame.filename);
         }
       });
     });
@@ -156,12 +157,12 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
   event.debug_meta = event.debug_meta || {};
   event.debug_meta.images = event.debug_meta.images || [];
   const images = event.debug_meta.images;
-  errorAbsPaths.forEach(absPath => {
-    if (absPathDebugIdMap[absPath]) {
+  errorFileNames.forEach(filename => {
+    if (filenameDebugIdMap[filename]) {
       images.push({
         type: 'sourcemap',
-        code_file: absPath,
-        debug_id: absPathDebugIdMap[absPath],
+        code_file: filename,
+        debug_id: filenameDebugIdMap[filename],
       });
     }
   });

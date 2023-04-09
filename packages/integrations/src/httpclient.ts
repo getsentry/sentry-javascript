@@ -1,5 +1,19 @@
-import type { Event as SentryEvent, EventProcessor, Hub, Integration } from '@sentry/types';
-import { addExceptionMechanism, fill, GLOBAL_OBJ, logger, supportsNativeFetch } from '@sentry/utils';
+import type {
+  Event as SentryEvent,
+  EventProcessor,
+  HandlerDataFetch,
+  HandlerDataXhr,
+  Hub,
+  Integration,
+  SentryWrappedXMLHttpRequest,
+} from '@sentry/types';
+import {
+  addExceptionMechanism,
+  addInstrumentationHandler,
+  GLOBAL_OBJ,
+  logger,
+  supportsNativeFetch,
+} from '@sentry/utils';
 
 export type HttpStatusCodeRange = [number, number] | number;
 export type HttpRequestTarget = string | RegExp;
@@ -76,7 +90,7 @@ export class HttpClient implements Integration {
    */
   private _fetchResponseHandler(requestInfo: RequestInfo, response: Response, requestInit?: RequestInit): void {
     if (this._getCurrentHub && this._shouldCaptureResponse(response.status, response.url)) {
-      const request = new Request(requestInfo, requestInit);
+      const request = _getRequest(requestInfo, requestInit);
       const hub = this._getCurrentHub();
 
       let requestHeaders, responseHeaders, requestCookies, responseCookies;
@@ -283,25 +297,15 @@ export class HttpClient implements Integration {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
+    addInstrumentationHandler('fetch', (handlerData: HandlerDataFetch & { response?: Response }) => {
+      const { response, args } = handlerData;
+      const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
-    fill(GLOBAL_OBJ, 'fetch', function (originalFetch: (...args: unknown[]) => Promise<Response>) {
-      return function (this: Window, ...args: unknown[]): Promise<Response> {
-        const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
-        const responsePromise: Promise<Response> = originalFetch.apply(this, args);
+      if (!response) {
+        return;
+      }
 
-        responsePromise
-          .then((response: Response) => {
-            self._fetchResponseHandler(requestInfo, response, requestInit);
-            return response;
-          })
-          .catch((error: Error) => {
-            throw error;
-          });
-
-        return responsePromise;
-      };
+      this._fetchResponseHandler(requestInfo, response, requestInit);
     });
   }
 
@@ -313,52 +317,28 @@ export class HttpClient implements Integration {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this;
+    addInstrumentationHandler(
+      'xhr',
+      (handlerData: HandlerDataXhr & { xhr: SentryWrappedXMLHttpRequest & XMLHttpRequest }) => {
+        const { xhr } = handlerData;
 
-    fill(XMLHttpRequest.prototype, 'open', function (originalOpen: (...openArgs: unknown[]) => void): () => void {
-      return function (this: XMLHttpRequest, ...openArgs: unknown[]): void {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const xhr = this;
-        const method = openArgs[0] as string;
-        const headers: Record<string, string> = {};
+        if (!xhr.__sentry_xhr__) {
+          return;
+        }
 
-        // Intercepting `setRequestHeader` to access the request headers of XHR instance.
-        // This will only work for user/library defined headers, not for the default/browser-assigned headers.
-        // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
-        fill(
-          xhr,
-          'setRequestHeader',
-          // eslint-disable-next-line @typescript-eslint/ban-types
-          function (originalSetRequestHeader: (...setRequestHeaderArgs: unknown[]) => void): Function {
-            return function (...setRequestHeaderArgs: unknown[]): void {
-              const [header, value] = setRequestHeaderArgs as [string, string];
+        const { method, request_headers: headers } = xhr.__sentry_xhr__;
 
-              headers[header] = value;
+        if (!method) {
+          return;
+        }
 
-              return originalSetRequestHeader.apply(xhr, setRequestHeaderArgs);
-            };
-          },
-        );
-
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        fill(xhr, 'onloadend', function (original?: (...onloadendArgs: unknown[]) => void): Function {
-          return function (...onloadendArgs: unknown[]): void {
-            try {
-              self._xhrResponseHandler(xhr, method, headers);
-            } catch (e) {
-              __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
-            }
-
-            if (original) {
-              return original.apply(xhr, onloadendArgs);
-            }
-          };
-        });
-
-        return originalOpen.apply(this, openArgs);
-      };
-    });
+        try {
+          this._xhrResponseHandler(xhr, method, headers);
+        } catch (e) {
+          __DEBUG_BUILD__ && logger.warn('Error while extracting response event form XHR response', e);
+        }
+      },
+    );
   }
 
   /**
@@ -436,4 +416,19 @@ export class HttpClient implements Integration {
 
     return event;
   }
+}
+
+function _getRequest(requestInfo: RequestInfo, requestInit?: RequestInit): Request {
+  if (!requestInit && requestInfo instanceof Request) {
+    return requestInfo;
+  }
+
+  // If both are set, we try to construct a new Request with the given arguments
+  // However, if e.g. the original request has a `body`, this will throw an error because it was already accessed
+  // In this case, as a fallback, we just use the original request - using both is rather an edge case
+  if (requestInfo instanceof Request && requestInfo.bodyUsed) {
+    return requestInfo;
+  }
+
+  return new Request(requestInfo, requestInit);
 }

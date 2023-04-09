@@ -22,6 +22,8 @@ function one(name) {
   const obj = {
     name,
     num: 5,
+    functionsShouldNotBeIncluded: () => {},
+    functionsShouldNotBeIncluded2() {},
   };
 
   const ty = new Some();

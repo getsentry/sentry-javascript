@@ -2,7 +2,7 @@ import type { Span, Transaction } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { addTracingExtensions, Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { logger, parseSemver, TRACEPARENT_REGEXP } from '@sentry/utils';
+import { logger, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -11,10 +11,9 @@ import * as nock from 'nock';
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { NODE_VERSION } from '../../src/nodeVersion';
 import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
@@ -194,6 +193,45 @@ describe('tracing', () => {
     );
 
     expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
+  });
+
+  it('omits query and fragment from description and adds to span data instead', () => {
+    nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
+
+    const transaction = createTransactionOnScope();
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+    http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
+
+    expect(spans.length).toEqual(2);
+
+    // our span is at index 1 because the transaction itself is at index 0
+    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(spans[1].op).toEqual('http.client');
+    expect(spans[1].data.method).toEqual('GET');
+    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
+    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+  });
+
+  it.each([
+    ['user:pwd', '[Filtered]:[Filtered]@'],
+    ['user:', '[Filtered]:@'],
+    ['user', '[Filtered]:@'],
+    [':pwd', ':[Filtered]@'],
+    ['', ''],
+  ])('filters the authority %s in span description', (auth, redactedAuth) => {
+    nock(`http://${auth}@dogs.are.great`).get('/').reply(200);
+
+    const transaction = createTransactionOnScope();
+    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+
+    http.get(`http://${auth}@dogs.are.great/`);
+
+    expect(spans.length).toEqual(2);
+
+    // our span is at index 1 because the transaction itself is at index 0
+    expect(spans[1].description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
   });
 
   describe('Tracing options', () => {

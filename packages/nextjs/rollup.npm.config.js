@@ -28,6 +28,7 @@ export default [
         'src/config/templates/apiWrapperTemplate.ts',
         'src/config/templates/middlewareWrapperTemplate.ts',
         'src/config/templates/serverComponentWrapperTemplate.ts',
+        'src/config/templates/requestAsyncStorageShim.ts',
       ],
 
       packageSpecificConfig: {
@@ -43,7 +44,12 @@ export default [
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
-        external: ['@sentry/nextjs', 'next/headers', '__SENTRY_WRAPPING_TARGET_FILE__'],
+        external: [
+          '@sentry/nextjs',
+          'next/dist/client/components/request-async-storage',
+          '__SENTRY_WRAPPING_TARGET_FILE__',
+          '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__',
+        ],
       },
     }),
   ),

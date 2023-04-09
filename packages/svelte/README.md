@@ -25,13 +25,12 @@ To use the SDK, initialize Sentry in your Svelte entry point `main.js` before yo
 import App from "./App.svelte";
 
 import * as Sentry from "@sentry/svelte";
-import { BrowserTracing } from "@sentry/tracing";
 
 // Initialize the Sentry SDK here
 Sentry.init({
   dsn: "__DSN__",
   release: "my-project-name@2.3.12",
-  integrations: [new BrowserTracing()],
+  integrations: [new Sentry.BrowserTracing()],
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for performance monitoring.

@@ -1,0 +1,1 @@
+export { sentrySvelteKitPlugin } from './sentrySvelteKitPlugin';

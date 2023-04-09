@@ -1,22 +1,15 @@
 import type { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
-import type { EventProcessor, Integration, Span, TracePropagationTargets } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
-  logger,
-  parseSemver,
-  stringMatchesSomePattern,
-} from '@sentry/utils';
+import type { EventProcessor, Integration, SanitizedRequestData, Span, TracePropagationTargets } from '@sentry/types';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, logger, stringMatchesSomePattern } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../client';
+import { NODE_VERSION } from '../nodeVersion';
 import type { RequestMethod, RequestMethodArgs } from './utils/http';
-import { cleanSpanDescription, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
-
-const NODE_VERSION = parseSemver(process.versions.node);
+import { cleanSpanDescription, extractRawUrl, extractUrl, isSentryRequest, normalizeRequestArgs } from './utils/http';
 
 interface TracingOptions {
   /**
@@ -180,6 +173,8 @@ function _createWrappedRequestMethodFactory(
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
       const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
+      // eslint-disable-next-line deprecation/deprecation
+      const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
@@ -192,16 +187,30 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
-      if (scope && tracingOptions && shouldCreateSpan(requestUrl)) {
+      const requestSpanData: SanitizedRequestData = {
+        url: requestUrl,
+        method: requestOptions.method || 'GET',
+      };
+      if (requestOptions.hash) {
+        // strip leading "#"
+        requestSpanData['http.fragment'] = requestOptions.hash.substring(1);
+      }
+      if (requestOptions.search) {
+        // strip leading "?"
+        requestSpanData['http.query'] = requestOptions.search.substring(1);
+      }
+
+      if (scope && tracingOptions && shouldCreateSpan(rawRequestUrl)) {
         parentSpan = scope.getSpan();
 
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
-            description: `${requestOptions.method || 'GET'} ${requestUrl}`,
+            description: `${requestSpanData.method} ${requestSpanData.url}`,
             op: 'http.client',
+            data: requestSpanData,
           });
 
-          if (shouldAttachTraceData(requestUrl)) {
+          if (shouldAttachTraceData(rawRequestUrl)) {
             const sentryTraceHeader = requestSpan.toTraceparent();
             __DEBUG_BUILD__ &&
               logger.log(
@@ -253,7 +262,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', requestUrl, req, res);
+            addRequestBreadcrumb('response', requestSpanData, req, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
@@ -268,7 +277,7 @@ function _createWrappedRequestMethodFactory(
           const req = this;
 
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', requestUrl, req);
+            addRequestBreadcrumb('error', requestSpanData, req);
           }
           if (requestSpan) {
             requestSpan.setHttpStatus(500);
@@ -283,7 +292,12 @@ function _createWrappedRequestMethodFactory(
 /**
  * Captures Breadcrumb based on provided request/response pair
  */
-function addRequestBreadcrumb(event: string, url: string, req: http.ClientRequest, res?: http.IncomingMessage): void {
+function addRequestBreadcrumb(
+  event: string,
+  requestSpanData: SanitizedRequestData,
+  req: http.ClientRequest,
+  res?: http.IncomingMessage,
+): void {
   if (!getCurrentHub().getIntegration(Http)) {
     return;
   }
@@ -292,9 +306,8 @@ function addRequestBreadcrumb(event: string, url: string, req: http.ClientReques
     {
       category: 'http',
       data: {
-        method: req.method,
         status_code: res && res.statusCode,
-        url,
+        ...requestSpanData,
       },
       type: 'http',
     },

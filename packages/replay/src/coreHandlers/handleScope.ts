@@ -2,7 +2,7 @@ import type { Breadcrumb, Scope } from '@sentry/types';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
-import { addBreadcrumbEvent } from './addBreadcrumbEvent';
+import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
 

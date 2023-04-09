@@ -3,7 +3,11 @@ import { expect } from '@playwright/test';
 import type { Event, Span, SpanContext, Transaction } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 type TransactionJSON = ReturnType<Transaction['toJSON']> & {
   spans: ReturnType<Span['toJSON']>[];
@@ -17,7 +21,7 @@ const wait = (time: number) => new Promise(res => setTimeout(res, time));
 sentryTest('should capture interaction transaction.', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
-  if (!supportedBrowsers.includes(browserName)) {
+  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
 
@@ -54,7 +58,7 @@ sentryTest('should capture interaction transaction.', async ({ browserName, getL
 sentryTest('should create only one transaction per interaction', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
-  if (!supportedBrowsers.includes(browserName)) {
+  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
 

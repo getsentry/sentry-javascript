@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';

@@ -1,7 +1,7 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "nextjs-13-app-dir",
-  "buildCommand": "yarn install --pure-lockfile && npx playwright install && yarn build",
+  "buildCommand": "yarn install --network-concurrency 1 && npx playwright install && yarn build",
   "buildAssertionCommand": "yarn ts-node --script-mode assert-build.ts",
   "tests": [
     {

@@ -1,5 +1,5 @@
 import type { Transaction, TransactionContext } from '@sentry/types';
-import { addInstrumentationHandler, logger } from '@sentry/utils';
+import { addInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
 import { WINDOW } from './types';
 
@@ -22,6 +22,8 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
   if (startTransactionOnPageLoad) {
     activeTransaction = customStartTransaction({
       name: WINDOW.location.pathname,
+      // pageload should always start at timeOrigin
+      startTimestamp: browserPerformanceTimeOrigin,
       op: 'pageload',
       metadata: { source: 'url' },
     });

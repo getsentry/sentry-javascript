@@ -52,9 +52,7 @@ sentryTest(
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
 
-    expect(replayEvent1).toEqual(
-      getExpectedReplayEvent({ segment_id: 1, urls: [], replay_start_timestamp: undefined }),
-    );
+    expect(replayEvent1).toEqual(getExpectedReplayEvent({ segment_id: 1, urls: [] }));
 
     // We can't guarantee the order of the performance spans, or in which of the two segments they are sent
     // So to avoid flakes, we collect them all and check that they are all there

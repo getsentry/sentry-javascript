@@ -24,5 +24,9 @@
   "devDependencies": {
     "ts-node": "10.9.1",
     "@playwright/test": "^1.27.1"
+  },
+  "volta": {
+    "node": "16.19.0",
+    "yarn": "1.22.19"
   }
 }

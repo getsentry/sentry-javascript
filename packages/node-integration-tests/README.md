@@ -47,7 +47,7 @@ Tests can be run locally with:
 
 To run tests with Jest's watch mode:
 
-`yarn test:jest`
+`yarn test:watch`
 
 To filter tests by their title:
 

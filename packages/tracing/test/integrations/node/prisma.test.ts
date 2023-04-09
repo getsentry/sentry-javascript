@@ -1,9 +1,23 @@
+/* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Hub, Scope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { Integrations, Span } from '../../../src';
+import { Integrations } from '../../../src';
 import { getTestClient } from '../../testutils';
+
+const mockTrace = jest.fn();
+
+jest.mock('@sentry/core', () => {
+  const original = jest.requireActual('@sentry/core');
+  return {
+    ...original,
+    trace: (...args: unknown[]) => {
+      mockTrace(...args);
+      return original.trace(...args);
+    },
+  };
+});
 
 type PrismaMiddleware = (params: unknown, next: (params?: unknown) => Promise<unknown>) => Promise<unknown>;
 
@@ -26,35 +40,21 @@ class PrismaClient {
 describe('setupOnce', function () {
   const Client: PrismaClient = new PrismaClient();
 
-  let scope = new Scope();
-  let parentSpan: Span;
-  let childSpan: Span;
-
   beforeAll(() => {
     new Integrations.Prisma({ client: Client }).setupOnce(
       () => undefined,
-      () => new Hub(undefined, scope),
+      () => new Hub(undefined, new Scope()),
     );
   });
 
   beforeEach(() => {
-    scope = new Scope();
-    parentSpan = new Span();
-    childSpan = parentSpan.startChild();
-    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
-    jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
-    jest.spyOn(childSpan, 'finish');
+    mockTrace.mockClear();
   });
 
   it('should add middleware with $use method correctly', done => {
-    void Client.user.create()?.then(res => {
-      expect(res).toBe('result');
-      expect(scope.getSpan).toBeCalled();
-      expect(parentSpan.startChild).toBeCalledWith({
-        description: 'user create',
-        op: 'db.sql.prisma',
-      });
-      expect(childSpan.finish).toBeCalled();
+    void Client.user.create()?.then(() => {
+      expect(mockTrace).toHaveBeenCalledTimes(1);
+      expect(mockTrace).toHaveBeenLastCalledWith({ name: 'user create', op: 'db.sql.prisma' }, expect.any(Function));
       done();
     });
   });

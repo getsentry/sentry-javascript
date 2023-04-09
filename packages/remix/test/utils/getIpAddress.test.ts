@@ -1,4 +1,4 @@
-import { getClientIPAddress } from '../../src/utils/getIpAddress';
+import { getClientIPAddress } from '../../src/utils/vendor/getIpAddress';
 
 class Headers {
   private _headers: Record<string, string> = {};

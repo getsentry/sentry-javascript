@@ -207,6 +207,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   profile: 'profile',
   replay_event: 'replay',
   replay_recording: 'replay',
+  check_in: 'monitor',
 };
 
 /**

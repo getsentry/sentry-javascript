@@ -8,3 +8,4 @@ export { ContextLines } from './contextlines';
 export { Context } from './context';
 export { RequestData } from './requestdata';
 export { LocalVariables } from './localvariables';
+export { Undici } from './undici';

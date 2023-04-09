@@ -126,7 +126,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
             if (!resolvedFrame || !resolvedFrame.originalStackFrame || !resolvedFrame.originalCodeFrame) {
               return {
                 ...frame,
-                platform: frame.abs_path?.startsWith('node:internal') ? 'nodejs' : undefined, // simple hack that will prevent a source mapping error from showing up
+                platform: frame.filename?.startsWith('node:internal') ? 'nodejs' : undefined, // simple hack that will prevent a source mapping error from showing up
                 in_app: false,
               };
             }

@@ -163,6 +163,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   ignoreErrors?: Array<string | RegExp>;
 
   /**
+   * A pattern for transaction names which should not be sent to Sentry.
+   * By default, all transactions will be sent.
+   */
+  ignoreTransactions?: Array<string | RegExp>;
+
+  /**
    * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint
    * that accepts Sentry envelopes for forwarding. This can be used to force data
    * through a custom server independent of the type of data.

@@ -2,8 +2,6 @@
 import * as Sentry from '@sentry/node';
 import * as http from 'http';
 
-Sentry.addTracingExtensions();
-
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',

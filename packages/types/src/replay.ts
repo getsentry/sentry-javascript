@@ -6,6 +6,7 @@ import type { Event } from './event';
  */
 export interface ReplayEvent extends Event {
   urls: string[];
+  replay_start_timestamp?: number;
   error_ids: string[];
   trace_ids: string[];
   replay_id: string;

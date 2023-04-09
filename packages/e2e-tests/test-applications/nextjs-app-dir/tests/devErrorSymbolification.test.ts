@@ -23,7 +23,6 @@ test.describe('dev mode error symbolification', () => {
       expect.objectContaining({
         function: 'onClick',
         filename: 'components/client-error-debug-tools.tsx',
-        abs_path: 'webpack-internal:///(app-client)/./components/client-error-debug-tools.tsx',
         lineno: 54,
         colno: 16,
         in_app: true,

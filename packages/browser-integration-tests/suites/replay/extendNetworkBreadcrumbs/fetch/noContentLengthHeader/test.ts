@@ -78,8 +78,10 @@ sentryTest('does not capture response_body_size without Content-Length header', 
     {
       data: {
         method: 'GET',
-        responseBodySize: 29,
         statusCode: 200,
+        response: {
+          size: 29,
+        },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),

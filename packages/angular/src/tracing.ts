@@ -282,14 +282,24 @@ export function TraceMethodDecorator(): MethodDecorator {
  * child route with its parent to produce the complete parameterized URL of the activated route.
  * This happens recursively until the last child (i.e. the end of the URL) is reached.
  *
- * @param route the ActivatedRouteSnapshot of which its path and its child's path is concantenated
+ * @param route the ActivatedRouteSnapshot of which its path and its child's path is concatenated
  *
- * @returns the concatenated parameterzited route string
+ * @returns the concatenated parameterized route string
  */
 export function getParameterizedRouteFromSnapshot(route?: ActivatedRouteSnapshot | null): string {
-  const path = route && route.firstChild && route.firstChild.routeConfig && route.firstChild.routeConfig.path;
-  if (!path) {
-    return '/';
+  const parts: string[] = [];
+
+  let currentRoute = route && route.firstChild;
+  while (currentRoute) {
+    const path = currentRoute && currentRoute.routeConfig && currentRoute.routeConfig.path;
+    if (path === null || path === undefined) {
+      break;
+    }
+
+    parts.push(path);
+    currentRoute = currentRoute.firstChild;
   }
-  return `/${path}${getParameterizedRouteFromSnapshot(route && route.firstChild)}`;
+
+  const fullPath = parts.filter(part => part).join('/');
+  return fullPath ? `/${fullPath}/` : '/';
 }

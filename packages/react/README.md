@@ -67,8 +67,8 @@ export default App;
 
 ### Profiler
 
-`@sentry/react` exports a Profiler component that leverages the `@sentry/tracing` Tracing integration to add React related
-spans to transactions. If the Tracing integration is not enabled, the Profiler component will not work. The Profiler
+`@sentry/react` exports a Profiler component that leverages the tracing features to add React-related
+spans to transactions. If tracing is not enabled, the Profiler component will not work. The Profiler
 tracks component mount, render duration and updates. Requires React version >= 15.
 
 > app.js

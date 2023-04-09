@@ -54,7 +54,7 @@ To get you started with the recipe, you can copy the following into `test-recipe
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "My New Test Application",
-  "buildCommand": "yarn install --pure-lockfile",
+  "buildCommand": "yarn install --network-concurrency 1",
   "tests": [
     {
       "testName": "My new test",

@@ -45,7 +45,8 @@ describe('Unit | coreHandlers | handleFetch', () => {
     expect(handleFetch(data)).toEqual(null);
   });
 
-  it('passes request/response size through if available', function () {
+  // This cannot happen as of now, this test just shows the expected behavior
+  it('ignores request/response sizes', function () {
     const data = {
       ...DEFAULT_DATA,
       fetchData: {
@@ -58,8 +59,6 @@ describe('Unit | coreHandlers | handleFetch', () => {
     expect(handleFetch(data)?.data).toEqual({
       method: 'GET',
       statusCode: 200,
-      requestBodySize: 123,
-      responseBodySize: 456,
     });
   });
 });

@@ -1,10 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { parseSemver } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { URL } from 'url';
 
-const NODE_VERSION = parseSemver(process.versions.node);
+import { NODE_VERSION } from '../../nodeVersion';
 
 /**
  * Checks whether given url points to Sentry server
@@ -13,6 +12,25 @@ const NODE_VERSION = parseSemver(process.versions.node);
 export function isSentryRequest(url: string): boolean {
   const dsn = getCurrentHub().getClient()?.getDsn();
   return dsn ? url.includes(dsn.host) : false;
+}
+
+/**
+ * Assembles a URL that's passed to the users to filter on.
+ * It can include raw (potentially PII containing) data, which we'll allow users to access to filter
+ * but won't include in spans or breadcrumbs.
+ *
+ * @param requestOptions RequestOptions object containing the component parts for a URL
+ * @returns Fully-formed URL
+ */
+// TODO (v8): This function should include auth, query and fragment (it's breaking, so we need to wait for v8)
+export function extractRawUrl(requestOptions: RequestOptions): string {
+  const protocol = requestOptions.protocol || '';
+  const hostname = requestOptions.hostname || requestOptions.host || '';
+  // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
+  const port =
+    !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
+  const path = requestOptions.path ? requestOptions.path : '/';
+  return `${protocol}//${hostname}${port}${path}`;
 }
 
 /**
@@ -27,9 +45,17 @@ export function extractUrl(requestOptions: RequestOptions): string {
   // Don't log standard :80 (http) and :443 (https) ports to reduce the noise
   const port =
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
-  const path = requestOptions.path ? requestOptions.path : '/';
+  // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  const path = requestOptions.pathname || '/';
+  // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  const authority = requestOptions.auth ? redactAuthority(requestOptions.auth) : '';
 
-  return `${protocol}//${hostname}${port}${path}`;
+  return `${protocol}//${authority}${hostname}${port}${path}`;
+}
+
+function redactAuthority(auth: string): string {
+  const [user, password] = auth.split(':');
+  return `${user ? '[Filtered]' : ''}:${password ? '[Filtered]' : ''}@`;
 }
 
 /**
@@ -59,6 +85,7 @@ export function cleanSpanDescription(
   if (requestOptions.host && !requestOptions.protocol) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     requestOptions.protocol = (request as any)?.agent?.protocol; // worst comes to worst, this is undefined and nothing changes
+    // This URL contains the filtered authority ([filtered]:[filtered]@example.com) but no fragment or query params
     requestUrl = extractUrl(requestOptions);
   }
 

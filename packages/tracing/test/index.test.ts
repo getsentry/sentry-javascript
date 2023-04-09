@@ -24,6 +24,7 @@ describe('index', () => {
     });
 
     it('contains BrowserTracing', () => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(Integrations.BrowserTracing).toEqual(BrowserTracing);
     });
   });

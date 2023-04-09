@@ -1,14 +1,12 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import type { DynamicSamplingContext, TraceparentData, TransactionContext } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  baggageHeaderToDynamicSamplingContext,
-  extractTraceparentData,
-  objectify,
-} from '@sentry/utils';
-import type { HttpError, Load, LoadEvent, ServerLoad, ServerLoadEvent } from '@sveltejs/kit';
+import type { TransactionContext } from '@sentry/types';
+import { addExceptionMechanism, objectify } from '@sentry/utils';
+import type { HttpError, LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
+
+import { isRedirect } from '../common/utils';
+import { getTracePropagationData } from './utils';
 
 function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
@@ -22,7 +20,12 @@ function sendErrorToSentry(e: unknown): unknown {
   // The error() helper is commonly used to throw errors in load functions: https://kit.svelte.dev/docs/modules#sveltejs-kit-error
   // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
   // could be noisy.
-  if (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400) {
+  // Also the `redirect(...)` helper is used to redirect users from one page to another. We don't want to capture thrown
+  // `Redirect`s as they're not errors but expected behaviour
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
     return objectifiedErr;
   }
 
@@ -45,20 +48,67 @@ function sendErrorToSentry(e: unknown): unknown {
 }
 
 /**
- * Wrap load function with Sentry
- *
- * @param origLoad SvelteKit user defined load function
+ * @inheritdoc
  */
-export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T {
+// The liberal generic typing of `T` is necessary because we cannot let T extend `Load`.
+// This function needs to tell TS that it returns exactly the type that it was called with
+// because SvelteKit generates the narrowed down `PageLoad` or `LayoutLoad` types
+// at build time for every route.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T {
   return new Proxy(origLoad, {
-    apply: (wrappingTarget, thisArg, args: Parameters<ServerLoad | Load>) => {
-      const [event] = args;
+    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+      // Type casting here because `T` cannot extend `Load` (see comment above function signature)
+      const event = args[0] as LoadEvent;
       const routeId = event.route && event.route.id;
 
-      const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
+      const traceLoadContext: TransactionContext = {
+        op: 'function.sveltekit.load',
+        name: routeId ? routeId : event.url.pathname,
+        status: 'ok',
+        metadata: {
+          source: routeId ? 'route' : 'url',
+        },
+      };
+
+      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
+    },
+  });
+}
+
+/**
+ * Wrap a server-only load function (e.g. +page.server.js or +layout.server.js) with Sentry functionality
+ *
+ * Usage:
+ *
+ * ```js
+ * // +page.serverjs
+ *
+ * import { wrapServerLoadWithSentry }
+ *
+ * export const load = wrapServerLoadWithSentry((event) => {
+ *   // your load code
+ * });
+ * ```
+ *
+ * @param origServerLoad SvelteKit user defined server-only load function
+ */
+// The liberal generic typing of `T` is necessary because we cannot let T extend `ServerLoad`.
+// This function needs to tell TS that it returns exactly the type that it was called with
+// because SvelteKit generates the narrowed down `PageServerLoad` or `LayoutServerLoad` types
+// at build time for every route.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origServerLoad: T): T {
+  return new Proxy(origServerLoad, {
+    apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
+      // Type casting here because `T` cannot extend `ServerLoad` (see comment above function signature)
+      const event = args[0] as ServerLoadEvent;
+      const routeId = event.route && event.route.id;
+
+      const { dynamicSamplingContext, traceparentData } = getTracePropagationData(event);
 
       const traceLoadContext: TransactionContext = {
-        op: `function.sveltekit${isServerOnlyLoad(event) ? '.server' : ''}.load`,
+        op: 'function.sveltekit.server.load',
         name: routeId ? routeId : event.url.pathname,
         status: 'ok',
         metadata: {
@@ -71,32 +121,4 @@ export function wrapLoadWithSentry<T extends ServerLoad | Load>(origLoad: T): T 
       return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
     },
   });
-}
-
-function getTracePropagationData(event: ServerLoadEvent | LoadEvent): {
-  traceparentData?: TraceparentData;
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-} {
-  if (!isServerOnlyLoad(event)) {
-    return {};
-  }
-
-  const sentryTraceHeader = event.request.headers.get('sentry-trace');
-  const baggageHeader = event.request.headers.get('baggage');
-  const traceparentData = sentryTraceHeader ? extractTraceparentData(sentryTraceHeader) : undefined;
-  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggageHeader);
-
-  return { traceparentData, dynamicSamplingContext };
-}
-
-/**
- * Our server-side wrapLoadWithSentry can be used to wrap two different kinds of `load` functions:
- *  - load functions from `+(page|layout).ts`: These can be called both on client and on server
- *  - load functions from `+(page|layout).server.ts`: These are only called on the server
- *
- * In both cases, load events look differently. We can distinguish them by checking if the
- * event has a `request` field (which only the server-exclusive load event has).
- */
-function isServerOnlyLoad(event: ServerLoadEvent | LoadEvent): event is ServerLoadEvent {
-  return 'request' in event;
 }

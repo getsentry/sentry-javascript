@@ -1,10 +1,10 @@
 import { addTracingExtensions } from '@sentry/core';
 import { Scope } from '@sentry/node';
-import type { ServerLoad } from '@sveltejs/kit';
-import { error } from '@sveltejs/kit';
+import type { Load, ServerLoad } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { wrapLoadWithSentry } from '../../src/server/load';
+import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
 
 const mockCaptureException = vi.fn();
 let mockScope = new Scope();
@@ -114,16 +114,19 @@ beforeAll(() => {
   addTracingExtensions();
 });
 
-describe('wrapLoadWithSentry', () => {
-  beforeEach(() => {
-    mockCaptureException.mockClear();
-    mockAddExceptionMechanism.mockClear();
-    mockTrace.mockClear();
-    mockScope = new Scope();
-  });
+beforeEach(() => {
+  mockCaptureException.mockClear();
+  mockAddExceptionMechanism.mockClear();
+  mockTrace.mockClear();
+  mockScope = new Scope();
+});
 
+describe.each([
+  ['wrapLoadWithSentry', wrapLoadWithSentry],
+  ['wrapServerLoadWithSentry', wrapServerLoadWithSentry],
+])('Common functionality of load wrappers (%s) ', (_, sentryLoadWrapperFn) => {
   it('calls captureException', async () => {
-    async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
+    async function load({ params }) {
       return {
         post: getById(params.id),
       };
@@ -151,16 +154,28 @@ describe('wrapLoadWithSentry', () => {
       [503, 1],
       [504, 1],
     ])('error with status code %s calls captureException %s times', async (code, times) => {
-      async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
+      async function load({ params }) {
         throw error(code, params.id);
       }
 
       const wrappedLoad = wrapLoadWithSentry(load);
-      const res = wrappedLoad(MOCK_LOAD_ARGS);
+      const res = wrappedLoad({ ...MOCK_LOAD_ARGS });
       await expect(res).rejects.toThrow();
 
       expect(mockCaptureException).toHaveBeenCalledTimes(times);
     });
+  });
+
+  it("doesn't call captureException for thrown `Redirect`s", async () => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw redirect(300, 'other/route');
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
   it('adds an exception mechanism', async () => {
@@ -169,14 +184,14 @@ describe('wrapLoadWithSentry', () => {
       return mockScope;
     });
 
-    async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
+    async function load({ params }) {
       return {
         post: getById(params.id),
       };
     }
 
-    const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    const wrappedLoad = sentryLoadWrapperFn.call(this, load);
+    const res = wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
     await expect(res).rejects.toThrow();
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);
@@ -186,125 +201,163 @@ describe('wrapLoadWithSentry', () => {
       { handled: false, type: 'sveltekit', data: { function: 'load' } },
     );
   });
+});
+describe('wrapLoadWithSentry calls trace', () => {
+  async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+    return {
+      post: params.id,
+    };
+  }
 
-  describe('calls trace', () => {
-    async function load({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
-      return {
-        post: params.id,
-      };
-    }
+  it('with the context of the universal load function', async () => {
+    const wrappedLoad = wrapLoadWithSentry(load);
+    await wrappedLoad(MOCK_LOAD_ARGS);
 
-    describe('for server-only load', () => {
-      it('attaches trace data if available', async () => {
-        const wrappedLoad = wrapLoadWithSentry(load);
-        await wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
-
-        expect(mockTrace).toHaveBeenCalledTimes(1);
-        expect(mockTrace).toHaveBeenCalledWith(
-          {
-            op: 'function.sveltekit.server.load',
-            name: '/users/[id]',
-            parentSampled: true,
-            parentSpanId: '1234567890abcdef',
-            status: 'ok',
-            traceId: '1234567890abcdef1234567890abcdef',
-            metadata: {
-              dynamicSamplingContext: {
-                environment: 'production',
-                public_key: 'dogsarebadatkeepingsecrets',
-                release: '1.0.0',
-                sample_rate: '1',
-                trace_id: '1234567890abcdef1234567890abcdef',
-                transaction: 'dogpark',
-                user_segment: 'segmentA',
-              },
-              source: 'route',
-            },
-          },
-          expect.any(Function),
-          expect.any(Function),
-        );
-      });
-
-      it("doesn't attach trace data if it's not available", async () => {
-        const wrappedLoad = wrapLoadWithSentry(load);
-        await wrappedLoad(MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS);
-
-        expect(mockTrace).toHaveBeenCalledTimes(1);
-        expect(mockTrace).toHaveBeenCalledWith(
-          {
-            op: 'function.sveltekit.server.load',
-            name: '/users/[id]',
-            status: 'ok',
-            metadata: {
-              source: 'route',
-            },
-          },
-          expect.any(Function),
-          expect.any(Function),
-        );
-      });
-
-      it("doesn't attach the DSC data if the baggage header not available", async () => {
-        const wrappedLoad = wrapLoadWithSentry(load);
-        await wrappedLoad(MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS);
-
-        expect(mockTrace).toHaveBeenCalledTimes(1);
-        expect(mockTrace).toHaveBeenCalledWith(
-          {
-            op: 'function.sveltekit.server.load',
-            name: '/users/[id]',
-            parentSampled: true,
-            parentSpanId: '1234567890abcdef',
-            status: 'ok',
-            traceId: '1234567890abcdef1234567890abcdef',
-            metadata: {
-              dynamicSamplingContext: {},
-              source: 'route',
-            },
-          },
-          expect.any(Function),
-          expect.any(Function),
-        );
-      });
-    });
-
-    it('for shared load', async () => {
-      const wrappedLoad = wrapLoadWithSentry(load);
-      await wrappedLoad(MOCK_LOAD_ARGS);
-
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
-        {
-          op: 'function.sveltekit.load',
-          name: '/users/[id]',
-          status: 'ok',
-          metadata: {
-            source: 'route',
-          },
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.load',
+        name: '/users/[id]',
+        status: 'ok',
+        metadata: {
+          source: 'route',
         },
-        expect.any(Function),
-        expect.any(Function),
-      );
-    });
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
 
-    it('falls back to the raw url if `event.route.id` is not available', async () => {
-      const wrappedLoad = wrapLoadWithSentry(load);
-      await wrappedLoad(MOCK_LOAD_NO_ROUTE_ARGS);
+  it('falls back to the raw url if `event.route.id` is not available', async () => {
+    const wrappedLoad = wrapLoadWithSentry(load);
+    await wrappedLoad(MOCK_LOAD_NO_ROUTE_ARGS);
 
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
-        {
-          op: 'function.sveltekit.load',
-          name: '/users/123',
-          status: 'ok',
-          metadata: {
-            source: 'url',
-          },
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.load',
+        name: '/users/123',
+        status: 'ok',
+        metadata: {
+          source: 'url',
         },
-        expect.any(Function),
-        expect.any(Function),
-      );
-    });
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+});
+
+describe('wrapServerLoadWithSentry calls trace', () => {
+  async function serverLoad({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
+    return {
+      post: params.id,
+    };
+  }
+
+  it('attaches trace data if available', async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.server.load',
+        name: '/users/[id]',
+        parentSampled: true,
+        parentSpanId: '1234567890abcdef',
+        status: 'ok',
+        traceId: '1234567890abcdef1234567890abcdef',
+        metadata: {
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'dogsarebadatkeepingsecrets',
+            release: '1.0.0',
+            sample_rate: '1',
+            trace_id: '1234567890abcdef1234567890abcdef',
+            transaction: 'dogpark',
+            user_segment: 'segmentA',
+          },
+          source: 'route',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
+  it("doesn't attach trace data if it's not available", async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.server.load',
+        name: '/users/[id]',
+        status: 'ok',
+        metadata: {
+          source: 'route',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
+  it("doesn't attach the DSC data if the baggage header not available", async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.server.load',
+        name: '/users/[id]',
+        parentSampled: true,
+        parentSpanId: '1234567890abcdef',
+        status: 'ok',
+        traceId: '1234567890abcdef1234567890abcdef',
+        metadata: {
+          dynamicSamplingContext: {},
+          source: 'route',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
+  it('falls back to the raw url if `event.route.id` is not available', async () => {
+    const event = { ...MOCK_SERVER_ONLY_LOAD_ARGS };
+    delete event.route;
+    const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
+    await wrappedLoad(event);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockTrace).toHaveBeenCalledWith(
+      {
+        op: 'function.sveltekit.server.load',
+        name: '/users/123',
+        parentSampled: true,
+        parentSpanId: '1234567890abcdef',
+        status: 'ok',
+        traceId: '1234567890abcdef1234567890abcdef',
+        metadata: {
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'dogsarebadatkeepingsecrets',
+            release: '1.0.0',
+            sample_rate: '1',
+            trace_id: '1234567890abcdef1234567890abcdef',
+            transaction: 'dogpark',
+            user_segment: 'segmentA',
+          },
+          source: 'url',
+        },
+      },
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });

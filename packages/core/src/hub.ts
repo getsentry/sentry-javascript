@@ -50,6 +50,29 @@ export const API_VERSION = 4;
  */
 const DEFAULT_BREADCRUMBS = 100;
 
+export interface RunWithAsyncContextOptions {
+  /** Whether to reuse an existing async context if one exists. Defaults to false. */
+  reuseExisting?: boolean;
+  /** Instances that should be referenced and retained in the new context */
+  args?: unknown[];
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Strategy used to track async context.
+ */
+export interface AsyncContextStrategy {
+  /**
+   * Gets the current async context. Returns undefined if there is no current async context.
+   */
+  getCurrentHub: () => Hub | undefined;
+  /**
+   * Runs the supplied callback in its own async context.
+   */
+  runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T;
+}
+
 /**
  * A layer in the process stack.
  * @hidden
@@ -66,6 +89,7 @@ export interface Layer {
 export interface Carrier {
   __SENTRY__?: {
     hub?: Hub;
+    acs?: AsyncContextStrategy;
     /**
      * Extra Hub properties injected by various SDKs
      */
@@ -456,13 +480,10 @@ Sentry.init({...});
    */
   private _sendSessionUpdate(): void {
     const { scope, client } = this.getStackTop();
-    if (!scope) return;
 
     const session = scope.getSession();
-    if (session) {
-      if (client && client.captureSession) {
-        client.captureSession(session);
-      }
+    if (session && client && client.captureSession) {
+      client.captureSession(session);
     }
   }
 
@@ -532,17 +553,72 @@ export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
-  // If there's no hub, or its an old API, assign a new one
-  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
-    setHubOnCarrier(registry, new Hub());
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    const hub = registry.__SENTRY__.acs.getCurrentHub();
+
+    if (hub) {
+      return hub;
+    }
   }
 
   // Prefer domains over global if they are there (applicable only to Node environment)
   if (isNodeEnv()) {
     return getHubFromActiveDomain(registry);
   }
+
+  // Return hub that lives on a global object
+  return getGlobalHub(registry);
+}
+
+function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
+  // If there's no hub, or its an old API, assign a new one
+  if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
+    setHubOnCarrier(registry, new Hub());
+  }
+
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
+ */
+export function ensureHubOnCarrier(carrier: Carrier): void {
+  // If there's no hub on current domain, or it's an old API, assign a new one
+  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+    const globalHubTopStack = getGlobalHub().getStackTop();
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
+  }
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Sets the global async context strategy
+ */
+export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
+  // Get main carrier (global for every environment)
+  const registry = getMainCarrier();
+  registry.__SENTRY__ = registry.__SENTRY__ || {};
+  registry.__SENTRY__.acs = strategy;
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Runs the supplied callback in its own async context.
+ */
+export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
+  const registry = getMainCarrier();
+
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, options);
+  }
+
+  // if there was no strategy, fallback to just calling the callback
+  return callback(getCurrentHub());
 }
 
 /**

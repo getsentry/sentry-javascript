@@ -38,13 +38,8 @@ jobs:
           # This token is scoped to Daniel Griesser
           github_token: ${{ secrets.REPO_SCOPED_TOKEN }}
 
-      # https://github.com/marketplace/actions/enable-pull-request-automerge
       - name: Enable automerge for PR
-        if: steps.open-pr.outputs.pr_number != ''
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
-          merge-method: merge
+        run: gh pr merge --merge --auto "1"
 
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR

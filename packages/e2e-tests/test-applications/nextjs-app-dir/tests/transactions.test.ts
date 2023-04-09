@@ -89,4 +89,26 @@ if (process.env.TEST_ENV === 'production') {
       )
       .toBe(200);
   });
+
+  test('Should not set an error status on a server component transaction when it redirects', async ({ page }) => {
+    const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+      return transactionEvent?.transaction === 'Page Server Component (/server-component/redirect)';
+    });
+
+    await page.goto('/server-component/redirect');
+
+    expect((await serverComponentTransactionPromise).contexts?.trace?.status).not.toBe('internal_error');
+  });
+
+  test('Should set a "not_found" status on a server component transaction when notFound() is called', async ({
+    page,
+  }) => {
+    const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+      return transactionEvent?.transaction === 'Page Server Component (/server-component/not-found)';
+    });
+
+    await page.goto('/server-component/not-found');
+
+    expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
+  });
 }

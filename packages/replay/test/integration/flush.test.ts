@@ -179,7 +179,6 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenLastCalledWith({
       recordingData: expect.any(String),
       replayId: expect.any(String),
-      includeReplayStartTimestamp: true,
       segmentId: 0,
       eventContext: expect.anything(),
       session: expect.any(Object),
@@ -229,7 +228,6 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenLastCalledWith({
       recordingData: expect.any(String),
       replayId: expect.any(String),
-      includeReplayStartTimestamp: false,
       segmentId: 1,
       eventContext: expect.anything(),
       session: expect.any(Object),
