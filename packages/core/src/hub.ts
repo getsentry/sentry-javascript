@@ -364,8 +364,8 @@ export class Hub implements HubInterface {
     const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
 
     if (__DEBUG_BUILD__ && !result) {
-      throw new Error(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
-
+      // eslint-disable-next-line no-console
+      console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
 Sentry.addTracingExtensions();
 Sentry.init({...});
 `);
