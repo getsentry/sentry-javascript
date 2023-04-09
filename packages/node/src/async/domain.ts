@@ -1,10 +1,5 @@
 import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
-import {
-  ensureHubOnCarrier,
-  getCurrentHub as getCurrentHubCore,
-  getHubFromCarrier,
-  setAsyncContextStrategy,
-} from '@sentry/core';
+import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy, setHubOnCarrier } from '@sentry/core';
 import * as domain from 'domain';
 import { EventEmitter } from 'events';
 
@@ -26,23 +21,27 @@ function getCurrentHub(): Hub | undefined {
   return getHubFromCarrier(activeDomain);
 }
 
+function createNewHub(parent: Hub | undefined): Hub {
+  const carrier: Carrier = {};
+  ensureHubOnCarrier(carrier, parent);
+  return getHubFromCarrier(carrier);
+}
+
 function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
-  if (options?.reuseExisting) {
-    const activeDomain = getActiveDomain<domain.Domain & Carrier>();
+  const activeDomain = getActiveDomain<domain.Domain & Carrier>();
 
-    if (activeDomain) {
-      for (const emitter of options.emitters || []) {
-        if (emitter instanceof EventEmitter) {
-          activeDomain.add(emitter);
-        }
+  if (activeDomain && options?.reuseExisting) {
+    for (const emitter of options.emitters || []) {
+      if (emitter instanceof EventEmitter) {
+        activeDomain.add(emitter);
       }
-
-      // We're already in a domain, so we don't need to create a new one, just call the callback with the current hub
-      return callback(getHubFromCarrier(activeDomain));
     }
+
+    // We're already in a domain, so we don't need to create a new one, just call the callback with the current hub
+    return callback(getHubFromCarrier(activeDomain));
   }
 
-  const local = domain.create();
+  const local = domain.create() as domain.Domain & Carrier;
 
   for (const emitter of options.emitters || []) {
     if (emitter instanceof EventEmitter) {
@@ -50,9 +49,12 @@ function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsync
     }
   }
 
+  const parentHub = activeDomain ? getHubFromCarrier(activeDomain) : undefined;
+  const newHub = createNewHub(parentHub);
+  setHubOnCarrier(local, newHub);
+
   return local.bind(() => {
-    const hub = getCurrentHubCore();
-    return callback(hub);
+    return callback(newHub);
   })();
 }
 
