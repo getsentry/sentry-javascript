@@ -15,7 +15,7 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 
-import { setDomainAsyncContextStrategy } from './async/domain';
+import { setNodeAsyncContextStrategy } from './async';
 import { NodeClient } from './client';
 import {
   Console,
@@ -111,7 +111,7 @@ export const defaultIntegrations = [
 export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
 
-  setDomainAsyncContextStrategy();
+  setNodeAsyncContextStrategy();
 
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 

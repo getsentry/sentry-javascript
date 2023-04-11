@@ -12,7 +12,7 @@ import {
   init,
   NodeClient,
 } from '../src';
-import { setDomainAsyncContextStrategy } from '../src/async/domain';
+import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
 import type { NodeClientOptions } from '../src/types';
@@ -288,7 +288,7 @@ describe('SentryNode', () => {
         },
         dsn,
       });
-      setDomainAsyncContextStrategy();
+      setNodeAsyncContextStrategy();
       const client = new NodeClient(options);
 
       runWithAsyncContext(hub => {
