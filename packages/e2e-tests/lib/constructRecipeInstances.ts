@@ -4,11 +4,12 @@ import type { Recipe, RecipeInput, RecipeInstance } from './types';
 
 export function constructRecipeInstances(recipePaths: string[]): RecipeInstance[] {
   const recipes = buildRecipes(recipePaths);
+  let reservedPortCount = 0;
   const recipeInstances: RecipeInstance[] = [];
 
   const basePort = 3001;
 
-  recipes.forEach((recipe, i) => {
+  recipes.forEach(recipe => {
     recipe.versions.forEach(version => {
       const dependencyOverrides =
         Object.keys(version.dependencyOverrides).length > 0 ? version.dependencyOverrides : undefined;
@@ -20,8 +21,9 @@ export function constructRecipeInstances(recipePaths: string[]): RecipeInstance[
         label: `${recipe.testApplicationName}${dependencyOverridesInformationString}`,
         recipe,
         dependencyOverrides,
-        port: basePort + i,
+        port: basePort + reservedPortCount,
       });
+      reservedPortCount++;
     });
   });
 
