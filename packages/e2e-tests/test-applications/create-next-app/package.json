@@ -3,13 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "test:prod && test:dev",
-    "test:prod": "TEST_MODE=prod playwright test",
-    "test:dev": "TEST_MODE=dev playwright test"
+    "test:prod": "TEST_ENV=prod playwright test",
+    "test:dev": "TEST_ENV=dev playwright test"
   },
   "dependencies": {
     "@next/font": "13.0.7",

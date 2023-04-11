@@ -2,13 +2,11 @@ import * as fs from 'fs';
 
 import type { Recipe, RecipeInput, RecipeInstance } from './types';
 
-export function buildRecipeInstances(recipePaths: string[]): RecipeInstance[] {
+export function constructRecipeInstances(recipePaths: string[]): RecipeInstance[] {
   const recipes = buildRecipes(recipePaths);
-  const recipeInstances: RecipeInstance[] = [];
+  const recipeInstances: Omit<RecipeInstance, 'portModulo' | 'portGap'>[] = [];
 
-  const basePort = 3001;
-
-  recipes.forEach((recipe, i) => {
+  recipes.forEach(recipe => {
     recipe.versions.forEach(version => {
       const dependencyOverrides =
         Object.keys(version.dependencyOverrides).length > 0 ? version.dependencyOverrides : undefined;
@@ -20,12 +18,19 @@ export function buildRecipeInstances(recipePaths: string[]): RecipeInstance[] {
         label: `${recipe.testApplicationName}${dependencyOverridesInformationString}`,
         recipe,
         dependencyOverrides,
-        port: basePort + i,
       });
     });
   });
 
-  return recipeInstances;
+  return recipeInstances
+    .map((instance, i) => ({ ...instance, portModulo: i, portGap: recipeInstances.length }))
+    .filter((_, i) => {
+      if (process.env.E2E_TEST_SHARD && process.env.E2E_TEST_SHARD_AMOUNT) {
+        return (i + Number(process.env.E2E_TEST_SHARD)) % Number(process.env.E2E_TEST_SHARD_AMOUNT) === 0;
+      } else {
+        return true;
+      }
+    });
 }
 
 function buildRecipes(recipePaths: string[]): Recipe[] {
