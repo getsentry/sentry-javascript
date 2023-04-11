@@ -29,7 +29,8 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
   if (recipe.buildCommand) {
     console.log(`Running build command for test application "${label}"`);
 
-    const tempYarnCache = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-test-build-yarn-cache-temp-dir-'));
+    fs.mkdirSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches'), { recursive: true });
+    const tempYarnCache = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches', 'cache-'));
 
     const env = {
       ...process.env,
