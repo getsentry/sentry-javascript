@@ -373,7 +373,17 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
+    const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
+
+    if (__DEBUG_BUILD__ && !result) {
+      // eslint-disable-next-line no-console
+      console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+Sentry.addTracingExtensions();
+Sentry.init({...});
+`);
+    }
+
+    return result;
   }
 
   /**
