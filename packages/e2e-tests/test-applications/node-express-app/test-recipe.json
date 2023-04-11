@@ -1,7 +1,7 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "node-express-app",
-  "buildCommand": "yarn install --mutex network && yarn build",
+  "buildCommand": "yarn install && yarn build",
   "tests": [
     {
       "testName": "Test express server",

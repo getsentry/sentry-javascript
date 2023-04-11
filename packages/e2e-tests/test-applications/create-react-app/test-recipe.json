@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "create-react-app",
-  "buildCommand": "yarn install --mutex network && yarn build",
+  "buildCommand": "yarn install && yarn build",
   "tests": []
 }

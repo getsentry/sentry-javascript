@@ -54,7 +54,7 @@ To get you started with the recipe, you can copy the following into `test-recipe
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "My New Test Application",
-  "buildCommand": "yarn install --mutex network ",
+  "buildCommand": "yarn install",
   "tests": [
     {
       "testName": "My new test",
