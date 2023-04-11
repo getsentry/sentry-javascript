@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
 import * as fs from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
 
 import { DEFAULT_BUILD_TIMEOUT_SECONDS } from './constants';
@@ -28,12 +29,15 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
   if (recipe.buildCommand) {
     console.log(`Running build command for test application "${label}"`);
 
+    const tempYarnCache = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-test-build-yarn-cache-temp-dir-'));
+
     const buildResult = await spawnAsync(recipe.buildCommand, {
       cwd: appDir,
       timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
       env: {
         ...process.env,
         ...env,
+        YARN_CACHE_FOLDER: tempYarnCache, // Use a separate yarn cache for each build commmand because multiple yarn commands running at the same time may corrupt the cache
       } as unknown as NodeJS.ProcessEnv,
     });
 
