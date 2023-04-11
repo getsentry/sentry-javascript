@@ -55,7 +55,7 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: testEnv === 'development' ? 'yarn dev' : 'yarn start',
+      command: testEnv === 'development' ? `yarn next dev -p ${port}` : `yarn next start -p ${port}`,
       port,
     },
     {

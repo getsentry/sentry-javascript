@@ -61,6 +61,9 @@ const config: PlaywrightTestConfig = {
   webServer: {
     command: 'yarn start',
     port: Number(process.env.BASE_PORT ?? 5698) + Number(process.env.PORT_MODULO ?? 0),
+    env: {
+      PORT: process.env.BASE_PORT ?? '5698',
+    },
   },
 };
 
