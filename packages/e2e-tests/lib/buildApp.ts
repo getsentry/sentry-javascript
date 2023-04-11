@@ -6,9 +6,9 @@ import * as path from 'path';
 
 import { DEFAULT_BUILD_TIMEOUT_SECONDS } from './constants';
 import type { Env, RecipeInstance } from './types';
-import { spawnAsync } from './utils';
+import { prefixObjectKeys, spawnAsync } from './utils';
 
-export async function buildApp(appDir: string, recipeInstance: RecipeInstance, env: Env): Promise<void> {
+export async function buildApp(appDir: string, recipeInstance: RecipeInstance, envVars: Env): Promise<void> {
   const { recipe, label, dependencyOverrides } = recipeInstance;
 
   const packageJsonPath = path.resolve(appDir, 'package.json');
@@ -31,14 +31,20 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
 
     const tempYarnCache = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-test-build-yarn-cache-temp-dir-'));
 
+    const env = {
+      ...process.env,
+      ...envVars,
+      YARN_CACHE_FOLDER: tempYarnCache, // Use a separate yarn cache for each build commmand because multiple yarn commands running at the same time may corrupt the cache
+    };
+
     const buildResult = await spawnAsync(recipe.buildCommand, {
       cwd: appDir,
       timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
       env: {
-        ...process.env,
         ...env,
-        YARN_CACHE_FOLDER: tempYarnCache, // Use a separate yarn cache for each build commmand because multiple yarn commands running at the same time may corrupt the cache
-      } as unknown as NodeJS.ProcessEnv,
+        ...prefixObjectKeys(env, 'NEXT_PUBLIC_'),
+        ...prefixObjectKeys(env, 'REACT_APP_'),
+      },
     });
 
     if (buildResult.error) {
@@ -61,9 +67,10 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
           cwd: appDir,
           timeout: (recipe.buildTimeoutSeconds ?? DEFAULT_BUILD_TIMEOUT_SECONDS) * 1000,
           env: {
-            ...process.env,
             ...env,
-          } as unknown as NodeJS.ProcessEnv,
+            ...prefixObjectKeys(env, 'NEXT_PUBLIC_'),
+            ...prefixObjectKeys(env, 'REACT_APP_'),
+          },
         },
         buildResult.stdout,
       );
