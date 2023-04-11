@@ -44,6 +44,37 @@ conditionalTest({ min: 12 })('async_hooks', () => {
     });
   });
 
+  test('async hub scope inheritance', async () => {
+    setHooksAsyncContextStrategy();
+
+    async function addRandomExtra(hub: Hub, key: string): Promise<void> {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          hub.setExtra(key, Math.random());
+          resolve();
+        }, 100);
+      });
+    }
+
+    const globalHub = getCurrentHub();
+    await addRandomExtra(globalHub, 'a');
+
+    await runWithAsyncContext(async hub1 => {
+      expect(hub1).toEqual(globalHub);
+
+      await addRandomExtra(hub1, 'b');
+      expect(hub1).not.toEqual(globalHub);
+
+      await runWithAsyncContext(async hub2 => {
+        expect(hub2).toEqual(hub1);
+        expect(hub2).not.toEqual(globalHub);
+
+        await addRandomExtra(hub1, 'c');
+        expect(hub2).not.toEqual(hub1);
+      });
+    });
+  });
+
   test('context single instance', () => {
     setHooksAsyncContextStrategy();
 
