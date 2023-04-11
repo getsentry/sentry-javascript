@@ -3,7 +3,7 @@ import type { Plugin } from 'vite';
 
 import { makeCustomSentryVitePlugin } from './sourceMaps';
 
-type EnabledSourceMapsUpload = {
+type SourceMapsUploadOptions = {
   /**
    * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
    * Defaults to `true`.
@@ -16,11 +16,6 @@ type EnabledSourceMapsUpload = {
    */
   sourceMapsUploadOptions?: Partial<SentryVitePluginOptions>;
 };
-type DisabledSourceMapsUpload = {
-  autoUploadSourceMaps: false;
-  sourceMapsUploadOptions: never;
-};
-type SourceMapsUploadOptions = DisabledSourceMapsUpload | EnabledSourceMapsUpload;
 
 export type SentrySvelteKitPluginOptions = {
   /**

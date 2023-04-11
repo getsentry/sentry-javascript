@@ -99,7 +99,6 @@ export function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOpti
       const outDir = path.resolve(process.cwd(), 'build');
 
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
-
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
 
