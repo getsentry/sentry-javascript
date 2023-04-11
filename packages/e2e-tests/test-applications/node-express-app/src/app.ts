@@ -17,7 +17,7 @@ Sentry.init({
 });
 
 const app = express();
-const port = 3000 + Number(process.env.PORT_MODULO ?? 0);
+const port = Number(process.env.BASE_PORT ?? 5698) + Number(process.env.PORT_MODULO ?? 0);
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());

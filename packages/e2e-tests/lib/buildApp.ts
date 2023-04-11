@@ -37,7 +37,6 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
       env: {
         ...process.env,
         ...env,
-
         YARN_CACHE_FOLDER: tempYarnCache, // Use a separate yarn cache for each build commmand because multiple yarn commands running at the same time may corrupt the cache
       } as unknown as NodeJS.ProcessEnv,
     });

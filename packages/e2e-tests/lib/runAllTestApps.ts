@@ -11,8 +11,6 @@ export async function runAllTestApps(
 
   const recipeInstances = constructRecipeInstances(recipePaths);
 
-  console.log(JSON.stringify(recipeInstances));
-
   const results = await shardPromises(
     recipeInstances,
     recipeInstance => buildAndTestApp(recipeInstance, envVarsToInject),
