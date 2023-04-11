@@ -7,7 +7,7 @@ export async function runAllTestApps(
   recipePaths: string[],
   envVarsToInject: Record<string, string | undefined>,
 ): Promise<void> {
-  const maxParallel = process.env.CI ? 2 : 5;
+  const maxParallel = process.env.CI ? 4 : 8;
 
   const recipeInstances = constructRecipeInstances(recipePaths);
 
