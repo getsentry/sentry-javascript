@@ -1,8 +1,8 @@
-import { sentrySvelteKitPlugin } from './../../src/vite/sentrySvelteKitPlugin';
+import { sentry } from '../../src/vite/sentryVitePlugins';
 
 describe('sentrySvelteKitPlugin', () => {
   it('returns a Vite plugin with name, enforce, and config hook', () => {
-    const plugin = sentrySvelteKitPlugin();
+    const plugin = sentry();
     expect(plugin).toHaveProperty('name');
     expect(plugin).toHaveProperty('enforce');
     expect(plugin).toHaveProperty('config');
