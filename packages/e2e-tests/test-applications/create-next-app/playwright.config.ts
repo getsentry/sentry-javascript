@@ -7,7 +7,7 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const port = Number(process.env.BASE_PORT ?? 5698) + Number(process.env.PORT_MODULO ?? 0);
+const port = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
 
 /**
  * See https://playwright.dev/docs/test-configuration.

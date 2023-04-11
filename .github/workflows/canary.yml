@@ -49,50 +49,50 @@ jobs:
         run: |
           cd packages/e2e-tests
           yarn test:e2e
-      # - name: Create Issue
-      #   if: failure()
-      #   uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      #   with:
-      #     filename: .github/CANARY_FAILURE_TEMPLATE.md
+      - name: Create Issue
+        if: failure()
+        uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/CANARY_FAILURE_TEMPLATE.md
 
-  # job_ember_canary_test:
-  #   name: Ember Canary Tests
-  #   runs-on: ubuntu-20.04
-  #   timeout-minutes: 30
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       scenario: [ember-release, embroider-optimized, ember-4.0]
-  #   steps:
-  #     - name: 'Check out current commit'
-  #       uses: actions/checkout@v3
-  #       with:
-  #         ref: ${{ env.HEAD_COMMIT }}
-  #     - name: Set up Node
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version-file: 'package.json'
-  #     - name: Install dependencies
-  #       run: yarn install --ignore-engines --frozen-lockfile
+  job_ember_canary_test:
+    name: Ember Canary Tests
+    runs-on: ubuntu-20.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [ember-release, embroider-optimized, ember-4.0]
+    steps:
+      - name: 'Check out current commit'
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
+      - name: Install dependencies
+        run: yarn install --ignore-engines --frozen-lockfile
 
-  #     - name: Build dependencies
-  #       run: |
-  #         yarn lerna run build:types --scope=@sentry/ember --include-dependencies
-  #         yarn lerna run build:transpile --scope=@sentry/ember --include-dependencies
+      - name: Build dependencies
+        run: |
+          yarn lerna run build:types --scope=@sentry/ember --include-dependencies
+          yarn lerna run build:transpile --scope=@sentry/ember --include-dependencies
 
-  #     - name: Run Ember tests
-  #       run: |
-  #         cd packages/ember
-  #         yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
+      - name: Run Ember tests
+        run: |
+          cd packages/ember
+          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
 
-  #     - name: Create Issue
-  #       if: failure()
-  #       uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-  #       with:
-  #         filename: .github/CANARY_FAILURE_TEMPLATE.md
+      - name: Create Issue
+        if: failure()
+        uses: JasonEtco/create-an-issue@e27dddc79c92bc6e4562f268fffa5ed752639abd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          filename: .github/CANARY_FAILURE_TEMPLATE.md
