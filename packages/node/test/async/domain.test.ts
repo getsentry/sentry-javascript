@@ -16,19 +16,29 @@ describe('domains', () => {
     expect(hub).toEqual(new Hub());
   });
 
-  test('domain hub scope inheritance', () => {
+  test('hub scope inheritance', () => {
+    setDomainAsyncContextStrategy();
+
     const globalHub = getCurrentHub();
-    globalHub.configureScope(scope => {
-      scope.setExtra('a', 'b');
-      scope.setTag('a', 'b');
-      scope.addBreadcrumb({ message: 'a' });
-    });
-    runWithAsyncContext(hub => {
-      expect(globalHub).toEqual(hub);
+    globalHub.setExtra('a', 'b');
+
+    runWithAsyncContext(hub1 => {
+      expect(hub1).toEqual(globalHub);
+
+      hub1.setExtra('c', 'd');
+      expect(hub1).not.toEqual(globalHub);
+
+      runWithAsyncContext(hub2 => {
+        expect(hub2).toEqual(hub1);
+        expect(hub2).not.toEqual(globalHub);
+
+        hub2.setExtra('e', 'f');
+        expect(hub2).not.toEqual(hub1);
+      });
     });
   });
 
-  test('domain hub single instance', () => {
+  test('hub single instance', () => {
     setDomainAsyncContextStrategy();
 
     runWithAsyncContext(hub => {
@@ -36,7 +46,7 @@ describe('domains', () => {
     });
   });
 
-  test('domain within a domain not reused', () => {
+  test('within a domain not reused', () => {
     setDomainAsyncContextStrategy();
 
     runWithAsyncContext(hub1 => {
@@ -46,7 +56,7 @@ describe('domains', () => {
     });
   });
 
-  test('domain within a domain reused when requested', () => {
+  test('within a domain reused when requested', () => {
     setDomainAsyncContextStrategy();
 
     runWithAsyncContext(hub1 => {
@@ -59,7 +69,7 @@ describe('domains', () => {
     });
   });
 
-  test('concurrent domain hubs', done => {
+  test('concurrent hub contexts', done => {
     setDomainAsyncContextStrategy();
 
     let d1done = false;

@@ -568,10 +568,10 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
  *
  * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
  */
-export function ensureHubOnCarrier(carrier: Carrier): void {
+export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
-    const globalHubTopStack = getGlobalHub().getStackTop();
+    const globalHubTopStack = parent.getStackTop();
     setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
   }
 }
