@@ -7,7 +7,7 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const port = 3000 + Number(process.env.PORT_MODULO ?? 0);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -60,7 +60,7 @@ const config: PlaywrightTestConfig = {
     },
     {
       command: 'yarn ts-node-script start-event-proxy.ts',
-      port: 27496,
+      port: 3000 + Number(process.env.PORT_MODULO ?? 0) + Number(process.env.PORT_GAP ?? 0),
     },
   ],
 };

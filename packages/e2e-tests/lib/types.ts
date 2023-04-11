@@ -37,7 +37,8 @@ export interface RecipeInstance {
   label: string;
   recipe: Recipe;
   dependencyOverrides?: DependencyOverrides;
-  port: number;
+  portModulo: number;
+  portGap: number;
 }
 
 export interface RecipeTestResult extends RecipeInstance {
