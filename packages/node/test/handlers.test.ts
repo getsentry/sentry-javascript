@@ -4,10 +4,13 @@ import type { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 
+import { setDomainAsyncContextStrategy } from '../src/async/domain';
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
 import * as SDK from '../src/sdk';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
+
+setDomainAsyncContextStrategy();
 
 describe('requestHandler', () => {
   const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };

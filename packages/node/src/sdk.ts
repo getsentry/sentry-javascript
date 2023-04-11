@@ -5,7 +5,6 @@ import {
   getMainCarrier,
   initAndBind,
   Integrations as CoreIntegrations,
-  setHubOnCarrier,
 } from '@sentry/core';
 import type { SessionStatus, StackParser } from '@sentry/types';
 import {
@@ -15,8 +14,8 @@ import {
   nodeStackLineParser,
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
-import * as domain from 'domain';
 
+import { setDomainAsyncContextStrategy } from './async/domain';
 import { NodeClient } from './client';
 import {
   Console,
@@ -111,6 +110,9 @@ export const defaultIntegrations = [
  */
 export function init(options: NodeOptions = {}): void {
   const carrier = getMainCarrier();
+
+  setDomainAsyncContextStrategy();
+
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
   options.defaultIntegrations =
@@ -152,11 +154,6 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.instrumenter === undefined) {
     options.instrumenter = 'sentry';
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  if ((domain as any).active) {
-    setHubOnCarrier(carrier, getCurrentHub());
   }
 
   // TODO(v7): Refactor this to reduce the logic above
