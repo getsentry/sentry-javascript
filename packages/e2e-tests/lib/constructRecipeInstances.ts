@@ -22,7 +22,15 @@ export function constructRecipeInstances(recipePaths: string[]): RecipeInstance[
     });
   });
 
-  return recipeInstances.map((instance, i) => ({ ...instance, portModulo: i, portGap: recipeInstances.length }));
+  return recipeInstances
+    .map((instance, i) => ({ ...instance, portModulo: i, portGap: recipeInstances.length }))
+    .filter((_, i) => {
+      if (process.env.E2E_TEST_SHARD && process.env.E2E_TEST_SHARD_AMOUNT) {
+        return (i + Number(process.env.E2E_TEST_SHARD)) % Number(process.env.E2E_TEST_SHARD_AMOUNT) === 0;
+      } else {
+        return true;
+      }
+    });
 }
 
 function buildRecipes(recipePaths: string[]): Recipe[] {
