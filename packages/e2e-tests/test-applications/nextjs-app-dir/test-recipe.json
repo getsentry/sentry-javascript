@@ -13,6 +13,18 @@
       "testCommand": "yarn test:dev"
     }
   ],
+  "versions": [
+    {
+      "dependencyOverrides": {
+        "next": "13.2.4"
+      }
+    },
+    {
+      "dependencyOverrides": {
+        "next": "13.3.0"
+      }
+    }
+  ],
   "canaryVersions": [
     {
       "dependencyOverrides": {
