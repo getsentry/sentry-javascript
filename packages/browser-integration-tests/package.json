@@ -41,7 +41,8 @@
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
     "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots",
-    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
+    "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts",
+    "validate:es5": "es-check es5 'fixtures/loader.js'"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
