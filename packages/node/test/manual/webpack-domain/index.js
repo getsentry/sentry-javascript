@@ -47,8 +47,7 @@ Sentry.configureScope(scope => {
   scope.setTag('a', 'b');
 });
 
-const d = require('domain').create();
-d.run(() => {
+Sentry.runWithAsyncContext(() => {
   Sentry.configureScope(scope => {
     scope.setTag('a', 'x');
     scope.setTag('b', 'c');

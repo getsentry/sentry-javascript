@@ -1,10 +1,9 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/core';
-import { getActiveTransaction, getCurrentHub, trace } from '@sentry/core';
+import { getActiveTransaction, getCurrentHub, runWithAsyncContext, trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import { addExceptionMechanism, dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
-import * as domain from 'domain';
 
 import { getTracePropagationData } from './utils';
 
@@ -67,9 +66,9 @@ export const sentryHandle: Handle = input => {
   if (getCurrentHub().getScope().getSpan()) {
     return instrumentHandle(input);
   }
-  return domain.create().bind(() => {
+  return runWithAsyncContext(() => {
     return instrumentHandle(input);
-  })();
+  });
 };
 
 function instrumentHandle({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {

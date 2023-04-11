@@ -20,15 +20,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import {
-  consoleSandbox,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  GLOBAL_OBJ,
-  isNodeEnv,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { Scope } from './scope';
@@ -54,7 +46,7 @@ export interface RunWithAsyncContextOptions {
   /** Whether to reuse an existing async context if one exists. Defaults to false. */
   reuseExisting?: boolean;
   /** Instances that should be referenced and retained in the new context */
-  args?: unknown[];
+  emitters?: unknown[];
 }
 
 /**
@@ -95,10 +87,6 @@ export interface Carrier {
      */
     integrations?: Integration[];
     extensions?: {
-      /** Hack to prevent bundlers from breaking our usage of the domain package in the cross-platform Hub package */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      domain?: { [key: string]: any };
-    } & {
       /** Extension methods for the hub, which are bound to the current Hub instance */
       // eslint-disable-next-line @typescript-eslint/ban-types
       [key: string]: Function;
@@ -561,11 +549,6 @@ export function getCurrentHub(): Hub {
     }
   }
 
-  // Prefer domains over global if they are there (applicable only to Node environment)
-  if (isNodeEnv()) {
-    return getHubFromActiveDomain(registry);
-  }
-
   // Return hub that lives on a global object
   return getGlobalHub(registry);
 }
@@ -619,34 +602,6 @@ export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWi
 
   // if there was no strategy, fallback to just calling the callback
   return callback(getCurrentHub());
-}
-
-/**
- * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
- * @returns discovered hub
- */
-function getHubFromActiveDomain(registry: Carrier): Hub {
-  try {
-    const sentry = getMainCarrier().__SENTRY__;
-    const activeDomain = sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
-
-    // If there's no active domain, just return global hub
-    if (!activeDomain) {
-      return getHubFromCarrier(registry);
-    }
-
-    // If there's no hub on current domain, or it's an old API, assign a new one
-    if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
-      const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
-      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
-    }
-
-    // Return hub that lives on a domain
-    return getHubFromCarrier(activeDomain);
-  } catch (_Oo) {
-    // Return hub that lives on a global object
-    return getHubFromCarrier(registry);
-  }
 }
 
 /**

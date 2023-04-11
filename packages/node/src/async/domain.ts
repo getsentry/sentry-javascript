@@ -31,7 +31,7 @@ function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsync
     const activeDomain = getActiveDomain<domain.Domain & Carrier>();
 
     if (activeDomain) {
-      for (const emitter of options.args || []) {
+      for (const emitter of options.emitters || []) {
         if (emitter instanceof EventEmitter) {
           activeDomain.add(emitter);
         }
@@ -44,7 +44,7 @@ function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsync
 
   const local = domain.create();
 
-  for (const emitter of options.args || []) {
+  for (const emitter of options.emitters || []) {
     if (emitter instanceof EventEmitter) {
       local.add(emitter);
     }
