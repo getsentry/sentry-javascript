@@ -1,16 +1,26 @@
+import type { Hub } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { Transaction } from '@sentry/core';
+import { setAsyncContextStrategy, Transaction } from '@sentry/core';
 import type { Event } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 import * as http from 'http';
 
-import { setDomainAsyncContextStrategy } from '../src/async/domain';
 import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
 import * as SDK from '../src/sdk';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
-setDomainAsyncContextStrategy();
+function mockAsyncContextStrategy(getHub: () => Hub): void {
+  function getCurrentHub(): Hub | undefined {
+    return getHub();
+  }
+
+  function runWithAsyncContext<T>(fn: (hub: Hub) => T): T {
+    return fn(getHub());
+  }
+
+  setAsyncContextStrategy({ getCurrentHub, runWithAsyncContext });
+}
 
 describe('requestHandler', () => {
   const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
@@ -52,6 +62,7 @@ describe('requestHandler', () => {
     const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     sentryRequestMiddleware(req, res, next);
 
@@ -65,6 +76,7 @@ describe('requestHandler', () => {
     const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     sentryRequestMiddleware(req, res, next);
 
@@ -78,6 +90,7 @@ describe('requestHandler', () => {
     const hub = new sentryCore.Hub(client);
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -97,7 +110,9 @@ describe('requestHandler', () => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
     client = new NodeClient(options);
     const hub = new sentryCore.Hub(client);
+
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -142,6 +157,7 @@ describe('requestHandler', () => {
   it('stores request and request data options in `sdkProcessingMetadata`', () => {
     const hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions()));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     const requestHandlerOptions = { include: { ip: false } };
     const sentryRequestMiddleware = requestHandler(requestHandlerOptions);
@@ -177,6 +193,7 @@ describe('tracingHandler', () => {
   beforeEach(() => {
     hub = new sentryCore.Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
     req = {
       headers,
       method,
@@ -274,6 +291,8 @@ describe('tracingHandler', () => {
     const tracesSampler = jest.fn();
     const options = getDefaultNodeClientOptions({ tracesSampler });
     const hub = new sentryCore.Hub(new NodeClient(options));
+    mockAsyncContextStrategy(() => hub);
+
     hub.run(() => {
       sentryTracingMiddleware(req, res, next);
 
@@ -296,6 +315,7 @@ describe('tracingHandler', () => {
     const hub = new sentryCore.Hub(new NodeClient(options));
 
     jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     sentryTracingMiddleware(req, res, next);
 
@@ -502,14 +522,17 @@ describe('errorHandler()', () => {
     client.initSessionFlusher();
     const scope = new sentryCore.Scope();
     const hub = new sentryCore.Hub(client, scope);
+    mockAsyncContextStrategy(() => hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
     hub.run(() => {
       scope?.setRequestSession({ status: 'ok' });
-      sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-      const requestSession = scope?.getRequestSession();
-      expect(requestSession).toEqual({ status: 'crashed' });
+      sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
+        const scope = sentryCore.getCurrentHub().getScope();
+        const requestSession = scope?.getRequestSession();
+        expect(requestSession).toEqual({ status: 'crashed' });
+      });
     });
   });
 
@@ -535,6 +558,7 @@ describe('errorHandler()', () => {
     client = new NodeClient(options);
 
     const hub = new sentryCore.Hub(client);
+    mockAsyncContextStrategy(() => hub);
     sentryCore.makeMain(hub);
 
     // `sentryErrorMiddleware` uses `withScope`, and we need access to the temporary scope it creates, so monkeypatch
