@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { buildRecipeInstances } from './buildRecipeInstances';
+import { constructRecipeInstances } from './constructRecipeInstances';
 import { buildAndTestApp } from './runTestApp';
 import type { RecipeInstance, RecipeTestResult } from './types';
 
@@ -9,7 +9,7 @@ export async function runAllTestApps(
 ): Promise<void> {
   const maxParallel = process.env.CI ? 2 : 5;
 
-  const recipeInstances = buildRecipeInstances(recipePaths);
+  const recipeInstances = constructRecipeInstances(recipePaths);
 
   const results = await shardPromises(
     recipeInstances,

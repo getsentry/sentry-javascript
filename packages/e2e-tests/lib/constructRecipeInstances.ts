@@ -2,7 +2,7 @@ import * as fs from 'fs';
 
 import type { Recipe, RecipeInput, RecipeInstance } from './types';
 
-export function buildRecipeInstances(recipePaths: string[]): RecipeInstance[] {
+export function constructRecipeInstances(recipePaths: string[]): RecipeInstance[] {
   const recipes = buildRecipes(recipePaths);
   const recipeInstances: RecipeInstance[] = [];
 
