@@ -27,7 +27,7 @@ describe('Tracekit - Misc Tests', () => {
     });
   });
 
-  it.only('should parse SecurityError', () => {
+  it('should parse SecurityError', () => {
     const SECURITY_ERROR = {
       name: 'SecurityError',
       message: 'Blocked a frame with origin "https://SENTRY_URL.sentry.io" from accessing a cross-origin frame.',
