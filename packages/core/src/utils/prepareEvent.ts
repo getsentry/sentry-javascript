@@ -114,7 +114,7 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
   }
 }
 
-const debugIdStackParserCache = new Map<StackParser, Map<string, StackFrame[]>>();
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 
 /**
  * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
