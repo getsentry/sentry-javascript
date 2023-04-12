@@ -38,7 +38,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       name: context.eventType,
       op: 'function.gcp.event',
       metadata: { source: 'component' },
-    });
+    }) as ReturnType<typeof hub.startTransaction> | undefined;
 
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
@@ -53,7 +53,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       if (args[0] !== null && args[0] !== undefined) {
         captureException(args[0]);
       }
-      transaction.finish();
+      transaction?.finish();
 
       void flush(options.flushTimeout)
         .then(null, e => {
