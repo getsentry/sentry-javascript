@@ -22,6 +22,7 @@
   "dependencies": {
     "@sentry-internal/tracing": "7.47.0",
     "@sentry/core": "7.47.0",
+    "@sentry/integrations": "7.47.0",
     "@sentry/node": "7.47.0",
     "@sentry/svelte": "7.47.0",
     "@sentry/types": "7.47.0",

@@ -9,7 +9,11 @@ import type { Plugin } from 'vite';
 
 const DEFAULT_PLUGIN_OPTIONS: SentryVitePluginOptions = {
   // TODO: Read these values from the node adapter somehow as the out dir can be changed in the adapter options
-  include: ['build/server', 'build/client'],
+  include: [
+    { paths: ['build/client'] },
+    { paths: ['build/server/chunks'] },
+    { paths: ['build/server'], ignore: ['chunks/**'] },
+  ],
 };
 
 // sorcery has no types, so these are some basic type definitions:
