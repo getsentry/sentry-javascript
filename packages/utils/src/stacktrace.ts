@@ -35,6 +35,12 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
       // Remove webpack (error: *) wrappers
       const cleanedLine = WEBPACK_ERROR_REGEXP.test(line) ? line.replace(WEBPACK_ERROR_REGEXP, '$1') : line;
 
+      // https://github.com/getsentry/sentry-javascript/issues/7813
+      // Skip Error: lines
+      if (cleanedLine.match(/\S*Error: /)) {
+        continue;
+      }
+
       for (const parser of sortedParsers) {
         const frame = parser(cleanedLine);
 
