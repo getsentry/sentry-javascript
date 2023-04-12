@@ -482,9 +482,16 @@ export class Scope implements ScopeInterface {
     // errors with transaction and it relies on that.
     if (this._span) {
       event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-      const transactionName = this._span.transaction && this._span.transaction.name;
-      if (transactionName) {
-        event.tags = { transaction: transactionName, ...event.tags };
+      const transaction = this._span.transaction;
+      if (transaction) {
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          dynamicSamplingContext: transaction.getDynamicSamplingContext(),
+        };
+        const transactionName = transaction.name;
+        if (transactionName) {
+          event.tags = { transaction: transactionName, ...event.tags };
+        }
       }
     }
 

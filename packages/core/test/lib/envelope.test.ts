@@ -6,12 +6,16 @@ const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'tes
 
 describe('createEventEnvelope', () => {
   describe('trace header', () => {
-    it("doesn't add trace header if event is not a transaction", () => {
-      const event: Event = {};
+    it('adds a trace header to error events', () => {
+      const event: Event = {
+        sdkProcessingMetadata: {
+          dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
+        },
+      };
       const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
 
       expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.trace).toBeUndefined();
+      expect(envelopeHeaders.trace).toBeDefined();
     });
 
     const testTable: Array<[string, Event, DynamicSamplingContext]> = [
