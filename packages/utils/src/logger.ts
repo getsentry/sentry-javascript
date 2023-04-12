@@ -6,10 +6,10 @@ import { getGlobalSingleton, GLOBAL_OBJ } from './worldwide';
 const PREFIX = 'Sentry Logger ';
 
 export const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error', 'log', 'assert', 'trace'] as const;
-export type ConsoleLevel = typeof CONSOLE_LEVELS[number];
+export type ConsoleLevel = (typeof CONSOLE_LEVELS)[number];
 
 type LoggerMethod = (...args: unknown[]) => void;
-type LoggerConsoleMethods = Record<typeof CONSOLE_LEVELS[number], LoggerMethod>;
+type LoggerConsoleMethods = Record<(typeof CONSOLE_LEVELS)[number], LoggerMethod>;
 
 /** JSDoc */
 interface Logger extends LoggerConsoleMethods {
@@ -47,7 +47,7 @@ export function consoleSandbox<T>(callback: () => T): T {
   } finally {
     // Revert restoration to wrapped state
     Object.keys(wrappedLevels).forEach(level => {
-      originalConsole[level] = wrappedLevels[level as typeof CONSOLE_LEVELS[number]];
+      originalConsole[level] = wrappedLevels[level as (typeof CONSOLE_LEVELS)[number]];
     });
   }
 }
