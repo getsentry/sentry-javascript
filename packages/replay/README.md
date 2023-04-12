@@ -138,6 +138,11 @@ A session starts when the Session Replay SDK is first loaded and initialized. Th
 
 [^1]: An 'interaction' refers to either a mouse click or a browser navigation event.
 
+### Accessing the Replay Session ID
+
+You can get the ID of the currently running session via `replay.getSessionId()`.
+This will return `undefined` if no session is ongoing.
+
 ### Replay Captures Only on Errors
 
 Alternatively, rather than recording an entire session, you can capture a replay only when an error occurs. In this case, the integration will buffer up to one minute worth of events prior to the error being thrown. It will continue to record the session following the rules above regarding session life and activity. Read the [sampling](#Sampling) section for configuration options.
