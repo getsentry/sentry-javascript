@@ -37,7 +37,11 @@ export function prepareEvent(
 
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);
-  applyDebugMetadata(prepared, options.stackParser);
+
+  // Only apply debug metadata to error events.
+  if (event.type === undefined) {
+    applyDebugMetadata(prepared, options.stackParser);
+  }
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
