@@ -229,7 +229,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   /**
    * Get the current session ID.
    */
-  public getSessionId(): string | undefined {
+  public getReplayId(): string | undefined {
     if (!this._replay || !this._replay.isEnabled()) {
       return;
     }

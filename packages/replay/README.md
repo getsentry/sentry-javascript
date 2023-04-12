@@ -140,7 +140,7 @@ A session starts when the Session Replay SDK is first loaded and initialized. Th
 
 ### Accessing the Replay Session ID
 
-You can get the ID of the currently running session via `replay.getSessionId()`.
+You can get the ID of the currently running session via `replay.getReplayId()`.
 This will return `undefined` if no session is ongoing.
 
 ### Replay Captures Only on Errors

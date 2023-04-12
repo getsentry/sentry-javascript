@@ -3,7 +3,7 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-describe('Integration | getSessionId', () => {
+describe('Integration | getReplayId', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -15,12 +15,12 @@ describe('Integration | getSessionId', () => {
       },
     });
 
-    expect(integration.getSessionId()).toBeDefined();
-    expect(integration.getSessionId()).toEqual(replay.session?.id);
+    expect(integration.getReplayId()).toBeDefined();
+    expect(integration.getReplayId()).toEqual(replay.session?.id);
 
     // When stopped, it is undefined
     integration.stop();
 
-    expect(integration.getSessionId()).toBeUndefined();
+    expect(integration.getReplayId()).toBeUndefined();
   });
 });
