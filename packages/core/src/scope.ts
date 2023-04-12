@@ -485,8 +485,8 @@ export class Scope implements ScopeInterface {
       const transaction = this._span.transaction;
       if (transaction) {
         event.sdkProcessingMetadata = {
-          ...event.sdkProcessingMetadata,
           dynamicSamplingContext: transaction.getDynamicSamplingContext(),
+          ...event.sdkProcessingMetadata,
         };
         const transactionName = transaction.name;
         if (transactionName) {
