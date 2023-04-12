@@ -37,7 +37,7 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
  * Sentry adds a few additional properties to your Vite config.
  * Make sure, it is registered before the SvelteKit plugin.
  */
-export function sentryVite(options: SentrySvelteKitPluginOptions = {}): Plugin[] {
+export function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}): Plugin[] {
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,

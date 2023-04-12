@@ -150,15 +150,15 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
 ### 5. Vite Setup
 
-1. Add our `sentryVite` plugins to your `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time features.
+1. Add our `sentrySvelteKit` plugins to your `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time features.
    Make sure that it is added before the `sveltekit` plugin:
 
    ```javascript
     import { sveltekit } from '@sveltejs/kit/vite';
-    import { sentryVite } from '@sentry/sveltekit';
+    import { sentrySvelteKit } from '@sentry/sveltekit';
 
     export default {
-      plugins: [sentryVite(), sveltekit()],
+      plugins: [sentrySvelteKit(), sveltekit()],
       // ... rest of your Vite config
     };
    ```

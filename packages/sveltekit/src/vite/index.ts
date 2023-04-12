@@ -1,1 +1,1 @@
-export { sentryVite } from './sentryVitePlugins';
+export { sentrySvelteKit } from './sentryVitePlugins';
