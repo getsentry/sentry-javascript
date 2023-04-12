@@ -56,7 +56,7 @@
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:jest": "jest",
     "test:release-health": "node test/manual/release-health/runner.js",
-    "test:webpack": "cd test/manual/webpack-domain/ && yarn --silent && node npm-build.js",
+    "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push"
   },
