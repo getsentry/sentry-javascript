@@ -589,9 +589,11 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
 }
 
 /**
- * @private Private API with no semver guarantees!
+ * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
  *
- * Runs the supplied callback in its own async context.
+ * @param callback The callback to run in its own async context
+ * @param options Options to pass to the async context strategy
+ * @returns The result of the callback
  */
 export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
