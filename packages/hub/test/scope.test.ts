@@ -367,12 +367,11 @@ describe('Scope', () => {
     test('adds `transaction` tag when span on scope', async () => {
       expect.assertions(1);
       const scope = new Scope();
-      const transaction = { name: 'fake transaction' };
+      const transaction = { name: 'fake transaction', getDynamicSamplingContext: () => ({}) };
       const span = {
         fake: 'span',
         getTraceContext: () => ({ a: 'b' }),
         transaction,
-        getDynamicSamplingContext: () => ({}),
       } as any;
       scope.setSpan(span);
       const event: Event = {};
