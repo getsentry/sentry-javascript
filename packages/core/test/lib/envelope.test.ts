@@ -6,18 +6,6 @@ const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'tes
 
 describe('createEventEnvelope', () => {
   describe('trace header', () => {
-    it('adds a trace header to error events', () => {
-      const event: Event = {
-        sdkProcessingMetadata: {
-          dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
-        },
-      };
-      const envelopeHeaders = createEventEnvelope(event, testDsn)[0];
-
-      expect(envelopeHeaders).toBeDefined();
-      expect(envelopeHeaders.trace).toBeDefined();
-    });
-
     const testTable: Array<[string, Event, DynamicSamplingContext]> = [
       [
         'adds minimal baggage items',
@@ -69,6 +57,15 @@ describe('createEventEnvelope', () => {
           public_key: 'pubKey123',
           trace_id: '1234',
         },
+      ],
+      [
+        'with error event',
+        {
+          sdkProcessingMetadata: {
+            dynamicSamplingContext: { trace_id: '1234', public_key: 'pubKey123' },
+          },
+        },
+        { trace_id: '1234', public_key: 'pubKey123' },
       ],
     ];
     it.each(testTable)('%s', (_: string, event, trace) => {
