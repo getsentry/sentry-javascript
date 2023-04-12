@@ -354,6 +354,7 @@ describe('Scope', () => {
         fake: 'span',
         getTraceContext: () => ({ a: 'b' }),
         name: 'fake transaction',
+        getDynamicSamplingContext: () => ({}),
       } as any;
       transaction.transaction = transaction; // because this is a transaction, its `transaction` pointer points to itself
       scope.setSpan(transaction);
@@ -371,6 +372,7 @@ describe('Scope', () => {
         fake: 'span',
         getTraceContext: () => ({ a: 'b' }),
         transaction,
+        getDynamicSamplingContext: () => ({}),
       } as any;
       scope.setSpan(span);
       const event: Event = {};
