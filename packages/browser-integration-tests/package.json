@@ -39,6 +39,7 @@
     "test:loader:tracing": "PW_BUNDLE=loader_tracing yarn test:loader",
     "test:loader:replay": "PW_BUNDLE=loader_replay yarn test:loader",
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
+    "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:ci": "playwright test ./suites --browser='all' --reporter='line'",
     "test:update-snapshots": "yarn test --update-snapshots --browser='all' && yarn test --update-snapshots",
     "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts",
