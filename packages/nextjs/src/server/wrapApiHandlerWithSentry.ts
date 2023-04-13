@@ -63,8 +63,6 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
       // use a domain in order to prevent scope bleed between requests
       const local = domain.create();
-      local.add(req);
-      local.add(res);
 
       // `local.bind` causes everything to run inside a domain, just like `local.run` does, but it also lets the callback
       // return a value. In our case, all any of the codepaths return is a promise of `void`, but nextjs still counts on
