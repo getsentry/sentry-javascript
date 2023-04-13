@@ -86,7 +86,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('allows undefined send response when using custom transport', async () => {
@@ -140,7 +140,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(error1, { statusCode: 200 });
 
@@ -210,7 +210,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(profileEvent, { statusCode: 200 });
     handler(replayEvent, { statusCode: 200 });
@@ -224,7 +224,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('does not flush in error mode when failing to send the error', async () => {
@@ -244,7 +244,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(error1, undefined);
 
@@ -258,7 +258,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('does not flush if error event has no exception', async () => {
@@ -278,7 +278,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(error1, { statusCode: 200 });
 
@@ -292,7 +292,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('does not flush if error is replay send error', async () => {
@@ -312,7 +312,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(error1, { statusCode: 200 });
 
@@ -326,6 +326,6 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 });

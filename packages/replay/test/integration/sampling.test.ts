@@ -72,7 +72,8 @@ describe('Integration | sampling', () => {
       traceIds: new Set(),
       urls: ['http://localhost/'],
     });
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
+
     expect(spyAddListeners).toHaveBeenCalledTimes(1);
     expect(mockRecord).toHaveBeenCalledTimes(1);
   });

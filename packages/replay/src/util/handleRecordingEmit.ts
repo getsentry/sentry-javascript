@@ -34,7 +34,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // when an error occurs. Clear any state that happens before this current
       // checkout. This needs to happen before `addEvent()` which updates state
       // dependent on this reset.
-      if (replay.recordingMode === 'error' && isCheckout) {
+      if (replay.recordingMode === 'buffer' && isCheckout) {
         replay.setInitialState();
       }
 
@@ -60,7 +60,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // See note above re: session start needs to reflect the most recent
       // checkout.
-      if (replay.recordingMode === 'error' && replay.session) {
+      if (replay.recordingMode === 'buffer' && replay.session) {
         const { earliestEvent } = replay.getContext();
         if (earliestEvent) {
           replay.session.started = earliestEvent;

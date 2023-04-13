@@ -387,7 +387,7 @@ export interface InternalEventContext extends CommonEventContext {
   earliestEvent: number | null;
 }
 
-export type Sampled = false | 'session' | 'error';
+export type Sampled = false | 'session' | 'buffer';
 
 export interface Session {
   id: string;
@@ -414,7 +414,7 @@ export interface Session {
   previousSessionId?: string;
 
   /**
-   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
 }

@@ -28,5 +28,5 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
  * Get the sampled status for a session based on sample rates & current sampled status.
  */
 export function getSessionSampleType(sessionSampleRate: number, errorSampleRate: number): Sampled {
-  return isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false;
+  return isSampled(sessionSampleRate) ? 'session' : errorSampleRate > 0 ? 'buffer' : false;
 }

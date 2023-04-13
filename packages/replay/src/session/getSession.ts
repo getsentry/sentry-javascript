@@ -36,8 +36,8 @@ export function getSession({
 
     if (!isExpired) {
       return { type: 'saved', session };
-    } else if (session.sampled === 'error') {
-      // Error samples should not be re-created when expired, but instead we stop when the replay is done
+    } else if (session.sampled === 'buffer') {
+      // Buffered samples should not be re-created when expired, but instead we stop when the replay is done
       const discardedSession = makeSession({ sampled: false });
       return { type: 'new', session: discardedSession };
     } else {
