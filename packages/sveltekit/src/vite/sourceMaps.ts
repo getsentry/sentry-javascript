@@ -94,7 +94,7 @@ export function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOpti
 
     // We need to start uploading source maps later than in the original plugin
     // because SvelteKit is still doing some stuff at closeBundle.
-    closeBundle: () => {
+    closeBundle: async () => {
       if (!upload) {
         return;
       }
@@ -131,8 +131,21 @@ export function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOpti
         }
       });
 
-      // @ts-ignore - this hook exists on the plugin!
-      sentryPlugin.writeBundle();
+      try {
+        // @ts-ignore - this hook exists on the plugin!
+        await sentryPlugin.writeBundle();
+      } catch (_) {
+        // eslint-disable-next-line no-console
+        console.warn('[Source Maps Plugin] Failed to upload source maps!');
+        // eslint-disable-next-line no-console
+        console.log(
+          '[Source Maps Plugin] Please make sure, you specified a valid Sentry auth token, as well as your org and project slugs.',
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+          '[Source Maps Plugin] Further information: https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps',
+        );
+      }
     },
   };
 
