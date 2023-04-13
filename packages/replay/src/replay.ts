@@ -18,6 +18,7 @@ import type {
   PopEventContext,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
+  ReplayExperimentalPluginOptions,
   ReplayPluginOptions,
   Session,
   Timeouts,
@@ -62,6 +63,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     sessionIdle: SESSION_IDLE_DURATION,
     maxSessionLife: MAX_SESSION_LIFE,
   } as const;
+
+  private readonly _experimentalOptions: ReplayExperimentalPluginOptions;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -125,6 +128,8 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush = debounce(() => this._flush(), this._options.flushMinDelay, {
       maxWait: this._options.flushMaxDelay,
     });
+
+    this._experimentalOptions = _getExperimentalOptions(options);
   }
 
   /** Get the event context. */
@@ -145,6 +150,15 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Get the replay integration options. */
   public getOptions(): ReplayPluginOptions {
     return this._options;
+  }
+
+  /**
+   * Get the experimental options.
+   * THIS IS INTERNAL AND SUBJECT TO CHANGE!
+   * @hidden
+   */
+  public getExperimentalOptions(): ReplayExperimentalPluginOptions {
+    return this._experimentalOptions;
   }
 
   /**
@@ -852,5 +866,22 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // `true` means we use the regular mutation handling by rrweb
     return true;
+  };
+}
+
+function _getExperimentalOptions(options: ReplayPluginOptions): ReplayExperimentalPluginOptions {
+  const requestHeaders = options._experiments.captureRequestHeaders || [];
+  const responseHeaders = options._experiments.captureResponseHeaders || [];
+  const captureBodies = options._experiments.captureNetworkBodies || false;
+
+  // Add defaults
+  const defaultHeaders = ['content-length', 'content-type', 'accept'];
+
+  return {
+    network: {
+      captureBodies,
+      requestHeaders: [...defaultHeaders, ...requestHeaders.map(header => header.toLowerCase())],
+      responseHeaders: [...defaultHeaders, ...responseHeaders.map(header => header.toLowerCase())],
+    },
   };
 }

@@ -8,16 +8,15 @@ import type {
 } from '@sentry/types';
 import { addInstrumentationHandler, logger } from '@sentry/utils';
 
-import type { FetchHint, ReplayContainer, XhrHint } from '../types';
+import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
 import { handleFetchSpanListener } from './handleFetch';
 import { handleXhrSpanListener } from './handleXhr';
 import { captureFetchBreadcrumbToReplay, enrichFetchBreadcrumb } from './util/fetchUtils';
 import { captureXhrBreadcrumbToReplay, enrichXhrBreadcrumb } from './util/xhrUtils';
 
-interface ExtendedNetworkBreadcrumbsOptions {
+interface ExtendedNetworkBreadcrumbsOptions extends ReplayNetworkOptions {
   replay: ReplayContainer;
   textEncoder: TextEncoderInternal;
-  captureBodies: boolean;
 }
 
 /**
@@ -35,7 +34,7 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
     const options: ExtendedNetworkBreadcrumbsOptions = {
       replay,
       textEncoder,
-      captureBodies: replay.getOptions()._experiments.captureNetworkBodies || false,
+      ...replay.getExperimentalOptions().network,
     };
 
     if (client && client.on) {
