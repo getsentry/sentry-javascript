@@ -6,6 +6,7 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   isInstanceOf,
+  SENTRY_XHR_DATA_KEY,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
@@ -74,7 +75,7 @@ export interface FetchData {
 /** Data returned from XHR request */
 export interface XHRData {
   xhr?: {
-    __sentry_xhr__?: {
+    [SENTRY_XHR_DATA_KEY]?: {
       method: string;
       url: string;
       status_code: number;
@@ -297,24 +298,25 @@ export function xhrCallback(
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
 ): void {
+  const xhr = handlerData.xhr;
+  const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
+
   if (
     !hasTracingEnabled() ||
-    (handlerData.xhr && handlerData.xhr.__sentry_own_request__) ||
-    !(handlerData.xhr && handlerData.xhr.__sentry_xhr__ && shouldCreateSpan(handlerData.xhr.__sentry_xhr__.url))
+    (xhr && xhr.__sentry_own_request__) ||
+    !(xhr && sentryXhrData && shouldCreateSpan(sentryXhrData.url))
   ) {
     return;
   }
 
-  const xhr = handlerData.xhr.__sentry_xhr__;
-
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp) {
-    const spanId = handlerData.xhr.__sentry_xhr_span_id__;
+    const spanId = xhr.__sentry_xhr_span_id__;
     if (!spanId) return;
 
     const span = spans[spanId];
     if (span) {
-      span.setHttpStatus(xhr.status_code);
+      span.setHttpStatus(sentryXhrData.status_code);
       span.finish();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -330,21 +332,21 @@ export function xhrCallback(
   if (currentSpan && activeTransaction) {
     const span = currentSpan.startChild({
       data: {
-        ...xhr.data,
+        ...sentryXhrData.data,
         type: 'xhr',
-        method: xhr.method,
-        url: xhr.url,
+        method: sentryXhrData.method,
+        url: sentryXhrData.url,
       },
-      description: `${xhr.method} ${xhr.url}`,
+      description: `${sentryXhrData.method} ${sentryXhrData.url}`,
       op: 'http.client',
     });
 
-    handlerData.xhr.__sentry_xhr_span_id__ = span.spanId;
-    spans[handlerData.xhr.__sentry_xhr_span_id__] = span;
+    xhr.__sentry_xhr_span_id__ = span.spanId;
+    spans[xhr.__sentry_xhr_span_id__] = span;
 
-    if (handlerData.xhr.setRequestHeader && shouldAttachHeaders(handlerData.xhr.__sentry_xhr__.url)) {
+    if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
       try {
-        handlerData.xhr.setRequestHeader('sentry-trace', span.toTraceparent());
+        xhr.setRequestHeader('sentry-trace', span.toTraceparent());
 
         const dynamicSamplingContext = activeTransaction.getDynamicSamplingContext();
         const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
@@ -353,7 +355,7 @@ export function xhrCallback(
           // From MDN: "If this method is called several times with the same header, the values are merged into one single request header."
           // We can therefore simply set a baggage header without checking what was there before
           // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
-          handlerData.xhr.setRequestHeader(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+          xhr.setRequestHeader(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
         }
       } catch (_) {
         // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.

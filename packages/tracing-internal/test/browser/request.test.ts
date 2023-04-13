@@ -1,6 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import * as sentryCore from '@sentry/core';
 import * as utils from '@sentry/utils';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import type { Transaction } from '../../../tracing/src';
 import { addExtensionMethods, Span, spanStatusfromHttpCode } from '../../../tracing/src';
@@ -234,7 +235,7 @@ describe('callbacks', () => {
     beforeEach(() => {
       xhrHandlerData = {
         xhr: {
-          __sentry_xhr__: {
+          [SENTRY_XHR_DATA_KEY]: {
             method: 'GET',
             url: 'http://dogs.are.great/',
             status_code: 200,
@@ -328,7 +329,7 @@ describe('callbacks', () => {
         ...xhrHandlerData,
         endTimestamp,
       };
-      postRequestXHRHandlerData.xhr!.__sentry_xhr__!.status_code = 404;
+      postRequestXHRHandlerData.xhr![SENTRY_XHR_DATA_KEY]!.status_code = 404;
 
       // triggered by response coming back
       xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
@@ -342,7 +343,7 @@ describe('callbacks', () => {
       const postRequestXHRHandlerData = {
         ...{
           xhr: {
-            __sentry_xhr__: xhrHandlerData.xhr?.__sentry_xhr__,
+            [SENTRY_XHR_DATA_KEY]: xhrHandlerData.xhr?.[SENTRY_XHR_DATA_KEY],
           },
         },
         startTimestamp,

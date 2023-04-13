@@ -12,6 +12,7 @@ import {
   addInstrumentationHandler,
   GLOBAL_OBJ,
   logger,
+  SENTRY_XHR_DATA_KEY,
   supportsNativeFetch,
 } from '@sentry/utils';
 
@@ -322,11 +323,13 @@ export class HttpClient implements Integration {
       (handlerData: HandlerDataXhr & { xhr: SentryWrappedXMLHttpRequest & XMLHttpRequest }) => {
         const { xhr } = handlerData;
 
-        if (!xhr.__sentry_xhr__) {
+        const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
+
+        if (!sentryXhrData) {
           return;
         }
 
-        const { method, request_headers: headers } = xhr.__sentry_xhr__;
+        const { method, request_headers: headers } = sentryXhrData;
 
         if (!method) {
           return;

@@ -15,6 +15,7 @@ import {
   logger,
   parseUrl,
   safeJoin,
+  SENTRY_XHR_DATA_KEY,
   severityLevelFromString,
 } from '@sentry/utils';
 
@@ -225,12 +226,14 @@ function _consoleBreadcrumb(handlerData: HandlerData & { args: unknown[]; level:
 function _xhrBreadcrumb(handlerData: HandlerData & HandlerDataXhr): void {
   const { startTimestamp, endTimestamp } = handlerData;
 
+  const sentryXhrData = handlerData.xhr[SENTRY_XHR_DATA_KEY];
+
   // We only capture complete, non-sentry requests
-  if (!startTimestamp || !endTimestamp || !handlerData.xhr.__sentry_xhr__) {
+  if (!startTimestamp || !endTimestamp || !sentryXhrData) {
     return;
   }
 
-  const { method, url, status_code, body } = handlerData.xhr.__sentry_xhr__;
+  const { method, url, status_code, body } = sentryXhrData;
 
   const data: XhrBreadcrumbData = {
     method,
