@@ -5,6 +5,7 @@ import { init as initNodeSdk, Integrations } from '@sentry/node';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';
+import { rewriteFramesIteratee } from './utils';
 
 /**
  *
@@ -24,5 +25,8 @@ export function init(options: NodeOptions): void {
 
 function addServerIntegrations(options: NodeOptions): void {
   options.integrations = addOrUpdateIntegration(new Integrations.Undici(), options.integrations || []);
-  options.integrations = addOrUpdateIntegration(new RewriteFrames(), options.integrations || []);
+  options.integrations = addOrUpdateIntegration(
+    new RewriteFrames({ iteratee: rewriteFramesIteratee }),
+    options.integrations || [],
+  );
 }
