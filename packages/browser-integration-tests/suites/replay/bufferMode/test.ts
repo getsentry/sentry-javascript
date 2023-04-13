@@ -29,7 +29,7 @@ sentryTest(
     let errorEventId: string | undefined;
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
-    // const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise2 = waitForReplayRequest(page, 2);
     const reqErrorPromise = waitForErrorRequest(page);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -100,17 +100,20 @@ sentryTest(
 
     await page.click('#log');
     await page.click('#go-background');
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Switches to session mode
-    expect(callsToSentry).toEqual(4);
+    // Switches to session mode and then goes to background
     const req1 = await reqPromise1;
+    const req2 = await reqPromise2;
+    expect(callsToSentry).toEqual(5);
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);
 
     const event1 = getReplayEvent(req1);
     const content1 = getReplayRecordingContent(req1);
+
+    const event2 = getReplayEvent(req2);
+    const content2 = getReplayRecordingContent(req2);
 
     expect(event0).toEqual(
       getExpectedReplayEvent({
@@ -150,31 +153,30 @@ sentryTest(
     expect(event1).toEqual(
       getExpectedReplayEvent({
         contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
+        replay_start_timestamp: undefined,
         replay_type: 'buffer', // although we're in session mode, we still send 'buffer' as replay_type
         segment_id: 1,
         urls: [],
       }),
     );
 
-    //
-    expect(content1.fullSnapshots).toHaveLength(0);
+    // From switching to session mode
+    expect(content1.fullSnapshots).toHaveLength(1);
 
-    expect(content1.breadcrumbs).toEqual(
+    expect(event2).toEqual(
+      getExpectedReplayEvent({
+        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
+        replay_start_timestamp: undefined,
+        replay_type: 'buffer', // although we're in session mode, we still send 'buffer' as replay_type
+        segment_id: 2,
+        urls: [],
+      }),
+    );
+
+    expect(content2.fullSnapshots).toHaveLength(0);
+    expect(content2.breadcrumbs).toEqual(
       expect.arrayContaining([
-        {
-          ...expectedClickBreadcrumb,
-          message: 'body > button#log',
-          data: {
-            node: {
-              attributes: { id: 'log' },
-              id: expect.any(Number),
-              tagName: 'button',
-              textContent: '*** ***** ** *** *******',
-            },
-            nodeId: expect.any(Number),
-          },
-        },
-        { ...expectedConsoleBreadcrumb, level: 'log', message: 'Some message' },
+          expectedClickBreadcrumb,
       ]),
     );
   },
