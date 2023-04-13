@@ -1,4 +1,5 @@
 import type { HandlerDataXhr } from '@sentry/types';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import type { NetworkRequestData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { addNetworkBreadcrumb } from './util/addNetworkBreadcrumb';
@@ -7,12 +8,14 @@ import { addNetworkBreadcrumb } from './util/addNetworkBreadcrumb';
 export function handleXhr(handlerData: HandlerDataXhr): ReplayPerformanceEntry<NetworkRequestData> | null {
   const { startTimestamp, endTimestamp, xhr } = handlerData;
 
-  if (!startTimestamp || !endTimestamp || !xhr.__sentry_xhr__) {
+  const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
+
+  if (!startTimestamp || !endTimestamp || !sentryXhrData) {
     return null;
   }
 
   // This is only used as a fallback, so we know the body sizes are never set here
-  const { method, url, status_code: statusCode } = xhr.__sentry_xhr__;
+  const { method, url, status_code: statusCode } = sentryXhrData;
 
   if (url === undefined) {
     return null;

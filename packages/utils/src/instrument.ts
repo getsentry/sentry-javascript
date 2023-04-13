@@ -19,6 +19,8 @@ import { getGlobalObject } from './worldwide';
 // eslint-disable-next-line deprecation/deprecation
 const WINDOW = getGlobalObject<Window>();
 
+export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v2__';
+
 export type InstrumentHandlerType =
   | 'console'
   | 'dom'
@@ -244,7 +246,7 @@ function instrumentXHR(): void {
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
       const url = args[1];
-      const xhrInfo: SentryXhrData = (this.__sentry_xhr__ = {
+      const xhrInfo: SentryXhrData = (this[SENTRY_XHR_DATA_KEY] = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         method: isString(args[0]) ? args[0].toUpperCase() : args[0],
         url: args[1],
@@ -259,7 +261,7 @@ function instrumentXHR(): void {
 
       const onreadystatechangeHandler: () => void = () => {
         // For whatever reason, this is not the same instance here as from the outer method
-        const xhrInfo = this.__sentry_xhr__;
+        const xhrInfo = this[SENTRY_XHR_DATA_KEY];
 
         if (!xhrInfo) {
           return;
@@ -301,7 +303,7 @@ function instrumentXHR(): void {
         return function (this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
           const [header, value] = setRequestHeaderArgs as [string, string];
 
-          const xhrInfo = this.__sentry_xhr__;
+          const xhrInfo = this[SENTRY_XHR_DATA_KEY];
 
           if (xhrInfo) {
             xhrInfo.request_headers[header] = value;
@@ -317,8 +319,9 @@ function instrumentXHR(): void {
 
   fill(xhrproto, 'send', function (originalSend: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
-      if (this.__sentry_xhr__ && args[0] !== undefined) {
-        this.__sentry_xhr__.body = args[0];
+      const sentryXhrData = this[SENTRY_XHR_DATA_KEY];
+      if (sentryXhrData && args[0] !== undefined) {
+        sentryXhrData.body = args[0];
       }
 
       triggerHandlers('xhr', {
