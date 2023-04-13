@@ -1,4 +1,7 @@
-import { getTracePropagationData } from '../../src/server/utils';
+import { RewriteFrames } from '@sentry/integrations';
+import type { StackFrame } from '@sentry/types';
+
+import { getTracePropagationData, rewriteFramesIteratee } from '../../src/server/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {
@@ -51,5 +54,44 @@ describe('getTracePropagationData', () => {
 
     expect(traceparentData).toBeUndefined();
     expect(dynamicSamplingContext).toBeUndefined();
+  });
+});
+
+describe('rewriteFramesIteratee', () => {
+  it('removes the module property from the frame', () => {
+    const frame: StackFrame = {
+      filename: '/some/path/to/server/chunks/3-ab34d22f.js',
+      module: '3-ab34d22f.js',
+    };
+
+    const result = rewriteFramesIteratee(frame);
+
+    expect(result).not.toHaveProperty('module');
+  });
+
+  it('does the same filename modification as the default RewriteFrames iteratee', () => {
+    const frame: StackFrame = {
+      filename: '/some/path/to/server/chunks/3-ab34d22f.js',
+      lineno: 1,
+      colno: 1,
+      module: '3-ab34d22f.js',
+    };
+
+    const originalRewriteFrames = new RewriteFrames();
+    // @ts-ignore this property exists
+    const defaultIteratee = originalRewriteFrames._iteratee;
+
+    const defaultResult = defaultIteratee({ ...frame });
+    delete defaultResult.module;
+
+    const result = rewriteFramesIteratee({ ...frame });
+
+    expect(result).toEqual({
+      filename: 'app:///3-ab34d22f.js',
+      lineno: 1,
+      colno: 1,
+    });
+
+    expect(result).toStrictEqual(defaultResult);
   });
 });

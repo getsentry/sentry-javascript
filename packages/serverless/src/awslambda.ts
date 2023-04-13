@@ -328,7 +328,7 @@ export function wrapHandler<TEvent, TResult>(
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         source: 'component',
       },
-    });
+    }) as Sentry.Transaction | undefined;
 
     const scope = hub.pushScope();
     let rv: TResult;
@@ -350,7 +350,7 @@ export function wrapHandler<TEvent, TResult>(
       throw e;
     } finally {
       clearTimeout(timeoutWarningTimer);
-      transaction.finish();
+      transaction?.finish();
       hub.popScope();
       await flush(options.flushTimeout).catch(e => {
         __DEBUG_BUILD__ && logger.error(e);

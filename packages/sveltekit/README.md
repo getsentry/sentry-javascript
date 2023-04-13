@@ -150,28 +150,108 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
 ### 5. Vite Setup
 
-3. Add our `withSentryViteConfig` wrapper around your Vite config so that the Sentry SDK can add its plugins to your Vite config `vite.config.(js|ts)`:
+1. Add our `sentrySvelteKit` plugins to your `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time features.
+   Make sure that it is added before the `sveltekit` plugin:
+
    ```javascript
     import { sveltekit } from '@sveltejs/kit/vite';
-    import { withSentryViteConfig } from '@sentry/sveltekit';
+    import { sentrySvelteKit } from '@sentry/sveltekit';
 
-    export default withSentryViteConfig({
-      plugins: [sveltekit()],
-      // ...
-    });
+    export default {
+      plugins: [sentrySvelteKit(), sveltekit()],
+      // ... rest of your Vite config
+    };
    ```
 
-   In the near future this wrapper will add and configure our [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to automatically upload source maps to Sentry.
-   Furthermore, if you prefer to intialize the Sentry SDK in dedicated files, instead of the hook files, you can move the `Sentry.init` code to `sentry.(client|server).config.(js|ts)` files and `withSentryViteConfig` will take care of adding them to your server and client bundles.
+   This adds the [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to your Vite config to automatically upload source maps to Sentry.
+
+## Uploading Source Maps
+
+After completing the [Vite Setup](#5-vite-setup), the SDK will automatically upload source maps to Sentry, when you
+build your project. However, you still need to specify your Sentry auth token as well as your org and project slugs. You
+can either set them as env variables (for example in a `.env` file):
+
+- `SENTRY_ORG` your Sentry org slug
+- `SENTRY_PROJECT` your Sentry project slug
+- `SENTRY_AUTH_TOKEN` your Sentry auth token
+
+Or you can pass them in whatever form you prefer to `sentrySvelteKit`:
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+export default {
+  plugins: [
+    sentrySvelteKit({
+      sourceMapsUploadOptions: {
+        org: 'my-org-slug',
+        project: 'my-project-slug',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      },
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
+};
+```
+
+### Configuring Source maps upload
+
+Under `sourceMapsUploadOptions`, you can also specify all additional options supported by the
+[Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/main/packages/vite-plugin/README.md#configuration).
+This might be useful if you're using adapters other than the Node adapter or have a more customized build setup.
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+export default {
+  plugins: [
+    sentrySvelteKit({
+      sourceMapsUploadOptions: {
+        org: 'my-org-slug',
+        project: 'my-project-slug',
+        authToken: 'process.env.SENTRY_AUTH_TOKEN',
+        include: ['dist'],
+        cleanArtifacts: true,
+        setCommits: {
+          auto: true,
+        },
+      },
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
+};
+```
+
+### Disabeling automatic source map upload
+
+If you don't want to upload source maps automatically, you can disable it as follows:
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+export default {
+  plugins: [
+    sentrySvelteKit({
+      autoUploadSourceMaps: false,
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
+};
+```
 
 ## Known Limitations
 
 This SDK is still under active development and several features are missing.
 Take a look at our [SvelteKit SDK Development Roadmap](https://github.com/getsentry/sentry-javascript/issues/6692) to follow the progress:
-
-- **Source Maps** upload is not yet working correctly.
-  We already investigated [some options](https://github.com/getsentry/sentry-javascript/discussions/5838#discussioncomment-4696985) but uploading source maps doesn't work automtatically out of the box yet.
-  This will be addressed next, as we release the next alpha builds.
 
 - **Adapters** other than `@sveltejs/adapter-node` are currently not supported.
   We haven't yet tested other platforms like Vercel.

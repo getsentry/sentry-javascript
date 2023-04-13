@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { captureException, getCurrentHub, hasTracingEnabled, startTransaction, withScope } from '@sentry/core';
+import {
+  captureException,
+  getCurrentHub,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  startTransaction,
+  withScope,
+} from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
@@ -12,7 +19,6 @@ import {
   logger,
   normalize,
 } from '@sentry/utils';
-import * as domain from 'domain';
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
@@ -181,46 +187,43 @@ export function requestHandler(
           });
       };
     }
-    const local = domain.create();
-    local.add(req);
-    local.add(res);
+    runWithAsyncContext(
+      currentHub => {
+        currentHub.configureScope(scope => {
+          scope.setSDKProcessingMetadata({
+            request: req,
+            // TODO (v8): Stop passing this
+            requestDataOptionsFromExpressHandler: requestDataOptions,
+          });
 
-    local.run(() => {
-      const currentHub = getCurrentHub();
-
-      currentHub.configureScope(scope => {
-        scope.setSDKProcessingMetadata({
-          request: req,
-          // TODO (v8): Stop passing this
-          requestDataOptionsFromExpressHandler: requestDataOptions,
+          const client = currentHub.getClient<NodeClient>();
+          if (isAutoSessionTrackingEnabled(client)) {
+            const scope = currentHub.getScope();
+            if (scope) {
+              // Set `status` of `RequestSession` to Ok, at the beginning of the request
+              scope.setRequestSession({ status: 'ok' });
+            }
+          }
         });
 
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          const scope = currentHub.getScope();
-          if (scope) {
-            // Set `status` of `RequestSession` to Ok, at the beginning of the request
-            scope.setRequestSession({ status: 'ok' });
-          }
-        }
-      });
-
-      res.once('finish', () => {
-        const client = currentHub.getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
-          setImmediate(() => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (client && (client as any)._captureRequestSession) {
-              // Calling _captureRequestSession to capture request session at the end of the request by incrementing
-              // the correct SessionAggregates bucket i.e. crashed, errored or exited
+        res.once('finish', () => {
+          const client = currentHub.getClient<NodeClient>();
+          if (isAutoSessionTrackingEnabled(client)) {
+            setImmediate(() => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (client as any)._captureRequestSession();
-            }
-          });
-        }
-      });
-      next();
-    });
+              if (client && (client as any)._captureRequestSession) {
+                // Calling _captureRequestSession to capture request session at the end of the request by incrementing
+                // the correct SessionAggregates bucket i.e. crashed, errored or exited
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                (client as any)._captureRequestSession();
+              }
+            });
+          }
+        });
+        next();
+      },
+      { emitters: [req, res] },
+    );
   };
 }
 
@@ -334,7 +337,7 @@ interface TrpcMiddlewareArguments<T> {
  * Use the Sentry tRPC middleware in combination with the Sentry server integration,
  * e.g. Express Request Handlers or Next.js SDK.
  */
-export async function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
+export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();

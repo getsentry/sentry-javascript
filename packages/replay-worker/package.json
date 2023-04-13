@@ -14,7 +14,7 @@
     "build:dev": "yarn build",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-p build:watch",
-    "build:transpile:watch": "yarn build:rollup --watch",
+    "build:transpile:watch": "yarn build:transpile --watch",
     "build:types:watch": "yarn build:types --watch",
     "clean": "rimraf build",
     "fix": "run-s fix:eslint fix:prettier",

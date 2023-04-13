@@ -1,7 +1,7 @@
 import { captureException, flush, getCurrentHub } from '@sentry/node';
 import { isThenable, logger } from '@sentry/utils';
 
-import { domainify, getActiveDomain, proxyFunction } from '../utils';
+import { domainify, proxyFunction } from '../utils';
 import type { EventFunction, EventFunctionWithCallback, WrapperOptions } from './general';
 
 export type EventFunctionWrapperOptions = WrapperOptions;
@@ -38,7 +38,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       name: context.eventType,
       op: 'function.gcp.event',
       metadata: { source: 'component' },
-    });
+    }) as ReturnType<typeof hub.startTransaction> | undefined;
 
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
@@ -49,13 +49,11 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
       scope.setSpan(transaction);
     });
 
-    const activeDomain = getActiveDomain()!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-
-    const newCallback = activeDomain.bind((...args: unknown[]) => {
+    const newCallback = domainify((...args: unknown[]) => {
       if (args[0] !== null && args[0] !== undefined) {
         captureException(args[0]);
       }
-      transaction.finish();
+      transaction?.finish();
 
       void flush(options.flushTimeout)
         .then(null, e => {

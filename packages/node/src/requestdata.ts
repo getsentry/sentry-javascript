@@ -25,9 +25,9 @@ export type AddRequestDataToEventOptions = {
   /** Flags controlling whether each type of data should be added to the event */
   include?: {
     ip?: boolean;
-    request?: boolean | Array<typeof DEFAULT_REQUEST_INCLUDES[number]>;
+    request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
     transaction?: boolean | TransactionNamingScheme;
-    user?: boolean | Array<typeof DEFAULT_USER_INCLUDES[number]>;
+    user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
 };
 

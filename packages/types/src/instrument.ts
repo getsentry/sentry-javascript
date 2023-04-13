@@ -4,10 +4,11 @@
 type XHRSendInput = unknown;
 
 export interface SentryWrappedXMLHttpRequest {
-  __sentry_xhr__?: SentryXhrData;
+  __sentry_xhr_v2__?: SentryXhrData;
   __sentry_own_request__?: boolean;
 }
 
+// WARNING: When the shape of this type is changed bump the version in `SentryWrappedXMLHttpRequest`
 export interface SentryXhrData {
   method?: string;
   url?: string;

@@ -20,15 +20,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import {
-  consoleSandbox,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  GLOBAL_OBJ,
-  isNodeEnv,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { consoleSandbox, dateTimestampInSeconds, getGlobalSingleton, GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { Scope } from './scope';
@@ -50,6 +42,29 @@ export const API_VERSION = 4;
  */
 const DEFAULT_BREADCRUMBS = 100;
 
+export interface RunWithAsyncContextOptions {
+  /** Whether to reuse an existing async context if one exists. Defaults to false. */
+  reuseExisting?: boolean;
+  /** Instances that should be referenced and retained in the new context */
+  emitters?: unknown[];
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Strategy used to track async context.
+ */
+export interface AsyncContextStrategy {
+  /**
+   * Gets the current async context. Returns undefined if there is no current async context.
+   */
+  getCurrentHub: () => Hub | undefined;
+  /**
+   * Runs the supplied callback in its own async context.
+   */
+  runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T;
+}
+
 /**
  * A layer in the process stack.
  * @hidden
@@ -66,15 +81,12 @@ export interface Layer {
 export interface Carrier {
   __SENTRY__?: {
     hub?: Hub;
+    acs?: AsyncContextStrategy;
     /**
      * Extra Hub properties injected by various SDKs
      */
     integrations?: Integration[];
     extensions?: {
-      /** Hack to prevent bundlers from breaking our usage of the domain package in the cross-platform Hub package */
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      domain?: { [key: string]: any };
-    } & {
       /** Extension methods for the hub, which are bound to the current Hub instance */
       // eslint-disable-next-line @typescript-eslint/ban-types
       [key: string]: Function;
@@ -361,7 +373,17 @@ export class Hub implements HubInterface {
    * @inheritDoc
    */
   public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
-    return this._callExtensionMethod('startTransaction', context, customSamplingContext);
+    const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
+
+    if (__DEBUG_BUILD__ && !result) {
+      // eslint-disable-next-line no-console
+      console.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
+Sentry.addTracingExtensions();
+Sentry.init({...});
+`);
+    }
+
+    return result;
   }
 
   /**
@@ -519,45 +541,69 @@ export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
 
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    const hub = registry.__SENTRY__.acs.getCurrentHub();
+
+    if (hub) {
+      return hub;
+    }
+  }
+
+  // Return hub that lives on a global object
+  return getGlobalHub(registry);
+}
+
+function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (!hasHubOnCarrier(registry) || getHubFromCarrier(registry).isOlderThan(API_VERSION)) {
     setHubOnCarrier(registry, new Hub());
   }
 
-  // Prefer domains over global if they are there (applicable only to Node environment)
-  if (isNodeEnv()) {
-    return getHubFromActiveDomain(registry);
-  }
   // Return hub that lives on a global object
   return getHubFromCarrier(registry);
 }
 
 /**
- * Try to read the hub from an active domain, and fallback to the registry if one doesn't exist
- * @returns discovered hub
+ * @private Private API with no semver guarantees!
+ *
+ * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
  */
-function getHubFromActiveDomain(registry: Carrier): Hub {
-  try {
-    const sentry = getMainCarrier().__SENTRY__;
-    const activeDomain = sentry && sentry.extensions && sentry.extensions.domain && sentry.extensions.domain.active;
-
-    // If there's no active domain, just return global hub
-    if (!activeDomain) {
-      return getHubFromCarrier(registry);
-    }
-
-    // If there's no hub on current domain, or it's an old API, assign a new one
-    if (!hasHubOnCarrier(activeDomain) || getHubFromCarrier(activeDomain).isOlderThan(API_VERSION)) {
-      const registryHubTopStack = getHubFromCarrier(registry).getStackTop();
-      setHubOnCarrier(activeDomain, new Hub(registryHubTopStack.client, Scope.clone(registryHubTopStack.scope)));
-    }
-
-    // Return hub that lives on a domain
-    return getHubFromCarrier(activeDomain);
-  } catch (_Oo) {
-    // Return hub that lives on a global object
-    return getHubFromCarrier(registry);
+export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
+  // If there's no hub on current domain, or it's an old API, assign a new one
+  if (!hasHubOnCarrier(carrier) || getHubFromCarrier(carrier).isOlderThan(API_VERSION)) {
+    const globalHubTopStack = parent.getStackTop();
+    setHubOnCarrier(carrier, new Hub(globalHubTopStack.client, Scope.clone(globalHubTopStack.scope)));
   }
+}
+
+/**
+ * @private Private API with no semver guarantees!
+ *
+ * Sets the global async context strategy
+ */
+export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
+  // Get main carrier (global for every environment)
+  const registry = getMainCarrier();
+  registry.__SENTRY__ = registry.__SENTRY__ || {};
+  registry.__SENTRY__.acs = strategy;
+}
+
+/**
+ * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
+ *
+ * @param callback The callback to run in its own async context
+ * @param options Options to pass to the async context strategy
+ * @returns The result of the callback
+ */
+export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
+  const registry = getMainCarrier();
+
+  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
+    return registry.__SENTRY__.acs.runWithAsyncContext(callback, options);
+  }
+
+  // if there was no strategy, fallback to just calling the callback
+  return callback(getCurrentHub());
 }
 
 /**

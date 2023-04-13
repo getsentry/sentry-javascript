@@ -3,10 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"
   },

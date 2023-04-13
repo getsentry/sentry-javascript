@@ -15,7 +15,7 @@ export async function buildAndTestApp(
   recipeInstance: RecipeInstance,
   envVarsToInject: Record<string, string | undefined>,
 ): Promise<RecipeTestResult> {
-  const { recipe, port } = recipeInstance;
+  const { recipe, portModulo, portGap } = recipeInstance;
   const recipeDirname = path.dirname(recipe.path);
 
   const targetDir = path.join(TMP_DIR, `${recipe.testApplicationName}-${tmpDirCount++}`);
@@ -24,7 +24,8 @@ export async function buildAndTestApp(
 
   const env: Env = {
     ...envVarsToInject,
-    PORT: port.toString(),
+    PORT_MODULO: portModulo.toString(),
+    PORT_GAP: portGap.toString(),
   };
 
   try {

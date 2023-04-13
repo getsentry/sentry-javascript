@@ -4,6 +4,97 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.48.0
+
+### Important Changes
+
+
+- **feat(node): Add `AsyncLocalStorage` implementation of `AsyncContextStrategy` (#7800)**
+  - feat(core): Extend `AsyncContextStrategy` to allow reuse of existing context (#7778)
+  - feat(core): Make `runWithAsyncContext` public API (#7817)
+  - feat(core): Add async context abstraction (#7753)
+  - feat(node): Adds `domain` implementation of `AsyncContextStrategy` (#7767)
+  - feat(node): Auto-select best `AsyncContextStrategy` for Node.js version (#7804)
+  - feat(node): Migrate to domains used through `AsyncContextStrategy` (#7779)
+
+This release switches the SDK to use [`AsyncLocalStorage`](https://nodejs.org/api/async_context.html#class-asynclocalstorage) as the async context isolation mechanism in the SDK for Node 14+. For Node 10 - 13, we continue to use the Node [`domain`](https://nodejs.org/api/domain.html) standard library, since `AsyncLocalStorage` is not supported there. **Preliminary testing showed [a 30% improvement in latency and rps](https://github.com/getsentry/sentry-javascript/issues/7691#issuecomment-1504009089) when making the switch from domains to `AsyncLocalStorage` on Node 16.**
+
+If you want to manually add async context isolation to your application, you can use the new `runWithAsyncContext` API.
+
+```js
+const requestHandler = (ctx, next) => {
+  return new Promise((resolve, reject) => {
+    Sentry.runWithAsyncContext(
+      async hub => {
+        hub.configureScope(scope =>
+          scope.addEventProcessor(event =>
+            Sentry.addRequestDataToEvent(event, ctx.request, {
+              include: {
+                user: false,
+              },
+            })
+          )
+        );
+
+        await next();
+        resolve();
+      },
+      { emitters: [ctx] }
+    );
+  });
+};
+```
+
+If you're manually using domains to isolate Sentry data, we strongly recommend switching to this API!
+
+In addition to exporting `runWithAsyncContext` publicly, the SDK also uses it internally where we previously used domains.
+
+- **feat(sveltekit): Remove `withSentryViteConfig` (#7789)**
+  - feat(sveltekit): Remove SDK initialization via dedicated files (#7791)
+
+This release removes our `withSentryViteConfig` wrapper we previously instructed you to add to your `vite.config.js` file. It is replaced Vite plugins which you simply add to your Vite config, just like the `sveltekit()` Vite plugins. We believe this is a more transparent and Vite/SvelteKit-native way of applying build time modifications. Here's how to use the plugins:
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+export default {
+  plugins: [sentrySvelteKit(), sveltekit()],
+  // ... rest of your Vite config
+};
+```
+
+Take a look at the [`README`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md) for updated instructions!
+
+Furthermore, with this transition, we removed the possibility to intialize the SDK in dedicated `sentry.(client|server).config.js` files. Please use SvelteKit's [hooks files](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#2-client-side-setup) to initialize the SDK.
+
+Please note that these are **breaking changes**! We're sorry for the inconvenience but the SvelteKit SDK is still in alpha stage and we want to establish a clean and SvelteKit-friendly API before making the SDK stable. You have been [warned](https://github.com/getsentry/sentry-javascript/blob/eb921275f9c572e72c2348a91cb39fcbb8275b8d/packages/sveltekit/README.md#L20-L24) ;)
+
+- **feat(sveltekit): Add Sentry Vite Plugin to upload source maps (#7811)**
+
+This release adds automatic upload of source maps to the SvelteKit SDK. No need to configure anything other than adding our Vite plugins to your SDK. The example above shows you how to do this.
+
+Please make sure to follow the [`README`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps) to specify your Sentry auth token, as well as org and project slugs.
+
+### Additional Features and Fixes
+
+- feat(browser): Export request instrumentation options (#7818)
+- feat(core): Add async context abstraction (#7753)
+- feat(core): Add DSC to all outgoing envelopes (#7820)
+- feat(node): Add checkin envelope types (#7777)
+- feat(replay): Add `getReplayId()` method (#7822)
+- fix(browser): Adjust `BrowserTransportOptions` to support offline transport options (#7775)
+- fix(browser): DOMException SecurityError stacktrace parsing bug (#7821)
+- fix(core): Log warning when tracing extensions are missing (#7601)
+- fix(core): Only call `applyDebugMetadata` for error events (#7824)
+- fix(integrations): Ensure httpclient integration works with Request (#7786)
+- fix(node): `reuseExisting` does not need to call bind on domain (#7780)
+- fix(node): Fix domain scope inheritance (#7799)
+- fix(node): Make `trpcMiddleware` factory synchronous (#7802)
+- fix(serverless): Account when transaction undefined (#7829)
+- fix(utils): Make xhr instrumentation independent of parallel running SDK versions (#7836)
+
 ## 7.47.0
 
 ### Important Changes

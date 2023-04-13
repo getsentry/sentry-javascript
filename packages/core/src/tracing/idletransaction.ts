@@ -90,7 +90,7 @@ export class IdleTransaction extends Transaction {
    */
   private _idleTimeoutID: ReturnType<typeof setTimeout> | undefined;
 
-  private _finishReason: typeof IDLE_TRANSACTION_FINISH_REASONS[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
+  private _finishReason: (typeof IDLE_TRANSACTION_FINISH_REASONS)[number] = IDLE_TRANSACTION_FINISH_REASONS[4];
 
   public constructor(
     transactionContext: TransactionContext,
