@@ -5,12 +5,14 @@ import type {
   FetchHint,
   NetworkBody,
   ReplayContainer,
+  ReplayNetworkOptions,
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
 } from '../../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
+  getAllowedHeaders,
   getBodySize,
   getBodyString,
   getNetworkBody,
@@ -25,7 +27,10 @@ import {
 export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: FetchHint,
-  options: { captureBodies: boolean; textEncoder: TextEncoderInternal; replay: ReplayContainer },
+  options: ReplayNetworkOptions & {
+    textEncoder: TextEncoderInternal;
+    replay: ReplayContainer;
+  },
 ): Promise<void> {
   try {
     const data = await _prepareFetchData(breadcrumb, hint, options);
@@ -52,6 +57,7 @@ export function enrichFetchBreadcrumb(
 
   const body = _getFetchRequestArgBody(input);
   const reqSize = getBodySize(body, options.textEncoder);
+
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
 
   if (reqSize !== undefined) {
@@ -65,7 +71,9 @@ export function enrichFetchBreadcrumb(
 async function _prepareFetchData(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: FetchHint,
-  options: { captureBodies: boolean; textEncoder: TextEncoderInternal },
+  options: ReplayNetworkOptions & {
+    textEncoder: TextEncoderInternal;
+  },
 ): Promise<ReplayNetworkRequestData> {
   const { startTimestamp, endTimestamp } = hint;
 
@@ -92,27 +100,37 @@ async function _prepareFetchData(
 }
 
 function _getRequestInfo(
-  { captureBodies }: { captureBodies: boolean },
+  { captureBodies, requestHeaders }: ReplayNetworkOptions,
   input: FetchHint['input'],
   requestBodySize?: number,
 ): ReplayNetworkRequestOrResponse | undefined {
+  const headers = getRequestHeaders(input, requestHeaders);
+
   if (!captureBodies) {
-    return buildNetworkRequestOrResponse(requestBodySize, undefined);
+    return buildNetworkRequestOrResponse(headers, requestBodySize, undefined);
   }
 
   // We only want to transmit string or string-like bodies
   const requestBody = _getFetchRequestArgBody(input);
   const body = getNetworkBody(getBodyString(requestBody));
-  return buildNetworkRequestOrResponse(requestBodySize, body);
+  return buildNetworkRequestOrResponse(headers, requestBodySize, body);
 }
 
 async function _getResponseInfo(
-  { captureBodies, textEncoder }: { captureBodies: boolean; textEncoder: TextEncoderInternal },
+  {
+    captureBodies,
+    textEncoder,
+    responseHeaders,
+  }: ReplayNetworkOptions & {
+    textEncoder: TextEncoderInternal;
+  },
   response: Response,
   responseBodySize?: number,
 ): Promise<ReplayNetworkRequestOrResponse | undefined> {
+  const headers = getAllHeaders(response.headers, responseHeaders);
+
   if (!captureBodies && responseBodySize !== undefined) {
-    return buildNetworkRequestOrResponse(responseBodySize, undefined);
+    return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 
   // Only clone the response if we need to
@@ -127,13 +145,13 @@ async function _getResponseInfo(
         : responseBodySize;
 
     if (captureBodies) {
-      return buildNetworkRequestOrResponse(size, body);
+      return buildNetworkRequestOrResponse(headers, size, body);
     }
 
-    return buildNetworkRequestOrResponse(size, undefined);
+    return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch {
     // fallback
-    return buildNetworkRequestOrResponse(responseBodySize, undefined);
+    return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 }
 
@@ -165,4 +183,54 @@ function _getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body']
   }
 
   return (fetchArgs[1] as RequestInit).body;
+}
+
+function getAllHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {
+  const allHeaders: Record<string, string> = {};
+
+  allowedHeaders.forEach(header => {
+    if (headers.get(header)) {
+      allHeaders[header] = headers.get(header) as string;
+    }
+  });
+
+  return allHeaders;
+}
+
+function getRequestHeaders(fetchArgs: unknown[], allowedHeaders: string[]): Record<string, string> {
+  if (fetchArgs.length === 1 && typeof fetchArgs[0] !== 'string') {
+    return getHeadersFromOptions(fetchArgs[0] as Request | RequestInit, allowedHeaders);
+  }
+
+  if (fetchArgs.length === 2) {
+    return getHeadersFromOptions(fetchArgs[1] as Request | RequestInit, allowedHeaders);
+  }
+
+  return {};
+}
+
+function getHeadersFromOptions(
+  input: Request | RequestInit | undefined,
+  allowedHeaders: string[],
+): Record<string, string> {
+  if (!input) {
+    return {};
+  }
+
+  const headers = input.headers;
+
+  if (!headers) {
+    return {};
+  }
+
+  if (headers instanceof Headers) {
+    return getAllHeaders(headers, allowedHeaders);
+  }
+
+  // We do not support this, as it is not really documented (anymore?)
+  if (Array.isArray(headers)) {
+    return {};
+  }
+
+  return getAllowedHeaders(headers, allowedHeaders);
 }

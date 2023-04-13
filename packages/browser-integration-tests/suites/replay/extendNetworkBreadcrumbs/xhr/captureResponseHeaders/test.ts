@@ -8,20 +8,21 @@ import {
   waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('does not capture response_body_size without Content-Length header', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('captures response headers', async ({ getLocalTestPath, page, browserName }) => {
+  // These are a bit flaky on non-chromium browsers
+  if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
   await page.route('**/foo', route => {
     return route.fulfill({
       status: 200,
-      body: JSON.stringify({
-        userNames: ['John', 'Jane'],
-      }),
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': '',
+        Accept: 'application/json',
+        'X-Test-Header': 'test-value',
+        'X-Other-Header': 'test-value-2',
+        'access-control-expose-headers': '*',
       },
     });
   });
@@ -42,15 +43,16 @@ sentryTest('does not capture response_body_size without Content-Length header', 
 
   await page.evaluate(() => {
     /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-      },
-    }).then(() => {
-      // @ts-ignore Sentry is a global
-      Sentry.captureException('test error');
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('GET', 'http://localhost:7654/foo');
+    xhr.send();
+
+    xhr.addEventListener('readystatechange', function () {
+      if (xhr.readyState === 4) {
+        // @ts-ignore Sentry is a global
+        setTimeout(() => Sentry.captureException('test error', 0));
+      }
     });
     /* eslint-enable */
   });
@@ -63,7 +65,7 @@ sentryTest('does not capture response_body_size without Content-Length header', 
   expect(eventData?.breadcrumbs?.length).toBe(1);
   expect(eventData!.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
-    category: 'fetch',
+    category: 'xhr',
     type: 'http',
     data: {
       method: 'GET',
@@ -74,18 +76,22 @@ sentryTest('does not capture response_body_size without Content-Length header', 
 
   const replayReq1 = await replayRequestPromise1;
   const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
     {
       data: {
         method: 'GET',
         statusCode: 200,
         response: {
-          size: 29,
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            'x-test-header': 'test-value',
+          },
         },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),
-      op: 'resource.fetch',
+      op: 'resource.xhr',
       startTimestamp: expect.any(Number),
     },
   ]);
