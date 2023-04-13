@@ -299,9 +299,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Otherwise, queue up a flush.
    */
   public async sendBufferedReplayOrFlush({ continueRecording = true }: SendBufferedReplayOptions = {}): Promise<void> {
-    // if in session mode, call debounced flush
     if (this.recordingMode === 'session') {
-      return this._debouncedFlush() as Promise<void>;
+      return this.flushImmediate();
     }
 
     // Allow flush to complete before resuming as a session recording, otherwise
