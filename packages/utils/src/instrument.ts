@@ -624,7 +624,7 @@ function instrumentDOM(): void {
   });
 }
 
-let _oldOnErrorHandler: typeof WINDOW['onerror'] | null = null;
+let _oldOnErrorHandler: (typeof WINDOW)['onerror'] | null = null;
 /** JSDoc */
 function instrumentError(): void {
   _oldOnErrorHandler = WINDOW.onerror;
@@ -649,7 +649,7 @@ function instrumentError(): void {
   WINDOW.onerror.__SENTRY_INSTRUMENTED__ = true;
 }
 
-let _oldOnUnhandledRejectionHandler: typeof WINDOW['onunhandledrejection'] | null = null;
+let _oldOnUnhandledRejectionHandler: (typeof WINDOW)['onunhandledrejection'] | null = null;
 /** JSDoc */
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = WINDOW.onunhandledrejection;

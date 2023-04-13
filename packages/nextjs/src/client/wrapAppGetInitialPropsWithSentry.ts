@@ -1,6 +1,6 @@
 import type App from 'next/app';
 
-type AppGetInitialProps = typeof App['getInitialProps'];
+type AppGetInitialProps = (typeof App)['getInitialProps'];
 
 /**
  * A passthrough function in case this function is used on the clientside. We need to make the returned function async
