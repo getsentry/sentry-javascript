@@ -583,6 +583,7 @@ jobs:
         bundle:
           - loader_base
           - loader_eager
+          - loader_debug
           - loader_tracing
           - loader_replay
           - loader_tracing_replay
