@@ -1,4 +1,10 @@
-import { addTracingExtensions, captureException, runWithAsyncContext, startTransaction } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getCurrentHub,
+  runWithAsyncContext,
+  startTransaction,
+} from '@sentry/core';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -20,7 +26,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(hub => {
+      return runWithAsyncContext(() => {
+        const hub = getCurrentHub();
+
         let maybePromiseResult;
 
         const traceparentData = context.sentryTraceHeader

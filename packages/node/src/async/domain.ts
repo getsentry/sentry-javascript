@@ -27,7 +27,7 @@ function createNewHub(parent: Hub | undefined): Hub {
   return getHubFromCarrier(carrier);
 }
 
-function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
+function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
   const activeDomain = getActiveDomain<domain.Domain & Carrier>();
 
   if (activeDomain && options?.reuseExisting) {
@@ -38,7 +38,7 @@ function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsync
     }
 
     // We're already in a domain, so we don't need to create a new one, just call the callback with the current hub
-    return callback(getHubFromCarrier(activeDomain));
+    return callback();
   }
 
   const local = domain.create() as domain.Domain & Carrier;
@@ -54,7 +54,7 @@ function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsync
   setHubOnCarrier(local, newHub);
 
   return local.bind(() => {
-    return callback(newHub);
+    return callback();
   })();
 }
 

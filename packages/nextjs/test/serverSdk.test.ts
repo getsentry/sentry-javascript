@@ -117,7 +117,8 @@ describe('Server init()', () => {
   it("initializes both global hub and domain hub when there's an active domain", () => {
     const globalHub = getCurrentHub();
 
-    runWithAsyncContext(globalHub2 => {
+    runWithAsyncContext(() => {
+      const globalHub2 = getCurrentHub();
       // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
       // strategy yet
       expect(globalHub2).toBe(globalHub);
@@ -126,7 +127,8 @@ describe('Server init()', () => {
 
       init({});
 
-      runWithAsyncContext(domainHub => {
+      runWithAsyncContext(() => {
+        const domainHub = getCurrentHub();
         // this tag should end up only in the domain hub
         domainHub.setTag('dogs', 'areGreat');
 

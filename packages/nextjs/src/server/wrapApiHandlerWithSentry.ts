@@ -1,4 +1,4 @@
-import { hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import { getCurrentHub, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
 import { captureException, startTransaction } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import {
@@ -63,7 +63,8 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
       // eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
       const boundHandler = runWithAsyncContext(
         // eslint-disable-next-line complexity
-        async hub => {
+        async () => {
+          const hub = getCurrentHub();
           let transaction: Transaction | undefined;
           const currentScope = hub.getScope();
           const options = hub.getClient()?.getOptions();

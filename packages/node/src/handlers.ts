@@ -188,7 +188,9 @@ export function requestHandler(
       };
     }
     runWithAsyncContext(
-      currentHub => {
+      () => {
+        const currentHub = getCurrentHub();
+
         currentHub.configureScope(scope => {
           scope.setSDKProcessingMetadata({
             request: req,
