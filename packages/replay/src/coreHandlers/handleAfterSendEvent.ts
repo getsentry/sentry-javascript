@@ -4,6 +4,7 @@ import type { Event, Transport, TransportMakeRequestResponse } from '@sentry/typ
 import { UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
+import { isSampled } from '../util/isSampled';
 
 type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse | void) => void;
 
@@ -49,10 +50,14 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
     // Trigger error recording
     // Need to be very careful that this does not cause an infinite loop
     if (
-      replay.recordingMode === 'error' &&
+      replay.recordingMode === 'buffer' &&
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
+      if (!isSampled(replay.getOptions().errorSampleRate)) {
+        return;
+      }
+
       setTimeout(() => {
         // Capture current event buffer as new replay
         void replay.sendBufferedReplayOrFlush();

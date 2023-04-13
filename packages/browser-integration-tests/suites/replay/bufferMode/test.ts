@@ -1,22 +1,24 @@
 import { expect } from '@playwright/test';
+import type { Replay } from '@sentry/replay';
+import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
-import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
+import { sentryTest } from '../../../utils/fixtures';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 import {
   expectedClickBreadcrumb,
   expectedConsoleBreadcrumb,
   getExpectedReplayEvent,
-} from '../../../../utils/replayEventTemplates';
+} from '../../../utils/replayEventTemplates';
 import {
   getReplayEvent,
   getReplayRecordingContent,
   isReplayEvent,
   shouldSkipReplayTest,
   waitForReplayRequest,
-} from '../../../../utils/replayHelpers';
+} from '../../../utils/replayHelpers';
 
 sentryTest(
-  '[error-mode] should start recording, only sample the 2nd error, and switch to session mode once an error is thrown',
+  '[buffer-mode] manually start buffer mode and capture buffer',
   async ({ getLocalTestPath, page, browserName }) => {
     // This was sometimes flaky on firefox/webkit, so skipping for now
     if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
@@ -27,7 +29,7 @@ sentryTest(
     let errorEventId: string | undefined;
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
-    const reqPromise2 = waitForReplayRequest(page, 2);
+    // const reqPromise2 = waitForReplayRequest(page, 2);
     const reqErrorPromise = waitForErrorRequest(page);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -52,24 +54,57 @@ sentryTest(
 
     await page.goto(url);
     await page.click('#go-background');
+    await page.click('#error');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    expect(callsToSentry).toEqual(0);
-
-    await page.click('#error');
-    const req0 = await reqPromise0;
-
-    expect(callsToSentry).toEqual(2); // 1 error, 1 replay event
-
-    await page.click('#go-background');
-    const req1 = await reqPromise1;
+    // error, no replays
+    expect(callsToSentry).toEqual(1);
     await reqErrorPromise;
 
-    expect(callsToSentry).toEqual(3); // 1 error, 2 replay events
+    expect(
+      await page.evaluate(() => {
+        const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+        const replay = replayIntegration._replay;
+        return replay.isEnabled();
+      }),
+    ).toBe(false);
+
+    // Start buffering and assert that it is enabled
+    expect(
+      await page.evaluate(() => {
+        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        // @ts-ignore private
+        const replay = replayIntegration._replay;
+        replayIntegration.startBuffering();
+        return replay.isEnabled();
+      }),
+    ).toBe(true);
 
     await page.click('#log');
     await page.click('#go-background');
-    const req2 = await reqPromise2;
+    await page.click('#error2');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 2 errors
+    expect(callsToSentry).toEqual(2);
+
+    await page.evaluate(async () => {
+      const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+      await replayIntegration.flush();
+    });
+
+    const req0 = await reqPromise0;
+
+    // 2 errors, 1 flush
+    expect(callsToSentry).toEqual(3);
+
+    await page.click('#log');
+    await page.click('#go-background');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Switches to session mode
+    expect(callsToSentry).toEqual(4);
+    const req1 = await reqPromise1;
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);
@@ -77,14 +112,9 @@ sentryTest(
     const event1 = getReplayEvent(req1);
     const content1 = getReplayRecordingContent(req1);
 
-    const event2 = getReplayEvent(req2);
-    const content2 = getReplayRecordingContent(req2);
-
-    expect(callsToSentry).toBe(4); // 1 error, 3 replay events
-
     expect(event0).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
+        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
         error_ids: [errorEventId!],
         replay_type: 'buffer',
       }),
@@ -101,16 +131,16 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button#error',
+          message: 'body > button#error2',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                id: 'error',
+                id: 'error2',
               },
               id: expect.any(Number),
               tagName: 'button',
-              textContent: '***** *****',
+              textContent: '******* *****',
             },
           },
         },
@@ -119,31 +149,17 @@ sentryTest(
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
-        replay_type: 'buffer', // although we're in session mode, we still send 'error' as replay_type
-        replay_start_timestamp: undefined,
+        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
+        replay_type: 'buffer', // although we're in session mode, we still send 'buffer' as replay_type
         segment_id: 1,
         urls: [],
       }),
     );
 
-    // Also the second snapshot should have a full snapshot, as we switched from error to session
-    // mode which triggers another checkout
-    expect(content1.fullSnapshots).toHaveLength(1);
+    //
+    expect(content1.fullSnapshots).toHaveLength(0);
 
-    // The next event should just be a normal replay event as we're now in session mode and
-    // we continue recording everything
-    expect(event2).toEqual(
-      getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
-        replay_type: 'buffer',
-        replay_start_timestamp: undefined,
-        segment_id: 2,
-        urls: [],
-      }),
-    );
-
-    expect(content2.breadcrumbs).toEqual(
+    expect(content1.breadcrumbs).toEqual(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,

@@ -42,6 +42,6 @@ sentryTest(
     expect(callsToSentry).toEqual(0);
 
     const replay = await getReplaySnapshot(page);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   },
 );

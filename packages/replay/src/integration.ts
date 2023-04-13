@@ -181,10 +181,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * Initializes the plugin.
+   * Start a replay regardless of sampling rate. Calling this will always
+   * create a new session. Will throw an error if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
-   * PerformanceObserver, Recording, Sentry SDK, etc)
+   * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
     if (!this._replay) {
@@ -192,6 +193,18 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     this._replay.start();
+  }
+
+  /**
+   * Start replay buffering. Buffers until `flush()` is called or, if
+   * `replaysOnErrorSampleRate` > 0, until an error occurs.
+   */
+  public startBuffering(): void {
+    if (!this._replay) {
+      return;
+    }
+
+    this._replay.startBuffering();
   }
 
   /**

@@ -163,7 +163,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     const handler = handleGlobalEventListener(replay);
     const handler2 = handleGlobalEventListener(replay, true);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(profileEvent, {});
     handler(replayEvent, {});
@@ -179,7 +179,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('does not skip non-rrweb errors', () => {
