@@ -187,7 +187,8 @@ export function requestHandler(
           });
       };
     }
-    runWithAsyncContext(currentHub => {
+    runWithAsyncContext(() => {
+      const currentHub = getCurrentHub();
       currentHub.configureScope(scope => {
         scope.setSDKProcessingMetadata({
           request: req,

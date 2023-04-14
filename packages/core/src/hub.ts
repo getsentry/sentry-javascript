@@ -60,7 +60,7 @@ export interface AsyncContextStrategy {
   /**
    * Runs the supplied callback in its own async context.
    */
-  runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T;
+  runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T;
 }
 
 /**
@@ -593,7 +593,7 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  * @param options Options to pass to the async context strategy
  * @returns The result of the callback
  */
-export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
+export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
@@ -601,7 +601,7 @@ export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWi
   }
 
   // if there was no strategy, fallback to just calling the callback
-  return callback(getCurrentHub());
+  return callback();
 }
 
 /**

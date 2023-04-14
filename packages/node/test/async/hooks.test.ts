@@ -15,8 +15,10 @@ conditionalTest({ min: 12 })('async_hooks', () => {
   });
 
   test('without strategy hubs should be equal', () => {
-    runWithAsyncContext(hub1 => {
-      runWithAsyncContext(hub2 => {
+    runWithAsyncContext(() => {
+      const hub1 = getCurrentHub();
+      runWithAsyncContext(() => {
+        const hub2 = getCurrentHub();
         expect(hub1).toBe(hub2);
       });
     });
@@ -28,13 +30,15 @@ conditionalTest({ min: 12 })('async_hooks', () => {
     const globalHub = getCurrentHub();
     globalHub.setExtra('a', 'b');
 
-    runWithAsyncContext(hub1 => {
+    runWithAsyncContext(() => {
+      const hub1 = getCurrentHub();
       expect(hub1).toEqual(globalHub);
 
       hub1.setExtra('c', 'd');
       expect(hub1).not.toEqual(globalHub);
 
-      runWithAsyncContext(hub2 => {
+      runWithAsyncContext(() => {
+        const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
         expect(hub2).not.toEqual(globalHub);
 
@@ -59,13 +63,15 @@ conditionalTest({ min: 12 })('async_hooks', () => {
     const globalHub = getCurrentHub();
     await addRandomExtra(globalHub, 'a');
 
-    await runWithAsyncContext(async hub1 => {
+    await runWithAsyncContext(async () => {
+      const hub1 = getCurrentHub();
       expect(hub1).toEqual(globalHub);
 
       await addRandomExtra(hub1, 'b');
       expect(hub1).not.toEqual(globalHub);
 
-      await runWithAsyncContext(async hub2 => {
+      await runWithAsyncContext(async () => {
+        const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
         expect(hub2).not.toEqual(globalHub);
 
@@ -78,16 +84,19 @@ conditionalTest({ min: 12 })('async_hooks', () => {
   test('context single instance', () => {
     setHooksAsyncContextStrategy();
 
-    runWithAsyncContext(hub => {
-      expect(hub).toBe(getCurrentHub());
+    const globalHub = getCurrentHub();
+    runWithAsyncContext(() => {
+      expect(globalHub).not.toBe(getCurrentHub());
     });
   });
 
   test('context within a context not reused', () => {
     setHooksAsyncContextStrategy();
 
-    runWithAsyncContext(hub1 => {
-      runWithAsyncContext(hub2 => {
+    runWithAsyncContext(() => {
+      const hub1 = getCurrentHub();
+      runWithAsyncContext(() => {
+        const hub2 = getCurrentHub();
         expect(hub1).not.toBe(hub2);
       });
     });
@@ -96,9 +105,11 @@ conditionalTest({ min: 12 })('async_hooks', () => {
   test('context within a context reused when requested', () => {
     setHooksAsyncContextStrategy();
 
-    runWithAsyncContext(hub1 => {
+    runWithAsyncContext(() => {
+      const hub1 = getCurrentHub();
       runWithAsyncContext(
-        hub2 => {
+        () => {
+          const hub2 = getCurrentHub();
           expect(hub1).toBe(hub2);
         },
         { reuseExisting: true },
@@ -112,7 +123,8 @@ conditionalTest({ min: 12 })('async_hooks', () => {
     let d1done = false;
     let d2done = false;
 
-    runWithAsyncContext(hub => {
+    runWithAsyncContext(() => {
+      const hub = getCurrentHub();
       hub.getStack().push({ client: 'process' } as any);
       expect(hub.getStack()[1]).toEqual({ client: 'process' });
       // Just in case so we don't have to worry which one finishes first
@@ -125,7 +137,8 @@ conditionalTest({ min: 12 })('async_hooks', () => {
       });
     });
 
-    runWithAsyncContext(hub => {
+    runWithAsyncContext(() => {
+      const hub = getCurrentHub();
       hub.getStack().push({ client: 'local' } as any);
       expect(hub.getStack()[1]).toEqual({ client: 'local' });
       setTimeout(() => {
