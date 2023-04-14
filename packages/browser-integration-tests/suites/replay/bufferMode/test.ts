@@ -4,11 +4,7 @@ import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
-import {
-  expectedClickBreadcrumb,
-  expectedConsoleBreadcrumb,
-  getExpectedReplayEvent,
-} from '../../../utils/replayEventTemplates';
+import { expectedClickBreadcrumb, getExpectedReplayEvent } from '../../../utils/replayEventTemplates';
 import {
   getReplayEvent,
   getReplayRecordingContent,
@@ -174,10 +170,6 @@ sentryTest(
     );
 
     expect(content2.fullSnapshots).toHaveLength(0);
-    expect(content2.breadcrumbs).toEqual(
-      expect.arrayContaining([
-          expectedClickBreadcrumb,
-      ]),
-    );
+    expect(content2.breadcrumbs).toEqual(expect.arrayContaining([expectedClickBreadcrumb]));
   },
 );
