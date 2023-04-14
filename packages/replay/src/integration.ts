@@ -185,7 +185,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * create a new session. Will throw an error if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
-   * _performanceObserver, Recording, Sentry SDK, etc)
+   * PerformanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
     if (!this._replay) {
