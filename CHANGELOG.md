@@ -24,9 +24,9 @@ If you want to manually add async context isolation to your application, you can
 import * as Sentry from '@sentry/node';
 
 const requestHandler = (ctx, next) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     Sentry.runWithAsyncContext(async () => {
-      const hub = Sentry.geCurrentHub();
+      const hub = Sentry.getCurrentHub();
 
       hub.configureScope(scope =>
         scope.addEventProcessor(event =>
