@@ -8,7 +8,6 @@
 
 ### Important Changes
 
-
 - **feat(node): Add `AsyncLocalStorage` implementation of `AsyncContextStrategy` (#7800)**
   - feat(core): Extend `AsyncContextStrategy` to allow reuse of existing context (#7778)
   - feat(core): Make `runWithAsyncContext` public API (#7817)
@@ -78,11 +77,16 @@ This release adds automatic upload of source maps to the SvelteKit SDK. No need 
 
 Please make sure to follow the [`README`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps) to specify your Sentry auth token, as well as org and project slugs.
 
+**- feat(replay): Capture request & response headers (#7816)**
+
+Replay now captures the `content-length`, `content-type`, and `accept` headers from requests and responses automatically.
+
 ### Additional Features and Fixes
 
 - feat(browser): Export request instrumentation options (#7818)
 - feat(core): Add async context abstraction (#7753)
 - feat(core): Add DSC to all outgoing envelopes (#7820)
+- feat(core): Cache processed stacks for debug IDs (#7825)
 - feat(node): Add checkin envelope types (#7777)
 - feat(replay): Add `getReplayId()` method (#7822)
 - fix(browser): Adjust `BrowserTransportOptions` to support offline transport options (#7775)
