@@ -35,12 +35,13 @@
     "@sveltejs/kit": "^1.11.0",
     "svelte": "^3.44.0",
     "typescript": "^4.9.3",
-    "vite": "4.0.0"
+    "vite": "4.0.0",
+    "rollup": "^3.20.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.js --bundleConfigAsCjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
