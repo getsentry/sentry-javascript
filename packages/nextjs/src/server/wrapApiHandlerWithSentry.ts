@@ -203,7 +203,6 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             throw objectifiedErr;
           }
         },
-        { emitters: [req, res] },
       );
 
       // Since API route handlers are all async, nextjs always awaits the return value (meaning it's fine for us to return

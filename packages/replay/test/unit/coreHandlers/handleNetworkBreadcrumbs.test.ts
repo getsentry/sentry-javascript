@@ -2,16 +2,18 @@ import type {
   Breadcrumb,
   BreadcrumbHint,
   FetchBreadcrumbHint,
+  SentryWrappedXMLHttpRequest,
   TextEncoderInternal,
   XhrBreadcrumbHint,
 } from '@sentry/types';
+import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
 import { BASE_TIMESTAMP } from '../..';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
-import type { ReplayContainer } from '../../../src/types';
+import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
 
 jest.useFakeTimers();
@@ -25,12 +27,33 @@ async function waitForReplayEventBuffer() {
 
 const LARGE_BODY = 'a'.repeat(NETWORK_BODY_MAX_SIZE + 1);
 
+function getMockResponse(contentLength?: string, body?: string, headers?: Record<string, string>): Response {
+  const internalHeaders: Record<string, string> = {
+    ...(contentLength !== undefined ? { 'content-length': `${contentLength}` } : {}),
+    ...headers,
+  };
+
+  const response = {
+    headers: {
+      has: (prop: string) => {
+        return !!internalHeaders[prop?.toLowerCase() ?? ''];
+      },
+      get: (prop: string) => {
+        return internalHeaders[prop?.toLowerCase() ?? ''];
+      },
+    },
+    clone: () => response,
+    text: () => Promise.resolve(body),
+  } as unknown as Response;
+
+  return response;
+}
+
 describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
   describe('beforeAddNetworkBreadcrumb()', () => {
-    let options: {
+    let options: ReplayNetworkOptions & {
       replay: ReplayContainer;
       textEncoder: TextEncoderInternal;
-      captureBodies: boolean;
     };
 
     beforeEach(() => {
@@ -40,6 +63,8 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         textEncoder: new TextEncoder(),
         replay: setupReplayContainer(),
         captureBodies: false,
+        requestHeaders: ['content-type', 'accept', 'x-custom-header'],
+        responseHeaders: ['content-type', 'accept', 'x-custom-header'],
       };
 
       jest.runAllTimers();
@@ -84,10 +109,19 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
           status_code: 200,
         },
       };
-      const xhr = new XMLHttpRequest();
+      const xhr = new XMLHttpRequest() as XMLHttpRequest & SentryWrappedXMLHttpRequest;
       Object.defineProperty(xhr, 'response', {
         value: 'test response',
       });
+      xhr[SENTRY_XHR_DATA_KEY] = {
+        request_headers: {
+          'content-type': 'text/plain',
+          'other-header': 'test',
+        },
+      };
+      xhr.getAllResponseHeaders = () => `content-type: application/json\r
+accept: application/json\r
+other-header: test`;
       const hint: XhrBreadcrumbHint = {
         xhr,
         input: 'test input',
@@ -121,9 +155,16 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: 10,
+                  headers: {
+                    'content-type': 'text/plain',
+                  },
                 },
                 response: {
                   size: 13,
+                  headers: {
+                    accept: 'application/json',
+                    'content-type': 'application/json',
+                  },
                 },
               },
               description: 'https://example.com',
@@ -194,14 +235,17 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '13',
-        },
-      } as unknown as Response;
+      const mockResponse = getMockResponse('13', undefined, {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'other-header': 'test',
+      });
 
       const hint: FetchBreadcrumbHint = {
-        input: ['GET', { body: 'test input' }],
+        input: [
+          'GET',
+          { body: 'test input', headers: { 'content-type': 'text/plain', other: 'header here', accept: 'text/plain' } },
+        ],
         response: mockResponse,
         startTimestamp: BASE_TIMESTAMP + 1000,
         endTimestamp: BASE_TIMESTAMP + 2000,
@@ -232,9 +276,17 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 method: 'GET',
                 request: {
                   size: 10,
+                  headers: {
+                    'content-type': 'text/plain',
+                    accept: 'text/plain',
+                  },
                 },
                 response: {
                   size: 13,
+                  headers: {
+                    'content-type': 'application/json',
+                    accept: 'application/json',
+                  },
                 },
                 statusCode: 200,
               },
@@ -257,11 +309,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-      } as unknown as Response;
+      const mockResponse = getMockResponse();
 
       const hint: FetchBreadcrumbHint = {
         input: [],
@@ -310,13 +358,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve('test response'),
-      } as unknown as Response;
+      const mockResponse = getMockResponse('', 'test response');
 
       const hint: FetchBreadcrumbHint = {
         input: [],
@@ -347,6 +389,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 response: {
                   size: 13,
+                  headers: {},
                 },
               },
               description: 'https://example.com',
@@ -371,13 +414,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '13',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve('test response'),
-      } as unknown as Response;
+      const mockResponse = getMockResponse('13', 'test response');
 
       const hint: FetchBreadcrumbHint = {
         input: ['GET', { body: 'test input' }],
@@ -412,10 +449,12 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: 10,
+                  headers: {},
                   body: 'test input',
                 },
                 response: {
                   size: 13,
+                  headers: {},
                   body: 'test response',
                 },
               },
@@ -441,13 +480,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve('{"this":"is","json":true}'),
-      } as unknown as Response;
+      const mockResponse = getMockResponse('', '{"this":"is","json":true}');
 
       const hint: FetchBreadcrumbHint = {
         input: ['GET', { body: '{"that":"is","json":true}' }],
@@ -481,10 +514,12 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: 25,
+                  headers: {},
                   body: { that: 'is', json: true },
                 },
                 response: {
                   size: 25,
+                  headers: {},
                   body: { this: 'is', json: true },
                 },
               },
@@ -510,13 +545,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve(''),
-      } as unknown as Response;
+      const mockResponse = getMockResponse('', '');
 
       const hint: FetchBreadcrumbHint = {
         input: ['GET', { body: undefined }],
@@ -570,13 +599,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         },
       };
 
-      const mockResponse = {
-        headers: {
-          get: () => '',
-        },
-        clone: () => mockResponse,
-        text: () => Promise.resolve(LARGE_BODY),
-      } as unknown as Response;
+      const mockResponse = getMockResponse('', LARGE_BODY);
 
       const hint: FetchBreadcrumbHint = {
         input: ['GET', { body: LARGE_BODY }],
@@ -610,12 +633,14 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: LARGE_BODY.length,
+                  headers: {},
                   _meta: {
                     errors: ['MAX_BODY_SIZE_EXCEEDED'],
                   },
                 },
                 response: {
                   size: LARGE_BODY.length,
+                  headers: {},
                   _meta: {
                     errors: ['MAX_BODY_SIZE_EXCEEDED'],
                   },
@@ -682,10 +707,12 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: 10,
+                  headers: {},
                   body: 'test input',
                 },
                 response: {
                   size: 13,
+                  headers: {},
                   body: 'test response',
                 },
               },
@@ -750,10 +777,12 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: 25,
+                  headers: {},
                   body: { that: 'is', json: true },
                 },
                 response: {
                   size: 25,
+                  headers: {},
                   body: { this: 'is', json: true },
                 },
               },
@@ -876,12 +905,14 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
                 statusCode: 200,
                 request: {
                   size: LARGE_BODY.length,
+                  headers: {},
                   _meta: {
                     errors: ['MAX_BODY_SIZE_EXCEEDED'],
                   },
                 },
                 response: {
                   size: LARGE_BODY.length,
+                  headers: {},
                   _meta: {
                     errors: ['MAX_BODY_SIZE_EXCEEDED'],
                   },

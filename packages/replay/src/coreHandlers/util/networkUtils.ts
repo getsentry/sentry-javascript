@@ -120,20 +120,29 @@ export function getNetworkBody(bodyText: string | undefined): NetworkBody | unde
 
 /** Build the request or response part of a replay network breadcrumb. */
 export function buildNetworkRequestOrResponse(
+  headers: Record<string, string>,
   bodySize: number | undefined,
   body: NetworkBody | undefined,
 ): ReplayNetworkRequestOrResponse | undefined {
-  if (!bodySize) {
+  if (!bodySize && Object.keys(headers).length === 0) {
     return undefined;
+  }
+
+  if (!bodySize) {
+    return {
+      headers,
+    };
   }
 
   if (!body) {
     return {
+      headers,
       size: bodySize,
     };
   }
 
   const info: ReplayNetworkRequestOrResponse = {
+    headers,
     size: bodySize,
   };
 
@@ -146,6 +155,18 @@ export function buildNetworkRequestOrResponse(
   }
 
   return info;
+}
+
+/** Filter a set of headers */
+export function getAllowedHeaders(headers: Record<string, string>, allowedHeaders: string[]): Record<string, string> {
+  return Object.keys(headers).reduce((filteredHeaders: Record<string, string>, key: string) => {
+    const normalizedKey = key.toLowerCase();
+    // Avoid putting empty strings into the headers
+    if (allowedHeaders.includes(normalizedKey) && headers[key]) {
+      filteredHeaders[normalizedKey] = headers[key];
+    }
+    return filteredHeaders;
+  }, {});
 }
 
 function _serializeFormData(formData: FormData): string {

@@ -45,8 +45,6 @@ const DEFAULT_BREADCRUMBS = 100;
 export interface RunWithAsyncContextOptions {
   /** Whether to reuse an existing async context if one exists. Defaults to false. */
   reuseExisting?: boolean;
-  /** Instances that should be referenced and retained in the new context */
-  emitters?: unknown[];
 }
 
 /**

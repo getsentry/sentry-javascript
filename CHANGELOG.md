@@ -22,25 +22,26 @@ This release switches the SDK to use [`AsyncLocalStorage`](https://nodejs.org/ap
 If you want to manually add async context isolation to your application, you can use the new `runWithAsyncContext` API.
 
 ```js
+import * as Sentry from '@sentry/node';
+
 const requestHandler = (ctx, next) => {
   return new Promise((resolve, reject) => {
-    Sentry.runWithAsyncContext(
-      async hub => {
-        hub.configureScope(scope =>
-          scope.addEventProcessor(event =>
-            Sentry.addRequestDataToEvent(event, ctx.request, {
-              include: {
-                user: false,
-              },
-            })
-          )
-        );
+    Sentry.runWithAsyncContext(async () => {
+      const hub = Sentry.geCurrentHub();
 
-        await next();
-        resolve();
-      },
-      { emitters: [ctx] }
-    );
+      hub.configureScope(scope =>
+        scope.addEventProcessor(event =>
+          Sentry.addRequestDataToEvent(event, ctx.request, {
+            include: {
+              user: false,
+            },
+          })
+        )
+      );
+
+      await next();
+      resolve();
+    });
   });
 };
 ```

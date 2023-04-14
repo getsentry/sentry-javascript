@@ -187,45 +187,41 @@ export function requestHandler(
           });
       };
     }
-    runWithAsyncContext(
-      () => {
-        const currentHub = getCurrentHub();
-
-        currentHub.configureScope(scope => {
-          scope.setSDKProcessingMetadata({
-            request: req,
-            // TODO (v8): Stop passing this
-            requestDataOptionsFromExpressHandler: requestDataOptions,
-          });
-
-          const client = currentHub.getClient<NodeClient>();
-          if (isAutoSessionTrackingEnabled(client)) {
-            const scope = currentHub.getScope();
-            if (scope) {
-              // Set `status` of `RequestSession` to Ok, at the beginning of the request
-              scope.setRequestSession({ status: 'ok' });
-            }
-          }
+    runWithAsyncContext(() => {
+      const currentHub = getCurrentHub();
+      currentHub.configureScope(scope => {
+        scope.setSDKProcessingMetadata({
+          request: req,
+          // TODO (v8): Stop passing this
+          requestDataOptionsFromExpressHandler: requestDataOptions,
         });
 
-        res.once('finish', () => {
-          const client = currentHub.getClient<NodeClient>();
-          if (isAutoSessionTrackingEnabled(client)) {
-            setImmediate(() => {
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
+          const scope = currentHub.getScope();
+          if (scope) {
+            // Set `status` of `RequestSession` to Ok, at the beginning of the request
+            scope.setRequestSession({ status: 'ok' });
+          }
+        }
+      });
+
+      res.once('finish', () => {
+        const client = currentHub.getClient<NodeClient>();
+        if (isAutoSessionTrackingEnabled(client)) {
+          setImmediate(() => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (client && (client as any)._captureRequestSession) {
+              // Calling _captureRequestSession to capture request session at the end of the request by incrementing
+              // the correct SessionAggregates bucket i.e. crashed, errored or exited
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              if (client && (client as any)._captureRequestSession) {
-                // Calling _captureRequestSession to capture request session at the end of the request by incrementing
-                // the correct SessionAggregates bucket i.e. crashed, errored or exited
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                (client as any)._captureRequestSession();
-              }
-            });
-          }
-        });
-        next();
-      },
-      { emitters: [req, res] },
-    );
+              (client as any)._captureRequestSession();
+            }
+          });
+        }
+      });
+      next();
+    });
   };
 }
 

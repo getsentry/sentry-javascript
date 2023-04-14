@@ -6,6 +6,7 @@ window.Replay = new Sentry.Replay({
   flushMaxDelay: 200,
   _experiments: {
     captureNetworkBodies: true,
+    captureResponseHeaders: ['X-Test-Header'],
   },
 });
 

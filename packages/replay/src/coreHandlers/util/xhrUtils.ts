@@ -1,10 +1,11 @@
 import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
-import type { ReplayContainer, ReplayNetworkRequestData, XhrHint } from '../../types';
+import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData, XhrHint } from '../../types';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
+  getAllowedHeaders,
   getBodySize,
   getBodyString,
   getNetworkBody,
@@ -19,7 +20,7 @@ import {
 export async function captureXhrBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
   hint: XhrHint,
-  options: { replay: ReplayContainer; captureBodies: boolean },
+  options: ReplayNetworkOptions & { replay: ReplayContainer },
 ): Promise<void> {
   try {
     const data = _prepareXhrData(breadcrumb, hint, options);
@@ -60,9 +61,9 @@ export function enrichXhrBreadcrumb(
 function _prepareXhrData(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
   hint: XhrHint,
-  options: { captureBodies: boolean },
+  options: ReplayNetworkOptions,
 ): ReplayNetworkRequestData | null {
-  const { startTimestamp, endTimestamp, input } = hint;
+  const { startTimestamp, endTimestamp, input, xhr } = hint;
 
   const {
     url,
@@ -72,15 +73,21 @@ function _prepareXhrData(
     response_body_size: responseBodySize,
   } = breadcrumb.data;
 
+  const xhrInfo = xhr[SENTRY_XHR_DATA_KEY];
+  const requestHeaders = xhrInfo ? getAllowedHeaders(xhrInfo.request_headers, options.requestHeaders) : {};
+  const responseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.responseHeaders);
+
   if (!url) {
     return null;
   }
 
   const request = buildNetworkRequestOrResponse(
+    requestHeaders,
     requestBodySize,
     options.captureBodies ? getNetworkBody(getBodyString(input)) : undefined,
   );
   const response = buildNetworkRequestOrResponse(
+    responseHeaders,
     responseBodySize,
     options.captureBodies ? getNetworkBody(hint.xhr.responseText) : undefined,
   );
@@ -94,4 +101,18 @@ function _prepareXhrData(
     request,
     response,
   };
+}
+
+function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
+  const headers = xhr.getAllResponseHeaders();
+
+  if (!headers) {
+    return {};
+  }
+
+  return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
+    const [key, value] = line.split(': ');
+    acc[key.toLowerCase()] = value;
+    return acc;
+  }, {});
 }
