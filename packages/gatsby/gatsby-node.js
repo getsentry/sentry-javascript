@@ -46,8 +46,13 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
           // Handle sentry-cli configuration errors when the user has not done it not to break
           // the build.
           errorHandler(err, invokeErr) {
-            const { message } = err;
+            const message = err.message && err.message.toLowerCase() || '';
             if (message.includes('organization slug is required') || message.includes('project slug is required')) {
+              return;
+            }
+            if (message.includes('authentication credentials were not provided')) {
+              // eslint-disable-next-line no-console
+              console.warn('Sentry Logger [Warn]: Cannot upload source maps due to missing SENTRY_AUTH_TOKEN env variable.')
               return;
             }
             invokeErr(err);
