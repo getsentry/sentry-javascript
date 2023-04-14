@@ -22,7 +22,7 @@ describe('Unit | session | sessionSampling', () => {
       sampled: getSessionSampleType(0, 1),
     });
 
-    expect(newSession.sampled).toBe('error');
+    expect(newSession.sampled).toBe('buffer');
   });
 
   it('does not run sampling function if existing session was sampled', function () {
