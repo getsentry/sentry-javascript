@@ -35,7 +35,7 @@ const REPLAY_EVENT: ReplayEvent = {
   urls: ['https://example.com'],
   replay_id: 'MY_REPLAY_ID',
   segment_id: 3,
-  replay_type: 'error',
+  replay_type: 'buffer',
 };
 
 const DSN = dsnFromString('https://public@dsn.ingest.sentry.io/1337');
