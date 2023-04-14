@@ -45,8 +45,6 @@ const DEFAULT_BREADCRUMBS = 100;
 export interface RunWithAsyncContextOptions {
   /** Whether to reuse an existing async context if one exists. Defaults to false. */
   reuseExisting?: boolean;
-  /** Instances that should be referenced and retained in the new context */
-  emitters?: unknown[];
 }
 
 /**
@@ -62,7 +60,7 @@ export interface AsyncContextStrategy {
   /**
    * Runs the supplied callback in its own async context.
    */
-  runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T;
+  runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T;
 }
 
 /**
@@ -595,7 +593,7 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  * @param options Options to pass to the async context strategy
  * @returns The result of the callback
  */
-export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions = {}): T {
+export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
 
   if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
@@ -603,7 +601,7 @@ export function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWi
   }
 
   // if there was no strategy, fallback to just calling the callback
-  return callback(getCurrentHub());
+  return callback();
 }
 
 /**

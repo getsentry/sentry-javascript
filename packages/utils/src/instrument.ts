@@ -306,7 +306,7 @@ function instrumentXHR(): void {
           const xhrInfo = this[SENTRY_XHR_DATA_KEY];
 
           if (xhrInfo) {
-            xhrInfo.request_headers[header] = value;
+            xhrInfo.request_headers[header.toLowerCase()] = value;
           }
 
           return original.apply(this, setRequestHeaderArgs);

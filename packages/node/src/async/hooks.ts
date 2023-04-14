@@ -28,19 +28,19 @@ export function setHooksAsyncContextStrategy(): void {
     return getHubFromCarrier(carrier);
   }
 
-  function runWithAsyncContext<T>(callback: (hub: Hub) => T, options: RunWithAsyncContextOptions): T {
+  function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
     const existingHub = getCurrentHub();
 
     if (existingHub && options?.reuseExisting) {
       // We're already in an async context, so we don't need to create a new one
       // just call the callback with the current hub
-      return callback(existingHub);
+      return callback();
     }
 
     const newHub = createNewHub(existingHub);
 
     return asyncStorage.run(newHub, () => {
-      return callback(newHub);
+      return callback();
     });
   }
 

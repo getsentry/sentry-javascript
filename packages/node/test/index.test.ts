@@ -291,7 +291,8 @@ describe('SentryNode', () => {
       setNodeAsyncContextStrategy();
       const client = new NodeClient(options);
 
-      runWithAsyncContext(hub => {
+      runWithAsyncContext(() => {
+        const hub = getCurrentHub();
         hub.bindClient(client);
         expect(getCurrentHub().getClient()).toBe(client);
         hub.captureEvent({ message: 'test domain' });

@@ -243,7 +243,30 @@ export interface ReplayPluginOptions extends SessionOptions {
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
     captureNetworkBodies: boolean;
+    captureRequestHeaders: string[];
+    captureResponseHeaders: string[];
   }>;
+}
+
+export interface ReplayNetworkOptions {
+  /**
+   * If request & response bodies should be captured.
+   */
+  captureBodies: boolean;
+
+  /**
+   * Capture the following request headers, in addition to the default ones.
+   */
+  requestHeaders: string[];
+
+  /**
+   * Capture the following response headers, in addition to the default ones.
+   */
+  responseHeaders: string[];
+}
+
+export interface ReplayExperimentalPluginOptions {
+  network: ReplayNetworkOptions;
 }
 
 export interface ReplayIntegrationPrivacyOptions {
@@ -445,6 +468,7 @@ export interface ReplayContainer {
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
+  getExperimentalOptions(): ReplayExperimentalPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
@@ -499,6 +523,7 @@ interface NetworkMeta {
 export interface ReplayNetworkRequestOrResponse {
   size?: number;
   body?: NetworkBody;
+  headers: Record<string, string>;
   _meta?: NetworkMeta;
 }
 
