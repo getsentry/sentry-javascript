@@ -207,9 +207,9 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public stop(): Promise<void> | void {
+  public stop(): Promise<void> {
     if (!this._replay) {
-      return;
+      return Promise.resolve();
     }
 
     return this._replay.stop();
@@ -218,9 +218,9 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   /**
    * Immediately send all pending events.
    */
-  public flush(): Promise<void> | void {
+  public flush(): Promise<void> {
     if (!this._replay || !this._replay.isEnabled()) {
-      return;
+      return Promise.resolve();
     }
 
     return this._replay.flushImmediate();
