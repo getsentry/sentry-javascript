@@ -855,7 +855,8 @@ function addValueInjectionLoader(
     __sentryRewritesTunnelPath__: userSentryOptions.tunnelRoute,
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
-    SENTRY_RELEASE: { id: getSentryRelease(buildContext.buildId) },
+    // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
+    SENTRY_RELEASE: buildContext.dev ? undefined : { id: getSentryRelease(buildContext.buildId) },
   };
 
   const serverValues = {
