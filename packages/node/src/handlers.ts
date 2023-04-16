@@ -342,7 +342,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const sentryTransaction = hub.getScope()?.getTransaction();
 
     if (sentryTransaction) {
-      sentryTransaction.setName(`trcp/${path}`, 'route');
+      sentryTransaction.setName(`trpc/${path}`, 'route');
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {
