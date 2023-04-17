@@ -9,7 +9,6 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true
-    // "allowImportingTsExtensions": true
   }
   // "include": ["./start-event-proxy.ts", "../../test-utils/**/*"]
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias

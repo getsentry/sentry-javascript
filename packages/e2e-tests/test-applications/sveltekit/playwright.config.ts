@@ -13,7 +13,7 @@ const port = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
  * See https://playwright.dev/docs/test-configuration.
  */
 const config: PlaywrightTestConfig = {
-  testDir: './tests',
+  testDir: './test',
   /* Maximum time one test can run for. */
   timeout: 60 * 1000,
   expect: {
@@ -55,7 +55,7 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: testEnv === 'development' ? `yarn preview --port ${port}` : `yarn preview --port ${port}`,
+      command: testEnv === 'development' ? `yarn dev --port ${port}` : `yarn preview --port ${port}`,
       port,
     },
     {
