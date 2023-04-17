@@ -40,6 +40,8 @@ jobs:
 
       - name: Enable automerge for PR
         run: gh pr merge --merge --auto "1"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
