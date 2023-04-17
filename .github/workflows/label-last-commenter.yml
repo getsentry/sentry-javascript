@@ -1,0 +1,31 @@
+name: 'Tag issues with last commenter'
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Add label if commenter is not member
+        if: |
+          github.event.comment.author_association != 'COLLABORATOR'
+          && github.event.comment.author_association != 'MEMBER'
+          && github.event.comment.author_association != 'OWNER'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'Status: User responded'
+
+      - name: Remove label if commenter is member
+        if: |
+          github.event.comment.author_association == 'COLLABORATOR'
+          || github.event.comment.author_association == 'MEMBER'
+          || github.event.comment.author_association == 'OWNER'
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: 'Status: User responded'
