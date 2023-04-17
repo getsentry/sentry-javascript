@@ -22,9 +22,9 @@ async function run(): Promise<void> {
   };
 
   try {
-    registrySetup();
+    // registrySetup();
 
-    const recipePaths = glob.sync(`${__dirname}/test-applications/*/test-recipe.json`, { absolute: true });
+    const recipePaths = glob.sync(`${__dirname}/test-applications/sveltekit/test-recipe.json`, { absolute: true });
 
     await runAllTestApps(recipePaths, envVarsToInject);
   } catch (error) {

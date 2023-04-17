@@ -1,0 +1,15 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "Sveltekit",
+  "buildCommand": "yarn install && yarn build",
+  "tests": [
+    {
+      "testName": "Prod Mode",
+      "testCommand": "yarn test:prod"
+    },
+    {
+      "testName": "Dev Mode",
+      "testCommand": "yarn test:dev"
+    }
+  ]
+}
