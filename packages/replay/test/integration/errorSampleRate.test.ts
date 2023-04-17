@@ -158,6 +158,100 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
+  it('manually flushes replay and does not continue to record', async () => {
+    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
+    mockRecord._emitter(TEST_EVENT);
+
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+
+    // Does not capture on mouse click
+    domHandler({
+      name: 'click',
+    });
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    expect(replay).not.toHaveLastSentReplay();
+
+    replay.sendBufferedReplayOrFlush({continueRecording: false})
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'error',
+        contexts: {
+          replay: {
+            error_sample_rate: 1,
+            session_sample_rate: 0,
+          },
+        },
+      }),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    // Check that click will not get captured
+    domHandler({
+      name: 'click',
+    });
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    // This is still the last replay sent since we passed `continueRecording:
+    // false`.
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'error',
+        contexts: {
+          replay: {
+            error_sample_rate: 1,
+            session_sample_rate: 0,
+          },
+        },
+      }),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        TEST_EVENT,
+        {
+          type: 5,
+          timestamp: BASE_TIMESTAMP,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: BASE_TIMESTAMP / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
+      ]),
+    });
+  });
+
   it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_DURATION]ms', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
