@@ -216,11 +216,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * If not in "session" recording mode, flush event buffer which will create a new replay.
+   * Immediately send all pending events. In buffer-mode, this should be used
+   * to capture the initial replay.
+   *
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
-   *
-   * Otherwise, queue up a flush.
    */
   public flush(options?: SendBufferedReplayOptions): Promise<void> | void {
     if (!this._replay || !this._replay.isEnabled()) {
