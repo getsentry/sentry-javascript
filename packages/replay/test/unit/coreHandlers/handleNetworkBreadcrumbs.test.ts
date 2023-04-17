@@ -587,7 +587,7 @@ other-header: test`;
       ]);
     });
 
-    it('skips fetch request/response body if configured & too large', async () => {
+    it('truncates fetch text request/response body if configured & too large', async () => {
       options.captureBodies = true;
 
       const breadcrumb: Breadcrumb = {
@@ -634,15 +634,96 @@ other-header: test`;
                 request: {
                   size: LARGE_BODY.length,
                   headers: {},
+                  body: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE)}…`,
                   _meta: {
-                    errors: ['MAX_BODY_SIZE_EXCEEDED'],
+                    warnings: ['TEXT_TRUNCATED'],
                   },
                 },
                 response: {
                   size: LARGE_BODY.length,
                   headers: {},
+                  body: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE)}…`,
                   _meta: {
-                    errors: ['MAX_BODY_SIZE_EXCEEDED'],
+                    warnings: ['TEXT_TRUNCATED'],
+                  },
+                },
+              },
+              description: 'https://example.com',
+              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+              op: 'resource.fetch',
+              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            },
+          },
+        },
+      ]);
+    });
+
+    it('truncates fetch JSON request/response body if configured & too large', async () => {
+      options.captureBodies = true;
+
+      const largeBody = JSON.stringify({ a: LARGE_BODY });
+
+      const breadcrumb: Breadcrumb = {
+        category: 'fetch',
+        data: {
+          method: 'GET',
+          url: 'https://example.com',
+          status_code: 200,
+        },
+      };
+
+      const mockResponse = {
+        headers: {
+          get: () => '',
+        },
+        clone: () => mockResponse,
+        text: () => Promise.resolve(largeBody),
+      } as unknown as Response;
+
+      const hint: FetchBreadcrumbHint = {
+        input: ['GET', { body: largeBody }],
+        response: mockResponse,
+        startTimestamp: BASE_TIMESTAMP + 1000,
+        endTimestamp: BASE_TIMESTAMP + 2000,
+      };
+      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+      expect(breadcrumb).toEqual({
+        category: 'fetch',
+        data: {
+          method: 'GET',
+          request_body_size: largeBody.length,
+          status_code: 200,
+          url: 'https://example.com',
+        },
+      });
+
+      await waitForReplayEventBuffer();
+
+      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+        {
+          type: 5,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            tag: 'performanceSpan',
+            payload: {
+              data: {
+                method: 'GET',
+                statusCode: 200,
+                request: {
+                  size: largeBody.length,
+                  headers: {},
+                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  _meta: {
+                    warnings: ['JSON_TRUNCATED'],
+                  },
+                },
+                response: {
+                  size: largeBody.length,
+                  headers: {},
+                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  _meta: {
+                    warnings: ['JSON_TRUNCATED'],
                   },
                 },
               },
@@ -854,7 +935,7 @@ other-header: test`;
       ]);
     });
 
-    it('skip xhr request/response body if configured & body too large', async () => {
+    it('truncates text xhr request/response body if configured & body too large', async () => {
       options.captureBodies = true;
 
       const breadcrumb: Breadcrumb = {
@@ -906,15 +987,95 @@ other-header: test`;
                 request: {
                   size: LARGE_BODY.length,
                   headers: {},
+                  body: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE)}…`,
                   _meta: {
-                    errors: ['MAX_BODY_SIZE_EXCEEDED'],
+                    warnings: ['TEXT_TRUNCATED'],
                   },
                 },
                 response: {
                   size: LARGE_BODY.length,
                   headers: {},
+                  body: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE)}…`,
                   _meta: {
-                    errors: ['MAX_BODY_SIZE_EXCEEDED'],
+                    warnings: ['TEXT_TRUNCATED'],
+                  },
+                },
+              },
+              description: 'https://example.com',
+              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+              op: 'resource.xhr',
+              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            },
+          },
+        },
+      ]);
+    });
+
+    it('truncates JSON xhr request/response body if configured & body too large', async () => {
+      options.captureBodies = true;
+
+      const largeBody = JSON.stringify({ a: LARGE_BODY });
+
+      const breadcrumb: Breadcrumb = {
+        category: 'xhr',
+        data: {
+          method: 'GET',
+          url: 'https://example.com',
+          status_code: 200,
+        },
+      };
+      const xhr = new XMLHttpRequest();
+      Object.defineProperty(xhr, 'response', {
+        value: largeBody,
+      });
+      Object.defineProperty(xhr, 'responseText', {
+        value: largeBody,
+      });
+      const hint: XhrBreadcrumbHint = {
+        xhr,
+        input: largeBody,
+        startTimestamp: BASE_TIMESTAMP + 1000,
+        endTimestamp: BASE_TIMESTAMP + 2000,
+      };
+      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+      expect(breadcrumb).toEqual({
+        category: 'xhr',
+        data: {
+          method: 'GET',
+          request_body_size: largeBody.length,
+          response_body_size: largeBody.length,
+          status_code: 200,
+          url: 'https://example.com',
+        },
+      });
+
+      await waitForReplayEventBuffer();
+
+      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+        {
+          type: 5,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            tag: 'performanceSpan',
+            payload: {
+              data: {
+                method: 'GET',
+                statusCode: 200,
+                request: {
+                  size: largeBody.length,
+                  headers: {},
+                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  _meta: {
+                    warnings: ['JSON_TRUNCATED'],
+                  },
+                },
+                response: {
+                  size: largeBody.length,
+                  headers: {},
+                  body: { a: `${LARGE_BODY.slice(0, NETWORK_BODY_MAX_SIZE - 6)}~~` },
+                  _meta: {
+                    warnings: ['JSON_TRUNCATED'],
                   },
                 },
               },

@@ -4,11 +4,13 @@ import { dropUndefinedKeys } from '@sentry/utils';
 import { NETWORK_BODY_MAX_SIZE } from '../../constants';
 import type {
   NetworkBody,
+  NetworkMetaWarning,
   NetworkRequestData,
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
   ReplayPerformanceEntry,
 } from '../../types';
+import { fixJson } from '../../util/truncateJson/fixJson';
 
 /** Get the size of a body. */
 export function getBodySize(
@@ -122,7 +124,7 @@ export function getNetworkBody(bodyText: string | undefined): NetworkBody | unde
 export function buildNetworkRequestOrResponse(
   headers: Record<string, string>,
   bodySize: number | undefined,
-  body: NetworkBody | undefined,
+  body: string | undefined,
 ): ReplayNetworkRequestOrResponse | undefined {
   if (!bodySize && Object.keys(headers).length === 0) {
     return undefined;
@@ -146,11 +148,11 @@ export function buildNetworkRequestOrResponse(
     size: bodySize,
   };
 
-  if (bodySize < NETWORK_BODY_MAX_SIZE) {
-    info.body = body;
-  } else {
+  const { body: normalizedBody, warnings } = normalizeNetworkBody(body);
+  info.body = normalizedBody;
+  if (warnings.length > 0) {
     info._meta = {
-      errors: ['MAX_BODY_SIZE_EXCEEDED'],
+      warnings,
     };
   }
 
@@ -174,4 +176,51 @@ function _serializeFormData(formData: FormData): string {
   // This converts e.g. { name: 'Anne Smith', age: 13 } to 'name=Anne+Smith&age=13'
   // @ts-ignore passing FormData to URLSearchParams actually works
   return new URLSearchParams(formData).toString();
+}
+
+function normalizeNetworkBody(body: string | undefined): {
+  body: NetworkBody | undefined;
+  warnings: NetworkMetaWarning[];
+} {
+  if (!body || typeof body !== 'string') {
+    return {
+      body,
+      warnings: [],
+    };
+  }
+
+  const exceedsSizeLimit = body.length > NETWORK_BODY_MAX_SIZE;
+
+  if (_strIsProbablyJson(body)) {
+    try {
+      const json = exceedsSizeLimit ? fixJson(body.slice(0, NETWORK_BODY_MAX_SIZE)) : body;
+      const normalizedBody = JSON.parse(json);
+      return {
+        body: normalizedBody,
+        warnings: exceedsSizeLimit ? ['JSON_TRUNCATED'] : [],
+      };
+    } catch {
+      return {
+        body,
+        warnings: ['INVALID_JSON'],
+      };
+    }
+  }
+
+  return {
+    body: exceedsSizeLimit ? `${body.slice(0, NETWORK_BODY_MAX_SIZE)}…` : body,
+    warnings: exceedsSizeLimit ? ['TEXT_TRUNCATED'] : [],
+  };
+}
+
+function _strIsProbablyJson(str: string): boolean {
+  const first = str[0];
+  const last = str[str.length - 1];
+
+  // Simple check: If this does not start & end with {} or [], it's not JSON
+  if ((first === '[' && last === ']') || (first === '{' && last === '}')) {
+    return true;
+  }
+
+  return false;
 }

@@ -1,6 +1,10 @@
 import { TextEncoder } from 'util';
 
-import { getBodySize, parseContentLengthHeader } from '../../../../src/coreHandlers/util/networkUtils';
+import {
+  buildNetworkRequestOrResponse,
+  getBodySize,
+  parseContentLengthHeader,
+} from '../../../../src/coreHandlers/util/networkUtils';
 
 jest.useFakeTimers();
 
@@ -60,6 +64,127 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
       const arrayBuffer = new ArrayBuffer(8);
 
       expect(getBodySize(arrayBuffer, textEncoder)).toBe(8);
+    });
+  });
+
+  describe('buildNetworkRequestOrResponse', () => {
+    it.each([
+      ['just text', 'just text', undefined],
+      ['[invalid JSON]', '[invalid JSON]', { warnings: ['INVALID_JSON'] }],
+      ['{invalid JSON}', '{invalid JSON}', { warnings: ['INVALID_JSON'] }],
+      ['[]', [], undefined],
+      [JSON.stringify([1, 'a', true, null, undefined]), [1, 'a', true, null, null], undefined],
+      [JSON.stringify([1, [2, [3, [4, [5, [6, [7, [8]]]]]]]]), [1, [2, [3, [4, [5, [6, [7, [8]]]]]]]], undefined],
+      ['{}', {}, undefined],
+      [
+        JSON.stringify({ a: 1, b: true, c: 'yes', d: null, e: undefined }),
+        { a: 1, b: true, c: 'yes', d: null, e: undefined },
+        undefined,
+      ],
+      [
+        JSON.stringify({
+          a: 1,
+          b: {
+            c: 2,
+            d: {
+              e: 3,
+              f: {
+                g: 4,
+                h: {
+                  i: 5,
+                  j: {
+                    k: 6,
+                    l: {
+                      m: 7,
+                      n: {
+                        o: 8,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+        {
+          a: 1,
+          b: {
+            c: 2,
+            d: {
+              e: 3,
+              f: {
+                g: 4,
+                h: {
+                  i: 5,
+                  j: {
+                    k: 6,
+                    l: {
+                      m: 7,
+                      n: {
+                        o: 8,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        undefined,
+      ],
+      [
+        JSON.stringify({
+          data: {
+            user: {
+              name: 'John',
+              age: 42,
+              friends: [
+                {
+                  name: 'Jane',
+                },
+                {
+                  name: 'Bob',
+                  children: [
+                    { name: 'Alice' },
+                    {
+                      name: 'Rose',
+                      hobbies: [{ name: 'Dancing' }, { name: 'Programming' }, { name: 'Dueling' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+        {
+          data: {
+            user: {
+              name: 'John',
+              age: 42,
+              friends: [
+                {
+                  name: 'Jane',
+                },
+                {
+                  name: 'Bob',
+                  children: [
+                    { name: 'Alice' },
+                    {
+                      name: 'Rose',
+                      hobbies: [{ name: 'Dancing' }, { name: 'Programming' }, { name: 'Dueling' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        undefined,
+      ],
+    ])('works with %s', (input, expectedBody, expectedMeta) => {
+      const actual = buildNetworkRequestOrResponse({}, 1, input);
+
+      expect(actual).toEqual({ size: 1, headers: {}, body: expectedBody, _meta: expectedMeta });
     });
   });
 });

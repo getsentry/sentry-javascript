@@ -3,7 +3,6 @@ import { logger } from '@sentry/utils';
 
 import type {
   FetchHint,
-  NetworkBody,
   ReplayContainer,
   ReplayNetworkOptions,
   ReplayNetworkRequestData,
@@ -15,7 +14,6 @@ import {
   getAllowedHeaders,
   getBodySize,
   getBodyString,
-  getNetworkBody,
   makeNetworkReplayBreadcrumb,
   parseContentLengthHeader,
 } from './networkUtils';
@@ -112,8 +110,8 @@ function _getRequestInfo(
 
   // We only want to transmit string or string-like bodies
   const requestBody = _getFetchRequestArgBody(input);
-  const body = getNetworkBody(getBodyString(requestBody));
-  return buildNetworkRequestOrResponse(headers, requestBodySize, body);
+  const bodyStr = getBodyString(requestBody);
+  return buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
 }
 
 async function _getResponseInfo(
@@ -137,7 +135,7 @@ async function _getResponseInfo(
   try {
     // We have to clone this, as the body can only be read once
     const res = response.clone();
-    const { body, bodyText } = await _parseFetchBody(res);
+    const bodyText = await _parseFetchBody(res);
 
     const size =
       bodyText && bodyText.length && responseBodySize === undefined
@@ -145,7 +143,7 @@ async function _getResponseInfo(
         : responseBodySize;
 
     if (captureBodies) {
-      return buildNetworkRequestOrResponse(headers, size, body);
+      return buildNetworkRequestOrResponse(headers, size, bodyText);
     }
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
@@ -155,25 +153,12 @@ async function _getResponseInfo(
   }
 }
 
-async function _parseFetchBody(
-  response: Response,
-): Promise<{ body?: NetworkBody | undefined; bodyText?: string | undefined }> {
-  let bodyText: string;
-
+async function _parseFetchBody(response: Response): Promise<string | undefined> {
   try {
-    bodyText = await response.text();
+    return await response.text();
   } catch {
-    return {};
+    return undefined;
   }
-
-  try {
-    const body = JSON.parse(bodyText);
-    return { body, bodyText };
-  } catch {
-    // just send bodyText
-  }
-
-  return { bodyText, body: bodyText };
 }
 
 function _getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
