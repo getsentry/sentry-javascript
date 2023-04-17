@@ -7,14 +7,7 @@ import * as path from 'path';
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
-const DEFAULT_PLUGIN_OPTIONS: SentryVitePluginOptions = {
-  // TODO: Read these values from the node adapter somehow as the out dir can be changed in the adapter options
-  include: [
-    { paths: ['build/client'] },
-    { paths: ['build/server/chunks'] },
-    { paths: ['build/server'], ignore: ['chunks/**'] },
-  ],
-};
+import { getAdapterOutputDir, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:
 type Chain = {
@@ -45,17 +38,30 @@ type SentryVitePluginOptionsOptionalInclude = Omit<SentryVitePluginOptions, 'inc
  *
  * @returns the custom Sentry Vite plugin
  */
-export function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOptionalInclude): Plugin {
+export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOptionalInclude): Promise<Plugin> {
+  const svelteConfig = await loadSvelteConfig();
+
+  const outputDir = await getAdapterOutputDir(svelteConfig);
+
+  const defaultPluginOptions: SentryVitePluginOptions = {
+    include: [
+      { paths: [`${outputDir}/client`] },
+      { paths: [`${outputDir}/server/chunks`] },
+      { paths: [`${outputDir}/server`], ignore: ['chunks/**'] },
+    ],
+  };
+
   const mergedOptions = {
-    ...DEFAULT_PLUGIN_OPTIONS,
+    ...defaultPluginOptions,
     ...options,
   };
+
   const sentryPlugin: Plugin = sentryVitePlugin(mergedOptions);
 
   const { debug } = mergedOptions;
   const { buildStart, resolveId, transform, renderChunk } = sentryPlugin;
 
-  let upload = true;
+  let isSSRBuild = true;
 
   const customPlugin: Plugin = {
     name: 'sentry-vite-plugin-custom',
@@ -88,19 +94,19 @@ export function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOpti
       // `config.build.ssr` is `true` for that first build and `false` in the other ones.
       // Hence we can use it as a switch to upload source maps only once in main build.
       if (!config.build.ssr) {
-        upload = false;
+        isSSRBuild = false;
       }
     },
 
     // We need to start uploading source maps later than in the original plugin
-    // because SvelteKit is still doing some stuff at closeBundle.
+    // because SvelteKit is invoking the adapter at closeBundle.
+    // This means that we need to wait until the adapter is done before we start uploading.
     closeBundle: async () => {
-      if (!upload) {
+      if (!isSSRBuild) {
         return;
       }
 
-      // TODO: Read the out dir from the node adapter somehow as it can be changed in the adapter options
-      const outDir = path.resolve(process.cwd(), 'build');
+      const outDir = path.resolve(process.cwd(), outputDir);
 
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
       // eslint-disable-next-line no-console
