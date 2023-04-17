@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { TransactionContext } from '@sentry/types';
-import { logger, timestampWithMs } from '@sentry/utils';
+import { logger, timestampInSeconds } from '@sentry/utils';
 
 import type { Hub } from '../hub';
 import type { Span } from './span';
@@ -46,7 +46,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
     if (span.spanId !== this.transactionSpanId) {
       // We patch span.finish() to pop an activity after setting an endTimestamp.
       span.finish = (endTimestamp?: number) => {
-        span.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampWithMs();
+        span.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampInSeconds();
         this._popActivity(span.spanId);
       };
 
@@ -128,7 +128,7 @@ export class IdleTransaction extends Transaction {
   }
 
   /** {@inheritDoc} */
-  public finish(endTimestamp: number = timestampWithMs()): string | undefined {
+  public finish(endTimestamp: number = timestampInSeconds()): string | undefined {
     this._finished = true;
     this.activities = {};
 
@@ -301,13 +301,13 @@ export class IdleTransaction extends Transaction {
     }
 
     if (Object.keys(this.activities).length === 0) {
-      const endTimestamp = timestampWithMs();
+      const endTimestamp = timestampInSeconds();
       if (this._idleTimeoutCanceledPermanently) {
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[5];
         this.finish(endTimestamp);
       } else {
         // We need to add the timeout here to have the real endtimestamp of the transaction
-        // Remember timestampWithMs is in seconds, timeout is in ms
+        // Remember timestampInSeconds is in seconds, timeout is in ms
         this._restartIdleTimeout(endTimestamp + this._idleTimeout / 1000);
       }
     }

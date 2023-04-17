@@ -6,7 +6,7 @@ import { ExtendedBackburner } from '@sentry/ember/runloop';
 import { Span, Transaction } from '@sentry/types';
 import { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getActiveTransaction } from '..';
-import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampWithMs } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
 import { macroCondition, isTesting, getOwnConfig } from '@embroider/macros';
 import { EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 import RouterService from '@ember/routing/router-service';
@@ -182,14 +182,14 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
     if (currentQueueSpan) {
       currentQueueSpan.finish();
     }
-    currentQueueStart = timestampWithMs();
+    currentQueueStart = timestampInSeconds();
 
     instrumentedEmberQueues.forEach(queue => {
       scheduleOnce(queue, null, () => {
         scheduleOnce(queue, null, () => {
           // Process this queue using the end of the previous queue.
           if (currentQueueStart) {
-            const now = timestampWithMs();
+            const now = timestampInSeconds();
             const minQueueDuration = minimumRunloopQueueDuration ?? 5;
 
             if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
@@ -210,7 +210,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig) {
           if (!stillActiveTransaction) {
             return;
           }
-          currentQueueStart = timestampWithMs();
+          currentQueueStart = timestampInSeconds();
         });
       });
     });
@@ -244,7 +244,7 @@ interface RenderEntries {
 function processComponentRenderBefore(payload: Payload, beforeEntries: RenderEntries) {
   const info = {
     payload,
-    now: timestampWithMs(),
+    now: timestampInSeconds(),
   };
   beforeEntries[payload.object] = info;
 }
@@ -261,7 +261,7 @@ function processComponentRenderAfter(
     return;
   }
 
-  const now = timestampWithMs();
+  const now = timestampInSeconds();
   const componentRenderDuration = now - begin.now;
 
   if (componentRenderDuration * 1000 >= minComponentDuration) {
