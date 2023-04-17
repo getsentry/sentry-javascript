@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import { getCurrentHub, WINDOW } from '@sentry/browser';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, timestampWithMs } from '@sentry/utils';
+import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
@@ -258,7 +258,7 @@ export function TraceMethodDecorator(): MethodDecorator {
     const originalMethod = descriptor.value;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
-      const now = timestampWithMs();
+      const now = timestampInSeconds();
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
         activeTransaction.startChild({
