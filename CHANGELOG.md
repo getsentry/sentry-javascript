@@ -39,7 +39,11 @@ const requestHandler = (ctx, next) => {
       );
       
  
-      await next().catch(reject);
+      try {
+        await next();
+      } catch (err) {
+        reject(err);
+      }
       resolve();
     });
   });
