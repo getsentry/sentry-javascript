@@ -37,8 +37,7 @@ const requestHandler = (ctx, next) => {
           })
         )
       );
-      
- 
+
       try {
         await next();
       } catch (err) {
