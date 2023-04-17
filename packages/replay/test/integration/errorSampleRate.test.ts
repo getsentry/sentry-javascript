@@ -173,7 +173,7 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
     expect(replay).not.toHaveLastSentReplay();
 
-    replay.sendBufferedReplayOrFlush({continueRecording: false})
+    replay.sendBufferedReplayOrFlush({ continueRecording: false });
 
     await new Promise(process.nextTick);
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
