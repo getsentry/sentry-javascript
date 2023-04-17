@@ -21,6 +21,17 @@ describe('loadSvelteConfig', () => {
     };
   });
 
+  // url apparently doesn't exist in the test environment, therefore we mock it:
+  vi.mock('url', () => {
+    return {
+      pathToFileURL: path => {
+        return {
+          href: path,
+        };
+      },
+    };
+  });
+
   beforeEach(() => {
     existsFile = true;
     vi.clearAllMocks();
