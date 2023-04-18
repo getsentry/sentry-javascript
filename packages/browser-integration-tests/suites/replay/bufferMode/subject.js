@@ -13,10 +13,6 @@ document.getElementById('error2').addEventListener('click', () => {
   throw new Error('Another error');
 });
 
-document.getElementById('drop').addEventListener('click', () => {
-  throw new Error('[drop] Ooops');
-});
-
 document.getElementById('log').addEventListener('click', () => {
   console.log('Some message');
 });
