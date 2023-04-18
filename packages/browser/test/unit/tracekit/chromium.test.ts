@@ -49,8 +49,7 @@ describe('Tracekit - Chrome Tests', () => {
       stack:
         'Error: Default error\n' +
         '    at dumpExceptionError (http://localhost:8080/file.js:41:27)\n' +
-        '    at HTMLButtonElement.onclick (http://localhost:8080/file.js:107:146)\n' +
-        '    at I.e.fn.(anonymous function) [as index] (http://localhost:8080/file.js:10:3651)',
+        '    at HTMLButtonElement.onclick (http://localhost:8080/file.js:107:146)\n',
     };
 
     const ex = exceptionFromError(parser, CHROME_36);
@@ -60,13 +59,6 @@ describe('Tracekit - Chrome Tests', () => {
       type: 'Error',
       stacktrace: {
         frames: [
-          {
-            filename: 'http://localhost:8080/file.js',
-            function: 'I.e.fn.(anonymous function) [as index]',
-            lineno: 10,
-            colno: 3651,
-            in_app: true,
-          },
           {
             filename: 'http://localhost:8080/file.js',
             function: 'HTMLButtonElement.onclick',
@@ -566,6 +558,41 @@ describe('Tracekit - Chrome Tests', () => {
             filename:
               'https://s1.sentry-cdn.com/_static/dist/sentry/chunks/app_bootstrap_initializeLocale_tsx.abcdefg.js',
             function: '?',
+            in_app: true,
+          },
+        ],
+      },
+    });
+  });
+
+  it('handles braces in urls', () => {
+    const CHROME_BRACES_URL = {
+      message: 'bad',
+      name: 'Error',
+      stack: `Error: bad
+          at something (http://localhost:5000/(some)/(thing)/index.html:20:16)
+          at more (http://localhost:5000/(some)/(thing)/index.html:25:7)`,
+    };
+
+    const ex = exceptionFromError(parser, CHROME_BRACES_URL);
+
+    expect(ex).toEqual({
+      value: 'bad',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            filename: 'http://localhost:5000/(some)/(thing)/index.html',
+            function: 'more',
+            lineno: 25,
+            colno: 7,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/(some)/(thing)/index.html',
+            function: 'something',
+            lineno: 20,
+            colno: 16,
             in_app: true,
           },
         ],
