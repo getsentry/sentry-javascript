@@ -42,6 +42,7 @@ import {
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
+import { getCurrentHub } from './hub';
 import type { IntegrationIndex } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
@@ -586,6 +587,27 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
+        const propagationCtx = getCurrentHub().propagationCtx;
+        prepared.contexts = {
+          trace: {
+            trace_id: propagationCtx.traceId,
+            span_id: propagationCtx.parentSpanId,
+          },
+          ...prepared.contexts,
+        };
+
+        // None of the Sentry built event processor will update transaction name,
+        // so if the transaction name has been changed by an event processor, we know
+        // it has to come from custom event processor added by a user
+        const transactionInfo = prepared.transaction_info;
+        if (isTransaction && transactionInfo && prepared.transaction !== event.transaction) {
+          const source = 'custom';
+          prepared.transaction_info = {
+            ...transactionInfo,
+            source,
+          };
+        }
+
         const result = processBeforeSend(options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
@@ -598,18 +620,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         const session = scope && scope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
-        }
-
-        // None of the Sentry built event processor will update transaction name,
-        // so if the transaction name has been changed by an event processor, we know
-        // it has to come from custom event processor added by a user
-        const transactionInfo = processedEvent.transaction_info;
-        if (isTransaction && transactionInfo && processedEvent.transaction !== event.transaction) {
-          const source = 'custom';
-          processedEvent.transaction_info = {
-            ...transactionInfo,
-            source,
-          };
         }
 
         this.sendEvent(processedEvent, hint);

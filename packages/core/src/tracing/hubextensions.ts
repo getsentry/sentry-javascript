@@ -176,10 +176,17 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     transactionContext.sampled = false;
   }
 
-  let transaction = new Transaction(transactionContext, this);
+  const ctx: TransactionContext = {
+    ...transactionContext,
+    traceId: this.propagationCtx.traceId,
+    parentSpanId: this.propagationCtx.parentSpanId,
+    parentSampled: this.propagationCtx.parentSampled,
+  };
+
+  let transaction = new Transaction(ctx, this);
   transaction = sample(transaction, options, {
     parentSampled: transactionContext.parentSampled,
-    transactionContext,
+    transactionContext: ctx,
     ...customSamplingContext,
   });
   if (transaction.sampled) {

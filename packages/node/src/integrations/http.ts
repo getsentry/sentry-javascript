@@ -185,7 +185,8 @@ function _createWrappedRequestMethodFactory(
       let requestSpan: Span | undefined;
       let parentSpan: Span | undefined;
 
-      const scope = getCurrentHub().getScope();
+      const hub = getCurrentHub();
+      const scope = hub.getScope();
 
       const requestSpanData: SanitizedRequestData = {
         url: requestUrl,
@@ -202,56 +203,60 @@ function _createWrappedRequestMethodFactory(
 
       if (scope && tracingOptions && shouldCreateSpan(rawRequestUrl)) {
         parentSpan = scope.getSpan();
-
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
             description: `${requestSpanData.method} ${requestSpanData.url}`,
             op: 'http.client',
             data: requestSpanData,
           });
+        }
 
-          if (shouldAttachTraceData(rawRequestUrl)) {
-            const sentryTraceHeader = requestSpan.toTraceparent();
-            __DEBUG_BUILD__ &&
-              logger.log(
-                `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `,
-              );
-
-            requestOptions.headers = {
-              ...requestOptions.headers,
-              'sentry-trace': sentryTraceHeader,
-            };
-
-            if (parentSpan.transaction) {
-              const dynamicSamplingContext = parentSpan.transaction.getDynamicSamplingContext();
-              const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-
-              let newBaggageHeaderField;
-              if (!requestOptions.headers || !requestOptions.headers.baggage) {
-                newBaggageHeaderField = sentryBaggageHeader;
-              } else if (!sentryBaggageHeader) {
-                newBaggageHeaderField = requestOptions.headers.baggage;
-              } else if (Array.isArray(requestOptions.headers.baggage)) {
-                newBaggageHeaderField = [...requestOptions.headers.baggage, sentryBaggageHeader];
-              } else {
-                // Type-cast explanation:
-                // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
-                // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
-                newBaggageHeaderField = [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
-              }
-
-              requestOptions.headers = {
-                ...requestOptions.headers,
-                // Setting a hader to `undefined` will crash in node so we only set the baggage header when it's defined
-                ...(newBaggageHeaderField && { baggage: newBaggageHeaderField }),
-              };
+        if (shouldAttachTraceData(rawRequestUrl)) {
+          let sentryTraceHeader;
+          let sentryBaggageHeader;
+          if (requestSpan) {
+            sentryTraceHeader = requestSpan.toTraceparent();
+            if (requestSpan.transaction) {
+              const dynamicSamplingContext = requestSpan.transaction.getDynamicSamplingContext();
+              sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
             }
           } else {
-            __DEBUG_BUILD__ &&
-              logger.log(
-                `[Tracing] Not adding sentry-trace header to outgoing request (${requestUrl}) due to mismatching tracePropagationTargets option.`,
-              );
+            sentryTraceHeader = `${hub.propagationCtx.traceId}-${hub.propagationCtx.parentSpanId}-${
+              hub.propagationCtx.parentSampled ? 1 : 0
+            }`;
+            const dynamicSamplingContext = hub.propagationCtx.dsc || { trace_id: hub.propagationCtx.traceId };
+            sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
           }
+
+          __DEBUG_BUILD__ &&
+            logger.log(
+              `[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `,
+            );
+
+          requestOptions.headers = {
+            ...requestOptions.headers,
+            'sentry-trace': sentryTraceHeader,
+          };
+
+          let newBaggageHeaderField;
+          if (!requestOptions.headers || !requestOptions.headers.baggage) {
+            newBaggageHeaderField = sentryBaggageHeader;
+          } else if (!sentryBaggageHeader) {
+            newBaggageHeaderField = requestOptions.headers.baggage;
+          } else if (Array.isArray(requestOptions.headers.baggage)) {
+            newBaggageHeaderField = [...requestOptions.headers.baggage, sentryBaggageHeader];
+          } else {
+            // Type-cast explanation:
+            // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
+            // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
+            newBaggageHeaderField = [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
+          }
+
+          requestOptions.headers = {
+            ...requestOptions.headers,
+            // Setting a hader to `undefined` will crash in node so we only set the baggage header when it's defined
+            ...(newBaggageHeaderField && { baggage: newBaggageHeaderField }),
+          };
         }
       }
 

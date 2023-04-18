@@ -7,7 +7,7 @@ import {
   startTransaction,
   withScope,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { DynamicSamplingContext, Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToTransaction,
@@ -69,13 +69,32 @@ export function tracingHandler(): (
     const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(incomingBaggageHeaders);
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
+
+    if (traceparentData) {
+      if (traceparentData.traceId) {
+        hub.propagationCtx.traceId = traceparentData.traceId;
+      }
+
+      if (traceparentData.parentSpanId) {
+        hub.propagationCtx.parentSpanId = traceparentData.parentSpanId;
+      }
+
+      if (traceparentData.parentSampled !== undefined) {
+        hub.propagationCtx.parentSampled = traceparentData.parentSampled;
+      }
+
+      if (dynamicSamplingContext) {
+        hub.propagationCtx.dsc = dynamicSamplingContext as DynamicSamplingContext;
+      }
+    }
+
     const transaction = startTransaction(
       {
         name,
         op: 'http.server',
-        ...traceparentData,
+        // ...traceparentData,
         metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          // dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
           // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
           // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
           // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to

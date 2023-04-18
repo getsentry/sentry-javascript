@@ -4,6 +4,7 @@ import type {
   BreadcrumbHint,
   Client,
   CustomSamplingContext,
+  DynamicSamplingContext,
   Event,
   EventHint,
   Extra,
@@ -92,10 +93,23 @@ export interface Carrier {
   };
 }
 
+interface PropagationContext extends Record<string, unknown> {
+  traceId: string;
+  parentSpanId: string;
+  parentSampled: boolean;
+  dsc?: DynamicSamplingContext;
+}
+
 /**
  * @inheritDoc
  */
 export class Hub implements HubInterface {
+  public propagationCtx: PropagationContext = {
+    traceId: uuid4(),
+    parentSpanId: uuid4().substring(16),
+    parentSampled: false,
+  };
+
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
 
