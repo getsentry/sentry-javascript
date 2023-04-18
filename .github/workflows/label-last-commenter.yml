@@ -19,7 +19,7 @@ jobs:
           && github.event.comment.author_association != 'OWNER'
         uses: actions-ecosystem/action-add-labels@v1
         with:
-          labels: 'Status: User responded'
+          labels: 'Waiting for: Team'
 
       - name: Remove label if commenter is member
         if: |
@@ -28,4 +28,4 @@ jobs:
           || github.event.comment.author_association == 'OWNER'
         uses: actions-ecosystem/action-remove-labels@v1
         with:
-          labels: 'Status: User responded'
+          labels: 'Waiting for: Team'
