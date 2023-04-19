@@ -52,6 +52,8 @@ export function consoleSandbox<T>(callback: () => T): T {
   }
 }
 
+let emittedDebugBuildWarning = false;
+
 function makeLogger(): Logger {
   let enabled = false;
   const logger: Partial<Logger> = {
@@ -76,7 +78,15 @@ function makeLogger(): Logger {
     });
   } else {
     CONSOLE_LEVELS.forEach(name => {
-      logger[name] = () => undefined;
+      logger[name] = () => {
+        if (!emittedDebugBuildWarning) {
+          emittedDebugBuildWarning = true;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `${PREFIX}[warn]: Sentry logger got disabled during build (likely to save bundle size) but \`debug\` is set to \`true\`. Sentry will not emit any more logs.`,
+          );
+        }
+      };
     });
   }
 
