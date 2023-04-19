@@ -218,5 +218,5 @@ function _strIsProbablyJson(str: string): boolean {
   const last = str[str.length - 1];
 
   // Simple check: If this does not start & end with {} or [], it's not JSON
-  return ((first === '[' && last === ']') || (first === '{' && last === '}'));
+  return (first === '[' && last === ']') || (first === '{' && last === '}');
 }
