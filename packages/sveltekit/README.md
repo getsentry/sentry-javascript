@@ -55,11 +55,12 @@ Although the SDK is not yet stable, you're more than welcome to give it a try an
 
 The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.dev/docs/hooks) to capture error and performance data.
 
-1. If you don't already have a `hooks.client.(js|ts)` file, create a new one.
+1. If you don't already have a client hooks file, create a new one in  `src/hooks.client.(js|ts)`.
 
 2. On the top of your `hooks.client.(js|ts)` file, initialize the Sentry SDK:
 
    ```javascript
+    // hooks.client.(js|ts)
     import * as Sentry from '@sentry/sveltekit';
 
     Sentry.init({
@@ -75,6 +76,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 3. Add our `handleErrorWithSentry` function to the `handleError` hook:
 
    ```javascript
+    // hooks.client.(js|ts)
     import { handleErrorWithSentry } from '@sentry/sveltekit';
 
     const myErrorHandler = (({ error, event }) => {
@@ -88,11 +90,12 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
 ### 3. Server-side Setup
 
-1. If you don't already have a `hooks.server.(js|ts)` file, create a new one.
+1. If you don't already have a server hooks file, create a new one in `src/hooks.server.(js|ts)`.
 
 2. On the top of your `hooks.server.(js|ts)` file, initialize the Sentry SDK:
 
     ```javascript
+    // hooks.server.(js|ts)
     import * as Sentry from '@sentry/sveltekit';
 
     Sentry.init({
@@ -104,6 +107,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 3. Add our `handleErrorWithSentry` function to the `handleError` hook:
 
    ```javascript
+    // hooks.server.(js|ts)
     import { handleErrorWithSentry } from '@sentry/sveltekit';
 
     const myErrorHandler = (({ error, event }) => {
@@ -118,6 +122,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 4. Add our request handler to the `handle` hook in `hooks.server.ts`:
 
    ```javascript
+    // hooks.server.(js|ts)
     import { sentryHandle } from '@sentry/sveltekit';
 
     export const handle = sentryHandle;
@@ -131,6 +136,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 5. To catch errors and performance data in your universal `load` functions (e.g. in `+page.(js|ts)`), wrap our `wrapLoadWithSentry` function around your load code:
 
     ```javascript
+    // +page.(js|ts)
     import { wrapLoadWithSentry } from '@sentry/sveltekit';
 
     export const load = wrapLoadWithSentry((event) => {
@@ -141,6 +147,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 6. To catch errors and performance data in your server `load` functions (e.g. in `+page.server.(js|ts)`), wrap our `wrapServerLoadWithSentry` function around your load code:
 
     ```javascript
+    // +page.server.(js|ts)
     import { wrapServerLoadWithSentry } from '@sentry/sveltekit';
 
     export const load = wrapServerLoadWithSentry((event) => {
@@ -154,6 +161,7 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
    Make sure that it is added before the `sveltekit` plugin:
 
    ```javascript
+    // vite.config.(js|ts)
     import { sveltekit } from '@sveltejs/kit/vite';
     import { sentrySvelteKit } from '@sentry/sveltekit';
 
@@ -178,7 +186,7 @@ can either set them as env variables (for example in a `.env` file):
 Or you can pass them in whatever form you prefer to `sentrySvelteKit`:
 
 ```js
-// vite.config.js
+// vite.config.(js|ts)
 import { sveltekit } from '@sveltejs/kit/vite';
 import { sentrySvelteKit } from '@sentry/sveltekit';
 
@@ -204,7 +212,7 @@ Under `sourceMapsUploadOptions`, you can also specify all additional options sup
 This might be useful if you're using adapters other than the Node adapter or have a more customized build setup.
 
 ```js
-// vite.config.js
+// vite.config.(js|ts)
 import { sveltekit } from '@sveltejs/kit/vite';
 import { sentrySvelteKit } from '@sentry/sveltekit';
 
@@ -233,7 +241,7 @@ export default {
 If you don't want to upload source maps automatically, you can disable it as follows:
 
 ```js
-// vite.config.js
+// vite.config.(js|ts)
 import { sveltekit } from '@sveltejs/kit/vite';
 import { sentrySvelteKit } from '@sentry/sveltekit';
 
