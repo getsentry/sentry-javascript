@@ -42,6 +42,7 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
   const svelteConfig = await loadSvelteConfig();
 
   const outputDir = await getAdapterOutputDir(svelteConfig);
+  const hasSentryProperties = fs.existsSync(path.resolve(process.cwd(), 'sentry.properties'));
 
   const defaultPluginOptions: SentryVitePluginOptions = {
     include: [
@@ -49,6 +50,7 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
       { paths: [`${outputDir}/server/chunks`] },
       { paths: [`${outputDir}/server`], ignore: ['chunks/**'] },
     ],
+    configFile: hasSentryProperties ? 'sentry.properties' : undefined,
   };
 
   const mergedOptions = {
