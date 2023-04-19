@@ -39,7 +39,6 @@ describe('Sentry webpack plugin config', () => {
         urlPrefix: '~/_next', // default
         entries: [],
         release: 'doGsaREgReaT', // picked up from env
-        dryRun: false, // based on buildContext.dev being false
       }),
     );
   });
