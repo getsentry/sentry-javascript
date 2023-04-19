@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
-const Sentry = require('@sentry/gatsby');
+import { init } from '@sentry/gatsby';
 
-exports.onClientEntry = function (_, pluginParams) {
+export function onClientEntry(_, pluginParams) {
   const isIntialized = isSentryInitialized();
   const areOptionsDefined = areSentryOptionsDefined(pluginParams);
 
@@ -24,12 +24,12 @@ exports.onClientEntry = function (_, pluginParams) {
     return;
   }
 
-  Sentry.init({
+  init({
     // eslint-disable-next-line no-undef
     dsn: __SENTRY_DSN__,
     ...pluginParams,
   });
-};
+}
 
 function isSentryInitialized() {
   // Although `window` should exist because we're in the browser (where this script

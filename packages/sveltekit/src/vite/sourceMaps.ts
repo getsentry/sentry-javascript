@@ -1,5 +1,8 @@
+import { getSentryRelease } from '@sentry/node';
+import { uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 // @ts-ignore -sorcery has no types :(
@@ -21,6 +24,10 @@ type Sorcery = {
 type SentryVitePluginOptionsOptionalInclude = Omit<SentryVitePluginOptions, 'include'> & {
   include?: SentryVitePluginOptions['include'];
 };
+
+// storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
+// and we only want to generate a uuid once in case we have to fall back to it.
+const release = detectSentryRelease();
 
 /**
  * Creates a new Vite plugin that uses the unplugin-based Sentry Vite plugin to create
@@ -51,6 +58,7 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
       { paths: [`${outputDir}/server`], ignore: ['chunks/**'] },
     ],
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
+    release,
   };
 
   const mergedOptions = {
@@ -173,4 +181,20 @@ function getFiles(dir: string): string[] {
   });
 
   return Array.prototype.concat(...files);
+}
+
+function detectSentryRelease(): string {
+  let releaseFallback: string;
+  try {
+    releaseFallback = child_process.execSync('git rev-parse HEAD', { stdio: 'ignore' }).toString().trim();
+  } catch (_) {
+    // the command can throw for various reasons. Most importantly:
+    // - git is not installed
+    // - there is no git repo or no commit yet
+    // regardless of the case we just fall back to assigning a random uuid.
+    releaseFallback = uuid4();
+  }
+  const release = getSentryRelease() || releaseFallback;
+
+  return release;
 }
