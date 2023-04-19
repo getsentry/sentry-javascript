@@ -1,13 +1,10 @@
 import type { JsonToken } from './constants';
 import {
   ARR,
-  ARR_COMMA,
   ARR_VAL,
   ARR_VAL_COMPLETED,
   ARR_VAL_STR,
   OBJ,
-  OBJ_COLON,
-  OBJ_COMMA,
   OBJ_KEY,
   OBJ_KEY_STR,
   OBJ_VAL,
@@ -83,15 +80,7 @@ function _handleQuote(stack: JsonToken[], curStep: JsonToken): void {
 
   // Start of obj value
   if (curStep === OBJ_VAL) {
-    stack.pop();
     stack.push(OBJ_VAL_STR);
-    return;
-  }
-
-  // Start of arr value
-  if (curStep === ARR_COMMA) {
-    stack.pop();
-    stack.push(ARR_VAL_STR);
     return;
   }
 
@@ -103,11 +92,6 @@ function _handleQuote(stack: JsonToken[], curStep: JsonToken): void {
 
   // Start of obj key
   if (curStep === OBJ) {
-    stack.push(OBJ_KEY_STR);
-    return;
-  }
-  if (curStep == OBJ_COMMA) {
-    stack.pop();
     stack.push(OBJ_KEY_STR);
     return;
   }
@@ -177,7 +161,6 @@ function _handleArr(stack: JsonToken[], curStep: JsonToken): void {
 function _handleColon(stack: JsonToken[], curStep: JsonToken): void {
   if (curStep === OBJ_KEY) {
     stack.pop();
-    stack.push(OBJ_COLON);
     stack.push(OBJ_VAL);
   }
 }
@@ -186,29 +169,26 @@ function _handleComma(stack: JsonToken[], curStep: JsonToken): void {
   // Comma after obj value
   if (curStep === OBJ_VAL) {
     stack.pop();
-    stack.push(OBJ_COMMA);
     return;
   }
   if (curStep === OBJ_VAL_COMPLETED) {
+    // Pop OBJ_VAL_COMPLETED & OBJ_VAL
     stack.pop();
     stack.pop();
-    stack.push(OBJ_COMMA);
     return;
   }
 
   // Comma after arr value
   if (curStep === ARR_VAL) {
-    stack.pop();
-    stack.push(ARR_COMMA);
-    stack.push(ARR_VAL);
+    // do nothing - basically we'd pop ARR_VAL but add it right back
     return;
   }
 
   if (curStep === ARR_VAL_COMPLETED) {
+    // Pop ARR_VAL_COMPLETED
     stack.pop();
-    stack.pop();
-    stack.push(ARR_COMMA);
-    stack.push(ARR_VAL);
+
+    // basically we'd pop ARR_VAL but add it right back
     return;
   }
 }
@@ -217,46 +197,63 @@ function _handleObjClose(stack: JsonToken[], curStep: JsonToken): void {
   // Empty object {}
   if (curStep === OBJ) {
     stack.pop();
-    return;
   }
-  // End of object - pops OBJ_VAL_COMPLETED, OBJ_VAL, OBJ
-  if (curStep === OBJ_VAL_COMPLETED) {
-    stack.pop();
-    stack.pop();
-    stack.pop();
-    return;
-  }
-  // Pops OBJ_VAL, OBJ
+
+  // Object with element
   if (curStep === OBJ_VAL) {
+    // Pop OBJ_VAL, OBJ
     stack.pop();
     stack.pop();
-    return;
+  }
+
+  // Obj with element
+  if (curStep === OBJ_VAL_COMPLETED) {
+    // Pop OBJ_VAL_COMPLETED, OBJ_VAL, OBJ
+    stack.pop();
+    stack.pop();
+    stack.pop();
+  }
+
+  // if was obj value, complete it
+  if (stack[stack.length - 1] === OBJ_VAL) {
+    stack.push(OBJ_VAL_COMPLETED);
+  }
+
+  // if was arr value, complete it
+  if (stack[stack.length - 1] === ARR_VAL) {
+    stack.push(ARR_VAL_COMPLETED);
   }
 }
 
 function _handleArrClose(stack: JsonToken[], curStep: JsonToken): void {
-  // End of array - pops ARR_VAL_COMPLETED, ARR_VAL, ARR
-  if (curStep === ARR_VAL_COMPLETED) {
+  // Empty array []
+  if (curStep === ARR) {
     stack.pop();
-    stack.pop();
-    stack.pop();
-
-    // If we had ARR_COMMA in between, we have one more step to pop
-    if (stack[stack.length - 1] === ARR) {
-      stack.pop();
-    }
-    return;
   }
-  // Pops ARR_VAL, ARR
-  if (curStep === ARR_VAL) {
-    stack.pop();
-    stack.pop();
 
-    // If we had ARR_COMMA in between, we have one more step to pop
-    if (stack[stack.length - 1] === ARR) {
-      stack.pop();
-    }
-    return;
+  // Array with element
+  if (curStep === ARR_VAL) {
+    // Pop ARR_VAL, ARR
+    stack.pop();
+    stack.pop();
+  }
+
+  // Array with element
+  if (curStep === ARR_VAL_COMPLETED) {
+    // Pop ARR_VAL_COMPLETED, ARR_VAL, ARR
+    stack.pop();
+    stack.pop();
+    stack.pop();
+  }
+
+  // if was obj value, complete it
+  if (stack[stack.length - 1] === OBJ_VAL) {
+    stack.push(OBJ_VAL_COMPLETED);
+  }
+
+  // if was arr value, complete it
+  if (stack[stack.length - 1] === ARR_VAL) {
+    stack.push(ARR_VAL_COMPLETED);
   }
 }
 

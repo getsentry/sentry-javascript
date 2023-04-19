@@ -1,13 +1,10 @@
 import type { JsonToken } from './constants';
 import {
   ARR,
-  ARR_COMMA,
   ARR_VAL,
   ARR_VAL_COMPLETED,
   ARR_VAL_STR,
   OBJ,
-  OBJ_COLON,
-  OBJ_COMMA,
   OBJ_KEY,
   OBJ_KEY_STR,
   OBJ_VAL,
@@ -62,16 +59,12 @@ function _fixLastStep(json: string, lastStep: JsonToken): string {
       return `${json}:"~~"`;
     case OBJ_KEY_STR:
       return `${json}~~":"~~"`;
-    case OBJ_COLON:
-      return `${json}"~~"`;
     case OBJ_VAL:
       return _maybeFixIncompleteObjValue(json);
     case OBJ_VAL_STR:
       return `${json}~~"`;
     case OBJ_VAL_COMPLETED:
       return `${json},"~~":"~~"`;
-    case OBJ_COMMA:
-      return `${json}"~~":"~~"`;
 
     // Array cases
     case ARR:
@@ -82,8 +75,6 @@ function _fixLastStep(json: string, lastStep: JsonToken): string {
       return `${json}~~"`;
     case ARR_VAL_COMPLETED:
       return `${json},"~~"`;
-    case ARR_COMMA:
-      return `${json}"~~"`;
   }
 
   return json;

@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 import { fixJson } from '../../../../../src/util/truncateJson/fixJson';
 
 describe('Unit  | coreHandlers | util | truncateJson | fixJson', () => {
@@ -58,8 +61,22 @@ describe('Unit  | coreHandlers | util | truncateJson | fixJson', () => {
     ['{"a" : "aa', '{"a" : "aa~~"}'],
     ['[1, 2, "a ", ', '[1, 2, "a ","~~"]'],
     ['[1, 2, true ', '[1, 2, true ,"~~"]'],
+    // Complex nested JSON
+    ['{"aa":{"bb":"yes","cc":true},"xx":["aa",1,true', '{"aa":{"bb":"yes","cc":true},"xx":["aa",1,true,"~~"]}'],
   ])('it works for %s', (json, expected) => {
     const actual = fixJson(json);
+    expect(actual).toEqual(expected);
+  });
+
+  test.each(['1', '2'])('it works for fixture %s_incompleteJson.txt', fixture => {
+    const input = fs
+      .readFileSync(path.resolve(__dirname, `../../../../fixtures/fixJson/${fixture}_incompleteJson.txt`), 'utf8')
+      .trim();
+    const expected = fs
+      .readFileSync(path.resolve(__dirname, `../../../../fixtures/fixJson/${fixture}_completeJson.json`), 'utf8')
+      .trim();
+
+    const actual = fixJson(input);
     expect(actual).toEqual(expected);
   });
 });
