@@ -27,10 +27,11 @@ export function deepReadDirSync(targetDir: string): string[] {
       const itemAbsPath = path.join(currentDirAbsPath, itemName);
 
       if (fs.statSync(itemAbsPath).isDirectory()) {
-        return [...absPaths, ...deepReadCurrentDir(itemAbsPath)];
+        return absPaths.concat(deepReadCurrentDir(itemAbsPath));
       }
 
-      return [...absPaths, itemAbsPath];
+      absPaths.push(itemAbsPath);
+      return absPaths;
     }, []);
   };
 
