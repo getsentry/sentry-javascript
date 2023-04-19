@@ -48,7 +48,9 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
  */
 function isNotFoundError(input: { error: unknown; event: RequestEvent }): boolean {
   const { error, event } = input;
-  const hasNoRouteId = event.route == null || event.route.id == null;
+
+  const hasNoRouteId = !event.route || !event.route.id;
+
   const rawStack: string =
     (error != null &&
       typeof error === 'object' &&
