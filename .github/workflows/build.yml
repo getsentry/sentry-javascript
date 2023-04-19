@@ -465,7 +465,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20]
+        node: [10, 12, 14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -728,7 +728,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20]
+        node: [14, 16, 18]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
