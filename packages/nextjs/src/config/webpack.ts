@@ -285,14 +285,14 @@ export function constructWebpackConfigFunction(
         // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
         // without, the option to use `hidden-source-map` only applies to the client-side build.
         newConfig.devtool = userSentryOptions.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
-      }
 
-      newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(
-        new SentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
-        ),
-      );
+        newConfig.plugins = newConfig.plugins || [];
+        newConfig.plugins.push(
+          new SentryWebpackPlugin(
+            getWebpackPluginOptions(buildContext, userSentryWebpackPluginOptions, userSentryOptions),
+          ),
+        );
+      }
     }
 
     return newConfig;
@@ -584,7 +584,7 @@ export function getWebpackPluginOptions(
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
   userSentryOptions: UserSentryOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, webpack, config, dev: isDev, dir: projectDir } = buildContext;
+  const { buildId, isServer, webpack, config, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
 
   const distDirAbsPath = path.resolve(projectDir, userNextConfig.distDir || '.next'); // `.next` is the default directory
@@ -628,7 +628,6 @@ export function getWebpackPluginOptions(
     urlPrefix,
     entries: [], // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
     release: getSentryRelease(buildId),
-    dryRun: isDev,
   });
 
   checkWebpackPluginOverrides(defaultPluginOptions, userPluginOptions);
@@ -733,7 +732,7 @@ export function getWebpackPluginOptions(
 
 /** Check various conditions to decide if we should run the plugin */
 function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
-  const { isServer, dev: isDev } = buildContext;
+  const { isServer } = buildContext;
   const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
 
   /** Non-negotiable */
@@ -758,18 +757,6 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
     return !disableClientWebpackPlugin;
   }
 
-  /** Situations where the default is to disable the plugin */
-
-  // TODO: Are there analogs to Vercel's preveiw and dev modes on other deployment platforms?
-
-  if (isDev || process.env.NODE_ENV === 'development') {
-    // TODO (v8): Right now in dev we set the plugin to dryrun mode, and our boilerplate includes setting the plugin to
-    // `silent`, so for the vast majority of users, it's as if the plugin doesn't run at all in dev. Making that
-    // official is technically a breaking change, though, so we probably should wait until v8.
-    // return false
-  }
-
-  // We've passed all of the tests!
   return true;
 }
 
