@@ -30,6 +30,8 @@ export class FunctionToString implements Integration {
         const context = getOriginalFunction(this) || this;
         return originalFunctionToString.apply(context, args);
       };
-    } catch {}
+    } catch {
+      // ignore errors here, just don't patch this
+    }
   }
 }
