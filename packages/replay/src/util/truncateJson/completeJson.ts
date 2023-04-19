@@ -81,21 +81,33 @@ function _fixLastStep(json: string, lastStep: JsonToken): string {
 }
 
 function _maybeFixIncompleteArrValue(json: string): string {
-  // This can be either the first element of an array, or after a comma
-  // Whichever is the last one
-  const lastComma = json.lastIndexOf(',');
-  const lastBracket = json.lastIndexOf('[');
+  const pos = _findLastArrayDelimiter(json);
 
-  const startPos = Math.max(lastComma, lastBracket);
+  if (pos > -1) {
+    const part = json.slice(pos + 1);
 
-  const part = json.slice(startPos + 1);
+    if (ALLOWED_PRIMITIVES.includes(part.trim())) {
+      return `${json},"~~"`;
+    }
 
-  if (ALLOWED_PRIMITIVES.includes(part.trim())) {
-    return `${json},"~~"`;
+    // Everything else is replaced with `"~~"`
+    return `${json.slice(0, pos + 1)}"~~"`;
   }
 
-  // Everything else is replaced with `"~~"`
-  return `${json.slice(0, startPos + 1)}"~~"`;
+  // fallback, this shouldn't happen, to be save
+  return json;
+}
+
+function _findLastArrayDelimiter(json: string): number {
+  for (let i = json.length - 1; i >= 0; i--) {
+    const char = json[i];
+
+    if (char === ',' || char === '[') {
+      return i;
+    }
+  }
+
+  return -1;
 }
 
 function _maybeFixIncompleteObjValue(json: string): string {
