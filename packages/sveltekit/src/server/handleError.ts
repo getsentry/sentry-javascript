@@ -21,6 +21,10 @@ function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): Retur
  */
 export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
   return (input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> => {
+    if (isNotFoundError(input)) {
+      return handleError(input);
+    }
+
     captureException(input.error, scope => {
       scope.addEventProcessor(event => {
         addExceptionMechanism(event, {
@@ -34,4 +38,24 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
 
     return handleError(input);
   };
+}
+
+/**
+ * When a page request fails because the page is not found, SvelteKit throws a "Not found" error.
+ * In the error handler here, we can't access the response yet (which we do in the load instrumentation),
+ * so we have to check if the error is a "Not found" error by checking if the route id is missing and
+ * by checking the error message on top of the raw stack trace.
+ */
+function isNotFoundError(input: { error: unknown; event: RequestEvent }): boolean {
+  const { error, event } = input;
+  const hasNoRouteId = event.route == null || event.route.id == null;
+  const rawStack: string =
+    (error != null &&
+      typeof error === 'object' &&
+      'stack' in error &&
+      typeof error.stack === 'string' &&
+      error.stack) ||
+    '';
+
+  return hasNoRouteId && rawStack.startsWith('Error: Not found:');
 }
