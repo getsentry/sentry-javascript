@@ -201,8 +201,8 @@ function normalizeNetworkBody(body: string | undefined): {
       };
     } catch {
       return {
-        body,
-        warnings: ['INVALID_JSON'],
+        body: exceedsSizeLimit ? `${body.slice(0, NETWORK_BODY_MAX_SIZE)}…` : body,
+        warnings: exceedsSizeLimit ? ['INVALID_JSON', 'TEXT_TRUNCATED'] : ['INVALID_JSON'],
       };
     }
   }
