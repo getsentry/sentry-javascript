@@ -263,6 +263,32 @@ describe('normalize()', () => {
     });
   });
 
+  describe('handles HTML elements', () => {
+    test('HTMLDivElement', () => {
+      expect(
+        normalize({
+          div: document.createElement('div'),
+          div2: document.createElement('div'),
+        }),
+      ).toEqual({
+        div: '[HTMLElement: HTMLDivElement]',
+        div2: '[HTMLElement: HTMLDivElement]',
+      });
+    });
+
+    test('input elements', () => {
+      expect(
+        normalize({
+          input: document.createElement('input'),
+          select: document.createElement('select'),
+        }),
+      ).toEqual({
+        input: '[HTMLElement: HTMLInputElement]',
+        select: '[HTMLElement: HTMLSelectElement]',
+      });
+    });
+  });
+
   describe('calls toJSON if implemented', () => {
     test('primitive values', () => {
       const a = new Number(1) as any;
