@@ -454,7 +454,7 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
 }
 
 /**
- * TODO
+ * Gets the absolute path to a sentry config file for a particular platform. Returns `undefined` if it doesn't exist.
  */
 export function getUserConfigFilePath(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
