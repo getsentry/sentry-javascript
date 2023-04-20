@@ -59,4 +59,91 @@ describe('Unit | coreHandlers | handleScope', () => {
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
     expect(mockHandleScope).toHaveReturnedWith(null);
   });
+
+  describe('normalizeConsoleBreadcrumb', () => {
+    it('handles console messages with no arguments', () => {
+      const breadcrumb: Breadcrumb = { category: 'console', message: 'test' };
+      const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
+
+      expect(actual).toMatchObject({ category: 'console', message: 'test' });
+    });
+
+    it('handles console messages with empty arguments', () => {
+      const breadcrumb: Breadcrumb = { category: 'console', message: 'test', data: { arguments: [] } };
+      const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
+
+      expect(actual).toMatchObject({ category: 'console', message: 'test', data: { arguments: [] } });
+    });
+
+    it('handles console messages with simple arguments', () => {
+      const breadcrumb: Breadcrumb = {
+        category: 'console',
+        message: 'test',
+        data: { arguments: [1, 'a', true, null, undefined] },
+      };
+      const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
+
+      expect(actual).toMatchObject({
+        category: 'console',
+        message: 'test',
+        data: {
+          arguments: [1, 'a', true, null, undefined],
+        },
+      });
+    });
+
+    it('truncates large strings', () => {
+      const breadcrumb: Breadcrumb = {
+        category: 'console',
+        message: 'test',
+        data: {
+          arguments: [
+            'a'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10),
+            'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10),
+          ],
+        },
+      };
+      const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
+
+      expect(actual).toMatchObject({
+        category: 'console',
+        message: 'test',
+        data: {
+          arguments: [
+            `${'a'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE)}…`,
+            `${'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE)}…`,
+          ],
+          _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] },
+        },
+      });
+    });
+
+    it('truncates large JSON objects', () => {
+      const breadcrumb: Breadcrumb = {
+        category: 'console',
+        message: 'test',
+        data: {
+          arguments: [
+            { aa: 'yes' },
+            { bb: 'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10) },
+            { c: 'c'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10) },
+          ],
+        },
+      };
+      const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
+
+      expect(actual).toMatchObject({
+        category: 'console',
+        message: 'test',
+        data: {
+          arguments: [
+            { aa: 'yes' },
+            { bb: `${'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE - 7)}~~` },
+            { c: `${'c'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE - 6)}~~` },
+          ],
+          _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] },
+        },
+      });
+    });
+  });
 });
