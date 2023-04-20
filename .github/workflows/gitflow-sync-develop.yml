@@ -39,13 +39,13 @@ jobs:
           github_token: ${{ secrets.REPO_SCOPED_TOKEN }}
 
       - name: Enable automerge for PR
-        run: gh pr merge --merge --auto "1"
+        if: steps.open-pr.outputs.pr_number != ''
+        run: gh pr merge --merge --auto "${{ steps.open-pr.outputs.pr_number }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
-        # Always skip this for now, until we got a proper bot setup
         if: steps.open-pr.outputs.pr_number != ''
         uses: hmarr/auto-approve-action@v3
         with:
