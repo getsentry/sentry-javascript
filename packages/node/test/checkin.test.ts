@@ -1,7 +1,9 @@
+import type { CheckIn } from '@sentry/types';
+
 import { createCheckInEnvelope } from '../src/checkin';
 
-describe('userFeedback', () => {
-  test('creates user feedback envelope header', () => {
+describe('CheckIn', () => {
+  test('creates a check in envelope header', () => {
     const envelope = createCheckInEnvelope(
       {
         check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
@@ -32,29 +34,93 @@ describe('userFeedback', () => {
     });
   });
 
-  test('creates user feedback envelope item', () => {
-    const envelope = createCheckInEnvelope({
-      check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
-      monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
-      status: 'ok',
-      duration: 10.0,
-      release: '1.0.0',
-      environment: 'production',
-    });
+  test.each([
+    [
+      'no monitor config',
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'ok',
+        duration: 10.0,
+        release: '1.0.0',
+        environment: 'production',
+      } as CheckIn,
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'ok',
+        duration: 10.0,
+        release: '1.0.0',
+        environment: 'production',
+      },
+    ],
+    [
+      'crontab monitor config',
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'in_progress',
+        monitor_config: {
+          schedule: {
+            type: 'crontab',
+            value: '0 * * * *',
+          },
+          checkin_margin: 5,
+          max_runtime: 30,
+          timezone: 'America/Los_Angeles',
+        },
+      } as CheckIn,
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'in_progress',
+        monitor_config: {
+          schedule: {
+            type: 'crontab',
+            value: '0 * * * *',
+          },
+          checkin_margin: 5,
+          max_runtime: 30,
+          timezone: 'America/Los_Angeles',
+        },
+      },
+    ],
+    [
+      'interval monitor config',
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'in_progress',
+        monitor_config: {
+          schedule: {
+            type: 'interval',
+            value: 1234,
+            unit: 'minute',
+          },
+        },
+      } as CheckIn,
+      {
+        check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
+        monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
+        status: 'in_progress',
+        monitor_config: {
+          schedule: {
+            type: 'interval',
+            value: 1234,
+            unit: 'minute',
+          },
+        },
+      },
+    ],
+  ])('creates a check in envelope header with %s', (_, checkIn, envelopeItem) => {
+    const envelope = createCheckInEnvelope(checkIn);
 
     expect(envelope[1]).toEqual([
       [
         {
           type: 'check_in',
         },
-        {
-          check_in_id: '83a7c03ed0a04e1b97e2e3b18d38f244',
-          monitor_slug: 'b7645b8e-b47d-4398-be9a-d16b0dac31cb',
-          status: 'ok',
-          duration: 10.0,
-          release: '1.0.0',
-          environment: 'production',
-        },
+        envelopeItem,
       ],
     ]);
   });
