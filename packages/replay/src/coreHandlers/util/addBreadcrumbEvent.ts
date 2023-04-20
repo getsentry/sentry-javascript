@@ -27,7 +27,7 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
       timestamp: (breadcrumb.timestamp || 0) * 1000,
       data: {
         tag: 'breadcrumb',
-        payload: normalize(breadcrumb),
+        payload: normalize(breadcrumb, 10),
       },
     });
 
