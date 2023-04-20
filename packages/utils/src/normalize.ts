@@ -170,6 +170,7 @@ function visit(
 // TODO remove this in v7 (this means the method will no longer be exported, under any name)
 export { visit as walk };
 
+/* eslint-disable complexity */
 /**
  * Stringify the given value. Handles various known special values and types.
  *
@@ -242,11 +243,19 @@ function stringifyValue(
     // them to strings means that instances of classes which haven't defined their `toStringTag` will just come out as
     // `"[object Object]"`. If we instead look at the constructor's name (which is the same as the name of the class),
     // we can make sure that only plain objects come out that way.
-    return `[object ${getConstructorName(value)}]`;
+    const objName = getConstructorName(value);
+
+    // Handle HTML Elements
+    if (/^HTML(\w*)Element$/.test(objName)) {
+      return `[HTMLElement: ${objName}]`;
+    }
+
+    return `[object ${objName}]`;
   } catch (err) {
     return `**non-serializable** (${err})`;
   }
 }
+/* eslint-enable complexity */
 
 function getConstructorName(value: unknown): string {
   const prototype: Prototype | null = Object.getPrototypeOf(value);

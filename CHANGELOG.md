@@ -4,6 +4,44 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.49.0
+
+### Important Changes
+
+- **feat(sveltekit): Read adapter output directory from `svelte.config.js` (#7863)**
+
+Our source maps upload plugin is now able to read `svelte.config.js`. This is necessary to automatically find the output directory that users can specify when setting up the Node adapter.
+
+- **fix(replay): Ensure we normalize scope breadcrumbs to max. depth to avoid circular ref (#7915)**
+
+This release fixes a potential problem with how Replay captures console logs.
+Any objects logged will now be cut off after a maximum depth of 10, as well as cutting off any properties after the 1000th.
+This should ensure we do not accidentally capture massive console logs, where a stringified object could reach 100MB or more.
+
+- **fix(utils): Normalize HTML elements as string (#7916)**
+
+We used to normalize references to HTML elements as POJOs.
+This is both not very easily understandable, as well as potentially large, as HTML elements may have properties attached to them.
+With this change, we now normalize them to e.g. `[HTMLElement: HTMLInputElement]`.
+
+### Additional Features and Fixes
+
+- feat(browser): Simplify stack parsers (#7897)
+- feat(node): Add monitor upsert types (#7914)
+- feat(replay): Truncate network bodies to max size (#7875)
+- fix(gatsby): Don't crash build when auth token is missing (#7858)
+- fix(gatsby): Use `import` for `gatsby-browser.js` instead of `require` (#7889)
+- fix(nextjs): Handle braces in stack frame URLs (#7900)
+- fix(nextjs): Mark value injection loader result as uncacheable (#7870)
+- fix(node): Correct typo in trpc integration transaciton name (#7871)
+- fix(node): reduce deepReadDirSync runtime complexity (#7910)
+- fix(sveltekit): Avoid capturing "Not Found" errors in server `handleError` wrapper (#7898)
+- fix(sveltekit): Detect sentry release before creating the Vite plugins (#7902)
+- fix(sveltekit): Use `sentry.properties` file when uploading source maps (#7890)
+- fix(tracing): Ensure we use s instead of ms for startTimestamp (#7877)
+- ref(deprecate): Deprecate `timestampWithMs` (#7878)
+- ref(nextjs): Don't use Sentry Webpack Plugin in dev mode (#7901)
+
 ## 7.48.0
 
 ### Important Changes
