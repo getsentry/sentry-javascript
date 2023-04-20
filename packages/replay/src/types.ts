@@ -512,12 +512,15 @@ export type FetchHint = FetchBreadcrumbHint & {
   response: Response;
 };
 
-export type NetworkBody = Record<string, unknown> | string;
+type JsonObject = Record<string, unknown>;
+type JsonArray = unknown[];
 
-type NetworkMetaError = 'MAX_BODY_SIZE_EXCEEDED';
+export type NetworkBody = JsonObject | JsonArray | string;
+
+export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON';
 
 interface NetworkMeta {
-  errors?: NetworkMetaError[];
+  warnings?: NetworkMetaWarning[];
 }
 
 export interface ReplayNetworkRequestOrResponse {

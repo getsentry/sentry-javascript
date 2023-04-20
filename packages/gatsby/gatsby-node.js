@@ -46,8 +46,15 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
           // Handle sentry-cli configuration errors when the user has not done it not to break
           // the build.
           errorHandler(err, invokeErr) {
-            const { message } = err;
+            const message = err.message && err.message.toLowerCase() || '';
             if (message.includes('organization slug is required') || message.includes('project slug is required')) {
+              // eslint-disable-next-line no-console
+              console.log('Sentry [Info]: Not uploading source maps due to missing SENTRY_ORG and SENTRY_PROJECT env variables.')
+              return;
+            }
+            if (message.includes('authentication credentials were not provided')) {
+              // eslint-disable-next-line no-console
+              console.warn('Sentry [Warn]: Cannot upload source maps due to missing SENTRY_AUTH_TOKEN env variable.')
               return;
             }
             invokeErr(err);
@@ -93,7 +100,7 @@ function injectSentryConfig(config, configFile) {
     } else {
       // eslint-disable-next-line no-console
       console.error(
-        `Sentry Logger [Error]: Could not inject SDK initialization code into ${prop}, unexpected format: `,
+        `Sentry [Error]: Could not inject SDK initialization code into ${prop}, unexpected format: `,
         typeof value,
       );
     }

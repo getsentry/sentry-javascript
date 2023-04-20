@@ -27,7 +27,8 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
       timestamp: (breadcrumb.timestamp || 0) * 1000,
       data: {
         tag: 'breadcrumb',
-        payload: normalize(breadcrumb),
+        // normalize to max. 10 depth and 1_000 properties per object
+        payload: normalize(breadcrumb, 10, 1_000),
       },
     });
 

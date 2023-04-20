@@ -7,7 +7,7 @@ import type {
   TraceContext,
   Transaction,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampWithMs, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -71,7 +71,7 @@ export class Span implements SpanInterface {
   /**
    * Timestamp in seconds when the span was created.
    */
-  public startTimestamp: number = timestampWithMs();
+  public startTimestamp: number = timestampInSeconds();
 
   /**
    * Timestamp in seconds when the span ended.
@@ -257,7 +257,7 @@ export class Span implements SpanInterface {
       }
     }
 
-    this.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampWithMs();
+    this.endTimestamp = typeof endTimestamp === 'number' ? endTimestamp : timestampInSeconds();
   }
 
   /**

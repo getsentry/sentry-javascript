@@ -15,6 +15,16 @@ module.exports = {
         project: ['../../tsconfig.dev.json'],
       },
     },
+    {
+      files: ['./gatsby-browser.js'],
+      env: {
+        browser: true,
+        node: false,
+      },
+      parserOptions: {
+        sourceType: 'module',
+      },
+    },
   ],
   extends: ['../../.eslintrc.js'],
 };
