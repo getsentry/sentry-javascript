@@ -8,7 +8,6 @@ import {
   getAllowedHeaders,
   getBodySize,
   getBodyString,
-  getNetworkBody,
   makeNetworkReplayBreadcrumb,
   parseContentLengthHeader,
 } from './networkUtils';
@@ -84,12 +83,12 @@ function _prepareXhrData(
   const request = buildNetworkRequestOrResponse(
     requestHeaders,
     requestBodySize,
-    options.captureBodies ? getNetworkBody(getBodyString(input)) : undefined,
+    options.captureBodies ? getBodyString(input) : undefined,
   );
   const response = buildNetworkRequestOrResponse(
     responseHeaders,
     responseBodySize,
-    options.captureBodies ? getNetworkBody(hint.xhr.responseText) : undefined,
+    options.captureBodies ? hint.xhr.responseText : undefined,
   );
 
   return {

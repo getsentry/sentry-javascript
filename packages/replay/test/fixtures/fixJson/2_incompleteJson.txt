@@ -1,0 +1,22 @@
+[
+  {
+    "id": "123456",
+    "email": "test.user@sentry.io",
+    "name": "test.user@sentry.io",
+    "user": {
+      "id": "123456",
+      "name": "test.user@sentry.io",
+      "username": "ABCDEF",
+      "email": "test.user@sentry.io",
+      "isActive": true
+    },
+    "role": "member",
+    "roleName": "Member",
+    "orgRole": "member",
+    "pending": false,
+    "expired": false,
+    "dateCreated": "2021-09-24T13:30:02.620935Z",
+    "inviteStatus": "approved",
+    "inviterName": null,
+    "orgRolesFromTeams": [],
+    "projects": ["feedback", "javascript", "sentry", "sentry-tests-acceptance
