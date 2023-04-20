@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { waitForTransaction } from '../start-event-proxy';
+// @ts-ignore ok ok
+import { waitForTransaction } from '../start-event-proxy.ts';
 import axios, { AxiosError } from 'axios';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
@@ -8,7 +9,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 30_000;
 
 test('Sends a pageload transaction', async ({ page }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('sveltekit', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('sveltekit', (transactionEvent: any) => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
   });
 

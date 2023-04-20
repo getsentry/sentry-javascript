@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/sveltekit';
 
 Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
+  debug: true,
   tunnel: `http://localhost:${
     Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP)
   }/`, // proxy server
