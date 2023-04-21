@@ -296,6 +296,15 @@ export function constructWebpackConfigFunction(
       }
     }
 
+    if (userSentryOptions.disableLogger) {
+      newConfig.plugins = newConfig.plugins || [];
+      newConfig.plugins.push(
+        new buildContext.webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+        }),
+      );
+    }
+
     return newConfig;
   };
 }
