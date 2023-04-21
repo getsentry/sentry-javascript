@@ -553,7 +553,7 @@ jobs:
       - name: Run Playwright tests
         run: |
           cd packages/browser-integration-tests
-          yarn playwright test ./suites ./loader-suites --browser='all' --reporter='line' --shard=${{ matrix.shard }}/4
+          yarn playwright test --browser='all' --reporter='line' --shard=${{ matrix.shard }}/4
 
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
