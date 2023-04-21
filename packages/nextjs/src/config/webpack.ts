@@ -23,8 +23,8 @@ import type {
 } from './types';
 
 const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
-  browser: './client',
-  node: './server',
+  client: './client',
+  server: './server',
   edge: './edge',
 } as const;
 
@@ -64,7 +64,7 @@ export function constructWebpackConfigFunction(
     buildContext: BuildContext,
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
-    const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
+    const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -124,6 +124,7 @@ export function constructWebpackConfigFunction(
       pagesDir: pagesDirPath,
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+      sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
@@ -450,6 +451,22 @@ export function getUserConfigFile(projectDir: string, platform: 'server' | 'clie
   } else {
     throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
   }
+}
+
+/**
+ * Gets the absolute path to a sentry config file for a particular platform. Returns `undefined` if it doesn't exist.
+ */
+export function getUserConfigFilePath(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
+  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
+
+  for (const filename of possibilities) {
+    const configPath = path.resolve(projectDir, filename);
+    if (fs.existsSync(configPath)) {
+      return configPath;
+    }
+  }
+
+  return undefined;
 }
 
 /**
