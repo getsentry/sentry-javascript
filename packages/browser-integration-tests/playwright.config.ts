@@ -32,8 +32,12 @@ const browsers = ['Desktop Chrome', 'Desktop Firefox', 'Desktop Safari'] as cons
 export default defineConfig<SentryTestFixtures>({
   projects: browsers
     .map(browser => [
-      ...bundles.map(bundle => ({ use: { bundle, ...devices[browser] }, testDir: './suites' })),
-      ...loaderBundles.map(bundle => ({ use: { bundle, ...devices[browser] }, testDir: './loader-suites' })),
+      ...bundles.map(bundle => ({ name: browser, use: { bundle, ...devices[browser] }, testDir: './suites' })),
+      ...loaderBundles.map(bundle => ({
+        name: browser,
+        use: { bundle, ...devices[browser] },
+        testDir: './loader-suites',
+      })),
     ])
     .flat(),
   retries: 0,
