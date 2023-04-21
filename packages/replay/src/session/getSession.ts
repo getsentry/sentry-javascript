@@ -36,8 +36,9 @@ export function getSession({
 
     if (!isExpired) {
       return { type: 'saved', session };
-    } else if (session.sampled === 'buffer') {
-      // Buffered samples should not be re-created when expired, but instead we stop when the replay is done
+    } else if (!session.shouldRefresh) {
+      // In this case, stop
+      // This is the case if we have an error session that is completed (=triggered an error)
       const discardedSession = makeSession({ sampled: false });
       return { type: 'new', session: discardedSession };
     } else {

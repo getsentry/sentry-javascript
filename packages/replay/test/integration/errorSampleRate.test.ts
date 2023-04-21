@@ -279,9 +279,73 @@ describe('Integration | errorSampleRate', () => {
   // sample rate of 0.0), or an error session that has no errors. Instead we
   // simply stop the session replay completely and wait for a new page load to
   // resample.
-  it('stops replay if session exceeds MAX_SESSION_LIFE and does not start a new session thereafter', async () => {
-    // Idle for 15 minutes
-    jest.advanceTimersByTime(MAX_SESSION_LIFE + 1);
+  it.each([
+    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['SESSION_IDLE_DURATION', SESSION_IDLE_DURATION],
+  ])(
+    'stops replay if session had an error and exceeds %s and does not start a new session thereafter',
+    async (_label, waitTime) => {
+      expect(replay.session?.shouldRefresh).toBe(true);
+
+      captureException(new Error('testing'));
+
+      await new Promise(process.nextTick);
+      jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+      await new Promise(process.nextTick);
+
+      // segment_id is 1 because it sends twice on error
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 1 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+      });
+      expect(replay.session?.shouldRefresh).toBe(false);
+
+      // Idle for given time
+      jest.advanceTimersByTime(waitTime + 1);
+      await new Promise(process.nextTick);
+
+      const TEST_EVENT = {
+        data: { name: 'lost event' },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+      mockRecord._emitter(TEST_EVENT);
+
+      jest.runAllTimers();
+      await new Promise(process.nextTick);
+
+      // We stop recording after 15 minutes of inactivity in error mode
+
+      // still no new replay sent
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 1 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+      });
+
+      expect(replay.isEnabled()).toBe(false);
+
+      domHandler({
+        name: 'click',
+      });
+
+      // Remains disabled!
+      expect(replay.isEnabled()).toBe(false);
+    },
+  );
+
+  it.each([
+    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['SESSION_IDLE_DURATION', SESSION_IDLE_DURATION],
+  ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
+    expect(replay).not.toHaveLastSentReplay();
+
+    // Idle for given time
+    jest.advanceTimersByTime(waitTime + 1);
+    await new Promise(process.nextTick);
 
     const TEST_EVENT = {
       data: { name: 'lost event' },
@@ -289,52 +353,49 @@ describe('Integration | errorSampleRate', () => {
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveLastSentReplay();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // We stop recording after 15 minutes of inactivity in error mode
-
+    // still no new replay sent
     expect(replay).not.toHaveLastSentReplay();
-    expect(replay.isEnabled()).toBe(false);
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
 
     domHandler({
       name: 'click',
     });
 
-    // Remains disabled!
-    expect(replay.isEnabled()).toBe(false);
-  });
-
-  // Should behave the same as above test
-  it('stops replay if user has been idle for more than SESSION_IDLE_DURATION and does not start a new session thereafter', async () => {
-    // Idle for 15 minutes
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
-
-    const TEST_EVENT = {
-      data: { name: 'lost event' },
-      timestamp: BASE_TIMESTAMP,
-      type: 3,
-    };
-    mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveLastSentReplay();
-
-    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
-    // We stop recording after SESSION_IDLE_DURATION of inactivity in error mode
     expect(replay).not.toHaveLastSentReplay();
-    expect(replay.isEnabled()).toBe(false);
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
 
-    domHandler({
-      name: 'click',
+    // should still react to errors later on
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
     });
 
-    // Remains disabled!
-    expect(replay.isEnabled()).toBe(false);
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('session');
+    expect(replay.session?.sampled).toBe('buffer');
+    expect(replay.session?.shouldRefresh).toBe(false);
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {

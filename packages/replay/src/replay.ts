@@ -394,6 +394,12 @@ export class ReplayContainer implements ReplayContainerInterface {
       // Reset all "capture on error" configuration before
       // starting a new recording
       this.recordingMode = 'session';
+
+      // Once this session ends, we do not want to refresh it
+      if (this.session) {
+        this.session.shouldRefresh = false;
+        this._maybeSaveSession();
+      }
       this.startRecording();
     }
   }
