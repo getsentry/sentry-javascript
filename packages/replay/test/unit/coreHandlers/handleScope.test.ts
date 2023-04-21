@@ -1,5 +1,6 @@
 import type { Breadcrumb, Scope } from '@sentry/types';
 
+import { CONSOLE_ARG_MAX_SIZE } from '../../../src/constants';
 import * as HandleScope from '../../../src/coreHandlers/handleScope';
 
 describe('Unit | coreHandlers | handleScope', () => {
@@ -97,10 +98,7 @@ describe('Unit | coreHandlers | handleScope', () => {
         category: 'console',
         message: 'test',
         data: {
-          arguments: [
-            'a'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10),
-            'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10),
-          ],
+          arguments: ['a'.repeat(CONSOLE_ARG_MAX_SIZE + 10), 'b'.repeat(CONSOLE_ARG_MAX_SIZE + 10)],
         },
       };
       const actual = HandleScope.normalizeConsoleBreadcrumb(breadcrumb);
@@ -109,10 +107,7 @@ describe('Unit | coreHandlers | handleScope', () => {
         category: 'console',
         message: 'test',
         data: {
-          arguments: [
-            `${'a'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE)}…`,
-            `${'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE)}…`,
-          ],
+          arguments: [`${'a'.repeat(CONSOLE_ARG_MAX_SIZE)}…`, `${'b'.repeat(CONSOLE_ARG_MAX_SIZE)}…`],
           _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] },
         },
       });
@@ -125,8 +120,8 @@ describe('Unit | coreHandlers | handleScope', () => {
         data: {
           arguments: [
             { aa: 'yes' },
-            { bb: 'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10) },
-            { c: 'c'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE + 10) },
+            { bb: 'b'.repeat(CONSOLE_ARG_MAX_SIZE + 10) },
+            { c: 'c'.repeat(CONSOLE_ARG_MAX_SIZE + 10) },
           ],
         },
       };
@@ -138,8 +133,8 @@ describe('Unit | coreHandlers | handleScope', () => {
         data: {
           arguments: [
             { aa: 'yes' },
-            { bb: `${'b'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE - 7)}~~` },
-            { c: `${'c'.repeat(HandleScope.CONSOLE_ARG_MAX_SIZE - 6)}~~` },
+            { bb: `${'b'.repeat(CONSOLE_ARG_MAX_SIZE - 7)}~~` },
+            { c: `${'c'.repeat(CONSOLE_ARG_MAX_SIZE - 6)}~~` },
           ],
           _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] },
         },

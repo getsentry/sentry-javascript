@@ -1,14 +1,13 @@
 import type { Breadcrumb, Scope } from '@sentry/types';
 import { normalize } from '@sentry/utils';
 
+import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { fixJson } from '../util/truncateJson/fixJson';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
-
-export const CONSOLE_ARG_MAX_SIZE = 5_000;
 
 export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) => void =
   (replay: ReplayContainer) =>
