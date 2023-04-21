@@ -507,7 +507,7 @@ jobs:
           yarn test:integration
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}) (Shard ${{ matrix.shard }}) Tests
+    name: Browser Integration Tests (Shard ${{ matrix.shard }})
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
