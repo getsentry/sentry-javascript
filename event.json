@@ -1,0 +1,2375 @@
+{
+  "event_id": "45bc35394fcd4db58e2fa152180d416b",
+  "project": 1,
+  "release": "frontend@23.4.0.dev0+761c507b822291a9456e42fdd0f14627701f6824",
+  "dist": null,
+  "platform": "javascript",
+  "message": "",
+  "datetime": "2023-03-22T19:38:30.728500+00:00",
+  "tags": [
+    ["browser", "Chrome 111.0.0"],
+    ["browser.name", "Chrome"],
+    [
+      "cls.source.1",
+      "div > div.app-19jil93-PerformanceLayoutBodyRow-StyledRow.esbrixl0"
+    ],
+    ["cls.source.2", "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1"],
+    ["cls.source.3", "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1"],
+    ["cls.source.4", "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1"],
+    [
+      "cls.source.5",
+      "div > div > div.e6l1io010.app-16qofuy-Panel-Body.eptq6fu0"
+    ],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["deviceMemory", "8 GB"],
+    ["effectiveConnectionType", "4g"],
+    ["environment", "development"],
+    ["hardwareConcurrency", "10"],
+    ["hasAnyAssetTimings", "False"],
+    ["lcp.element", "p.app-8cj1om-SecondaryMessage.e1qhgdqj2"],
+    ["lcp.size", "9146"],
+    ["level", "info"],
+    ["organization", "1"],
+    ["organization.slug", "sentry"],
+    ["os", "Mac OS X 10.15.7"],
+    ["os.name", "Mac OS X"],
+    ["query.period", "604800"],
+    ["query.period.grouped", "<=7d"],
+    ["routing.instrumentation", "react-router-v3"],
+    [
+      "release",
+      "frontend@23.4.0.dev0+761c507b822291a9456e42fdd0f14627701f6824"
+    ],
+    ["user", "id:4"],
+    ["timeOrigin.mode", "timeOrigin"],
+    ["transaction", "/performance/"],
+    ["url", "http://localhost:8000/organizations/sentry/performance/"]
+  ],
+  "_metrics": { "bytes.ingested.event": 74079, "bytes.stored.event": 85962 },
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1679513908.398,
+        "type": "default",
+        "category": "console",
+        "level": "warning",
+        "message": "Warning: componentWillMount has been renamed, and is not recommended for use. See https://reactjs.org/link/unsafe-component-lifecycles for details.\n\n* Move code with side effects to componentDidMount, and set initial state in the constructor.\n* Rename componentWillMount to UNSAFE_componentWillMount to suppress this warning in non-strict mode. In React 18.x, only the UNSAFE_ name will work. To rename all deprecated lifecycles to their new names, you can run `npx react-codemod rename-unsafe-lifecycles` in your project source folder.\n\nPlease update the following components: %s Router, RouterContext",
+        "data": {
+          "arguments": [
+            "Warning: componentWillMount has been renamed, and is not recommended for use. See https://reactjs.org/link/unsafe-component-lifecycles for details.\n\n* Move code with side effects to componentDidMount, and set initial state in the constructor.\n* Rename componentWillMount to UNSAFE_componentWillMount to suppress this warning in non-strict mode. In React 18.x, only the UNSAFE_ name will work. To rename all deprecated lifecycles to their new names, you can run `npx react-codemod rename-unsafe-lifecycles` in your project source folder.\n\nPlease update the following components: %s",
+            "Router, RouterContext"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513908.399,
+        "type": "default",
+        "category": "console",
+        "level": "warning",
+        "message": "Warning: componentWillReceiveProps has been renamed, and is not recommended for use. See https://reactjs.org/link/unsafe-component-lifecycles for details.\n\n* Move data fetching code or side effects to componentDidUpdate.\n* If you're updating state whenever props change, refactor your code to use memoization techniques or move it to static getDerivedStateFromProps. Learn more at: https://reactjs.org/link/derived-state\n* Rename componentWillReceiveProps to UNSAFE_componentWillReceiveProps to suppress this warning in non-strict mode. In React 18.x, only the UNSAFE_ name will work. To rename all deprecated lifecycles to their new names, you can run `npx react-codemod rename-unsafe-lifecycles` in your project source folder.\n\nPlease update the following components: %s Router, RouterContext",
+        "data": {
+          "arguments": [
+            "Warning: componentWillReceiveProps has been renamed, and is not recommended for use. See https://reactjs.org/link/unsafe-component-lifecycles for details.\n\n* Move data fetching code or side effects to componentDidUpdate.\n* If you're updating state whenever props change, refactor your code to use memoization techniques or move it to static getDerivedStateFromProps. Learn more at: https://reactjs.org/link/derived-state\n* Rename componentWillReceiveProps to UNSAFE_componentWillReceiveProps to suppress this warning in non-strict mode. In React 18.x, only the UNSAFE_ name will work. To rename all deprecated lifecycles to their new names, you can run `npx react-codemod rename-unsafe-lifecycles` in your project source folder.\n\nPlease update the following components: %s",
+            "Router, RouterContext"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513908.628,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "941930775d9f1823",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/?member=1"
+        }
+      },
+      {
+        "timestamp": 1679513908.642,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a17a52a9dcde7b74",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/internal/health/"
+        }
+      },
+      {
+        "timestamp": 1679513908.865,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a93f4d4b37d3db4a",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/assistant/"
+        }
+      },
+      {
+        "timestamp": 1679513908.865,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "8c408f180096400e",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/client-state/"
+        }
+      },
+      {
+        "timestamp": 1679513909.052,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a09868a86d1ba7fe",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/broadcasts/"
+        }
+      },
+      {
+        "timestamp": 1679513909.065,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "b7f9a4cf6c9440ed",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+        }
+      },
+      {
+        "timestamp": 1679513909.272,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "88abe2eac0d7026a",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1"
+        }
+      },
+      {
+        "timestamp": 1679513909.281,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a23684fe60d23343",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+        }
+      },
+      {
+        "timestamp": 1679513909.475,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "bf7f8b6760f68099",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+        }
+      },
+      {
+        "timestamp": 1679513909.486,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "af7eca69200a3330",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/tags/?project=-1&statsPeriod=7d&use_cache=1&utc=false"
+        }
+      },
+      {
+        "timestamp": 1679513909.669,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "8512e953cce0cca7",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+        }
+      },
+      {
+        "timestamp": 1679513909.969,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a05d6c9f759c9b76",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events-trends-stats/?cursor=0%3A0%3A1&field=transaction&field=project&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20tpm%28%29%3A%3E0.01%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=api.performance.generic-widget-chart.most-regressed&sort=-trend_percentage%28%29&statsPeriod=7d&trendFunction=avg%28transaction.duration%29&trendType=regression"
+        }
+      },
+      {
+        "timestamp": 1679513910.013,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "82a4bfab38bff340",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events/?cursor=0%3A0%3A1&dataset=discover&field=transaction&field=team_key_transaction&field=count%28%29&field=project.id&field=p75%28spans.browser%29&field=p75%28spans.db%29&field=p75%28spans.http%29&field=p75%28spans.resource%29&field=p75%28spans.ui%29&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22%20count%28%29%3A%3E0%20%21transaction.op%3A%22%22&referrer=api.performance.generic-widget-chart.span-operations&sort=-team_key_transaction&sort=-count%28%29&statsPeriod=7d"
+        }
+      },
+      {
+        "timestamp": 1679513910.161,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "af99f081c60e2582",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events/?dataset=discover&field=team_key_transaction&field=transaction&field=project&field=tpm%28%29&field=p50%28%29&field=p95%28%29&field=failure_rate%28%29&field=apdex%28%29&field=count_unique%28user%29&field=count_miserable%28user%29&field=user_misery%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.landing-table&sort=-team_key_transaction&sort=-tpm&statsPeriod=7d"
+        }
+      },
+      {
+        "timestamp": 1679513910.513,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a9b3e2f5fa7203ed",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/key-transactions-list/?project=-1&team=myteams"
+        }
+      },
+      {
+        "timestamp": 1679513910.513,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "8fcf1bb7a8105a53",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events-stats/?dataset=discover&interval=1h&partial=1&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=14d&yAxis=user_misery%28%29&yAxis=tpm%28%29&yAxis=failure_rate%28%29"
+        }
+      },
+      {
+        "timestamp": 1679513910.513,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "9d397106b43f3a10",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events/?dataset=discover&field=user_misery%28%29&field=tpm%28%29&field=failure_rate%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=7d"
+        }
+      },
+      {
+        "timestamp": 1679513910.728,
+        "type": "http",
+        "category": "fetch",
+        "level": "info",
+        "data": {
+          "__span": "a76f32d3f5d0db55",
+          "method": "GET",
+          "status_code": 200,
+          "url": "/api/0/organizations/sentry/events-stats/?dataset=discover&interval=6h&partial=1&project=-1&query=event.type%3Atransaction%20transaction%3Asentry.tasks.process_buffer.process_pending%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22&referrer=api.performance.generic-widget-chart.span-operations&statsPeriod=7d&yAxis=p75%28spans.browser%29&yAxis=p75%28spans.resource%29&yAxis=p75%28spans.db%29&yAxis=p75%28spans.http%29&yAxis=p75%28spans.ui%29"
+        }
+      },
+      {
+        "timestamp": 1679513911.736,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/entrypoints/sentry.css",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/entrypoints/sentry.css"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.736,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/entrypoints/app.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/entrypoints/app.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.736,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/1679504654/sentry/js/ads.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/1679504654/sentry/js/ads.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/1679504654/sentry/images/sentry-loader.svg",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/1679504654/sentry/images/sentry-loader.svg"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/?detailed=0 - Content-length: 2090",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/?detailed=0 - Content-length: 2090"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/teams/ - Content-length: 1259",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/teams/ - Content-length: 1259"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/projects/?all_projects=1&collapse=latestDeploys - Content-length: 1490",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/projects/?all_projects=1&collapse=latestDeploys - Content-length: 1490"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx_lazy-compilation-proxy.71cb3458d787f5fb4074.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx_lazy-compilation-proxy.71cb3458d787f5fb4074.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_index_tsx_lazy-compilation-proxy.7878eb43df8aa036f494.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_index_tsx_lazy-compilation-proxy.7878eb43df8aa036f494.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/assets/rubik-regular.ac2d143aa7c4dc5fb505.woff",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/assets/rubik-regular.ac2d143aa7c4dc5fb505.woff"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_index_tsx.57f49289f424a829a434.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_index_tsx.57f49289f424a829a434.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_emotion_react_jsx-runtime_dist_emotion-react-jsx-runtime_browser_esm_js--c6e832.962442028da5fcece5ed.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_emotion_react_jsx-runtime_dist_emotion-react-jsx-runtime_browser_esm_js--c6e832.962442028da5fcece5ed.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx.f229e6051ff238dad103.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx.f229e6051ff238dad103.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx_lazy-compilation-proxy.a03bbe7fe937f4a71243.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx_lazy-compilation-proxy.a03bbe7fe937f4a71243.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_dist_is-prop-valid_browser_esm_js-node_modules_emo-d7d03f.ef805d24d5f31a9f5b81.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_dist_is-prop-valid_browser_esm_js-node_modules_emo-d7d03f.ef805d24d5f31a9f5b81.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.737,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx-node_modules_platformicons_svg_sync_recursive_svg_-node_modul-da1f2c.a430afa07654845ef830.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx-node_modules_platformicons_svg_sync_recursive_svg_-node_modul-da1f2c.a430afa07654845ef830.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/1/envelope/?sentry_key=084cfe3211064f5baa2b8ef7b36da2f6&sentry_version=7&sentry_client=sentry.javascript.react%2F7.44.2 - Content-length: 2",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/1/envelope/?sentry_key=084cfe3211064f5baa2b8ef7b36da2f6&sentry_version=7&sentry_client=sentry.javascript.react%2F7.44.2 - Content-length: 2"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/?member=1 - Content-length: 652",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/?member=1 - Content-length: 652"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/internal/health/ - Content-length: 0",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/internal/health/ - Content-length: 0"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/assistant/ - Content-length: 713",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/assistant/ - Content-length: 713"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/client-state/ - Content-length: 2",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/client-state/ - Content-length: 2"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_index_tsx_lazy-compilation-proxy.b17afb8aaace83e841a0.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_index_tsx_lazy-compilation-proxy.b17afb8aaace83e841a0.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/broadcasts/ - Content-length: 2",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/broadcasts/ - Content-length: 2"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/assets/rubik-medium.c9da53ef4973605ec234.woff",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/assets/rubik-medium.c9da53ef4973605ec234.woff"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_utils_performance_contexts_metricsCardinality_tsx.09b2db5fc7480f851d44.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_utils_performance_contexts_metricsCardinality_tsx.09b2db5fc7480f851d44.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_index_tsx.962791887f1f998d3d17.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_index_tsx.962791887f1f998d3d17.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/views/performance/index.tsx",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/views/performance/index.tsx"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_content_tsx_lazy-compilation-proxy.7a620bfbb5338c5bb188.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_content_tsx_lazy-compilation-proxy.7a620bfbb5338c5bb188.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.738,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 97",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 97"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 58",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 58"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_echarts_lib_component_dataZoomInside_js-node_modules_echarts_lib_compone-cabdfe.07f3864efef1b56ec3df.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/vendors-node_modules_echarts_lib_component_dataZoomInside_js-node_modules_echarts_lib_compone-cabdfe.07f3864efef1b56ec3df.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_content_tsx.4fa8f5630cb36e3ea24a.js",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/dist/sentry/chunks/app_views_performance_content_tsx.4fa8f5630cb36e3ea24a.js"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1 - Content-length: 1637",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1 - Content-length: 1637"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/tags/?project=-1&statsPeriod=7d&use_cache=1&utc=false - Content-length: 1558",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/tags/?project=-1&statsPeriod=7d&use_cache=1&utc=false - Content-length: 1558"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 97",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 97"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 58",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h - Content-length: 58"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "Adding resource span: http://localhost:8000/_static/1679504654/sentry/images/favicon.png",
+        "data": {
+          "arguments": [
+            "Adding resource span:",
+            "http://localhost:8000/_static/1679504654/sentry/images/favicon.png"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events/?cursor=0%3A0%3A1&dataset=discover&field=transaction&field=team_key_transaction&field=count%28%29&field=project.id&field=p75%28spans.browser%29&field=p75%28spans.db%29&field=p75%28spans.http%29&field=p75%28spans.resource%29&field=p75%28spans.ui%29&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22%20count%28%29%3A%3E0%20%21transaction.op%3A%22%22&referrer=api.performance.generic-widget-chart.span-operations&sort=-team_key_transaction&sort=-count%28%29&statsPeriod=7d - Content-length: 384",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events/?cursor=0%3A0%3A1&dataset=discover&field=transaction&field=team_key_transaction&field=count%28%29&field=project.id&field=p75%28spans.browser%29&field=p75%28spans.db%29&field=p75%28spans.http%29&field=p75%28spans.resource%29&field=p75%28spans.ui%29&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22%20count%28%29%3A%3E0%20%21transaction.op%3A%22%22&referrer=api.performance.generic-widget-chart.span-operations&sort=-team_key_transaction&sort=-count%28%29&statsPeriod=7d - Content-length: 384"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events-trends-stats/?cursor=0%3A0%3A1&field=transaction&field=project&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20tpm%28%29%3A%3E0.01%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=api.performance.generic-widget-chart.most-regressed&sort=-trend_percentage%28%29&statsPeriod=7d&trendFunction=avg%28transaction.duration%29&trendType=regression - Content-length: 338",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events-trends-stats/?cursor=0%3A0%3A1&field=transaction&field=project&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20tpm%28%29%3A%3E0.01%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=api.performance.generic-widget-chart.most-regressed&sort=-trend_percentage%28%29&statsPeriod=7d&trendFunction=avg%28transaction.duration%29&trendType=regression - Content-length: 338"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events/?dataset=discover&field=team_key_transaction&field=transaction&field=project&field=tpm%28%29&field=p50%28%29&field=p95%28%29&field=failure_rate%28%29&field=apdex%28%29&field=count_unique%28user%29&field=count_miserable%28user%29&field=user_misery%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.landing-table&sort=-team_key_transaction&sort=-tpm&statsPeriod=7d - Content-length: 1844",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events/?dataset=discover&field=team_key_transaction&field=transaction&field=project&field=tpm%28%29&field=p50%28%29&field=p95%28%29&field=failure_rate%28%29&field=apdex%28%29&field=count_unique%28user%29&field=count_miserable%28user%29&field=user_misery%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.landing-table&sort=-team_key_transaction&sort=-tpm&statsPeriod=7d - Content-length: 1844"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/key-transactions-list/?project=-1&team=myteams - Content-length: 164",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/key-transactions-list/?project=-1&team=myteams - Content-length: 164"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events-stats/?dataset=discover&interval=1h&partial=1&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=14d&yAxis=user_misery%28%29&yAxis=tpm%28%29&yAxis=failure_rate%28%29 - Content-length: 1702",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events-stats/?dataset=discover&interval=1h&partial=1&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=14d&yAxis=user_misery%28%29&yAxis=tpm%28%29&yAxis=failure_rate%28%29 - Content-length: 1702"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events/?dataset=discover&field=user_misery%28%29&field=tpm%28%29&field=failure_rate%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=7d - Content-length: 441",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events/?dataset=discover&field=user_misery%28%29&field=tpm%28%29&field=failure_rate%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=7d - Content-length: 441"
+          ],
+          "logger": "console"
+        }
+      },
+      {
+        "timestamp": 1679513911.739,
+        "type": "default",
+        "category": "console",
+        "level": "info",
+        "message": "rs - http://localhost:8000/api/0/organizations/sentry/events-stats/?dataset=discover&interval=6h&partial=1&project=-1&query=event.type%3Atransaction%20transaction%3Asentry.tasks.process_buffer.process_pending%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22&referrer=api.performance.generic-widget-chart.span-operations&statsPeriod=7d&yAxis=p75%28spans.browser%29&yAxis=p75%28spans.resource%29&yAxis=p75%28spans.db%29&yAxis=p75%28spans.http%29&yAxis=p75%28spans.ui%29 - Content-length: 437",
+        "data": {
+          "arguments": [
+            "rs - http://localhost:8000/api/0/organizations/sentry/events-stats/?dataset=discover&interval=6h&partial=1&project=-1&query=event.type%3Atransaction%20transaction%3Asentry.tasks.process_buffer.process_pending%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22&referrer=api.performance.generic-widget-chart.span-operations&statsPeriod=7d&yAxis=p75%28spans.browser%29&yAxis=p75%28spans.resource%29&yAxis=p75%28spans.db%29&yAxis=p75%28spans.http%29&yAxis=p75%28spans.ui%29 - Content-length: 437"
+          ],
+          "logger": "console"
+        }
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": { "value": 139.499664, "unit": "millisecond" },
+      "ops.http": { "value": 2209.599971, "unit": "millisecond" },
+      "ops.resource": { "value": 3760.500194, "unit": "millisecond" },
+      "ops.ui": { "value": 4608.90031, "unit": "millisecond" },
+      "total.time": { "value": 11070.000173, "unit": "millisecond" }
+    }
+  },
+  "contexts": {
+    "browser": { "name": "Chrome", "version": "111.0.0", "type": "browser" },
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "organization": { "id": "1", "slug": "sentry", "type": "organization" },
+    "os": { "name": "Mac OS X", "version": "10.15.7", "type": "os" },
+    "profile": {
+      "profile_id": "21119843c2ce4a1ca97c78c0159b9208",
+      "type": "profile"
+    },
+    "trace": {
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "span_id": "827753936482efc8",
+      "op": "pageload",
+      "status": "unknown",
+      "exclusive_time": 54.400683,
+      "client_sample_rate": 1.0,
+      "hash": "63c72f7ce8741a18",
+      "tags": {
+        "cls.source.1": "div > div.app-19jil93-PerformanceLayoutBodyRow-StyledRow.esbrixl0",
+        "cls.source.2": "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1",
+        "cls.source.3": "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1",
+        "cls.source.4": "div.app-ue0a9n-Panel-StyledPanel.ekfeesi1",
+        "cls.source.5": "div > div > div.e6l1io010.app-16qofuy-Panel-Body.eptq6fu0",
+        "deviceMemory": "8 GB",
+        "effectiveConnectionType": "4g",
+        "hardwareConcurrency": "10",
+        "lcp.element": "p.app-8cj1om-SecondaryMessage.e1qhgdqj2",
+        "lcp.size": 9146,
+        "query.period": "604800",
+        "query.period.grouped": "<=7d",
+        "routing.instrumentation": "react-router-v3"
+      },
+      "type": "trace"
+    }
+  },
+  "culprit": "/performance/",
+  "environment": "development",
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": [],
+  "key_id": "1",
+  "level": "info",
+  "location": "/performance/",
+  "logger": "",
+  "measurements": {
+    "allresources.encoded": { "value": 0.0, "unit": "byte" },
+    "allresources.transfer": { "value": 0.0, "unit": "byte" },
+    "cls": { "value": 0.2655745498849468, "unit": "none" },
+    "connection.rtt": { "value": 50.0, "unit": "millisecond" },
+    "fcp": { "value": 707.4999809265137, "unit": "millisecond" },
+    "fp": { "value": 707.4999809265137, "unit": "millisecond" },
+    "init_to_vcd": { "value": 1679513910.5142002, "unit": "seconds" },
+    "lcp": { "value": 5006.0999393463135, "unit": "millisecond" },
+    "ttfb": { "value": 131.7000389099121, "unit": "millisecond" },
+    "ttfb.requesttime": { "value": 127.39992141723631, "unit": "millisecond" },
+    "visually_complete_with_data": {
+      "value": 5.520400047302246,
+      "unit": "seconds"
+    }
+  },
+  "metadata": { "location": "/performance/", "title": "/performance/" },
+  "nodestore_insert": 1679513912.898323,
+  "received": 1679513911.749772,
+  "request": {
+    "url": "http://localhost:8000/organizations/sentry/performance/",
+    "query_string": [["project", "-1"]],
+    "headers": [
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+      ]
+    ]
+  },
+  "sdk": {
+    "name": "sentry.javascript.react",
+    "version": "7.44.2",
+    "integrations": [
+      "InboundFilters",
+      "FunctionToString",
+      "TryCatch",
+      "Breadcrumbs",
+      "GlobalHandlers",
+      "LinkedErrors",
+      "Dedupe",
+      "HttpContext",
+      "ExtraErrorData",
+      "BrowserTracing",
+      "BrowserProfilingIntegration"
+    ],
+    "packages": [{ "name": "npm:@sentry/react", "version": "7.44.2" }]
+  },
+  "span_grouping_config": { "id": "default:2022-10-27" },
+  "spans": [
+    {
+      "timestamp": 1679513908.4055,
+      "start_timestamp": 1679513908.3961,
+      "exclusive_time": 9.40013,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.mount",
+      "span_id": "9847976ec7dd0e10",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1679513908.628,
+      "start_timestamp": 1679513908.4099,
+      "exclusive_time": 218.10007,
+      "description": "GET /api/0/organizations/?member=1",
+      "op": "http.client",
+      "span_id": "941930775d9f1823",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/?member=1"
+      },
+      "hash": "cbc1d1c7a6500a75"
+    },
+    {
+      "timestamp": 1679513908.6429,
+      "start_timestamp": 1679513908.4109,
+      "exclusive_time": 231.999875,
+      "description": "GET /api/0/internal/health/",
+      "op": "http.client",
+      "span_id": "a17a52a9dcde7b74",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/internal/health/"
+      },
+      "hash": "61f17e17e6e505c4"
+    },
+    {
+      "timestamp": 1679513908.865,
+      "start_timestamp": 1679513908.4116,
+      "exclusive_time": 453.399897,
+      "description": "GET /api/0/assistant/",
+      "op": "http.client",
+      "span_id": "a93f4d4b37d3db4a",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": { "method": "GET", "type": "fetch", "url": "/api/0/assistant/" },
+      "hash": "df65e7b0208b5678"
+    },
+    {
+      "timestamp": 1679513908.8652,
+      "start_timestamp": 1679513908.4177,
+      "exclusive_time": 447.49999,
+      "description": "GET /api/0/organizations/sentry/client-state/",
+      "op": "http.client",
+      "span_id": "8c408f180096400e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/client-state/"
+      },
+      "hash": "8d5b892af8f5784d"
+    },
+    {
+      "timestamp": 1679513908.4574,
+      "start_timestamp": 1679513908.4515,
+      "exclusive_time": 5.899907,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "a9d39f60a694af8e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513909.0525,
+      "start_timestamp": 1679513908.4568,
+      "exclusive_time": 595.700502,
+      "description": "GET /api/0/organizations/sentry/broadcasts/",
+      "op": "http.client",
+      "span_id": "a09868a86d1ba7fe",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/broadcasts/"
+      },
+      "hash": "a1b34470e41ddd97"
+    },
+    {
+      "timestamp": 1679513908.4578,
+      "start_timestamp": 1679513908.4215,
+      "exclusive_time": 36.299944,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "917e52deb1169292",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513905.3929,
+      "start_timestamp": 1679513905.1319,
+      "exclusive_time": 260.999918,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "8226ef770e2dbdb9",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513905.5298,
+      "start_timestamp": 1679513905.3948,
+      "exclusive_time": 134.999991,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "8b2882b10c54fe39",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513905.6699,
+      "start_timestamp": 1679513905.5399,
+      "exclusive_time": 130.000114,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "b654fa8e715c15b8",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513905.8353,
+      "start_timestamp": 1679513905.7393,
+      "exclusive_time": 95.999956,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "a18fda5b7201d604",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513905.9952,
+      "start_timestamp": 1679513905.9302,
+      "exclusive_time": 65.000058,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "8cd71e49a22a797d",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513906.9162,
+      "start_timestamp": 1679513906.6762,
+      "exclusive_time": 240.000009,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "96cbe91efca4151b",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513908.4739,
+      "start_timestamp": 1679513906.9209,
+      "exclusive_time": 1552.999973,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "8c12d234f8cf2097",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513908.5172,
+      "start_timestamp": 1679513908.5164,
+      "exclusive_time": 0.799895,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "93f9e0d4879e263a",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513908.5169,
+      "start_timestamp": 1679513908.4574,
+      "exclusive_time": 59.499979,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "bf30b75dd62b7050",
+      "parent_span_id": "a9d39f60a694af8e",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513909.0651,
+      "start_timestamp": 1679513908.5182,
+      "exclusive_time": 546.900034,
+      "description": "GET /api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h",
+      "op": "http.client",
+      "span_id": "b7f9a4cf6c9440ed",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+      },
+      "hash": "ff924c454ab77946"
+    },
+    {
+      "timestamp": 1679513909.2814,
+      "start_timestamp": 1679513908.5189,
+      "exclusive_time": 762.500048,
+      "description": "GET /api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h",
+      "op": "http.client",
+      "span_id": "a23684fe60d23343",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+      },
+      "hash": "edb706326759806d"
+    },
+    {
+      "timestamp": 1679513908.6414,
+      "start_timestamp": 1679513908.6288,
+      "exclusive_time": 12.600183,
+      "description": "<OrganizationContextContainer>",
+      "op": "ui.react.update",
+      "span_id": "9015bbebe7663798",
+      "parent_span_id": "9847976ec7dd0e10",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": { "changedProps": ["organizationsLoading", "organizations"] },
+      "hash": "d81f30cfc3785478"
+    },
+    {
+      "timestamp": 1679513908.7989,
+      "start_timestamp": 1679513908.5172,
+      "exclusive_time": 281.699895,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "8d9e9ff9b1d20b0e",
+      "parent_span_id": "93f9e0d4879e263a",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513909.2726,
+      "start_timestamp": 1679513908.8042,
+      "exclusive_time": 468.400001,
+      "description": "GET /api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1",
+      "op": "http.client",
+      "span_id": "88abe2eac0d7026a",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/tags/?statsPeriod=14d&use_cache=1"
+      },
+      "hash": "ae33a3ecac656ef3"
+    },
+    {
+      "timestamp": 1679513908.8236,
+      "start_timestamp": 1679513908.8054,
+      "exclusive_time": 18.199921,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "838b050bc732d1a5",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513909.4863,
+      "start_timestamp": 1679513908.828,
+      "exclusive_time": 658.299685,
+      "description": "GET /api/0/organizations/sentry/tags/?project=-1&statsPeriod=7d&use_cache=1&utc=false",
+      "op": "http.client",
+      "span_id": "af7eca69200a3330",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/tags/?project=-1&statsPeriod=7d&use_cache=1&utc=false"
+      },
+      "hash": "ae33a3ecac656ef3"
+    },
+    {
+      "timestamp": 1679513908.833,
+      "start_timestamp": 1679513908.8325,
+      "exclusive_time": 0.499964,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "89b01a4a443d4f5e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513909.4758,
+      "start_timestamp": 1679513908.8332,
+      "exclusive_time": 642.599821,
+      "description": "GET /api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h",
+      "op": "http.client",
+      "span_id": "bf7f8b6760f68099",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/metrics-compatibility/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+      },
+      "hash": "ff924c454ab77946"
+    },
+    {
+      "timestamp": 1679513909.6698,
+      "start_timestamp": 1679513908.8343,
+      "exclusive_time": 835.500002,
+      "description": "GET /api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h",
+      "op": "http.client",
+      "span_id": "8512e953cce0cca7",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/metrics-compatibility-sums/?cursor=0%3A0%3A0&project=-1&statsPeriod=1h"
+      },
+      "hash": "edb706326759806d"
+    },
+    {
+      "timestamp": 1679513908.7994,
+      "start_timestamp": 1679513908.6934,
+      "exclusive_time": 106.000185,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "bb27cca67599344f",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513909.7829,
+      "start_timestamp": 1679513909.7706,
+      "exclusive_time": 12.300252,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.mount",
+      "span_id": "bc3f1433df49bb64",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513909.7713,
+      "start_timestamp": 1679513908.833,
+      "exclusive_time": 938.299895,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "a1703ac70bee5699",
+      "parent_span_id": "89b01a4a443d4f5e",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513910.0134,
+      "start_timestamp": 1679513909.7788,
+      "exclusive_time": 234.600067,
+      "description": "GET /api/0/organizations/sentry/events/?cursor=0%3A0%3A1&dataset=discover&field=transaction&field=team_key_transaction&field=count%28%29&field=project.id&field=p75%28spans.browser%29&field=p75%28spans.db%29&field=p75%28spans.http%29&field=p75%28spans.resource%29&field=p75%28spans.ui%29&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22%20count%28%29%3A%3E0%20%21transaction.op%3A%22%22&referrer=api.performance.generic-widget-chart.span-operations&sort=-team_key_transaction&sort=-count%28%29&statsPeriod=7d",
+      "op": "http.client",
+      "span_id": "82a4bfab38bff340",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?cursor=0%3A0%3A1&dataset=discover&field=transaction&field=team_key_transaction&field=count%28%29&field=project.id&field=p75%28spans.browser%29&field=p75%28spans.db%29&field=p75%28spans.http%29&field=p75%28spans.resource%29&field=p75%28spans.ui%29&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22%20count%28%29%3A%3E0%20%21transaction.op%3A%22%22&referrer=api.performance.generic-widget-chart.span-operations&sort=-team_key_transaction&sort=-count%28%29&statsPeriod=7d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1679513909.9691,
+      "start_timestamp": 1679513909.7802,
+      "exclusive_time": 188.899756,
+      "description": "GET /api/0/organizations/sentry/events-trends-stats/?cursor=0%3A0%3A1&field=transaction&field=project&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20tpm%28%29%3A%3E0.01%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=api.performance.generic-widget-chart.most-regressed&sort=-trend_percentage%28%29&statsPeriod=7d&trendFunction=avg%28transaction.duration%29&trendType=regression",
+      "op": "http.client",
+      "span_id": "a05d6c9f759c9b76",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events-trends-stats/?cursor=0%3A0%3A1&field=transaction&field=project&noPagination=true&per_page=3&project=-1&query=event.type%3Atransaction%20tpm%28%29%3A%3E0.01%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=api.performance.generic-widget-chart.most-regressed&sort=-trend_percentage%28%29&statsPeriod=7d&trendFunction=avg%28transaction.duration%29&trendType=regression"
+      },
+      "hash": "496ad43f4d35f441"
+    },
+    {
+      "timestamp": 1679513910.1617,
+      "start_timestamp": 1679513909.7834,
+      "exclusive_time": 378.30019,
+      "description": "GET /api/0/organizations/sentry/events/?dataset=discover&field=team_key_transaction&field=transaction&field=project&field=tpm%28%29&field=p50%28%29&field=p95%28%29&field=failure_rate%28%29&field=apdex%28%29&field=count_unique%28user%29&field=count_miserable%28user%29&field=user_misery%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.landing-table&sort=-team_key_transaction&sort=-tpm&statsPeriod=7d",
+      "op": "http.client",
+      "span_id": "af99f081c60e2582",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?dataset=discover&field=team_key_transaction&field=transaction&field=project&field=tpm%28%29&field=p50%28%29&field=p95%28%29&field=failure_rate%28%29&field=apdex%28%29&field=count_unique%28user%29&field=count_miserable%28user%29&field=user_misery%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.landing-table&sort=-team_key_transaction&sort=-tpm&statsPeriod=7d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1679513910.5132,
+      "start_timestamp": 1679513909.7845,
+      "exclusive_time": 728.700161,
+      "description": "GET /api/0/organizations/sentry/key-transactions-list/?project=-1&team=myteams",
+      "op": "http.client",
+      "span_id": "a9b3e2f5fa7203ed",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/key-transactions-list/?project=-1&team=myteams"
+      },
+      "hash": "95d7905e5d432a4a"
+    },
+    {
+      "timestamp": 1679513909.7853,
+      "start_timestamp": 1679513909.686,
+      "exclusive_time": 99.299669,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "a43db9dd837cf9be",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513909.8414,
+      "start_timestamp": 1679513909.8064,
+      "exclusive_time": 35.000086,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "84630ad91ac21286",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513910.5137,
+      "start_timestamp": 1679513909.8956,
+      "exclusive_time": 618.100166,
+      "description": "GET /api/0/organizations/sentry/events-stats/?dataset=discover&interval=1h&partial=1&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=14d&yAxis=user_misery%28%29&yAxis=tpm%28%29&yAxis=failure_rate%28%29",
+      "op": "http.client",
+      "span_id": "8fcf1bb7a8105a53",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events-stats/?dataset=discover&interval=1h&partial=1&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=14d&yAxis=user_misery%28%29&yAxis=tpm%28%29&yAxis=failure_rate%28%29"
+      },
+      "hash": "988e2582e9aed98d"
+    },
+    {
+      "timestamp": 1679513910.5138,
+      "start_timestamp": 1679513909.8961,
+      "exclusive_time": 617.7001,
+      "description": "GET /api/0/organizations/sentry/events/?dataset=discover&field=user_misery%28%29&field=tpm%28%29&field=failure_rate%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=7d",
+      "op": "http.client",
+      "span_id": "9d397106b43f3a10",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events/?dataset=discover&field=user_misery%28%29&field=tpm%28%29&field=failure_rate%28%29&per_page=50&project=-1&query=event.type%3Atransaction&referrer=api.performance.generic-widget-chart.user-misery-area&statsPeriod=7d"
+      },
+      "hash": "c62fb7386c5b1fcd"
+    },
+    {
+      "timestamp": 1679513909.8736,
+      "start_timestamp": 1679513909.6706,
+      "exclusive_time": 203.000069,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "947285b775fe8e95",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513910.7285,
+      "start_timestamp": 1679513910.0609,
+      "exclusive_time": 667.599917,
+      "description": "GET /api/0/organizations/sentry/events-stats/?dataset=discover&interval=6h&partial=1&project=-1&query=event.type%3Atransaction%20transaction%3Asentry.tasks.process_buffer.process_pending%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22&referrer=api.performance.generic-widget-chart.span-operations&statsPeriod=7d&yAxis=p75%28spans.browser%29&yAxis=p75%28spans.resource%29&yAxis=p75%28spans.db%29&yAxis=p75%28spans.http%29&yAxis=p75%28spans.ui%29",
+      "op": "http.client",
+      "span_id": "a76f32d3f5d0db55",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "status": "ok",
+      "tags": { "http.status_code": "200" },
+      "data": {
+        "method": "GET",
+        "type": "fetch",
+        "url": "/api/0/organizations/sentry/events-stats/?dataset=discover&interval=6h&partial=1&project=-1&query=event.type%3Atransaction%20transaction%3Asentry.tasks.process_buffer.process_pending%20%21transaction%3A%22%3C%3C%20unparameterized%20%3E%3E%22&referrer=api.performance.generic-widget-chart.span-operations&statsPeriod=7d&yAxis=p75%28spans.browser%29&yAxis=p75%28spans.resource%29&yAxis=p75%28spans.db%29&yAxis=p75%28spans.http%29&yAxis=p75%28spans.ui%29"
+      },
+      "hash": "988e2582e9aed98d"
+    },
+    {
+      "timestamp": 1679513910.0633,
+      "start_timestamp": 1679513910.0251,
+      "exclusive_time": 38.199902,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "94a17f709c1274eb",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513910.1049,
+      "start_timestamp": 1679513910.0149,
+      "exclusive_time": 89.999676,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "892c1fee73a8013b",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513910.3733,
+      "start_timestamp": 1679513909.7829,
+      "exclusive_time": 590.399743,
+      "description": "<LoadingIndicator>",
+      "op": "ui.react.render",
+      "span_id": "a9a1ea0d0cc9fa6f",
+      "parent_span_id": "bc3f1433df49bb64",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "f93d7e6580639d76"
+    },
+    {
+      "timestamp": 1679513910.3792,
+      "start_timestamp": 1679513910.1938,
+      "exclusive_time": 185.400009,
+      "description": "<GridEditable>",
+      "op": "ui.react.update",
+      "span_id": "87f3abf150992173",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "0e9f21bfaf630ca4"
+    },
+    {
+      "timestamp": 1679513910.3793,
+      "start_timestamp": 1679513910.1803,
+      "exclusive_time": 199.00012,
+      "description": "<PerformanceTable>",
+      "op": "ui.react.update",
+      "span_id": "8e2b7c0c4a9802fa",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "44fbd4d6e21e9e45"
+    },
+    {
+      "timestamp": 1679513910.3797,
+      "start_timestamp": 1679513910.1729,
+      "exclusive_time": 206.799984,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "b79bf624bc403615",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513910.4533,
+      "start_timestamp": 1679513910.4363,
+      "exclusive_time": 16.99996,
+      "description": "<GridEditable>",
+      "op": "ui.react.update",
+      "span_id": "af4e3b8100edb067",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "0e9f21bfaf630ca4"
+    },
+    {
+      "timestamp": 1679513910.4533,
+      "start_timestamp": 1679513910.4363,
+      "exclusive_time": 16.99996,
+      "description": "<PerformanceTable>",
+      "op": "ui.react.update",
+      "span_id": "9d4db2ae94cbecb8",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "44fbd4d6e21e9e45"
+    },
+    {
+      "timestamp": 1679513910.4534,
+      "start_timestamp": 1679513910.4364,
+      "exclusive_time": 16.99996,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "957c898802486ac6",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513910.4832,
+      "start_timestamp": 1679513910.1622,
+      "exclusive_time": 321.000099,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "b0f542b89ed1051d",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513910.5757,
+      "start_timestamp": 1679513910.5536,
+      "exclusive_time": 22.099972,
+      "description": "<GridEditable>",
+      "op": "ui.react.update",
+      "span_id": "82b209033b6cf7fb",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "0e9f21bfaf630ca4"
+    },
+    {
+      "timestamp": 1679513910.5757,
+      "start_timestamp": 1679513910.5536,
+      "exclusive_time": 22.099972,
+      "description": "<PerformanceTable>",
+      "op": "ui.react.update",
+      "span_id": "aed9e66c205dd022",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "44fbd4d6e21e9e45"
+    },
+    {
+      "timestamp": 1679513910.5757,
+      "start_timestamp": 1679513910.5522,
+      "exclusive_time": 23.499966,
+      "description": "<App>",
+      "op": "ui.react.update",
+      "span_id": "9e40a1085d287c06",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "692fda753348e2cb"
+    },
+    {
+      "timestamp": 1679513910.7145,
+      "start_timestamp": 1679513910.6035,
+      "exclusive_time": 111.000061,
+      "description": "Main UI thread blocked",
+      "op": "ui.long-task",
+      "span_id": "961894260468eae8",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c777169faad84eb4"
+    },
+    {
+      "timestamp": 1679513905.133801,
+      "start_timestamp": 1679513905.1336,
+      "exclusive_time": 0.200272,
+      "description": "unloadEvent",
+      "op": "browser",
+      "span_id": "9811f91282dff7c3",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "8e6939b423884b5c"
+    },
+    {
+      "timestamp": 1679513905.7054,
+      "start_timestamp": 1679513905.6965,
+      "exclusive_time": 8.899927,
+      "description": "domContentLoadedEvent",
+      "op": "browser",
+      "span_id": "a4743cf99ebde599",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "b0e3ee8970392a6f"
+    },
+    {
+      "timestamp": 1679513908.8639,
+      "start_timestamp": 1679513908.861501,
+      "exclusive_time": 2.399683,
+      "description": "loadEvent",
+      "op": "browser",
+      "span_id": "ad2466e0d4569316",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "39e89edd65c7c22a"
+    },
+    {
+      "timestamp": 1679513904.9938,
+      "start_timestamp": 1679513904.9938,
+      "exclusive_time": 0.0,
+      "description": "connect",
+      "op": "browser",
+      "span_id": "ade953787c921f01",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "b640a0ce465fa2a4"
+    },
+    {
+      "timestamp": 1679513904.9938,
+      "start_timestamp": 1679513904.9938,
+      "exclusive_time": 0.0,
+      "description": "cache",
+      "op": "browser",
+      "span_id": "82ed2508d12e9a98",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "0fea6a13c52b4d47"
+    },
+    {
+      "timestamp": 1679513904.9938,
+      "start_timestamp": 1679513904.9938,
+      "exclusive_time": 0.0,
+      "description": "DNS",
+      "op": "browser",
+      "span_id": "b508b08d27c0289e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "ed5f2bdecbd4bd34"
+    },
+    {
+      "timestamp": 1679513905.1261,
+      "start_timestamp": 1679513904.998101,
+      "exclusive_time": 127.999782,
+      "description": "request",
+      "op": "browser",
+      "span_id": "80bc4af30ab84ecf",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "10573b873d2fa5a3"
+    },
+    {
+      "timestamp": 1679513905.1261,
+      "start_timestamp": 1679513905.1255,
+      "exclusive_time": 0.600099,
+      "description": "response",
+      "op": "browser",
+      "span_id": "848e8dc0fc789962",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "d1fc8eaf36937be0"
+    },
+    {
+      "timestamp": 1679513905.413,
+      "start_timestamp": 1679513905.3872,
+      "exclusive_time": 25.799989,
+      "description": "/_static/dist/sentry/entrypoints/sentry.css",
+      "op": "resource.link",
+      "span_id": "b9db5b1c10880a38",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 147298,
+        "Encoded Body Size": 34027,
+        "Transfer Size": 34327,
+        "resource.render_blocking_status": "blocking"
+      },
+      "hash": "d2806d63580457f6"
+    },
+    {
+      "timestamp": 1679513905.439,
+      "start_timestamp": 1679513905.3873,
+      "exclusive_time": 51.699877,
+      "description": "/_static/dist/sentry/entrypoints/app.js",
+      "op": "resource.script",
+      "span_id": "87e3cbc2ac15a523",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 1316449,
+        "Encoded Body Size": 315543,
+        "Transfer Size": 315843,
+        "resource.render_blocking_status": "blocking"
+      },
+      "hash": "14efbbc0d0bbfadb"
+    },
+    {
+      "timestamp": 1679513905.4362,
+      "start_timestamp": 1679513905.3874,
+      "exclusive_time": 48.799753,
+      "description": "/_static/1679504654/sentry/js/ads.js",
+      "op": "resource.script",
+      "span_id": "b9abb56abd3a3b93",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 33,
+        "Encoded Body Size": 33,
+        "Transfer Size": 333,
+        "resource.render_blocking_status": "blocking"
+      },
+      "hash": "4ee998f33a695535"
+    },
+    {
+      "timestamp": 1679513905.606,
+      "start_timestamp": 1679513905.3874,
+      "exclusive_time": 218.600035,
+      "description": "/_static/1679504654/sentry/images/sentry-loader.svg",
+      "op": "resource.img",
+      "span_id": "a0f59e8221610769",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 2114,
+        "Encoded Body Size": 808,
+        "Transfer Size": 1108,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "a5dcb74cdb542c8e"
+    },
+    {
+      "timestamp": 1679513905.6597,
+      "start_timestamp": 1679513905.6455,
+      "exclusive_time": 14.199972,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx_lazy-compilation-proxy.71cb3458d787f5fb4074.js",
+      "op": "resource.script",
+      "span_id": "a288eb7508443e05",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 8620,
+        "Encoded Body Size": 3191,
+        "Transfer Size": 3491,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "1a0932de2049de7e"
+    },
+    {
+      "timestamp": 1679513905.6855,
+      "start_timestamp": 1679513905.6609,
+      "exclusive_time": 24.599791,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_index_tsx_lazy-compilation-proxy.7878eb43df8aa036f494.js",
+      "op": "resource.script",
+      "span_id": "8861dc0cee4cddb6",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 8383,
+        "Encoded Body Size": 3112,
+        "Transfer Size": 3412,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "101b3133af82d2ca"
+    },
+    {
+      "timestamp": 1679513905.7221,
+      "start_timestamp": 1679513905.6902,
+      "exclusive_time": 31.899929,
+      "description": "/_static/dist/sentry/assets/rubik-regular.ac2d143aa7c4dc5fb505.woff",
+      "op": "resource.css",
+      "span_id": "8dc5d4d9bce15bbe",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 30384,
+        "Encoded Body Size": 30384,
+        "Transfer Size": 30684,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "7d3f680f2d671832"
+    },
+    {
+      "timestamp": 1679513905.7013,
+      "start_timestamp": 1679513905.7013,
+      "exclusive_time": 0.0,
+      "description": "first-paint",
+      "op": "paint",
+      "span_id": "82b64d76930d8782",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "4ff755f5919b94fd"
+    },
+    {
+      "timestamp": 1679513905.7013,
+      "start_timestamp": 1679513905.7013,
+      "exclusive_time": 0.0,
+      "description": "first-contentful-paint",
+      "op": "paint",
+      "span_id": "96550d467dcc3761",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "8545a0de03122977"
+    },
+    {
+      "timestamp": 1679513905.8563,
+      "start_timestamp": 1679513905.8518,
+      "exclusive_time": 4.499912,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_index_tsx.57f49289f424a829a434.js",
+      "op": "resource.script",
+      "span_id": "af4edd94c188846e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 12610,
+        "Encoded Body Size": 4549,
+        "Transfer Size": 4849,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "46ea56ac8c0d8c73"
+    },
+    {
+      "timestamp": 1679513905.8683,
+      "start_timestamp": 1679513905.8614,
+      "exclusive_time": 6.900311,
+      "description": "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx",
+      "op": "resource.other",
+      "span_id": "a458042a38520be5",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 0,
+        "Encoded Body Size": 0,
+        "Transfer Size": 0,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "e4d714730c353652"
+    },
+    {
+      "timestamp": 1679513905.9131,
+      "start_timestamp": 1679513905.8623,
+      "exclusive_time": 50.800085,
+      "description": "/_static/dist/sentry/chunks/vendors-node_modules_emotion_react_jsx-runtime_dist_emotion-react-jsx-runtime_browser_esm_js--c6e832.962442028da5fcece5ed.js",
+      "op": "resource.script",
+      "span_id": "bca9c84c02887e99",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 1725160,
+        "Encoded Body Size": 416387,
+        "Transfer Size": 416687,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "ecc500e2eb9ecf44"
+    },
+    {
+      "timestamp": 1679513905.8745,
+      "start_timestamp": 1679513905.8626,
+      "exclusive_time": 11.899948,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_initializeMain_tsx.f229e6051ff238dad103.js",
+      "op": "resource.script",
+      "span_id": "b7f6fb2079035c14",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 80872,
+        "Encoded Body Size": 19359,
+        "Transfer Size": 19659,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "d6c35d6392b30c1f"
+    },
+    {
+      "timestamp": 1679513906.0021,
+      "start_timestamp": 1679513905.8684,
+      "exclusive_time": 133.699894,
+      "description": "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx",
+      "op": "resource.other",
+      "span_id": "9b285977ba4998a9",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 0,
+        "Encoded Body Size": 0,
+        "Transfer Size": 0,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "0b0d6d422f80a18a"
+    },
+    {
+      "timestamp": 1679513905.9985,
+      "start_timestamp": 1679513905.9953,
+      "exclusive_time": 3.200055,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx_lazy-compilation-proxy.a03bbe7fe937f4a71243.js",
+      "op": "resource.script",
+      "span_id": "bcc90cd454630f77",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 2393,
+        "Encoded Body Size": 987,
+        "Transfer Size": 1287,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "cd98c75afb544ffe"
+    },
+    {
+      "timestamp": 1679513906.6476,
+      "start_timestamp": 1679513906.0011,
+      "exclusive_time": 646.500111,
+      "description": "/_static/dist/sentry/chunks/vendors-node_modules_emotion_is-prop-valid_dist_is-prop-valid_browser_esm_js-node_modules_emo-d7d03f.ef805d24d5f31a9f5b81.js",
+      "op": "resource.script",
+      "span_id": "afb5be5ec67c8892",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 22510735,
+        "Encoded Body Size": 4998632,
+        "Transfer Size": 4998932,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "0d564de3a9b1e184"
+    },
+    {
+      "timestamp": 1679513906.6752,
+      "start_timestamp": 1679513906.0015,
+      "exclusive_time": 673.700332,
+      "description": "/_static/dist/sentry/chunks/app_bootstrap_initializeApp_tsx-node_modules_platformicons_svg_sync_recursive_svg_-node_modul-da1f2c.a430afa07654845ef830.js",
+      "op": "resource.script",
+      "span_id": "abc2c178f2ce802f",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 26660745,
+        "Encoded Body Size": 4555771,
+        "Transfer Size": 4556071,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "35d88b00cbb5774b"
+    },
+    {
+      "timestamp": 1679513908.5014,
+      "start_timestamp": 1679513906.0022,
+      "exclusive_time": 2499.200344,
+      "description": "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx",
+      "op": "resource.other",
+      "span_id": "a1adf9cd8a1d62ca",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 0,
+        "Encoded Body Size": 0,
+        "Transfer Size": 0,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "1f24d385bd779e87"
+    },
+    {
+      "timestamp": 1679513908.312001,
+      "start_timestamp": 1679513908.312001,
+      "exclusive_time": 0.0,
+      "description": "sentry-tracing-init",
+      "op": "mark",
+      "span_id": "823fb52221d3f0ef",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "c53716060ebc199a"
+    },
+    {
+      "timestamp": 1679513908.3814,
+      "start_timestamp": 1679513908.3814,
+      "exclusive_time": 0.0,
+      "description": "sentry-app-init",
+      "op": "mark",
+      "span_id": "8bde310f2805e03e",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "5bc3cb6d77455a14"
+    },
+    {
+      "timestamp": 1679513908.4567,
+      "start_timestamp": 1679513908.451,
+      "exclusive_time": 5.700112,
+      "description": "/_static/dist/sentry/chunks/app_views_performance_index_tsx_lazy-compilation-proxy.b17afb8aaace83e841a0.js",
+      "op": "resource.script",
+      "span_id": "b3e382d0b2ea8acf",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 2286,
+        "Encoded Body Size": 942,
+        "Transfer Size": 1242,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "d8cbf9ab4822911d"
+    },
+    {
+      "timestamp": 1679513908.4796,
+      "start_timestamp": 1679513908.475801,
+      "exclusive_time": 3.799677,
+      "description": "/_static/dist/sentry/assets/rubik-medium.c9da53ef4973605ec234.woff",
+      "op": "resource.css",
+      "span_id": "8583a5d6c277add8",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 30540,
+        "Encoded Body Size": 30540,
+        "Transfer Size": 30840,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "d865a09c83bb32f0"
+    },
+    {
+      "timestamp": 1679513908.5059,
+      "start_timestamp": 1679513908.5005,
+      "exclusive_time": 5.399704,
+      "description": "/_static/dist/sentry/chunks/app_utils_performance_contexts_metricsCardinality_tsx.09b2db5fc7480f851d44.js",
+      "op": "resource.script",
+      "span_id": "877e720a48e4f203",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 103588,
+        "Encoded Body Size": 24393,
+        "Transfer Size": 24693,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "552568a3835bf1e2"
+    },
+    {
+      "timestamp": 1679513908.5087,
+      "start_timestamp": 1679513908.500901,
+      "exclusive_time": 7.799864,
+      "description": "/_static/dist/sentry/chunks/app_views_performance_index_tsx.962791887f1f998d3d17.js",
+      "op": "resource.script",
+      "span_id": "a8b6cabd7611e6fb",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 10475,
+        "Encoded Body Size": 3201,
+        "Transfer Size": 3501,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "bd0cb765d55ac7e9"
+    },
+    {
+      "timestamp": 1679513908.5236,
+      "start_timestamp": 1679513908.5015,
+      "exclusive_time": 22.10021,
+      "description": "http://localhost:55256/lazy-compilation-using-/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/index.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeMain.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/bootstrap/initializeApp.tsx@/Users/dominikbuszowiecki/Desktop/code/sentry/node_modules/babel-loader/lib/index.js%3F%3FruleSet%5B1%5D.rules%5B0%5D.use!/Users/dominikbuszowiecki/Desktop/code/sentry/static/app/views/performance/index.tsx",
+      "op": "resource.other",
+      "span_id": "8d77b1e4aa887138",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 0,
+        "Encoded Body Size": 0,
+        "Transfer Size": 0,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "10308ea94627eae4"
+    },
+    {
+      "timestamp": 1679513908.52,
+      "start_timestamp": 1679513908.5163,
+      "exclusive_time": 3.700018,
+      "description": "/_static/dist/sentry/chunks/app_views_performance_content_tsx_lazy-compilation-proxy.7a620bfbb5338c5bb188.js",
+      "op": "resource.script",
+      "span_id": "9f9410b0717b86c3",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 2439,
+        "Encoded Body Size": 985,
+        "Transfer Size": 1285,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "4dfdb05e428c5ff0"
+    },
+    {
+      "timestamp": 1679513908.6495,
+      "start_timestamp": 1679513908.5229,
+      "exclusive_time": 126.599789,
+      "description": "/_static/dist/sentry/chunks/vendors-node_modules_echarts_lib_component_dataZoomInside_js-node_modules_echarts_lib_compone-cabdfe.07f3864efef1b56ec3df.js",
+      "op": "resource.script",
+      "span_id": "a02179085fcb6c17",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 431955,
+        "Encoded Body Size": 93985,
+        "Transfer Size": 94285,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "d127f532c3a25694"
+    },
+    {
+      "timestamp": 1679513908.6913,
+      "start_timestamp": 1679513908.523201,
+      "exclusive_time": 168.099881,
+      "description": "/_static/dist/sentry/chunks/app_views_performance_content_tsx.4fa8f5630cb36e3ea24a.js",
+      "op": "resource.script",
+      "span_id": "8e9033df2c9703f2",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 2771721,
+        "Encoded Body Size": 414284,
+        "Transfer Size": 414584,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "559d15c758b456e7"
+    },
+    {
+      "timestamp": 1679513909.5179,
+      "start_timestamp": 1679513908.8813,
+      "exclusive_time": 636.600018,
+      "description": "/_static/1679504654/sentry/images/favicon.png",
+      "op": "resource.other",
+      "span_id": "8865b16012516b22",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "data": {
+        "Decoded Body Size": 1088,
+        "Encoded Body Size": 1088,
+        "Transfer Size": 1388,
+        "resource.render_blocking_status": "non-blocking"
+      },
+      "hash": "7a0f45992e024247"
+    },
+    {
+      "timestamp": 1679513910.1627,
+      "start_timestamp": 1679513910.1627,
+      "exclusive_time": 0.0,
+      "description": "PerformanceTable-vcsd-start",
+      "op": "mark",
+      "span_id": "abaceebd15ee1483",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "da108374b8c43060"
+    },
+    {
+      "timestamp": 1679513910.5142,
+      "start_timestamp": 1679513910.1627,
+      "exclusive_time": 351.500034,
+      "description": "VCD [PerformanceTable] #1",
+      "op": "measure",
+      "span_id": "837f848403b171d7",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "ed64a845f218624e"
+    },
+    {
+      "timestamp": 1679513910.4341,
+      "start_timestamp": 1679513910.4341,
+      "exclusive_time": 0.0,
+      "description": "PerformanceTable-vcsd-end-pre-timeout",
+      "op": "mark",
+      "span_id": "a95ae2f3241d3280",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "619fb25d37ed8ecc"
+    },
+    {
+      "timestamp": 1679513910.5142,
+      "start_timestamp": 1679513910.5142,
+      "exclusive_time": 0.0,
+      "description": "PerformanceTable-vcsd-end",
+      "op": "mark",
+      "span_id": "a2b93c51c7194585",
+      "parent_span_id": "827753936482efc8",
+      "trace_id": "8c57358cc86b47239070a7b0bedbfbfa",
+      "hash": "43a6e35831fff305"
+    }
+  ],
+  "start_timestamp": 1679513904.9938,
+  "timestamp": 1679513910.7285,
+  "title": "/performance/",
+  "transaction": "/performance/",
+  "transaction_info": { "source": "custom" },
+  "type": "transaction",
+  "user": {
+    "id": "4",
+    "email": "sentry@sentry.sentry",
+    "ip_address": "127.0.0.1",
+    "data": { "isStaff": true }
+  },
+  "version": "7"
+}
