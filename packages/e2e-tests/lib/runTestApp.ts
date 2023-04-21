@@ -1,14 +1,11 @@
-/* eslint-disable no-console */
-
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
+import * as fsExtra from 'fs-extra';
+import * as os from 'os';
 import * as path from 'path';
 
 import { buildApp } from './buildApp';
-import { TMP_DIR } from './constants';
 import { testApp } from './testApp';
 import type { Env, RecipeInstance, RecipeTestResult } from './types';
-
-let tmpDirCount = 0;
 
 // This should never throw, we always return a result here
 export async function buildAndTestApp(
@@ -18,9 +15,9 @@ export async function buildAndTestApp(
   const { recipe, portModulo, portGap } = recipeInstance;
   const recipeDirname = path.dirname(recipe.path);
 
-  const targetDir = path.join(TMP_DIR, `${recipe.testApplicationName}-${tmpDirCount++}`);
+  const targetDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'e2e-test-temp-app-dir-'));
 
-  await fs.copy(recipeDirname, targetDir);
+  await fsExtra.copy(recipeDirname, targetDir);
 
   const env: Env = {
     ...envVarsToInject,
@@ -31,7 +28,7 @@ export async function buildAndTestApp(
   try {
     await buildApp(targetDir, recipeInstance, env);
   } catch (error) {
-    await fs.remove(targetDir);
+    await fsExtra.remove(targetDir);
 
     return {
       ...recipeInstance,
@@ -45,7 +42,7 @@ export async function buildAndTestApp(
   const results = await testApp(targetDir, recipeInstance, env);
 
   // Cleanup
-  await fs.remove(targetDir);
+  await fsExtra.remove(targetDir);
 
   return {
     ...recipeInstance,
