@@ -11,7 +11,7 @@ export async function runAllTestApps(
   recipePaths: string[],
   envVarsToInject: Record<string, string | undefined>,
 ): Promise<void> {
-  const maxParallel = process.env.CI ? 1 : 1; // For now we are disabling parallel execution because it was causing problems (runners were too slow and timeouts happened)
+  const maxParallel = process.env.CI ? 2 : 4; // For now we are disabling parallel execution because it was causing problems (runners were too slow and timeouts happened)
 
   const recipeInstances = constructRecipeInstances(recipePaths);
 
