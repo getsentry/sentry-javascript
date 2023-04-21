@@ -515,7 +515,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -553,7 +553,7 @@ jobs:
       - name: Run Playwright tests
         run: |
           cd packages/browser-integration-tests
-          yarn playwright test --reporter='dot' --shard=${{ matrix.shard }}/4
+          yarn playwright test --reporter='dot' --shard=${{ matrix.shard }}/20
 
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests

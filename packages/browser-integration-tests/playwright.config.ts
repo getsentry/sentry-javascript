@@ -40,4 +40,5 @@ export default defineConfig<SentryTestFixtures>({
 
   // Run tests inside of a single file in parallel
   fullyParallel: true,
+  workers: process.env.CI ? 2 : undefined,
 });
