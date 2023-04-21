@@ -30,7 +30,7 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
     (_event, res) => {
       const { breadcrumbs } = getCustomRecordingEvents(res);
 
-      return breadcrumbs.filter(breadcrumb => breadcrumb.category === 'console').length > 0;
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'console');
     },
     5_000,
   );
@@ -80,7 +80,7 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
     (_event, res) => {
       const { breadcrumbs } = getCustomRecordingEvents(res);
 
-      return breadcrumbs.filter(breadcrumb => breadcrumb.category === 'console').length > 0;
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'console');
     },
     5_000,
   );
