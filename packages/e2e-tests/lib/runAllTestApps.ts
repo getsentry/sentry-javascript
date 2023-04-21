@@ -1,7 +1,4 @@
 /* eslint-disable no-console */
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 
 import { constructRecipeInstances } from './constructRecipeInstances';
 import { buildAndTestApp } from './runTestApp';

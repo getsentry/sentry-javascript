@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as fsExtra from 'fs-extra';
-import * as os from 'os';
 import * as path from 'path';
 
 import { buildApp } from './buildApp';
@@ -15,7 +14,9 @@ export async function buildAndTestApp(
   const { recipe, portModulo, portGap } = recipeInstance;
   const recipeDirname = path.dirname(recipe.path);
 
-  const targetDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'e2e-test-temp-app-dir-'));
+  const tmpFolder = path.join(__dirname, '..', 'tmp');
+  await fs.promises.mkdir(tmpFolder, { recursive: true });
+  const targetDir = await fs.promises.mkdtemp(path.join(tmpFolder, 'tmp-app-'));
 
   await fsExtra.copy(recipeDirname, targetDir);
 
@@ -39,15 +40,17 @@ export async function buildAndTestApp(
   }
 
   // This cannot throw, we always return a result here
-  const results = await testApp(targetDir, recipeInstance, env);
-
-  // Cleanup
-  await fsExtra.remove(targetDir);
-
-  return {
-    ...recipeInstance,
-    buildFailed: false,
-    testFailed: results.some(result => result.result !== 'PASS'),
-    tests: results,
-  };
+  return testApp(targetDir, recipeInstance, env)
+    .finally(() => {
+      // Cleanup
+      void fsExtra.remove(targetDir);
+    })
+    .then(results => {
+      return {
+        ...recipeInstance,
+        buildFailed: false,
+        testFailed: results.some(result => result.result !== 'PASS'),
+        tests: results,
+      };
+    });
 }

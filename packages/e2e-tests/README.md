@@ -54,11 +54,11 @@ To get you started with the recipe, you can copy the following into `test-recipe
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "My New Test Application",
-  "buildCommand": "yarn install",
+  "buildCommand": "pnpm install",
   "tests": [
     {
       "testName": "My new test",
-      "testCommand": "yarn test",
+      "testCommand": "pnpm test",
       "timeoutSeconds": 60
     }
   ]
