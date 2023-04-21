@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import { getReplayEvent, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('should capture a replay', async ({ getLocalTestUrl, page, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 

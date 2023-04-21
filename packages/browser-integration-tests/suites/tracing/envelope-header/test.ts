@@ -2,16 +2,12 @@ import { expect } from '@playwright/test';
 import type { EventEnvelopeHeaders } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import {
-  envelopeHeaderRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-} from '../../../utils/helpers';
+import { envelopeHeaderRequestParser, getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest(
   'should send dynamic sampling context data in trace envelope header of a transaction envelope',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest()) {
+  async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
+    if (!isTracingCapableBundle()) {
       sentryTest.skip();
     }
 

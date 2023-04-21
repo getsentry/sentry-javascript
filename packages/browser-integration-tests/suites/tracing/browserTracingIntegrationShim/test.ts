@@ -1,13 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest(
   'exports a shim Integrations.BrowserTracing integration for non-tracing bundles',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
     // Skip in tracing tests
-    if (!shouldSkipTracingTest()) {
+    if (isTracingCapableBundle()) {
       sentryTest.skip();
     }
 

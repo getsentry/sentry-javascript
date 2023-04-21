@@ -6,10 +6,9 @@
  *
  * @returns `true` if we should skip the replay test
  */
-export function shouldSkipWASMTests(browser: string): boolean {
+export function shouldSkipWASMTests(browser: string, bundle: string): boolean {
   if (browser === 'webkit') {
     return true;
   }
-  const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && bundle.includes('es5');
+  return bundle.includes('es5');
 }

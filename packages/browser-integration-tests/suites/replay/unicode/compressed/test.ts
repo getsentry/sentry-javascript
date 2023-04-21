@@ -1,15 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  getFullRecordingSnapshots,
-  normalize,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../../utils/replayHelpers';
+import { getFullRecordingSnapshots, normalize, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('replay should handle unicode characters', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('replay should handle unicode characters', async ({ getLocalTestPath, page, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 

@@ -1,15 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import {
-  getFullRecordingSnapshots,
-  normalize,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
+import { getFullRecordingSnapshots, normalize, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should allow to manually block elements', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('should allow to manually block elements', async ({ getLocalTestPath, page, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 

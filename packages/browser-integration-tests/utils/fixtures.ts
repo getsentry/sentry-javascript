@@ -23,9 +23,12 @@ const getAsset = (assetDir: string, asset: string): string => {
   return `utils/defaults/${asset}`;
 };
 
-export type TestFixtures = {
+export type SentryTestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
+  bundle: string;
+  isTracingCapableBundle: () => boolean;
+  isReplayCapableBundle: () => boolean;
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
   getLocalTestUrl: (options: { testDir: string }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
@@ -39,21 +42,27 @@ export type TestFixtures = {
   ) => unknown;
 };
 
-const sentryTest = base.extend<TestFixtures>({
-  _autoSnapshotSuffix: [
-    async ({}, use, testInfo) => {
-      testInfo.snapshotSuffix = '';
-      await use();
-    },
-    { auto: true },
-  ],
+const sentryTest = base.extend<SentryTestFixtures>({
+  bundle: ['NO BUNDLE :(', { option: true }],
 
-  getLocalTestUrl: ({ page }, use) => {
+  isTracingCapableBundle: ({ bundle }, use) => {
+    return use(() => {
+      return bundle.includes('tracing') || bundle.includes('esm') || bundle.includes('cjs');
+    });
+  },
+
+  isReplayCapableBundle: ({ bundle }, use) => {
+    return use(() => {
+      return bundle.includes('replay') || bundle.includes('esm') || bundle.includes('cjs');
+    });
+  },
+
+  getLocalTestUrl: ({ page, bundle }, use) => {
     return use(async ({ testDir }) => {
       const pagePath = `${TEST_HOST}/index.html`;
 
-      await build(testDir);
-      generateLoader(testDir);
+      await build(testDir, bundle);
+      generateLoader(testDir, bundle);
 
       // Serve all assets under
       await page.route(`${TEST_HOST}/*.*`, route => {
@@ -67,11 +76,11 @@ const sentryTest = base.extend<TestFixtures>({
     });
   },
 
-  getLocalTestPath: ({}, use) => {
+  getLocalTestPath: ({ bundle }, use) => {
     return use(async ({ testDir }) => {
       const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
 
-      await build(testDir);
+      await build(testDir, bundle);
 
       return pagePath;
     });
@@ -112,12 +121,12 @@ const sentryTest = base.extend<TestFixtures>({
 
 export { sentryTest };
 
-async function build(testDir: string): Promise<void> {
+async function build(testDir: string, bundle: string): Promise<void> {
   const subject = getAsset(testDir, 'subject.js');
   const template = getAsset(testDir, 'template.html');
   const init = getAsset(testDir, 'init.js');
 
-  await generatePage(init, subject, template, testDir);
+  await generatePage(init, subject, template, testDir, undefined, bundle);
 
   const additionalPages = fs
     .readdirSync(testDir)
@@ -128,6 +137,6 @@ async function build(testDir: string): Promise<void> {
     const subject = getAsset(testDir, 'subject.js');
     const pageFile = getAsset(testDir, pageFilename);
     const init = getAsset(testDir, 'init.js');
-    await generatePage(init, subject, pageFile, testDir, pageFilename);
+    await generatePage(init, subject, pageFile, testDir, pageFilename, bundle);
   }
 }

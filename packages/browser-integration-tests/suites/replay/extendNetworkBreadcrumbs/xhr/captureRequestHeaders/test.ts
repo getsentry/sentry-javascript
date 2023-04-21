@@ -2,15 +2,11 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
-import {
-  getCustomRecordingEvents,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../../../utils/replayHelpers';
+import { getCustomRecordingEvents, waitForReplayRequest } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers', async ({ getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
   // These are a bit flaky on non-chromium browsers
-  if (shouldSkipReplayTest() || browserName !== 'chromium') {
+  if (!isReplayCapableBundle() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 

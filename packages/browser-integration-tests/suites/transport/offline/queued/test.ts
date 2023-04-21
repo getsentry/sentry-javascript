@@ -8,9 +8,9 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-sentryTest('should queue and retry events when they fail to send', async ({ getLocalTestPath, page }) => {
+sentryTest('should queue and retry events when they fail to send', async ({ getLocalTestPath, page, bundle }) => {
   // makeBrowserOfflineTransport is not included in any CDN bundles
-  if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
+  if (bundle.startsWith('bundle_')) {
     sentryTest.skip();
   }
 

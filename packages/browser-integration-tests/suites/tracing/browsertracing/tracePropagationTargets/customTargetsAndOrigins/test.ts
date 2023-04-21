@@ -2,12 +2,11 @@ import type { Request } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest(
   '[pre-v8] should prefer custom tracePropagationTargets over tracingOrigins',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest()) {
+  async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
+    if (!isTracingCapableBundle()) {
       sentryTest.skip();
     }
 

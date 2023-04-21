@@ -2,14 +2,10 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
-import {
-  getCustomRecordingEvents,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../../../utils/replayHelpers';
+import { getCustomRecordingEvents, waitForReplayRequest } from '../../../../../utils/replayHelpers';
 
-sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 
@@ -78,8 +74,8 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
   ]);
 });
 
-sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('captures response headers', async ({ getLocalTestPath, page, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 

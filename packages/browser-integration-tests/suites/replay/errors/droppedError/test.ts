@@ -2,12 +2,12 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../../utils/helpers';
-import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getReplaySnapshot, isReplayEvent } from '../../../../utils/replayHelpers';
 
 sentryTest(
   '[error-mode] should not start recording if an error occurred when the error was dropped',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle }) => {
+    if (!isReplayCapableBundle()) {
       sentryTest.skip();
     }
 

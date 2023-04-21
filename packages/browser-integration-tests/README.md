@@ -60,9 +60,6 @@ To filter tests by their title:
 
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
 
-You can set env variable `PW_BUNDLE` to set specific build or bundle to test against.
-Available options: `esm`, `cjs`, `bundle_es5`, `bundle_es5_min`, `bundle_es6`, `bundle_es6_min`
-
 ### Troubleshooting
 
 Apart from [Playwright-specific issues](https://playwright.dev/docs/troubleshooting), below are common issues that might occur while writing tests for Sentry Browser SDK.

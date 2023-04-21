@@ -17,7 +17,6 @@ import {
   getReplayEvent,
   getReplayRecordingContent,
   normalize,
-  shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
@@ -28,10 +27,10 @@ well as the correct DOM snapshots and updates are recorded and sent.
 */
 sentryTest(
   'record page navigations and performance entries across multiple pages',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
-    if (shouldSkipReplayTest() || browserName !== 'chromium') {
+    if (!isReplayCapableBundle() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 

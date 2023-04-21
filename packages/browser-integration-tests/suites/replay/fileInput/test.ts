@@ -4,11 +4,7 @@ import type { inputData } from '@sentry-internal/rrweb/typings/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
-import {
-  getIncrementalRecordingSnapshots,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
+import { getIncrementalRecordingSnapshots, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 function isInputMutation(
   snap: IncrementalRecordingSnapshot,
@@ -18,9 +14,9 @@ function isInputMutation(
 
 sentryTest(
   'should not capture file input mutations',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
     // This seems to be flaky on webkit, so skipping there
-    if (shouldSkipReplayTest() || browserName === 'webkit') {
+    if (!isReplayCapableBundle() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

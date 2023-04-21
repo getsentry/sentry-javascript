@@ -3,18 +3,13 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser } from '../../../../utils/helpers';
 import { expectedClickBreadcrumb, getExpectedReplayEvent } from '../../../../utils/replayEventTemplates';
-import {
-  getReplayEvent,
-  getReplayRecordingContent,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../../utils/replayHelpers';
+import { getReplayEvent, getReplayRecordingContent, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page, browserName, forceFlushReplay }) => {
+  async ({ getLocalTestPath, page, browserName, forceFlushReplay, isReplayCapableBundle }) => {
     // Skipping this in firefox/webkit because it is flakey there
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -85,9 +80,9 @@ sentryTest(
 
 sentryTest(
   '[session-mode] replay event should not contain an error id of a dropped error while recording',
-  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
+  async ({ getLocalTestPath, page, forceFlushReplay, browserName, isReplayCapableBundle }) => {
     // Skipping this in firefox/webkit because it is flakey there
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 

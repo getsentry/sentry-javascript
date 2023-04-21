@@ -2,25 +2,28 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should create a pageload transaction when initialized delayed', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'should create a pageload transaction when initialized delayed',
+  async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
+    if (!isTracingCapableBundle()) {
+      sentryTest.skip();
+    }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
-  const timeoutTimestamp = await page.evaluate<number>('window._testTimeoutTimestamp');
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const timeOrigin = await page.evaluate<number>('window._testBaseTimestamp');
+    const timeoutTimestamp = await page.evaluate<number>('window._testTimeoutTimestamp');
 
-  const { start_timestamp: startTimestamp } = eventData;
+    const { start_timestamp: startTimestamp } = eventData;
 
-  expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
-  expect(startTimestamp).toBeLessThan(timeoutTimestamp);
+    expect(startTimestamp).toBeCloseTo(timeOrigin, 1);
+    expect(startTimestamp).toBeLessThan(timeoutTimestamp);
 
-  expect(eventData.contexts?.trace?.op).toBe('pageload');
-  expect(eventData.spans?.length).toBeGreaterThan(0);
-  expect(eventData.transaction_info?.source).toEqual('url');
-});
+    expect(eventData.contexts?.trace?.op).toBe('pageload');
+    expect(eventData.spans?.length).toBeGreaterThan(0);
+    expect(eventData.transaction_info?.source).toEqual('url');
+  },
+);

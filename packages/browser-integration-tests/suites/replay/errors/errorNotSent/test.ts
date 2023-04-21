@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/replayHelpers';
+import { getReplaySnapshot } from '../../../../utils/replayHelpers';
 
 sentryTest(
   '[error-mode] should handle errors that result in API error response',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
-    if (shouldSkipReplayTest()) {
+  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle }) => {
+    if (!isReplayCapableBundle()) {
       sentryTest.skip();
     }
 

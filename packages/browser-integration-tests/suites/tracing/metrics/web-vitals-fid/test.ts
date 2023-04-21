@@ -2,11 +2,11 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath, page, isTracingCapableBundle }) => {
   // FID measurement is not generated on webkit
-  if (shouldSkipTracingTest() || browserName === 'webkit') {
+  if (!isTracingCapableBundle() || browserName === 'webkit') {
     sentryTest.skip();
   }
 

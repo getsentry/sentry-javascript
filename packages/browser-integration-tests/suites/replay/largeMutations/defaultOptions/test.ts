@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import { getReplayRecordingContent, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
   'handles large mutations with default options',
-  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
-    if (shouldSkipReplayTest() || ['webkit', 'firefox'].includes(browserName)) {
+  async ({ getLocalTestPath, page, forceFlushReplay, browserName, isReplayCapableBundle }) => {
+    if (!isReplayCapableBundle() || ['webkit', 'firefox'].includes(browserName)) {
       sentryTest.skip();
     }
 

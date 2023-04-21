@@ -2,11 +2,11 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, page, isTracingCapableBundle }) => {
   // FP is not generated on webkit or firefox
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+  if (!isTracingCapableBundle() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
@@ -23,8 +23,8 @@ sentryTest('should capture FP vital.', async ({ browserName, getLocalTestPath, p
   expect(fpSpan?.parentSpanId).toBe(eventData.contexts?.trace_span_id);
 });
 
-sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('should capture FCP vital.', async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
+  if (!isTracingCapableBundle()) {
     sentryTest.skip();
   }
 

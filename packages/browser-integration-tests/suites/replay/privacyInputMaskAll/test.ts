@@ -4,11 +4,7 @@ import type { inputData } from '@sentry-internal/rrweb/typings/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import type { IncrementalRecordingSnapshot } from '../../../utils/replayHelpers';
-import {
-  getIncrementalRecordingSnapshots,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
+import { getIncrementalRecordingSnapshots, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 function isInputMutation(
   snap: IncrementalRecordingSnapshot,
@@ -18,9 +14,9 @@ function isInputMutation(
 
 sentryTest(
   'should mask input initial value and its changes from `maskAllInputs` and allow unmasked selector',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestPath, page, isReplayCapableBundle }) => {
     // TODO(replay): This is flakey on firefox and webkit (~1%) where we do not always get the latest mutation.
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 
@@ -77,9 +73,9 @@ sentryTest(
 
 sentryTest(
   'should mask textarea initial value and its changes from `maskAllInputs` and allow unmasked selector',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestPath, page, isReplayCapableBundle }) => {
     // TODO(replay): This is flakey on firefox and webkit (~1%) where we do not always get the latest mutation.
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 

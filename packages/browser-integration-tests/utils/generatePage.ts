@@ -42,9 +42,7 @@ const LOADER_CONFIGS: Record<string, { bundle: string; options: Record<string, u
   },
 };
 
-const bundleKey = process.env.PW_BUNDLE || '';
-
-export function generateLoader(outPath: string): void {
+export function generateLoader(outPath: string, bundleKey: string): void {
   const localPath = `${outPath}/dist`;
 
   if (!existsSync(localPath)) {
@@ -89,6 +87,7 @@ export async function generatePage(
   templatePath: string,
   outPath: string,
   outPageName: string = 'index.html',
+  bundle: string,
 ): Promise<void> {
   const localPath = `${outPath}/dist`;
   const bundlePath = `${localPath}/${outPageName}}`;
@@ -110,7 +109,7 @@ export async function generatePage(
             filename: '[name].bundle.js',
           },
           plugins: [
-            new SentryScenarioGenerationPlugin(),
+            new SentryScenarioGenerationPlugin(bundle),
             new HtmlWebpackPlugin({
               filename: outPageName,
               template: templatePath,

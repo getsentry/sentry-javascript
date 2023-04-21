@@ -2,10 +2,10 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest.beforeEach(async ({ browserName, page }) => {
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+sentryTest.beforeEach(async ({ browserName, page, isTracingCapableBundle }) => {
+  if (!isTracingCapableBundle() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 

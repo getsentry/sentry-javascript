@@ -15,16 +15,15 @@ import {
   getCustomRecordingEvents,
   getReplayEvent,
   getReplayRecordingContent,
-  shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
 sentryTest(
   'replay recording should contain default performance spans',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
-    if (shouldSkipReplayTest() || browserName !== 'chromium') {
+    if (!isReplayCapableBundle() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
@@ -80,9 +79,9 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
     // TODO(replay): This is flakey on firefox and webkit where clicks are flakey
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 

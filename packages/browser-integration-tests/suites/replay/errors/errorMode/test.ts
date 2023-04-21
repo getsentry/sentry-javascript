@@ -11,15 +11,14 @@ import {
   getReplayEvent,
   getReplayRecordingContent,
   isReplayEvent,
-  shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../../utils/replayHelpers';
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestPath, page, browserName, isReplayCapableBundle }) => {
     // This was sometimes flaky on firefox/webkit, so skipping for now
-    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+    if (!isReplayCapableBundle() || ['firefox', 'webkit'].includes(browserName)) {
       sentryTest.skip();
     }
 

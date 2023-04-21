@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser,shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForTransactionRequest } from '../../../../utils/helpers';
 
-sentryTest('should create a pageload transaction', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('should create a pageload transaction', async ({ getLocalTestUrl, page, isTracingCapableBundle }) => {
+  if (!isTracingCapableBundle()) {
     sentryTest.skip();
   }
 

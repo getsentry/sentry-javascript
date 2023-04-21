@@ -2,10 +2,10 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture TTFB vital.', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
+sentryTest('should capture TTFB vital.', async ({ getLocalTestPath, page, isTracingCapableBundle }) => {
+  if (!isTracingCapableBundle()) {
     sentryTest.skip();
   }
 

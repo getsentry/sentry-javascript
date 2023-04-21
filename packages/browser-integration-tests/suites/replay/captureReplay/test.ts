@@ -2,107 +2,110 @@ import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
+import { getReplayEvent, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'should capture replays (@sentry/browser export)',
+  async ({ getLocalTestPath, page, isReplayCapableBundle }) => {
+    if (!isReplayCapableBundle()) {
+      sentryTest.skip();
+    }
 
-  const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqPromise1 = waitForReplayRequest(page, 1);
+    const reqPromise0 = waitForReplayRequest(page, 0);
+    const reqPromise1 = waitForReplayRequest(page, 1);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
     });
-  });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  const replayEvent0 = getReplayEvent(await reqPromise0);
+    await page.goto(url);
+    const replayEvent0 = getReplayEvent(await reqPromise0);
 
-  await page.click('button');
-  const replayEvent1 = getReplayEvent(await reqPromise1);
+    await page.click('button');
+    const replayEvent1 = getReplayEvent(await reqPromise1);
 
-  expect(replayEvent0).toBeDefined();
-  expect(replayEvent0).toEqual({
-    type: 'replay_event',
-    timestamp: expect.any(Number),
-    error_ids: [],
-    trace_ids: [],
-    urls: [expect.stringContaining('/dist/index.html')],
-    replay_id: expect.stringMatching(/\w{32}/),
-    replay_start_timestamp: expect.any(Number),
-    segment_id: 0,
-    replay_type: 'session',
-    event_id: expect.stringMatching(/\w{32}/),
-    environment: 'production',
-    sdk: {
-      integrations: [
-        'InboundFilters',
-        'FunctionToString',
-        'TryCatch',
-        'Breadcrumbs',
-        'GlobalHandlers',
-        'LinkedErrors',
-        'Dedupe',
-        'HttpContext',
-        'Replay',
-      ],
-      version: SDK_VERSION,
-      name: 'sentry.javascript.browser',
-    },
-    sdkProcessingMetadata: {},
-    request: {
-      url: expect.stringContaining('/dist/index.html'),
-      headers: {
-        'User-Agent': expect.stringContaining(''),
+    expect(replayEvent0).toBeDefined();
+    expect(replayEvent0).toEqual({
+      type: 'replay_event',
+      timestamp: expect.any(Number),
+      error_ids: [],
+      trace_ids: [],
+      urls: [expect.stringContaining('/dist/index.html')],
+      replay_id: expect.stringMatching(/\w{32}/),
+      replay_start_timestamp: expect.any(Number),
+      segment_id: 0,
+      replay_type: 'session',
+      event_id: expect.stringMatching(/\w{32}/),
+      environment: 'production',
+      sdk: {
+        integrations: [
+          'InboundFilters',
+          'FunctionToString',
+          'TryCatch',
+          'Breadcrumbs',
+          'GlobalHandlers',
+          'LinkedErrors',
+          'Dedupe',
+          'HttpContext',
+          'Replay',
+        ],
+        version: SDK_VERSION,
+        name: 'sentry.javascript.browser',
       },
-    },
-    platform: 'javascript',
-    contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
-  });
-
-  expect(replayEvent1).toBeDefined();
-  expect(replayEvent1).toEqual({
-    type: 'replay_event',
-    timestamp: expect.any(Number),
-    error_ids: [],
-    trace_ids: [],
-    urls: [],
-    replay_id: expect.stringMatching(/\w{32}/),
-    replay_start_timestamp: expect.any(Number),
-    segment_id: 1,
-    replay_type: 'session',
-    event_id: expect.stringMatching(/\w{32}/),
-    environment: 'production',
-    sdk: {
-      integrations: [
-        'InboundFilters',
-        'FunctionToString',
-        'TryCatch',
-        'Breadcrumbs',
-        'GlobalHandlers',
-        'LinkedErrors',
-        'Dedupe',
-        'HttpContext',
-        'Replay',
-      ],
-      version: SDK_VERSION,
-      name: 'sentry.javascript.browser',
-    },
-    sdkProcessingMetadata: {},
-    request: {
-      url: expect.stringContaining('/dist/index.html'),
-      headers: {
-        'User-Agent': expect.stringContaining(''),
+      sdkProcessingMetadata: {},
+      request: {
+        url: expect.stringContaining('/dist/index.html'),
+        headers: {
+          'User-Agent': expect.stringContaining(''),
+        },
       },
-    },
-    platform: 'javascript',
-    contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
-  });
-});
+      platform: 'javascript',
+      contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
+    });
+
+    expect(replayEvent1).toBeDefined();
+    expect(replayEvent1).toEqual({
+      type: 'replay_event',
+      timestamp: expect.any(Number),
+      error_ids: [],
+      trace_ids: [],
+      urls: [],
+      replay_id: expect.stringMatching(/\w{32}/),
+      replay_start_timestamp: expect.any(Number),
+      segment_id: 1,
+      replay_type: 'session',
+      event_id: expect.stringMatching(/\w{32}/),
+      environment: 'production',
+      sdk: {
+        integrations: [
+          'InboundFilters',
+          'FunctionToString',
+          'TryCatch',
+          'Breadcrumbs',
+          'GlobalHandlers',
+          'LinkedErrors',
+          'Dedupe',
+          'HttpContext',
+          'Replay',
+        ],
+        version: SDK_VERSION,
+        name: 'sentry.javascript.browser',
+      },
+      sdkProcessingMetadata: {},
+      request: {
+        url: expect.stringContaining('/dist/index.html'),
+        headers: {
+          'User-Agent': expect.stringContaining(''),
+        },
+      },
+      platform: 'javascript',
+      contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
+    });
+  },
+);

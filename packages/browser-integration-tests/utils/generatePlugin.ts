@@ -6,18 +6,6 @@ import type { Compiler } from 'webpack';
 
 const PACKAGES_DIR = '../../packages';
 
-/**
- * Possible values: See BUNDLE_PATHS.browser
- */
-const bundleKey = process.env.PW_BUNDLE || '';
-
-// `esm` and `cjs` builds are modules that can be imported / aliased by webpack
-const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
-
-// Bundles need to be injected into HTML before Sentry initialization.
-const useBundleOrLoader = bundleKey && !useCompiledModule;
-const useLoader = bundleKey.startsWith('loader');
-
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     cjs: 'build/npm/cjs/index.js',
@@ -63,7 +51,11 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
  *     '@sentry/browser': false
  * so that the compiled versions aren't included
  */
-function generateSentryAlias(): Record<string, string> {
+function generateSentryAlias(
+  useCompiledModule: boolean,
+  useBundleOrLoader: boolean,
+  bundle: string,
+): Record<string, string> {
   const packageNames = fs
     .readdirSync(PACKAGES_DIR, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
@@ -78,8 +70,8 @@ function generateSentryAlias(): Record<string, string> {
 
       const modulePath = path.resolve(PACKAGES_DIR, packageName);
 
-      if (useCompiledModule && bundleKey && BUNDLE_PATHS[packageName]?.[bundleKey]) {
-        const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[packageName][bundleKey]);
+      if (useCompiledModule && bundle && BUNDLE_PATHS[packageName]?.[bundle]) {
+        const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[packageName][bundle]);
 
         return [packageJSON['name'], bundlePath];
       }
@@ -100,8 +92,17 @@ class SentryScenarioGenerationPlugin {
 
   private _name: string = 'SentryScenarioGenerationPlugin';
 
+  public constructor(private readonly bundle: string) {}
+
   public apply(compiler: Compiler): void {
-    compiler.options.resolve.alias = generateSentryAlias();
+    // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
+    const useCompiledModule = this.bundle === 'esm' || this.bundle === 'cjs';
+
+    // Bundles need to be injected into HTML before Sentry initialization.
+    const useBundleOrLoader = !useCompiledModule;
+    const useLoader = this.bundle.startsWith('loader');
+
+    compiler.options.resolve.alias = generateSentryAlias(useCompiledModule, useBundleOrLoader, this.bundle);
     compiler.options.externals = useBundleOrLoader
       ? {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
@@ -134,7 +135,7 @@ class SentryScenarioGenerationPlugin {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
         if (useBundleOrLoader) {
           const bundleName = 'browser';
-          const bundlePath = BUNDLE_PATHS[bundleName][bundleKey];
+          const bundlePath = BUNDLE_PATHS[bundleName][this.bundle];
 
           let bundleObject =
             bundlePath &&
@@ -149,11 +150,11 @@ class SentryScenarioGenerationPlugin {
           }
 
           if (!bundleObject) {
-            throw new Error(`Could not find bundle or loader for key ${bundleKey}`);
+            throw new Error(`Could not find bundle or loader for key ${this.bundle}`);
           }
 
           // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
-          const integrationBundleKey = bundleKey
+          const integrationBundleKey = this.bundle
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
             .replace('_tracing', '');

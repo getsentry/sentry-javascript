@@ -7,15 +7,14 @@ import {
   getReplayEvent,
   getReplaySnapshot,
   normalize,
-  shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+sentryTest('handles an expired session', async ({ getLocalTestPath, page, isReplayCapableBundle }) => {
+  if (!isReplayCapableBundle()) {
     sentryTest.skip();
   }
 
