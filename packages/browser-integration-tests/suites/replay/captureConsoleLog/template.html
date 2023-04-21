@@ -8,8 +8,6 @@
     <button data-log-large>Log button</button>
 
     <script>
-      const massiveObject = createLargeObject(10);
-
       document.querySelector('[data-log]').addEventListener('click', () => {
         console.log('Test log', document.body);
       });
@@ -30,6 +28,8 @@
 
         return massiveObject;
       }
+
+      const massiveObject = createLargeObject(10);
 
       document.querySelector('[data-log-large]').addEventListener('click', () => {
         console.log(massiveObject);
