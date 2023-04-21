@@ -29,13 +29,9 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
   if (recipe.buildCommand) {
     console.log(`Running build command for test application "${label}"`);
 
-    fs.mkdirSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches'), { recursive: true });
-    const tempYarnCache = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches', 'cache-'));
-
     const env = {
       ...process.env,
       ...envVars,
-      YARN_CACHE_FOLDER: tempYarnCache, // Use a separate yarn cache for each build commmand because multiple yarn commands running at the same time may corrupt the cache
     };
 
     const buildResult = await spawnAsync(recipe.buildCommand, {

@@ -37,8 +37,6 @@ export async function runAllTestApps(
 
   const failed = results.filter(result => result.buildFailed || result.testFailed);
 
-  fs.rmSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches'), { force: true, recursive: true });
-
   if (failed.length) {
     console.log(`${failed.length} test(s) failed.`);
     process.exit(1);
