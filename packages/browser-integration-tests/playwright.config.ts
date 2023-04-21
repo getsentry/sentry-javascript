@@ -27,13 +27,13 @@ const loaderBundles = [
   'loader_tracing_replay',
 ];
 
-const browsers = ['chromium', 'firefox', 'webkit'] as const;
+const browsers = ['Desktop Chrome', 'Desktop Firefox', 'Desktop Safari'] as const;
 
 export default defineConfig<SentryTestFixtures>({
   projects: browsers
     .map(browser => [
-      ...bundles.map(bundle => ({ use: { bundle, browserName: browser }, testDir: './suites' })),
-      ...loaderBundles.map(bundle => ({ use: { bundle, browserName: browser }, testDir: './loader-suites' })),
+      ...bundles.map(bundle => ({ use: { bundle, ...devices[browser] }, testDir: './suites' })),
+      ...loaderBundles.map(bundle => ({ use: { bundle, ...devices[browser] }, testDir: './loader-suites' })),
     ])
     .flat(),
   retries: 0,
