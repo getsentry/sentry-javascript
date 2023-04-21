@@ -1,0 +1,35 @@
+{
+  "$schema": "../../test-recipe-schema.json",
+  "testApplicationName": "nextjs-edge",
+  "buildCommand": "pnpm install && npx playwright install && pnpm build",
+  "tests": [
+    {
+      "testName": "Test",
+      "testCommand": "yarn test"
+    }
+  ],
+  "versions": [
+    {
+      "dependencyOverrides": {
+        "next": "^12"
+      }
+    },
+    {
+      "dependencyOverrides": {
+        "next": "^13"
+      }
+    }
+  ],
+  "canaryVersions": [
+    {
+      "dependencyOverrides": {
+        "next": "latest"
+      }
+    },
+    {
+      "dependencyOverrides": {
+        "next": "canary"
+      }
+    }
+  ]
+}
