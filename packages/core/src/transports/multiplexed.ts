@@ -23,7 +23,7 @@ function eventFromEnvelope(env: Envelope): Event | undefined {
   let event: Event | undefined;
 
   forEachEnvelopeItem(env, (item, type) => {
-    if (type === 'event' || type === 'transaction') {
+    if (type === 'event') {
       event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
     }
     // bail out if we found an event
@@ -58,7 +58,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         return eventFromEnvelope(envelope);
       }
 
-      const transports = matcher({ envelope, getEvent }).map(([dsn]) => getTransport(dsn));
+      const transports = matcher({ envelope, getEvent }).map(dsn => getTransport(dsn));
 
       // If we have no transports to send to, use the fallback transport
       if (transports.length === 0) {
