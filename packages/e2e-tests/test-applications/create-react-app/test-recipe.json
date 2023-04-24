@@ -1,6 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "create-react-app",
-  "buildCommand": "pnpm install && npx playwright install && pnpm build",
+  "buildCommand": "pnpm install && pnpm build",
   "tests": []
 }
