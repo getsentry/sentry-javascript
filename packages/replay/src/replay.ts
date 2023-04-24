@@ -19,6 +19,7 @@ import type {
   PopEventContext,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
+  ReplayFlushOptions,
   ReplayPluginOptions,
   Session,
   Timeouts,
@@ -85,11 +86,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Is the integration currently active?
    */
   private _isEnabled: boolean = false;
-
-  /**
-   * If true, will flush regardless of `_isEnabled` property
-   */
-  private _shouldFinalFlush: boolean = false;
 
   /**
    * Paused is a state where:
@@ -259,16 +255,16 @@ export class ReplayContainer implements ReplayContainerInterface {
         log(msg);
       }
 
-      // Set this property so that it ignores `_isEnabled` = false
       // We can't move `_isEnabled` after awaiting a flush, otherwise we can
       // enter into an infinite loop when `stop()` is called while flushing.
-      this._shouldFinalFlush = true;
       this._isEnabled = false;
       this._removeListeners();
       this.stopRecording();
 
-      // Flush event buffer before stopping
-      await this.flushImmediate();
+      this._debouncedFlush.cancel();
+      // See comment above re: `_isEnabled`, we "force" a flush, ignoring the
+      // `_isEnabled` state of the plugin since it was disabled above.
+      await this._flush({force: true})
 
       // After flush, destroy event buffer
       this.eventBuffer && this.eventBuffer.destroy();
@@ -279,8 +275,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       clearSession(this);
     } catch (err) {
       this._handleException(err);
-    } finally {
-      this._shouldFinalFlush = false;
     }
   }
 
@@ -794,8 +788,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Flush recording data to Sentry. Creates a lock so that only a single flush
    * can be active at a time. Do not call this directly.
    */
-  private _flush: () => Promise<void> = async () => {
-    if (!this._isEnabled && !this._shouldFinalFlush) {
+  private _flush = async ({force = false}: ReplayFlushOptions = {}): Promise<void> => {
+    if (!this._isEnabled && !force) {
       // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
     }

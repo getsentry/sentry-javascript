@@ -451,6 +451,15 @@ export interface ReplayContainer {
   setInitialState(): void;
 }
 
+export interface ReplayFlushOptions {
+  /**
+   * If true, flush while ignoring the `_isEnabled` state of
+* Replay integration. (By default, flush is noop if integration
+* is stopped).
+   */
+  force?: boolean;
+}
+
 export interface ReplayPerformanceEntry<T> {
   /**
    * One of these types https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/entryType
