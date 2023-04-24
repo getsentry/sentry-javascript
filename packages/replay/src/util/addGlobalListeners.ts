@@ -35,7 +35,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
       const replayId = replay.getSessionId();
-      if (replayId) {
+      if (replayId && replay.isEnabled()) {
         dsc.replay_id = replayId;
       }
     });
