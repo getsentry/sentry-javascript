@@ -496,8 +496,8 @@ jobs:
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
+      - name: Install OS dependencies of Playwright if cache miss
+        if: steps.playwright-cache.outputs.cache-hit == 'false' && matrix.node >= 14
         run: npx playwright install-deps
       - name: Run tests
         env:
@@ -561,8 +561,8 @@ jobs:
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+      - name: Install OS dependencies of Playwright if cache miss
+        if: steps.playwright-cache.outputs.cache-hit == 'false'
         run: npx playwright install-deps
       - name: Run Playwright tests
         env:
