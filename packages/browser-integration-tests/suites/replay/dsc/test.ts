@@ -57,8 +57,8 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 
-    await page.evaluate(() => {
-      (window as unknown as TestWindow).Replay.stop();
+    await page.evaluate(async () => {
+      await (window as unknown as TestWindow).Replay.stop();
 
       (window as unknown as TestWindow).Sentry.configureScope(scope => {
         scope.setUser({ id: 'user123', segment: 'segmentB' });
