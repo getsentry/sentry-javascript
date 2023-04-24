@@ -1,7 +1,7 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "nextjs-13-app-dir",
-  "buildCommand": "yarn install && npx playwright install && yarn build",
+  "buildCommand": "pnpm install && npx playwright install && pnpm build",
   "buildAssertionCommand": "yarn ts-node --script-mode assert-build.ts",
   "tests": [
     {
