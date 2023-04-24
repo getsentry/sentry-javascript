@@ -41,7 +41,7 @@ suites/
 
 ## Running Tests Locally
 
-You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
+You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for CLI options to run playwright tests.
 
 Example:
 
