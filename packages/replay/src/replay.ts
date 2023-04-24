@@ -311,17 +311,16 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const hasStoppedRecording = this.stopRecording();
 
-    if (!continueRecording) {
+    if (!continueRecording || !hasStoppedRecording) {
       return;
     }
 
     // Re-start recording, but in "session" recording mode
-    if (hasStoppedRecording) {
-      // Reset all "capture on error" configuration before
-      // starting a new recording
-      this.recordingMode = 'session';
-      this.startRecording();
-    }
+
+    // Reset all "capture on error" configuration before
+    // starting a new recording
+    this.recordingMode = 'session';
+    this.startRecording();
   }
 
   /**
