@@ -1,0 +1,280 @@
+{
+  "type": 2,
+  "data": {
+    "node": {
+      "type": 0,
+      "childNodes": [
+        {
+          "type": 1,
+          "name": "html",
+          "publicId": "",
+          "systemId": "",
+          "id": 2
+        },
+        {
+          "type": 2,
+          "tagName": "html",
+          "attributes": {},
+          "childNodes": [
+            {
+              "type": 2,
+              "tagName": "head",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 2,
+                  "tagName": "meta",
+                  "attributes": {
+                    "charset": "utf-8"
+                  },
+                  "childNodes": [],
+                  "id": 5
+                },
+                {
+                  "type": 2,
+                  "tagName": "link",
+                  "attributes": {
+                    "rr_width": "[0-50]px",
+                    "rr_height": "[0-50]px"
+                  },
+                  "childNodes": [],
+                  "id": 6
+                }
+              ],
+              "id": 4
+            },
+            {
+              "type": 3,
+              "textContent": "\n  ",
+              "id": 7
+            },
+            {
+              "type": 2,
+              "tagName": "body",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 9
+                },
+                {
+                  "type": 2,
+                  "tagName": "button",
+                  "attributes": {
+                    "aria-label": "***** **",
+                    "onclick": "console.log('Test log')"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** **",
+                      "id": 11
+                    }
+                  ],
+                  "id": 10
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 12
+                },
+                {
+                  "type": 2,
+                  "tagName": "div",
+                  "attributes": {},
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "**** ****** ** ****** ** *******",
+                      "id": 14
+                    }
+                  ],
+                  "id": 13
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 15
+                },
+                {
+                  "type": 2,
+                  "tagName": "div",
+                  "attributes": {
+                    "data-sentry-unmask": ""
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "This should be unmasked due to data attribute",
+                      "id": 17
+                    }
+                  ],
+                  "id": 16
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 18
+                },
+                {
+                  "type": 2,
+                  "tagName": "input",
+                  "attributes": {
+                    "placeholder": "*********** ****** ** ******"
+                  },
+                  "childNodes": [],
+                  "id": 19
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 20
+                },
+                {
+                  "type": 2,
+                  "tagName": "div",
+                  "attributes": {
+                    "title": "***** ****** ** ******"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** ****** ** ******",
+                      "id": 22
+                    }
+                  ],
+                  "id": 21
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 23
+                },
+                {
+                  "type": 2,
+                  "tagName": "svg",
+                  "attributes": {
+                    "rr_width": "[200-250]px",
+                    "rr_height": "[200-250]px"
+                  },
+                  "childNodes": [],
+                  "isSVG": true,
+                  "id": 24
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 25
+                },
+                {
+                  "type": 2,
+                  "tagName": "svg",
+                  "attributes": {
+                    "style": "width:200px;height:200px",
+                    "viewBox": "0 0 80 80",
+                    "data-sentry-unblock": ""
+                  },
+                  "childNodes": [
+                    {
+                      "type": 2,
+                      "tagName": "path",
+                      "attributes": {
+                        "d": ""
+                      },
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 27
+                    },
+                    {
+                      "type": 2,
+                      "tagName": "area",
+                      "attributes": {},
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 28
+                    },
+                    {
+                      "type": 2,
+                      "tagName": "rect",
+                      "attributes": {},
+                      "childNodes": [],
+                      "isSVG": true,
+                      "id": 29
+                    }
+                  ],
+                  "isSVG": true,
+                  "id": 26
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 30
+                },
+                {
+                  "type": 2,
+                  "tagName": "img",
+                  "attributes": {
+                    "rr_width": "[100-150]px",
+                    "rr_height": "[100-150]px"
+                  },
+                  "childNodes": [],
+                  "id": 31
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 32
+                },
+                {
+                  "type": 2,
+                  "tagName": "img",
+                  "attributes": {
+                    "data-sentry-unblock": "",
+                    "style": "width:100px;height:100px",
+                    "src": "file:///none.png"
+                  },
+                  "childNodes": [],
+                  "id": 33
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 34
+                },
+                {
+                  "type": 2,
+                  "tagName": "video",
+                  "attributes": {
+                    "rr_width": "[0-50]px",
+                    "rr_height": "[0-50]px"
+                  },
+                  "childNodes": [],
+                  "id": 35
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n  ",
+                  "id": 36
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n\n",
+                  "id": 37
+                }
+              ],
+              "id": 8
+            }
+          ],
+          "id": 3
+        }
+      ],
+      "id": 1
+    },
+    "initialOffset": {
+      "left": 0,
+      "top": 0
+    }
+  },
+  "timestamp": [timestamp]
+}

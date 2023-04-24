@@ -14,7 +14,7 @@ sentryTest('error handler works', async ({ getLocalTestUrl, page, browserName })
 
   if (browserName === 'webkit') {
     expect(eventData.exception?.values?.[0]?.value).toBe(
-      "(In 'window.doSomethingWrong()', 'window.doSomethingWrong' is undefined)",
+      "window.doSomethingWrong is not a function. (In 'window.doSomethingWrong()', 'window.doSomethingWrong' is undefined)",
     );
   } else {
     expect(eventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');

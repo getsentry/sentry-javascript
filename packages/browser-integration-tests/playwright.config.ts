@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 import type { SentryTestFixtures } from './utils/fixtures';
 
+// If you wanna run a specific configuration run the tests like the following example:
+// yarn test --project="Desktop Safari - bundle_replay_es6_min" --grep "My test name"
+
 const bundles = [
   'esm',
   'cjs',
