@@ -562,7 +562,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       useCompression: this._options.useCompression,
     });
 
-    // TODO: we should probably remove listeners before adding listeners
+    this._removeListeners();
     this._addListeners();
 
     // Need to set as enabled before we start recording, as `record()` can trigger a flush with a new checkout
