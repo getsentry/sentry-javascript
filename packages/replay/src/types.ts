@@ -515,7 +515,9 @@ export interface ReplayContainer {
   startRecording(): void;
   stopRecording(): boolean;
   sendBufferedReplayOrFlush(options?: SendBufferedReplayOptions): Promise<void>;
+  conditionalFlush(): Promise<void>;
   flushImmediate(): Promise<void>;
+  cancelFlush(): void;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
