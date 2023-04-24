@@ -186,7 +186,8 @@ export function fetchCallback(
     return;
   }
 
-  const contentLength = handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+  const contentLength =
+    handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
   const currentScope = getCurrentHub().getScope();
   const currentSpan = currentScope && currentScope.getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
