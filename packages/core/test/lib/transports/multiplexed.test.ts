@@ -1,5 +1,6 @@
 import type { BaseTransportOptions, EventEnvelope, EventItem, Transport } from '@sentry/types';
 import { createEnvelope, dsnFromString } from '@sentry/utils';
+import { TextEncoder } from 'util';
 
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
 
