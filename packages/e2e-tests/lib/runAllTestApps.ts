@@ -1,7 +1,4 @@
 /* eslint-disable no-console */
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 
 import { constructRecipeInstances } from './constructRecipeInstances';
 import { buildAndTestApp } from './runTestApp';
@@ -11,7 +8,7 @@ export async function runAllTestApps(
   recipePaths: string[],
   envVarsToInject: Record<string, string | undefined>,
 ): Promise<void> {
-  const maxParallel = process.env.CI ? 1 : 1; // For now we are disabling parallel execution because it was causing problems (runners were too slow and timeouts happened)
+  const maxParallel = process.env.CI ? 3 : 6;
 
   const recipeInstances = constructRecipeInstances(recipePaths);
 
@@ -36,8 +33,6 @@ export async function runAllTestApps(
   });
 
   const failed = results.filter(result => result.buildFailed || result.testFailed);
-
-  fs.rmSync(path.join(os.tmpdir(), 'e2e-test-yarn-caches'), { force: true, recursive: true });
 
   if (failed.length) {
     console.log(`${failed.length} test(s) failed.`);
