@@ -1,9 +1,9 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser,waitForErrorRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 
-sentryTest('error handler works for later errors', async ({ getLocalTestUrl, page }) => {
+sentryTest('error handler works for later errors', async ({ getLocalTestUrl, page, browserName }) => {
   const req = waitForErrorRequest(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -12,5 +12,12 @@ sentryTest('error handler works for later errors', async ({ getLocalTestUrl, pag
   const eventData = envelopeRequestParser(await req);
 
   expect(eventData.exception?.values?.length).toBe(1);
-  expect(eventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');
+
+  if (browserName === 'webkit') {
+    expect(eventData.exception?.values?.[0]?.value).toBe(
+      "(In 'window.doSomethingWrong()', 'window.doSomethingWrong' is undefined)",
+    );
+  } else {
+    expect(eventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');
+  }
 });
