@@ -86,9 +86,11 @@ export function normalizeConsoleBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
         const normalizedArg = normalize(arg, 7);
         const stringified = JSON.stringify(normalizedArg);
         if (stringified.length > CONSOLE_ARG_MAX_SIZE) {
-          isTruncated = true;
           const fixedJson = fixJson(stringified.slice(0, CONSOLE_ARG_MAX_SIZE));
-          return JSON.parse(fixedJson);
+          const json = JSON.parse(fixedJson);
+          // We only set this after JSON.parse() was successfull, so we know we didn't run into `catch`
+          isTruncated = true;
+          return json;
         }
         return normalizedArg;
       } catch {
