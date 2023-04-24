@@ -24,6 +24,7 @@ function createMockSession(when: number = Date.now()) {
     lastActivity: when,
     started: when,
     sampled: 'session',
+    shouldRefresh: true,
   });
 }
 
@@ -59,6 +60,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
 
     // Should not have anything in storage
@@ -129,6 +131,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
 
     // Should not have anything in storage
@@ -138,6 +141,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
   });
 
@@ -164,6 +168,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: now,
       sampled: 'session',
       started: now,
+      shouldRefresh: true,
     });
   });
 

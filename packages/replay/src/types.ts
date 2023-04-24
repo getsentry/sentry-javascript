@@ -417,6 +417,12 @@ export interface Session {
    * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * If this is false, the session should not be refreshed when it was inactive.
+   * This can be the case if you had a buffered session which is now recording because an error happened.
+   */
+  shouldRefresh: boolean;
 }
 
 export interface EventBuffer {
