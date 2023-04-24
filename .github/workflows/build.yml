@@ -180,6 +180,9 @@ jobs:
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache_hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
+
+      - name: Install playwright browsers
+        run: npx playwright install
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
@@ -479,26 +482,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
-        name: Check if Playwright browser is cached
-        id: playwright-cache
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
-      - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
-        run: npx playwright install --with-deps
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache miss
-        if: steps.playwright-cache.outputs.cache-hit == 'false' && matrix.node >= 14
-        run: npx playwright install-deps
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -544,26 +527,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
-        name: Check if Playwright browser is cached
-        id: playwright-cache
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
-      - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache miss
-        if: steps.playwright-cache.outputs.cache-hit == 'false'
-        run: npx playwright install-deps
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
@@ -601,26 +564,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
-        name: Check if Playwright browser is cached
-        id: playwright-cache
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
-      - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
       - name: Run Playwright Loader tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
