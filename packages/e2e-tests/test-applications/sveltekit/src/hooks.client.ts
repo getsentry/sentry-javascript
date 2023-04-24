@@ -1,10 +1,11 @@
+import { env } from '$env/dynamic/public';
 import * as Sentry from '@sentry/sveltekit';
 
 Sentry.init({
-  dsn: process.env.E2E_TEST_DSN,
+  dsn: env.PUBLIC_E2E_TEST_DSN,
   debug: true,
   tunnel: `http://localhost:${
-    Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP)
+    Number(env.PUBLIC_BASE_PORT) + Number(env.PUBLIC_PORT_MODULO) + Number(env.PUBLIC_PORT_GAP)
   }/`, // proxy server
   tracesSampleRate: 1.0,
 });
