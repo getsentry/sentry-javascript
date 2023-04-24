@@ -127,6 +127,8 @@ export function makeTerserPlugin() {
           '_cssText',
           // We want to keep the _integrations variable unmangled to send all installed integrations from replay
           '_integrations',
+          // _meta is used to store metadata of replay network events
+          '_meta',
         ],
       },
     },
