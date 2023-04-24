@@ -41,24 +41,15 @@ suites/
 
 ## Running Tests Locally
 
-Tests can be run locally using the latest version of Chromium with:
-
-`yarn test`
-
-To run tests with a different browser such as `firefox` or `webkit`:
-
-`yarn test --browser='firefox'`
-`yarn test --browser='webkit'`
-
-Or to run on all three browsers:
-
-`yarn test --browser='all'`
-
-To filter tests by their title:
-
-`yarn test -g "XMLHttpRequest without any handlers set"`
-
 You can refer to [Playwright documentation](https://playwright.dev/docs/test-cli) for other CLI options.
+
+Example:
+
+```
+yarn test --project="Desktop Safari - bundle_replay_es6_min" --grep "My test name"
+```
+
+See the playwright config for a list of permutations for the `--project` flag.
 
 ### Troubleshooting
 
