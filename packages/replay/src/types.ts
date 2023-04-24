@@ -477,8 +477,8 @@ export interface ReplayContainer {
 export interface ReplayFlushOptions {
   /**
    * If true, flush while ignoring the `_isEnabled` state of
-* Replay integration. (By default, flush is noop if integration
-* is stopped).
+   * Replay integration. (By default, flush is noop if integration
+   * is stopped).
    */
   force?: boolean;
 }

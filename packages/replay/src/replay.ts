@@ -278,7 +278,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._debouncedFlush.cancel();
       // See comment above re: `_isEnabled`, we "force" a flush, ignoring the
       // `_isEnabled` state of the plugin since it was disabled above.
-      await this._flush({force: true})
+      await this._flush({ force: true });
 
       // After flush, destroy event buffer
       this.eventBuffer && this.eventBuffer.destroy();
@@ -801,7 +801,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Flush recording data to Sentry. Creates a lock so that only a single flush
    * can be active at a time. Do not call this directly.
    */
-  private _flush = async ({force = false}: ReplayFlushOptions = {}): Promise<void> => {
+  private _flush = async ({ force = false }: ReplayFlushOptions = {}): Promise<void> => {
     if (!this._isEnabled && !force) {
       // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
