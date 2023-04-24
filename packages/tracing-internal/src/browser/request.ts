@@ -186,8 +186,7 @@ export function fetchCallback(
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const contentLength = (handlerData.response?.headers).get('content-length');
+  const contentLength = handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
   const currentScope = getCurrentHub().getScope();
   const currentSpan = currentScope && currentScope.getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
@@ -197,7 +196,7 @@ export function fetchCallback(
       data: {
         ...handlerData.fetchData,
         type: 'fetch',
-        ...(contentLength ? { 'Encoded Body Size': contentLength } : {}),
+        ...(contentLength ? { encoded_body_size: contentLength } : {}),
       },
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
       op: 'http.client',
