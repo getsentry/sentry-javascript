@@ -54,8 +54,8 @@ sentryTest(
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // error, no replays
-    expect(callsToSentry).toEqual(1);
     await reqErrorPromise;
+    expect(callsToSentry).toEqual(1);
 
     expect(
       await page.evaluate(() => {
@@ -82,6 +82,7 @@ sentryTest(
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 2 errors
+    await reqErrorPromise;
     expect(callsToSentry).toEqual(2);
 
     await page.evaluate(async () => {
@@ -92,6 +93,7 @@ sentryTest(
     const req0 = await reqPromise0;
 
     // 2 errors, 1 flush
+    await reqErrorPromise;
     expect(callsToSentry).toEqual(3);
 
     await page.click('#log');
@@ -211,8 +213,8 @@ sentryTest(
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // error, no replays
-    expect(callsToSentry).toEqual(1);
     await reqErrorPromise;
+    expect(callsToSentry).toEqual(1);
 
     expect(
       await page.evaluate(() => {
@@ -239,6 +241,7 @@ sentryTest(
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 2 errors
+    await reqErrorPromise;
     expect(callsToSentry).toEqual(2);
 
     await page.evaluate(async () => {
@@ -249,6 +252,7 @@ sentryTest(
     const req0 = await reqPromise0;
 
     // 2 errors, 1 flush
+    await reqErrorPromise;
     expect(callsToSentry).toEqual(3);
 
     await page.click('#log');
@@ -347,8 +351,8 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   // 1 error, no replay
-  expect(callsToSentry).toEqual(1);
   await reqErrorPromise;
+  expect(callsToSentry).toEqual(1);
 
   await page.evaluate(async () => {
     const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
@@ -358,11 +362,11 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
 
   // Error sample rate is now at 1.0, this error should create a replay
   await page.click('#error2');
-  await reqErrorPromise;
 
   const req0 = await reqPromise0;
 
   // 2 errors, 1 flush
+  await reqErrorPromise;
   expect(callsToSentry).toEqual(3);
 
   const event0 = getReplayEvent(req0);
