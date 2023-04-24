@@ -5,7 +5,7 @@
       "source": 2,
       "type": 1,
       "id": 9,
-      "x": 43,
+      "x": 41,
       "y": 18
     },
     "timestamp": [timestamp]
@@ -25,7 +25,7 @@
       "source": 2,
       "type": 0,
       "id": 9,
-      "x": 43,
+      "x": 41,
       "y": 18
     },
     "timestamp": [timestamp]
@@ -36,7 +36,7 @@
       "source": 2,
       "type": 2,
       "id": 9,
-      "x": 43,
+      "x": 41,
       "y": 18
     },
     "timestamp": [timestamp]

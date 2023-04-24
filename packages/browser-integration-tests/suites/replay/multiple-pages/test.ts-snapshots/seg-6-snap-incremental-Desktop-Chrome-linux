@@ -5,8 +5,8 @@
       "source": 2,
       "type": 1,
       "id": 15,
-      "x": 168,
-      "y": 91
+      "x": 157,
+      "y": 90
     },
     "timestamp": [timestamp]
   },
@@ -34,8 +34,8 @@
       "source": 2,
       "type": 0,
       "id": 15,
-      "x": 168,
-      "y": 91
+      "x": 157,
+      "y": 90
     },
     "timestamp": [timestamp]
   },
@@ -45,8 +45,8 @@
       "source": 2,
       "type": 2,
       "id": 15,
-      "x": 168,
-      "y": 91
+      "x": 157,
+      "y": 90
     },
     "timestamp": [timestamp]
   }
