@@ -5,9 +5,8 @@ import { getCustomRecordingEvents, waitForReplayRequest } from '../../../utils/r
 
 sentryTest(
   'should capture console messages in replay',
-  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle }) => {
+  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle, bundle }) => {
     // console integration is not used in bundles/loader
-    const bundle = process.env.PW_BUNDLE || '';
     if (!isReplayCapableBundle() || bundle.startsWith('bundle_') || bundle.startsWith('loader_')) {
       sentryTest.skip();
     }
@@ -63,9 +62,8 @@ sentryTest(
 
 sentryTest(
   'should capture very large console logs',
-  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle }) => {
+  async ({ getLocalTestPath, page, forceFlushReplay, isReplayCapableBundle, bundle }) => {
     // console integration is not used in bundles/loader
-    const bundle = process.env.PW_BUNDLE || '';
     if (!isReplayCapableBundle() || bundle.startsWith('bundle_') || bundle.startsWith('loader_')) {
       sentryTest.skip();
     }
