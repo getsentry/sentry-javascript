@@ -92,17 +92,17 @@ class SentryScenarioGenerationPlugin {
 
   private _name: string = 'SentryScenarioGenerationPlugin';
 
-  public constructor(private readonly bundle: string) {}
+  public constructor(private readonly _bundle: string) {}
 
   public apply(compiler: Compiler): void {
     // `esm` and `cjs` builds are modules that can be imported / aliased by webpack
-    const useCompiledModule = this.bundle === 'esm' || this.bundle === 'cjs';
+    const useCompiledModule = this._bundle === 'esm' || this._bundle === 'cjs';
 
     // Bundles need to be injected into HTML before Sentry initialization.
     const useBundleOrLoader = !useCompiledModule;
-    const useLoader = this.bundle.startsWith('loader');
+    const useLoader = this._bundle.startsWith('loader');
 
-    compiler.options.resolve.alias = generateSentryAlias(useCompiledModule, useBundleOrLoader, this.bundle);
+    compiler.options.resolve.alias = generateSentryAlias(useCompiledModule, useBundleOrLoader, this._bundle);
     compiler.options.externals = useBundleOrLoader
       ? {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
@@ -135,7 +135,7 @@ class SentryScenarioGenerationPlugin {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
         if (useBundleOrLoader) {
           const bundleName = 'browser';
-          const bundlePath = BUNDLE_PATHS[bundleName][this.bundle];
+          const bundlePath = BUNDLE_PATHS[bundleName][this._bundle];
 
           let bundleObject =
             bundlePath &&
@@ -150,11 +150,11 @@ class SentryScenarioGenerationPlugin {
           }
 
           if (!bundleObject) {
-            throw new Error(`Could not find bundle or loader for key ${this.bundle}`);
+            throw new Error(`Could not find bundle or loader for key ${this._bundle}`);
           }
 
           // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
-          const integrationBundleKey = this.bundle
+          const integrationBundleKey = this._bundle
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
             .replace('_tracing', '');
