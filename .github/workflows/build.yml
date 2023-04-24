@@ -183,6 +183,8 @@ jobs:
 
       - name: Install playwright browsers
         run: npx playwright install
+      - name: Install playwright system dependencies
+        run: npx playwright install-deps
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
