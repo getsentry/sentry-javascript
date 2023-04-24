@@ -25,10 +25,6 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
 
   await page.click('button');
 
-  await page.waitForFunction(() => {
-    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
-    return !!replayIntegration._replay.session;
-  });
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session).toBe(undefined);
