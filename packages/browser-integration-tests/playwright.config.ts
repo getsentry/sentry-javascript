@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-import { SentryTestFixtures } from './utils/fixtures';
+
+import type { SentryTestFixtures } from './utils/fixtures';
 
 const bundles = [
   'esm',
