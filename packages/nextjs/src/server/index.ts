@@ -1,12 +1,10 @@
-import type { Carrier } from '@sentry/core';
-import { getHubFromCarrier, getMainCarrier, hasTracingEnabled } from '@sentry/core';
+import { hasTracingEnabled } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
 import { configureScope, getCurrentHub, init as nodeInit, Integrations } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import type { IntegrationWithExclusionOption } from '@sentry/utils';
 import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
-import * as domainModule from 'domain';
 import * as path from 'path';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -55,8 +53,6 @@ const globalWithInjectedValues = global as typeof global & {
   __rewriteFramesDistDir__: string;
 };
 
-const domain = domainModule as typeof domainModule & { active: (domainModule.Domain & Carrier) | null };
-
 // TODO (v8): Remove this
 /**
  * @deprecated This constant will be removed in the next major update.
@@ -87,16 +83,6 @@ export function init(options: NodeOptions): void {
   // Right now we only capture frontend sessions for Next.js
   options.autoSessionTracking = false;
 
-  // In an ideal world, this init function would be called before any requests are handled. That way, every domain we
-  // use to wrap a request would inherit its scope and client from the global hub. In practice, however, handling the
-  // first request is what causes us to initialize the SDK, as the init code is injected into `_app` and all API route
-  // handlers, and those are only accessed in the course of handling a request. As a result, we're already in a domain
-  // when `init` is called. In order to compensate for this and mimic the ideal world scenario, we stash the active
-  // domain, run `init` as normal, and then restore the domain afterwards, copying over data from the main hub as if we
-  // really were inheriting.
-  const activeDomain = domain.active;
-  domain.active = null;
-
   nodeInit(options);
 
   const filterTransactions: EventProcessor = event => {
@@ -117,20 +103,6 @@ export function init(options: NodeOptions): void {
       scope.addEventProcessor(devErrorSymbolicationEventProcessor);
     }
   });
-
-  if (activeDomain) {
-    const globalHub = getHubFromCarrier(getMainCarrier());
-    const domainHub = getHubFromCarrier(activeDomain);
-
-    // apply the changes made by `nodeInit` to the domain's hub also
-    domainHub.bindClient(globalHub.getClient());
-    domainHub.getScope()?.update(globalHub.getScope());
-    // `scope.update()` doesn’t copy over event processors, so we have to add it manually
-    domainHub.getScope()?.addEventProcessor(filterTransactions);
-
-    // restore the domain hub as the current one
-    domain.active = activeDomain;
-  }
 
   __DEBUG_BUILD__ && logger.log('SDK successfully initialized');
 }

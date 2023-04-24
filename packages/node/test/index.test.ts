@@ -1,6 +1,5 @@
-import { getMainCarrier, initAndBind, SDK_VERSION } from '@sentry/core';
+import { getMainCarrier, initAndBind, runWithAsyncContext, SDK_VERSION } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
-import * as domain from 'domain';
 
 import type { Event, Scope } from '../src';
 import {
@@ -13,6 +12,7 @@ import {
   init,
   NodeClient,
 } from '../src';
+import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines, LinkedErrors } from '../src/integrations';
 import { defaultStackParser } from '../src/sdk';
 import type { NodeClientOptions } from '../src/types';
@@ -278,8 +278,6 @@ describe('SentryNode', () => {
     });
 
     test('capture an event in a domain', done => {
-      const d = domain.create();
-
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
         beforeSend: (event: Event) => {
@@ -290,12 +288,14 @@ describe('SentryNode', () => {
         },
         dsn,
       });
+      setNodeAsyncContextStrategy();
       const client = new NodeClient(options);
 
-      d.run(() => {
-        getCurrentHub().bindClient(client);
+      runWithAsyncContext(() => {
+        const hub = getCurrentHub();
+        hub.bindClient(client);
         expect(getCurrentHub().getClient()).toBe(client);
-        getCurrentHub().captureEvent({ message: 'test domain' });
+        hub.captureEvent({ message: 'test domain' });
       });
     });
 

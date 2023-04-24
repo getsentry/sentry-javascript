@@ -1,5 +1,6 @@
 import { EventType } from '@sentry-internal/rrweb';
 import type { Breadcrumb } from '@sentry/types';
+import { normalize } from '@sentry/utils';
 
 import type { ReplayContainer } from '../../types';
 import { addEvent } from '../../util/addEvent';
@@ -26,7 +27,8 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
       timestamp: (breadcrumb.timestamp || 0) * 1000,
       data: {
         tag: 'breadcrumb',
-        payload: breadcrumb,
+        // normalize to max. 10 depth and 1_000 properties per object
+        payload: normalize(breadcrumb, 10, 1_000),
       },
     });
 

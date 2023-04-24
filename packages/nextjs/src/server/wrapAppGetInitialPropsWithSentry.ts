@@ -10,7 +10,7 @@ import {
   withTracedServerSideDataFetcher,
 } from './utils/wrapperUtils';
 
-type AppGetInitialProps = typeof App['getInitialProps'];
+type AppGetInitialProps = (typeof App)['getInitialProps'];
 
 /**
  * Create a wrapped version of the user's exported `getInitialProps` function in

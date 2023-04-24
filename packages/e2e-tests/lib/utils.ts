@@ -67,3 +67,13 @@ export function spawnAsync(
     }
   });
 }
+
+export function prefixObjectKeys(
+  obj: Record<string, string | undefined>,
+  prefix: string,
+): Record<string, string | undefined> {
+  return Object.keys(obj).reduce<Record<string, string | undefined>>((result, key) => {
+    result[prefix + key] = obj[key];
+    return result;
+  }, {});
+}

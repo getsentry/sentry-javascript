@@ -47,6 +47,23 @@ describe('handleError', () => {
     mockScope = new Scope();
   });
 
+  it('doesn\'t capture "Not found" errors for incorrect navigations', async () => {
+    const wrappedHandleError = handleErrorWithSentry();
+    const mockError = new Error('Not found: /asdf/123');
+    const mockEvent = {
+      url: new URL('https://myDomain.com/asdf/123'),
+      route: { id: null }, // <-- this is what SvelteKit puts in the event when the page is not found
+      // ...
+    } as RequestEvent;
+
+    const returnVal = await wrappedHandleError({ error: mockError, event: mockEvent });
+
+    expect(returnVal).not.toBeDefined();
+    expect(mockCaptureException).toHaveBeenCalledTimes(0);
+    expect(mockAddExceptionMechanism).toHaveBeenCalledTimes(0);
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
   describe('calls captureException', () => {
     it('invokes the default handler if no handleError func is provided', async () => {
       const wrappedHandleError = handleErrorWithSentry();

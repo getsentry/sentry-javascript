@@ -92,7 +92,7 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         source: 'route',
       },
-    });
+    }) as ReturnType<typeof hub.startTransaction> | undefined;
 
     // getCurrentHub() is expected to use current active domain as a carrier
     // since functions-framework creates a domain for each incoming request.
@@ -115,8 +115,8 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const _end = res.end;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
-      transaction.setHttpStatus(res.statusCode);
-      transaction.finish();
+      transaction?.setHttpStatus(res.statusCode);
+      transaction?.finish();
 
       void flush(options.flushTimeout)
         .then(null, e => {

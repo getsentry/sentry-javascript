@@ -3,7 +3,7 @@
 import type { Hub } from '@sentry/browser';
 import { getCurrentHub } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
-import { timestampWithMs } from '@sentry/utils';
+import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -82,7 +82,7 @@ class Profiler extends React.Component<ProfilerProps> {
       // set as data on the span. We just store the prop keys as the values could be potenially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
-        const now = timestampWithMs();
+        const now = timestampInSeconds();
         this._updateSpan = this._mountSpan.startChild({
           data: {
             changedProps,
@@ -114,7 +114,7 @@ class Profiler extends React.Component<ProfilerProps> {
       // next activity as a child to the component mount activity.
       this._mountSpan.startChild({
         description: `<${name}>`,
-        endTimestamp: timestampWithMs(),
+        endTimestamp: timestampInSeconds(),
         op: REACT_RENDER_OP,
         startTimestamp: this._mountSpan.endTimestamp,
       });
@@ -195,7 +195,7 @@ function useProfiler(
       if (mountSpan && options.hasRenderSpan) {
         mountSpan.startChild({
           description: `<${name}>`,
-          endTimestamp: timestampWithMs(),
+          endTimestamp: timestampInSeconds(),
           op: REACT_RENDER_OP,
           startTimestamp: mountSpan.endTimestamp,
         });

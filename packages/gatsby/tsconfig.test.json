@@ -5,8 +5,11 @@
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
 
     // other package-specific, test-specific options
+
+    // Needed to parse ESM from gatsby-browser.js
+    "allowJs": true
   }
 }

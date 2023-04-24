@@ -1,0 +1,31 @@
+name: 'Tag issues with last commenter'
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  toggle_labels:
+    name: Toggle Labels
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.issue.pull_request }}
+    steps:
+      - name: Add label if commenter is not member
+        # Note: We only add the label if the issue is still open
+        if: |
+          github.event.comment.author_association != 'COLLABORATOR'
+          && github.event.comment.author_association != 'MEMBER'
+          && github.event.comment.author_association != 'OWNER'
+          && !github.event.issue.closed
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'Waiting for: Team'
+
+      - name: Remove label if commenter is member
+        if: |
+          github.event.comment.author_association == 'COLLABORATOR'
+          || github.event.comment.author_association == 'MEMBER'
+          || github.event.comment.author_association == 'OWNER'
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: 'Waiting for: Team'

@@ -4,6 +4,212 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.49.0
+
+### Important Changes
+
+- **feat(sveltekit): Read adapter output directory from `svelte.config.js` (#7863)**
+
+Our source maps upload plugin is now able to read `svelte.config.js`. This is necessary to automatically find the output directory that users can specify when setting up the Node adapter.
+
+- **fix(replay): Ensure we normalize scope breadcrumbs to max. depth to avoid circular ref (#7915)**
+
+This release fixes a potential problem with how Replay captures console logs.
+Any objects logged will now be cut off after a maximum depth of 10, as well as cutting off any properties after the 1000th.
+This should ensure we do not accidentally capture massive console logs, where a stringified object could reach 100MB or more.
+
+- **fix(utils): Normalize HTML elements as string (#7916)**
+
+We used to normalize references to HTML elements as POJOs.
+This is both not very easily understandable, as well as potentially large, as HTML elements may have properties attached to them.
+With this change, we now normalize them to e.g. `[HTMLElement: HTMLInputElement]`.
+
+### Additional Features and Fixes
+
+- feat(browser): Simplify stack parsers (#7897)
+- feat(node): Add monitor upsert types (#7914)
+- feat(replay): Truncate network bodies to max size (#7875)
+- fix(gatsby): Don't crash build when auth token is missing (#7858)
+- fix(gatsby): Use `import` for `gatsby-browser.js` instead of `require` (#7889)
+- fix(nextjs): Handle braces in stack frame URLs (#7900)
+- fix(nextjs): Mark value injection loader result as uncacheable (#7870)
+- fix(node): Correct typo in trpc integration transaciton name (#7871)
+- fix(node): reduce deepReadDirSync runtime complexity (#7910)
+- fix(sveltekit): Avoid capturing "Not Found" errors in server `handleError` wrapper (#7898)
+- fix(sveltekit): Detect sentry release before creating the Vite plugins (#7902)
+- fix(sveltekit): Use `sentry.properties` file when uploading source maps (#7890)
+- fix(tracing): Ensure we use s instead of ms for startTimestamp (#7877)
+- ref(deprecate): Deprecate `timestampWithMs` (#7878)
+- ref(nextjs): Don't use Sentry Webpack Plugin in dev mode (#7901)
+
+## 7.48.0
+
+### Important Changes
+
+- **feat(node): Add `AsyncLocalStorage` implementation of `AsyncContextStrategy` (#7800)**
+  - feat(core): Extend `AsyncContextStrategy` to allow reuse of existing context (#7778)
+  - feat(core): Make `runWithAsyncContext` public API (#7817)
+  - feat(core): Add async context abstraction (#7753)
+  - feat(node): Adds `domain` implementation of `AsyncContextStrategy` (#7767)
+  - feat(node): Auto-select best `AsyncContextStrategy` for Node.js version (#7804)
+  - feat(node): Migrate to domains used through `AsyncContextStrategy` (#7779)
+
+This release switches the SDK to use [`AsyncLocalStorage`](https://nodejs.org/api/async_context.html#class-asynclocalstorage) as the async context isolation mechanism in the SDK for Node 14+. For Node 10 - 13, we continue to use the Node [`domain`](https://nodejs.org/api/domain.html) standard library, since `AsyncLocalStorage` is not supported there. **Preliminary testing showed [a 30% improvement in latency and rps](https://github.com/getsentry/sentry-javascript/issues/7691#issuecomment-1504009089) when making the switch from domains to `AsyncLocalStorage` on Node 16.**
+
+If you want to manually add async context isolation to your application, you can use the new `runWithAsyncContext` API.
+
+```js
+import * as Sentry from '@sentry/node';
+
+const requestHandler = (ctx, next) => {
+  return new Promise((resolve, reject) => {
+    Sentry.runWithAsyncContext(async () => {
+      const hub = Sentry.getCurrentHub();
+
+      hub.configureScope(scope =>
+        scope.addEventProcessor(event =>
+          Sentry.addRequestDataToEvent(event, ctx.request, {
+            include: {
+              user: false,
+            },
+          })
+        )
+      );
+
+      try {
+        await next();
+      } catch (err) {
+        reject(err);
+      }
+      resolve();
+    });
+  });
+};
+```
+
+If you're manually using domains to isolate Sentry data, we strongly recommend switching to this API!
+
+In addition to exporting `runWithAsyncContext` publicly, the SDK also uses it internally where we previously used domains.
+
+- **feat(sveltekit): Remove `withSentryViteConfig` (#7789)**
+  - feat(sveltekit): Remove SDK initialization via dedicated files (#7791)
+
+This release removes our `withSentryViteConfig` wrapper we previously instructed you to add to your `vite.config.js` file. It is replaced Vite plugins which you simply add to your Vite config, just like the `sveltekit()` Vite plugins. We believe this is a more transparent and Vite/SvelteKit-native way of applying build time modifications. Here's how to use the plugins:
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { sentrySvelteKit } from '@sentry/sveltekit';
+
+export default {
+  plugins: [sentrySvelteKit(), sveltekit()],
+  // ... rest of your Vite config
+};
+```
+
+Take a look at the [`README`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md) for updated instructions!
+
+Furthermore, with this transition, we removed the possibility to intialize the SDK in dedicated `sentry.(client|server).config.js` files. Please use SvelteKit's [hooks files](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#2-client-side-setup) to initialize the SDK.
+
+Please note that these are **breaking changes**! We're sorry for the inconvenience but the SvelteKit SDK is still in alpha stage and we want to establish a clean and SvelteKit-friendly API before making the SDK stable. You have been [warned](https://github.com/getsentry/sentry-javascript/blob/eb921275f9c572e72c2348a91cb39fcbb8275b8d/packages/sveltekit/README.md#L20-L24) ;)
+
+- **feat(sveltekit): Add Sentry Vite Plugin to upload source maps (#7811)**
+
+This release adds automatic upload of source maps to the SvelteKit SDK. No need to configure anything other than adding our Vite plugins to your SDK. The example above shows you how to do this.
+
+Please make sure to follow the [`README`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#uploading-source-maps) to specify your Sentry auth token, as well as org and project slugs.
+
+**- feat(replay): Capture request & response headers (#7816)**
+
+Replay now captures the `content-length`, `content-type`, and `accept` headers from requests and responses automatically.
+
+### Additional Features and Fixes
+
+- feat(browser): Export request instrumentation options (#7818)
+- feat(core): Add async context abstraction (#7753)
+- feat(core): Add DSC to all outgoing envelopes (#7820)
+- feat(core): Cache processed stacks for debug IDs (#7825)
+- feat(node): Add checkin envelope types (#7777)
+- feat(replay): Add `getReplayId()` method (#7822)
+- fix(browser): Adjust `BrowserTransportOptions` to support offline transport options (#7775)
+- fix(browser): DOMException SecurityError stacktrace parsing bug (#7821)
+- fix(core): Log warning when tracing extensions are missing (#7601)
+- fix(core): Only call `applyDebugMetadata` for error events (#7824)
+- fix(integrations): Ensure httpclient integration works with Request (#7786)
+- fix(node): `reuseExisting` does not need to call bind on domain (#7780)
+- fix(node): Fix domain scope inheritance (#7799)
+- fix(node): Make `trpcMiddleware` factory synchronous (#7802)
+- fix(serverless): Account when transaction undefined (#7829)
+- fix(utils): Make xhr instrumentation independent of parallel running SDK versions (#7836)
+
+## 7.47.0
+
+### Important Changes
+
+- **feat(browser)**: Add captureUserFeedback (#7729)
+
+This release adds a new API, `Sentry.captureUserFeedback`, to browser-side SDKs that allows you to send user feedback to Sentry without loading and opening Sentry's user feedback dialog. This allows you to obtain user feedback however and whenever you want to and simply send it to Sentry using the SDK.
+
+For instance, you can collect feedback, whenever convenient as shown in this example:
+
+```js
+const eventId = Sentry.captureMessage('User Feedback');
+const user = Sentry.getCurrentHub().getScope().getUser();
+const userFeedback = {
+  event_id: eventId;
+  email: user.email
+  name: user.username
+  comments: 'I really like your App, thanks!'
+}
+Sentry.captureUserFeedback(userFeedback);
+```
+
+Note that feedback needs to be coupled to an event but as in the example above, you can just use `Sentry.captureMessage` to generate one.
+
+You could also collect feedback in a custom way if an error happens and use the SDK to send it along:
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  beforeSend: event => {
+    const userFeedback = collectYourUserFeedback();
+    const feedback = {
+      ...userFeedback,
+      event_id: event.event_id.
+    }
+    Sentry.captureUserFeedback(feedback);
+    return event;
+  }
+})
+```
+
+- **feat(tracing)**: Deprecate `@sentry/tracing` exports (#7611)
+
+With this release, we officially deprecate all exports from the `@sentry/tracing` package, in favour of using them directly from the main SDK package. The `@sentry/tracing` package will be removed in a future major release.
+
+Please take a look at the [Migration docs](./MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460) for more details.
+
+### Additional Features and Fixes
+
+- feat(sveltekit): Add partial instrumentation for client-side `fetch` (#7626)
+- fix(angular): Handle routes with empty path (#7686)
+- fix(angular): Only open report dialog if error was sent (#7750)
+- fix(core): Determine debug ID paths from the top of the stack (#7722)
+- fix(ember): Ensure only one client is created & Replay works (#7712)
+- fix(integrations): Ensure HttpClient integration works with Axios (#7714)
+- fix(loader): Ensure JS loader works with tracing & add tests (#7662)
+- fix(nextjs): Restore tree shaking capabilities (#7710)
+- fix(node): Disable `LocalVariables` integration on Node < v18 (#7748)
+- fix(node): Redact URL authority only in breadcrumbs and spans (#7740)
+- fix(react): Only show report dialog if event was sent to Sentry (#7754)
+- fix(remix): Remove unnecessary dependencies  (#7708)
+- fix(replay): Ensure circular references are handled (#7752)
+- fix(sveltekit): Don't capture thrown `Redirect`s as exceptions (#7731)
+- fix(sveltekit): Log error to console by default in `handleErrorWithSentry` (#7674)
+- fix(tracing): Make sure idle transaction does not override other transactions (#7725)
+
+Work in this release contributed by @de-don and @TrySound. Thank you for your contributions!
+
+
 ## 7.46.0
 
 ### Important Changes

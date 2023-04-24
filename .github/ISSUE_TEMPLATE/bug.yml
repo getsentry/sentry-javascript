@@ -25,12 +25,13 @@ body:
   - type: dropdown
     id: package
     attributes:
-      label:
-        Which SDK are you using? If you use the CDN bundles, please specify the exact bundle (e.g.
-        `bundle.tracing.min.js`) in your SDK setup.
+      label: Which SDK are you using?
+      description:
+        If you're using the CDN bundles, please specify the exact bundle (e.g. `bundle.tracing.min.js`) in your SDK
+        setup.
       options:
-        - '@sentry/angular'
         - '@sentry/browser'
+        - '@sentry/angular'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/nextjs'
@@ -43,8 +44,8 @@ body:
         - '@sentry/sveltekit'
         - '@sentry/vue'
         - '@sentry/wasm'
-        - Sentry Browser CDN bundle
         - Sentry Browser Loader
+        - Sentry Browser CDN bundle
     validations:
       required: true
   - type: input
@@ -61,15 +62,15 @@ body:
       label: Framework Version
       description:
         If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
-        _framework_ (not SDK) are you using?
+        _framework_ are you using?
       placeholder: ex. React 17.0.0
   - type: input
     id: link-to-sentry
     attributes:
       label: Link to Sentry event
       description:
-        If applicable, provide a link to the affected event from your Sentry account. The event will only be viewable by
-        Sentry staff.
+        If applicable, please provide a link to the affected event from your Sentry account. The event will only be
+        viewable by Sentry staff.
       placeholder: https://sentry.io/organizations/<org-slug>/issues/<issue-id>/events/<event-id>/?project=<project-id>
   - type: textarea
     id: sdk-setup

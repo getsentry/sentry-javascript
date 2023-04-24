@@ -1,4 +1,4 @@
-import type { ClientOptions, Event, EventHint, StackParser } from '@sentry/types';
+import type { ClientOptions, Event, EventHint, StackFrame, StackParser } from '@sentry/types';
 import { dateTimestampInSeconds, GLOBAL_OBJ, normalize, resolvedSyncPromise, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
@@ -37,7 +37,11 @@ export function prepareEvent(
 
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);
-  applyDebugMetadata(prepared, options.stackParser);
+
+  // Only apply debug metadata to error events.
+  if (event.type === undefined) {
+    applyDebugMetadata(prepared, options.stackParser);
+  }
 
   // If we have scope given to us, use it as the base for further modifications.
   // This allows us to prevent unnecessary copying of data if `captureContext` is not provided.
@@ -114,6 +118,8 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
   }
 }
 
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+
 /**
  * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
  */
@@ -124,9 +130,26 @@ export function applyDebugMetadata(event: Event, stackParser: StackParser): void
     return;
   }
 
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
   // Build a map of filename -> debug_id
   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    const parsedStack = stackParser(debugIdStackTrace);
+    let parsedStack: StackFrame[];
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
     for (let i = parsedStack.length - 1; i >= 0; i--) {
       const stackFrame = parsedStack[i];
       if (stackFrame.filename) {

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.46.0",
+  "version": "7.49.0",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
@@ -14,7 +14,7 @@
     "build:dev": "yarn build",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "run-p build:watch",
-    "build:transpile:watch": "yarn build:rollup --watch",
+    "build:transpile:watch": "yarn build:transpile --watch",
     "build:types:watch": "yarn build:types --watch",
     "clean": "rimraf build",
     "fix": "run-s fix:eslint fix:prettier",

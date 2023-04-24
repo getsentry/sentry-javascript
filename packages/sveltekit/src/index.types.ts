@@ -4,7 +4,7 @@
 // Some of the exports collide, which is not allowed, unless we redifine the colliding
 // exports in this file - which we do below.
 export * from './client';
-export * from './config';
+export * from './vite';
 export * from './server';
 
 import type { Integration, Options, StackParser } from '@sentry/types';

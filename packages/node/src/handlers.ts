@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { captureException, getCurrentHub, hasTracingEnabled, startTransaction, withScope } from '@sentry/core';
+import {
+  captureException,
+  getCurrentHub,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  startTransaction,
+  withScope,
+} from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
@@ -12,7 +19,6 @@ import {
   logger,
   normalize,
 } from '@sentry/utils';
-import * as domain from 'domain';
 import type * as http from 'http';
 
 import type { NodeClient } from './client';
@@ -181,13 +187,8 @@ export function requestHandler(
           });
       };
     }
-    const local = domain.create();
-    local.add(req);
-    local.add(res);
-
-    local.run(() => {
+    runWithAsyncContext(() => {
       const currentHub = getCurrentHub();
-
       currentHub.configureScope(scope => {
         scope.setSDKProcessingMetadata({
           request: req,
@@ -334,14 +335,14 @@ interface TrpcMiddlewareArguments<T> {
  * Use the Sentry tRPC middleware in combination with the Sentry server integration,
  * e.g. Express Request Handlers or Next.js SDK.
  */
-export async function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
+export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
     const hub = getCurrentHub();
     const clientOptions = hub.getClient()?.getOptions();
     const sentryTransaction = hub.getScope()?.getTransaction();
 
     if (sentryTransaction) {
-      sentryTransaction.setName(`trcp/${path}`, 'route');
+      sentryTransaction.setName(`trpc/${path}`, 'route');
       sentryTransaction.op = 'rpc.server';
 
       const trpcContext: Record<string, unknown> = {

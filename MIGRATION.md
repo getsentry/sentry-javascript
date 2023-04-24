@@ -1,5 +1,9 @@
 # Deprecations in 7.x
 
+## Deprecate `timestampWithMs` export - #7878
+
+The `timestampWithMs` util is deprecated in favor of using `timestampInSeconds`.
+
 ## Remove requirement for `@sentry/tracing` package (since 7.46.0)
 
 With `7.46.0` you no longer require the `@sentry/tracing` package to use tracing and performance monitoring with the Sentry JavaScript SDKs. The `@sentry/tracing` package will be removed in a future major release, but can still be used in the meantime.

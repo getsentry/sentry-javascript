@@ -1,6 +1,11 @@
-import { addTracingExtensions, captureException, getCurrentHub, startTransaction } from '@sentry/core';
+import {
+  addTracingExtensions,
+  captureException,
+  getCurrentHub,
+  runWithAsyncContext,
+  startTransaction,
+} from '@sentry/core';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
-import * as domain from 'domain';
 
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
@@ -21,7 +26,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
-      return domain.create().bind(() => {
+      return runWithAsyncContext(() => {
+        const hub = getCurrentHub();
+
         let maybePromiseResult;
 
         const traceparentData = context.sentryTraceHeader
@@ -41,7 +48,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           },
         });
 
-        const currentScope = getCurrentHub().getScope();
+        const currentScope = hub.getScope();
         if (currentScope) {
           currentScope.setSpan(transaction);
         }
@@ -85,7 +92,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           transaction.finish();
           return maybePromiseResult;
         }
-      })();
+      });
     },
   });
 }

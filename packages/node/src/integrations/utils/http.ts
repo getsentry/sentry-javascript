@@ -1,10 +1,9 @@
 import { getCurrentHub } from '@sentry/core';
-import { parseSemver } from '@sentry/utils';
 import type * as http from 'http';
 import type * as https from 'https';
 import { URL } from 'url';
 
-const NODE_VERSION = parseSemver(process.versions.node);
+import { NODE_VERSION } from '../../nodeVersion';
 
 /**
  * Checks whether given url points to Sentry server
@@ -48,9 +47,15 @@ export function extractUrl(requestOptions: RequestOptions): string {
     !requestOptions.port || requestOptions.port === 80 || requestOptions.port === 443 ? '' : `:${requestOptions.port}`;
   // do not include search or hash in span descriptions, per https://develop.sentry.dev/sdk/data-handling/#structuring-data
   const path = requestOptions.pathname || '/';
-  const authority = requestOptions.auth ? `${requestOptions.auth}@` : '';
+  // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
+  const authority = requestOptions.auth ? redactAuthority(requestOptions.auth) : '';
 
   return `${protocol}//${authority}${hostname}${port}${path}`;
+}
+
+function redactAuthority(auth: string): string {
+  const [user, password] = auth.split(':');
+  return `${user ? '[Filtered]' : ''}:${password ? '[Filtered]' : ''}@`;
 }
 
 /**
@@ -123,8 +128,7 @@ export function urlToOptions(url: URL): RequestOptions {
     options.port = Number(url.port);
   }
   if (url.username || url.password) {
-    // always filter authority, see https://develop.sentry.dev/sdk/data-handling/#structuring-data
-    options.auth = '[Filtered]:[Filtered]';
+    options.auth = `${url.username}:${url.password}`;
   }
   return options;
 }

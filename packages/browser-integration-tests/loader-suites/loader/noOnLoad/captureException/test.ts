@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser,waitForErrorRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 
 sentryTest('captureException works', async ({ getLocalTestUrl, page }) => {
   const req = waitForErrorRequest(page);

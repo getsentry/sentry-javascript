@@ -1,5 +1,5 @@
 import type { ReportDialogOptions, Scope } from '@sentry/browser';
-import { captureException, showReportDialog, withScope } from '@sentry/browser';
+import { captureException, getCurrentHub, showReportDialog, withScope } from '@sentry/browser';
 import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -94,9 +94,26 @@ function setCause(error: Error & { cause?: Error }, cause: Error): void {
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = INITIAL_STATE;
 
+  private readonly _openFallbackReportDialog: boolean = true;
+
+  private _lastEventId?: string;
+
+  public constructor(props: ErrorBoundaryProps) {
+    super(props);
+
+    const client = getCurrentHub().getClient();
+    if (client && client.on && props.showDialog) {
+      this._openFallbackReportDialog = false;
+      client.on('afterSendEvent', event => {
+        if (!event.type && event.event_id === this._lastEventId) {
+          showReportDialog({ ...props.dialogOptions, eventId: this._lastEventId });
+        }
+      });
+    }
+  }
+
   public componentDidCatch(error: Error & { cause?: Error }, { componentStack }: React.ErrorInfo): void {
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
-
     withScope(scope => {
       // If on React version >= 17, create stack trace from componentStack param and links
       // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
@@ -123,7 +140,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         onError(error, componentStack, eventId);
       }
       if (showDialog) {
-        showReportDialog({ ...dialogOptions, eventId });
+        this._lastEventId = eventId;
+        if (this._openFallbackReportDialog) {
+          showReportDialog({ ...dialogOptions, eventId });
+        }
       }
 
       // componentDidCatch is used over getDerivedStateFromError

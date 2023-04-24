@@ -21,7 +21,12 @@ const INTEGRATIONS = {
 export { INTEGRATIONS as Integrations };
 
 export { Replay } from '@sentry/replay';
-export { BrowserTracing, defaultRequestInstrumentationOptions } from '@sentry-internal/tracing';
+export {
+  BrowserTracing,
+  defaultRequestInstrumentationOptions,
+  instrumentOutgoingRequests,
+} from '@sentry-internal/tracing';
+export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
   extractTraceparentData,

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "7.46.0",
+  "version": "7.49.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -20,16 +20,20 @@
     "@sveltejs/kit": "1.x"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.46.0",
-    "@sentry/core": "7.46.0",
-    "@sentry/node": "7.46.0",
-    "@sentry/svelte": "7.46.0",
-    "@sentry/types": "7.46.0",
-    "@sentry/utils": "7.46.0",
-    "magic-string": "^0.30.0"
+    "@sentry-internal/tracing": "7.49.0",
+    "@sentry/core": "7.49.0",
+    "@sentry/integrations": "7.49.0",
+    "@sentry/node": "7.49.0",
+    "@sentry/svelte": "7.49.0",
+    "@sentry/types": "7.49.0",
+    "@sentry/utils": "7.49.0",
+    "@sentry/vite-plugin": "^0.6.0",
+    "magic-string": "^0.30.0",
+    "sorcery": "0.11.0"
   },
   "devDependencies": {
     "@sveltejs/kit": "^1.11.0",
+    "rollup": "^3.20.2",
     "svelte": "^3.44.0",
     "typescript": "^4.9.3",
     "vite": "4.0.0"
@@ -37,7 +41,7 @@
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.js --bundleConfigAsCjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",

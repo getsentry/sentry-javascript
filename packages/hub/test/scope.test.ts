@@ -354,6 +354,7 @@ describe('Scope', () => {
         fake: 'span',
         getTraceContext: () => ({ a: 'b' }),
         name: 'fake transaction',
+        getDynamicSamplingContext: () => ({}),
       } as any;
       transaction.transaction = transaction; // because this is a transaction, its `transaction` pointer points to itself
       scope.setSpan(transaction);
@@ -366,7 +367,7 @@ describe('Scope', () => {
     test('adds `transaction` tag when span on scope', async () => {
       expect.assertions(1);
       const scope = new Scope();
-      const transaction = { name: 'fake transaction' };
+      const transaction = { name: 'fake transaction', getDynamicSamplingContext: () => ({}) };
       const span = {
         fake: 'span',
         getTraceContext: () => ({ a: 'b' }),

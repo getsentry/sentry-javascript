@@ -27,7 +27,7 @@
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
     "test": "lerna run --ignore @sentry-internal/* test",
     "test:unit": "lerna run --ignore @sentry-internal/* test:unit",
-    "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby}\" --ignore @sentry-internal/*",
+    "test-ci-browser": "lerna run test --ignore \"@sentry/{node,opentelemetry-node,serverless,nextjs,remix,gatsby,sveltekit}\" --ignore @sentry-internal/*",
     "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
     "test:update-snapshots": "lerna run test:update-snapshots",
     "yalc:publish": "lerna run yalc:publish"
@@ -102,7 +102,7 @@
     "mocha": "^6.1.4",
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",
-    "prettier": "2.7.1",
+    "prettier": "2.8.7",
     "recast": "^0.20.5",
     "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",

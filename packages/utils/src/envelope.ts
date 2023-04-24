@@ -207,6 +207,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   profile: 'profile',
   replay_event: 'replay',
   replay_recording: 'replay',
+  check_in: 'monitor',
 };
 
 /**
@@ -236,15 +237,13 @@ export function createEventEnvelopeHeaders(
   dsn: DsnComponents,
 ): EventEnvelopeHeaders {
   const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata.dynamicSamplingContext;
-
   return {
     event_id: event.event_id as string,
     sent_at: new Date().toISOString(),
     ...(sdkInfo && { sdk: sdkInfo }),
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' &&
-      dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
-      }),
+    ...(dynamicSamplingContext && {
+      trace: dropUndefinedKeys({ ...dynamicSamplingContext }),
+    }),
   };
 }

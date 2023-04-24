@@ -47,9 +47,9 @@ sentryTest(
         url: 'http://localhost:7654/foo',
         method: 'GET',
         headers: {
-          Accept: 'application/json',
-          Cache: 'no-cache',
-          'Content-Type': 'application/json',
+          accept: 'application/json',
+          cache: 'no-cache',
+          'content-type': 'application/json',
         },
       },
       contexts: {

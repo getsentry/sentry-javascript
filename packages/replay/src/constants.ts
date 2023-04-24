@@ -29,5 +29,8 @@ export const ERROR_CHECKOUT_TIME = 60_000;
 export const RETRY_BASE_INTERVAL = 5000;
 export const RETRY_MAX_COUNT = 3;
 
-/* The max (uncompressed) size in bytes of a network body. Any body larger than this will be dropped. */
-export const NETWORK_BODY_MAX_SIZE = 300_000;
+/* The max (uncompressed) size in bytes of a network body. Any body larger than this will be truncated. */
+export const NETWORK_BODY_MAX_SIZE = 150_000;
+
+/* The max size of a single console arg that is captured. Any arg larger than this will be truncated. */
+export const CONSOLE_ARG_MAX_SIZE = 5_000;

@@ -121,7 +121,12 @@ export const dateTimestampInSeconds: () => number = dateTimestampSource.nowSecon
  */
 export const timestampInSeconds: () => number = timestampSource.nowSeconds.bind(timestampSource);
 
-// Re-exported with an old name for backwards-compatibility.
+/**
+ * Re-exported with an old name for backwards-compatibility.
+ * TODO (v8): Remove this
+ *
+ * @deprecated Use `timestampInSeconds` instead.
+ */
 export const timestampWithMs = timestampInSeconds;
 
 /**

@@ -10,6 +10,7 @@ module.exports = {
     'loader-suites/**/dist/*',
     'loader-suites/**/subject.js',
     'scripts/**',
+    'fixtures/**',
   ],
   parserOptions: {
     sourceType: 'module',

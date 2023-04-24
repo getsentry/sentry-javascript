@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, hasTracingEnabled } from '@sentry/core';
+import { getActiveTransaction, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
 import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -13,7 +13,6 @@ import {
   loadModule,
   logger,
 } from '@sentry/utils';
-import * as domain from 'domain';
 
 import type {
   AppData,
@@ -314,13 +313,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
-    const local = domain.create();
-
-    // Waiting for the next tick to make sure that the domain is active
-    // https://github.com/nodejs/node/issues/40999#issuecomment-1002719169
-    await new Promise(resolve => setImmediate(resolve));
-
-    return local.bind(async () => {
+    return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
       const options = hub.getClient()?.getOptions();
       const scope = hub.getScope();
@@ -365,7 +358,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       transaction.finish();
 
       return res;
-    })();
+    });
   };
 }
 

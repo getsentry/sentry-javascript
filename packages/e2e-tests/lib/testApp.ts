@@ -2,7 +2,7 @@
 
 import { DEFAULT_TEST_TIMEOUT_SECONDS } from './constants';
 import type { Env, RecipeInstance, TestDef, TestResult } from './types';
-import { spawnAsync } from './utils';
+import { prefixObjectKeys, spawnAsync } from './utils';
 
 export async function testApp(appDir: string, recipeInstance: RecipeInstance, env: Env): Promise<TestResult[]> {
   const { recipe } = recipeInstance;
@@ -15,17 +15,28 @@ export async function testApp(appDir: string, recipeInstance: RecipeInstance, en
   return results;
 }
 
-async function runTest(appDir: string, recipeInstance: RecipeInstance, test: TestDef, env: Env): Promise<TestResult> {
+async function runTest(
+  appDir: string,
+  recipeInstance: RecipeInstance,
+  test: TestDef,
+  envVars: Env,
+): Promise<TestResult> {
   const { recipe, label } = recipeInstance;
   console.log(`Running test command for test application "${label}", test "${test.testName}"`);
+
+  const env = {
+    ...process.env,
+    ...envVars,
+  };
 
   const testResult = await spawnAsync(test.testCommand, {
     cwd: appDir,
     timeout: (recipe.testTimeoutSeconds ?? DEFAULT_TEST_TIMEOUT_SECONDS) * 1000,
     env: {
-      ...process.env,
       ...env,
-    } as unknown as NodeJS.ProcessEnv,
+      ...prefixObjectKeys(env, 'NEXT_PUBLIC_'),
+      ...prefixObjectKeys(env, 'REACT_APP_'),
+    },
   });
 
   if (testResult.error) {

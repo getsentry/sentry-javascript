@@ -11,17 +11,22 @@ const LOADER_TEMPLATE = readFileSync(path.join(__dirname, '../fixtures/loader.js
 
 const LOADER_CONFIGS: Record<string, { bundle: string; options: Record<string, unknown>; lazy: boolean }> = {
   loader_base: {
-    bundle: 'browser/build/bundles/bundle.es5.js',
+    bundle: 'browser/build/bundles/bundle.es5.min.js',
     options: {},
     lazy: true,
   },
   loader_eager: {
-    bundle: 'browser/build/bundles/bundle.es5.js',
+    bundle: 'browser/build/bundles/bundle.es5.min.js',
     options: {},
     lazy: false,
   },
+  loader_debug: {
+    bundle: 'browser/build/bundles/bundle.es5.debug.min.js',
+    options: { debug: true },
+    lazy: true,
+  },
   loader_tracing: {
-    bundle: 'browser/build/bundles/bundle.tracing.es5.js',
+    bundle: 'browser/build/bundles/bundle.tracing.es5.min.js',
     options: { tracesSampleRate: 1 },
     lazy: false,
   },

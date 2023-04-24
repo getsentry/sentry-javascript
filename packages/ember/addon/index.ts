@@ -4,7 +4,7 @@ import { macroCondition, isDevelopingApp, getOwnConfig } from '@embroider/macros
 import { next } from '@ember/runloop';
 import { assert, warn } from '@ember/debug';
 import Ember from 'ember';
-import { timestampWithMs, GLOBAL_OBJ } from '@sentry/utils';
+import { timestampInSeconds, GLOBAL_OBJ } from '@sentry/utils';
 import { GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig() {
@@ -68,7 +68,7 @@ export const getActiveTransaction = () => {
 
 export const instrumentRoutePerformance = (BaseRoute: any) => {
   const instrumentFunction = async (op: string, description: string, fn: Function, args: any) => {
-    const startTimestamp = timestampWithMs();
+    const startTimestamp = timestampInSeconds();
     const result = await fn(...args);
 
     const currentTransaction = getActiveTransaction();

@@ -161,7 +161,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -207,8 +209,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
-
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Check dependency cache
         uses: actions/cache/restore@v3
         with:
@@ -262,7 +265,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -331,7 +336,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -352,7 +359,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -372,7 +381,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -422,7 +433,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [8, 10, 12, 14, 16, 18]
+        node: [8, 10, 12, 14, 16, 18, 20]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -526,7 +537,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -570,6 +583,7 @@ jobs:
         bundle:
           - loader_base
           - loader_eager
+          - loader_debug
           - loader_tracing
           - loader_replay
           - loader_tracing_replay
@@ -580,7 +594,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -631,7 +647,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -655,7 +673,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -678,7 +698,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18]
+        node: [10, 12, 14, 16, 18, 20]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
@@ -730,7 +750,7 @@ jobs:
           yarn test:integration:ci
 
   job_e2e_tests:
-    name: E2E Tests
+    name: E2E Tests (Shard ${{ matrix.shard }})
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
     if:
@@ -739,13 +759,19 @@ jobs:
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -761,6 +787,8 @@ jobs:
           E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
           E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
           E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+          E2E_TEST_SHARD: ${{ matrix.shard }}
+          E2E_TEST_SHARD_AMOUNT: 3
         run: |
           cd packages/e2e-tests
           yarn test:e2e
@@ -803,7 +831,9 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: volta-cli/action@v4
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:

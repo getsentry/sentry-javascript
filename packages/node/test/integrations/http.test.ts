@@ -2,7 +2,7 @@ import type { Span, Transaction } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
 import { addTracingExtensions, Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { logger, parseSemver, TRACEPARENT_REGEXP } from '@sentry/utils';
+import { logger, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
 import * as https from 'https';
 import * as HttpsProxyAgent from 'https-proxy-agent';
@@ -11,10 +11,9 @@ import * as nock from 'nock';
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
 import { Http as HttpIntegration } from '../../src/integrations/http';
+import { NODE_VERSION } from '../../src/nodeVersion';
 import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
-
-const NODE_VERSION = parseSemver(process.versions.node);
 
 const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
@@ -215,18 +214,24 @@ describe('tracing', () => {
     expect(spans[1].data['http.fragment']).toEqual('learn-more');
   });
 
-  it('filters the authority (username and password) in span description', () => {
-    nock('http://username:password@dogs.are.great').get('/').reply(200);
+  it.each([
+    ['user:pwd', '[Filtered]:[Filtered]@'],
+    ['user:', '[Filtered]:@'],
+    ['user', '[Filtered]:@'],
+    [':pwd', ':[Filtered]@'],
+    ['', ''],
+  ])('filters the authority %s in span description', (auth, redactedAuth) => {
+    nock(`http://${auth}@dogs.are.great`).get('/').reply(200);
 
     const transaction = createTransactionOnScope();
     const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
 
-    http.get('http://username:password@dogs.are.great/');
+    http.get(`http://${auth}@dogs.are.great/`);
 
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://[Filtered]:[Filtered]@dogs.are.great/');
+    expect(spans[1].description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
   });
 
   describe('Tracing options', () => {
