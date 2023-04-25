@@ -15,10 +15,12 @@ interface MatchParam {
   /** The envelope to be sent */
   envelope: Envelope;
   /**
-   * A function that returns an event from the envelope if one exists
+   * A function that returns an event from the envelope if one exists. You can optionally pass an array of envelope item
+   * types to filter by - only envelopes matching the given types will be multiplexed.
+   *
    * @param types Defaults to ['event', 'transaction', 'profile', 'replay_event']
    */
-  getEvent(...types: EnvelopeItemType[]): Event | undefined;
+  getEvent(types?: EnvelopeItemType[]): Event | undefined;
 }
 
 type Matcher = (param: MatchParam) => string[];
@@ -58,10 +60,9 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     }
 
     async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
-      function getEvent(...types: EnvelopeItemType[]): Event | undefined {
-        const eventTypes: EnvelopeItemType[] = types.length
-          ? types
-          : ['event', 'transaction', 'profile', 'replay_event'];
+      function getEvent(types?: EnvelopeItemType[]): Event | undefined {
+        const eventTypes: EnvelopeItemType[] =
+          types && types.length ? types : ['event', 'transaction', 'profile', 'replay_event'];
         return eventFromEnvelope(envelope, eventTypes);
       }
 

@@ -151,7 +151,7 @@ describe('makeMultiplexedTransport', () => {
         expect(url).toBe(DSN2_URL);
       }),
       ({ getEvent }) => {
-        expect(getEvent('event')).toBeUndefined();
+        expect(getEvent(['event'])).toBeUndefined();
         return [DSN2];
       },
     );
