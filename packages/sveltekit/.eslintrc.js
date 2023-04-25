@@ -19,4 +19,5 @@ module.exports = {
     },
   ],
   extends: ['../../.eslintrc.js'],
+  ignorePatterns: ['scripts/**/*', 'src/vite/templates/**/*'],
 };

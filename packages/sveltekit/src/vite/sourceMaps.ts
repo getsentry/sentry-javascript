@@ -74,9 +74,9 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
   let isSSRBuild = true;
 
   const customPlugin: Plugin = {
-    name: 'sentry-vite-plugin-custom',
+    name: 'sentry-upload-source-maps',
     apply: 'build', // only apply this plugin at build time
-    enforce: 'post',
+    enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
 
     // These hooks are copied from the original Sentry Vite plugin.
     // They're mostly responsible for options parsing and release injection.
@@ -85,7 +85,7 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
     renderChunk,
     transform,
 
-    // Modify the config to generate source maps
+    // // Modify the config to generate source maps
     config: config => {
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Enabeling source map generation');
@@ -117,6 +117,8 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
       }
 
       const outDir = path.resolve(process.cwd(), outputDir);
+      // eslint-disable-next-line no-console
+      debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
       // eslint-disable-next-line no-console

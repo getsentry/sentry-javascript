@@ -3,6 +3,8 @@
 
   "include": ["src/**/*"],
 
+  "exclude": ["src/vite/templates/**/*"],
+
   "compilerOptions": {
     // package-specific options
   }

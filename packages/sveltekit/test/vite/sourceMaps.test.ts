@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('makeCustomSentryVitePlugin()', () => {
   it('returns the custom sentry source maps plugin', async () => {
     const plugin = await makeCustomSentryVitePlugin();
-    expect(plugin.name).toEqual('sentry-vite-plugin-custom');
+    expect(plugin.name).toEqual('sentry-upload-source-maps');
     expect(plugin.apply).toEqual('build');
     expect(plugin.enforce).toEqual('post');
 
