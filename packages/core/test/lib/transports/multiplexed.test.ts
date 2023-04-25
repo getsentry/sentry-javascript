@@ -1,5 +1,5 @@
-import type { BaseTransportOptions, EventEnvelope, EventItem, Transport } from '@sentry/types';
-import { createEnvelope, dsnFromString } from '@sentry/utils';
+import type { BaseTransportOptions, ClientReport, EventEnvelope, EventItem, Transport } from '@sentry/types';
+import { createClientReportEnvelope, createEnvelope, dsnFromString } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
@@ -15,9 +15,23 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, ERROR_EVENT] as EventItem,
 ]);
 
-const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
-  { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
-  [[{ type: 'transaction' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem],
+const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
+  {
+    reason: 'before_send',
+    category: 'error',
+    quantity: 30,
+  },
+  {
+    reason: 'network_error',
+    category: 'transaction',
+    quantity: 23,
+  },
+];
+
+const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
+  DEFAULT_DISCARDED_EVENTS,
+  'https://public@dsn.ingest.sentry.io/1337',
+  123456,
 );
 
 type Assertion = (url: string, body: string | Uint8Array) => void;
@@ -121,6 +135,6 @@ describe('makeMultiplexedTransport', () => {
     );
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
-    await transport.send(TRANSACTION_ENVELOPE);
+    await transport.send(CLIENT_REPORT_ENVELOPE);
   });
 });

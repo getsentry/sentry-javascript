@@ -1,6 +1,7 @@
 import type {
   BaseTransportOptions,
   Envelope,
+  EnvelopeItemType,
   Event,
   EventItem,
   Transport,
@@ -14,16 +15,16 @@ interface MatchParam {
   // The envelope to be sent
   envelope: Envelope;
   // A function that returns an event from the envelope if one exists
-  getEvent(): Event | undefined;
+  getEvent(...types: EnvelopeItemType[]): Event | undefined;
 }
 
 type Matcher = (param: MatchParam) => string[];
 
-function eventFromEnvelope(env: Envelope): Event | undefined {
+function eventFromEnvelope(env: Envelope, types: EnvelopeItemType[]): Event | undefined {
   let event: Event | undefined;
 
   forEachEnvelopeItem(env, (item, type) => {
-    if (type === 'event') {
+    if (types.includes(type)) {
       event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
     }
     // bail out if we found an event
@@ -54,8 +55,11 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     }
 
     async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
-      function getEvent(): Event | undefined {
-        return eventFromEnvelope(envelope);
+      function getEvent(...types: EnvelopeItemType[]): Event | undefined {
+        const eventTypes: EnvelopeItemType[] = types.length
+          ? types
+          : ['event', 'transaction', 'profile', 'replay_event'];
+        return eventFromEnvelope(envelope, eventTypes);
       }
 
       const transports = matcher({ envelope, getEvent }).map(dsn => getTransport(dsn));
