@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
