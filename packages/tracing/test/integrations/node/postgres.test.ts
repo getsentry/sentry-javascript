@@ -88,7 +88,7 @@ describe('setupOnce', () => {
           description: 'SELECT NOW()',
           op: 'db',
           data: {
-            'db.system': 'postgres',
+            'db.system': 'postgresql',
           },
         });
         expect(childSpan.finish).toBeCalled();
@@ -103,7 +103,7 @@ describe('setupOnce', () => {
         description: 'SELECT NOW()',
         op: 'db',
         data: {
-          'db.system': 'postgres',
+          'db.system': 'postgresql',
         },
       });
       expect(childSpan.finish).toBeCalled();
