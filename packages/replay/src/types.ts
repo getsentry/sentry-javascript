@@ -285,6 +285,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
       scrollTimeout: number;
       ignoreSelectors: string[];
     };
+    delayFlushOnCheckout: number;
   }>;
 }
 
