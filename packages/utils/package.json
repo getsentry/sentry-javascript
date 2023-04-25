@@ -25,10 +25,10 @@
     "chai": "^4.1.2"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-p build:transpile:uncached build:types",
     "build:dev": "yarn build",
-    "build:transpile": "yarn ts-node scripts/buildRollup.ts",
-    "build:transpile:uncached": "yarn ts-node scripts/buildRollup.ts",
+    "build:transpile": "yarn rollup -c rollup.npm.config.js",
+    "build:transpile:uncached": "yarn build:transpile && yarn ts-node scripts/fixPolyfillsBuild.ts",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
