@@ -15,6 +15,11 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, ERROR_EVENT] as EventItem,
 ]);
 
+const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
+  { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
+  [[{ type: 'transaction' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem],
+);
+
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
     reason: 'before_send',
@@ -136,5 +141,22 @@ describe('makeMultiplexedTransport', () => {
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(CLIENT_REPORT_ENVELOPE);
+  });
+
+  it('callback getEvent can ignore transactions', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN2_URL);
+      }),
+      ({ getEvent }) => {
+        expect(getEvent('event')).toBeUndefined();
+        return [DSN2];
+      },
+    );
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(TRANSACTION_ENVELOPE);
   });
 });
