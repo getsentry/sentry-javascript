@@ -392,23 +392,25 @@ export class ReplayContainer implements ReplayContainerInterface {
     // than the session replay.
     await this.flushImmediate();
 
-    if (!continueRecording) {
+    const hasStoppedRecording = this.stopRecording();
+
+    if (!continueRecording || !hasStoppedRecording) {
       return;
     }
 
-    // Stop and re-start recording, but in "session" recording mode
-    if (this.stopRecording()) {
-      // Reset all "capture on error" configuration before
-      // starting a new recording
-      this.recordingMode = 'session';
+    // Re-start recording, but in "session" recording mode
 
-      // Once this session ends, we do not want to refresh it
-      if (this.session) {
-        this.session.shouldRefresh = false;
-        this._maybeSaveSession();
-      }
-      this.startRecording();
+    // Reset all "capture on error" configuration before
+    // starting a new recording
+    this.recordingMode = 'session';
+
+    // Once this session ends, we do not want to refresh it
+    if (this.session) {
+      this.session.shouldRefresh = false;
+      this._maybeSaveSession();
     }
+
+    this.startRecording();
   }
 
   /**
