@@ -1,7 +1,7 @@
 import { getCurrentHub } from '@sentry/core';
 import type { ErrorEvent, Event } from '@sentry/types';
 
-import { UNABLE_TO_SEND_REPLAY, DEFAULT_FLUSH_MIN_DELAY } from '../../../src/constants';
+import { UNABLE_TO_SEND_REPLAY } from '../../../src/constants';
 import { handleAfterSendEvent } from '../../../src/coreHandlers/handleAfterSendEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
@@ -146,18 +146,11 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    jest.runAllTimers()
+    jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // Flush from the error
-    expect(mockSend).toHaveBeenCalledTimes(1);
-
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
-
-    // Flush for converting to session-based replay (startRecording call)
+    // Send twice, one for the error & one right after for the session conversion
     expect(mockSend).toHaveBeenCalledTimes(2);
-
     // This is removed now, because it has been converted to a "session" session
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
