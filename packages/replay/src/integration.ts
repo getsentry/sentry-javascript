@@ -186,7 +186,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     // So we call `this._initialize()` in next event loop as a workaround to wait for other
     // global event processors to finish. This is no longer needed, but keeping it
     // here to avoid any future issues.
-    setTimeout(() =>  this._initialize());
+    setTimeout(() => this._initialize());
   }
 
   /**

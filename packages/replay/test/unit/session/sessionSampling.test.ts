@@ -1,4 +1,4 @@
-import { getSessionSampleType} from '../../../src/session/createSession';
+import { getSessionSampleType } from '../../../src/session/createSession';
 import { makeSession } from '../../../src/session/Session';
 
 describe('Unit | session | sessionSampling', () => {
@@ -33,4 +33,4 @@ describe('Unit | session | sessionSampling', () => {
 
     expect(newSession.sampled).toBe('session');
   });
-})
+});

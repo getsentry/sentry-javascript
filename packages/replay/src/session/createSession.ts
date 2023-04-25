@@ -1,6 +1,6 @@
 import { logger } from '@sentry/utils';
 
-import type { Sampled,Session, SessionOptions } from '../types';
+import type { Sampled, Session, SessionOptions } from '../types';
 import { isSampled } from '../util/isSampled';
 import { saveSession } from './saveSession';
 import { makeSession } from './Session';

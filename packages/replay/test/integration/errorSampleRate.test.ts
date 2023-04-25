@@ -182,7 +182,7 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
@@ -223,7 +223,7 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
