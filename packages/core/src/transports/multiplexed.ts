@@ -12,9 +12,12 @@ import { dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 
 interface MatchParam {
-  // The envelope to be sent
+  /** The envelope to be sent */
   envelope: Envelope;
-  // A function that returns an event from the envelope if one exists
+  /**
+   * A function that returns an event from the envelope if one exists
+   * @param types Defaults to ['event', 'transaction', 'profile', 'replay_event']
+   */
   getEvent(...types: EnvelopeItemType[]): Event | undefined;
 }
 
