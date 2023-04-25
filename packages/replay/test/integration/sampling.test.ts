@@ -37,7 +37,8 @@ describe('Integration | sampling', () => {
     expect(mockRecord).not.toHaveBeenCalled();
     expect(spyAddListeners).not.toHaveBeenCalled();
 
-    // TODO: Should we initialize recordingMode to something else?
+    // TODO(billy): Should we initialize recordingMode to something else? It's
+    // awkward that recordingMode is `session` when both sample rates are 0
     expect(replay.recordingMode).toBe('session');
   });
 
