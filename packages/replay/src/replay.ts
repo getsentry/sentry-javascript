@@ -20,7 +20,6 @@ import type {
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayExperimentalPluginOptions,
-  ReplayFlushOptions,
   ReplayPluginOptions,
   SendBufferedReplayOptions,
   Session,
@@ -921,7 +920,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Flush recording data to Sentry. Creates a lock so that only a single flush
    * can be active at a time. Do not call this directly.
    */
-  private _flush = async ({ force = false }: ReplayFlushOptions = {}): Promise<void> => {
+  private _flush = async ({
+    force = false,
+  }: {
+    /**
+     * If true, flush while ignoring the `_isEnabled` state of
+     * Replay integration. (By default, flush is noop if integration
+     * is stopped).
+     */
+    force?: boolean;
+  } = {}): Promise<void> => {
     if (!this._isEnabled && !force) {
       // This can happen if e.g. the replay was stopped because of exceeding the retry limit
       return;
