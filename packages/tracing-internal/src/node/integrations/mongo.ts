@@ -231,6 +231,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       collectionName: collection.collectionName,
       dbName: collection.dbName,
       namespace: collection.namespace,
+      'db.system': 'mongodb',
     };
     const spanContext: SpanContext = {
       op: 'db',
