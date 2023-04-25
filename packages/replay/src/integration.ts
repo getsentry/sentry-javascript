@@ -4,7 +4,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
+import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
@@ -216,14 +216,18 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * Immediately send all pending events.
+   * Immediately send all pending events. In buffer-mode, this should be used
+   * to capture the initial replay.
+   *
+   * Unless `continueRecording` is false, the replay will continue to record and
+   * behave as a "session"-based replay.
    */
-  public flush(): Promise<void> {
+  public flush(options?: SendBufferedReplayOptions): Promise<void> {
     if (!this._replay || !this._replay.isEnabled()) {
       return Promise.resolve();
     }
 
-    return this._replay.flushImmediate();
+    return this._replay.sendBufferedReplayOrFlush(options);
   }
 
   /**

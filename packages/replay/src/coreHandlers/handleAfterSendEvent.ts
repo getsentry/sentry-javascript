@@ -53,19 +53,9 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
-      setTimeout(async () => {
-        // Allow flush to complete before resuming as a session recording, otherwise
-        // the checkout from `startRecording` may be included in the payload.
-        // Prefer to keep the error replay as a separate (and smaller) segment
-        // than the session replay.
-        await replay.flushImmediate();
-
-        if (replay.stopRecording()) {
-          // Reset all "capture on error" configuration before
-          // starting a new recording
-          replay.recordingMode = 'session';
-          replay.startRecording();
-        }
+      setTimeout(() => {
+        // Capture current event buffer as new replay
+        void replay.sendBufferedReplayOrFlush();
       });
     }
   };
