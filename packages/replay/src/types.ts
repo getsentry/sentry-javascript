@@ -182,7 +182,7 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
-export interface SampleRates {
+interface SessionAndPluginOptions {
   /**
    * The sample rate for session-long replays. 1.0 will record all sessions and
    * 0 will record none.
@@ -190,24 +190,31 @@ export interface SampleRates {
   sessionSampleRate: number;
 
   /**
-   * The sample rate for sessions that has had an error occur. This is
-   * independent of `sessionSampleRate`.
-   */
-  errorSampleRate: number;
-}
-
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends SampleRates {
-  /**
    * If false, will create a new session per pageload. Otherwise, saves session
    * to Session Storage.
    */
   stickySession: boolean;
 }
 
-export interface ReplayPluginOptions extends SessionOptions {
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends SessionAndPluginOptions {
+  /**
+   * Should buffer recordings to be saved later either by error sampling, or by
+   * manually calling `flush()`. This is only a factor if not sampled for a
+   * session-based replay.
+   */
+  allowBuffering: boolean;
+}
+
+export interface ReplayPluginOptions extends SessionAndPluginOptions {
+  /**
+   * The sample rate for each error event. This is only a factor if not sampled
+   * for a session-based replay.
+   */
+  errorSampleRate: number;
+
   /**
    * The amount of time to wait before sending a replay
    */

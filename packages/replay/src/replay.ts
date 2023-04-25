@@ -230,7 +230,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       currentSession: this.session,
       // This is intentional: create a new session-based replay when calling `start()`
       sessionSampleRate: 1,
-      errorSampleRate: 0,
+      allowBuffering: false,
     });
 
     session.previousSessionId = previousSessionId;
@@ -255,8 +255,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: 0,
-      // This is intentional: create a new buffer-based replay when calling `startBuffering()`
-      errorSampleRate: 1,
+      allowBuffering: true,
     });
 
     session.previousSessionId = previousSessionId;
@@ -596,7 +595,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       stickySession: Boolean(this._options.stickySession),
       currentSession: this.session,
       sessionSampleRate: this._options.sessionSampleRate,
-      errorSampleRate: this._options.errorSampleRate,
+      allowBuffering: this._options.errorSampleRate > 0,
     });
 
     // If session was newly created (i.e. was not loaded from storage), then

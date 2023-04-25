@@ -34,7 +34,7 @@ describe('Unit | session | createSession', () => {
     const newSession = createSession({
       stickySession: false,
       sessionSampleRate: 1.0,
-      errorSampleRate: 0,
+      allowBuffering: false,
     });
     expect(captureEventMock).not.toHaveBeenCalled();
 
@@ -49,7 +49,7 @@ describe('Unit | session | createSession', () => {
     const newSession = createSession({
       stickySession: true,
       sessionSampleRate: 1.0,
-      errorSampleRate: 0,
+      allowBuffering: false,
     });
     expect(captureEventMock).not.toHaveBeenCalled();
 

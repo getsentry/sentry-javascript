@@ -23,7 +23,7 @@ export function getSession({
   currentSession,
   stickySession,
   sessionSampleRate,
-  errorSampleRate,
+  allowBuffering,
 }: GetSessionParams): { type: 'new' | 'saved'; session: Session } {
   // If session exists and is passed, use it instead of always hitting session storage
   const session = currentSession || (stickySession && fetchSession());
@@ -50,7 +50,7 @@ export function getSession({
   const newSession = createSession({
     stickySession,
     sessionSampleRate,
-    errorSampleRate,
+    allowBuffering,
   });
 
   return { type: 'new', session: newSession };
