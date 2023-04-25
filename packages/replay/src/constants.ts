@@ -11,11 +11,14 @@ export const REPLAY_EVENT_NAME = 'replay_event';
 export const RECORDING_EVENT_NAME = 'replay_recording';
 export const UNABLE_TO_SEND_REPLAY = 'Unable to send Replay';
 
-// The idle limit for a session
-export const SESSION_IDLE_DURATION = 300_000; // 5 minutes in ms
+// The idle limit for a session after which recording is paused.
+export const SESSION_IDLE_PAUSE_DURATION = 300_000; // 5 minutes in ms
+
+// The idle limit for a session after which the session expires.
+export const SESSION_IDLE_EXPIRE_DURATION = 900_000; // 15 minutes in ms
 
 // The maximum length of a session
-export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes
+export const MAX_SESSION_LIFE = 3_600_000; // 60 minutes in ms
 
 /** Default flush delays */
 export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
