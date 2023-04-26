@@ -55,12 +55,12 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: testEnv === 'development' ? `yarn dev --port ${port}` : `yarn preview --port ${port}`,
-      port,
-    },
-    {
       command: 'yarn ts-node --esm start-event-proxy.ts',
       port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP),
+    },
+    {
+      command: testEnv === 'development' ? `yarn dev --port ${port}` : `yarn preview --port ${port}`,
+      port,
     },
   ],
 };
