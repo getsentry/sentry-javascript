@@ -2,7 +2,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 
 import {
   DEFAULT_FLUSH_MIN_DELAY,
-  ERROR_CHECKOUT_TIME,
+  BUFFER_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_DURATION,
@@ -529,7 +529,7 @@ describe('Integration | errorSampleRate', () => {
   });
 
   it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
-    const ELAPSED = ERROR_CHECKOUT_TIME;
+    const ELAPSED = BUFFER_CHECKOUT_TIME;
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
 

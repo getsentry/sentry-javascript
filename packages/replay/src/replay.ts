@@ -4,7 +4,7 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { ERROR_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
+import { BUFFER_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
@@ -152,7 +152,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-<<<<<<< HEAD
    * Get the experimental options.
    * THIS IS INTERNAL AND SUBJECT TO CHANGE!
    * @hidden
@@ -204,9 +203,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Start a replay regardless of sampling rate. Calling this will always
    * create a new session. Will throw an error if replay is already in progress.
-=======
-   * Initializes the plugin.
->>>>>>> develop
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
@@ -275,7 +271,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'buffer' && { checkoutEveryNms: ERROR_CHECKOUT_TIME }),
+        ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
       });
