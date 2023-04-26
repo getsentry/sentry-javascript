@@ -47,20 +47,5 @@ describe('Sentry server SDK', () => {
       // @ts-ignore need access to protected _tags attribute
       expect(currentScope._tags).toEqual({ runtime: 'node' });
     });
-
-    it('adds the Undici integration', () => {
-      init({});
-
-      expect(nodeInit).toHaveBeenCalledTimes(1);
-      expect(nodeInit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          integrations: expect.arrayContaining([
-            expect.objectContaining({
-              name: 'Undici',
-            }),
-          ]),
-        }),
-      );
-    });
   });
 });
