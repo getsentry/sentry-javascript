@@ -69,6 +69,7 @@ const config: PlaywrightTestConfig = {
   webServer: {
     command: testEnv === 'development' ? `pnpm next dev -p ${port}` : `pnpm next start -p ${port}`,
     port,
+    env: process.env as any,
   },
 };
 

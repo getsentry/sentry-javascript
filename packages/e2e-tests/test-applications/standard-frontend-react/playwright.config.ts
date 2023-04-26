@@ -62,6 +62,7 @@ const config: PlaywrightTestConfig = {
     command: 'pnpm start',
     port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO),
     env: {
+      ...(process.env as any),
       PORT: String(Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO)),
     },
   },

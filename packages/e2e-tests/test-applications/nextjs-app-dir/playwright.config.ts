@@ -56,11 +56,13 @@ const config: PlaywrightTestConfig = {
   webServer: [
     {
       command: testEnv === 'development' ? `pnpm next dev -p ${port}` : `pnpm next start -p ${port}`,
+      env: process.env as any,
       port,
     },
     {
       command: 'pnpm ts-node-script start-event-proxy.ts',
       port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP),
+      env: process.env as any,
     },
   ],
 };

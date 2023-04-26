@@ -59,6 +59,7 @@ const config: PlaywrightTestConfig = {
   webServer: {
     command: 'pnpm start',
     port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO),
+    env: process.env as any,
   },
 };
 
