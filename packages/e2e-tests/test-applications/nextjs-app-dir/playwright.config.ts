@@ -7,7 +7,8 @@ if (!testEnv) {
   throw new Error('No test env defined');
 }
 
-const port = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
+const nextPort = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO);
+const eventProxyPort = Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -36,7 +37,7 @@ const config: PlaywrightTestConfig = {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: `http://localhost:${port}`,
+    baseURL: `http://localhost:${nextPort}`,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -56,11 +57,14 @@ const config: PlaywrightTestConfig = {
   webServer: [
     {
       command: 'pnpm ts-node-script start-event-proxy.ts',
-      port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO) + Number(process.env.PORT_GAP),
+      port: eventProxyPort,
     },
     {
-      command: testEnv === 'development' ? `pnpm next dev -p ${port}` : `pnpm next start -p ${port}`,
-      port,
+      command:
+        testEnv === 'development'
+          ? `pnpm wait-port ${eventProxyPort} && pnpm next dev -p ${nextPort}`
+          : `pnpm wait-port ${eventProxyPort} && pnpm next start -p ${nextPort}`,
+      port: nextPort,
     },
   ],
 };
