@@ -247,6 +247,3 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
   const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
   return await readFile(tmpFilePath, 'utf8');
 }
-
-// /Users/abhijeetprasad/workspace/sentry-javascript/packages/e2e-tests/test-utils/event-proxy-server.ts
-// /Users/abhijeetprasad/workspace/sentry-javascript/packages/e2e-tests/test-utils/event-proxy-server
