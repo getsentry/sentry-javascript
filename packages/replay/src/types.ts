@@ -182,20 +182,6 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
-interface SessionAndPluginOptions {
-  /**
-   * The sample rate for session-long replays. 1.0 will record all sessions and
-   * 0 will record none.
-   */
-  sessionSampleRate: number;
-
-  /**
-   * The sample rate for sessions that has had an error occur. This is
-   * independent of `sessionSampleRate`.
-   */
-  errorSampleRate: number;
-}
-
 export interface ReplayNetworkOptions {
   /**
    * Capture request/response details for XHR/Fetch requests that match the given URLs.
@@ -229,35 +215,24 @@ export interface ReplayNetworkOptions {
   networkResponseHeaders: string[];
 }
 
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends SampleRates {
+export interface ReplayPluginOptions extends ReplayNetworkOptions {
+  /**
+   * The sample rate for session-long replays. 1.0 will record all sessions and
+   * 0 will record none.
+   */
+  sessionSampleRate: number;
+
+  /**
+   * The sample rate for sessions that has had an error occur. This is
+   * independent of `sessionSampleRate`.
+   */
+  errorSampleRate: number;
+
   /**
    * If false, will create a new session per pageload. Otherwise, saves session
    * to Session Storage.
    */
   stickySession: boolean;
-}
-
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends SessionAndPluginOptions {
-  /**
-   * Should buffer recordings to be saved later either by error sampling, or by
-   * manually calling `flush()`. This is only a factor if not sampled for a
-   * session-based replay.
-   */
-  allowBuffering: boolean;
-}
-
-export interface ReplayPluginOptions extends SessionAndPluginOptions, ReplayNetworkOptions {
-  /**
-   * The sample rate for each error event. This is only a factor if not sampled
-   * for a session-based replay.
-   */
-  errorSampleRate: number;
 
   /**
    * The amount of time to wait before sending a replay
@@ -295,6 +270,19 @@ export interface ReplayPluginOptions extends SessionAndPluginOptions, ReplayNetw
     mutationBreadcrumbLimit: number;
   }>;
 }
+
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate'|'stickySession'> {
+  /**
+   * Should buffer recordings to be saved later either by error sampling, or by
+   * manually calling `flush()`. This is only a factor if not sampled for a
+   * session-based replay.
+   */
+  allowBuffering: boolean;
+}
+
 
 export interface ReplayIntegrationPrivacyOptions {
   /**
