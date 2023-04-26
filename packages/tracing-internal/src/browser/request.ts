@@ -198,7 +198,7 @@ export function fetchCallback(
       data: {
         ...handlerData.fetchData,
         type: 'fetch',
-        ...(contentLength ? { encoded_body_size: contentLength } : {}),
+        ...(contentLength ? { 'http.response_content_length': contentLength } : {}),
       },
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
       op: 'http.client',
