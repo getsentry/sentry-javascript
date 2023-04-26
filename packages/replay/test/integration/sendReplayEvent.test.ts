@@ -4,10 +4,10 @@ import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import * as SendReplayRequest from '../../src/util/sendReplayRequest';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -396,13 +396,8 @@ describe('Integration | sendReplayEvent', () => {
       'Something bad happened',
     );
 
-    // No activity has occurred, session's last activity should remain the same
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP);
-
-    // segmentId increases despite error
-    expect(replay.session?.segmentId).toBe(1);
-
-    // Replay should be completely stopped now
+    // Replay has stopped, no session should exist
+    expect(replay.session).toBe(undefined);
     expect(replay.isEnabled()).toBe(false);
 
     // Events are ignored now, because we stopped

@@ -1,7 +1,7 @@
 import { createEventBuffer } from '../../src/eventBuffer';
 import { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import type { RecordingOptions, ReplayPluginOptions } from '../../src/types';
-import { clearSession } from './clearSession';
 
 export function setupReplayContainer({
   options,

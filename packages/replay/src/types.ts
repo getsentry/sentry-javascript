@@ -472,7 +472,7 @@ export interface ReplayContainer {
   isPaused(): boolean;
   getContext(): InternalEventContext;
   start(): void;
-  stop(reason?: string): void;
+  stop(reason?: string): Promise<void>;
   pause(): void;
   resume(): void;
   startRecording(): void;

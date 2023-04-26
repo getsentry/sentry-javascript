@@ -219,12 +219,12 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
    * does not support a teardown
    */
-  public stop(): void {
+  public stop(): Promise<void> {
     if (!this._replay) {
-      return;
+      return Promise.resolve();
     }
 
-    this._replay.stop();
+    return this._replay.stop();
   }
 
   /**
@@ -234,9 +234,9 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
    */
-  public flush(options?: SendBufferedReplayOptions): Promise<void> | void {
+  public flush(options?: SendBufferedReplayOptions): Promise<void> {
     if (!this._replay || !this._replay.isEnabled()) {
-      return;
+      return Promise.resolve();
     }
 
     return this._replay.sendBufferedReplayOrFlush(options);
