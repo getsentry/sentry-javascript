@@ -1,7 +1,7 @@
 import { configureScope } from '@sentry/core';
 import { RewriteFrames } from '@sentry/integrations';
 import type { NodeOptions } from '@sentry/node';
-import { init as initNodeSdk, Integrations } from '@sentry/node';
+import { init as initNodeSdk } from '@sentry/node';
 import { addOrUpdateIntegration } from '@sentry/utils';
 
 import { applySdkMetadata } from '../common/metadata';
