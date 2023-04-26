@@ -17,9 +17,9 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-const SAMPLE_RATES = {
+const SAMPLE_OPTIONS = {
   sessionSampleRate: 1.0,
-  errorSampleRate: 0,
+  allowBuffering: false,
 };
 
 function createMockSession(when: number = Date.now()) {
@@ -29,6 +29,7 @@ function createMockSession(when: number = Date.now()) {
     lastActivity: when,
     started: when,
     sampled: 'session',
+    shouldRefresh: true,
   });
 }
 
@@ -53,7 +54,7 @@ describe('Unit | session | getSession', () => {
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
-      ...SAMPLE_RATES,
+      ...SAMPLE_OPTIONS,
     });
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -65,6 +66,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
 
     // Should not have anything in storage
@@ -81,7 +83,7 @@ describe('Unit | session | getSession', () => {
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
-      ...SAMPLE_RATES,
+      ...SAMPLE_OPTIONS,
     });
 
     expect(FetchSession.fetchSession).not.toHaveBeenCalled();
@@ -98,7 +100,7 @@ describe('Unit | session | getSession', () => {
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
-      ...SAMPLE_RATES,
+      ...SAMPLE_OPTIONS,
       currentSession: makeSession({
         id: 'old_session_id',
         lastActivity: Date.now() - 1001,
@@ -126,7 +128,7 @@ describe('Unit | session | getSession', () => {
       },
       stickySession: true,
       sessionSampleRate: 1.0,
-      errorSampleRate: 0.0,
+      allowBuffering: false,
     });
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -138,6 +140,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
 
     // Should not have anything in storage
@@ -147,6 +150,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: expect.any(Number),
       sampled: 'session',
       started: expect.any(Number),
+      shouldRefresh: true,
     });
   });
 
@@ -162,7 +166,7 @@ describe('Unit | session | getSession', () => {
       },
       stickySession: true,
       sessionSampleRate: 1.0,
-      errorSampleRate: 0.0,
+      allowBuffering: false,
     });
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -174,6 +178,7 @@ describe('Unit | session | getSession', () => {
       lastActivity: now,
       sampled: 'session',
       started: now,
+      shouldRefresh: true,
     });
   });
 
@@ -188,7 +193,7 @@ describe('Unit | session | getSession', () => {
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: true,
-      ...SAMPLE_RATES,
+      ...SAMPLE_OPTIONS,
     });
 
     expect(FetchSession.fetchSession).toHaveBeenCalled();
@@ -208,7 +213,7 @@ describe('Unit | session | getSession', () => {
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
-      ...SAMPLE_RATES,
+      ...SAMPLE_OPTIONS,
       currentSession: makeSession({
         id: 'test_session_uuid_2',
         lastActivity: +new Date() - 500,

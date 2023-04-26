@@ -183,20 +183,6 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
-export interface SampleRates {
-  /**
-   * The sample rate for session-long replays. 1.0 will record all sessions and
-   * 0 will record none.
-   */
-  sessionSampleRate: number;
-
-  /**
-   * The sample rate for sessions that has had an error occur. This is
-   * independent of `sessionSampleRate`.
-   */
-  errorSampleRate: number;
-}
-
 export interface ReplayNetworkOptions {
   /**
    * Capture request/response details for XHR/Fetch requests that match the given URLs.
@@ -230,18 +216,25 @@ export interface ReplayNetworkOptions {
   networkResponseHeaders: string[];
 }
 
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends SampleRates {
+export interface ReplayPluginOptions extends ReplayNetworkOptions {
+  /**
+   * The sample rate for session-long replays. 1.0 will record all sessions and
+   * 0 will record none.
+   */
+  sessionSampleRate: number;
+
+  /**
+   * The sample rate for sessions that has had an error occur. This is
+   * independent of `sessionSampleRate`.
+   */
+  errorSampleRate: number;
+
   /**
    * If false, will create a new session per pageload. Otherwise, saves session
    * to Session Storage.
    */
   stickySession: boolean;
-}
 
-export interface ReplayPluginOptions extends SessionOptions, ReplayNetworkOptions {
   /**
    * The amount of time to wait before sending a replay
    */
@@ -277,6 +270,18 @@ export interface ReplayPluginOptions extends SessionOptions, ReplayNetworkOption
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
   }>;
+}
+
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate' | 'stickySession'> {
+  /**
+   * Should buffer recordings to be saved later either by error sampling, or by
+   * manually calling `flush()`. This is only a factor if not sampled for a
+   * session-based replay.
+   */
+  allowBuffering: boolean;
 }
 
 export interface ReplayIntegrationPrivacyOptions {
@@ -397,7 +402,7 @@ export interface InternalEventContext extends CommonEventContext {
   earliestEvent: number | null;
 }
 
-export type Sampled = false | 'session' | 'error';
+export type Sampled = false | 'session' | 'buffer';
 
 export interface Session {
   id: string;
@@ -424,9 +429,15 @@ export interface Session {
   previousSessionId?: string;
 
   /**
-   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * If this is false, the session should not be refreshed when it was inactive.
+   * This can be the case if you had a buffered session which is now recording because an error happened.
+   */
+  shouldRefresh: boolean;
 }
 
 export interface EventBuffer {
@@ -469,6 +480,7 @@ export interface ReplayContainer {
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
+  initializeSampling(): void;
   start(): void;
   stop(reason?: string): Promise<void>;
   pause(): void;

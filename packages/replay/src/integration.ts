@@ -181,14 +181,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * We previously used to create a transaction in `setupOnce` and it would
-   * potentially create a transaction before some native SDK integrations have run
-   * and applied their own global event processor. An example is:
-   * https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
-   *
-   * So we call `replay.setup` in next event loop as a workaround to wait for other
-   * global event processors to finish. This is no longer needed, but keeping it
-   * here to avoid any future issues.
+   * Setup and initialize replay container
    */
   public setupOnce(): void {
     if (!isBrowser()) {
@@ -197,12 +190,20 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
     this._setup();
 
-    // XXX: See method comments above
-    setTimeout(() => this.start());
+    // Once upon a time, we tried to create a transaction in `setupOnce` and it would
+    // potentially create a transaction before some native SDK integrations have run
+    // and applied their own global event processor. An example is:
+    // https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
+    //
+    // So we call `this._initialize()` in next event loop as a workaround to wait for other
+    // global event processors to finish. This is no longer needed, but keeping it
+    // here to avoid any future issues.
+    setTimeout(() => this._initialize());
   }
 
   /**
-   * Initializes the plugin.
+   * Start a replay regardless of sampling rate. Calling this will always
+   * create a new session. Will throw an error if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * PerformanceObserver, Recording, Sentry SDK, etc)
@@ -213,6 +214,18 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     this._replay.start();
+  }
+
+  /**
+   * Start replay buffering. Buffers until `flush()` is called or, if
+   * `replaysOnErrorSampleRate` > 0, until an error occurs.
+   */
+  public startBuffering(): void {
+    if (!this._replay) {
+      return;
+    }
+
+    this._replay.startBuffering();
   }
 
   /**
@@ -228,11 +241,11 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * Immediately send all pending events. In buffer-mode, this should be used
-   * to capture the initial replay.
-   *
+   * If not in "session" recording mode, flush event buffer which will create a new replay.
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
+   *
+   * Otherwise, queue up a flush.
    */
   public flush(options?: SendBufferedReplayOptions): Promise<void> {
     if (!this._replay || !this._replay.isEnabled()) {
@@ -251,6 +264,16 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     return this._replay.getSessionId();
+  }
+  /**
+   * Initializes replay.
+   */
+  protected _initialize(): void {
+    if (!this._replay) {
+      return;
+    }
+
+    this._replay.initializeSampling();
   }
 
   /** Setup the integration. */

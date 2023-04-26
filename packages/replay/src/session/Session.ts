@@ -1,7 +1,6 @@
 import { uuid4 } from '@sentry/utils';
 
 import type { Sampled, Session } from '../types';
-import { isSampled } from '../util/isSampled';
 
 /**
  * Get a session with defaults & applied sampling.
@@ -21,12 +20,6 @@ export function makeSession(session: Partial<Session> & { sampled: Sampled }): S
     lastActivity,
     segmentId,
     sampled,
+    shouldRefresh: true,
   };
-}
-
-/**
- * Get the sampled status for a session based on sample rates & current sampled status.
- */
-export function getSessionSampleType(sessionSampleRate: number, errorSampleRate: number): Sampled {
-  return isSampled(sessionSampleRate) ? 'session' : isSampled(errorSampleRate) ? 'error' : false;
 }

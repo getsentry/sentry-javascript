@@ -28,6 +28,7 @@ describe('Unit | session | fetchSession', () => {
       segmentId: 0,
       sampled: 'session',
       started: 1648827162630,
+      shouldRefresh: true,
     });
   });
 
@@ -43,6 +44,7 @@ describe('Unit | session | fetchSession', () => {
       segmentId: 0,
       sampled: false,
       started: 1648827162630,
+      shouldRefresh: true,
     });
   });
 

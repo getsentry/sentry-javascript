@@ -23,7 +23,7 @@ describe('Unit | util | createReplayEnvelope', () => {
       name: 'sentry.javascript.unknown',
       version: '7.25.0',
     },
-    replay_type: 'error',
+    replay_type: 'buffer',
     contexts: {
       replay: {
         error_sample_rate: 0,
@@ -68,7 +68,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             event_id: REPLAY_ID,
             platform: 'javascript',
             replay_id: REPLAY_ID,
-            replay_type: 'error',
+            replay_type: 'buffer',
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
             tags: {},
@@ -110,7 +110,7 @@ describe('Unit | util | createReplayEnvelope', () => {
             replay_id: REPLAY_ID,
             sdk: { integrations: ['BrowserTracing', 'Replay'], name: 'sentry.javascript.unknown', version: '7.25.0' },
             segment_id: 3,
-            replay_type: 'error',
+            replay_type: 'buffer',
             tags: {},
             timestamp: 1670837008.634,
             trace_ids: ['traceId'],
