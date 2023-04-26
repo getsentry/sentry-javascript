@@ -1,8 +1,8 @@
 import { captureException, getCurrentHub } from '@sentry/core';
 
 import {
-  DEFAULT_FLUSH_MIN_DELAY,
   BUFFER_CHECKOUT_TIME,
+  DEFAULT_FLUSH_MIN_DELAY,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
   SESSION_IDLE_EXPIRE_DURATION,

@@ -275,7 +275,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
 /**
  * Session options that are configurable by the integration configuration
  */
-export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate'|'stickySession'> {
+export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate' | 'stickySession'> {
   /**
    * Should buffer recordings to be saved later either by error sampling, or by
    * manually calling `flush()`. This is only a factor if not sampled for a
@@ -283,7 +283,6 @@ export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSample
    */
   allowBuffering: boolean;
 }
-
 
 export interface ReplayIntegrationPrivacyOptions {
   /**
