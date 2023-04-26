@@ -375,7 +375,7 @@ describe('Integration | errorSampleRate', () => {
   // resample.
   it.each([
     ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
-    ['SESSION_IDLE_DURATION', SESSION_IDLE_DURATION],
+    ['SESSION_IDLE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])(
     'stops replay if session had an error and exceeds %s and does not start a new session thereafter',
     async (_label, waitTime) => {
@@ -433,7 +433,7 @@ describe('Integration | errorSampleRate', () => {
 
   it.each([
     ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
-    ['SESSION_IDLE_DURATION', SESSION_IDLE_DURATION],
+    ['SESSION_IDLE_EXPIRE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
   ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
     expect(replay).not.toHaveLastSentReplay();
 
@@ -466,8 +466,30 @@ describe('Integration | errorSampleRate', () => {
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
-    // Remains disabled!
-    expect(replay.isEnabled()).toBe(false);
+    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
+
+    // should still react to errors later on
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('session');
+    expect(replay.session?.sampled).toBe('buffer');
+    expect(replay.session?.shouldRefresh).toBe(false);
   });
 
   // Should behave the same as above test
