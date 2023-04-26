@@ -1,5 +1,6 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "Sveltekit",
-  "buildCommand": "pnpm install && pnpm build"
+  "buildCommand": "pnpm install && pnpm build",
+  "tests": []
 }
