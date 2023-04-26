@@ -16,7 +16,7 @@ jobs:
           github.event.comment.author_association != 'COLLABORATOR'
           && github.event.comment.author_association != 'MEMBER'
           && github.event.comment.author_association != 'OWNER'
-          && !github.event.issue.closed
+          && github.event.issue.state == 'open'
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: 'Waiting for: Team'
