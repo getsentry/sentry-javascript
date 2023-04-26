@@ -1,4 +1,11 @@
-import type { BaseTransportOptions, ClientReport, EventEnvelope, EventItem, Transport } from '@sentry/types';
+import type {
+  BaseTransportOptions,
+  ClientReport,
+  EventEnvelope,
+  EventItem,
+  TransactionEvent,
+  Transport,
+} from '@sentry/types';
 import { createClientReportEnvelope, createEnvelope, dsnFromString } from '@sentry/utils';
 import { TextEncoder } from 'util';
 
@@ -15,9 +22,10 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, ERROR_EVENT] as EventItem,
 ]);
 
+const TRANSACTION_EVENT: TransactionEvent = { type: 'transaction', event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' };
 const TRANSACTION_ENVELOPE = createEnvelope<EventEnvelope>(
   { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
-  [[{ type: 'transaction' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem],
+  [[{ type: 'transaction' }, TRANSACTION_EVENT] as EventItem],
 );
 
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
@@ -143,7 +151,7 @@ describe('makeMultiplexedTransport', () => {
     await transport.send(CLIENT_REPORT_ENVELOPE);
   });
 
-  it('callback getEvent can ignore transactions', async () => {
+  it('callback getEvent ignores transactions by default', async () => {
     expect.assertions(2);
 
     const makeTransport = makeMultiplexedTransport(
@@ -151,7 +159,24 @@ describe('makeMultiplexedTransport', () => {
         expect(url).toBe(DSN2_URL);
       }),
       ({ getEvent }) => {
-        expect(getEvent(['event'])).toBeUndefined();
+        expect(getEvent()).toBeUndefined();
+        return [DSN2];
+      },
+    );
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(TRANSACTION_ENVELOPE);
+  });
+
+  it('callback getEvent can define envelope types', async () => {
+    expect.assertions(2);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN2_URL);
+      }),
+      ({ getEvent }) => {
+        expect(getEvent(['event', 'transaction'])).toBe(TRANSACTION_EVENT);
         return [DSN2];
       },
     );
