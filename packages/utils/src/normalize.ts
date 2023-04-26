@@ -33,7 +33,7 @@ type ObjOrArray<T> = { [key: string]: T };
  * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function normalize(input: unknown, depth: number = +Infinity, maxProperties: number = +Infinity): any {
+export function normalize(input: unknown, depth: number = 100, maxProperties: number = +Infinity): any {
   try {
     // since we're at the outermost level, we don't provide a key
     return visit('', input, depth, maxProperties);
