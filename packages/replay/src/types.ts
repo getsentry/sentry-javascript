@@ -190,6 +190,50 @@ interface SessionAndPluginOptions {
   sessionSampleRate: number;
 
   /**
+   * The sample rate for sessions that has had an error occur. This is
+   * independent of `sessionSampleRate`.
+   */
+  errorSampleRate: number;
+}
+
+export interface ReplayNetworkOptions {
+  /**
+   * Capture request/response details for XHR/Fetch requests that match the given URLs.
+   * The URLs can be strings or regular expressions.
+   * When provided a string, we will match any URL that contains the given string.
+   * You can use a Regex to handle exact matches or more complex matching.
+   *
+   * Only URLs matching these patterns will have bodies & additional headers captured.
+   */
+  networkDetailAllowUrls: (string | RegExp)[];
+
+  /**
+   * If request & response bodies should be captured.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Defaults to true.
+   */
+  networkCaptureBodies: boolean;
+
+  /**
+   * Capture the following request headers, in addition to the default ones.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Any headers defined here will be captured in addition to the default headers.
+   */
+  networkRequestHeaders: string[];
+
+  /**
+   * Capture the following response headers, in addition to the default ones.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Any headers defined here will be captured in addition to the default headers.
+   */
+  networkResponseHeaders: string[];
+}
+
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends SampleRates {
+  /**
    * If false, will create a new session per pageload. Otherwise, saves session
    * to Session Storage.
    */
@@ -208,7 +252,7 @@ export interface SessionOptions extends SessionAndPluginOptions {
   allowBuffering: boolean;
 }
 
-export interface ReplayPluginOptions extends SessionAndPluginOptions {
+export interface ReplayPluginOptions extends SessionAndPluginOptions, ReplayNetworkOptions {
   /**
    * The sample rate for each error event. This is only a factor if not sampled
    * for a session-based replay.
@@ -249,31 +293,7 @@ export interface ReplayPluginOptions extends SessionAndPluginOptions {
     traceInternals: boolean;
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
-    captureNetworkBodies: boolean;
-    captureRequestHeaders: string[];
-    captureResponseHeaders: string[];
   }>;
-}
-
-export interface ReplayNetworkOptions {
-  /**
-   * If request & response bodies should be captured.
-   */
-  captureBodies: boolean;
-
-  /**
-   * Capture the following request headers, in addition to the default ones.
-   */
-  requestHeaders: string[];
-
-  /**
-   * Capture the following response headers, in addition to the default ones.
-   */
-  responseHeaders: string[];
-}
-
-export interface ReplayExperimentalPluginOptions {
-  network: ReplayNetworkOptions;
 }
 
 export interface ReplayIntegrationPrivacyOptions {
@@ -487,7 +507,6 @@ export interface ReplayContainer {
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
-  getExperimentalOptions(): ReplayExperimentalPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
@@ -536,7 +555,7 @@ type JsonArray = unknown[];
 
 export type NetworkBody = JsonObject | JsonArray | string;
 
-export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON';
+export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON' | 'URL_SKIPPED';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];

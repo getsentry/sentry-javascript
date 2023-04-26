@@ -80,10 +80,17 @@ sentryTest(
         data: {
           method: 'GET',
           statusCode: 200,
+          request: {
+            headers: {},
+            _meta: {
+              warnings: ['URL_SKIPPED'],
+            },
+          },
           response: {
             size: 789,
-            headers: {
-              'content-length': '789',
+            headers: {},
+            _meta: {
+              warnings: ['URL_SKIPPED'],
             },
           },
         },
@@ -169,9 +176,18 @@ sentryTest('captures response size without Content-Length header', async ({ getL
       data: {
         method: 'GET',
         statusCode: 200,
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
         response: {
           size: 29,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',
@@ -253,9 +269,18 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
       data: {
         method: 'POST',
         statusCode: 200,
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
         response: {
           size: 24,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',

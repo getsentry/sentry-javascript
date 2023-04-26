@@ -11,6 +11,8 @@ import { isBrowser } from './util/isBrowser';
 const MEDIA_SELECTORS =
   'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
 
+const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
+
 let _initialized = false;
 
 type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
@@ -57,6 +59,11 @@ export class Replay implements Integration {
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
+
+    networkDetailAllowUrls = [],
+    networkCaptureBodies = true,
+    networkRequestHeaders = [],
+    networkResponseHeaders = [],
 
     mask = [],
     unmask = [],
@@ -116,6 +123,11 @@ export class Replay implements Integration {
       errorSampleRate,
       useCompression,
       blockAllMedia,
+      networkDetailAllowUrls,
+      networkCaptureBodies,
+      networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
+      networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
+
       _experiments,
     };
 
@@ -210,7 +222,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    */
   public startBuffering(): void {
     if (!this._replay) {
-      return;
+      return Promise.resolve();
     }
 
     this._replay.startBuffering();
@@ -310,4 +322,8 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
   }
 
   return finalOptions;
+}
+
+function _getMergedNetworkHeaders(headers: string[]): string[] {
+  return [...DEFAULT_NETWORK_HEADERS, ...headers.map(header => header.toLowerCase())];
 }

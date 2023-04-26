@@ -54,7 +54,10 @@ describe('setupOnce', function () {
   it('should add middleware with $use method correctly', done => {
     void Client.user.create()?.then(() => {
       expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenLastCalledWith({ name: 'user create', op: 'db.sql.prisma' }, expect.any(Function));
+      expect(mockTrace).toHaveBeenLastCalledWith(
+        { name: 'user create', op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
+        expect.any(Function),
+      );
       done();
     });
   });
