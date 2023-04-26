@@ -8,12 +8,10 @@ import {
   waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
   await page.route('**/foo', route => {
     return route.fulfill({
@@ -75,8 +73,16 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
         request: {
           size: 13,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
-        response: additionalHeaders ? { headers: additionalHeaders } : undefined,
+        response: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),
@@ -86,12 +92,10 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   ]);
 });
 
-sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
   await page.route('**/foo', async route => {
     return route.fulfill({
@@ -155,8 +159,16 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
         request: {
           size: 26,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
-        response: additionalHeaders ? { headers: additionalHeaders } : undefined,
+        response: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
       },
       description: 'http://localhost:7654/foo',
       endTimestamp: expect.any(Number),

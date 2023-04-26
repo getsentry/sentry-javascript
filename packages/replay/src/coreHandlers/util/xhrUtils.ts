@@ -5,11 +5,13 @@ import type { ReplayContainer, ReplayNetworkOptions, ReplayNetworkRequestData, X
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
+  buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
   parseContentLengthHeader,
+  urlMatches,
 } from './networkUtils';
 
 /**
@@ -67,28 +69,44 @@ function _prepareXhrData(
   const {
     url,
     method,
-    status_code: statusCode,
+    status_code: statusCode = 0,
     request_body_size: requestBodySize,
     response_body_size: responseBodySize,
   } = breadcrumb.data;
-
-  const xhrInfo = xhr[SENTRY_XHR_DATA_KEY];
-  const requestHeaders = xhrInfo ? getAllowedHeaders(xhrInfo.request_headers, options.requestHeaders) : {};
-  const responseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.responseHeaders);
 
   if (!url) {
     return null;
   }
 
+  if (!urlMatches(url, options.networkDetailAllowUrls)) {
+    const request = buildSkippedNetworkRequestOrResponse(requestBodySize);
+    const response = buildSkippedNetworkRequestOrResponse(responseBodySize);
+    return {
+      startTimestamp,
+      endTimestamp,
+      url,
+      method,
+      statusCode,
+      request,
+      response,
+    };
+  }
+
+  const xhrInfo = xhr[SENTRY_XHR_DATA_KEY];
+  const networkRequestHeaders = xhrInfo
+    ? getAllowedHeaders(xhrInfo.request_headers, options.networkRequestHeaders)
+    : {};
+  const networkResponseHeaders = getAllowedHeaders(getResponseHeaders(xhr), options.networkResponseHeaders);
+
   const request = buildNetworkRequestOrResponse(
-    requestHeaders,
+    networkRequestHeaders,
     requestBodySize,
-    options.captureBodies ? getBodyString(input) : undefined,
+    options.networkCaptureBodies ? getBodyString(input) : undefined,
   );
   const response = buildNetworkRequestOrResponse(
-    responseHeaders,
+    networkResponseHeaders,
     responseBodySize,
-    options.captureBodies ? hint.xhr.responseText : undefined,
+    options.networkCaptureBodies ? hint.xhr.responseText : undefined,
   );
 
   return {
@@ -96,7 +114,7 @@ function _prepareXhrData(
     endTimestamp,
     url,
     method,
-    statusCode: statusCode || 0,
+    statusCode,
     request,
     response,
   };

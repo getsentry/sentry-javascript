@@ -1,5 +1,5 @@
 import type { TextEncoderInternal } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE } from '../../constants';
 import type {
@@ -120,6 +120,17 @@ export function getNetworkBody(bodyText: string | undefined): NetworkBody | unde
   return bodyText;
 }
 
+/** Build the request or response part of a replay network breadcrumb that was skipped. */
+export function buildSkippedNetworkRequestOrResponse(bodySize: number | undefined): ReplayNetworkRequestOrResponse {
+  return {
+    headers: {},
+    size: bodySize,
+    _meta: {
+      warnings: ['URL_SKIPPED'],
+    },
+  };
+}
+
 /** Build the request or response part of a replay network breadcrumb. */
 export function buildNetworkRequestOrResponse(
   headers: Record<string, string>,
@@ -219,4 +230,9 @@ function _strIsProbablyJson(str: string): boolean {
 
   // Simple check: If this does not start & end with {} or [], it's not JSON
   return (first === '[' && last === ']') || (first === '{' && last === '}');
+}
+
+/** Match an URL against a list of strings/Regex. */
+export function urlMatches(url: string, urls: (string | RegExp)[]): boolean {
+  return stringMatchesSomePattern(url, urls);
 }

@@ -156,8 +156,20 @@ export const expectedFetchPerformanceSpan = {
   data: {
     method: 'POST',
     statusCode: 200,
-    request: { size: 3, headers: {} },
-    response: { size: 11, headers: { 'content-length': '11', 'content-type': 'application/json' } },
+    request: {
+      size: 3,
+      headers: {},
+      _meta: {
+        warnings: ['URL_SKIPPED'],
+      },
+    },
+    response: {
+      size: 11,
+      headers: {},
+      _meta: {
+        warnings: ['URL_SKIPPED'],
+      },
+    },
   },
 };
 
@@ -169,7 +181,19 @@ export const expectedXHRPerformanceSpan = {
   data: {
     method: 'GET',
     statusCode: 200,
-    response: { size: 11, headers: { 'content-length': '11', 'content-type': 'application/json' } },
+    request: {
+      headers: {},
+      _meta: {
+        warnings: ['URL_SKIPPED'],
+      },
+    },
+    response: {
+      size: 11,
+      headers: {},
+      _meta: {
+        warnings: ['URL_SKIPPED'],
+      },
+    },
   },
 };
 
