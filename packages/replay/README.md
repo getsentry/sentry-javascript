@@ -86,9 +86,9 @@ import * as Sentry from "@sentry/browser";
 Sentry.setUser({ email: "jane.doe@example.com" });
 ```
 
-### Stopping & re-starting replays
+### Stopping & starting Replays manually
 
-Replay recording only starts when it is included in the `integrations` array when calling `Sentry.init` or calling `addIntegration` from the a Sentry client instance. To stop recording you can call the `stop()`.
+Replay recording only starts when it is included in the `integrations` array when calling `Sentry.init` or calling `addIntegration` from the a Sentry client instance. To stop recording you can call `stop()`.
 
 ```js
 import * as Sentry from "@sentry/react";
@@ -108,6 +108,16 @@ client?.addIntegration(replay);
 // Stop recording
 replay.stop();
 ```
+
+When both `replaysSessionSampleRate` and `replaysOnErrorSampleRate` are `0`, recording will _not_ start.
+In this case, you can manually start recording:
+
+```js
+replay.start(); // Will start a session in "session" mode, regardless of sample rates
+replay.startBuffering(); // Will start a session in "buffer" mode, regardless of sample rates
+```
+
+
 
 ## Loading Replay as a CDN Bundle
 
@@ -154,8 +164,11 @@ Sampling allows you to control how much of your website's traffic will result in
 - `replaysSessionSampleRate` - The sample rate for replays that begin recording immediately and last the entirety of the user's session.
 - `replaysOnErrorSampleRate` - The sample rate for replays that are recorded when an error happens. This type of replay will record up to a minute of events prior to the error and continue recording until the session ends.
 
-Sampling occurs when the session is first started. `replaysSessionSampleRate` is evaluated first. If it is sampled, then the replay recording begins. Otherwise, `replaysOnErrorSampleRate` is evaluated and if it is sampled, the integration will begin buffering the replay and will only upload a replay to Sentry when an error occurs. The remainder of the replay will behave similarly to a whole-session replay.
-
+When Replay is initialized, we check the `replaysSessionSampleRate`.
+If it is sampled, then we start recording & sending Replay data immediately.
+Else, if `replaysOnErrorSampleRate > 0`, we'll start recording in buffering mode.
+In this mode, whenever an error occurs we'll check `replaysOnErrorSampleRate`.
+If it is sampled, when we'll upload the Replay to Sentry and continue recording normally.
 
 ## Configuration
 
@@ -234,5 +247,5 @@ This should not happen to often, but be aware that it is theoretically possible.
 ## Manually sending replay data
 
 You can use `replay.flush()` to immediately send all currently captured replay data.
-This can be combined with `replaysOnErrorSampleRate: 1`
-in order to be able to send the last 60 seconds of replay data on-demand.
+When Replay is currently in buffering mode, this will send up to the last 60 seconds of replay data,
+and also continue sending afterwards, similar to when an error happens & is recorded.
