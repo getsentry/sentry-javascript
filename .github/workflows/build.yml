@@ -511,7 +511,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
+    timeout-minutes: 18
     strategy:
       fail-fast: false
       matrix:
@@ -768,6 +768,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7
       - name: Set up Node
         uses: actions/setup-node@v3
         with:

@@ -25,7 +25,8 @@ export interface SendReplayData {
 }
 
 export interface Timeouts {
-  sessionIdle: number;
+  sessionIdlePause: number;
+  sessionIdleExpire: number;
   maxSessionLife: number;
 }
 
@@ -182,7 +183,40 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
-export interface SampleRates {
+export interface ReplayNetworkOptions {
+  /**
+   * Capture request/response details for XHR/Fetch requests that match the given URLs.
+   * The URLs can be strings or regular expressions.
+   * When provided a string, we will match any URL that contains the given string.
+   * You can use a Regex to handle exact matches or more complex matching.
+   *
+   * Only URLs matching these patterns will have bodies & additional headers captured.
+   */
+  networkDetailAllowUrls: (string | RegExp)[];
+
+  /**
+   * If request & response bodies should be captured.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Defaults to true.
+   */
+  networkCaptureBodies: boolean;
+
+  /**
+   * Capture the following request headers, in addition to the default ones.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Any headers defined here will be captured in addition to the default headers.
+   */
+  networkRequestHeaders: string[];
+
+  /**
+   * Capture the following response headers, in addition to the default ones.
+   * Only applies to URLs matched by `networkDetailAllowUrls`.
+   * Any headers defined here will be captured in addition to the default headers.
+   */
+  networkResponseHeaders: string[];
+}
+
+export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The sample rate for session-long replays. 1.0 will record all sessions and
    * 0 will record none.
@@ -194,20 +228,13 @@ export interface SampleRates {
    * independent of `sessionSampleRate`.
    */
   errorSampleRate: number;
-}
 
-/**
- * Session options that are configurable by the integration configuration
- */
-export interface SessionOptions extends SampleRates {
   /**
    * If false, will create a new session per pageload. Otherwise, saves session
    * to Session Storage.
    */
   stickySession: boolean;
-}
 
-export interface ReplayPluginOptions extends SessionOptions {
   /**
    * The amount of time to wait before sending a replay
    */
@@ -242,31 +269,19 @@ export interface ReplayPluginOptions extends SessionOptions {
     traceInternals: boolean;
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
-    captureNetworkBodies: boolean;
-    captureRequestHeaders: string[];
-    captureResponseHeaders: string[];
   }>;
 }
 
-export interface ReplayNetworkOptions {
+/**
+ * Session options that are configurable by the integration configuration
+ */
+export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate' | 'stickySession'> {
   /**
-   * If request & response bodies should be captured.
+   * Should buffer recordings to be saved later either by error sampling, or by
+   * manually calling `flush()`. This is only a factor if not sampled for a
+   * session-based replay.
    */
-  captureBodies: boolean;
-
-  /**
-   * Capture the following request headers, in addition to the default ones.
-   */
-  requestHeaders: string[];
-
-  /**
-   * Capture the following response headers, in addition to the default ones.
-   */
-  responseHeaders: string[];
-}
-
-export interface ReplayExperimentalPluginOptions {
-  network: ReplayNetworkOptions;
+  allowBuffering: boolean;
 }
 
 export interface ReplayIntegrationPrivacyOptions {
@@ -387,7 +402,7 @@ export interface InternalEventContext extends CommonEventContext {
   earliestEvent: number | null;
 }
 
-export type Sampled = false | 'session' | 'error';
+export type Sampled = false | 'session' | 'buffer';
 
 export interface Session {
   id: string;
@@ -414,9 +429,15 @@ export interface Session {
   previousSessionId?: string;
 
   /**
-   * Is the session sampled? `false` if not sampled, otherwise, `session` or `error`
+   * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * If this is false, the session should not be refreshed when it was inactive.
+   * This can be the case if you had a buffered session which is now recording because an error happened.
+   */
+  shouldRefresh: boolean;
 }
 
 export interface EventBuffer {
@@ -446,29 +467,31 @@ export interface EventBuffer {
 
 export type AddUpdateCallback = () => boolean | void;
 
+export interface SendBufferedReplayOptions {
+  continueRecording?: boolean;
+}
+
 export interface ReplayContainer {
   eventBuffer: EventBuffer | null;
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
-  timeouts: {
-    sessionIdle: number;
-    maxSessionLife: number;
-  };
+  timeouts: Timeouts;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
+  initializeSampling(): void;
   start(): void;
-  stop(reason?: string): void;
+  stop(reason?: string): Promise<void>;
   pause(): void;
   resume(): void;
   startRecording(): void;
   stopRecording(): boolean;
-  flushImmediate(): void;
+  sendBufferedReplayOrFlush(options?: SendBufferedReplayOptions): Promise<void>;
+  flushImmediate(): Promise<void>;
   triggerUserActivity(): void;
   addUpdate(cb: AddUpdateCallback): void;
   getOptions(): ReplayPluginOptions;
-  getExperimentalOptions(): ReplayExperimentalPluginOptions;
   getSessionId(): string | undefined;
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
@@ -517,7 +540,7 @@ type JsonArray = unknown[];
 
 export type NetworkBody = JsonObject | JsonArray | string;
 
-export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON';
+export type NetworkMetaWarning = 'JSON_TRUNCATED' | 'TEXT_TRUNCATED' | 'INVALID_JSON' | 'URL_SKIPPED';
 
 interface NetworkMeta {
   warnings?: NetworkMetaWarning[];

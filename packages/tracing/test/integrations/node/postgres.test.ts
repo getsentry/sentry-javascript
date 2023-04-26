@@ -72,6 +72,9 @@ describe('setupOnce', () => {
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
+          data: {
+            'db.system': 'postgresql',
+          },
         });
         expect(childSpan.finish).toBeCalled();
         done();
@@ -84,6 +87,9 @@ describe('setupOnce', () => {
         expect(parentSpan.startChild).toBeCalledWith({
           description: 'SELECT NOW()',
           op: 'db',
+          data: {
+            'db.system': 'postgresql',
+          },
         });
         expect(childSpan.finish).toBeCalled();
         done();
@@ -96,6 +102,9 @@ describe('setupOnce', () => {
       expect(parentSpan.startChild).toBeCalledWith({
         description: 'SELECT NOW()',
         op: 'db',
+        data: {
+          'db.system': 'postgresql',
+        },
       });
       expect(childSpan.finish).toBeCalled();
     });

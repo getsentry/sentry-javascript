@@ -22,7 +22,7 @@ function _autoloadDatabaseIntegrations(): void {
       const integration = dynamicRequire(module, './node/integrations/mongo') as {
         Mongo: IntegrationClass<Integration>;
       };
-      return new integration.Mongo({ mongoose: true });
+      return new integration.Mongo();
     },
     mysql() {
       const integration = dynamicRequire(module, './node/integrations/mysql') as {

@@ -31,7 +31,7 @@ export async function addEvent(
   // page has been left open and idle for a long period of time and user
   // comes back to trigger a new session. The performance entries rely on
   // `performance.timeOrigin`, which is when the page first opened.
-  if (timestampInMs + replay.timeouts.sessionIdle < Date.now()) {
+  if (timestampInMs + replay.timeouts.sessionIdlePause < Date.now()) {
     return null;
   }
 
@@ -46,7 +46,7 @@ export async function addEvent(
     return await replay.eventBuffer.addEvent(event, isCheckout);
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
-    replay.stop('addEvent');
+    await replay.stop('addEvent');
 
     const client = getCurrentHub().getClient();
 

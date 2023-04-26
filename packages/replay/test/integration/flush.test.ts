@@ -2,13 +2,13 @@ import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();

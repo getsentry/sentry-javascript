@@ -4,12 +4,14 @@ import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MAX_DELAY, DEFAULT_FLUSH_MIN_DELAY } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions } from './types';
+import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { isBrowser } from './util/isBrowser';
 
 const MEDIA_SELECTORS =
   'img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]';
+
+const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
 
 let _initialized = false;
 
@@ -57,6 +59,11 @@ export class Replay implements Integration {
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
+
+    networkDetailAllowUrls = [],
+    networkCaptureBodies = true,
+    networkRequestHeaders = [],
+    networkResponseHeaders = [],
 
     mask = [],
     unmask = [],
@@ -116,6 +123,11 @@ export class Replay implements Integration {
       errorSampleRate,
       useCompression,
       blockAllMedia,
+      networkDetailAllowUrls,
+      networkCaptureBodies,
+      networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),
+      networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
+
       _experiments,
     };
 
@@ -169,14 +181,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * We previously used to create a transaction in `setupOnce` and it would
-   * potentially create a transaction before some native SDK integrations have run
-   * and applied their own global event processor. An example is:
-   * https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
-   *
-   * So we call `replay.setup` in next event loop as a workaround to wait for other
-   * global event processors to finish. This is no longer needed, but keeping it
-   * here to avoid any future issues.
+   * Setup and initialize replay container
    */
   public setupOnce(): void {
     if (!isBrowser()) {
@@ -185,12 +190,20 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
     this._setup();
 
-    // XXX: See method comments above
-    setTimeout(() => this.start());
+    // Once upon a time, we tried to create a transaction in `setupOnce` and it would
+    // potentially create a transaction before some native SDK integrations have run
+    // and applied their own global event processor. An example is:
+    // https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
+    //
+    // So we call `this._initialize()` in next event loop as a workaround to wait for other
+    // global event processors to finish. This is no longer needed, but keeping it
+    // here to avoid any future issues.
+    setTimeout(() => this._initialize());
   }
 
   /**
-   * Initializes the plugin.
+   * Start a replay regardless of sampling rate. Calling this will always
+   * create a new session. Will throw an error if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * PerformanceObserver, Recording, Sentry SDK, etc)
@@ -204,26 +217,42 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
   }
 
   /**
-   * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
-   * does not support a teardown
+   * Start replay buffering. Buffers until `flush()` is called or, if
+   * `replaysOnErrorSampleRate` > 0, until an error occurs.
    */
-  public stop(): void {
+  public startBuffering(): void {
     if (!this._replay) {
       return;
     }
 
-    this._replay.stop();
+    this._replay.startBuffering();
   }
 
   /**
-   * Immediately send all pending events.
+   * Currently, this needs to be manually called (e.g. for tests). Sentry SDK
+   * does not support a teardown
    */
-  public flush(): Promise<void> | void {
-    if (!this._replay || !this._replay.isEnabled()) {
-      return;
+  public stop(): Promise<void> {
+    if (!this._replay) {
+      return Promise.resolve();
     }
 
-    return this._replay.flushImmediate();
+    return this._replay.stop();
+  }
+
+  /**
+   * If not in "session" recording mode, flush event buffer which will create a new replay.
+   * Unless `continueRecording` is false, the replay will continue to record and
+   * behave as a "session"-based replay.
+   *
+   * Otherwise, queue up a flush.
+   */
+  public flush(options?: SendBufferedReplayOptions): Promise<void> {
+    if (!this._replay || !this._replay.isEnabled()) {
+      return Promise.resolve();
+    }
+
+    return this._replay.sendBufferedReplayOrFlush(options);
   }
 
   /**
@@ -235,6 +264,16 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     }
 
     return this._replay.getSessionId();
+  }
+  /**
+   * Initializes replay.
+   */
+  protected _initialize(): void {
+    if (!this._replay) {
+      return;
+    }
+
+    this._replay.initializeSampling();
   }
 
   /** Setup the integration. */
@@ -283,4 +322,8 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
   }
 
   return finalOptions;
+}
+
+function _getMergedNetworkHeaders(headers: string[]): string[] {
+  return [...DEFAULT_NETWORK_HEADERS, ...headers.map(header => header.toLowerCase())];
 }

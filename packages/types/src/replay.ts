@@ -24,4 +24,4 @@ export type ReplayRecordingData = string | Uint8Array;
  * NOTE: These types are still considered Beta and subject to change.
  * @hidden
  */
-export type ReplayRecordingMode = 'session' | 'error';
+export type ReplayRecordingMode = 'session' | 'buffer';

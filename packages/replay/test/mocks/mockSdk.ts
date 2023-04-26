@@ -68,6 +68,10 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
     public setupOnce(): void {
       // do nothing
     }
+
+    public initialize(): void {
+      return super._initialize();
+    }
   }
 
   const replayIntegration = new TestReplayIntegration({
@@ -91,7 +95,8 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
   replayIntegration['_setup']();
 
   if (autoStart) {
-    replayIntegration.start();
+    // Only exists in our mock
+    replayIntegration.initialize();
   }
 
   const replay = replayIntegration['_replay']!;

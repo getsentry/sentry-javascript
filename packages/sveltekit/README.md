@@ -19,9 +19,9 @@ TODO: No docs yet, comment back in once we have docs
 
 ## SDK Status
 
-This SDK is currently in **Alpha state** and we're still experimenting with APIs and functionality.
-We therefore make no guarantees in terms of semver or breaking changes.
-If you want to try this SDK and come across a problem, please open a [GitHub Issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
+This SDK is currently in **Beta state**. Bugs and issues might still appear and we're still actively working
+on the SDK. Also, we're still adding features.
+If you experience problems or have feedback, please open a [GitHub Issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
 
 ## Compatibility
 
@@ -31,11 +31,7 @@ Currently, the minimum supported version of SvelteKit is `1.0.0`.
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added functionality related to SvelteKit.
 
-## Usage
-
-Although the SDK is not yet stable, you're more than welcome to give it a try and provide us with early feedback.
-
-**Here's how to get started:**
+## Setup
 
 ### 1. Prerequesits & Installation
 
@@ -125,10 +121,10 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
     // hooks.server.(js|ts)
     import { sentryHandle } from '@sentry/sveltekit';
 
-    export const handle = sentryHandle;
+    export const handle = sentryHandle();
     // or alternatively, if you already have a handler defined, use the `sequence` function
     // see: https://kit.svelte.dev/docs/modules#sveltejs-kit-hooks-sequence
-    // export const handle = sequence(sentryHandle, yourHandler);
+    // export const handle = sequence(sentryHandle(), yourHandler());
    ```
 
 ### 4. Configuring `load` Functions
@@ -258,7 +254,7 @@ export default {
 
 ## Known Limitations
 
-This SDK is still under active development and several features are missing.
+This SDK is still under active development.
 Take a look at our [SvelteKit SDK Development Roadmap](https://github.com/getsentry/sentry-javascript/issues/6692) to follow the progress:
 
 - **Adapters** other than `@sveltejs/adapter-node` are currently not supported.

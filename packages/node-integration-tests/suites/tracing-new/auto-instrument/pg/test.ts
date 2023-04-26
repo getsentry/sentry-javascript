@@ -40,14 +40,23 @@ test('should auto-instrument `pg` package.', async () => {
       {
         description: 'SELECT * FROM foo where bar ilike "baz%"',
         op: 'db',
+        data: {
+          'db.system': 'postgresql',
+        },
       },
       {
         description: 'SELECT * FROM bazz',
         op: 'db',
+        data: {
+          'db.system': 'postgresql',
+        },
       },
       {
         description: 'SELECT NOW()',
         op: 'db',
+        data: {
+          'db.system': 'postgresql',
+        },
       },
     ],
   });
