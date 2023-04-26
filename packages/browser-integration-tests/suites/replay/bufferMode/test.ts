@@ -339,8 +339,7 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
   expect(
     await page.evaluate(() => {
       const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-      // @ts-ignore private
-      const replay = replayIntegration._replay;
+      const replay = replayIntegration['_replay'];
       replayIntegration.startBuffering();
       return replay.isEnabled();
     }),
@@ -356,8 +355,7 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
 
   await page.evaluate(async () => {
     const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
-    // @ts-ignore private member, change errorSampleRate
-    replayIntegration._replay._options.errorSampleRate = 1.0;
+    replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
   });
 
   // Error sample rate is now at 1.0, this error should create a replay
