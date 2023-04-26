@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "yarn tsc",
+    "build": "tsc",
     "start": "node dist/app.js",
-    "test": "yarn playwright test"
+    "test": "playwright test"
   },
   "dependencies": {
     "@sentry/integrations": "*",
