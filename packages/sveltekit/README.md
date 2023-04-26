@@ -125,10 +125,10 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
     // hooks.server.(js|ts)
     import { sentryHandle } from '@sentry/sveltekit';
 
-    export const handle = sentryHandle;
+    export const handle = sentryHandle();
     // or alternatively, if you already have a handler defined, use the `sequence` function
     // see: https://kit.svelte.dev/docs/modules#sveltejs-kit-hooks-sequence
-    // export const handle = sequence(sentryHandle, yourHandler);
+    // export const handle = sequence(sentryHandle(), yourHandler());
    ```
 
 ### 4. Configuring `load` Functions
