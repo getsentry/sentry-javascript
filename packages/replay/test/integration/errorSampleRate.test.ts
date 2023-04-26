@@ -5,7 +5,7 @@ import {
   BUFFER_CHECKOUT_TIME,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  SESSION_IDLE_DURATION,
+  SESSION_IDLE_EXPIRE_DURATION,
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -252,7 +252,7 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
-  it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_DURATION]ms', async () => {
+  it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -260,7 +260,7 @@ describe('Integration | errorSampleRate', () => {
       },
     });
 
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -284,8 +284,8 @@ describe('Integration | errorSampleRate', () => {
 
     expect(replay).not.toHaveLastSentReplay();
 
-    // User comes back before `SESSION_IDLE_DURATION` elapses
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 100);
+    // User comes back before `SESSION_IDLE_EXPIRE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 100);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -466,6 +466,27 @@ describe('Integration | errorSampleRate', () => {
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
+    // Remains disabled!
+    expect(replay.isEnabled()).toBe(false);
+  });
+
+  // Should behave the same as above test
+  it('stops replay if user has been idle for more than SESSION_IDLE_EXPIRE_DURATION and does not start a new session thereafter', async () => {
+    // Idle for 15 minutes
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
+
+    const TEST_EVENT = {
+      data: { name: 'lost event' },
+      timestamp: BASE_TIMESTAMP,
+      type: 3,
+    };
+    mockRecord._emitter(TEST_EVENT);
+    expect(replay).not.toHaveLastSentReplay();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+
+    // We stop recording after SESSION_IDLE_EXPIRE_DURATION of inactivity in error mode
     expect(replay).not.toHaveLastSentReplay();
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
@@ -605,7 +626,7 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     // Go idle
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
     await new Promise(process.nextTick);
 
     mockRecord._emitter(TEST_EVENT);

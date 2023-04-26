@@ -1,4 +1,9 @@
-import { MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from '../../../src/constants';
+import {
+  MAX_SESSION_LIFE,
+  SESSION_IDLE_EXPIRE_DURATION,
+  SESSION_IDLE_PAUSE_DURATION,
+  WINDOW,
+} from '../../../src/constants';
 import * as CreateSession from '../../../src/session/createSession';
 import * as FetchSession from '../../../src/session/fetchSession';
 import { getSession } from '../../../src/session/getSession';
@@ -44,7 +49,8 @@ describe('Unit | session | getSession', () => {
   it('creates a non-sticky session when one does not exist', function () {
     const { session } = getSession({
       timeouts: {
-        sessionIdle: SESSION_IDLE_DURATION,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
@@ -72,7 +78,8 @@ describe('Unit | session | getSession', () => {
 
     const { session } = getSession({
       timeouts: {
-        sessionIdle: 1000,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
@@ -88,7 +95,8 @@ describe('Unit | session | getSession', () => {
   it('creates a non-sticky session, when one is expired', function () {
     const { session } = getSession({
       timeouts: {
-        sessionIdle: 1000,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,
@@ -114,7 +122,8 @@ describe('Unit | session | getSession', () => {
 
     const { session } = getSession({
       timeouts: {
-        sessionIdle: SESSION_IDLE_DURATION,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: true,
@@ -151,7 +160,8 @@ describe('Unit | session | getSession', () => {
 
     const { session } = getSession({
       timeouts: {
-        sessionIdle: 1000,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: true,
@@ -178,7 +188,8 @@ describe('Unit | session | getSession', () => {
 
     const { session } = getSession({
       timeouts: {
-        sessionIdle: 1000,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: true,
@@ -197,7 +208,8 @@ describe('Unit | session | getSession', () => {
   it('fetches a non-expired non-sticky session', function () {
     const { session } = getSession({
       timeouts: {
-        sessionIdle: 1000,
+        sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+        sessionIdleExpire: 1000,
         maxSessionLife: MAX_SESSION_LIFE,
       },
       stickySession: false,

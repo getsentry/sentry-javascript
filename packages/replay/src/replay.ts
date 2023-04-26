@@ -4,7 +4,13 @@ import { captureException, getCurrentHub } from '@sentry/core';
 import type { Breadcrumb, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { BUFFER_CHECKOUT_TIME, MAX_SESSION_LIFE, SESSION_IDLE_DURATION, WINDOW } from './constants';
+import {
+  BUFFER_CHECKOUT_TIME,
+  MAX_SESSION_LIFE,
+  SESSION_IDLE_EXPIRE_DURATION,
+  SESSION_IDLE_PAUSE_DURATION,
+  WINDOW,
+} from './constants';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
@@ -63,7 +69,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    * @hidden
    */
   public readonly timeouts: Timeouts = {
-    sessionIdle: SESSION_IDLE_DURATION,
+    sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+    sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
     maxSessionLife: MAX_SESSION_LIFE,
   } as const;
 
@@ -484,12 +491,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     const oldSessionId = this.getSessionId();
 
     // Prevent starting a new session if the last user activity is older than
-    // SESSION_IDLE_DURATION. Otherwise non-user activity can trigger a new
+    // SESSION_IDLE_PAUSE_DURATION. Otherwise non-user activity can trigger a new
     // session+recording. This creates noisy replays that do not have much
     // content in them.
     if (
       this._lastActivity &&
-      isExpired(this._lastActivity, this.timeouts.sessionIdle) &&
+      isExpired(this._lastActivity, this.timeouts.sessionIdlePause) &&
       this.session &&
       this.session.sampled === 'session'
     ) {
@@ -723,7 +730,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const isSessionActive = this.checkAndHandleExpiredSession();
 
     if (!isSessionActive) {
-      // If the user has come back to the page within SESSION_IDLE_DURATION
+      // If the user has come back to the page within SESSION_IDLE_PAUSE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
       __DEBUG_BUILD__ && logger.log('[Replay] Document has become active, but session has expired');

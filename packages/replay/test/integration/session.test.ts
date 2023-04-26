@@ -5,7 +5,8 @@ import {
   DEFAULT_FLUSH_MIN_DELAY,
   MAX_SESSION_LIFE,
   REPLAY_SESSION_KEY,
-  SESSION_IDLE_DURATION,
+  SESSION_IDLE_EXPIRE_DURATION,
+  SESSION_IDLE_PAUSE_DURATION,
   WINDOW,
 } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -58,7 +59,7 @@ describe('Integration | session', () => {
 
   // Require a "user interaction" to start a new session, visibility is not enough. This can be noisy
   // (e.g. rapidly switching tabs/window focus) and leads to empty sessions.
-  it('does not create a new session when document becomes visible after [SESSION_IDLE_DURATION]ms', () => {
+  it('does not create a new session when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -68,7 +69,7 @@ describe('Integration | session', () => {
 
     const initialSession = { ...replay.session } as Session;
 
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -76,10 +77,10 @@ describe('Integration | session', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session when document becomes focused after [SESSION_IDLE_DURATION]ms', () => {
+  it('does not create a new session when document becomes focused after [SESSION_IDLE_EXPIRE_DURATION]ms', () => {
     const initialSession = { ...replay.session } as Session;
 
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION + 1);
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
     WINDOW.dispatchEvent(new Event('focus'));
 
@@ -87,7 +88,7 @@ describe('Integration | session', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_DURATION] seconds', () => {
+  it('does not create a new session if user hides the tab and comes back within [SESSION_IDLE_EXPIRE_DURATION] seconds', () => {
     const initialSession = { ...replay.session } as Session;
 
     Object.defineProperty(document, 'visibilityState', {
@@ -100,8 +101,8 @@ describe('Integration | session', () => {
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).toHaveSameSession(initialSession);
 
-    // User comes back before `SESSION_IDLE_DURATION` elapses
-    jest.advanceTimersByTime(SESSION_IDLE_DURATION - 1);
+    // User comes back before `SESSION_IDLE_EXPIRE_DURATION` elapses
+    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -115,7 +116,7 @@ describe('Integration | session', () => {
     expect(replay).toHaveSameSession(initialSession);
   });
 
-  it('creates a new session if user has been idle for more than SESSION_IDLE_DURATION and comes back to click their mouse', async () => {
+  it('creates a new session if user has been idle for more than SESSION_IDLE_EXPIRE_DURATION and comes back to click their mouse', async () => {
     const initialSession = { ...replay.session } as Session;
 
     expect(mockRecord).toHaveBeenCalledTimes(1);
@@ -132,7 +133,7 @@ describe('Integration | session', () => {
       value: new URL(url),
     });
 
-    const ELAPSED = SESSION_IDLE_DURATION + 1;
+    const ELAPSED = SESSION_IDLE_EXPIRE_DURATION + 1;
     jest.advanceTimersByTime(ELAPSED);
 
     // Session has become in an idle state
@@ -229,6 +230,86 @@ describe('Integration | session', () => {
       errorIds: new Set(),
       traceIds: new Set(),
     });
+  });
+
+  it('pauses and resumes a session if user has been idle for more than SESSION_IDLE_PASUE_DURATION and comes back to click their mouse', async () => {
+    const initialSession = { ...replay.session } as Session;
+
+    expect(initialSession?.id).toBeDefined();
+    expect(replay.getContext()).toEqual(
+      expect.objectContaining({
+        initialUrl: 'http://localhost/',
+        initialTimestamp: BASE_TIMESTAMP,
+      }),
+    );
+
+    const url = 'http://dummy/';
+    Object.defineProperty(WINDOW, 'location', {
+      value: new URL(url),
+    });
+
+    const ELAPSED = SESSION_IDLE_PAUSE_DURATION + 1;
+    jest.advanceTimersByTime(ELAPSED);
+
+    // Session has become in an idle state
+    //
+    // This event will put the Replay SDK into a paused state
+    const TEST_EVENT = {
+      data: { name: 'lost event' },
+      timestamp: BASE_TIMESTAMP,
+      type: 3,
+    };
+    mockRecord._emitter(TEST_EVENT);
+
+    // performance events can still be collected while recording is stopped
+    // TODO: we may want to prevent `addEvent` from adding to buffer when user is inactive
+    replay.addUpdate(() => {
+      createPerformanceSpans(replay, [
+        {
+          type: 'navigation.navigate' as const,
+          name: 'foo',
+          start: BASE_TIMESTAMP + ELAPSED,
+          end: BASE_TIMESTAMP + ELAPSED + 100,
+          data: {
+            decodedBodySize: 1,
+            encodedBodySize: 2,
+            duration: 0,
+            domInteractive: 0,
+            domContentLoadedEventEnd: 0,
+            domContentLoadedEventStart: 0,
+            loadEventStart: 0,
+            loadEventEnd: 0,
+            domComplete: 0,
+            redirectCount: 0,
+            size: 0,
+          },
+        },
+      ]);
+      return true;
+    });
+
+    await new Promise(process.nextTick);
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.isPaused()).toBe(true);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).toHaveSameSession(initialSession);
+    expect(mockRecord).toHaveBeenCalledTimes(1);
+
+    // Now do a click which will create a new session and start recording again
+    domHandler({
+      name: 'click',
+    });
+
+    // Should be same session
+    expect(replay).toHaveSameSession(initialSession);
+
+    // Replay does not send immediately
+    expect(replay).not.toHaveLastSentReplay();
+
+    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+
+    expect(replay).toHaveLastSentReplay();
   });
 
   it('should have a session after setup', () => {
