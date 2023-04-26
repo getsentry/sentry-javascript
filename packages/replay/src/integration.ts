@@ -222,7 +222,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
    */
   public startBuffering(): void {
     if (!this._replay) {
-      return Promise.resolve();
+      return;
     }
 
     this._replay.startBuffering();

@@ -152,15 +152,6 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
-   * Get the experimental options.
-   * THIS IS INTERNAL AND SUBJECT TO CHANGE!
-   * @hidden
-   */
-  public getExperimentalOptions(): ReplayExperimentalPluginOptions {
-    return this._experimentalOptions;
-  }
-
-  /**
    * Initializes the plugin based on sampling configuration. Should not be
    * called outside of constructor.
    */
