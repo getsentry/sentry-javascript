@@ -1,15 +1,14 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import * as fs from 'fs';
-import * as path from 'path';
-import type { SourceMap } from 'rollup';
-import { rollup } from 'rollup';
+import type {
+  ExportNamedDeclaration,
+  FunctionDeclaration,
+  Program,
+  VariableDeclaration,
+  VariableDeclarator,
+} from '@babel/types';
+import type { ProxifiedModule } from 'magicast';
+import { builders, generateCode, parseModule } from 'magicast';
 import type { Plugin } from 'vite';
-
-// Just a simple placeholder to make referencing module consistent
-const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
-
-// Needs to end in .cjs in order for the `commonjs` plugin to pick it up
-const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.js';
 
 export type AutoInstrumentSelection = {
   /**
@@ -41,21 +40,6 @@ type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
  * @returns the plugin
  */
 export async function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptions): Promise<Plugin> {
-  const universalLoadTemplatePath = path.resolve(__dirname, 'templates', 'universalLoadTemplate.js');
-  const universalLoadTemplate = (await fs.promises.readFile(universalLoadTemplatePath, 'utf-8')).toString();
-
-  const serverLoadTemplatePath = path.resolve(__dirname, 'templates', 'serverLoadTemplate.js');
-  const serverLoadTemplate = (await fs.promises.readFile(serverLoadTemplatePath, 'utf-8')).toString();
-
-  const universalLoadWrappingCode = universalLoadTemplate.replace(
-    /__SENTRY_WRAPPING_TARGET_FILE__/g,
-    WRAPPING_TARGET_MODULE_NAME,
-  );
-  const serverLoadWrappingCode = serverLoadTemplate.replace(
-    /__SENTRY_WRAPPING_TARGET_FILE__/g,
-    WRAPPING_TARGET_MODULE_NAME,
-  );
-
   const { load: shouldWrapLoad, serverLoad: shouldWrapServerLoad, debug } = options;
 
   return {
@@ -71,7 +55,8 @@ export async function makeAutoInstrumentationPlugin(options: AutoInstrumentPlugi
       if (shouldApplyUniversalLoadWrapper) {
         // eslint-disable-next-line no-console
         debug && console.log('[Sentry] Applying universal load wrapper to', id);
-        return await wrapUserCode(universalLoadWrappingCode, userCode);
+        const wrappedCode = wrapLoad(userCode, 'wrapLoadWithSentry');
+        return { code: wrappedCode, map: null };
       }
 
       const shouldApplyServerLoadWrapper =
@@ -82,7 +67,8 @@ export async function makeAutoInstrumentationPlugin(options: AutoInstrumentPlugi
       if (shouldApplyServerLoadWrapper) {
         // eslint-disable-next-line no-console
         debug && console.log('[Sentry] Applying server load wrapper to', id);
-        return await wrapUserCode(serverLoadWrappingCode, userCode);
+        const wrappedCode = wrapLoad(userCode, 'wrapServerLoadWithSentry');
+        return { code: wrappedCode, map: null };
       }
 
       return null;
@@ -91,62 +77,118 @@ export async function makeAutoInstrumentationPlugin(options: AutoInstrumentPlugi
 }
 
 /**
- * Uses rollup to bundle the wrapper code and the user code together, so that we can use rollup's source map support.
- * This works analogously to our NextJS wrapping solution.
- * The one exception is that we don't pass in any source map. This is because generating the userCode's
- * source map generally works but it breaks SvelteKit's source map generation for some reason.
- * Not passing a map actually works and things are still mapped correctly in the end.
- * No Sentry code is visible in the final source map.
- * @see {@link file:///./../../../nextjs/src/config/loaders/wrappingLoader.ts} for more details.
+ * Applies the wrapLoadWithSentry wrapper to the user's load functions
  */
-async function wrapUserCode(
-  wrapperCode: string,
-  userModuleCode: string,
-): Promise<{ code: string; map?: SourceMap | null }> {
-  const rollupBuild = await rollup({
-    input: SENTRY_WRAPPER_MODULE_NAME,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrapLoad(
+  userCode: Readonly<string>,
+  wrapperFunction: 'wrapLoadWithSentry' | 'wrapServerLoadWithSentry',
+): string {
+  const mod = parseModule(userCode);
 
-    plugins: [
-      {
-        name: 'virtualize-sentry-wrapper-modules',
-        resolveId: id => {
-          if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
-            return id;
-          } else {
-            return null;
-          }
-        },
-        load(id) {
-          if (id === SENTRY_WRAPPER_MODULE_NAME) {
-            return wrapperCode;
-          } else if (id === WRAPPING_TARGET_MODULE_NAME) {
-            return {
-              code: userModuleCode,
-              // map: userModuleSourceMap,
-            };
-          } else {
-            return null;
-          }
-        },
+  const modAST = mod.exports.$ast as Program;
+  const namedExports = modAST.body.filter(
+    (node): node is ExportNamedDeclaration => node.type === 'ExportNamedDeclaration',
+  );
+
+  let wrappedSucessfully = false;
+  namedExports.forEach(modExport => {
+    const declaration = modExport.declaration;
+    if (!declaration) {
+      return;
+    }
+    if (declaration.type === 'FunctionDeclaration') {
+      if (!declaration.id || declaration.id.name !== 'load') {
+        return;
+      }
+      const declarationCode = generateCode(declaration).code;
+      mod.exports.load = builders.raw(`${wrapperFunction}(${declarationCode.replace('load', '_load')})`);
+      // because of an issue with magicast, we need to remove the original export
+      modAST.body = modAST.body.filter(node => node !== modExport);
+      wrappedSucessfully = true;
+    } else if (declaration.type === 'VariableDeclaration') {
+      declaration.declarations.forEach(declarator => {
+        wrappedSucessfully = wrapDeclarator(declarator, wrapperFunction);
+      });
+    }
+  });
+
+  if (wrappedSucessfully) {
+    return generateFinalCode(mod, wrapperFunction);
+  }
+
+  // If we're here, we know that we didn't find a directly exported `load` function yet.
+  // We need to look for it in the top level declarations in case it's declared and exported separately.
+  // First case: top level variable declaration
+  const topLevelVariableDeclarations = modAST.body.filter(
+    (statement): statement is VariableDeclaration => statement.type === 'VariableDeclaration',
+  );
+
+  topLevelVariableDeclarations.forEach(declaration => {
+    declaration.declarations.forEach(declarator => {
+      wrappedSucessfully = wrapDeclarator(declarator, wrapperFunction);
+    });
+  });
+
+  if (wrappedSucessfully) {
+    return generateFinalCode(mod, wrapperFunction);
+  }
+
+  // Second case: top level function declaration
+  // This is the most intrusive modification, as we need to replace a top level function declaration with a
+  // variable declaration and a function assignment. This changes the spacing formatting of the declarations
+  // but the line numbers should stay the same
+  const topLevelFunctionDeclarations = modAST.body.filter(
+    (statement): statement is FunctionDeclaration => statement.type === 'FunctionDeclaration',
+  );
+
+  topLevelFunctionDeclarations.forEach(declaration => {
+    if (!declaration.id || declaration.id.name !== 'load') {
+      return;
+    }
+
+    const stmtIndex = modAST.body.indexOf(declaration);
+    const declarationCode = generateCode(declaration).code;
+    const wrappedFunctionBody = builders.raw(`${wrapperFunction}(${declarationCode.replace('load', '_load')})`);
+    const stringifiedFunctionBody = generateCode(wrappedFunctionBody, {}).code;
+
+    const tmpMod = parseModule(`const load = ${stringifiedFunctionBody}`);
+    const newDeclarationNode = (tmpMod.$ast as Program).body[0];
+    const nodeWithAdjustedLoc = {
+      ...newDeclarationNode,
+      loc: {
+        ...declaration.loc,
       },
-    ],
+    };
 
-    external: sourceId => sourceId !== SENTRY_WRAPPER_MODULE_NAME && sourceId !== WRAPPING_TARGET_MODULE_NAME,
-
-    context: 'this',
-
-    makeAbsoluteExternalsRelative: false,
-
-    onwarn: (_warning, _warn) => {
-      // Suppress all warnings - we don't want to bother people with this output
-      // _warn(_warning); // uncomment to debug
-    },
+    // @ts-ignore - this works, magicast can handle this assignement although the types disagree
+    modAST.body[stmtIndex] = nodeWithAdjustedLoc;
+    wrappedSucessfully = true;
   });
 
-  const finalBundle = await rollupBuild.generate({
-    format: 'esm',
-    sourcemap: 'hidden',
-  });
+  if (wrappedSucessfully) {
+    return generateFinalCode(mod, wrapperFunction);
+  }
 
-  return finalBundle.output[0];
+  // nothing found, so we just return the original code
+  return userCode;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function generateFinalCode(mod: ProxifiedModule<any>, wrapperFunction: string): string {
+  const { code } = generateCode(mod);
+  return `import { ${wrapperFunction} } from '@sentry/sveltekit'; ${code}`;
+}
+
+function wrapDeclarator(declarator: VariableDeclarator, wrapperFunction: string): boolean {
+  // @ts-ignore - id should always have a name in this case
+  if (!declarator.id || declarator.id.name !== 'load') {
+    return false;
+  }
+  const declarationInitCode = declarator.init;
+  // @ts-ignore - we can just place a string here, magicast will convert it to a node
+  const stringifiedCode = generateCode(declarationInitCode).code;
+  // @ts-ignore - we can just place a string here, magicast will convert it to a node
+  declarator.init = `${wrapperFunction}(${stringifiedCode})`;
+  return true;
 }

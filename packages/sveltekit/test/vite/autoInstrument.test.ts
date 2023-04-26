@@ -2,36 +2,17 @@ import { vi } from 'vitest';
 
 import { makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
 
-let returnFileWithSentryContent = false;
+const BASIC_LOAD_FUNCTION_CALL = 'export const load = () => {}';
 
-vi.mock('fs', async () => {
-  const actual = await vi.importActual('fs');
-  return {
-    // @ts-ignore this exists, I promise!
-    ...actual,
-    promises: {
-      // @ts-ignore this also exists, I promise!
-      ...actual.promises,
-      readFile: vi.fn().mockImplementation(() => {
-        if (returnFileWithSentryContent) {
-          return "import * as Sentry from '@sentry/sveltekit'";
-        }
-        return 'foo';
-      }),
-    },
-  };
-});
-
-vi.mock('rollup', () => {
-  return {
-    rollup: vi.fn().mockReturnValue({ generate: vi.fn().mockReturnValue({ output: ['transformed'] }) }),
-  };
-});
+function getWrappedBasicLoadFunctionCall(server = false) {
+  return `import { wrap${server ? 'Server' : ''}LoadWithSentry } from '@sentry/sveltekit'; export const load = wrap${
+    server ? 'Server' : ''
+  }LoadWithSentry(() => {})`;
+}
 
 describe('makeAutoInstrumentationPlugin()', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    returnFileWithSentryContent = false;
   });
 
   it('returns the auto instrumentation plugin', async () => {
@@ -58,24 +39,26 @@ describe('makeAutoInstrumentationPlugin()', () => {
         {
           getCombinedSourcemap: vi.fn().mockReturnValue({}),
         },
-        'foo',
+        BASIC_LOAD_FUNCTION_CALL,
         path,
       );
-      expect(transformResult).toEqual('transformed');
+      expect(transformResult).toEqual({
+        code: getWrappedBasicLoadFunctionCall(),
+        map: null,
+      });
     });
 
     it("doesn't wrap universal load if the file already contains Sentry code", async () => {
-      returnFileWithSentryContent = true;
       const plugin = await makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: false });
       // @ts-ignore this exists
       const transformResult = await plugin.transform.call(
         {
           getCombinedSourcemap: vi.fn().mockReturnValue({}),
         },
-        'foo',
+        `import { something } from "@sentry/sveltekit";${BASIC_LOAD_FUNCTION_CALL}`,
         path,
       );
-      expect(transformResult).toEqual('transformed');
+      expect(transformResult).toEqual(null);
     });
 
     it("doesn't wrap universal load if `load` option is `false`", async () => {
@@ -109,24 +92,26 @@ describe('makeAutoInstrumentationPlugin()', () => {
         {
           getCombinedSourcemap: vi.fn().mockReturnValue({}),
         },
-        'foo',
+        BASIC_LOAD_FUNCTION_CALL,
         path,
       );
-      expect(transformResult).toEqual('transformed');
+      expect(transformResult).toEqual({
+        code: getWrappedBasicLoadFunctionCall(true),
+        map: null,
+      });
     });
 
     it("doesn't wrap universal load if the file already contains Sentry code", async () => {
-      returnFileWithSentryContent = true;
       const plugin = await makeAutoInstrumentationPlugin({ debug: false, load: false, serverLoad: true });
       // @ts-ignore this exists
       const transformResult = await plugin.transform.call(
         {
           getCombinedSourcemap: vi.fn().mockReturnValue({}),
         },
-        'foo',
+        `import { wrapServerLoadWithSentry } from "@sentry/sveltekit";${BASIC_LOAD_FUNCTION_CALL}`,
         path,
       );
-      expect(transformResult).toEqual('transformed');
+      expect(transformResult).toEqual(null);
     });
 
     it("doesn't wrap universal load if `load` option is `false`", async () => {
@@ -142,4 +127,143 @@ describe('makeAutoInstrumentationPlugin()', () => {
       expect(transformResult).toEqual(null);
     });
   });
+
+  it.each([
+    [
+      'export variable declaration - function pointer',
+      'export const load = loadPageData',
+      "import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(loadPageData)",
+    ],
+    [
+      'export variable declaration - factory function call',
+      'export const load = loadPageData()',
+      "import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(loadPageData())",
+    ],
+    [
+      'export variable declaration - inline function',
+      'export const load = () => { return { props: { msg: "hi" } } }',
+      'import { wrapLoadWithSentry } from \'@sentry/sveltekit\'; export const load = wrapLoadWithSentry(() => { return { props: { msg: "hi" } } })',
+    ],
+    [
+      'export variable declaration - inline async function',
+      'export const load = async () => { return { props: { msg: "hi" } } }',
+      'import { wrapLoadWithSentry } from \'@sentry/sveltekit\'; export const load = wrapLoadWithSentry(async () => { return { props: { msg: "hi" } } })',
+    ],
+    [
+      'export variable declaration - inline multiline function',
+      `export const load = async ({fetch}) => {
+        const res = await fetch('https://example.com');
+        return {
+          props: {
+            msg: res.toString(),
+          }
+        }
+      }`,
+      `import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(async ({fetch}) => {
+        const res = await fetch('https://example.com');
+        return {
+          props: {
+            msg: res.toString(),
+          }
+        }
+      })`,
+    ],
+    [
+      'export variable declaration - undefined',
+      'export const load = undefined',
+      "import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(undefined)",
+    ],
+    [
+      'export variable declaration - null',
+      'export const load = null',
+      "import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(null)",
+    ],
+    [
+      'export function declaration - simple',
+      'export function load () { return { props: { msg: "hi" } } }',
+      'import { wrapLoadWithSentry } from \'@sentry/sveltekit\'; export const load = wrapLoadWithSentry(function _load() { return { props: { msg: "hi" } } });',
+    ],
+    [
+      'export function declaration - with params',
+      `export async function load({fetch}) {
+        const res = await fetch('https://example.com');
+        return { props: { msg: res.toString() } }
+      }`,
+      `import { wrapLoadWithSentry } from '@sentry/sveltekit'; export const load = wrapLoadWithSentry(async function _load({fetch}) {
+        const res = await fetch('https://example.com');
+        return { props: { msg: res.toString() } }
+      });`,
+    ],
+    [
+      'variable declaration',
+      `import {something} from 'somewhere';
+      const load = async ({fetch}) => {
+        const res = await fetch('https://example.com');
+        return { props: { msg: res.toString() } }
+      }
+      export { load}`,
+      `import { wrapLoadWithSentry } from '@sentry/sveltekit'; import {something} from 'somewhere';
+      const load = wrapLoadWithSentry(async ({fetch}) => {
+        const res = await fetch('https://example.com');
+        return { props: { msg: res.toString() } }
+      })
+      export { load}`,
+    ],
+    [
+      'function declaration',
+      `import {something} from 'somewhere';
+       async function load({fetch}) {
+         const res = await fetch('https://example.com');
+         return { props: { msg: res.toString() } };
+       }
+       export { load }`,
+      `import { wrapLoadWithSentry } from '@sentry/sveltekit'; import {something} from 'somewhere';
+const load = wrapLoadWithSentry(async function _load({fetch}) {
+  const res = await fetch('https://example.com');
+  return { props: { msg: res.toString() } };
+});
+export { load }`,
+    ],
+    [
+      'function declaration + other exports',
+      `import {something} from 'somewhere';
+      const prerender = false;
+      async function load({fetch}) {
+        const res = await fetch('https://example.com');
+        return { props: { msg: res.toString() } }
+      }
+      export { load, prerender }`,
+      `import { wrapLoadWithSentry } from '@sentry/sveltekit'; import {something} from 'somewhere';
+const prerender = false;
+const load = wrapLoadWithSentry(async function _load({fetch}) {
+  const res = await fetch('https://example.com');
+  return { props: { msg: res.toString() } }
+});
+export { load, prerender }`,
+    ],
+    [
+      'file without load',
+      'export const prerender = true\nexport const csr = true',
+      'export const prerender = true\nexport const csr = true',
+    ],
+    ['commented out load', '// export const load = () => {}', '// export const load = () => {}'],
+    ['commented out load', '// const load = () => {}', '// const load = () => {}'],
+  ])(
+    'correctly modifies the AST to wrap the load function (%s)',
+    async (_: string, originalCode: string, wrappedCode: string) => {
+      const plugin = await makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: false });
+      // @ts-ignore this exists
+      const transformResult = await plugin.transform.call(
+        {
+          getCombinedSourcemap: vi.fn().mockReturnValue({}),
+        },
+        originalCode,
+        'path/to/+page.ts',
+      );
+      expect(transformResult).toEqual({
+        code: wrappedCode,
+        map: null,
+      });
+    },
+  );
 });
