@@ -25,7 +25,8 @@ export interface SendReplayData {
 }
 
 export interface Timeouts {
-  sessionIdle: number;
+  sessionIdlePause: number;
+  sessionIdleExpire: number;
   maxSessionLife: number;
 }
 
@@ -464,10 +465,7 @@ export interface ReplayContainer {
   performanceEvents: AllPerformanceEntry[];
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
-  timeouts: {
-    sessionIdle: number;
-    maxSessionLife: number;
-  };
+  timeouts: Timeouts;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
