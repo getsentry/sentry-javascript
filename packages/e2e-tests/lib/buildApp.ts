@@ -40,6 +40,7 @@ export async function buildApp(appDir: string, recipeInstance: RecipeInstance, e
         ...env,
         ...prefixObjectKeys(env, 'NEXT_PUBLIC_'),
         ...prefixObjectKeys(env, 'REACT_APP_'),
+        ...prefixObjectKeys(env, 'PUBLIC_'),
       },
     });
 
