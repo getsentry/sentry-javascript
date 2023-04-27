@@ -402,7 +402,7 @@ export function _addResourceSpans(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
   if ('transferSize' in entry) {
-    data['http.transfer_size'] = entry.transferSize;
+    data['http.response_transfer_size'] = entry.transferSize;
   }
   if ('encodedBodySize' in entry) {
     data['http.response_content_length'] = entry.encodedBodySize;

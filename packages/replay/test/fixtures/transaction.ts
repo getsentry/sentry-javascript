@@ -74,7 +74,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       },
       {
         data: {
-          'http.transfer_size': 1097,
+          'http.response_transfer_size': 1097,
           'http.response_content_length': 797,
           'http.decoded_response_content_length': 1885,
           'resource.render_blocking_status': 'non-blocking',

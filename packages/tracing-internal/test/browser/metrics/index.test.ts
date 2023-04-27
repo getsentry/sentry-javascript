@@ -92,7 +92,7 @@ describe('_addResourceSpans', () => {
       data: {
         ['http.decoded_response_content_length']: entry.decodedBodySize,
         ['http.response_content_length']: entry.encodedBodySize,
-        ['http.transfer_size']: entry.transferSize,
+        ['http.response_transfer_size']: entry.transferSize,
         ['resource.render_blocking_status']: entry.renderBlockingStatus,
       },
       description: '/assets/to/css',
@@ -160,7 +160,7 @@ describe('_addResourceSpans', () => {
         data: {
           ['http.decoded_response_content_length']: entry.decodedBodySize,
           ['http.response_content_length']: entry.encodedBodySize,
-          ['http.transfer_size']: entry.transferSize,
+          ['http.response_transfer_size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
         },
       }),
