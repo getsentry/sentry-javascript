@@ -5,11 +5,11 @@
   "tests": [
     {
       "testName": "Playwright tests - Prod Mode",
-      "testCommand": "yarn test:prod"
+      "testCommand": "pnpm test:prod"
     },
     {
       "testName": "Playwright tests - Dev Mode",
-      "testCommand": "yarn test:dev"
+      "testCommand": "pnpm test:dev"
     }
   ]
 }

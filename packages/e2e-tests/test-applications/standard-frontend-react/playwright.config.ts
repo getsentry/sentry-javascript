@@ -59,7 +59,7 @@ const config: PlaywrightTestConfig = {
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'yarn start',
+    command: 'pnpm start',
     port: Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO),
     env: {
       PORT: String(Number(process.env.BASE_PORT) + Number(process.env.PORT_MODULO)),
