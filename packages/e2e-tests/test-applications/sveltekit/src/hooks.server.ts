@@ -14,4 +14,4 @@ const myErrorHandler = ({ error, event }: any) => {
 
 export const handleError = Sentry.handleErrorWithSentry(myErrorHandler);
 
-export const handle = Sentry.sentryHandle;
+export const handle = Sentry.sentryHandle();
