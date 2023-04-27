@@ -213,6 +213,25 @@ describe('callbacks', () => {
 
       expect(newSpan).toBeUndefined();
     });
+
+    it('adds content-length to span data', () => {
+      const spans = {};
+      fetchHandlerData['response'] = { 'headers': { 'content-length': 123 } };
+
+      // triggered by request being sent
+      fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      const newSpan = transaction.spanRecorder?.spans[1] as Span;
+
+      expect(newSpan).toBeDefined();
+      expect(newSpan).toBeInstanceOf(Span);
+      expect(newSpan.data).toEqual({
+        'http.response_content_length': 123,
+        method: 'GET',
+        type: 'fetch',
+        url: 'http://dogs.are.great/',
+      });
+    });
   });
 
   describe('xhrCallback()', () => {
