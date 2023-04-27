@@ -34,7 +34,11 @@ export async function addEvent(
   }
 
   try {
-    return await replay.eventBuffer.addEvent(event, isCheckout);
+    if (isCheckout) {
+      replay.eventBuffer.clear();
+    }
+
+    return await replay.eventBuffer.addEvent(event);
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
     await replay.stop('addEvent');

@@ -22,7 +22,9 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     buffer.addEvent(TEST_EVENT);
     buffer.addEvent(TEST_EVENT);
 
-    buffer.addEvent(TEST_EVENT, true);
+    // clear() is called by addEvent when isCheckout is true
+    buffer.clear();
+    buffer.addEvent(TEST_EVENT);
     const result = await buffer.finish();
 
     expect(result).toEqual(JSON.stringify([TEST_EVENT]));
