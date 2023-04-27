@@ -90,9 +90,9 @@ describe('_addResourceSpans', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transaction.startChild).toHaveBeenLastCalledWith({
       data: {
-        ['Decoded Body Size']: entry.decodedBodySize,
-        ['Encoded Body Size']: entry.encodedBodySize,
-        ['Transfer Size']: entry.transferSize,
+        ['http.decoded_response_content_length']: entry.decodedBodySize,
+        ['http.response_content_length']: entry.encodedBodySize,
+        ['http.response_transfer_size']: entry.transferSize,
         ['resource.render_blocking_status']: entry.renderBlockingStatus,
       },
       description: '/assets/to/css',
@@ -158,9 +158,9 @@ describe('_addResourceSpans', () => {
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {
-          ['Decoded Body Size']: entry.decodedBodySize,
-          ['Encoded Body Size']: entry.encodedBodySize,
-          ['Transfer Size']: entry.transferSize,
+          ['http.decoded_response_content_length']: entry.decodedBodySize,
+          ['http.response_content_length']: entry.encodedBodySize,
+          ['http.response_transfer_size']: entry.transferSize,
           ['resource.render_blocking_status']: entry.renderBlockingStatus,
         },
       }),
