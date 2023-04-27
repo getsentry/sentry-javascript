@@ -1,4 +1,5 @@
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import { timestampToMs } from '../util/timestampToMs';
 
 /**
  * A basic event buffer that does not do any compression.
@@ -43,5 +44,16 @@ export class EventBufferArray implements EventBuffer {
       this.events = [];
       resolve(JSON.stringify(eventsRet));
     });
+  }
+
+  /** @inheritdoc */
+  public getEarliestTimestamp(): number | null {
+    const timestamp = this.events.map(event => event.timestamp).sort()[0];
+
+    if (!timestamp) {
+      return null;
+    }
+
+    return timestampToMs(timestamp);
   }
 }

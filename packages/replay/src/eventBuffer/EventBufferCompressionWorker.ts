@@ -1,6 +1,7 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import { timestampToMs } from '../util/timestampToMs';
 import { WorkerHandler } from './WorkerHandler';
 
 /**
@@ -8,14 +9,17 @@ import { WorkerHandler } from './WorkerHandler';
  * Exported only for testing.
  */
 export class EventBufferCompressionWorker implements EventBuffer {
-  /** @inheritdoc */
-  public hasEvents: boolean;
-
   private _worker: WorkerHandler;
+  private _earliestTimestamp: number | null;
 
   public constructor(worker: Worker) {
     this._worker = new WorkerHandler(worker);
-    this.hasEvents = false;
+    this._earliestTimestamp = null;
+  }
+
+  /** @inheritdoc */
+  public get hasEvents(): boolean {
+    return !!this._earliestTimestamp;
   }
 
   /**
@@ -39,12 +43,15 @@ export class EventBufferCompressionWorker implements EventBuffer {
    * Returns true if event was successfuly received and processed by worker.
    */
   public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
-    this.hasEvents = true;
-
     if (isCheckout) {
       // This event is a checkout, make sure worker buffer is cleared before
       // proceeding.
       await this._clear();
+    }
+
+    const timestamp = timestampToMs(event.timestamp);
+    if (!this._earliestTimestamp || timestamp < this._earliestTimestamp) {
+      this._earliestTimestamp = timestamp;
     }
 
     return this._sendEventToWorker(event);
@@ -55,6 +62,11 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public finish(): Promise<ReplayRecordingData> {
     return this._finishRequest();
+  }
+
+  /** @inheritdoc */
+  public getEarliestTimestamp(): number | null {
+    return this._earliestTimestamp;
   }
 
   /**
@@ -70,13 +82,14 @@ export class EventBufferCompressionWorker implements EventBuffer {
   private async _finishRequest(): Promise<Uint8Array> {
     const response = await this._worker.postMessage<Uint8Array>('finish');
 
-    this.hasEvents = false;
+    this._earliestTimestamp = null;
 
     return response;
   }
 
   /** Clear any pending events from the worker. */
   private _clear(): Promise<void> {
+    this._earliestTimestamp = null;
     return this._worker.postMessage('clear');
   }
 }

@@ -221,9 +221,11 @@ describe('Integration | session', () => {
       ]),
     });
 
+    // Earliest event is reset
+    expect(replay.eventBuffer?.getEarliestTimestamp()).toBeNull();
+
     // `_context` should be reset when a new session is created
     expect(replay.getContext()).toEqual({
-      earliestEvent: null,
       initialUrl: 'http://dummy/',
       initialTimestamp: newTimestamp,
       urls: [],

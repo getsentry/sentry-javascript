@@ -360,7 +360,7 @@ interface CommonEventContext {
   initialUrl: string;
 
   /**
-   * The initial starting timestamp of the session
+   * The initial starting timestamp in ms of the session.
    */
   initialTimestamp: number;
 
@@ -395,11 +395,6 @@ export interface InternalEventContext extends CommonEventContext {
    * Set of Sentry trace ids that have occurred during a replay segment
    */
   traceIds: Set<string>;
-
-  /**
-   * The timestamp of the earliest event that has been added to event buffer. This can happen due to the Performance Observer which buffers events.
-   */
-  earliestEvent: number | null;
 }
 
 export type Sampled = false | 'session' | 'buffer';
@@ -408,12 +403,12 @@ export interface Session {
   id: string;
 
   /**
-   * Start time of current session
+   * Start time of current session (in ms)
    */
   started: number;
 
   /**
-   * Last known activity of the session
+   * Last known activity of the session (in ms)
    */
   lastActivity: number;
 
@@ -463,6 +458,11 @@ export interface EventBuffer {
    * Clears and returns the contents of the buffer.
    */
   finish(): Promise<ReplayRecordingData>;
+
+  /**
+   * Get the earliest timestamp in ms of any event currently in the buffer.
+   */
+  getEarliestTimestamp(): number | null;
 }
 
 export type AddUpdateCallback = () => boolean | void;
