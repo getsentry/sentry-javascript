@@ -216,7 +216,7 @@ describe('callbacks', () => {
 
     it('adds content-length to span data', () => {
       const spans = {};
-      fetchHandlerData['response'] = { 'headers': { 'content-length': 123 } };
+      fetchHandlerData['response'] = { headers: { 'content-length': 123 } };
 
       // triggered by request being sent
       fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
