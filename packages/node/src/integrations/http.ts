@@ -189,7 +189,7 @@ function _createWrappedRequestMethodFactory(
 
       const requestSpanData: SanitizedRequestData = {
         url: requestUrl,
-        method: requestOptions.method || 'GET',
+        'http.method': requestOptions.method || 'GET',
       };
       if (requestOptions.hash) {
         // strip leading "#"
