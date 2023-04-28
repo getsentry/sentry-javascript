@@ -26,8 +26,8 @@ export const DEFAULT_FLUSH_MIN_DELAY = 5_000;
 // was the same as `wait`
 export const DEFAULT_FLUSH_MAX_DELAY = 5_500;
 
-/* How long to wait for error checkouts */
-export const BUFFER_CHECKOUT_TIME = 60_000;
+/* How long to wait for buffer checkouts. */
+export const BUFFER_CHECKOUT_TIME = 30_000;
 
 export const RETRY_BASE_INTERVAL = 5000;
 export const RETRY_MAX_COUNT = 3;

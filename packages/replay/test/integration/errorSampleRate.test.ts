@@ -1,3 +1,5 @@
+import 'jsdom-worker';
+
 import { captureException, getCurrentHub } from '@sentry/core';
 
 import {
@@ -8,10 +10,10 @@ import {
   SESSION_IDLE_EXPIRE_DURATION,
   WINDOW,
 } from '../../src/constants';
+import type { EventBufferProxy } from '../../src/eventBuffer/EventBufferProxy';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
-import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
 import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -571,52 +573,101 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
-  it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
-    const ELAPSED = BUFFER_CHECKOUT_TIME;
-    const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
-    mockRecord._emitter(TEST_EVENT);
+  it('keeps min. 30s of recording data in buffer mode', async () => {
+    await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
 
-    // add a mock performance event
-    replay.performanceEvents.push(PerformanceEntryResource());
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP, type: 2 });
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + 100, type: 3 });
 
-    jest.runAllTimers();
+    // Wait for 30s, which would normally trigger a checkout
+    jest.advanceTimersByTime(BUFFER_CHECKOUT_TIME + 1);
     await new Promise(process.nextTick);
 
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
-    expect(replay).not.toHaveLastSentReplay();
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME, type: 2 }, true);
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME + 100, type: 3 });
 
-    jest.advanceTimersByTime(ELAPSED);
-
-    // in production, this happens at a time interval
-    // session started time should be updated to this current timestamp
-    mockRecord.takeFullSnapshot(true);
-
-    jest.runAllTimers();
-    jest.advanceTimersByTime(20);
+    // Wait another 30s
+    jest.advanceTimersByTime(BUFFER_CHECKOUT_TIME + 1);
     await new Promise(process.nextTick);
 
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2, type: 2 }, true);
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2 + 100, type: 3 });
+
+    await new Promise(process.nextTick);
+
+    // Now trigger an error - it should capture the last 60s of data
     captureException(new Error('testing'));
 
     await new Promise(process.nextTick);
-    jest.runAllTimers();
-    jest.advanceTimersByTime(20);
+    jest.advanceTimersByTime(1);
     await new Promise(process.nextTick);
 
-    expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME);
 
-    // Does not capture mouse click
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        // Make sure the old performance event is thrown out
-        replay_start_timestamp: (BASE_TIMESTAMP + ELAPSED + 20) / 1000,
+        replay_type: 'buffer',
+        replay_start_timestamp: (BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME) / 1000,
       }),
       recordingData: JSON.stringify([
-        {
-          data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + ELAPSED + 20,
-          type: 2,
-        },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME, type: 2 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME + 100, type: 3 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2, type: 2 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2 + 100, type: 3 },
+      ]),
+    });
+  });
+
+  it('throws away buffer data after 60s in buffer mode', async () => {
+    await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
+
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP, type: 2 });
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + 100, type: 3 });
+
+    // Wait for 30s, which would normally trigger a checkout
+    jest.advanceTimersByTime(BUFFER_CHECKOUT_TIME + 1);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME, type: 2 }, true);
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME + 100, type: 3 });
+
+    // Wait another 30s
+    jest.advanceTimersByTime(BUFFER_CHECKOUT_TIME + 1);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2, type: 2 }, true);
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2 + 100, type: 3 });
+
+    // Wait another 30s
+    jest.advanceTimersByTime(BUFFER_CHECKOUT_TIME + 1);
+    await new Promise(process.nextTick);
+
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 3, type: 2 }, true);
+    mockRecord._emitter({ data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 3 + 100, type: 3 });
+
+    await new Promise(process.nextTick);
+
+    // Now trigger an error - it should capture the last 60s of data
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(1);
+    await new Promise(process.nextTick);
+
+    expect(replay.session?.started).toBe(BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2);
+
+    expect(replay).toHaveSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+        replay_start_timestamp: (BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2) / 1000,
+      }),
+      recordingData: JSON.stringify([
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2, type: 2 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 2 + 100, type: 3 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 3, type: 2 },
+        { data: {}, timestamp: BASE_TIMESTAMP + BUFFER_CHECKOUT_TIME * 3 + 100, type: 3 },
       ]),
     });
   });

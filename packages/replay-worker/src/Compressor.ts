@@ -1,4 +1,4 @@
-import { constants, Deflate, deflate } from 'pako';
+import { constants, Deflate } from 'pako';
 
 /**
  * A stateful compressor that can be used to batch compress events.
@@ -7,7 +7,7 @@ export class Compressor {
   /**
    * pako deflator instance
    */
-  public deflate: Deflate;
+  private _deflate: Deflate;
 
   /**
    * If any events have been added.
@@ -38,7 +38,7 @@ export class Compressor {
     // TODO: We may want Z_SYNC_FLUSH or Z_FULL_FLUSH (not sure the difference)
     // Using NO_FLUSH here for now as we can create many attachments that our
     // web UI will get API rate limited.
-    this.deflate.push(prefix + data, constants.Z_SYNC_FLUSH);
+    this._deflate.push(prefix + data, constants.Z_SYNC_FLUSH);
 
     this._hasEvents = true;
   }
@@ -48,15 +48,15 @@ export class Compressor {
    */
   public finish(): Uint8Array {
     // We should always have a list, it can be empty
-    this.deflate.push(']', constants.Z_FINISH);
+    this._deflate.push(']', constants.Z_FINISH);
 
-    if (this.deflate.err) {
-      throw this.deflate.err;
+    if (this._deflate.err) {
+      throw this._deflate.err;
     }
 
     // Copy result before we create a new deflator and return the compressed
     // result
-    const result = this.deflate.result;
+    const result = this._deflate.result;
 
     this._init();
 
@@ -68,16 +68,9 @@ export class Compressor {
    */
   private _init(): void {
     this._hasEvents = false;
-    this.deflate = new Deflate();
+    this._deflate = new Deflate();
 
     // Fake an array by adding a `[`
-    this.deflate.push('[', constants.Z_NO_FLUSH);
+    this._deflate.push('[', constants.Z_NO_FLUSH);
   }
-}
-
-/**
- * Compress a string.
- */
-export function compress(data: string): Uint8Array {
-  return deflate(data);
 }

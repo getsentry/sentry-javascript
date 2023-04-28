@@ -35,7 +35,7 @@ export async function addEvent(
 
   try {
     if (isCheckout) {
-      replay.eventBuffer.clear();
+      replay.eventBuffer.clear(replay.recordingMode);
     }
 
     return await replay.eventBuffer.addEvent(event);

@@ -167,6 +167,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // If neither sample rate is > 0, then do nothing - user will need to call one of
     // `start()` or `startBuffering` themselves.
     if (errorSampleRate <= 0 && sessionSampleRate <= 0) {
+      __DEBUG_BUILD__ && logger.log('[Replay] No sample rate set, not initializing.');
       return;
     }
 
@@ -193,6 +194,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       // prior SDK version.
       this.recordingMode = 'buffer';
     }
+
+    __DEBUG_BUILD__ && logger.log(`[Replay] Session initialized in mode ${this.recordingMode}`);
 
     this._initializeRecording();
   }

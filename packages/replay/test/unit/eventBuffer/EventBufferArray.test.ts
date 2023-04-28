@@ -23,7 +23,7 @@ describe('Unit | eventBuffer | EventBufferArray', () => {
     buffer.addEvent(TEST_EVENT);
 
     // clear() is called by addEvent when isCheckout is true
-    buffer.clear();
+    buffer.clear('session');
     buffer.addEvent(TEST_EVENT);
     const result = await buffer.finish();
 

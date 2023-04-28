@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getCurrentHub } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
-import { TextEncoder } from 'util';
+import pako from 'pako';
+import { TextDecoder, TextEncoder } from 'util';
 
 import type { ReplayContainer, Session } from './src/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (global as any).TextEncoder = TextEncoder;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(global as any).TextDecoder = TextDecoder;
 
 type MockTransport = jest.MockedFunction<Transport['send']>;
 
@@ -71,6 +74,40 @@ type Call = [
 ];
 type CheckCallForSentReplayResult = { pass: boolean; call: Call | undefined; results: Result[] };
 
+function parseRecordingData(recordingPayload: undefined | string | Uint8Array): string {
+  if (!recordingPayload) {
+    return '';
+  }
+
+  if (typeof recordingPayload === 'string') {
+    return recordingPayload;
+  }
+
+  if (recordingPayload instanceof Uint8Array) {
+    // We look up the place where the zlib compression header(0x78 0x9c) starts
+    // As the payload consists of two UInt8Arrays joined together, where the first part is a TextEncoder encoded string,
+    // and the second part a pako-compressed one
+    for (let i = 0; i < recordingPayload.length; i++) {
+      if (recordingPayload[i] === 0x78 && recordingPayload[i + 1] === 0x9c) {
+        try {
+          // We found a zlib-compressed payload - let's decompress it
+          const header = recordingPayload.slice(0, i);
+          const payload = recordingPayload.slice(i);
+          // now we return the decompressed payload as JSON
+          const decompressedPayload = pako.inflate(payload, { to: 'string' });
+          const decompressedHeader = new TextDecoder().decode(header);
+
+          return `${decompressedHeader}${decompressedPayload}`;
+        } catch (error) {
+          throw new Error(`Could not parse UInt8Array payload: ${error}`);
+        }
+      }
+    }
+  }
+
+  throw new Error(`Invalid recording payload: ${recordingPayload}`);
+}
+
 function checkCallForSentReplay(
   call: Call | undefined,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
@@ -79,8 +116,9 @@ function checkCallForSentReplay(
   const envelopeItems = call?.[1] || [[], []];
   const [[replayEventHeader, replayEventPayload], [recordingHeader, recordingPayload] = []] = envelopeItems;
 
-  // @ts-ignore recordingPayload is always a string in our tests
-  const [recordingPayloadHeader, recordingData] = recordingPayload?.split('\n') || [];
+  const recordingStr = parseRecordingData(recordingPayload as unknown as string | Uint8Array);
+
+  const [recordingPayloadHeader, recordingData] = recordingStr?.split('\n') || [];
 
   const actualObj: Required<SentReplayExpected> = {
     // @ts-ignore Custom envelope

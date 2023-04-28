@@ -43,7 +43,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await buffer.addEvent(TEST_EVENT);
 
     // clear() is called by addEvent when isCheckout is true
-    buffer.clear();
+    buffer.clear('session');
     await buffer.addEvent({ ...TEST_EVENT, type: 2 });
 
     const result = await buffer.finish();
@@ -51,6 +51,53 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     const restored = pako.inflate(result as Uint8Array, { to: 'string' });
 
     expect(restored).toEqual(JSON.stringify([{ ...TEST_EVENT, type: 2 }]));
+  });
+
+  it('clear works for buffer-based session', async function () {
+    const buffer = createEventBuffer({
+      useCompression: true,
+    }) as EventBufferProxy;
+
+    expect(buffer).toBeInstanceOf(EventBufferProxy);
+
+    // Ensure worker is ready
+    await buffer.ensureWorkerIsLoaded();
+
+    await buffer.addEvent({ ...TEST_EVENT, timestamp: BASE_TIMESTAMP });
+    await buffer.addEvent({ ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 100 });
+
+    expect(buffer.getEarliestTimestamp()).toEqual(BASE_TIMESTAMP);
+
+    buffer.clear('buffer');
+
+    expect(buffer.getEarliestTimestamp()).toEqual(BASE_TIMESTAMP);
+
+    await buffer.addEvent({ ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 300 });
+    await buffer.addEvent({ ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 200 });
+
+    expect(buffer.getEarliestTimestamp()).toEqual(BASE_TIMESTAMP);
+
+    buffer.clear('buffer');
+
+    expect(buffer.getEarliestTimestamp()).toEqual(BASE_TIMESTAMP + 200);
+
+    await buffer.addEvent({ ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 400 });
+
+    expect(buffer.getEarliestTimestamp()).toEqual(BASE_TIMESTAMP + 200);
+
+    const result = await buffer.finish();
+    expect(result).toBeInstanceOf(Uint8Array);
+    const restored = pako.inflate(result as Uint8Array, { to: 'string' });
+
+    expect(restored).toEqual(
+      JSON.stringify([
+        { ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 300 },
+        { ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 200 },
+        { ...TEST_EVENT, timestamp: BASE_TIMESTAMP + 400 },
+      ]),
+    );
+
+    expect(buffer.getEarliestTimestamp()).toEqual(null);
   });
 
   it('calling `finish()` multiple times does not result in duplicated events', async function () {

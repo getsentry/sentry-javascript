@@ -1,4 +1,4 @@
-import type { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData, ReplayRecordingMode } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
@@ -36,8 +36,8 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
-  public clear(): void {
-    return this._used.clear();
+  public clear(recordingMode: ReplayRecordingMode): void {
+    return this._used.clear(recordingMode);
   }
 
   /** @inheritdoc */

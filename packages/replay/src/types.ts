@@ -449,7 +449,7 @@ export interface EventBuffer {
   /**
    * Clear the event buffer.
    */
-  clear(): void;
+  clear(recordingMode: ReplayRecordingMode): void;
 
   /**
    * Add an event to the event buffer.
