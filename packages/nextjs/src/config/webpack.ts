@@ -163,6 +163,17 @@ export function constructWebpackConfigFunction(
         ],
       });
 
+      let vercelCronsConfig: { crons?: any } | undefined = undefined;
+      try {
+        if (process.env.VERCEL) {
+          vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.log('Reading failed');
+        // noop
+      }
+
       // Wrap api routes
       newConfig.module.rules.unshift({
         test: resourcePath => {
@@ -177,6 +188,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
+              cronsUpsertConfiguration: vercelCronsConfig?.crons,
               wrappingTargetKind: 'api-route',
             },
           },

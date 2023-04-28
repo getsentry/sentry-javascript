@@ -1,10 +1,11 @@
 import type { Scope } from '@sentry/core';
 import { addTracingExtensions, BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
-import type { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import type { CheckIn, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
 import { logger, resolvedSyncPromise } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
+import { createCheckInEnvelope } from './checkin';
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import type { NodeClientOptions } from './types';
 
@@ -101,6 +102,21 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
   public close(timeout?: number): PromiseLike<boolean> {
     this._sessionFlusher?.close();
     return super.close(timeout);
+  }
+
+  /**
+   * TODO
+   */
+  public captureCheckin(checkin: CheckIn): void {
+    if (!this._isEnabled()) {
+      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
+      return;
+    }
+
+    const envelope = createCheckInEnvelope(checkin, this.getSdkMetadata(), this.getOptions().tunnel, this.getDsn());
+
+    __DEBUG_BUILD__ && logger.warn('Sending checkin: ', checkin);
+    void this._sendEnvelope(envelope);
   }
 
   /** Method that initialises an instance of SessionFlusher on Client */

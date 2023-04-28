@@ -56,7 +56,16 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
-export { defaultIntegrations, init, defaultStackParser, lastEventId, flush, close, getSentryRelease } from './sdk';
+export {
+  defaultIntegrations,
+  init,
+  defaultStackParser,
+  lastEventId,
+  flush,
+  close,
+  getSentryRelease,
+  captureCheckin,
+} from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from './requestdata';
 export { deepReadDirSync } from './utils';
 

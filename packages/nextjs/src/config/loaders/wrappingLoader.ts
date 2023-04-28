@@ -44,6 +44,10 @@ type LoaderOptions = {
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
   sentryConfigFilePath?: string;
+  cronsUpsertConfiguration?: {
+    path?: string;
+    schedule?: string;
+  }[];
 };
 
 function moduleExists(id: string): boolean {
@@ -74,6 +78,7 @@ export default function wrappingLoader(
     excludeServerRoutes = [],
     wrappingTargetKind,
     sentryConfigFilePath,
+    cronsUpsertConfiguration,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -112,6 +117,8 @@ export default function wrappingLoader(
     } else {
       throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
     }
+
+    templateCode = templateCode.replace(/__CRONS_UPSERT_CONFIGURATION__/g, JSON.stringify(cronsUpsertConfiguration));
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));

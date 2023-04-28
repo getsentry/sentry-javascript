@@ -157,6 +157,8 @@ const deprecatedIsBuild = (): boolean => isBuild();
 // eslint-disable-next-line deprecation/deprecation
 export { deprecatedIsBuild as isBuild };
 
+export { wrapApiHandlerWithSentryCrons } from './wrapApiHandlerWithSentryCrons';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryGetStaticProps,

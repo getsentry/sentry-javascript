@@ -54,7 +54,14 @@ export const config = {
   },
 };
 
-export default userProvidedHandler ? Sentry.wrapApiHandlerWithSentry(userProvidedHandler, '__ROUTE__') : undefined;
+declare const __CRONS_UPSERT_CONFIGURATION__: Parameters<typeof Sentry.captureCheckin>[1];
+
+export default userProvidedHandler
+  ? Sentry.wrapApiHandlerWithSentry(
+      Sentry.wrapApiHandlerWithSentryCrons(userProvidedHandler, __CRONS_UPSERT_CONFIGURATION__),
+      '__ROUTE__',
+    )
+  : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.

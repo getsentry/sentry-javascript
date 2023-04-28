@@ -6,13 +6,14 @@ import {
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { CheckIn, SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
   GLOBAL_OBJ,
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+  uuid4,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
@@ -284,4 +285,62 @@ function startSessionTracking(): void {
     // Ref: https://develop.sentry.dev/sdk/sessions/
     if (session && !terminalStates.includes(session.status)) hub.endSession();
   });
+}
+
+interface CrontabSchedule {
+  type: 'crontab';
+  // The crontab schedule string, e.g. 0 * * * *.
+  value: string;
+}
+
+interface IntervalSchedule {
+  type: 'interval';
+  value: number;
+  unit: 'year' | 'month' | 'week' | 'day' | 'hour' | 'minute';
+}
+
+export interface UserFacingCheckin {
+  // The distinct slug of the monitor.
+  monitorSlug: string;
+  // The status of the check-in.
+  status: 'in_progress' | 'ok' | 'error';
+  // Timing data
+  duration?: number;
+}
+
+export interface UpdateMonitor {
+  schedule: CrontabSchedule | IntervalSchedule;
+  // The allowed allowed margin of minutes after the expected check-in time that
+  // the monitor will not be considered missed for.
+  checkinMargin?: number;
+  // The allowed allowed duration in minutes that the monitor may be `in_progress`
+  // for before being considered failed due to timeout.
+  maxRuntime?: number;
+  // A tz database string representing the timezone which the monitor's execution schedule is in.
+  // See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  timezone?: string;
+}
+
+/**
+ * TODO
+ */
+export function captureCheckin(checkin: UserFacingCheckin, updateMonitor?: UpdateMonitor): void {
+  const normalizedCheckin: CheckIn = {
+    check_in_id: uuid4(),
+    monitor_slug: checkin.monitorSlug,
+    status: checkin.status,
+    duration: checkin.duration,
+    release: 'dummy release',
+    environment: 'dummy environment',
+    monitor_config: updateMonitor
+      ? {
+          schedule: updateMonitor?.schedule,
+          checkin_margin: updateMonitor?.checkinMargin,
+          max_runtime: updateMonitor?.maxRuntime,
+          timezone: updateMonitor?.timezone,
+        }
+      : undefined,
+  };
+
+  return getCurrentHub().getClient<NodeClient>()?.captureCheckin(normalizedCheckin);
 }
