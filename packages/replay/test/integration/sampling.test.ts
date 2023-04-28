@@ -24,13 +24,13 @@ describe('Integration | sampling', () => {
     jest.runAllTimers();
 
     expect(replay.session).toBe(undefined);
+    expect(replay.eventBuffer).toBeNull();
 
     // This is what the `_context` member is initialized with
     expect(replay.getContext()).toEqual({
       errorIds: new Set(),
       traceIds: new Set(),
       urls: [],
-      earliestEvent: null,
       initialTimestamp: expect.any(Number),
       initialUrl: '',
     });
@@ -63,11 +63,12 @@ describe('Integration | sampling', () => {
     jest.runAllTimers();
 
     expect(replay.session?.id).toBeDefined();
+    expect(replay.eventBuffer).toBeDefined();
+    expect(replay.eventBuffer?.getEarliestTimestamp()).toEqual(expect.any(Number));
 
     // This is what the `_context` member is initialized with
     expect(replay.getContext()).toEqual({
       errorIds: new Set(),
-      earliestEvent: expect.any(Number),
       initialTimestamp: expect.any(Number),
       initialUrl: 'http://localhost/',
       traceIds: new Set(),

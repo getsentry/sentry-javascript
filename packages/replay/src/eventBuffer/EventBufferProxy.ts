@@ -35,6 +35,11 @@ export class EventBufferProxy implements EventBuffer {
     this._compression.destroy();
   }
 
+  /** @inheritdoc */
+  public getEarliestTimestamp(): number | null {
+    return this._used.getEarliestTimestamp();
+  }
+
   /**
    * Add an event to the event buffer.
    *

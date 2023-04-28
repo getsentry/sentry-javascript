@@ -2,6 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { timestampToMs } from './timestampToMs';
 
 /**
  * Add an event to the event buffer.
@@ -22,10 +23,7 @@ export async function addEvent(
     return null;
   }
 
-  // TODO: sadness -- we will want to normalize timestamps to be in ms -
-  // requires coordination with frontend
-  const isMs = event.timestamp > 9999999999;
-  const timestampInMs = isMs ? event.timestamp : event.timestamp * 1000;
+  const timestampInMs = timestampToMs(event.timestamp);
 
   // Throw out events that happen more than 5 minutes ago. This can happen if
   // page has been left open and idle for a long period of time and user
@@ -33,13 +31,6 @@ export async function addEvent(
   // `performance.timeOrigin`, which is when the page first opened.
   if (timestampInMs + replay.timeouts.sessionIdlePause < Date.now()) {
     return null;
-  }
-
-  // Only record earliest event if a new session was created, otherwise it
-  // shouldn't be relevant
-  const earliestEvent = replay.getContext().earliestEvent;
-  if (replay.session && replay.session.segmentId === 0 && (!earliestEvent || timestampInMs < earliestEvent)) {
-    replay.getContext().earliestEvent = timestampInMs;
   }
 
   try {

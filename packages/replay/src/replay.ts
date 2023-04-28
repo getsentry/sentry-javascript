@@ -118,7 +118,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     errorIds: new Set(),
     traceIds: new Set(),
     urls: [],
-    earliestEvent: null,
     initialTimestamp: Date.now(),
     initialUrl: '',
   };
@@ -819,22 +818,35 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._context.errorIds.clear();
     this._context.traceIds.clear();
     this._context.urls = [];
-    this._context.earliestEvent = null;
+  }
+
+  /** Update the initial timestamp based on the buffer content. */
+  private _updateInitialTimestampFromEventBuffer(): void {
+    const { session, eventBuffer } = this;
+    if (!session || !eventBuffer) {
+      return;
+    }
+
+    // we only ever update this on the initial segment
+    if (session.segmentId) {
+      return;
+    }
+
+    const earliestEvent = eventBuffer.getEarliestTimestamp();
+    if (earliestEvent && earliestEvent < this._context.initialTimestamp) {
+      this._context.initialTimestamp = earliestEvent;
+    }
   }
 
   /**
    * Return and clear _context
    */
   private _popEventContext(): PopEventContext {
-    if (this._context.earliestEvent && this._context.earliestEvent < this._context.initialTimestamp) {
-      this._context.initialTimestamp = this._context.earliestEvent;
-    }
-
     const _context = {
       initialTimestamp: this._context.initialTimestamp,
       initialUrl: this._context.initialUrl,
-      errorIds: Array.from(this._context.errorIds).filter(Boolean),
-      traceIds: Array.from(this._context.traceIds).filter(Boolean),
+      errorIds: Array.from(this._context.errorIds),
+      traceIds: Array.from(this._context.traceIds),
       urls: this._context.urls,
     };
 
@@ -873,6 +885,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     try {
+      // This uses the data from the eventBuffer, so we need to call this before `finish()
+      this._updateInitialTimestampFromEventBuffer();
+
       // Note this empties the event buffer regardless of outcome of sending replay
       const recordingData = await this.eventBuffer.finish();
 
