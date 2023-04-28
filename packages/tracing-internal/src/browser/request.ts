@@ -195,6 +195,7 @@ export function fetchCallback(
       data: {
         ...handlerData.fetchData,
         type: 'fetch',
+        'http.method': handlerData.fetchData.method,
       },
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
       op: 'http.client',
@@ -334,7 +335,7 @@ export function xhrCallback(
       data: {
         ...sentryXhrData.data,
         type: 'xhr',
-        method: sentryXhrData.method,
+        'http.method': sentryXhrData.method,
         url: sentryXhrData.url,
       },
       description: `${sentryXhrData.method} ${sentryXhrData.url}`,
