@@ -172,13 +172,13 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
     });
 
-    it('trasforms windowsExceptionEvent frames', () => {
+    it('transforms windowsExceptionEvent frames', () => {
       const event = rewriteFrames.process(windowsExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
-    it('trasforms windowsExceptionEvent lower-case prefix frames', () => {
+    it('transforms windowsExceptionEvent lower-case prefix frames', () => {
       const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
