@@ -7,6 +7,8 @@ let exceptionEvent: Event;
 let exceptionWithoutStackTrace: Event;
 let windowsExceptionEvent: Event;
 let windowsLowerCaseExceptionEvent: Event;
+let windowsExceptionEventWithoutPrefix: Event;
+let windowsExceptionEventWithBackslashPrefix: Event;
 let multipleStacktracesEvent: Event;
 
 describe('RewriteFrames', () => {
@@ -39,6 +41,28 @@ describe('RewriteFrames', () => {
           {
             stacktrace: {
               frames: [{ filename: 'c:\\www\\src\\app\\file1.js' }, { filename: 'c:\\www\\src\\app\\file2.js' }],
+            },
+          },
+        ],
+      },
+    };
+    windowsExceptionEventWithoutPrefix = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [{ filename: 'www\\src\\app\\file1.js' }, { filename: 'www\\src\\app\\file2.js' }],
+            },
+          },
+        ],
+      },
+    };
+    windowsExceptionEventWithBackslashPrefix = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [{ filename: '\\www\\src\\app\\file1.js' }, { filename: '\\www\\src\\app\\file2.js' }],
             },
           },
         ],
@@ -121,6 +145,18 @@ describe('RewriteFrames', () => {
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
+
+    it('transforms windowsExceptionEvent frames with no prefix', () => {
+      const event = rewriteFrames.process(windowsExceptionEventWithoutPrefix);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
+    });
+
+    it('transforms windowsExceptionEvent frames with backslash prefix', () => {
+      const event = rewriteFrames.process(windowsExceptionEventWithBackslashPrefix);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
+    });
   });
 
   describe('can use custom root to perform `relative` on filepaths', () => {
@@ -144,6 +180,18 @@ describe('RewriteFrames', () => {
 
     it('trasforms windowsExceptionEvent lower-case prefix frames', () => {
       const event = rewriteFrames.process(windowsLowerCaseExceptionEvent);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('transforms windowsExceptionEvent frames with no prefix', () => {
+      const event = rewriteFrames.process(windowsExceptionEventWithoutPrefix);
+      expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
+      expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
+    });
+
+    it('transforms windowsExceptionEvent frames with backslash prefix', () => {
+      const event = rewriteFrames.process(windowsExceptionEventWithBackslashPrefix);
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });

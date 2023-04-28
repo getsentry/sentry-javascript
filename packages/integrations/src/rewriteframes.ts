@@ -71,8 +71,10 @@ export class RewriteFrames implements Integration {
     if (!frame.filename) {
       return frame;
     }
-    // Check if the frame filename begins with `/` or a Windows-style prefix such as `C:\`
-    const isWindowsFrame = /^[a-zA-Z]:\\/.test(frame.filename);
+    // Determine if this is a Windows frame by checking for a Windows-style prefix such as `C:\`
+    // or the presence of a backslash without a forward slash (which are not allowed on Windows)
+    const isWindowsFrame = /^[a-zA-Z]:\\/.test(frame.filename) || /^(?!.*\/).*\\.*$/.test(frame.filename);
+    // Check if the frame filename begins with `/`
     const startsWithSlash = /^\//.test(frame.filename);
     if (isWindowsFrame || startsWithSlash) {
       const filename = isWindowsFrame
