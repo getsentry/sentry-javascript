@@ -3,7 +3,7 @@
 type blockClass = string | RegExp;
 type maskTextClass = string | RegExp;
 
-enum EventType {
+export enum EventType {
   DomContentLoaded = 0,
   Load = 1,
   FullSnapshot = 2,

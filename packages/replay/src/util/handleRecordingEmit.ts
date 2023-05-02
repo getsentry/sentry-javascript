@@ -2,6 +2,7 @@ import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
 import type { RecordingEvent, ReplayContainer } from '../types';
+import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
@@ -48,6 +49,14 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         return false;
       }
 
+      // Additionally, create a meta event that will capture certain SDK settings.
+      // In order to handle buffer mode, this needs to either be done when we
+      // receive checkout events or at flush time.
+      //
+      // `isCheckout` is always true, but want to be explicit that it should
+      // only be added for checkouts
+      void addSettingsEvent(replay, isCheckout);
+
       // If there is a previousSessionId after a full snapshot occurs, then
       // the replay session was started due to session expiration. The new session
       // is started before triggering a new checkout and contains the id
@@ -83,4 +92,39 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       return true;
     });
   };
+}
+
+/**
+ * Add an event to the event buffer.
+ * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
+ */
+export async function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<void | null> {
+  // Only need to add this event when sending the first segment
+  if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
+    return null;
+  }
+
+  const options = replay.getOptions();
+  const event = {
+    type: EventType.Custom,
+    timestamp: new Date().getTime(),
+    data: {
+      tag: 'options',
+      payload: {
+        sessionSampleRate: options.sessionSampleRate,
+        errorSampleRate: options.errorSampleRate,
+        useCompressionOption: options.useCompression,
+        blockAllMedia: options.blockAllMedia,
+        maskAllText: options.maskAllText,
+        maskAllInputs: options.maskAllInputs,
+        useCompression: replay.eventBuffer && replay.eventBuffer.type === 'worker',
+        networkDetailHasUrls: options.networkDetailAllowUrls.length > 0,
+        networkCaptureBodies: options.networkCaptureBodies,
+        networkRequestHeaders: options.networkRequestHeaders.length > 0,
+        networkResponseHeaders: options.networkResponseHeaders.length > 0,
+      },
+    },
+  };
+
+  return addEvent(replay, event, true);
 }

@@ -123,6 +123,8 @@ export class Replay implements Integration {
       errorSampleRate,
       useCompression,
       blockAllMedia,
+      maskAllInputs,
+      maskAllText,
       networkDetailAllowUrls,
       networkCaptureBodies,
       networkRequestHeaders: _getMergedNetworkHeaders(networkRequestHeaders),

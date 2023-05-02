@@ -183,12 +183,6 @@ describe('Integration | errorSampleRate', () => {
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
-        contexts: {
-          replay: {
-            error_sample_rate: 1,
-            session_sample_rate: 0,
-          },
-        },
       }),
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },

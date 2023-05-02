@@ -258,6 +258,16 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   blockAllMedia: boolean;
 
   /**
+   * Mask all inputs in recordings
+   */
+  maskAllInputs: boolean;
+
+  /**
+   * Mask all text in recordings
+   */
+  maskAllText: boolean;
+
+  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
@@ -435,11 +445,18 @@ export interface Session {
   shouldRefresh: boolean;
 }
 
+export type EventBufferType = 'default' | 'worker';
+
 export interface EventBuffer {
   /**
    * If any events have been added to the buffer.
    */
   readonly hasEvents: boolean;
+
+  /**
+   * The buffer type
+   */
+  readonly type: EventBufferType;
 
   /**
    * Destroy the event buffer.

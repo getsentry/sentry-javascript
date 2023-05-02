@@ -17,6 +17,7 @@ import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
+import { DEFAULT_OPTIONS_EVENT_PAYLOAD } from '../utils/setupReplayContainer';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -388,7 +389,7 @@ describe('Integration | session', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        { type: 5, timestamp: newTimestamp, data: { tag: 'options', payload: DEFAULT_OPTIONS_EVENT_PAYLOAD } },
         {
           type: 5,
           timestamp: newTimestamp,

@@ -1,7 +1,7 @@
 import type { ReplayRecordingData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
 
@@ -22,6 +22,11 @@ export class EventBufferProxy implements EventBuffer {
     this._used = this._fallback;
 
     this._ensureWorkerIsLoadedPromise = this._ensureWorkerIsLoaded();
+  }
+
+  /** @inheritdoc */
+  public get type(): EventBufferType {
+    return this._used.type;
   }
 
   /** @inheritDoc */
