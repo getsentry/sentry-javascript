@@ -42,13 +42,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
    *
    * Returns true if event was successfuly received and processed by worker.
    */
-  public async addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
-    if (isCheckout) {
-      // This event is a checkout, make sure worker buffer is cleared before
-      // proceeding.
-      await this._clear();
-    }
-
+  public addEvent(event: RecordingEvent): Promise<AddEventResult> {
     const timestamp = timestampToMs(event.timestamp);
     if (!this._earliestTimestamp || timestamp < this._earliestTimestamp) {
       this._earliestTimestamp = timestamp;
@@ -62,6 +56,13 @@ export class EventBufferCompressionWorker implements EventBuffer {
    */
   public finish(): Promise<ReplayRecordingData> {
     return this._finishRequest();
+  }
+
+  /** @inheritdoc */
+  public clear(): void {
+    this._earliestTimestamp = null;
+    // We do not wait on this, as we assume the order of messages is consistent for the worker
+    void this._worker.postMessage('clear');
   }
 
   /** @inheritdoc */
@@ -85,11 +86,5 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._earliestTimestamp = null;
 
     return response;
-  }
-
-  /** Clear any pending events from the worker. */
-  private _clear(): Promise<void> {
-    this._earliestTimestamp = null;
-    return this._worker.postMessage('clear');
   }
 }

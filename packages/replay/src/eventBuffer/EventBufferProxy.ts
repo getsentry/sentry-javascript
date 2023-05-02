@@ -36,6 +36,11 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
+  public clear(): void {
+    return this._used.clear();
+  }
+
+  /** @inheritdoc */
   public getEarliestTimestamp(): number | null {
     return this._used.getEarliestTimestamp();
   }
@@ -45,8 +50,8 @@ export class EventBufferProxy implements EventBuffer {
    *
    * Returns true if event was successfully added.
    */
-  public addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult> {
-    return this._used.addEvent(event, isCheckout);
+  public addEvent(event: RecordingEvent): Promise<AddEventResult> {
+    return this._used.addEvent(event);
   }
 
   /** @inheritDoc */
