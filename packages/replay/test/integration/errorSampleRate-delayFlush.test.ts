@@ -25,7 +25,16 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-describe('Integration | errorSampleRate', () => {
+async function waitForBufferFlush() {
+  await new Promise(process.nextTick);
+  await new Promise(process.nextTick);
+}
+
+async function waitForFlush() {
+  await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+}
+
+describe('Integration | errorSampleRate with delayed flush', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
   let domHandler: DomHandler;
@@ -34,6 +43,9 @@ describe('Integration | errorSampleRate', () => {
     ({ mockRecord, domHandler, replay } = await resetSdkMock({
       replayOptions: {
         stickySession: true,
+        _experiments: {
+          delayFlushOnCheckout: DEFAULT_FLUSH_MIN_DELAY,
+        },
       },
       sentryOptions: {
         replaysSessionSampleRate: 0.0,
@@ -64,14 +76,12 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
-    await new Promise(process.nextTick);
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForBufferFlush();
 
-    expect(replay).toHaveSentReplay({
+    expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
@@ -99,14 +109,13 @@ describe('Integration | errorSampleRate', () => {
       ]),
     });
 
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForFlush();
 
     // This is from when we stop recording and start a session recording
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
@@ -114,29 +123,27 @@ describe('Integration | errorSampleRate', () => {
           },
         },
       }),
-      recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 40, type: 2 },
-      ]),
+      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 40, type: 2 }]),
     });
+
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
     // Check that click will get captured
     domHandler({
       name: 'click',
     });
 
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForFlush();
 
     expect(replay).toHaveLastSentReplay({
-      recordingPayloadHeader: { segment_id: 2 },
       recordingData: JSON.stringify([
         {
           type: 5,
-          timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + DEFAULT_FLUSH_MIN_DELAY + 80,
+          timestamp: BASE_TIMESTAMP + 10000 + 80,
           data: {
             tag: 'breadcrumb',
             payload: {
-              timestamp: (BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + DEFAULT_FLUSH_MIN_DELAY + 80) / 1000,
+              timestamp: (BASE_TIMESTAMP + 10000 + 80) / 1000,
               type: 'default',
               category: 'ui.click',
               message: '<unknown>',
@@ -165,14 +172,12 @@ describe('Integration | errorSampleRate', () => {
 
     replay.sendBufferedReplayOrFlush({ continueRecording: false });
 
-    await new Promise(process.nextTick);
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForBufferFlush();
 
     expect(replay).toHaveSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
@@ -205,15 +210,15 @@ describe('Integration | errorSampleRate', () => {
     domHandler({
       name: 'click',
     });
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+
+    await waitForFlush();
 
     // This is still the last replay sent since we passed `continueRecording:
     // false`.
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
-        replay_type: 'error',
+        replay_type: 'buffer',
         contexts: {
           replay: {
             error_sample_rate: 1,
@@ -346,12 +351,12 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
 
     // There should also not be another attempt at an upload 5 seconds after the last replay event
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await waitForFlush();
     expect(replay).not.toHaveLastSentReplay();
 
     // Let's make sure it continues to work
     mockRecord._emitter(TEST_EVENT);
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await waitForFlush();
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).not.toHaveLastSentReplay();
@@ -363,9 +368,80 @@ describe('Integration | errorSampleRate', () => {
   // sample rate of 0.0), or an error session that has no errors. Instead we
   // simply stop the session replay completely and wait for a new page load to
   // resample.
-  it('stops replay if session exceeds MAX_SESSION_LIFE and does not start a new session thereafter', async () => {
-    // Idle for 15 minutes
-    jest.advanceTimersByTime(MAX_SESSION_LIFE + 1);
+  it.each([
+    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['SESSION_IDLE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
+  ])(
+    'stops replay if session had an error and exceeds %s and does not start a new session thereafter',
+    async (_label, waitTime) => {
+      expect(replay.session?.shouldRefresh).toBe(true);
+
+      captureException(new Error('testing'));
+
+      await waitForBufferFlush();
+
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 0 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+      });
+
+      await waitForFlush();
+
+      // segment_id is 1 because it sends twice on error
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 1 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+      });
+      expect(replay.session?.shouldRefresh).toBe(false);
+
+      // Idle for given time
+      jest.advanceTimersByTime(waitTime + 1);
+      await new Promise(process.nextTick);
+
+      const TEST_EVENT = {
+        data: { name: 'lost event' },
+        timestamp: BASE_TIMESTAMP,
+        type: 3,
+      };
+      mockRecord._emitter(TEST_EVENT);
+
+      jest.runAllTimers();
+      await new Promise(process.nextTick);
+
+      // We stop recording after 15 minutes of inactivity in error mode
+
+      // still no new replay sent
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 1 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+      });
+
+      expect(replay.isEnabled()).toBe(false);
+
+      domHandler({
+        name: 'click',
+      });
+
+      // Remains disabled!
+      expect(replay.isEnabled()).toBe(false);
+    },
+  );
+
+  it.each([
+    ['MAX_SESSION_LIFE', MAX_SESSION_LIFE],
+    ['SESSION_IDLE_EXPIRE_DURATION', SESSION_IDLE_EXPIRE_DURATION],
+  ])('continues buffering replay if session had no error and exceeds %s', async (_label, waitTime) => {
+    expect(replay).not.toHaveLastSentReplay();
+
+    // Idle for given time
+    jest.advanceTimersByTime(waitTime + 1);
+    await new Promise(process.nextTick);
 
     const TEST_EVENT = {
       data: { name: 'lost event' },
@@ -373,23 +449,45 @@ describe('Integration | errorSampleRate', () => {
       type: 3,
     };
     mockRecord._emitter(TEST_EVENT);
-    expect(replay).not.toHaveLastSentReplay();
 
     jest.runAllTimers();
     await new Promise(process.nextTick);
 
-    // We stop recording after 15 minutes of inactivity in error mode
-
+    // still no new replay sent
     expect(replay).not.toHaveLastSentReplay();
-    expect(replay.isEnabled()).toBe(false);
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
 
     domHandler({
       name: 'click',
     });
 
-    // Remains disabled!
-    expect(replay.isEnabled()).toBe(false);
+    await waitForFlush();
+
+    expect(replay).not.toHaveLastSentReplay();
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
+
+    // should still react to errors later on
+    captureException(new Error('testing'));
+
+    await waitForBufferFlush();
+
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
+    });
+
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('session');
+    expect(replay.session?.sampled).toBe('buffer');
+    expect(replay.session?.shouldRefresh).toBe(false);
   });
 
   // Should behave the same as above test
@@ -410,15 +508,29 @@ describe('Integration | errorSampleRate', () => {
 
     // We stop recording after SESSION_IDLE_EXPIRE_DURATION of inactivity in error mode
     expect(replay).not.toHaveLastSentReplay();
-    expect(replay.isEnabled()).toBe(false);
-    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('buffer');
 
-    domHandler({
-      name: 'click',
+    // should still react to errors later on
+    captureException(new Error('testing'));
+
+    await new Promise(process.nextTick);
+    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+
+    expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
+      replayEventPayload: expect.objectContaining({
+        replay_type: 'buffer',
+      }),
     });
 
-    // Remains disabled!
-    expect(replay.isEnabled()).toBe(false);
+    expect(replay.isEnabled()).toBe(true);
+    expect(replay.isPaused()).toBe(false);
+    expect(replay.recordingMode).toBe('session');
+    expect(replay.session?.sampled).toBe('buffer');
+    expect(replay.session?.shouldRefresh).toBe(false);
   });
 
   it('has the correct timestamps with deferred root event and last replay update', async () => {
@@ -483,10 +595,7 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
-    await new Promise(process.nextTick);
-    jest.runAllTimers();
-    jest.advanceTimersByTime(20);
-    await new Promise(process.nextTick);
+    await waitForBufferFlush();
 
     expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED + 20);
 
@@ -521,15 +630,12 @@ describe('Integration | errorSampleRate', () => {
 
     captureException(new Error('testing'));
 
-    await new Promise(process.nextTick);
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForBufferFlush();
 
     expect(replay).toHaveLastSentReplay();
 
     // Flush from calling `stopRecording`
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    await waitForFlush();
 
     // Now wait after session expires - should stop recording
     mockRecord.takeFullSnapshot.mockClear();
@@ -545,8 +651,7 @@ describe('Integration | errorSampleRate', () => {
 
     expect(replay).not.toHaveLastSentReplay();
 
-    jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
-    await new Promise(process.nextTick);
+    await waitForFlush();
 
     expect(replay).not.toHaveLastSentReplay();
     expect(mockRecord.takeFullSnapshot).toHaveBeenCalledTimes(0);
@@ -607,22 +712,26 @@ describe('Integration | errorSampleRate', () => {
  * sampling since we can load a saved session that did not have an error (and
  * thus no replay was created).
  */
-it('sends a replay after loading the session multiple times', async () => {
+it('sends a replay after loading the session from storage', async () => {
   // Pretend that a session is already saved before loading replay
   WINDOW.sessionStorage.setItem(
     REPLAY_SESSION_KEY,
-    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"error","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
+    `{"segmentId":0,"id":"fd09adfc4117477abc8de643e5a5798a","sampled":"buffer","started":${BASE_TIMESTAMP},"lastActivity":${BASE_TIMESTAMP}}`,
   );
-  const { mockRecord, replay } = await resetSdkMock({
+  const { mockRecord, replay, integration } = await resetSdkMock({
     replayOptions: {
       stickySession: true,
       _experiments: {
         delayFlushOnCheckout: DEFAULT_FLUSH_MIN_DELAY,
       },
     },
+    sentryOptions: {
+      replaysOnErrorSampleRate: 1.0,
+    },
     autoStart: false,
   });
-  replay.start();
+  // @ts-ignore this is protected, but we want to call it for this test
+  integration._initialize();
 
   jest.runAllTimers();
 
@@ -634,17 +743,22 @@ it('sends a replay after loading the session multiple times', async () => {
 
   captureException(new Error('testing'));
 
-  await new Promise(process.nextTick);
-  await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+  // 2 ticks to send replay from an error
+  await waitForBufferFlush();
 
-  expect(replay).toHaveLastSentReplay({
+  // Buffered events before error
+  expect(replay).toHaveSentReplay({
     recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
   });
 
-  await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+  // `startRecording()` after switching to session mode to continue recording
+  await waitForFlush();
+
   // Latest checkout when we call `startRecording` again after uploading segment
   // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
-    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 10040, type: 2 }]),
+    recordingData: JSON.stringify([
+      { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 40, type: 2 },
+    ]),
   });
 });
