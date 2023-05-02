@@ -5,6 +5,7 @@ setTimeout(() => {
   cdnScript.addEventListener('load', () => {
     window.Sentry.init({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      replaysSessionSampleRate: 0.42,
     });
 
     setTimeout(() => {

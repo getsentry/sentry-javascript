@@ -16,6 +16,17 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   }
 
   let cdnLoadedCount = 0;
+  let sentryEventCount = 0;
+
+  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    sentryEventCount++;
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
+    });
+  });
 
   await page.route(`${TEST_HOST}/*.*`, route => {
     const file = route.request().url().split('/').pop();
@@ -37,7 +48,25 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
 
   const eventData = envelopeRequestParser(await req);
 
+  await waitForFunction(() => cdnLoadedCount === 2);
+
+  // Still loaded the CDN bundle twice
+  expect(cdnLoadedCount).toBe(2);
+
+  // But only sent to Sentry once
+  expect(sentryEventCount).toBe(1);
+
+  // Ensure loader does not overwrite init/config
+  const options = await page.evaluate(() => (window as any).Sentry.getCurrentHub().getClient()?.getOptions());
+  expect(options?.replaysSessionSampleRate).toBe(0.42);
+
   expect(eventData.exception?.values?.length).toBe(1);
   expect(eventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');
-  expect(cdnLoadedCount).toBe(1);
 });
+
+async function waitForFunction(cb: () => boolean, timeout = 2000, increment = 100) {
+  while (timeout > 0 && !cb()) {
+    await new Promise(resolve => setTimeout(resolve, increment));
+    await waitForFunction(cb, timeout - increment, increment);
+  }
+}
