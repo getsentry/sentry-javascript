@@ -43,19 +43,16 @@ sentryTest(
           },
         ],
       },
-      request: {
-        url: 'http://localhost:7654/foo',
-        method: 'GET',
-        headers: {}, // extra properties are ignored in the match object
-      },
-      contexts: {
-        response: {}, // extra properties are ignored in the match object
+    });
+
+    expect(eventData.request).toStrictEqual({
+      url: 'http://localhost:7654/foo',
+      method: 'GET',
+      headers: {
+        'User-Agent': expect.any(String),
       },
     });
-    expect(eventData.request?.headers).toEqual({
-      'User-Agent': expect.any(String),
-    });
-    expect(eventData.contexts?.response).toEqual({
+    expect(eventData.contexts?.response).toStrictEqual({
       status_code: 500,
     });
   },
