@@ -447,12 +447,16 @@ export interface EventBuffer {
   destroy(): void;
 
   /**
+   * Clear the event buffer.
+   */
+  clear(): void;
+
+  /**
    * Add an event to the event buffer.
-   * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
    *
    * Returns a promise that resolves if the event was successfully added, else rejects.
    */
-  addEvent(event: RecordingEvent, isCheckout?: boolean): Promise<AddEventResult>;
+  addEvent(event: RecordingEvent): Promise<AddEventResult>;
 
   /**
    * Clears and returns the contents of the buffer.
