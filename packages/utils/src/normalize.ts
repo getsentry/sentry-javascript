@@ -79,7 +79,11 @@ function visit(
   const [memoize, unmemoize] = memo;
 
   // Get the simple cases out of the way first
-  if (value === null || (['number', 'boolean', 'string'].includes(typeof value) && !isNaN(value))) {
+  if (
+    value === undefined ||
+    value === null ||
+    (['number', 'boolean', 'string'].includes(typeof value) && !isNaN(value))
+  ) {
     return value as Primitive;
   }
 
@@ -219,11 +223,6 @@ function stringifyValue(
 
     if (typeof value === 'number' && value !== value) {
       return '[NaN]';
-    }
-
-    // this catches `undefined` (but not `null`, which is a primitive and can be serialized on its own)
-    if (value === void 0) {
-      return '[undefined]';
     }
 
     if (typeof value === 'function') {
