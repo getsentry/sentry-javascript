@@ -205,7 +205,7 @@ describe('wrapLoadWithSentry', () => {
           op: 'http.client',
           name: 'GET example.com/api/users/',
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             url: 'example.com/api/users/',
             'http.hash': 'testfragment',
             'http.query': 'id=123',
@@ -219,7 +219,7 @@ describe('wrapLoadWithSentry', () => {
           op: 'http.client',
           name: 'POST example.com/api/users/',
           data: {
-            method: 'POST',
+            'http.method': 'POST',
             url: 'example.com/api/users/',
             'http.hash': 'testfragment',
             'http.query': 'id=123',
@@ -233,7 +233,7 @@ describe('wrapLoadWithSentry', () => {
           op: 'http.client',
           name: 'POST example.com/api/users/',
           data: {
-            method: 'POST',
+            'http.method': 'POST',
             url: 'example.com/api/users/',
             'http.hash': 'testfragment',
             'http.query': 'id=123',
@@ -247,7 +247,7 @@ describe('wrapLoadWithSentry', () => {
           op: 'http.client',
           name: 'GET /api/users',
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             url: '/api/users',
             'http.query': 'id=123',
           },
