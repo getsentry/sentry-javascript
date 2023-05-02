@@ -15,7 +15,7 @@ import type { RemixOptions } from './utils/remixOptions';
 export declare function init(options: RemixOptions): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-export const Integrations = { ...clientSdk.Integrations, ...serverSdk.Integrations };
+export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
 export declare const defaultIntegrations: Integration[];
 export declare const defaultStackParser: StackParser;
