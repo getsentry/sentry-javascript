@@ -445,7 +445,7 @@ export interface Session {
   shouldRefresh: boolean;
 }
 
-export type EventBufferType = 'default' | 'worker';
+export type EventBufferType = 'sync' | 'worker';
 
 export interface EventBuffer {
   /**

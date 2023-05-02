@@ -20,7 +20,7 @@ export class EventBufferArray implements EventBuffer {
 
   /** @inheritdoc */
   public get type(): EventBufferType {
-    return 'default';
+    return 'sync';
   }
 
   /** @inheritdoc */
