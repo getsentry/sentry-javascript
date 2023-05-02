@@ -94,7 +94,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
           // It's not internal if the path is starting with a dot
           !filename.startsWith('.') &&
           // It's not internal if the frame has a protocol. In node, this is usually the case if the file got pre-processed with a bundler like webpack
-          !filename.match(/^[a-zA-Z]([a-zA-Z0-9.-+])*:\/\//)); // Schema from: https://stackoverflow.com/a/3641782
+          !filename.match(/^[a-zA-Z]([a-zA-Z0-9.\-+])*:\/\//)); // Schema from: https://stackoverflow.com/a/3641782
 
       // in_app is all that's not an internal Node function or a module within node_modules
       // note that isNative appears to return true even for node core libraries
