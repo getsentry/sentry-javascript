@@ -62,9 +62,10 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
       options = {
         textEncoder: new TextEncoder(),
         replay: setupReplayContainer(),
-        captureBodies: false,
-        requestHeaders: ['content-type', 'accept', 'x-custom-header'],
-        responseHeaders: ['content-type', 'accept', 'x-custom-header'],
+        networkDetailAllowUrls: ['https://example.com'],
+        networkCaptureBodies: false,
+        networkRequestHeaders: ['content-type', 'accept', 'x-custom-header'],
+        networkResponseHeaders: ['content-type', 'accept', 'x-custom-header'],
       };
 
       jest.runAllTimers();
@@ -402,8 +403,78 @@ other-header: test`;
       ]);
     });
 
+    it('does not add fetch request/response body if URL does not match', async () => {
+      options.networkCaptureBodies = true;
+
+      const breadcrumb: Breadcrumb = {
+        category: 'fetch',
+        data: {
+          method: 'GET',
+          url: 'https://example2.com',
+          status_code: 200,
+        },
+      };
+
+      const mockResponse = getMockResponse('13', 'test response');
+
+      const hint: FetchBreadcrumbHint = {
+        input: ['GET', { body: 'test input' }],
+        response: mockResponse,
+        startTimestamp: BASE_TIMESTAMP + 1000,
+        endTimestamp: BASE_TIMESTAMP + 2000,
+      };
+      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+      expect(breadcrumb).toEqual({
+        category: 'fetch',
+        data: {
+          method: 'GET',
+          request_body_size: 10,
+          response_body_size: 13,
+          status_code: 200,
+          url: 'https://example2.com',
+        },
+      });
+
+      await waitForReplayEventBuffer();
+
+      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+        {
+          type: 5,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            tag: 'performanceSpan',
+            payload: {
+              data: {
+                method: 'GET',
+                statusCode: 200,
+                request: {
+                  size: 10,
+                  headers: {},
+                  _meta: {
+                    warnings: ['URL_SKIPPED'],
+                  },
+                },
+                response: {
+                  size: 13,
+                  headers: {},
+                  _meta: {
+                    warnings: ['URL_SKIPPED'],
+                  },
+                },
+              },
+              description: 'https://example2.com',
+              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+              op: 'resource.fetch',
+              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            },
+          },
+        },
+      ]);
+    });
+
     it('adds fetch request/response body if configured', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'fetch',
@@ -469,7 +540,7 @@ other-header: test`;
     });
 
     it('adds fetch request/response body as JSON if configured', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'fetch',
@@ -534,7 +605,7 @@ other-header: test`;
     });
 
     it('skips fetch request/response body if configured & no body found', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'fetch',
@@ -588,7 +659,7 @@ other-header: test`;
     });
 
     it('truncates fetch text request/response body if configured & too large', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'fetch',
@@ -659,7 +730,7 @@ other-header: test`;
     });
 
     it('truncates fetch JSON request/response body if configured & too large', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const largeBody = JSON.stringify({ a: LARGE_BODY });
 
@@ -737,8 +808,82 @@ other-header: test`;
       ]);
     });
 
+    it('does not add xhr request/response body if URL does not match', async () => {
+      options.networkCaptureBodies = true;
+
+      const breadcrumb: Breadcrumb = {
+        category: 'xhr',
+        data: {
+          method: 'GET',
+          url: 'https://example2.com',
+          status_code: 200,
+        },
+      };
+      const xhr = new XMLHttpRequest();
+      Object.defineProperty(xhr, 'response', {
+        value: 'test response',
+      });
+      Object.defineProperty(xhr, 'responseText', {
+        value: 'test response',
+      });
+      const hint: XhrBreadcrumbHint = {
+        xhr,
+        input: 'test input',
+        startTimestamp: BASE_TIMESTAMP + 1000,
+        endTimestamp: BASE_TIMESTAMP + 2000,
+      };
+      beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+      expect(breadcrumb).toEqual({
+        category: 'xhr',
+        data: {
+          method: 'GET',
+          request_body_size: 10,
+          response_body_size: 13,
+          status_code: 200,
+          url: 'https://example2.com',
+        },
+      });
+
+      await waitForReplayEventBuffer();
+
+      expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+        {
+          type: 5,
+          timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+          data: {
+            tag: 'performanceSpan',
+            payload: {
+              data: {
+                method: 'GET',
+                statusCode: 200,
+                request: {
+                  size: 10,
+                  headers: {},
+                  _meta: {
+                    warnings: ['URL_SKIPPED'],
+                  },
+                },
+                response: {
+                  size: 13,
+                  headers: {},
+                  _meta: {
+                    warnings: ['URL_SKIPPED'],
+                  },
+                },
+              },
+              description: 'https://example2.com',
+              endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+              op: 'resource.xhr',
+              startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            },
+          },
+        },
+      ]);
+    });
+
     it('adds xhr request/response body if configured', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'xhr',
@@ -808,7 +953,7 @@ other-header: test`;
     });
 
     it('adds xhr JSON request/response body if configured', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'xhr',
@@ -878,7 +1023,7 @@ other-header: test`;
     });
 
     it('skips xhr request/response body if configured & no body found', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'xhr',
@@ -936,7 +1081,7 @@ other-header: test`;
     });
 
     it('truncates text xhr request/response body if configured & body too large', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const breadcrumb: Breadcrumb = {
         category: 'xhr',
@@ -1012,7 +1157,7 @@ other-header: test`;
     });
 
     it('truncates JSON xhr request/response body if configured & body too large', async () => {
-      options.captureBodies = true;
+      options.networkCaptureBodies = true;
 
       const largeBody = JSON.stringify({ a: LARGE_BODY });
 
@@ -1087,6 +1232,155 @@ other-header: test`;
           },
         },
       ]);
+    });
+
+    describe.each([
+      ['exact string match', 'https://example.com/foo'],
+      ['partial string match', 'https://example.com/bar/what'],
+      ['exact regex match', 'http://example.com/exact'],
+      ['partial regex match', 'http://example.com/partial/string'],
+    ])('matching URL %s', (_label, url) => {
+      it('correctly matches URL for fetch request', async () => {
+        options.networkDetailAllowUrls = [
+          'https://example.com/foo',
+          'com/bar',
+          /^http:\/\/example.com\/exact$/,
+          /^http:\/\/example.com\/partial/,
+        ];
+
+        const breadcrumb: Breadcrumb = {
+          category: 'fetch',
+          data: {
+            method: 'GET',
+            url,
+            status_code: 200,
+          },
+        };
+
+        const mockResponse = getMockResponse('13', 'test response');
+
+        const hint: FetchBreadcrumbHint = {
+          input: ['GET', { body: 'test input' }],
+          response: mockResponse,
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'fetch',
+          data: {
+            method: 'GET',
+            request_body_size: 10,
+            response_body_size: 13,
+            status_code: 200,
+            url,
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            type: 5,
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            data: {
+              tag: 'performanceSpan',
+              payload: {
+                data: {
+                  method: 'GET',
+                  statusCode: 200,
+                  request: {
+                    size: 10,
+                    headers: {},
+                  },
+                  response: {
+                    size: 13,
+                    headers: {},
+                  },
+                },
+                description: url,
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.fetch',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+            },
+          },
+        ]);
+      });
+
+      it('correctly matches URL for xhe request', async () => {
+        options.networkDetailAllowUrls = [
+          'https://example.com/foo',
+          'com/bar',
+          /^http:\/\/example.com\/exact$/,
+          /^http:\/\/example.com\/partial/,
+        ];
+
+        const breadcrumb: Breadcrumb = {
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            url,
+            status_code: 200,
+          },
+        };
+        const xhr = new XMLHttpRequest();
+        Object.defineProperty(xhr, 'response', {
+          value: 'test response',
+        });
+        Object.defineProperty(xhr, 'responseText', {
+          value: 'test response',
+        });
+        const hint: XhrBreadcrumbHint = {
+          xhr,
+          input: 'test input',
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'xhr',
+          data: {
+            method: 'GET',
+            request_body_size: 10,
+            response_body_size: 13,
+            status_code: 200,
+            url,
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            type: 5,
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            data: {
+              tag: 'performanceSpan',
+              payload: {
+                data: {
+                  method: 'GET',
+                  statusCode: 200,
+                  request: {
+                    size: 10,
+                    headers: {},
+                  },
+                  response: {
+                    size: 13,
+                    headers: {},
+                  },
+                },
+                description: url,
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.xhr',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+            },
+          },
+        ]);
+      });
     });
   });
 });

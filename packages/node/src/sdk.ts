@@ -28,6 +28,7 @@ import {
   OnUncaughtException,
   OnUnhandledRejection,
   RequestData,
+  Undici,
 } from './integrations';
 import { getModule } from './module';
 import { makeNodeTransport } from './transports';
@@ -40,6 +41,7 @@ export const defaultIntegrations = [
   // Native Wrappers
   new Console(),
   new Http(),
+  new Undici(),
   // Global Handlers
   new OnUncaughtException(),
   new OnUnhandledRejection(),

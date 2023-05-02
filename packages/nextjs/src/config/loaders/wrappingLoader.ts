@@ -43,6 +43,7 @@ type LoaderOptions = {
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
+  sentryConfigFilePath?: string;
 };
 
 function moduleExists(id: string): boolean {
@@ -59,6 +60,7 @@ function moduleExists(id: string): boolean {
  * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) or API routes it contains
  * are wrapped, and then everything is re-exported.
  */
+// eslint-disable-next-line complexity
 export default function wrappingLoader(
   this: LoaderThis<LoaderOptions>,
   userCode: string,
@@ -71,6 +73,7 @@ export default function wrappingLoader(
     pageExtensionRegex,
     excludeServerRoutes = [],
     wrappingTargetKind,
+    sentryConfigFilePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -192,6 +195,10 @@ export default function wrappingLoader(
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, componentType);
     } else {
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
+    }
+
+    if (sentryConfigFilePath) {
+      templateCode = `import "${sentryConfigFilePath}";`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;

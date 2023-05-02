@@ -11,11 +11,13 @@ import type {
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
+  buildSkippedNetworkRequestOrResponse,
   getAllowedHeaders,
   getBodySize,
   getBodyString,
   makeNetworkReplayBreadcrumb,
   parseContentLengthHeader,
+  urlMatches,
 } from './networkUtils';
 
 /**
@@ -78,33 +80,37 @@ async function _prepareFetchData(
   const {
     url,
     method,
-    status_code: statusCode,
+    status_code: statusCode = 0,
     request_body_size: requestBodySize,
     response_body_size: responseBodySize,
   } = breadcrumb.data;
 
-  const request = _getRequestInfo(options, hint.input, requestBodySize);
-  const response = await _getResponseInfo(options, hint.response, responseBodySize);
+  const captureDetails = urlMatches(url, options.networkDetailAllowUrls);
+
+  const request = captureDetails
+    ? _getRequestInfo(options, hint.input, requestBodySize)
+    : buildSkippedNetworkRequestOrResponse(requestBodySize);
+  const response = await _getResponseInfo(captureDetails, options, hint.response, responseBodySize);
 
   return {
     startTimestamp,
     endTimestamp,
     url,
     method,
-    statusCode: statusCode || 0,
+    statusCode,
     request,
     response,
   };
 }
 
 function _getRequestInfo(
-  { captureBodies, requestHeaders }: ReplayNetworkOptions,
+  { networkCaptureBodies, networkRequestHeaders }: ReplayNetworkOptions,
   input: FetchHint['input'],
   requestBodySize?: number,
 ): ReplayNetworkRequestOrResponse | undefined {
-  const headers = getRequestHeaders(input, requestHeaders);
+  const headers = getRequestHeaders(input, networkRequestHeaders);
 
-  if (!captureBodies) {
+  if (!networkCaptureBodies) {
     return buildNetworkRequestOrResponse(headers, requestBodySize, undefined);
   }
 
@@ -115,19 +121,24 @@ function _getRequestInfo(
 }
 
 async function _getResponseInfo(
+  captureDetails: boolean,
   {
-    captureBodies,
+    networkCaptureBodies,
     textEncoder,
-    responseHeaders,
+    networkResponseHeaders,
   }: ReplayNetworkOptions & {
     textEncoder: TextEncoderInternal;
   },
   response: Response,
   responseBodySize?: number,
 ): Promise<ReplayNetworkRequestOrResponse | undefined> {
-  const headers = getAllHeaders(response.headers, responseHeaders);
+  if (!captureDetails && responseBodySize !== undefined) {
+    return buildSkippedNetworkRequestOrResponse(responseBodySize);
+  }
 
-  if (!captureBodies && responseBodySize !== undefined) {
+  const headers = getAllHeaders(response.headers, networkResponseHeaders);
+
+  if (!networkCaptureBodies && responseBodySize !== undefined) {
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
 
@@ -142,7 +153,11 @@ async function _getResponseInfo(
         ? getBodySize(bodyText, textEncoder)
         : responseBodySize;
 
-    if (captureBodies) {
+    if (!captureDetails) {
+      return buildSkippedNetworkRequestOrResponse(size);
+    }
+
+    if (networkCaptureBodies) {
       return buildNetworkRequestOrResponse(headers, size, bodyText);
     }
 

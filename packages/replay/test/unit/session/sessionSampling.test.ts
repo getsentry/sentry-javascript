@@ -1,9 +1,10 @@
-import { getSessionSampleType, makeSession } from '../../../src/session/Session';
+import { getSessionSampleType } from '../../../src/session/createSession';
+import { makeSession } from '../../../src/session/Session';
 
 describe('Unit | session | sessionSampling', () => {
   it('does not sample', function () {
     const newSession = makeSession({
-      sampled: getSessionSampleType(0, 0),
+      sampled: getSessionSampleType(0, false),
     });
 
     expect(newSession.sampled).toBe(false);
@@ -11,7 +12,7 @@ describe('Unit | session | sessionSampling', () => {
 
   it('samples using `sessionSampleRate`', function () {
     const newSession = makeSession({
-      sampled: getSessionSampleType(1.0, 0),
+      sampled: getSessionSampleType(1.0, false),
     });
 
     expect(newSession.sampled).toBe('session');
@@ -19,10 +20,10 @@ describe('Unit | session | sessionSampling', () => {
 
   it('samples using `errorSampleRate`', function () {
     const newSession = makeSession({
-      sampled: getSessionSampleType(0, 1),
+      sampled: getSessionSampleType(0, true),
     });
 
-    expect(newSession.sampled).toBe('error');
+    expect(newSession.sampled).toBe('buffer');
   });
 
   it('does not run sampling function if existing session was sampled', function () {

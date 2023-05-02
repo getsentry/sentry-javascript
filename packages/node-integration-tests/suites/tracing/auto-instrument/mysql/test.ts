@@ -12,11 +12,17 @@ test('should auto-instrument `mysql` package.', async () => {
       {
         description: 'SELECT 1 + 1 AS solution',
         op: 'db',
+        data: {
+          'db.system': 'mysql',
+        },
       },
 
       {
         description: 'SELECT NOW()',
         op: 'db',
+        data: {
+          'db.system': 'mysql',
+        },
       },
     ],
   });

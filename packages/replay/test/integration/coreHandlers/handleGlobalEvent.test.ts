@@ -1,5 +1,6 @@
 import type { Event } from '@sentry/types';
 
+import type { Replay as ReplayIntegration } from '../../../src';
 import { REPLAY_EVENT_NAME } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
@@ -84,8 +85,10 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
   });
 
   it('tags errors and transactions with replay id for session samples', async () => {
-    ({ replay } = await resetSdkMock({}));
-    replay.start();
+    let integration: ReplayIntegration;
+    ({ replay, integration } = await resetSdkMock({}));
+    // @ts-ignore protected but ok to use for testing
+    integration._initialize();
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
@@ -163,7 +166,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     const handler = handleGlobalEventListener(replay);
     const handler2 = handleGlobalEventListener(replay, true);
 
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
 
     handler(profileEvent, {});
     handler(replayEvent, {});
@@ -179,7 +182,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
-    expect(replay.recordingMode).toBe('error');
+    expect(replay.recordingMode).toBe('buffer');
   });
 
   it('does not skip non-rrweb errors', () => {

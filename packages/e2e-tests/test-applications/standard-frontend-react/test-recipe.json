@@ -1,11 +1,11 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "standard-frontend-react",
-  "buildCommand": "yarn install && npx playwright install && yarn build",
+  "buildCommand": "pnpm install && npx playwright install && pnpm build",
   "tests": [
     {
       "testName": "Playwright tests",
-      "testCommand": "yarn test"
+      "testCommand": "pnpm test"
     }
   ],
   "canaryVersions": [

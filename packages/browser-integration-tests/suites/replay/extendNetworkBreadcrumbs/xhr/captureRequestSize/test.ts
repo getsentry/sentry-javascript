@@ -78,6 +78,15 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
         request: {
           size: 13,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
+        response: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',
@@ -160,6 +169,15 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
         request: {
           size: 26,
           headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
+        response: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',

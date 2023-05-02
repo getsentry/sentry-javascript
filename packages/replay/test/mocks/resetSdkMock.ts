@@ -1,3 +1,4 @@
+import type { Replay as ReplayIntegration } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import type { RecordMock } from './../index';
 import { BASE_TIMESTAMP } from './../index';
@@ -9,6 +10,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   domHandler: DomHandler;
   mockRecord: RecordMock;
   replay: ReplayContainer;
+  integration: ReplayIntegration;
 }> {
   let domHandler: DomHandler;
 
@@ -27,7 +29,7 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   const { mockRrweb } = await import('./mockRrweb');
   const { record: mockRecord } = mockRrweb();
 
-  const { replay } = await mockSdk({
+  const { replay, integration } = await mockSdk({
     replayOptions,
     sentryOptions,
     autoStart,
@@ -43,5 +45,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
     domHandler,
     mockRecord,
     replay,
+    integration,
   };
 }
