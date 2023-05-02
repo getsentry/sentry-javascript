@@ -10,6 +10,7 @@ import type {
 import {
   addExceptionMechanism,
   addInstrumentationHandler,
+  dropUndefinedKeys,
   GLOBAL_OBJ,
   logger,
   SENTRY_XHR_DATA_KEY,
@@ -397,19 +398,19 @@ export class HttpClient implements Integration {
           },
         ],
       },
-      request: {
+      request: dropUndefinedKeys({
         url: data.url,
         method: data.method,
         headers: data.requestHeaders,
         cookies: data.requestCookies,
-      },
+      }),
       contexts: {
-        response: {
+        response: dropUndefinedKeys({
           status_code: data.status,
           headers: data.responseHeaders,
           cookies: data.responseCookies,
           body_size: this._getResponseSizeFromHeaders(data.responseHeaders),
-        },
+        }),
       },
     };
 
