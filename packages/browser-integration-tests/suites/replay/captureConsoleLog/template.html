@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <button data-log>Log button</button>
+    <button data-log-large>Log button</button>
+
+    <script>
+      document.querySelector('[data-log]').addEventListener('click', () => {
+        console.log('Test log', document.body);
+      });
+
+      function createLargeObject(remainingDepth) {
+        const massiveObject = {};
+
+        for (let i = 0; i < 3; i++) {
+          const item = {
+            aa: remainingDepth > 0 ? createLargeObject(remainingDepth - 1) : 'a'.repeat(50),
+            bb: 'b'.repeat(50),
+            cc: 'c'.repeat(50),
+            dd: 'd'.repeat(50),
+          };
+
+          massiveObject[`item-${i}`] = item;
+        }
+
+        return massiveObject;
+      }
+
+      const massiveObject = createLargeObject(10);
+
+      document.querySelector('[data-log-large]').addEventListener('click', () => {
+        console.log(massiveObject);
+      });
+    </script>
+  </body>
+</html>

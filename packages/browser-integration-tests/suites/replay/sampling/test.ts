@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
@@ -25,13 +24,11 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
 
   await page.click('button');
 
-  await page.waitForFunction(() => {
-    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
-    return !!replayIntegration._replay.session;
-  });
   const replay = await getReplaySnapshot(page);
 
-  expect(replay.session?.sampled).toBe(false);
+  expect(replay.session).toBe(undefined);
+  expect(replay._isEnabled).toBe(false);
+  expect(replay.recordingMode).toBe('session');
 
   // Cannot wait on getFirstSentryEnvelopeRequest, as that never resolves
 });

@@ -199,6 +199,7 @@ export function fetchCallback(
         ...handlerData.fetchData,
         type: 'fetch',
         ...(contentLength ? { 'http.response_content_length': contentLength } : {}),
+        'http.method': handlerData.fetchData.method,
       },
       description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
       op: 'http.client',
@@ -338,7 +339,7 @@ export function xhrCallback(
       data: {
         ...sentryXhrData.data,
         type: 'xhr',
-        method: sentryXhrData.method,
+        'http.method': sentryXhrData.method,
         url: sentryXhrData.url,
       },
       description: `${sentryXhrData.method} ${sentryXhrData.url}`,

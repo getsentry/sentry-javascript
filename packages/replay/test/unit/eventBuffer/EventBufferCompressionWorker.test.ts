@@ -42,8 +42,9 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     await buffer.addEvent(TEST_EVENT);
     await buffer.addEvent(TEST_EVENT);
 
-    // This should clear previous buffer
-    await buffer.addEvent({ ...TEST_EVENT, type: 2 }, true);
+    // clear() is called by addEvent when isCheckout is true
+    buffer.clear();
+    await buffer.addEvent({ ...TEST_EVENT, type: 2 });
 
     const result = await buffer.finish();
     expect(result).toBeInstanceOf(Uint8Array);
@@ -135,7 +136,7 @@ describe('Unit | eventBuffer | EventBufferCompressionWorker', () => {
     // Ensure worker is ready
     await buffer.ensureWorkerIsLoaded();
 
-    await buffer.addEvent({ data: { o: 1 }, timestamp: BASE_TIMESTAMP, type: 3 }, true);
+    await buffer.addEvent({ data: { o: 1 }, timestamp: BASE_TIMESTAMP, type: 3 });
     await buffer.addEvent({ data: { o: 2 }, timestamp: BASE_TIMESTAMP, type: 3 });
 
     // @ts-ignore Mock this private so it triggers an error

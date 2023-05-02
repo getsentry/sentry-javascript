@@ -1,5 +1,6 @@
 import { TextEncoder } from 'util';
 
+import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
   getBodySize,
@@ -182,6 +183,37 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
         undefined,
       ],
     ])('works with %s', (input, expectedBody, expectedMeta) => {
+      const actual = buildNetworkRequestOrResponse({}, 1, input);
+
+      expect(actual).toEqual({ size: 1, headers: {}, body: expectedBody, _meta: expectedMeta });
+    });
+
+    it.each([
+      [
+        'large JSON string',
+        JSON.stringify({
+          aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
+        }),
+        {
+          aa: `${'a'.repeat(NETWORK_BODY_MAX_SIZE - 7)}~~`,
+        },
+        { warnings: ['JSON_TRUNCATED'] },
+      ],
+      [
+        'large plain string',
+        'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
+        `${'a'.repeat(NETWORK_BODY_MAX_SIZE)}…`,
+        { warnings: ['TEXT_TRUNCATED'] },
+      ],
+      [
+        'large invalid JSON string',
+        `{--${JSON.stringify({
+          aa: 'a'.repeat(NETWORK_BODY_MAX_SIZE + 10),
+        })}`,
+        `{--{"aa":"${'a'.repeat(NETWORK_BODY_MAX_SIZE - 10)}…`,
+        { warnings: ['INVALID_JSON', 'TEXT_TRUNCATED'] },
+      ],
+    ])('works with %s', (label, input, expectedBody, expectedMeta) => {
       const actual = buildNetworkRequestOrResponse({}, 1, input);
 
       expect(actual).toEqual({ size: 1, headers: {}, body: expectedBody, _meta: expectedMeta });

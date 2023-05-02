@@ -74,7 +74,7 @@ describe('callbacks', () => {
 
     const fetchSpan = {
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         url: 'http://dogs.are.great/',
         type: 'fetch',
       },
@@ -156,7 +156,7 @@ describe('callbacks', () => {
       expect(newSpan).toBeDefined();
       expect(newSpan).toBeInstanceOf(Span);
       expect(newSpan.data).toEqual({
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: 'http://dogs.are.great/',
       });
@@ -239,7 +239,7 @@ describe('callbacks', () => {
 
     const xhrSpan = {
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         url: 'http://dogs.are.great/',
         type: 'xhr',
       },
@@ -314,7 +314,7 @@ describe('callbacks', () => {
 
       expect(newSpan).toBeInstanceOf(Span);
       expect(newSpan.data).toEqual({
-        method: 'GET',
+        'http.method': 'GET',
         type: 'xhr',
         url: 'http://dogs.are.great/',
       });

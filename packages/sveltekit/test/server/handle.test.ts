@@ -120,7 +120,7 @@ describe('handleSentry', () => {
     it('should return a response', async () => {
       let response: any = undefined;
       try {
-        response = await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
+        response = await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
         expect(e.message).toEqual(type);
@@ -136,7 +136,7 @@ describe('handleSentry', () => {
       });
 
       try {
-        await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
+        await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         //
       }
@@ -161,11 +161,11 @@ describe('handleSentry', () => {
       });
 
       try {
-        await sentryHandle({
+        await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
             // simulateing a nested load call:
-            await sentryHandle({
+            await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
               resolve: resolve(type, isError),
             });
@@ -216,7 +216,7 @@ describe('handleSentry', () => {
       });
 
       try {
-        await sentryHandle({ event, resolve: resolve(type, isError) });
+        await sentryHandle()({ event, resolve: resolve(type, isError) });
       } catch (e) {
         //
       }
@@ -256,7 +256,7 @@ describe('handleSentry', () => {
       });
 
       try {
-        await sentryHandle({ event, resolve: resolve(type, isError) });
+        await sentryHandle()({ event, resolve: resolve(type, isError) });
       } catch (e) {
         //
       }
@@ -280,7 +280,7 @@ describe('handleSentry', () => {
       });
 
       try {
-        await sentryHandle({ event: mockEvent(), resolve: resolve(type, isError) });
+        await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(addEventProcessorSpy).toBeCalledTimes(1);
@@ -296,7 +296,7 @@ describe('handleSentry', () => {
       const mockResolve = vi.fn().mockImplementation(resolve(type, isError));
       const event = mockEvent();
       try {
-        await sentryHandle({ event, resolve: mockResolve });
+        await sentryHandle()({ event, resolve: mockResolve });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
         expect(e.message).toEqual(type);

@@ -1,7 +1,10 @@
 import type { Breadcrumb, Scope } from '@sentry/types';
+import { normalize } from '@sentry/utils';
 
+import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
+import { fixJson } from '../util/truncateJson/fixJson';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 let _LAST_BREADCRUMB: null | Breadcrumb = null;
@@ -48,5 +51,62 @@ export function handleScope(scope: Scope): Breadcrumb | null {
     return null;
   }
 
+  if (newBreadcrumb.category === 'console') {
+    return normalizeConsoleBreadcrumb(newBreadcrumb);
+  }
+
   return createBreadcrumb(newBreadcrumb);
+}
+
+/** exported for tests only */
+export function normalizeConsoleBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
+  const args = breadcrumb.data && breadcrumb.data.arguments;
+
+  if (!Array.isArray(args) || args.length === 0) {
+    return createBreadcrumb(breadcrumb);
+  }
+
+  let isTruncated = false;
+
+  // Avoid giant args captures
+  const normalizedArgs = args.map(arg => {
+    if (!arg) {
+      return arg;
+    }
+    if (typeof arg === 'string') {
+      if (arg.length > CONSOLE_ARG_MAX_SIZE) {
+        isTruncated = true;
+        return `${arg.slice(0, CONSOLE_ARG_MAX_SIZE)}…`;
+      }
+
+      return arg;
+    }
+    if (typeof arg === 'object') {
+      try {
+        const normalizedArg = normalize(arg, 7);
+        const stringified = JSON.stringify(normalizedArg);
+        if (stringified.length > CONSOLE_ARG_MAX_SIZE) {
+          const fixedJson = fixJson(stringified.slice(0, CONSOLE_ARG_MAX_SIZE));
+          const json = JSON.parse(fixedJson);
+          // We only set this after JSON.parse() was successfull, so we know we didn't run into `catch`
+          isTruncated = true;
+          return json;
+        }
+        return normalizedArg;
+      } catch {
+        // fall back to default
+      }
+    }
+
+    return arg;
+  });
+
+  return createBreadcrumb({
+    ...breadcrumb,
+    data: {
+      ...breadcrumb.data,
+      arguments: normalizedArgs,
+      ...(isTruncated ? { _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] } } : {}),
+    },
+  });
 }

@@ -1,4 +1,4 @@
-import { MAX_SESSION_LIFE } from '../../../src/constants';
+import { MAX_SESSION_LIFE, SESSION_IDLE_PAUSE_DURATION } from '../../../src/constants';
 import { makeSession } from '../../../src/session/Session';
 import { isSessionExpired } from '../../../src/util/isSessionExpired';
 
@@ -15,14 +15,28 @@ function createSession(extra?: Record<string, any>) {
 
 describe('Unit | util | isSessionExpired', () => {
   it('session last activity is older than expiry time', function () {
-    expect(isSessionExpired(createSession(), { maxSessionLife: MAX_SESSION_LIFE, sessionIdle: 100 }, 200)).toBe(true); // Session expired at ts = 100
+    expect(
+      isSessionExpired(
+        createSession(),
+        {
+          maxSessionLife: MAX_SESSION_LIFE,
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 100,
+        },
+        200,
+      ),
+    ).toBe(true); // Session expired at ts = 100
   });
 
   it('session last activity is not older than expiry time', function () {
     expect(
       isSessionExpired(
         createSession({ lastActivity: 100 }),
-        { maxSessionLife: MAX_SESSION_LIFE, sessionIdle: 150 },
+        {
+          maxSessionLife: MAX_SESSION_LIFE,
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 150,
+        },
         200,
       ),
     ).toBe(false); // Session expires at ts >= 250
@@ -30,13 +44,29 @@ describe('Unit | util | isSessionExpired', () => {
 
   it('session age is not older than max session life', function () {
     expect(
-      isSessionExpired(createSession(), { maxSessionLife: MAX_SESSION_LIFE, sessionIdle: 1_800_000 }, 50_000),
+      isSessionExpired(
+        createSession(),
+        {
+          maxSessionLife: MAX_SESSION_LIFE,
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1_800_000,
+        },
+        50_000,
+      ),
     ).toBe(false);
   });
 
   it('session age is older than max session life', function () {
     expect(
-      isSessionExpired(createSession(), { maxSessionLife: MAX_SESSION_LIFE, sessionIdle: 1_800_000 }, 1_800_001),
+      isSessionExpired(
+        createSession(),
+        {
+          maxSessionLife: MAX_SESSION_LIFE,
+          sessionIdlePause: SESSION_IDLE_PAUSE_DURATION,
+          sessionIdleExpire: 1_800_000,
+        },
+        1_800_001,
+      ),
     ).toBe(true); // Session expires at ts >= 1_800_000
   });
 });

@@ -91,7 +91,10 @@ export class Prisma implements Integration {
     this._client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
       const action = params.action;
       const model = params.model;
-      return trace({ name: model ? `${model} ${action}` : action, op: 'db.sql.prisma' }, () => next(params));
+      return trace(
+        { name: model ? `${model} ${action}` : action, op: 'db.sql.prisma', data: { 'db.system': 'prisma' } },
+        () => next(params),
+      );
     });
   }
 }

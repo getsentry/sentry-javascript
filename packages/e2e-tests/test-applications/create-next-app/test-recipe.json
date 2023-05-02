@@ -1,15 +1,15 @@
 {
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "create-next-app",
-  "buildCommand": "yarn install && npx playwright install && yarn build",
+  "buildCommand": "pnpm install && npx playwright install && pnpm build",
   "tests": [
     {
       "testName": "Playwright tests - Prod Mode",
-      "testCommand": "yarn test:prod"
+      "testCommand": "pnpm test:prod"
     },
     {
       "testName": "Playwright tests - Dev Mode",
-      "testCommand": "yarn test:dev"
+      "testCommand": "pnpm test:dev"
     }
   ]
 }

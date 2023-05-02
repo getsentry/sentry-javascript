@@ -4,6 +4,106 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.50.0
+
+### Important Changes
+
+- **doc(sveltekit): Promote the SDK to beta state (#7976)**
+  - feat(sveltekit): Convert `sentryHandle` to a factory function (#7975)
+
+With this release, the Sveltekit SDK ([@sentry/sveltekit](./packages/sveltekit/README.md)) is promoted to Beta.
+This means that we do not expect any more breaking changes.
+
+The final breaking change is that `sentryHandle` is now a function.
+So in order to update to 7.50.0, you have to update your `hooks.server.js` file:
+
+```js
+// hooks.server.js
+
+// Old:
+export const handle = sentryHandle;
+// New:
+export const handle = sentryHandle();
+```
+
+- **feat(replay): Allow to configure URLs to capture network bodies/headers (#7953)**
+
+You can now capture request/response bodies & headers of network requests in Replay.
+You have to define an allowlist of URLs you want to capture additional information for:
+
+```js
+new Replay({
+  networkDetailAllowUrls: ['https://sentry.io/api'],
+});
+```
+
+By default, we will capture request/response bodies, as well as the request/response headers `content-type`, `content-length` and `accept`.
+You can configure this with some additional configuration:
+
+```js
+new Replay({
+  networkDetailAllowUrls: ['https://sentry.io/api'],
+  // opt-out of capturing bodies
+  networkCaptureBodies: false,
+  // These headers are captured _in addition to_ the default headers
+  networkRequestHeaders: ['X-Custom-Header'],
+  networkResponseHeaders: ['X-Custom-Header', 'X-Custom-Header-2']
+});
+```
+
+Note that bodies will be truncated to a max length of ~150k characters.
+
+**- feat(replay): Changes of sampling behavior & public API**
+  - feat(replay): Change the behavior of error-based sampling (#7768)
+  - feat(replay): Change `flush()` API to record current event buffer (#7743)
+  - feat(replay): Change `stop()` to flush and remove current session (#7741)
+
+We have changed the behavior of error-based sampling, as well as adding & adjusting APIs a bit to be more aligned with expectations.
+See [Sampling](./packages/replay/README.md#sampling) for details.
+
+We've also revamped some public APIs in order to be better aligned with expectations. See [Stoping & Starting Replays manually](./packages/replay/README.md#stopping--starting-replays-manually) for details.
+
+- **feat(core): Add multiplexed transport (#7926)**
+
+We added a new transport to support multiplexing.
+With this, you can configure Sentry to send events to different DSNs, depending on a logic of your choosing:
+
+```js
+import { makeMultiplexedTransport } from '@sentry/core';
+import { init, captureException, makeFetchTransport } from '@sentry/browser';
+
+function dsnFromFeature({ getEvent }) {
+  const event = getEvent();
+  switch(event?.tags?.feature) {
+    case 'cart':
+      return ['__CART_DSN__'];
+    case 'gallery':
+      return ['__GALLERY_DSN__'];
+  }
+  return []
+}
+
+init({
+  dsn: '__FALLBACK_DSN__',
+  transport: makeMultiplexedTransport(makeFetchTransport, dsnFromFeature)
+});
+```
+
+### Additional Features and Fixes
+
+- feat(nextjs): Add `disableLogger` option that automatically tree shakes logger statements (#7908)
+- feat(node): Make Undici a default integration. (#7967)
+- feat(replay): Extend session idle time until expire to 15min (#7955)
+- feat(tracing): Add `db.system` span data to DB spans (#7952)
+- fix(core): Avoid crash when Function.prototype is frozen (#7899)
+- fix(nextjs): Fix inject logic for Next.js 13.3.1 canary (#7921)
+- fix(replay): Ensure console breadcrumb args are truncated (#7917)
+- fix(replay): Ensure we do not set replayId on dsc if replay is disabled (#7939)
+- fix(replay): Ensure we still truncate large bodies if they are failed JSON (#7923)
+- fix(utils): default normalize() to a max. of 100 levels deep instead of Inifnity (#7957)
+
+Work in this release contributed by @Jack-Works. Thank you for your contribution!
+
 ## 7.49.0
 
 ### Important Changes

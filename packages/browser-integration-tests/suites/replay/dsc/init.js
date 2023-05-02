@@ -16,8 +16,3 @@ Sentry.init({
   replaysSessionSampleRate: 0.0,
   replaysOnErrorSampleRate: 1.0,
 });
-
-Sentry.configureScope(scope => {
-  scope.setUser({ id: 'user123', segment: 'segmentB' });
-  scope.setTransactionName('testTransactionDSC');
-});

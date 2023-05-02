@@ -74,12 +74,18 @@ sentryTest('captures response size from Content-Length header if available', asy
       data: {
         method: 'GET',
         statusCode: 200,
-        response: {
-          headers: {
-            'content-length': '789',
-            'content-type': 'application/json',
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
           },
+        },
+        response: {
           size: 789,
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',
@@ -156,11 +162,18 @@ sentryTest('captures response size without Content-Length header', async ({ getL
       data: {
         method: 'GET',
         statusCode: 200,
-        response: {
-          headers: {
-            'content-type': 'application/json',
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
           },
+        },
+        response: {
           size: 29,
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
         },
       },
       description: 'http://localhost:7654/foo',
@@ -171,12 +184,10 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   ]);
 });
 
-sentryTest('captures response size from non-text response body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response size from non-text response body', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'application/octet-stream' } : {};
 
   await page.route('**/foo', async route => {
     return route.fulfill({
@@ -237,10 +248,17 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
       data: {
         method: 'POST',
         statusCode: 200,
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
         response: {
           size: 24,
-          headers: {
-            ...additionalHeaders,
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
           },
         },
       },

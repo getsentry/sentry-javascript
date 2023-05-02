@@ -4,6 +4,7 @@ import type { Event, Transport, TransportMakeRequestResponse } from '@sentry/typ
 import { UNABLE_TO_SEND_REPLAY } from '../constants';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
+import { isSampled } from '../util/isSampled';
 
 type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse | void) => void;
 
@@ -49,23 +50,17 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
     // Trigger error recording
     // Need to be very careful that this does not cause an infinite loop
     if (
-      replay.recordingMode === 'error' &&
+      replay.recordingMode === 'buffer' &&
       event.exception &&
       event.message !== UNABLE_TO_SEND_REPLAY // ignore this error because otherwise we could loop indefinitely with trying to capture replay and failing
     ) {
-      setTimeout(async () => {
-        // Allow flush to complete before resuming as a session recording, otherwise
-        // the checkout from `startRecording` may be included in the payload.
-        // Prefer to keep the error replay as a separate (and smaller) segment
-        // than the session replay.
-        await replay.flushImmediate();
+      if (!isSampled(replay.getOptions().errorSampleRate)) {
+        return;
+      }
 
-        if (replay.stopRecording()) {
-          // Reset all "capture on error" configuration before
-          // starting a new recording
-          replay.recordingMode = 'session';
-          replay.startRecording();
-        }
+      setTimeout(() => {
+        // Capture current event buffer as new replay
+        void replay.sendBufferedReplayOrFlush();
       });
     }
   };

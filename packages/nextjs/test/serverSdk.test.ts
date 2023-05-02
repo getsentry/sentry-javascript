@@ -164,15 +164,6 @@ describe('Server init()', () => {
       expect(consoleIntegration).toBeDefined();
     });
 
-    it('adds the Undici integration', () => {
-      init({});
-
-      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-      const undiciIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Undici');
-
-      expect(undiciIntegration).toBeDefined();
-    });
-
     describe('`Http` integration', () => {
       it('adds `Http` integration with tracing enabled if `tracesSampleRate` is set', () => {
         init({ tracesSampleRate: 1.0 });
