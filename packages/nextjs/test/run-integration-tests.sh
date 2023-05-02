@@ -58,7 +58,7 @@ for NEXTJS_VERSION in 10 11 12 13; do
     fi
 
     # Next.js v13 requires at least Node v16
-    if [ "$NEXTJS_VERSION" -ge "16" ] && [ "$NEXTJS_VERSION" -ge "15" ] && [ "$NODE_MAJOR" -lt "14" ] && [ "$NEXTJS_VERSION" -ge "13" ]; then
+    if ([ "$NODE_MAJOR" -lt "16" ] || [ "$NODE_MAJOR" -lt "14" ]) && [ "$NEXTJS_VERSION" -ge "13" ]; then
       echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
       exit 0
     fi
