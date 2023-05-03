@@ -22,13 +22,17 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestP
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
+
+  const initSessionPromise = getFirstSentryEnvelopeRequest<SessionContext>(page, url);
+
   await page.route('**/foo', (route: Route) => route.fulfill({ path: `${__dirname}/dist/index.html` }));
 
-  const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
+  const newSessionPromise = getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   await page.click('#navigate');
 
-  const newSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
+  const newSession = await newSessionPromise;
+  const initSession = await initSessionPromise;
 
   expect(newSession).toBeDefined();
   expect(newSession.init).toBe(true);
