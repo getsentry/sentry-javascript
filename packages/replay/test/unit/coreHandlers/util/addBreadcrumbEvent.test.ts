@@ -39,7 +39,7 @@ describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
             category: 'console',
             message: 'Test message',
             thisIsNull: null,
-            thisIsUndefined: '[undefined]',
+            thisIsUndefined: undefined,
             circular: '[Circular ~]',
             timestamp: BASE_TIMESTAMP / 1000,
           },

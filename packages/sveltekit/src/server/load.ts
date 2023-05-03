@@ -115,6 +115,9 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
           source: routeId ? 'route' : 'url',
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
+        data: {
+          'http.method': event.request.method,
+        },
         ...traceparentData,
       };
 

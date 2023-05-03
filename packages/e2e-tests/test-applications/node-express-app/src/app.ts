@@ -10,6 +10,7 @@ declare global {
 }
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   integrations: [new Integrations.HttpClient()],
   debug: true,

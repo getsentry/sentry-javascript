@@ -14,6 +14,7 @@ describe('normalize()', () => {
       expect(normalize(42)).toEqual(42);
       expect(normalize(true)).toEqual(true);
       expect(normalize(null)).toEqual(null);
+      expect(normalize(undefined)).toBeUndefined();
     });
 
     test('return same object or arrays for referenced inputs', () => {
@@ -403,7 +404,6 @@ describe('normalize()', () => {
 
   describe('changes unserializeable/global values/classes to their respective string representations', () => {
     test('primitive values', () => {
-      expect(normalize(undefined)).toEqual('[undefined]');
       expect(normalize(NaN)).toEqual('[NaN]');
       expect(normalize(Symbol('dogs'))).toEqual('[Symbol(dogs)]');
       // `BigInt` doesn't exist in Node 8
@@ -425,28 +425,26 @@ describe('normalize()', () => {
     });
 
     test('primitive values in objects/arrays', () => {
-      expect(normalize(['foo', 42, undefined, NaN])).toEqual(['foo', 42, '[undefined]', '[NaN]']);
+      expect(normalize(['foo', 42, NaN])).toEqual(['foo', 42, '[NaN]']);
       expect(
         normalize({
           foo: 42,
-          bar: undefined,
-          baz: NaN,
+          bar: NaN,
         }),
       ).toEqual({
         foo: 42,
-        bar: '[undefined]',
-        baz: '[NaN]',
+        bar: '[NaN]',
       });
     });
 
     test('primitive values in deep objects/arrays', () => {
-      expect(normalize(['foo', 42, [[undefined]], [NaN]])).toEqual(['foo', 42, [['[undefined]']], ['[NaN]']]);
+      expect(normalize(['foo', 42, [[undefined]], [NaN]])).toEqual(['foo', 42, [[undefined]], ['[NaN]']]);
       expect(
         normalize({
           foo: 42,
           bar: {
             baz: {
-              quz: undefined,
+              quz: null,
             },
           },
           wat: {
@@ -457,7 +455,7 @@ describe('normalize()', () => {
         foo: 42,
         bar: {
           baz: {
-            quz: '[undefined]',
+            quz: null,
           },
         },
         wat: {

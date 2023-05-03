@@ -33,6 +33,7 @@ export {
   getActiveTransaction,
   spanStatusfromHttpCode,
   trace,
+  makeMultiplexedTransport,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';

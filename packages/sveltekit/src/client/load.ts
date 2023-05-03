@@ -152,7 +152,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
 
       const requestData: SanitizedRequestData = {
         url: getSanitizedUrlString(urlObject),
-        method,
+        'http.method': method,
         ...(urlObject.search && { 'http.query': urlObject.search.substring(1) }),
         ...(urlObject.hash && { 'http.hash': urlObject.hash.substring(1) }),
       };
@@ -190,7 +190,7 @@ function instrumentSvelteKitFetch(originalFetch: SvelteKitFetch): SvelteKitFetch
       if (createSpan) {
         fetchPromise = trace(
           {
-            name: `${requestData.method} ${requestData.url}`, // this will become the description of the span
+            name: `${method} ${requestData.url}`, // this will become the description of the span
             op: 'http.client',
             data: requestData,
           },

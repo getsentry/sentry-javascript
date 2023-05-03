@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/public';
 import * as Sentry from '@sentry/sveltekit';
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: env.PUBLIC_E2E_TEST_DSN,
   debug: true,
   tunnel: `http://localhost:${
