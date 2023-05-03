@@ -499,13 +499,12 @@ jobs:
       - name: Install OS dependencies of Playwright if cache hit
         if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
         run: npx playwright install-deps
-      # Skipping nextjs integration tests temporarily
-      # - name: Run tests
-      #   env:
-      #     NODE_VERSION: ${{ matrix.node }}
-      #   run: |
-      #     cd packages/nextjs
-      #     yarn test:integration
+      - name: Run tests
+        env:
+          NODE_VERSION: ${{ matrix.node }}
+        run: |
+          cd packages/nextjs
+          yarn test:integration
 
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }}) Tests
