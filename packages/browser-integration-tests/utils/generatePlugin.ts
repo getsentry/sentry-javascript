@@ -4,6 +4,9 @@ import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import path from 'path';
 import type { Compiler } from 'webpack';
 
+import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';
+
+const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
 const PACKAGES_DIR = '../../packages';
 
 /**
@@ -34,6 +37,12 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_tracing_es6_min: 'build/bundles/bundle.tracing.min.js',
     bundle_tracing_replay_es6: 'build/bundles/bundle.tracing.replay.js',
     bundle_tracing_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
+    loader_base: 'build/bundles/bundle.es5.min.js',
+    loader_eager: 'build/bundles/bundle.es5.min.js',
+    loader_debug: 'build/bundles/bundle.es5.debug.min.js',
+    loader_tracing: 'build/bundles/bundle.tracing.es5.min.js',
+    loader_replay: 'build/bundles/bundle.replay.min.js',
+    loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
     cjs: 'build/npm/cjs/index.js',
@@ -48,6 +57,33 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     esm: 'build/npm/esm/index.js',
     bundle_es6: 'build/bundles/wasm.js',
     bundle_es6_min: 'build/bundles/wasm.min.js',
+  },
+};
+
+export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; lazy: boolean }> = {
+  loader_base: {
+    options: {},
+    lazy: true,
+  },
+  loader_eager: {
+    options: {},
+    lazy: false,
+  },
+  loader_debug: {
+    options: { debug: true },
+    lazy: true,
+  },
+  loader_tracing: {
+    options: { tracesSampleRate: 1 },
+    lazy: false,
+  },
+  loader_replay: {
+    options: { replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1 },
+    lazy: false,
+  },
+  loader_tracing_replay: {
+    options: { tracesSampleRate: 1, replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1, debug: true },
+    lazy: false,
   },
 };
 
@@ -97,8 +133,13 @@ function generateSentryAlias(): Record<string, string> {
 class SentryScenarioGenerationPlugin {
   public requiredIntegrations: string[] = [];
   public requiresWASMIntegration: boolean = false;
+  public localOutPath: string;
 
   private _name: string = 'SentryScenarioGenerationPlugin';
+
+  public constructor(localOutPath: string) {
+    this.localOutPath = localOutPath;
+  }
 
   public apply(compiler: Compiler): void {
     compiler.options.resolve.alias = generateSentryAlias();
@@ -136,20 +177,34 @@ class SentryScenarioGenerationPlugin {
           const bundleName = 'browser';
           const bundlePath = BUNDLE_PATHS[bundleName][bundleKey];
 
-          let bundleObject =
-            bundlePath &&
-            createHtmlTagObject('script', {
-              src: path.resolve(PACKAGES_DIR, bundleName, bundlePath),
-            });
-
-          if (!bundleObject && useLoader) {
-            bundleObject = createHtmlTagObject('script', {
-              src: 'loader.js',
-            });
+          if (!bundlePath) {
+            throw new Error(`Could not find bundle or loader for key ${bundleKey}`);
           }
 
-          if (!bundleObject) {
-            throw new Error(`Could not find bundle or loader for key ${bundleKey}`);
+          const bundleObject = useLoader
+            ? createHtmlTagObject('script', {
+                src: 'loader.js',
+              })
+            : createHtmlTagObject('script', {
+                src: 'cdn.bundle.js',
+              });
+
+          addStaticAssetSymlink(this.localOutPath, path.resolve(PACKAGES_DIR, bundleName, bundlePath), 'cdn.bundle.js');
+
+          if (useLoader) {
+            const loaderConfig = LOADER_CONFIGS[bundleKey];
+
+            addStaticAsset(this.localOutPath, 'loader.js', () => {
+              return LOADER_TEMPLATE.replace('__LOADER_BUNDLE__', "'/cdn.bundle.js'")
+                .replace(
+                  '__LOADER_OPTIONS__',
+                  JSON.stringify({
+                    dsn: 'https://public@dsn.ingest.sentry.io/1337',
+                    ...loaderConfig.options,
+                  }),
+                )
+                .replace('__LOADER_LAZY__', loaderConfig.lazy ? 'true' : 'false');
+            });
           }
 
           // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
@@ -159,20 +214,33 @@ class SentryScenarioGenerationPlugin {
             .replace('_tracing', '');
 
           this.requiredIntegrations.forEach(integration => {
-            const integrationObject = createHtmlTagObject('script', {
-              src: path.resolve(
+            const fileName = `${integration}.bundle.js`;
+            addStaticAssetSymlink(
+              this.localOutPath,
+              path.resolve(
                 PACKAGES_DIR,
                 'integrations',
                 BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
               ),
+              fileName,
+            );
+
+            const integrationObject = createHtmlTagObject('script', {
+              src: fileName,
             });
 
             data.assetTags.scripts.unshift(integrationObject);
           });
 
           if (this.requiresWASMIntegration && BUNDLE_PATHS['wasm'][integrationBundleKey]) {
+            addStaticAssetSymlink(
+              this.localOutPath,
+              path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][integrationBundleKey]),
+              'wasm.bundle.js',
+            );
+
             const wasmObject = createHtmlTagObject('script', {
-              src: path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][integrationBundleKey]),
+              src: 'wasm.bundle.js',
             });
 
             data.assetTags.scripts.unshift(wasmObject);

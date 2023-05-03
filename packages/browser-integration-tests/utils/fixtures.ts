@@ -3,7 +3,7 @@ import { test as base } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-import { generateLoader, generatePage } from './generatePage';
+import { generatePage } from './generatePage';
 
 export const TEST_HOST = 'http://sentry-test.io';
 
@@ -53,7 +53,6 @@ const sentryTest = base.extend<TestFixtures>({
       const pagePath = `${TEST_HOST}/index.html`;
 
       await build(testDir);
-      generateLoader(testDir);
 
       // Serve all assets under
       if (!skipRouteHandler) {

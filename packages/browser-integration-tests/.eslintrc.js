@@ -11,6 +11,7 @@ module.exports = {
     'loader-suites/**/subject.js',
     'scripts/**',
     'fixtures/**',
+    'tmp/**',
   ],
   parserOptions: {
     sourceType: 'module',
