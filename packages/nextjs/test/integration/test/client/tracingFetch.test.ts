@@ -31,7 +31,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
   expect(transaction[0].spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        data: { method: 'GET', url: 'http://example.com', type: 'fetch' },
+        data: { 'http.method': 'GET', url: 'http://example.com', type: 'fetch' },
         description: 'GET http://example.com',
         op: 'http.client',
         parent_span_id: expect.any(String),

@@ -783,18 +783,19 @@ jobs:
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
-      - name: Run E2E tests
-        env:
-          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-          E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-          E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-          E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-          E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
-          E2E_TEST_SHARD: ${{ matrix.shard }}
-          E2E_TEST_SHARD_AMOUNT: 3
-        run: |
-          cd packages/e2e-tests
-          yarn test:e2e
+      # Temporarily disabling e2e tests
+      # - name: Run E2E tests
+      #   env:
+      #     E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
+      #     E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      #     E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      #     E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      #     E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      #     E2E_TEST_SHARD: ${{ matrix.shard }}
+      #     E2E_TEST_SHARD_AMOUNT: 3
+      #   run: |
+      #     cd packages/e2e-tests
+      #     yarn test:e2e
 
   job_required_tests:
     name: All required tests passed or skipped

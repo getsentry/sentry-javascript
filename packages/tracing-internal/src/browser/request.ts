@@ -186,18 +186,23 @@ export function fetchCallback(
     return;
   }
 
+  const contentLength =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
   const currentScope = getCurrentHub().getScope();
   const currentSpan = currentScope && currentScope.getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {
+    const { method, url } = handlerData.fetchData;
     const span = currentSpan.startChild({
       data: {
-        ...handlerData.fetchData,
+        url,
         type: 'fetch',
-        'http.method': handlerData.fetchData.method,
+        ...(contentLength ? { 'http.response_content_length': contentLength } : {}),
+        'http.method': method,
       },
-      description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
+      description: `${method} ${url}`,
       op: 'http.client',
     });
 
