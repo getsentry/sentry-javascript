@@ -186,6 +186,9 @@ export function fetchCallback(
     return;
   }
 
+  const contentLength =
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
   const currentScope = getCurrentHub().getScope();
   const currentSpan = currentScope && currentScope.getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
@@ -196,6 +199,7 @@ export function fetchCallback(
       data: {
         url,
         type: 'fetch',
+        ...(contentLength ? { 'http.response_content_length': contentLength } : {}),
         'http.method': method,
       },
       description: `${method} ${url}`,
