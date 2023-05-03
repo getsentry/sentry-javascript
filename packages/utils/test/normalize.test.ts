@@ -87,6 +87,65 @@ describe('normalize()', () => {
       expect(normalize(obj)).toEqual({ name: 'Alice', identity: { self: '[Circular ~]' } });
     });
 
+    test('circular objects with proxy', () => {
+      const obj1 = { name: 'Alice', child: null } as any;
+      const obj2 = { name: 'John', child: null } as any;
+
+      function getObj1(target: any, prop: string | number | symbol): any {
+        return prop === 'child'
+          ? new Proxy(obj2, {
+              get(t, p) {
+                return getObj2(t, p);
+              },
+            })
+          : target[prop];
+      }
+
+      function getObj2(target: any, prop: string | number | symbol): any {
+        return prop === 'child'
+          ? new Proxy(obj1, {
+              get(t, p) {
+                return getObj1(t, p);
+              },
+            })
+          : target[prop];
+      }
+
+      const proxy1 = new Proxy(obj1, {
+        get(target, prop) {
+          return getObj1(target, prop);
+        },
+      });
+
+      const actual = normalize(proxy1);
+
+      // This generates 100 nested objects, as we cannot identify the circular reference since they are dynamic proxies
+      // However, this test verifies that we can normalize at all, and do not fail out
+      expect(actual).toEqual({
+        name: 'Alice',
+        child: { name: 'John', child: expect.objectContaining({ name: 'Alice', child: expect.any(Object) }) },
+      });
+
+      let last = actual;
+      for (let i = 0; i < 99; i++) {
+        expect(last).toEqual(
+          expect.objectContaining({
+            name: expect.any(String),
+            child: expect.any(Object),
+          }),
+        );
+        last = last.child;
+      }
+
+      // Last one is transformed to [Object]
+      expect(last).toEqual(
+        expect.objectContaining({
+          name: expect.any(String),
+          child: '[Object]',
+        }),
+      );
+    });
+
     test('deep circular objects', () => {
       const obj = { name: 'Alice', child: { name: 'Bob' } } as any;
       obj.child.self = obj.child;

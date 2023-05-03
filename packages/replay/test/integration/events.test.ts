@@ -2,12 +2,12 @@ import { getCurrentHub } from '@sentry/core';
 
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
+import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
 import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { clearSession } from '../utils/clearSession';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -156,7 +156,7 @@ describe('Integration | events', () => {
     );
 
     // This should be null because `addEvent` has not been called yet
-    expect(replay.getContext().earliestEvent).toBe(null);
+    expect(replay.eventBuffer?.getEarliestTimestamp()).toBe(null);
     expect(mockTransportSend).toHaveBeenCalledTimes(0);
 
     // A new checkout occurs (i.e. a new session was started)
@@ -196,6 +196,6 @@ describe('Integration | events', () => {
     });
 
     // This gets reset after sending replay
-    expect(replay.getContext().earliestEvent).toBe(null);
+    expect(replay.eventBuffer?.getEarliestTimestamp()).toBe(null);
   });
 });

@@ -146,8 +146,6 @@ function addServerIntegrations(options: NodeOptions): void {
     });
   }
 
-  integrations = addOrUpdateIntegration(new Integrations.Undici(), integrations);
-
   options.integrations = integrations;
 }
 

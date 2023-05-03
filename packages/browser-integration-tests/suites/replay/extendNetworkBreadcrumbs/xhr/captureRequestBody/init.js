@@ -4,10 +4,9 @@ window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
-  _experiments: {
-    captureNetworkBodies: true,
-    captureResponseHeaders: ['X-Test-Header'],
-  },
+
+  networkDetailAllowUrls: ['http://localhost:7654/foo'],
+  networkCaptureBodies: true,
 });
 
 Sentry.init({

@@ -5,8 +5,10 @@ import type { EventEnvelopeHeaders } from '@sentry/types';
 import { sentryTest } from '../../../utils/fixtures';
 import {
   envelopeHeaderRequestParser,
+  envelopeRequestParser,
   getFirstSentryEnvelopeRequest,
   shouldSkipTracingTest,
+  waitForTransactionRequest,
 } from '../../../utils/helpers';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
@@ -21,6 +23,8 @@ sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestP
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
+  await waitForReplayRunning(page);
+
   await page.evaluate(() => {
     (window as unknown as TestWindow).Sentry.configureScope(scope => {
       scope.setUser({ id: 'user123', segment: 'segmentB' });
@@ -30,7 +34,6 @@ sentryTest('should add replay_id to dsc of transactions', async ({ getLocalTestP
 
   const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
-  await waitForReplayRunning(page);
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session?.id).toBeDefined();
@@ -54,11 +57,23 @@ sentryTest(
       sentryTest.skip();
     }
 
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 
-    await page.evaluate(() => {
-      (window as unknown as TestWindow).Replay.stop();
+    await waitForReplayRunning(page);
+
+    const transactionReq = waitForTransactionRequest(page);
+
+    await page.evaluate(async () => {
+      await (window as unknown as TestWindow).Replay.stop();
 
       (window as unknown as TestWindow).Sentry.configureScope(scope => {
         scope.setUser({ id: 'user123', segment: 'segmentB' });
@@ -66,12 +81,13 @@ sentryTest(
       });
     });
 
-    const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
+    const req0 = await transactionReq;
 
-    await waitForReplayRunning(page);
+    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+
     const replay = await getReplaySnapshot(page);
 
-    expect(replay.session?.id).toBeDefined();
+    expect(replay.session).toBeUndefined();
 
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({

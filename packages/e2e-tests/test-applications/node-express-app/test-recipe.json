@@ -5,7 +5,7 @@
   "tests": [
     {
       "testName": "Test express server",
-      "testCommand": "yarn test",
+      "testCommand": "pnpm test",
       "timeoutSeconds": 60
     }
   ]

@@ -5,7 +5,7 @@
   "tests": [
     {
       "testName": "Playwright tests",
-      "testCommand": "yarn test"
+      "testCommand": "pnpm test"
     }
   ],
   "canaryVersions": []
