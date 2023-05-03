@@ -95,13 +95,13 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   const hasSentryContent = codeWithoutComments.includes('@sentry/sveltekit');
   if (hasSentryContent) {
     // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrappiung ${id} because it already contains Sentry code`);
+    debug && console.log(`Skipping wrapping ${id} because it already contains Sentry code`);
   }
 
   const hasLoadDeclaration = /(const|let|var|function)\s+load\s*(=|\()/gm.test(codeWithoutComments);
   if (!hasLoadDeclaration) {
     // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrappiung ${id} because it doesn't declare a \`load\` function`);
+    debug && console.log(`Skipping wrapping ${id} because it doesn't declare a \`load\` function`);
   }
 
   return !hasSentryContent && hasLoadDeclaration;
