@@ -35,7 +35,8 @@ export function addGlobalListeners(replay: ReplayContainer): void {
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
       const replayId = replay.getSessionId();
-      if (replayId && replay.isEnabled()) {
+      // We do not want to set the DSC when in buffer mode, as that means the replay has not been sent (yet)
+      if (replayId && replay.isEnabled() && replay.recordingMode === 'session') {
         dsc.replay_id = replayId;
       }
     });

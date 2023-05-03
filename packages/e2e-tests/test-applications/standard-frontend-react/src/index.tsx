@@ -16,6 +16,7 @@ import User from './pages/User';
 const replay = new Sentry.Replay();
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
     new Sentry.BrowserTracing({

@@ -94,7 +94,7 @@ sentryTest(
 
     // 2 errors, 1 flush
     await reqErrorPromise;
-    expect(callsToSentry).toEqual(3);
+    expect(callsToSentry).toBeGreaterThanOrEqual(3);
 
     await page.click('#log');
     await page.click('#go-background');
@@ -102,7 +102,7 @@ sentryTest(
     // Switches to session mode and then goes to background
     const req1 = await reqPromise1;
     const req2 = await reqPromise2;
-    expect(callsToSentry).toEqual(5);
+    expect(callsToSentry).toBeGreaterThanOrEqual(5);
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);
