@@ -80,8 +80,7 @@ function visit(
 
   // Get the simple cases out of the way first
   if (
-    value === undefined ||
-    value === null ||
+    value == null || // this matches null and undefined -> eqeq not eqeqeq
     (['number', 'boolean', 'string'].includes(typeof value) && !isNaN(value))
   ) {
     return value as Primitive;
