@@ -191,13 +191,14 @@ export function fetchCallback(
   const activeTransaction = currentSpan && currentSpan.transaction;
 
   if (currentSpan && activeTransaction) {
+    const { method, url } = handlerData.fetchData;
     const span = currentSpan.startChild({
       data: {
-        ...handlerData.fetchData,
+        url,
         type: 'fetch',
-        'http.method': handlerData.fetchData.method,
+        'http.method': method,
       },
-      description: `${handlerData.fetchData.method} ${handlerData.fetchData.url}`,
+      description: `${method} ${url}`,
       op: 'http.client',
     });
 
