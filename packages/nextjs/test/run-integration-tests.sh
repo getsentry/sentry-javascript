@@ -33,6 +33,11 @@ mv next.config.js next.config.js.bak
 
 for NEXTJS_VERSION in 10 11 12 13; do
   for USE_APPDIR in true false; do
+    if ([ "$NEXTJS_VERSION" -lt "13" ] || [ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
+      # App dir doesn not work on Next.js < 13 or Node.js < 16
+      continue
+    fi
+
     # export this to the env so that we can behave differently depending on which version of next we're testing, without
     # having to pass this value from function to function to function to the one spot, deep in some callstack, where we
     # actually need it
