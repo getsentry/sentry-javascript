@@ -9,7 +9,7 @@ import SentryScenarioGenerationPlugin from './generatePlugin';
 
 const LOADER_TEMPLATE = readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
 
-const LOADER_CONFIGS: Record<string, { bundle: string; options: Record<string, unknown>; lazy: boolean }> = {
+export const LOADER_CONFIGS: Record<string, { bundle: string; options: Record<string, unknown>; lazy: boolean }> = {
   loader_base: {
     bundle: 'browser/build/bundles/bundle.es5.min.js',
     options: {},
