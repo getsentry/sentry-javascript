@@ -438,7 +438,7 @@ describe('normalize()', () => {
     });
 
     test('primitive values in deep objects/arrays', () => {
-      expect(normalize(['foo', 42, [[null]], [NaN]])).toEqual(['foo', 42, [[null]], ['[NaN]']]);
+      expect(normalize(['foo', 42, [[undefined]], [NaN]])).toEqual(['foo', 42, [[undefined]], ['[NaN]']]);
       expect(
         normalize({
           foo: 42,
