@@ -8,12 +8,14 @@ test('should create a pageload transaction when the `app` directory is used with
     return;
   }
 
-  const [transaction] = await getMultipleSentryEnvelopeRequests(page, 1, {
+  const transactions = await getMultipleSentryEnvelopeRequests(page, 2, {
     url: '/servercomponent',
     envelopeType: 'transaction',
   });
 
-  expect(transaction).toMatchObject({
+  console.log(transactions);
+
+  expect(transactions[1]).toMatchObject({
     contexts: {
       trace: {
         op: 'pageload',
