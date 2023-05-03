@@ -227,7 +227,7 @@ describe('callbacks', () => {
       expect(newSpan).toBeInstanceOf(Span);
       expect(newSpan.data).toEqual({
         'http.response_content_length': 123,
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: 'http://dogs.are.great/',
       });
