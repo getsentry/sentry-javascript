@@ -3,12 +3,12 @@ import path from 'path';
 
 export const STATIC_DIR = path.join(__dirname, '../tmp/static');
 
-export default function setupStaticAssets(): void {
+export default async function setupStaticAssets(): Promise<void> {
   if (fs.existsSync(STATIC_DIR)) {
-    fs.rmSync(STATIC_DIR, { recursive: true });
+    await fs.promises.rm(STATIC_DIR, { recursive: true });
   }
 
-  fs.mkdirSync(STATIC_DIR, { recursive: true });
+  await fs.promises.mkdir(STATIC_DIR, { recursive: true });
 }
 
 export function addStaticAsset(localOutPath: string, fileName: string, cb: () => string): void {

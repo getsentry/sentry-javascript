@@ -1,5 +1,5 @@
 import setupStaticAssets from './utils/staticAssets';
 
-export default function globalSetup(): void {
-  setupStaticAssets();
+export default function globalSetup(): Promise<void> {
+  return setupStaticAssets();
 }
