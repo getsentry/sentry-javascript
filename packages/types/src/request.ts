@@ -18,7 +18,7 @@ export type QueryParams = string | { [key: string]: string } | Array<[string, st
  */
 export type SanitizedRequestData = {
   url: string;
-  method: string;
+  'http.method': string;
   'http.fragment'?: string;
   'http.query'?: string;
 };

@@ -111,7 +111,10 @@ export class Undici implements Integration {
         const shouldCreateSpan = this._options.shouldCreateSpanForRequest(stringUrl);
 
         if (shouldCreateSpan) {
-          const data: Record<string, unknown> = {};
+          const method = request.method || 'GET';
+          const data: Record<string, unknown> = {
+            'http.method': method,
+          };
           const params = url.searchParams.toString();
           if (params) {
             data['http.query'] = `?${params}`;
@@ -119,10 +122,9 @@ export class Undici implements Integration {
           if (url.hash) {
             data['http.fragment'] = url.hash;
           }
-
           const span = activeSpan.startChild({
             op: 'http.client',
-            description: `${request.method || 'GET'} ${stripUrlQueryAndFragment(stringUrl)}`,
+            description: `${method} ${stripUrlQueryAndFragment(stringUrl)}`,
             data,
           });
           request.__sentry__ = span;

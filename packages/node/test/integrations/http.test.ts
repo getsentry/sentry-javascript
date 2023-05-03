@@ -208,7 +208,7 @@ describe('tracing', () => {
     // our span is at index 1 because the transaction itself is at index 0
     expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data.method).toEqual('GET');
+    expect(spans[1].data['http.method']).toEqual('GET');
     expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
     expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
     expect(spans[1].data['http.fragment']).toEqual('learn-more');

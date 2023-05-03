@@ -187,9 +187,10 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentHub().getScope();
 
+      const method = requestOptions.method || 'GET';
       const requestSpanData: SanitizedRequestData = {
         url: requestUrl,
-        method: requestOptions.method || 'GET',
+        'http.method': method,
       };
       if (requestOptions.hash) {
         // strip leading "#"
@@ -205,7 +206,7 @@ function _createWrappedRequestMethodFactory(
 
         if (parentSpan) {
           requestSpan = parentSpan.startChild({
-            description: `${requestSpanData.method} ${requestSpanData.url}`,
+            description: `${method} ${requestSpanData.url}`,
             op: 'http.client',
             data: requestSpanData,
           });
