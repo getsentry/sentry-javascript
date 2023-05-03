@@ -135,16 +135,15 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button > img#img[alt="Alt Text"]',
+          message: 'body > button[title="Button title"]',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                alt: 'Alt Text',
-                id: 'img',
+                title: '****** *****',
               },
               id: expect.any(Number),
-              tagName: 'img',
+              tagName: 'button',
               textContent: '',
             },
           },
