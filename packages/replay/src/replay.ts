@@ -620,6 +620,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       WINDOW.document.addEventListener('visibilitychange', this._handleVisibilityChange);
       WINDOW.addEventListener('blur', this._handleWindowBlur);
       WINDOW.addEventListener('focus', this._handleWindowFocus);
+      WINDOW.addEventListener('keydown', this._handleKeyboardEvent);
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
@@ -648,6 +649,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       WINDOW.removeEventListener('blur', this._handleWindowBlur);
       WINDOW.removeEventListener('focus', this._handleWindowFocus);
+      WINDOW.removeEventListener('keydown', this._handleKeyboardEvent);
 
       if (this._performanceObserver) {
         this._performanceObserver.disconnect();
@@ -696,6 +698,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     // Do not count focus as a user action -- instead wait until they focus and
     // interactive with page
     this._doChangeToForegroundTasks(breadcrumb);
+  };
+
+  /** Ensure page remains active when a key is pressed. */
+  private _handleKeyboardEvent: (event: KeyboardEvent) => void = () => {
+    this.triggerUserActivity();
   };
 
   /**
