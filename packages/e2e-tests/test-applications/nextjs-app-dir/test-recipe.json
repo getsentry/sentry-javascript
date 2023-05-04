@@ -2,15 +2,15 @@
   "$schema": "../../test-recipe-schema.json",
   "testApplicationName": "nextjs-13-app-dir",
   "buildCommand": "pnpm install && npx playwright install && pnpm build",
-  "buildAssertionCommand": "yarn ts-node --script-mode assert-build.ts",
+  "buildAssertionCommand": "pnpm ts-node --script-mode assert-build.ts",
   "tests": [
     {
       "testName": "Prod Mode",
-      "testCommand": "yarn test:prod"
+      "testCommand": "pnpm test:prod"
     },
     {
       "testName": "Dev Mode",
-      "testCommand": "yarn test:dev"
+      "testCommand": "pnpm test:dev"
     }
   ],
   "canaryVersions": [

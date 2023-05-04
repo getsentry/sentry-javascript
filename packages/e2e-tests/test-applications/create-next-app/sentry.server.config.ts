@@ -11,6 +11,7 @@ declare global {
 }
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
   // Adjust this value in production, or use tracesSampler for greater control
   tracesSampleRate: 1.0,

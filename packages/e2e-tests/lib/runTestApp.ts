@@ -16,7 +16,9 @@ export async function buildAndTestApp(
 
   const tmpFolder = path.join(__dirname, '..', 'tmp');
   await fs.promises.mkdir(tmpFolder, { recursive: true });
-  const targetDir = await fs.promises.mkdtemp(path.join(tmpFolder, 'tmp-app-'));
+  const targetDir = await fs.promises.mkdtemp(
+    path.join(tmpFolder, `${recipeInstance.recipe.testApplicationName}-${Date.now()}-`),
+  );
 
   await fsExtra.copy(recipeDirname, targetDir);
 

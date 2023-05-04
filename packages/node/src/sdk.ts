@@ -6,7 +6,7 @@ import {
   initAndBind,
   Integrations as CoreIntegrations,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { CheckIn, MonitorConfig, SessionStatus, StackParser } from '@sentry/types';
 import {
   createStackParser,
   GLOBAL_OBJ,
@@ -260,6 +260,25 @@ export function getSentryRelease(fallback?: string): string | undefined {
     process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
     fallback
   );
+}
+
+/**
+ * Create a cron monitor check in and send it to Sentry.
+ *
+ * @param checkIn An object that describes a check in.
+ * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+ * to create a monitor automatically when sending a check in.
+ */
+export function captureCheckIn(
+  checkIn: CheckIn,
+  upsertMonitorConfig?: MonitorConfig,
+): ReturnType<NodeClient['captureCheckIn']> {
+  const client = getCurrentHub().getClient<NodeClient>();
+  if (client) {
+    return client.captureCheckIn(checkIn, upsertMonitorConfig);
+  }
+
+  __DEBUG_BUILD__ && logger.warn('Cannot capture check in. No client defined.');
 }
 
 /** Node.js stack parser */

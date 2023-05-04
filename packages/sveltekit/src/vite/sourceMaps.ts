@@ -1,5 +1,5 @@
 import { getSentryRelease } from '@sentry/node';
-import { uuid4 } from '@sentry/utils';
+import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import * as child_process from 'child_process';
@@ -10,6 +10,7 @@ import * as path from 'path';
 import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
+import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
 import { getAdapterOutputDir, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -74,9 +75,9 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
   let isSSRBuild = true;
 
   const customPlugin: Plugin = {
-    name: 'sentry-vite-plugin-custom',
+    name: 'sentry-upload-source-maps',
     apply: 'build', // only apply this plugin at build time
-    enforce: 'post',
+    enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
 
     // These hooks are copied from the original Sentry Vite plugin.
     // They're mostly responsible for options parsing and release injection.
@@ -117,6 +118,8 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
       }
 
       const outDir = path.resolve(process.cwd(), outputDir);
+      // eslint-disable-next-line no-console
+      debug && console.log('[Source Maps Plugin] Looking up source maps in', outDir);
 
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
       // eslint-disable-next-line no-console
@@ -144,6 +147,18 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
             // eslint-disable-next-line no-console
             console.error('[Source Maps Plugin] error while flattening', file, e);
           }
+        }
+
+        // We need to remove the query string from the source map files that our auto-instrument plugin added
+        // to proxy the load functions during building.
+        const mapFile = `${file}.map`;
+        if (fs.existsSync(mapFile)) {
+          const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
+          const cleanedMapContent = mapContent.replace(
+            new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
+            '',
+          );
+          await fs.promises.writeFile(mapFile, cleanedMapContent);
         }
       });
 

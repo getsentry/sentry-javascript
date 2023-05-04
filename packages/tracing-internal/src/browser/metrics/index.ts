@@ -402,13 +402,13 @@ export function _addResourceSpans(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: Record<string, any> = {};
   if ('transferSize' in entry) {
-    data['Transfer Size'] = entry.transferSize;
+    data['http.response_transfer_size'] = entry.transferSize;
   }
   if ('encodedBodySize' in entry) {
-    data['Encoded Body Size'] = entry.encodedBodySize;
+    data['http.response_content_length'] = entry.encodedBodySize;
   }
   if ('decodedBodySize' in entry) {
-    data['Decoded Body Size'] = entry.decodedBodySize;
+    data['http.decoded_response_content_length'] = entry.decodedBodySize;
   }
   if ('renderBlockingStatus' in entry) {
     data['resource.render_blocking_status'] = entry.renderBlockingStatus;

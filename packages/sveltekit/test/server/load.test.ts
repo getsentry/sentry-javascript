@@ -64,6 +64,7 @@ const MOCK_LOAD_NO_ROUTE_ARGS: any = {
 const MOCK_SERVER_ONLY_LOAD_ARGS: any = {
   ...MOCK_LOAD_ARGS,
   request: {
+    method: 'GET',
     headers: {
       get: (key: string) => {
         if (key === 'sentry-trace') {
@@ -87,6 +88,7 @@ const MOCK_SERVER_ONLY_LOAD_ARGS: any = {
 const MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS: any = {
   ...MOCK_LOAD_ARGS,
   request: {
+    method: 'GET',
     headers: {
       get: (_: string) => {
         return null;
@@ -98,6 +100,7 @@ const MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS: any = {
 const MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS: any = {
   ...MOCK_LOAD_ARGS,
   request: {
+    method: 'GET',
     headers: {
       get: (key: string) => {
         if (key === 'sentry-trace') {
@@ -268,6 +271,9 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         parentSpanId: '1234567890abcdef',
         status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
+        data: {
+          'http.method': 'GET',
+        },
         metadata: {
           dynamicSamplingContext: {
             environment: 'production',
@@ -296,6 +302,9 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
         status: 'ok',
+        data: {
+          'http.method': 'GET',
+        },
         metadata: {
           source: 'route',
         },
@@ -318,6 +327,9 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         parentSpanId: '1234567890abcdef',
         status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
+        data: {
+          'http.method': 'GET',
+        },
         metadata: {
           dynamicSamplingContext: {},
           source: 'route',
@@ -343,6 +355,9 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         parentSpanId: '1234567890abcdef',
         status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
+        data: {
+          'http.method': 'GET',
+        },
         metadata: {
           dynamicSamplingContext: {
             environment: 'production',

@@ -56,6 +56,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       {
         description: 'GET http://localhost:18099/',
         op: 'http.client',
+        data: {
+          'http.method': 'GET',
+        },
       },
     ],
     [
@@ -66,6 +69,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         description: 'GET http://localhost:18099/',
         op: 'http.client',
         data: {
+          'http.method': 'GET',
           'http.query': '?foo=bar',
         },
       },
@@ -76,6 +80,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       { method: 'POST' },
       {
         description: 'POST http://localhost:18099/',
+        data: {
+          'http.method': 'POST',
+        },
       },
     ],
     [
@@ -84,6 +91,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       { method: 'POST' },
       {
         description: 'POST http://localhost:18099/',
+        data: {
+          'http.method': 'POST',
+        },
       },
     ],
     [

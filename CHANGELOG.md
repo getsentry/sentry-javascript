@@ -4,6 +4,70 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.51.0
+
+### Important Changes
+
+- **feat(sveltekit): Auto-wrap `load` functions with proxy module (#7994)**
+
+`@sentry/sveltekit` now auto-wraps `load` functions in
+
+* `+(page|layout).(ts|js)` files (universal loads)
+* `+(page|layout).server.(ts|js)` files (server-only loads)
+
+This means that you don't have to manually add the `wrapLoadWithSentry` and `wrapServerLoadWithSentry` functions around your load functions. The SDK will not interfere with already wrapped `load` functions.
+
+For more details, take a look at the [Readme](https://github.com/getsentry/sentry-javascript/blob/develop/packages/sveltekit/README.md#configure-auto-instrumentation)
+
+- **chore(angular): Upgrade `peerDependencies` to Angular 16 (#8035)**
+
+We now officially support Angular 16 in `@sentry/angular-ivy`.
+Note that `@sentry/angular` _does not_ support Angular 16.
+
+- **feat(node): Add ability to send cron monitor check ins (#8039)**
+
+This release adds [Sentry cron monitoring](https://docs.sentry.io/product/crons/) support to the Node SDK.
+
+To monitor your cron jobs, send check-ins everytime you execute your cron jobs to Sentry. You can do this with the `captureCheckIn` method exported from the SDK. First you must send an `in_progress`, checkin, then you can send one with status `ok` or `error` based on what happened with your cron job.
+
+```ts
+const Sentry = require('@sentry/node');
+
+// ...
+
+Sentry.captureCheckIn({
+  // make sure this is the same slug as what you set up your
+  // Sentry cron monitor with.
+  monitorSlug: 'dailyEmail',
+  status: 'in_progress',
+});
+
+const startTime = timeInSeconds();
+
+runTask();
+
+Sentry.captureCheckIn({
+  monitorSlug: 'dailyEmail',
+  status: 'ok',
+  duration: timeInSeconds() - startTime,
+});
+```
+
+### Additional Features and Fixes
+
+- feat(browser): Export makeMultiplexedTransport from browser SDK (#8012)
+- feat(node): Add `http.method` to node http spans (#7991)
+- feat(tracing): add body size for fetch requests (#7935)
+- feat(tracing): Use http.method for span data (#7990)
+- fix(integrations): Handle windows paths with no prefix or backslash prefix in `RewriteFrames` (#7995)
+- fix(node): Mark stack frames with url protocol as in-app frames (#8008)
+- fix(remix): Export `Integration` type declaration as union type (#8016)
+- fix(replay): Do not add replay_id to DSC while buffering (#8020)
+- fix(tracing): Don't set method multiple times (#8014)
+- fix(utils): Normalize `undefined` to `undefined` instead of `"[undefined]"` (#8017)
+
+Work in this release contributed by @srubin and @arjenbrandenburgh. Thank you for your contributions!
+
 ## 7.50.0
 
 ### Important Changes

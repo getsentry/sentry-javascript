@@ -13,6 +13,7 @@ Sentry.init({
   integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] }), window.Replay],
   environment: 'production',
   tracesSampleRate: 1,
+  // Needs manual start!
   replaysSessionSampleRate: 0.0,
-  replaysOnErrorSampleRate: 1.0,
+  replaysOnErrorSampleRate: 0.0,
 });

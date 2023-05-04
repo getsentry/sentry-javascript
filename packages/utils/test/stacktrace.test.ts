@@ -264,4 +264,10 @@ describe('node', () => {
       in_app: true,
     });
   });
+
+  it('should mark frames with protocols as in_app: true', () => {
+    const line = 'at Object.<anonymous> (app:///_next/server/pages/[error].js:10:20)';
+    const result = node(line);
+    expect(result?.in_app).toBe(true);
+  });
 });

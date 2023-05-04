@@ -193,7 +193,7 @@ jobs:
     steps:
       - name: PR is opened against master
         uses: mshick/add-pr-comment@a65df5f64fc741e91c59b8359a4bc56e57aaf5b1
-        if: ${{ github.base_ref == 'master' && !startsWith(github.ref, 'refs/heads/prepare-release/') }}
+        if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
         with:
           message: |
             ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
@@ -770,7 +770,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v2
         with:
-          version: 7
+          version: 8.3.1
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
