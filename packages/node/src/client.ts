@@ -1,10 +1,19 @@
 import type { Scope } from '@sentry/core';
 import { addTracingExtensions, BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
-import type { Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
-import { logger, resolvedSyncPromise } from '@sentry/utils';
+import type {
+  CheckIn,
+  Event,
+  EventHint,
+  MonitorConfig,
+  SerializedCheckIn,
+  Severity,
+  SeverityLevel,
+} from '@sentry/types';
+import { dropUndefinedKeys, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
+import { createCheckInEnvelope } from './checkin';
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import type { NodeClientOptions } from './types';
 
@@ -136,6 +145,46 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     return resolvedSyncPromise(
       eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
     );
+  }
+
+  /**
+   * Create a cron monitor check in and send it to Sentry.
+   *
+   * @param checkIn An object that describes a check in.
+   * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+   * to create a monitor automatically when sending a check in.
+   */
+  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): void {
+    if (!this._isEnabled()) {
+      __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
+      return;
+    }
+
+    const options = this.getOptions();
+    const { release, environment, tunnel } = options;
+
+    const serializedCheckIn: SerializedCheckIn = dropUndefinedKeys({
+      check_in_id: uuid4(),
+      monitor_slug: checkIn.monitorSlug,
+      status: checkIn.status,
+      duration: checkIn.duration,
+      release,
+      environment,
+    });
+
+    if (monitorConfig) {
+      serializedCheckIn.monitor_config = dropUndefinedKeys({
+        schedule: monitorConfig.schedule,
+        checkin_margin: monitorConfig.checkinMargin,
+        max_runtime: monitorConfig.maxRuntime,
+        timezone: monitorConfig.timezone,
+      });
+    }
+
+    const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
+
+    __DEBUG_BUILD__ && logger.warn('Sending checkin: ', checkIn);
+    void this._sendEnvelope(envelope);
   }
 
   /**

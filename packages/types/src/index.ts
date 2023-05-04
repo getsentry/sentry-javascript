@@ -106,4 +106,4 @@ export type { Instrumenter } from './instrumenter';
 export type { HandlerDataFetch, HandlerDataXhr, SentryXhrData, SentryWrappedXMLHttpRequest } from './instrument';
 
 export type { BrowserClientReplayOptions } from './browseroptions';
-export type { CheckIn } from './checkin';
+export type { CheckIn, MonitorConfig, SerializedCheckIn } from './checkin';

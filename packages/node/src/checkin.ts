@@ -1,11 +1,18 @@
-import type { CheckIn, CheckInEvelope, CheckInItem, DsnComponents, SdkMetadata } from '@sentry/types';
+import type {
+  CheckIn,
+  CheckInEvelope,
+  CheckInItem,
+  DsnComponents,
+  SdkMetadata,
+  SerializedCheckIn,
+} from '@sentry/types';
 import { createEnvelope, dsnToString } from '@sentry/utils';
 
 /**
  * Create envelope from check in item.
  */
 export function createCheckInEnvelope(
-  checkIn: CheckIn,
+  checkIn: SerializedCheckIn,
   metadata?: SdkMetadata,
   tunnel?: string,
   dsn?: DsnComponents,
@@ -25,7 +32,7 @@ export function createCheckInEnvelope(
   return createEnvelope<CheckInEvelope>(headers, [item]);
 }
 
-function createCheckInEnvelopeItem(checkIn: CheckIn): CheckInItem {
+function createCheckInEnvelopeItem(checkIn: SerializedCheckIn): CheckInItem {
   const checkInHeaders: CheckInItem[0] = {
     type: 'check_in',
   };
