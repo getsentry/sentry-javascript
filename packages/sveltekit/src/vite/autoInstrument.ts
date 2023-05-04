@@ -37,7 +37,7 @@ type AutoInstrumentPluginOptions = AutoInstrumentSelection & {
  *
  * @returns the plugin
  */
-export async function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptions): Promise<Plugin> {
+export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptions): Plugin {
   const { load: shouldWrapLoad, serverLoad: shouldWrapServerLoad, debug } = options;
 
   return {

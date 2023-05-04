@@ -71,7 +71,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     };
 
     sentryPlugins.push(
-      await makeAutoInstrumentationPlugin({
+      makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
       }),

@@ -1,7 +1,6 @@
 import { vi } from 'vitest';
 
-// import { makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
-import * as autoInstument from '../../src/vite/autoInstrument';
+import { canWrapLoad, makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
 
 const DEFAULT_CONTENT = `
   export const load = () => {};
@@ -38,7 +37,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
   });
 
   it('returns the auto instrumentation plugin', async () => {
-    const plugin = await autoInstument.makeAutoInstrumentationPlugin({ debug: true, load: true, serverLoad: true });
+    const plugin = makeAutoInstrumentationPlugin({ debug: true, load: true, serverLoad: true });
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(plugin.enforce).toEqual('pre');
     expect(plugin.load).toEqual(expect.any(Function));
@@ -55,7 +54,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
     'path/to/+layout.mjs',
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
-      const plugin = await autoInstument.makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: true });
+      const plugin = makeAutoInstrumentationPlugin({ debug: false, load: true, serverLoad: true });
       // @ts-ignore this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
@@ -67,7 +66,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
     });
 
     it("doesn't wrap universal load if `load` option is `false`", async () => {
-      const plugin = await autoInstument.makeAutoInstrumentationPlugin({
+      const plugin = makeAutoInstrumentationPlugin({
         debug: false,
         load: false,
         serverLoad: false,
@@ -89,7 +88,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
     'path/to/+layout.server.mjs',
   ])('transform %s files', (path: string) => {
     it('wraps universal load if `load` option is `true`', async () => {
-      const plugin = await autoInstument.makeAutoInstrumentationPlugin({ debug: false, load: false, serverLoad: true });
+      const plugin = makeAutoInstrumentationPlugin({ debug: false, load: false, serverLoad: true });
       // @ts-ignore this exists
       const loadResult = await plugin.load(path);
       expect(loadResult).toEqual(
@@ -101,7 +100,7 @@ describe('makeAutoInstrumentationPlugin()', () => {
     });
 
     it("doesn't wrap universal load if `load` option is `false`", async () => {
-      const plugin = await autoInstument.makeAutoInstrumentationPlugin({
+      const plugin = makeAutoInstrumentationPlugin({
         debug: false,
         load: false,
         serverLoad: false,
@@ -173,7 +172,7 @@ describe('canWrapLoad', () => {
     ],
   ])('returns `true` if a load declaration  (%s) exists and no Sentry code was found', async (_, code) => {
     fileContent = code;
-    expect(await autoInstument.canWrapLoad('+page.ts', false)).toEqual(true);
+    expect(await canWrapLoad('+page.ts', false)).toEqual(true);
   });
 
   it.each([
@@ -189,16 +188,16 @@ describe('canWrapLoad', () => {
     '/* export const load = () => {} */ export const prerender = true;',
   ])('returns `false` if no load declaration exists', async (_, code) => {
     fileContent = code;
-    expect(await autoInstument.canWrapLoad('+page.ts', false)).toEqual(true);
+    expect(await canWrapLoad('+page.ts', false)).toEqual(true);
   });
 
   it('returns `false` if Sentry code was found', async () => {
     fileContent = 'import * as Sentry from "@sentry/sveltekit";';
-    expect(await autoInstument.canWrapLoad('+page.ts', false)).toEqual(false);
+    expect(await canWrapLoad('+page.ts', false)).toEqual(false);
   });
 
   it('returns `false` if Sentry code was found', async () => {
     fileContent = 'import * as Sentry from "@sentry/sveltekit";';
-    expect(await autoInstument.canWrapLoad('+page.ts', false)).toEqual(false);
+    expect(await canWrapLoad('+page.ts', false)).toEqual(false);
   });
 });
