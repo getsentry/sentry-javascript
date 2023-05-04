@@ -279,6 +279,7 @@ export function captureCheckIn(
   }
 
   __DEBUG_BUILD__ && logger.warn('Cannot capture check in. No client defined.');
+  return;
 }
 
 /** Node.js stack parser */

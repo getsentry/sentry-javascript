@@ -38,14 +38,16 @@ export interface SerializedCheckIn {
   };
 }
 
-export interface CheckIn {
+export type CheckIn = {
   // The distinct slug of the monitor.
   monitorSlug: SerializedCheckIn['monitor_slug'];
+  // Check-In ID (unique and client generated).
+  checkInId?: SerializedCheckIn['check_in_id'];
   // The status of the check-in.
   status: SerializedCheckIn['status'];
   // The duration of the check-in in seconds. Will only take effect if the status is ok or error.
   duration?: SerializedCheckIn['duration'];
-}
+};
 
 type SerializedMonitorConfig = NonNullable<SerializedCheckIn['monitor_config']>;
 
