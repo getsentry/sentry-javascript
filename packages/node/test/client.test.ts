@@ -283,7 +283,12 @@ describe('NodeClient', () => {
 
   describe('captureCheckIn', () => {
     it('sends a checkIn envelope', () => {
-      const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar' });
+      const options = getDefaultNodeClientOptions({
+        dsn: PUBLIC_DSN,
+        serverName: 'bar',
+        release: '1.0.0',
+        environment: 'dev',
+      });
       client = new NodeClient(options);
 
       // @ts-ignore accessing private method
@@ -313,6 +318,8 @@ describe('NodeClient', () => {
               duration: 1222,
               monitor_slug: 'foo',
               status: 'ok',
+              release: '1.0.0',
+              environment: 'dev',
               monitor_config: {
                 schedule: {
                   type: 'crontab',

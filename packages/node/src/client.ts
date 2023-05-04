@@ -9,7 +9,7 @@ import type {
   Severity,
   SeverityLevel,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+import { logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
@@ -163,22 +163,22 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
 
-    const serializedCheckIn: SerializedCheckIn = dropUndefinedKeys({
+    const serializedCheckIn: SerializedCheckIn = {
       check_in_id: uuid4(),
       monitor_slug: checkIn.monitorSlug,
       status: checkIn.status,
       duration: checkIn.duration,
       release,
       environment,
-    });
+    };
 
     if (monitorConfig) {
-      serializedCheckIn.monitor_config = dropUndefinedKeys({
+      serializedCheckIn.monitor_config = {
         schedule: monitorConfig.schedule,
         checkin_margin: monitorConfig.checkinMargin,
         max_runtime: monitorConfig.maxRuntime,
         timezone: monitorConfig.timezone,
-      });
+      };
     }
 
     const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
