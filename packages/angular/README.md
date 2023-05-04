@@ -17,7 +17,11 @@
 
 ## Angular Version Compatibility
 
-The latest version of this SDK officially supports Angular 10-13. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
+**Important**: This package is not compatible with Angular 16 or newer. Please use [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy) instead.
+
+If you're using Angular 12 or newer, we recommend using `@sentry/angular-ivy` for better support with Angular's rendering engine Ivy.
+
+This SDK stilll officially supports Angular 10-15. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
 
 ## General
 
