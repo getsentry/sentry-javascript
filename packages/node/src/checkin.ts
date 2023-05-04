@@ -1,11 +1,4 @@
-import type {
-  CheckIn,
-  CheckInEvelope,
-  CheckInItem,
-  DsnComponents,
-  SdkMetadata,
-  SerializedCheckIn,
-} from '@sentry/types';
+import type { CheckInEvelope, CheckInItem, DsnComponents, SdkMetadata, SerializedCheckIn } from '@sentry/types';
 import { createEnvelope, dsnToString } from '@sentry/utils';
 
 /**
