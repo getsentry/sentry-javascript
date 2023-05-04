@@ -1,4 +1,4 @@
-import type { CheckIn } from './checkin';
+import type { SerializedCheckIn } from './checkin';
 import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
@@ -79,7 +79,7 @@ export type SessionItem =
   | BaseEnvelopeItem<SessionItemHeaders, Session>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
-export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, CheckIn>;
+export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
 type ReplayEventItem = BaseEnvelopeItem<ReplayEventItemHeaders, ReplayEvent>;
 type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRecordingData>;
 
