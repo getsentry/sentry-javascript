@@ -587,6 +587,16 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
 }
 
 /**
+ * Has a global async context strategy been set
+ */
+export function hasAsyncContextStrategy(): boolean {
+  // Get main carrier (global for every environment)
+  const registry = getMainCarrier();
+  registry.__SENTRY__ = registry.__SENTRY__ || {};
+  return !!registry.__SENTRY__.acs;
+}
+
+/**
  * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
  *
  * @param callback The callback to run in its own async context

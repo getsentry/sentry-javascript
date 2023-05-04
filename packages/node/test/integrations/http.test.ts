@@ -1,6 +1,6 @@
 import type { Span, Transaction } from '@sentry/core';
+import { addTracingExtensions, Hub, setAsyncContextStrategy } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import { addTracingExtensions, Hub } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { logger, TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as http from 'http';
@@ -17,6 +17,18 @@ import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 
 const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
+
+function mockAsyncContextStrategy(getHub: () => Hub): void {
+  function getCurrentHub(): Hub | undefined {
+    return getHub();
+  }
+
+  function runWithAsyncContext<T>(fn: () => T): T {
+    return fn();
+  }
+
+  setAsyncContextStrategy({ getCurrentHub, runWithAsyncContext });
+}
 
 describe('tracing', () => {
   function createTransactionOnScope(
@@ -41,7 +53,7 @@ describe('tracing', () => {
       }),
     );
 
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
+    mockAsyncContextStrategy(() => hub);
 
     const transaction = hub.startTransaction({
       name: 'dogpark',

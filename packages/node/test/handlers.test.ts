@@ -410,9 +410,11 @@ describe('tracingHandler', () => {
     const finishSpan = jest.spyOn(span, 'finish');
     const finishTransaction = jest.spyOn(transaction, 'finish');
 
+    const hub = sentryCore.getCurrentHub();
     let sentEvent: Event;
-    jest.spyOn((transaction as any)._hub, 'captureEvent').mockImplementation(event => {
+    jest.spyOn(hub, 'captureEvent').mockImplementation(event => {
       sentEvent = event as Event;
+      return '';
     });
 
     sentryTracingMiddleware(req, res, next);

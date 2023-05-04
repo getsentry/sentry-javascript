@@ -13,7 +13,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import type { Hub } from '../hub';
-import { getCurrentHub } from '../hub';
+import { getCurrentHub, hasAsyncContextStrategy } from '../hub';
 import { Span as SpanClass, SpanRecorder } from './span';
 
 /** JSDoc */
@@ -23,7 +23,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  public _hub: Hub;
+  public _hub?: Hub;
 
   private _name: string;
 
@@ -45,7 +45,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
 
-    this._hub = hub || getCurrentHub();
+    this.setHub(hub || getCurrentHub());
 
     this._name = transactionContext.name || '';
 
@@ -141,7 +141,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
     // just sets the end timestamp
     super.finish(endTimestamp);
 
-    const client = this._hub.getClient();
+    const hub = this._hub || getCurrentHub();
+    const client = hub.getClient();
     if (client && client.emit) {
       client.emit('finishTransaction', this);
     }
@@ -206,7 +207,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     __DEBUG_BUILD__ && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this.name}.`);
 
-    return this._hub.captureEvent(transaction);
+    return hub.captureEvent(transaction);
   }
 
   /**
@@ -288,6 +289,12 @@ export class Transaction extends SpanClass implements TransactionInterface {
    * @internal
    */
   public setHub(hub: Hub): void {
+    // If we have an async context strategy, we don't want to set the hub as this creates a circular reference that
+    // causes transactions to be leaked.
+    if (hasAsyncContextStrategy()) {
+      return;
+    }
+
     this._hub = hub;
   }
 }
