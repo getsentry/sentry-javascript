@@ -15,9 +15,9 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 10.x <= 16.x",
-    "@angular/core": ">= 10.x <= 16.x",
-    "@angular/router": ">= 10.x <= 16.x",
+    "@angular/common": ">= 10.x <= 15.x",
+    "@angular/core": ">= 10.x <= 15.x",
+    "@angular/router": ">= 10.x <= 15.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
