@@ -170,6 +170,12 @@ describe('canWrapLoad', () => {
        async function load(){};
        export { load }`,
     ],
+    [
+      'function declaration with different name',
+      `import { foo } from 'somewhere';
+       async function somethingElse(){};
+       export { somethingElse as  load, foo }`,
+    ],
   ])('returns `true` if a load declaration  (%s) exists and no Sentry code was found', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
@@ -186,6 +192,7 @@ describe('canWrapLoad', () => {
     'const a = load ? load : false',
     '// const load = () => {}',
     '/* export const load = () => {} */ export const prerender = true;',
+    '/* export const notLoad = () => { const a = getSomething() as load; } */ export const prerender = true;',
   ])('returns `false` if no load declaration exists', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
