@@ -8,7 +8,7 @@
   },
   "private": true,
   "scripts": {
-    "clean": "rimraf -g suites/**/dist loader-suites/**/dist",
+    "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
     "install-browsers": "playwright install --with-deps",
     "lint": "run-s lint:prettier lint:eslint",
     "lint:eslint": "eslint . --format stylish",
@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
+    "@types/node": "^14.6.4",
     "glob": "8.0.3"
   },
   "volta": {

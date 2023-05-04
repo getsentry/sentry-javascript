@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { sentryTest, TEST_HOST } from '../../../../utils/fixtures';
-import { LOADER_CONFIGS } from '../../../../utils/generatePage';
+import { LOADER_CONFIGS } from '../../../../utils/generatePlugin';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 
 const bundle = process.env.PW_BUNDLE || '';
