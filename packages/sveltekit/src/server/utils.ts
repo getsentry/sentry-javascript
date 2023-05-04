@@ -2,6 +2,8 @@ import type { DynamicSamplingContext, StackFrame, TraceparentData } from '@sentr
 import { baggageHeaderToDynamicSamplingContext, basename, extractTraceparentData } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
+import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
+
 /**
  * Takes a request event and extracts traceparent and DSC data
  * from the `sentry-trace` and `baggage` DSC headers.
@@ -51,6 +53,12 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   }
 
   delete frame.module;
+
+  // In dev-mode, the WRAPPED_MODULE_SUFFIX is still present in the frame's file name.
+  // We need to remove it to make sure that the frame's filename matches the actual file
+  if (frame.filename.endsWith(WRAPPED_MODULE_SUFFIX)) {
+    frame.filename = frame.filename.slice(0, -WRAPPED_MODULE_SUFFIX.length);
+  }
 
   return frame;
 }
