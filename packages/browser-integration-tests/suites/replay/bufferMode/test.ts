@@ -374,29 +374,29 @@ sentryTest(
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);
 
-  expect(event0).toEqual(
-    getExpectedReplayEvent({
-      error_ids: errorEventIds,
-      replay_type: 'buffer',
-    }),
-  );
+    expect(event0).toEqual(
+      getExpectedReplayEvent({
+        error_ids: errorEventIds,
+        replay_type: 'buffer',
+      }),
+    );
 
-  // The first event should have both, full and incremental snapshots,
-  // as we recorded and kept all events in the buffer
-  expect(content0.fullSnapshots).toHaveLength(1);
-  // We want to make sure that the event that triggered the error was
-  // recorded, as well as the first error that did not get sampled.
-  expect(content0.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        ...expectedClickBreadcrumb,
-        message: 'body > button#error',
-        data: {
-          nodeId: expect.any(Number),
-          node: {
-            attributes: {
-              id: 'error',
-            },
+    // The first event should have both, full and incremental snapshots,
+    // as we recorded and kept all events in the buffer
+    expect(content0.fullSnapshots).toHaveLength(1);
+    // We want to make sure that the event that triggered the error was
+    // recorded, as well as the first error that did not get sampled.
+    expect(content0.breadcrumbs).toEqual(
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error',
+          data: {
+            nodeId: expect.any(Number),
+            node: {
+              attributes: {
+                id: 'error',
+              },
               id: expect.any(Number),
               tagName: 'button',
               textContent: '***** *****',
