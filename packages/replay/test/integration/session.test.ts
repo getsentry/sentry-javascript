@@ -18,7 +18,6 @@ import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
-import { DEFAULT_OPTIONS_EVENT_PAYLOAD } from '../utils/setupReplayContainer';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();

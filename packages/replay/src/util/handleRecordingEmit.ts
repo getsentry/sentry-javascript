@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { RecordingEvent, ReplayContainer, AddEventResult } from '../types';
+import type { AddEventResult,RecordingEvent, ReplayContainer } from '../types';
 import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 

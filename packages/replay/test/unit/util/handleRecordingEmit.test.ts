@@ -4,7 +4,7 @@ import { BASE_TIMESTAMP } from '../..';
 import type { RecordingEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
 import { createOptionsEvent,getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
-import { DEFAULT_OPTIONS_EVENT_PAYLOAD, setupReplayContainer } from '../../utils/setupReplayContainer';
+import { setupReplayContainer } from '../../utils/setupReplayContainer';
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
