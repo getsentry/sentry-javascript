@@ -41,7 +41,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      addEvent(replay, event, isCheckout);
+      void addEvent(replay, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
