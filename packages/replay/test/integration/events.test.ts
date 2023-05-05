@@ -130,12 +130,6 @@ describe('Integration | events', () => {
     expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: (BASE_TIMESTAMP - 10000) / 1000,
-        contexts: {
-          replay: {
-            error_sample_rate: 0,
-            session_sample_rate: 1,
-          },
-        },
         urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
       }),
     });

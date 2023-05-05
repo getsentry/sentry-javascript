@@ -1,7 +1,8 @@
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
 type RecordingEmitCallback = (event: RecordingEvent, isCheckout?: boolean) => void;
@@ -48,6 +49,14 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         return false;
       }
 
+      // Additionally, create a meta event that will capture certain SDK settings.
+      // In order to handle buffer mode, this needs to either be done when we
+      // receive checkout events or at flush time.
+      //
+      // `isCheckout` is always true, but want to be explicit that it should
+      // only be added for checkouts
+      void addSettingsEvent(replay, isCheckout);
+
       // If there is a previousSessionId after a full snapshot occurs, then
       // the replay session was started due to session expiration. The new session
       // is started before triggering a new checkout and contains the id
@@ -83,4 +92,44 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       return true;
     });
   };
+}
+
+/**
+ * Exported for tests
+ */
+export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
+  const options = replay.getOptions();
+  return {
+    type: EventType.Custom,
+    timestamp: Date.now(),
+    data: {
+      tag: 'options',
+      payload: {
+        sessionSampleRate: options.sessionSampleRate,
+        errorSampleRate: options.errorSampleRate,
+        useCompressionOption: options.useCompression,
+        blockAllMedia: options.blockAllMedia,
+        maskAllText: options.maskAllText,
+        maskAllInputs: options.maskAllInputs,
+        useCompression: replay.eventBuffer ? replay.eventBuffer.type === 'worker' : false,
+        networkDetailHasUrls: options.networkDetailAllowUrls.length > 0,
+        networkCaptureBodies: options.networkCaptureBodies,
+        networkRequestHasHeaders: options.networkRequestHeaders.length > 0,
+        networkResponseHasHeaders: options.networkResponseHeaders.length > 0,
+      },
+    },
+  };
+}
+
+/**
+ * Add a "meta" event that contains a simplified view on current configuration
+ * options. This should only be included on the first segment of a recording.
+ */
+function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<AddEventResult | null> {
+  // Only need to add this event when sending the first segment
+  if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
+    return Promise.resolve(null);
+  }
+
+  return addEvent(replay, createOptionsEvent(replay), false);
 }

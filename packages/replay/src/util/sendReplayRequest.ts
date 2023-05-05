@@ -18,7 +18,6 @@ export async function sendReplayRequest({
   eventContext,
   timestamp,
   session,
-  options,
 }: SendReplayData): Promise<void | TransportMakeRequestResponse> {
   const preparedRecordingData = prepareRecordingData({
     recordingData,
@@ -60,15 +59,6 @@ export async function sendReplayRequest({
     return;
   }
 
-  replayEvent.contexts = {
-    ...replayEvent.contexts,
-    replay: {
-      ...(replayEvent.contexts && replayEvent.contexts.replay),
-      session_sample_rate: options.sessionSampleRate,
-      error_sample_rate: options.errorSampleRate,
-    },
-  };
-
   /*
   For reference, the fully built event looks something like this:
   {
@@ -99,10 +89,6 @@ export async function sendReplayRequest({
       },
       "sdkProcessingMetadata": {},
       "contexts": {
-        "replay": {
-          "session_sample_rate": 1,
-          "error_sample_rate": 0,
-        },
       },
   }
   */

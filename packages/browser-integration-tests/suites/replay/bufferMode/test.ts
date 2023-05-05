@@ -115,7 +115,6 @@ sentryTest(
 
     expect(event0).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
         error_ids: [errorEventId!],
         replay_type: 'buffer',
       }),
@@ -150,7 +149,6 @@ sentryTest(
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
         replay_type: 'buffer', // although we're in session mode, we still send 'buffer' as replay_type
         segment_id: 1,
         urls: [],
@@ -162,7 +160,6 @@ sentryTest(
 
     expect(event2).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
         replay_type: 'buffer', // although we're in session mode, we still send 'buffer' as replay_type
         segment_id: 2,
         urls: [],
@@ -266,7 +263,6 @@ sentryTest(
 
     expect(event0).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 0, session_sample_rate: 0 } },
         error_ids: [errorEventId!],
         replay_type: 'buffer',
       }),
@@ -372,7 +368,6 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
 
   expect(event0).toEqual(
     getExpectedReplayEvent({
-      contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
       error_ids: errorEventIds,
       replay_type: 'buffer',
     }),

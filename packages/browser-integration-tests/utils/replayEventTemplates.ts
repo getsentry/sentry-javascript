@@ -38,7 +38,6 @@ const DEFAULT_REPLAY_EVENT = {
     },
   },
   platform: 'javascript',
-  contexts: { replay: { session_sample_rate: 1, error_sample_rate: 0 } },
 };
 
 /**
