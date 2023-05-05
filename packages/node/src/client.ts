@@ -164,7 +164,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
 
-    const id = checkIn.status === 'in_progress' ? uuid4() : checkIn.checkInId;
+    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
 
     const serializedCheckIn: SerializedCheckIn = {
       check_in_id: id,
