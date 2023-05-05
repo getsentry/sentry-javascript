@@ -8,6 +8,26 @@ export const ReplayRecordingData = [
       timestamp: expect.any(Number),
     },
     {
+      data: {
+        payload: {
+          blockAllMedia: true,
+          errorSampleRate: 0,
+          maskAllInputs: true,
+          maskAllText: true,
+          networkCaptureBodies: true,
+          networkDetailHasUrls: false,
+          networkRequestHasHeaders: true,
+          networkResponseHasHeaders: true,
+          sessionSampleRate: 1,
+          useCompression: false,
+          useCompressionOption: true,
+        },
+        tag: 'options',
+      },
+      timestamp: expect.any(Number),
+      type: 5,
+    },
+    {
       type: 2,
       data: {
         node: {
@@ -74,26 +94,6 @@ export const ReplayRecordingData = [
         initialOffset: { left: 0, top: 0 },
       },
       timestamp: expect.any(Number),
-    },
-    {
-      data: {
-        payload: {
-          blockAllMedia: true,
-          errorSampleRate: 0,
-          maskAllInputs: true,
-          maskAllText: true,
-          networkCaptureBodies: true,
-          networkDetailHasUrls: false,
-          networkRequestHasHeaders: true,
-          networkResponseHasHeaders: true,
-          sessionSampleRate: 1,
-          useCompression: false,
-          useCompressionOption: true,
-        },
-        tag: 'options',
-      },
-      timestamp: expect.any(Number),
-      type: 5,
     },
     {
       type: 5,
