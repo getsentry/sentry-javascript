@@ -385,7 +385,7 @@ describe('Integration | session', () => {
       type: 3,
     };
     mockRecord._emitter(NEW_TEST_EVENT);
-    const optionsEvent = createOptionsEvent(replay)
+    const optionsEvent = createOptionsEvent(replay);
 
     jest.runAllTimers();
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -393,7 +393,7 @@ describe('Integration | session', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
-        {data: {isCheckout: true}, timestamp: BASE_TIMESTAMP + ELAPSED, type: 2},
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + ELAPSED, type: 2 },
         optionsEvent,
         {
           type: 5,

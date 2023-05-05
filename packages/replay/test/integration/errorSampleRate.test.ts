@@ -51,7 +51,7 @@ describe('Integration | errorSampleRate', () => {
   it('uploads a replay when `Sentry.captureException` is called and continues recording', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
-    const optionsEvent = createOptionsEvent(replay)
+    const optionsEvent = createOptionsEvent(replay);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
@@ -537,7 +537,11 @@ describe('Integration | errorSampleRate', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, optionsEvent, TEST_EVENT]),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
+        TEST_EVENT,
+      ]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // the exception happens roughly 10 seconds after BASE_TIMESTAMP
@@ -719,7 +723,7 @@ it('sends a replay after loading the session multiple times', async () => {
   });
   integration['_initialize']();
 
-  const optionsEvent = createOptionsEvent(replay)
+  const optionsEvent = createOptionsEvent(replay);
 
   jest.runAllTimers();
 
@@ -737,7 +741,11 @@ it('sends a replay after loading the session multiple times', async () => {
 
   expect(replay).toHaveSentReplay({
     recordingPayloadHeader: { segment_id: 0 },
-    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, optionsEvent, TEST_EVENT]),
+    recordingData: JSON.stringify([
+      { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+      optionsEvent,
+      TEST_EVENT,
+    ]),
   });
 
   // Latest checkout when we call `startRecording` again after uploading segment

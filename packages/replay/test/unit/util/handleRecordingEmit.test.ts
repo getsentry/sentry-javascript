@@ -3,7 +3,7 @@ import { EventType } from '@sentry-internal/rrweb';
 import { BASE_TIMESTAMP } from '../..';
 import type { RecordingEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
-import { createOptionsEvent,getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
+import { createOptionsEvent, getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
@@ -32,7 +32,7 @@ describe('Unit | util | handleRecordingEmit', () => {
         sessionSampleRate: 1,
       },
     });
-    optionsEvent = createOptionsEvent(replay)
+    optionsEvent = createOptionsEvent(replay);
 
     const handler = getHandleRecordingEmit(replay);
 
@@ -65,7 +65,7 @@ describe('Unit | util | handleRecordingEmit', () => {
         sessionSampleRate: 1,
       },
     });
-    optionsEvent = createOptionsEvent(replay)
+    optionsEvent = createOptionsEvent(replay);
 
     const handler = getHandleRecordingEmit(replay);
 

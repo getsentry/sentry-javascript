@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { AddEventResult,RecordingEvent, ReplayContainer } from '../types';
+import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
 import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
@@ -94,10 +94,9 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
   };
 }
 
-
 /**
-* Exported for tests
-*/
+ * Exported for tests
+ */
 export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
   const options = replay.getOptions();
   return {
@@ -124,7 +123,7 @@ export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
 
 /**
  * Add a "meta" event that contains a simplified view on current configuration
-* options. This should only be included on the first segment of a recording.
+ * options. This should only be included on the first segment of a recording.
  */
 function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<AddEventResult | null> {
   // Only need to add this event when sending the first segment
