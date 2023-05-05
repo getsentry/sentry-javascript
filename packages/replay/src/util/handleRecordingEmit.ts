@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 
 import { saveSession } from '../session/saveSession';
-import type { RecordingEvent, ReplayContainer } from '../types';
+import type { RecordingEvent, ReplayContainer, AddEventResult } from '../types';
 import { EventType } from '../types/rrweb';
 import { addEvent } from './addEvent';
 
@@ -126,7 +126,7 @@ export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
  * Add a "meta" event that contains a simplified view on current configuration
 * options. This should only be included on the first segment of a recording.
  */
-function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<void | null> {
+function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<AddEventResult | null> {
   // Only need to add this event when sending the first segment
   if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
     return Promise.resolve(null);
