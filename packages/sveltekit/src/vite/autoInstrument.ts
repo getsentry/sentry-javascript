@@ -98,7 +98,9 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
     debug && console.log(`Skipping wrapping ${id} because it already contains Sentry code`);
   }
 
-  const hasLoadDeclaration = /((const|let|var|function)\s+load\s*(=|\())|as\s+load\s*(,|})/gm.test(codeWithoutComments);
+  const hasLoadDeclaration = /((const|let|var|function)\s+load\s*(=|\(|:))|as\s+load\s*(,|})/gm.test(
+    codeWithoutComments,
+  );
   if (!hasLoadDeclaration) {
     // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't declare a \`load\` function`);
