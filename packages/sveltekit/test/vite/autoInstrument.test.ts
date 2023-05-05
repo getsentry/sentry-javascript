@@ -176,6 +176,12 @@ describe('canWrapLoad', () => {
        async function somethingElse(){};
        export { somethingElse as  load, foo }`,
     ],
+
+    [
+      'export variable declaration - inline function with assigned type',
+      `import type { LayoutLoad } from './$types';
+       export const load :  LayoutLoad = async () => { return { props: { msg: "hi" } } }`,
+    ],
   ])('returns `true` if a load declaration  (%s) exists and no Sentry code was found', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);

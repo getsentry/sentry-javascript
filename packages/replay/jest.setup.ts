@@ -50,9 +50,12 @@ const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expe
   return {
     pass,
     message: () =>
-      `${this.utils.matcherHint('toHaveSameSession', undefined, undefined, options)}\n\n` +
-      `Expected: ${pass ? 'not ' : ''}${this.utils.printExpected(expected)}\n` +
-      `Received: ${this.utils.printReceived(received.session)}`,
+      `${this.utils.matcherHint(
+        'toHaveSameSession',
+        undefined,
+        undefined,
+        options,
+      )}\n\n${this.utils.printDiffOrStringify(expected, received.session, 'Expected', 'Received')}`,
   };
 };
 
@@ -138,9 +141,16 @@ const toHaveSentReplay = function (
 
   let result: CheckCallForSentReplayResult;
 
+  const expectedKeysLength = expected ? ('sample' in expected ? Object.keys(expected.sample) : Object.keys(expected)).length : 0;
+
   for (const currentCall of calls) {
     result = checkCallForSentReplay.call(this, currentCall[0], expected);
     if (result.pass) {
+      break;
+    }
+
+    // stop on the first call where any of the expected obj passes
+    if (result.results.length < expectedKeysLength) {
       break;
     }
   }
@@ -161,10 +171,13 @@ const toHaveSentReplay = function (
           ? 'Expected Replay to not have been sent, but a request was attempted'
           : 'Expected Replay to have been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
-            .map(
-              ({ key, expectedVal, actualVal }: Result) =>
-                `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
-                `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
+            .map(({ key, expectedVal, actualVal }: Result) =>
+              this.utils.printDiffOrStringify(
+                expectedVal,
+                actualVal,
+                `Expected (key: ${key})`,
+                `Received (key: ${key})`,
+              ),
             )
             .join('\n')}`,
   };
@@ -197,10 +210,13 @@ const toHaveLastSentReplay = function (
           ? 'Expected Replay to not have been sent, but a request was attempted'
           : 'Expected Replay to have last been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
-            .map(
-              ({ key, expectedVal, actualVal }: Result) =>
-                `Expected (key: ${key}): ${pass ? 'not ' : ''}${this.utils.printExpected(expectedVal)}\n` +
-                `Received (key: ${key}): ${this.utils.printReceived(actualVal)}`,
+            .map(({ key, expectedVal, actualVal }: Result) =>
+              this.utils.printDiffOrStringify(
+                expectedVal,
+                actualVal,
+                `Expected (key: ${key})`,
+                `Received (key: ${key})`,
+              ),
             )
             .join('\n')}`,
   };
