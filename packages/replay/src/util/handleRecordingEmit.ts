@@ -102,7 +102,7 @@ export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
   const options = replay.getOptions();
   return {
     type: EventType.Custom,
-    timestamp: new Date().getTime(),
+    timestamp: Date.now(),
     data: {
       tag: 'options',
       payload: {
@@ -112,11 +112,11 @@ export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
         blockAllMedia: options.blockAllMedia,
         maskAllText: options.maskAllText,
         maskAllInputs: options.maskAllInputs,
-        useCompression: replay.eventBuffer && replay.eventBuffer.type === 'worker',
+        useCompression: replay.eventBuffer ? replay.eventBuffer.type === 'worker' : false,
         networkDetailHasUrls: options.networkDetailAllowUrls.length > 0,
         networkCaptureBodies: options.networkCaptureBodies,
-        networkRequestHeaders: options.networkRequestHeaders.length > 0,
-        networkResponseHeaders: options.networkResponseHeaders.length > 0,
+        networkRequestHasHeaders: options.networkRequestHeaders.length > 0,
+        networkResponseHasHeaders: options.networkResponseHeaders.length > 0,
       },
     },
   };
