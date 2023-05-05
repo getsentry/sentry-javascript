@@ -89,7 +89,6 @@ export async function sendReplayRequest({
       },
       "sdkProcessingMetadata": {},
       "contexts": {
-        "replay": { },
       },
   }
   */
