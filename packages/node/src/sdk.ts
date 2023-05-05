@@ -13,6 +13,7 @@ import {
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
+  uuid4,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
@@ -273,13 +274,17 @@ export function captureCheckIn(
   checkIn: CheckIn,
   upsertMonitorConfig?: MonitorConfig,
 ): ReturnType<NodeClient['captureCheckIn']> {
+  const capturedCheckIn =
+    checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn : { ...checkIn, checkInId: uuid4() };
+
   const client = getCurrentHub().getClient<NodeClient>();
   if (client) {
-    return client.captureCheckIn(checkIn, upsertMonitorConfig);
+    client.captureCheckIn(capturedCheckIn, upsertMonitorConfig);
+  } else {
+    __DEBUG_BUILD__ && logger.warn('Cannot capture check in. No client defined.');
   }
 
-  __DEBUG_BUILD__ && logger.warn('Cannot capture check in. No client defined.');
-  return;
+  return capturedCheckIn.checkInId;
 }
 
 /** Node.js stack parser */

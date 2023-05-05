@@ -155,16 +155,15 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    * to create a monitor automatically when sending a check in.
    * @returns A string representing the id of the check in.
    */
-  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): string | undefined {
+  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): string {
+    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
       __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
-      return;
+      return id;
     }
 
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
-
-    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
 
     const serializedCheckIn: SerializedCheckIn = {
       check_in_id: id,

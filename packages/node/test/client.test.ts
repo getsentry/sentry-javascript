@@ -314,7 +314,7 @@ describe('NodeClient', () => {
           [
             expect.any(Object),
             {
-              check_in_id: expect.any(String),
+              check_in_id: id,
               monitor_slug: 'foo',
               status: 'in_progress',
               release: '1.0.0',
