@@ -164,16 +164,19 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
 
-    const id = checkIn.checkInId || uuid4();
+    const id = checkIn.status === 'in_progress' ? uuid4() : checkIn.checkInId;
 
     const serializedCheckIn: SerializedCheckIn = {
       check_in_id: id,
       monitor_slug: checkIn.monitorSlug,
       status: checkIn.status,
-      duration: checkIn.duration,
       release,
       environment,
     };
+
+    if (checkIn.status !== 'in_progress') {
+      serializedCheckIn.duration = checkIn.duration;
+    }
 
     if (monitorConfig) {
       serializedCheckIn.monitor_config = {

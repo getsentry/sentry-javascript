@@ -361,7 +361,7 @@ describe('NodeClient', () => {
       // @ts-ignore accessing private method
       const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
 
-      client.captureCheckIn({ monitorSlug: 'foo', status: 'ok', duration: 1222 });
+      client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });
