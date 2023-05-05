@@ -1,21 +1,15 @@
 import { EventType } from '@sentry-internal/rrweb';
 
 import { BASE_TIMESTAMP } from '../..';
+import type { RecordingEvent } from '../../../src/types';
 import * as SentryAddEvent from '../../../src/util/addEvent';
-import { getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
+import { createOptionsEvent,getHandleRecordingEmit } from '../../../src/util/handleRecordingEmit';
 import { DEFAULT_OPTIONS_EVENT_PAYLOAD, setupReplayContainer } from '../../utils/setupReplayContainer';
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
 
-const optionsEvent = {
-  type: 5,
-  data: {
-    tag: 'options',
-    payload: DEFAULT_OPTIONS_EVENT_PAYLOAD,
-  },
-  timestamp: BASE_TIMESTAMP,
-};
+let optionsEvent: RecordingEvent;
 
 describe('Unit | util | handleRecordingEmit', () => {
   let addEventMock: jest.SpyInstance;
@@ -38,6 +32,7 @@ describe('Unit | util | handleRecordingEmit', () => {
         sessionSampleRate: 1,
       },
     });
+    optionsEvent = createOptionsEvent(replay)
 
     const handler = getHandleRecordingEmit(replay);
 
@@ -54,7 +49,7 @@ describe('Unit | util | handleRecordingEmit', () => {
 
     expect(addEventMock).toBeCalledTimes(2);
     expect(addEventMock).toHaveBeenNthCalledWith(1, replay, event, true);
-    expect(addEventMock).toHaveBeenLastCalledWith(replay, optionsEvent, true);
+    expect(addEventMock).toHaveBeenLastCalledWith(replay, optionsEvent, false);
 
     handler(event);
     await new Promise(process.nextTick);
@@ -70,6 +65,7 @@ describe('Unit | util | handleRecordingEmit', () => {
         sessionSampleRate: 1,
       },
     });
+    optionsEvent = createOptionsEvent(replay)
 
     const handler = getHandleRecordingEmit(replay);
 
@@ -87,13 +83,13 @@ describe('Unit | util | handleRecordingEmit', () => {
     // Called twice, once for event and once for settings on checkout only
     expect(addEventMock).toBeCalledTimes(2);
     expect(addEventMock).toHaveBeenNthCalledWith(1, replay, event, true);
-    expect(addEventMock).toHaveBeenLastCalledWith(replay, optionsEvent, true);
+    expect(addEventMock).toHaveBeenLastCalledWith(replay, optionsEvent, false);
 
     handler(event, true);
     await new Promise(process.nextTick);
 
     expect(addEventMock).toBeCalledTimes(4);
     expect(addEventMock).toHaveBeenNthCalledWith(3, replay, event, true);
-    expect(addEventMock).toHaveBeenLastCalledWith(replay, { ...optionsEvent, timestamp: BASE_TIMESTAMP + 20 }, true);
+    expect(addEventMock).toHaveBeenLastCalledWith(replay, { ...optionsEvent, timestamp: BASE_TIMESTAMP + 20 }, false);
   });
 });

@@ -41,7 +41,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // We need to clear existing events on a checkout, otherwise they are
       // incremental event updates and should be appended
-      void addEvent(replay, event, isCheckout);
+      addEvent(replay, event, isCheckout);
 
       // Different behavior for full snapshots (type=2), ignore other event types
       // See https://github.com/rrweb-io/rrweb/blob/d8f9290ca496712aa1e7d472549480c4e7876594/packages/rrweb/src/types.ts#L16
@@ -94,18 +94,13 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
   };
 }
 
-/**
- * Add an event to the event buffer.
- * `isCheckout` is true if this is either the very first event, or an event triggered by `checkoutEveryNms`.
- */
-export async function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<void | null> {
-  // Only need to add this event when sending the first segment
-  if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
-    return null;
-  }
 
+/**
+* Exported for tests
+*/
+export function createOptionsEvent(replay: ReplayContainer): RecordingEvent {
   const options = replay.getOptions();
-  const event = {
+  return {
     type: EventType.Custom,
     timestamp: new Date().getTime(),
     data: {
@@ -125,6 +120,17 @@ export async function addSettingsEvent(replay: ReplayContainer, isCheckout?: boo
       },
     },
   };
+}
 
-  return addEvent(replay, event, true);
+/**
+ * Add a "meta" event that contains a simplified view on current configuration
+* options. This should only be included on the first segment of a recording.
+ */
+function addSettingsEvent(replay: ReplayContainer, isCheckout?: boolean): Promise<void | null> {
+  // Only need to add this event when sending the first segment
+  if (!isCheckout || !replay.session || replay.session.segmentId !== 0) {
+    return Promise.resolve(null);
+  }
+
+  return addEvent(replay, createOptionsEvent(replay), false);
 }

@@ -5,6 +5,7 @@ import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
+import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import { useFakeTimers } from '../utils/use-fake-timers';
@@ -95,6 +96,7 @@ describe('Integration | stop', () => {
 
     // re-enable replay
     integration.start();
+    const optionsEvent = createOptionsEvent(replay);
 
     // will be different session
     expect(replay.session?.id).not.toEqual(previousSessionId);
@@ -121,6 +123,7 @@ describe('Integration | stop', () => {
     jest.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay).toHaveLastSentReplay({
+      recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         // This event happens when we call `replay.start`
         {
@@ -128,10 +131,12 @@ describe('Integration | stop', () => {
           timestamp: BASE_TIMESTAMP + ELAPSED + EXTRA_TICKS,
           type: 2,
         },
+        optionsEvent,
         TEST_EVENT,
         hiddenBreadcrumb,
       ]),
     });
+
     // Session's last activity is last updated when we call `setup()` and *NOT*
     // when tab is blurred
     expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED + 20);
