@@ -136,7 +136,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const mockSend = getCurrentHub().getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
 
-    const error1 = Error({ event_id: 'err1' });
+    const error1 = Error({ event_id: 'err1', replayId: 'replayid1' });
 
     const handler = handleAfterSendEvent(replay);
 
