@@ -345,9 +345,11 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
   await page.click('#error');
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // 1 error, no replay
-  await reqErrorPromise;
+  // 1 unsampled error, no replay
+  const reqError0 = await reqErrorPromise;
+  const errorEvent0 = envelopeRequestParser(reqError0);
   expect(callsToSentry).toEqual(1);
+  expect(errorEvent0.tags?.replayId).toBeUndefined();
 
   await page.evaluate(async () => {
     const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
@@ -359,9 +361,11 @@ sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTest
 
   const req0 = await reqPromise0;
 
-  // 2 errors, 1 flush
-  await reqErrorPromise;
+  // 1 unsampled error, 1 sampled error -> 1 flush
+  const reqError1 = await reqErrorPromise;
+  const errorEvent1 = envelopeRequestParser(reqError1);
   expect(callsToSentry).toEqual(3);
+  expect(errorEvent1.tags?.replayId).toBeDefined();
 
   const event0 = getReplayEvent(req0);
   const content0 = getReplayRecordingContent(req0);
