@@ -5,6 +5,8 @@ import { logger } from '@sentry/utils';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
+import { isSampled } from '../util/isSampled';
+import { shouldTrySampleEvent } from '../util/shouldTrySampleEvent';
 import { handleAfterSendEvent } from './handleAfterSendEvent';
 
 /**
@@ -36,8 +38,13 @@ export function handleGlobalEventListener(
       return null;
     }
 
-    // Only tag transactions with replayId if not waiting for an error
-    if (isErrorEvent(event) || (isTransactionEvent(event) && replay.recordingMode === 'session')) {
+    const isErrorEventSampled = shouldTrySampleEvent(replay, event) && isSampled(replay.getOptions().errorSampleRate);
+
+    // Tag errors if it has been sampled in buffer mode, or if it is session mode
+    // Only tag transactions if in session mode
+    const shouldTagReplayId = isErrorEventSampled || replay.recordingMode === 'session';
+
+    if (shouldTagReplayId) {
       event.tags = { ...event.tags, replayId: replay.getSessionId() };
     }
 
