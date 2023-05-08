@@ -10,28 +10,33 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/sveltekit.svg)](https://www.npmjs.com/package/@sentry/sveltekit)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/sveltekit.svg)](https://www.npmjs.com/package/@sentry/sveltekit)
 
-<!--
-TODO: No docs yet, comment back in once we have docs
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/sveltekit/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/) -->
-
-## SDK Status
-
-This SDK is currently in **Beta state**. Bugs and issues might still appear and we're still actively working
-on the SDK. Also, we're still adding features.
-If you experience problems or have feedback, please open a [GitHub Issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
 
 ## Compatibility
 
 Currently, the minimum supported version of SvelteKit is `1.0.0`.
+The SDK works best with Vite 4.2 and newer.
+Older Vite versions might not generate source maps correctly.
 
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added functionality related to SvelteKit.
 
-## Setup
+## Automatic Setup
+
+We recommend installing the SDK by running [Sentry wizard](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install) in the root directory of your project:
+
+```sh
+npx @sentry/wizard@latest -i sveltekit
+```
+
+Take a look at the sections below if you want to customize your SDK configuration.
+
+## Manual Setup
+
+If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
 
 ### 1. Prerequesits & Installation
 

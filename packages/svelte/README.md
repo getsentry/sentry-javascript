@@ -10,7 +10,8 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/svelte.svg)](https://www.npmjs.com/package/@sentry/svelte)
 
-This SDK currently only supports [Svelte](https://svelte.dev/) and is not yet fully compatible with with [SvelteKit](https://kit.svelte.dev/). If you would like the SDK to be fully compatible with SvelteKit, please reach out to us on [GitHub](https://github.com/getsentry/sentry-javascript/discussions/5838).
+This SDK currently only supports [Svelte](https://svelte.dev/) apps in the browser.
+If you're using SvelteKit, we recommend using our dedicated [Sentry SvelteKit SDK](https://github.com/getsentry/sentry-javascript/tree/develop/packages/sveltekit).
 
 ## General
 
