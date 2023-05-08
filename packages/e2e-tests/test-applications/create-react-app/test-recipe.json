@@ -9,12 +9,6 @@
         "react": "canary",
         "react-dom": "canary"
       }
-    },
-    {
-      "dependencyOverrides": {
-        "react": "canary",
-        "react-dom": "canary"
-      }
     }
   ]
 }
