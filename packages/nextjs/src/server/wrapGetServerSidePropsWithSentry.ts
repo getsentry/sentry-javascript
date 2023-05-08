@@ -31,7 +31,8 @@ export function wrapGetServerSidePropsWithSentry(
       const { req, res } = context;
 
       const errorWrappedGetServerSideProps = withErrorInstrumentation(wrappingTarget);
-      const options = getCurrentHub().getClient()?.getOptions();
+      const hub = getCurrentHub();
+      const options = hub.getClient()?.getOptions();
 
       if (hasTracingEnabled() && options?.instrumenter === 'sentry') {
         const tracedGetServerSideProps = withTracedServerSideDataFetcher(errorWrappedGetServerSideProps, req, res, {
@@ -45,7 +46,7 @@ export function wrapGetServerSidePropsWithSentry(
         >);
 
         if (serverSideProps && 'props' in serverSideProps) {
-          const requestTransaction = getTransactionFromRequest(req);
+          const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
           if (requestTransaction) {
             serverSideProps.props._sentryTraceData = requestTransaction.toTraceparent();
 

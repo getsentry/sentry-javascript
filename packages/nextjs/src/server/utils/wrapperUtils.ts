@@ -5,7 +5,7 @@ import {
   runWithAsyncContext,
   startTransaction,
 } from '@sentry/core';
-import type { Transaction } from '@sentry/types';
+import type { Span, Transaction } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext, extractTraceparentData } from '@sentry/utils';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -82,7 +82,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
-      let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
+      const scope = hub.getScope();
+      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? scope.getSpan();
       let dataFetcherSpan;
 
       const sentryTraceHeader = req.headers['sentry-trace'];
@@ -93,7 +94,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(rawBaggageString);
 
       if (platformSupportsStreaming()) {
-        if (requestTransaction === undefined) {
+        let spanToContinue: Span;
+        if (previousSpan === undefined) {
           const newTransaction = startTransaction(
             {
               op: 'http.server',
@@ -109,8 +111,6 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
             { request: req },
           );
 
-          requestTransaction = newTransaction;
-
           if (platformSupportsStreaming()) {
             // On platforms that don't support streaming, doing things after res.end() is unreliable.
             autoEndTransactionOnResponseEnd(newTransaction, res);
@@ -119,9 +119,12 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
           // Link the transaction and the request together, so that when we would normally only have access to one, it's
           // still possible to grab the other.
           setTransactionOnRequest(newTransaction, req);
+          spanToContinue = newTransaction;
+        } else {
+          spanToContinue = previousSpan;
         }
 
-        dataFetcherSpan = requestTransaction.startChild({
+        dataFetcherSpan = spanToContinue.startChild({
           op: 'function.nextjs',
           description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
           status: 'ok',
@@ -140,11 +143,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         });
       }
 
-      const currentScope = hub.getScope();
-      if (currentScope) {
-        currentScope.setSpan(dataFetcherSpan);
-        currentScope.setSDKProcessingMetadata({ request: req });
-      }
+      scope.setSpan(dataFetcherSpan);
+      scope.setSDKProcessingMetadata({ request: req });
 
       try {
         return await origDataFetcher.apply(this, args);
@@ -152,10 +152,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
         // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
         // that set the transaction status, we need to manually set the status of the span & transaction
         dataFetcherSpan.setStatus('internal_error');
-        requestTransaction?.setStatus('internal_error');
+        previousSpan?.setStatus('internal_error');
         throw e;
       } finally {
         dataFetcherSpan.finish();
+        scope.setSpan(previousSpan);
         if (!platformSupportsStreaming()) {
           await flushQueue();
         }

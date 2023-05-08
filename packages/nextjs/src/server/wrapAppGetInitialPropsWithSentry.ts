@@ -31,7 +31,8 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
       const { req, res } = context.ctx;
 
       const errorWrappedAppGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const options = getCurrentHub().getClient()?.getOptions();
+      const hub = getCurrentHub();
+      const options = hub.getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -51,7 +52,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           };
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        const requestTransaction = getTransactionFromRequest(req);
+        const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
         // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per

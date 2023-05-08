@@ -30,7 +30,8 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
       const { req, res } = context;
 
       const errorWrappedGetInitialProps = withErrorInstrumentation(wrappingTarget);
-      const options = getCurrentHub().getClient()?.getOptions();
+      const hub = getCurrentHub();
+      const options = hub.getClient()?.getOptions();
 
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
@@ -48,7 +49,7 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
           _sentryBaggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        const requestTransaction = getTransactionFromRequest(req);
+        const requestTransaction = getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
         if (requestTransaction) {
           initialProps._sentryTraceData = requestTransaction.toTraceparent();
 
