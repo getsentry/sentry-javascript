@@ -78,7 +78,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     );
   }
 
-  if (mergedOptions.autoUploadSourceMaps) {
+  if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const pluginOptions = {
       ...mergedOptions.sourceMapsUploadOptions,
       debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options

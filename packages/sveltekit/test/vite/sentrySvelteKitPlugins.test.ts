@@ -38,6 +38,19 @@ describe('sentryVite()', () => {
     expect(plugins).toHaveLength(1);
   });
 
+  it("doesn't return the custom sentry source maps plugin if `NODE_ENV` is development", async () => {
+    const previousEnv = process.env.NODE_ENV;
+
+    process.env.NODE_ENV = 'development';
+    const plugins = await sentrySvelteKit({ autoUploadSourceMaps: true, autoInstrument: true });
+    const instrumentPlugin = plugins[0];
+
+    expect(plugins).toHaveLength(1);
+    expect(instrumentPlugin.name).toEqual('sentry-auto-instrumentation');
+
+    process.env.NODE_ENV = previousEnv;
+  });
+
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await sentrySvelteKit({ autoInstrument: false });
     expect(plugins).toHaveLength(1);
