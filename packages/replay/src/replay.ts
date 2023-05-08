@@ -11,6 +11,7 @@ import {
   SESSION_IDLE_PAUSE_DURATION,
   WINDOW,
 } from './constants';
+import { handleKeyboardEvent } from './coreHandlers/handleKeyboardEvent';
 import { setupPerformanceObserver } from './coreHandlers/performanceObserver';
 import { createEventBuffer } from './eventBuffer';
 import { clearSession } from './session/clearSession';
@@ -701,8 +702,8 @@ export class ReplayContainer implements ReplayContainerInterface {
   };
 
   /** Ensure page remains active when a key is pressed. */
-  private _handleKeyboardEvent: (event: KeyboardEvent) => void = () => {
-    this.triggerUserActivity();
+  private _handleKeyboardEvent: (event: KeyboardEvent) => void = (event: KeyboardEvent) => {
+    handleKeyboardEvent(this, event);
   };
 
   /**
