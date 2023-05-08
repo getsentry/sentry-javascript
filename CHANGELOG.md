@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.51.2
+
+- fix(nextjs): Continue traces in data fetchers when there is an already active transaction on the hub (#8073)
+- fix(sveltekit): Avoid creating the Sentry Vite plugin in dev mode (#8065)
+
 ## 7.51.1
 
 - feat(replay): Add event to capture options on checkouts (#8011)
