@@ -27,6 +27,9 @@ describe('data-fetching function wrappers', () => {
           ({
             getOptions: () => ({ instrumenter: 'sentry' }),
           } as any),
+        getScope: () => ({
+          getTransaction: () => undefined,
+        }),
       } as any);
     });
 
