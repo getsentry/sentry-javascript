@@ -84,7 +84,6 @@ sentryTest(
 
     expect(event0).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
         error_ids: [errorEventId!],
         replay_type: 'buffer',
       }),
@@ -119,7 +118,6 @@ sentryTest(
 
     expect(event1).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
         replay_type: 'buffer', // although we're in session mode, we still send 'error' as replay_type
         segment_id: 1,
         urls: [],
@@ -134,7 +132,6 @@ sentryTest(
     // we continue recording everything
     expect(event2).toEqual(
       getExpectedReplayEvent({
-        contexts: { replay: { error_sample_rate: 1, session_sample_rate: 0 } },
         replay_type: 'buffer',
         segment_id: 2,
         urls: [],

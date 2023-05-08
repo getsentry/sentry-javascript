@@ -14,6 +14,7 @@ import { clearSession } from '../../src/session/clearSession';
 import type { Session } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 import { BASE_TIMESTAMP } from '../index';
 import type { RecordMock } from '../mocks/mockRrweb';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -196,6 +197,8 @@ describe('Integration | session', () => {
     // Replay does not send immediately because checkout was due to expired session
     expect(replay).not.toHaveLastSentReplay();
 
+    const optionsEvent = createOptionsEvent(replay);
+
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
 
     const newTimestamp = BASE_TIMESTAMP + ELAPSED + 20;
@@ -204,6 +207,7 @@ describe('Integration | session', () => {
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        optionsEvent,
         {
           type: 5,
           timestamp: newTimestamp,
@@ -381,6 +385,7 @@ describe('Integration | session', () => {
       type: 3,
     };
     mockRecord._emitter(NEW_TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
 
     jest.runAllTimers();
     await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
@@ -388,7 +393,8 @@ describe('Integration | session', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + ELAPSED, type: 2 },
+        optionsEvent,
         {
           type: 5,
           timestamp: newTimestamp,

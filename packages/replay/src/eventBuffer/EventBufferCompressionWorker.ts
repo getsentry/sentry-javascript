@@ -1,6 +1,6 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
-import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
 import { WorkerHandler } from './WorkerHandler';
 
@@ -20,6 +20,11 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /** @inheritdoc */
   public get hasEvents(): boolean {
     return !!this._earliestTimestamp;
+  }
+
+  /** @inheritdoc */
+  public get type(): EventBufferType {
+    return 'worker';
   }
 
   /**

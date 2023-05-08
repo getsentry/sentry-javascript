@@ -153,24 +153,29 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
    * @param checkIn An object that describes a check in.
    * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
    * to create a monitor automatically when sending a check in.
+   * @returns A string representing the id of the check in.
    */
-  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): void {
+  public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig): string {
+    const id = checkIn.status !== 'in_progress' && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
       __DEBUG_BUILD__ && logger.warn('SDK not enabled, will not capture checkin.');
-      return;
+      return id;
     }
 
     const options = this.getOptions();
     const { release, environment, tunnel } = options;
 
     const serializedCheckIn: SerializedCheckIn = {
-      check_in_id: uuid4(),
+      check_in_id: id,
       monitor_slug: checkIn.monitorSlug,
       status: checkIn.status,
-      duration: checkIn.duration,
       release,
       environment,
     };
+
+    if (checkIn.status !== 'in_progress') {
+      serializedCheckIn.duration = checkIn.duration;
+    }
 
     if (monitorConfig) {
       serializedCheckIn.monitor_config = {
@@ -183,6 +188,7 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
 
     const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
     void this._sendEnvelope(envelope);
+    return id;
   }
 
   /**

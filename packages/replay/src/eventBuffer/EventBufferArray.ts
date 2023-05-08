@@ -1,4 +1,4 @@
-import type { AddEventResult, EventBuffer, RecordingEvent } from '../types';
+import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
 import { timestampToMs } from '../util/timestampToMs';
 
 /**
@@ -16,6 +16,11 @@ export class EventBufferArray implements EventBuffer {
   /** @inheritdoc */
   public get hasEvents(): boolean {
     return this.events.length > 0;
+  }
+
+  /** @inheritdoc */
+  public get type(): EventBufferType {
+    return 'sync';
   }
 
   /** @inheritdoc */

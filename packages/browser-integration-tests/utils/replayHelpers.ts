@@ -160,6 +160,7 @@ type CustomRecordingContent = {
 type RecordingContent = {
   fullSnapshots: RecordingSnapshot[];
   incrementalSnapshots: RecordingSnapshot[];
+  optionsEvents: CustomRecordingEvent[];
 } & CustomRecordingContent;
 
 /**
@@ -207,6 +208,11 @@ export function getIncrementalRecordingSnapshots(resOrReq: Request | Response): 
   return events.filter(isIncrementalSnapshot);
 }
 
+function getOptionsEvents(replayRequest: Request): CustomRecordingEvent[] {
+  const events = getDecompressedRecordingEvents(replayRequest);
+  return getAllCustomRrwebRecordingEvents(events).filter(data => data.tag === 'options');
+}
+
 function getDecompressedRecordingEvents(resOrReq: Request | Response): RecordingSnapshot[] {
   const replayRequest = getRequest(resOrReq);
   return (
@@ -227,8 +233,9 @@ export function getReplayRecordingContent(resOrReq: Request | Response): Recordi
   const fullSnapshots = getFullRecordingSnapshots(replayRequest);
   const incrementalSnapshots = getIncrementalRecordingSnapshots(replayRequest);
   const customEvents = getCustomRecordingEvents(replayRequest);
+  const optionsEvents = getOptionsEvents(replayRequest);
 
-  return { fullSnapshots, incrementalSnapshots, ...customEvents };
+  return { fullSnapshots, incrementalSnapshots, optionsEvents, ...customEvents };
 }
 
 /**

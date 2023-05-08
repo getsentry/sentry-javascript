@@ -135,16 +135,15 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button > img#img[alt="Alt Text"]',
+          message: 'body > button[title="Button title"]',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
-                alt: 'Alt Text',
-                id: 'img',
+                title: '****** *****',
               },
               id: expect.any(Number),
-              tagName: 'img',
+              tagName: 'button',
               textContent: '',
             },
           },
@@ -172,5 +171,62 @@ sentryTest(
         },
       ]),
     );
+  },
+);
+
+sentryTest(
+  'replay recording should contain an "options" breadcrumb for Replay SDK configuration',
+  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+    // TODO(replay): This is flakey on firefox and webkit where clicks are flakey
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+      sentryTest.skip();
+    }
+
+    const reqPromise0 = waitForReplayRequest(page, 0);
+    const reqPromise1 = waitForReplayRequest(page, 1);
+
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    await page.goto(url);
+    await forceFlushReplay();
+
+    await page.click('#error');
+    await forceFlushReplay();
+
+    const req0 = await reqPromise0;
+    const content0 = getReplayRecordingContent(req0);
+
+    expect(content0.optionsEvents).toEqual([
+      {
+        tag: 'options',
+        payload: {
+          sessionSampleRate: 1,
+          errorSampleRate: 0,
+          useCompressionOption: false,
+          blockAllMedia: false,
+          maskAllText: true,
+          maskAllInputs: true,
+          useCompression: false,
+          networkDetailHasUrls: false,
+          networkCaptureBodies: true,
+          networkRequestHasHeaders: true,
+          networkResponseHasHeaders: true,
+        },
+      },
+    ]);
+
+    const req1 = await reqPromise1;
+    const content1 = getReplayRecordingContent(req1);
+
+    // Should only be on first segment
+    expect(content1.optionsEvents).toEqual([]);
   },
 );
