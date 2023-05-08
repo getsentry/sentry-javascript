@@ -82,7 +82,8 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
     return runWithAsyncContext(async () => {
       const hub = getCurrentHub();
-      let requestTransaction: Transaction | undefined = getTransactionFromRequest(req);
+      let requestTransaction: Transaction | undefined =
+        getTransactionFromRequest(req) ?? hub.getScope().getTransaction();
       let dataFetcherSpan;
 
       const sentryTraceHeader = req.headers['sentry-trace'];
