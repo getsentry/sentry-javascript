@@ -5,9 +5,8 @@ import { logger } from '@sentry/utils';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { isSampled } from '../util/isSampled';
-import { shouldTrySampleEvent } from '../util/shouldTrySampleEvent';
 import { handleAfterSendEvent } from './handleAfterSendEvent';
+import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
 /**
  * Returns a listener to be added to `addGlobalEventProcessor(listener)`.
@@ -38,7 +37,10 @@ export function handleGlobalEventListener(
       return null;
     }
 
-    const isErrorEventSampled = shouldTrySampleEvent(replay, event) && isSampled(replay.getOptions().errorSampleRate);
+    // When in buffer mode, we decide to sample here.
+    // Later, in `handleAfterSendEvent`, if the replayId is set, we know that we sampled
+    // And convert the buffer session to a full session
+    const isErrorEventSampled = shouldSampleForBufferEvent(replay, event);
 
     // Tag errors if it has been sampled in buffer mode, or if it is session mode
     // Only tag transactions if in session mode
