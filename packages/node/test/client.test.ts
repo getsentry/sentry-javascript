@@ -294,8 +294,8 @@ describe('NodeClient', () => {
       // @ts-ignore accessing private method
       const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
 
-      client.captureCheckIn(
-        { monitorSlug: 'foo', status: 'ok', duration: 1222 },
+      const id = client.captureCheckIn(
+        { monitorSlug: 'foo', status: 'in_progress' },
         {
           schedule: {
             type: 'crontab',
@@ -314,10 +314,9 @@ describe('NodeClient', () => {
           [
             expect.any(Object),
             {
-              check_in_id: expect.any(String),
-              duration: 1222,
+              check_in_id: id,
               monitor_slug: 'foo',
-              status: 'ok',
+              status: 'in_progress',
               release: '1.0.0',
               environment: 'dev',
               monitor_config: {
@@ -333,6 +332,26 @@ describe('NodeClient', () => {
           ],
         ],
       ]);
+
+      client.captureCheckIn({ monitorSlug: 'foo', status: 'ok', duration: 1222, checkInId: id });
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(2);
+      expect(sendEnvelopeSpy).toHaveBeenCalledWith([
+        expect.any(Object),
+        [
+          [
+            expect.any(Object),
+            {
+              check_in_id: id,
+              monitor_slug: 'foo',
+              duration: 1222,
+              status: 'ok',
+              release: '1.0.0',
+              environment: 'dev',
+            },
+          ],
+        ],
+      ]);
     });
 
     it('does not send a checkIn envelope if disabled', () => {
@@ -342,7 +361,7 @@ describe('NodeClient', () => {
       // @ts-ignore accessing private method
       const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
 
-      client.captureCheckIn({ monitorSlug: 'foo', status: 'ok', duration: 1222 });
+      client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });

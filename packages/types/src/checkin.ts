@@ -38,14 +38,25 @@ export interface SerializedCheckIn {
   };
 }
 
-export interface CheckIn {
+interface InProgressCheckIn {
   // The distinct slug of the monitor.
   monitorSlug: SerializedCheckIn['monitor_slug'];
   // The status of the check-in.
-  status: SerializedCheckIn['status'];
+  status: 'in_progress';
+}
+
+export interface FinishedCheckIn {
+  // The distinct slug of the monitor.
+  monitorSlug: SerializedCheckIn['monitor_slug'];
+  // The status of the check-in.
+  status: 'ok' | 'error';
+  // Check-In ID (unique and client generated).
+  checkInId: SerializedCheckIn['check_in_id'];
   // The duration of the check-in in seconds. Will only take effect if the status is ok or error.
   duration?: SerializedCheckIn['duration'];
 }
+
+export type CheckIn = InProgressCheckIn | FinishedCheckIn;
 
 type SerializedMonitorConfig = NonNullable<SerializedCheckIn['monitor_config']>;
 
