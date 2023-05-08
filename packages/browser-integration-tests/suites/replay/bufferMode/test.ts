@@ -299,117 +299,126 @@ sentryTest(
 
 // Doing this in buffer mode to test changing error sample rate after first
 // error happens.
-sentryTest('[buffer-mode] can sample on each error event', async ({ getLocalTestPath, page, browserName }) => {
-  // This was sometimes flaky on firefox/webkit, so skipping for now
-  if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
-    sentryTest.skip();
-  }
-
-  let callsToSentry = 0;
-  const errorEventIds: string[] = [];
-  const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqErrorPromise = waitForErrorRequest(page);
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    const event = envelopeRequestParser(route.request());
-    // error events have no type field
-    if (event && !event.type && event.event_id) {
-      errorEventIds.push(event.event_id);
-    }
-    // We only want to count errors & replays here
-    if (event && (!event.type || isReplayEvent(event))) {
-      callsToSentry++;
+sentryTest(
+  '[buffer-mode] can sample on each error event',
+  async ({ getLocalTestPath, page, browserName, enableConsole }) => {
+    // This was sometimes flaky on firefox/webkit, so skipping for now
+    if (shouldSkipReplayTest() || ['firefox', 'webkit'].includes(browserName)) {
+      sentryTest.skip();
     }
 
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
+    enableConsole();
+
+    let callsToSentry = 0;
+    const errorEventIds: string[] = [];
+    const reqPromise0 = waitForReplayRequest(page, 0);
+    const reqErrorPromise0 = waitForErrorRequest(page);
+
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      const event = envelopeRequestParser(route.request());
+      // error events have no type field
+      if (event && !event.type && event.event_id) {
+        errorEventIds.push(event.event_id);
+      }
+      // We only want to count errors & replays here
+      if (event && (!event.type || isReplayEvent(event))) {
+        callsToSentry++;
+      }
+
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
     });
-  });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  // Start buffering and assert that it is enabled
-  expect(
-    await page.evaluate(() => {
-      const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-      const replay = replayIntegration['_replay'];
-      replayIntegration.startBuffering();
-      return replay.isEnabled();
-    }),
-  ).toBe(true);
+    await page.goto(url);
+    // Start buffering and assert that it is enabled
+    expect(
+      await page.evaluate(() => {
+        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        const replay = replayIntegration['_replay'];
+        replayIntegration.startBuffering();
+        return replay.isEnabled();
+      }),
+    ).toBe(true);
 
-  await page.click('#go-background');
-  await page.click('#error');
-  await new Promise(resolve => setTimeout(resolve, 1000));
+    await page.click('#go-background');
+    await page.click('#error');
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // 1 error, no replay
-  await reqErrorPromise;
-  expect(callsToSentry).toEqual(1);
+    // 1 unsampled error, no replay
+    const reqError0 = await reqErrorPromise0;
+    const errorEvent0 = envelopeRequestParser(reqError0);
+    expect(callsToSentry).toEqual(1);
+    expect(errorEvent0.tags?.replayId).toBeUndefined();
 
-  await page.evaluate(async () => {
-    const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
-    replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
-  });
+    await page.evaluate(async () => {
+      const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+      replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
+    });
 
-  // Error sample rate is now at 1.0, this error should create a replay
-  await page.click('#error2');
+    // Error sample rate is now at 1.0, this error should create a replay
+    const reqErrorPromise1 = waitForErrorRequest(page);
+    await page.click('#error2');
+    // 1 unsampled error, 1 sampled error -> 1 flush
+    const req0 = await reqPromise0;
+    const reqError1 = await reqErrorPromise1;
+    const errorEvent1 = envelopeRequestParser(reqError1);
+    expect(callsToSentry).toEqual(3);
+    expect(errorEvent0.event_id).not.toEqual(errorEvent1.event_id);
+    expect(errorEvent1.tags?.replayId).toBeDefined();
 
-  const req0 = await reqPromise0;
+    const event0 = getReplayEvent(req0);
+    const content0 = getReplayRecordingContent(req0);
 
-  // 2 errors, 1 flush
-  await reqErrorPromise;
-  expect(callsToSentry).toEqual(3);
+    expect(event0).toEqual(
+      getExpectedReplayEvent({
+        error_ids: errorEventIds,
+        replay_type: 'buffer',
+      }),
+    );
 
-  const event0 = getReplayEvent(req0);
-  const content0 = getReplayRecordingContent(req0);
-
-  expect(event0).toEqual(
-    getExpectedReplayEvent({
-      error_ids: errorEventIds,
-      replay_type: 'buffer',
-    }),
-  );
-
-  // The first event should have both, full and incremental snapshots,
-  // as we recorded and kept all events in the buffer
-  expect(content0.fullSnapshots).toHaveLength(1);
-  // We want to make sure that the event that triggered the error was
-  // recorded, as well as the first error that did not get sampled.
-  expect(content0.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        ...expectedClickBreadcrumb,
-        message: 'body > button#error',
-        data: {
-          nodeId: expect.any(Number),
-          node: {
-            attributes: {
-              id: 'error',
+    // The first event should have both, full and incremental snapshots,
+    // as we recorded and kept all events in the buffer
+    expect(content0.fullSnapshots).toHaveLength(1);
+    // We want to make sure that the event that triggered the error was
+    // recorded, as well as the first error that did not get sampled.
+    expect(content0.breadcrumbs).toEqual(
+      expect.arrayContaining([
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error',
+          data: {
+            nodeId: expect.any(Number),
+            node: {
+              attributes: {
+                id: 'error',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '***** *****',
             },
-            id: expect.any(Number),
-            tagName: 'button',
-            textContent: '***** *****',
           },
         },
-      },
-      {
-        ...expectedClickBreadcrumb,
-        message: 'body > button#error2',
-        data: {
-          nodeId: expect.any(Number),
-          node: {
-            attributes: {
-              id: 'error2',
+        {
+          ...expectedClickBreadcrumb,
+          message: 'body > button#error2',
+          data: {
+            nodeId: expect.any(Number),
+            node: {
+              attributes: {
+                id: 'error2',
+              },
+              id: expect.any(Number),
+              tagName: 'button',
+              textContent: '******* *****',
             },
-            id: expect.any(Number),
-            tagName: 'button',
-            textContent: '******* *****',
           },
         },
-      },
-    ]),
-  );
-});
+      ]),
+    );
+  },
+);

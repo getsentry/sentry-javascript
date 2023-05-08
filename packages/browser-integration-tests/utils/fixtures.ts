@@ -29,6 +29,7 @@ export type TestFixtures = {
   getLocalTestPath: (options: { testDir: string }) => Promise<string>;
   getLocalTestUrl: (options: { testDir: string; skipRouteHandler?: boolean }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
+  enableConsole: () => void;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
   runInFirefox: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
   runInWebkit: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -107,6 +108,13 @@ const sentryTest = base.extend<TestFixtures>({
       });
       document.dispatchEvent(new Event('visibilitychange'));
     `),
+    );
+  },
+
+  enableConsole: ({ page }, use) => {
+    return use(() =>
+      // eslint-disable-next-line no-console
+      page.on('console', msg => console.log(msg.text())),
     );
   },
 });
