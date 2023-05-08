@@ -8,7 +8,7 @@ import { createBreadcrumb } from '../util/createBreadcrumb';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getAttributesToRecord } from './util/getAttributesToRecord';
 
-interface DomHandlerData {
+export interface DomHandlerData {
   name: string;
   event: Node | { target: Node };
 }
@@ -31,15 +31,18 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
 
 /**
  * An event handler to react to DOM events.
+ * Exported for tests only.
  */
-function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
+export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   let target;
   let targetNode: Node | INode | undefined;
 
+  const isClick = handlerData.name === 'click';
+
   // Accessing event.target can throw (see getsentry/raven-js#838, #768)
   try {
-    targetNode = getTargetNode(handlerData);
-    target = htmlTreeAsString(targetNode);
+    targetNode = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
+    target = htmlTreeAsString(targetNode, { maxStringLength: 200 });
   } catch (e) {
     target = '<unknown>';
   }
@@ -73,12 +76,29 @@ function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
   });
 }
 
-function getTargetNode(handlerData: DomHandlerData): Node {
-  if (isEventWithTarget(handlerData.event)) {
-    return handlerData.event.target;
+function getTargetNode(event: DomHandlerData['event']): Node {
+  if (isEventWithTarget(event)) {
+    return event.target;
   }
 
-  return handlerData.event;
+  return event;
+}
+
+const INTERACTIVE_SELECTOR = 'button,a';
+
+// For clicks, we check if the target is inside of a button or link
+// If so, we use this as the target instead
+// This is useful because if you click on the image in <button><img></button>,
+// The target will be the image, not the button, which we don't want here
+function getClickTargetNode(event: DomHandlerData['event']): Node {
+  const target = getTargetNode(event);
+
+  if (!target || !(target instanceof Element)) {
+    return target;
+  }
+
+  const closestInteractive = target.closest(INTERACTIVE_SELECTOR);
+  return closestInteractive || target;
 }
 
 function isEventWithTarget(event: unknown): event is { target: Node } {
