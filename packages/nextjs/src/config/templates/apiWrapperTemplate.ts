@@ -57,12 +57,13 @@ export const config = {
 
 declare const __VERCEL_CRONS_CONFIGURATION__: VercelCronsConfig;
 
-export default userProvidedHandler
-  ? Sentry.wrapApiHandlerWithSentry(
-      Sentry.wrapApiHandlerWithSentryVercelCrons(userProvidedHandler, __VERCEL_CRONS_CONFIGURATION__),
-      '__ROUTE__',
-    )
-  : undefined;
+let wrappedHandler = userProvidedHandler;
+
+if (wrappedHandler && __VERCEL_CRONS_CONFIGURATION__) {
+  wrappedHandler = Sentry.wrapApiHandlerWithSentryVercelCrons(wrappedHandler, __VERCEL_CRONS_CONFIGURATION__);
+}
+
+export default wrappedHandler;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.
