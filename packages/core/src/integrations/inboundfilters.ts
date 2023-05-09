@@ -152,8 +152,9 @@ function _getPossibleEventMessages(event: Event): string[] {
     return [event.message];
   }
   if (event.exception) {
+    const { values } = event.exception;
     try {
-      const { type = '', value = '' } = (event.exception.values && event.exception.values[0]) || {};
+      const { type = '', value = '' } = (values && values[values.length - 1]) || {};
       return [`${value}`, `${type}: ${value}`];
     } catch (oO) {
       __DEBUG_BUILD__ && logger.error(`Cannot extract message for event ${getEventDescription(event)}`);
