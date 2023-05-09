@@ -13,10 +13,18 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
   return new Proxy(handler, {
     apply: (originalFunction, thisArg, args: [NextApiRequest | undefined] | undefined) => {
       return runWithAsyncContext(() => {
-        let maybePromiseResult;
-        const cronsKey = args?.[0]?.url;
+        if (!args || !args[0]) {
+          return originalFunction.apply(thisArg, args);
+        }
+        const [req] = args;
 
-        if (!vercelCronsConfig) {
+        let maybePromiseResult;
+        const cronsKey = req.url;
+
+        if (
+          !vercelCronsConfig || // do nothing if vercel crons config is missing
+          !req.headers['user-agent']?.includes('vercel-cron') // do nothing if endpoint is not called from vercel crons
+        ) {
           return originalFunction.apply(thisArg, args);
         }
 
