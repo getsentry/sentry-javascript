@@ -136,6 +136,8 @@ export {
   wrapApiHandlerWithSentry,
 } from './wrapApiHandlerWithSentry';
 
+export { wrapApiHandlerWithSentryVercelCrons } from '../common/wrapApiHandlerWithSentryVercelCrons';
+
 export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
 
 export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
