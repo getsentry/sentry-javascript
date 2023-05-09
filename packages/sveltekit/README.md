@@ -26,7 +26,7 @@ This package is a wrapper around `@sentry/node` for the server and `@sentry/svel
 
 ## Automatic Setup
 
-We recommend installing the SDK by running [Sentry wizard](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install) in the root directory of your project:
+We recommend installing the SDK by running the [Sentry wizard](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install) in the root directory of your project:
 
 ```sh
 npx @sentry/wizard@latest -i sveltekit
