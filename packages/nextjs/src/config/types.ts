@@ -139,7 +139,7 @@ export type UserSentryOptions = {
    *
    * Defaults to `true`.
    */
-  automaticMonitors?: boolean;
+  automaticVercelMonitors?: boolean;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
