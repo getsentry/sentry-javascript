@@ -1,7 +1,5 @@
-import { getCurrentHub } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 
-import type { NodeClient } from '../build/types';
 import { init } from '../src/sdk';
 import * as sdk from '../src/sdk';
 
@@ -90,23 +88,5 @@ describe('init()', () => {
     expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
     expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('captureCheckIn', () => {
-  it('always returns an id', () => {
-    const hub = getCurrentHub();
-    const client = hub.getClient<NodeClient>();
-    expect(client).toBeDefined();
-
-    const captureCheckInSpy = jest.spyOn(client!, 'captureCheckIn');
-
-    // test if captureCheckIn returns an id even if client is not defined
-    hub.bindClient(undefined);
-
-    expect(captureCheckInSpy).toHaveBeenCalledTimes(0);
-    expect(sdk.captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toBeTruthy();
-
-    hub.bindClient(client);
   });
 });

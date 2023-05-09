@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/core';
-import { addTracingExtensions, BaseClient, SDK_VERSION, SessionFlusher } from '@sentry/core';
+import { addTracingExtensions, BaseClient, createCheckInEnvelope, SDK_VERSION, SessionFlusher } from '@sentry/core';
 import type {
   CheckIn,
   Event,
@@ -13,7 +13,6 @@ import { logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 import * as os from 'os';
 import { TextEncoder } from 'util';
 
-import { createCheckInEnvelope } from './checkin';
 import { eventFromMessage, eventFromUnknownInput } from './eventbuilder';
 import type { NodeClientOptions } from './types';
 

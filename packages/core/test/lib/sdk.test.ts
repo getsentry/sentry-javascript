@@ -1,4 +1,4 @@
-import { Scope } from '@sentry/core';
+import { Scope, getCurrentHub, captureCheckIn } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
@@ -9,31 +9,6 @@ import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 declare var global: any;
 
 const PUBLIC_DSN = 'https://username@domain/123';
-
-jest.mock('@sentry/core', () => {
-  const original = jest.requireActual('@sentry/core');
-  return {
-    ...original,
-    getCurrentHub(): {
-      bindClient(client: Client): boolean;
-      getClient(): boolean;
-      getScope(): Scope;
-    } {
-      return {
-        getClient(): boolean {
-          return false;
-        },
-        getScope(): Scope {
-          return new Scope();
-        },
-        bindClient(client: Client): boolean {
-          client.setupIntegrations();
-          return true;
-        },
-      };
-    },
-  };
-});
 
 export class MockIntegration implements Integration {
   public name: string;
@@ -60,5 +35,25 @@ describe('SDK', () => {
       expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
       expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });
+  });
+});
+
+describe('captureCheckIn', () => {
+  it('returns an id when client is defined', () => {
+    const hub = getCurrentHub();
+    jest.spyOn(hub, 'getClient').mockImplementation(() => {
+      return {
+        captureCheckIn: () => 'some-id-wasd-1234',
+      } as unknown as Client;
+    });
+
+    expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
+  });
+
+  it('returns an id when client is undefined', () => {
+    const hub = getCurrentHub();
+    jest.spyOn(hub, 'getClient').mockImplementation(() => undefined);
+
+    expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
   });
 });
