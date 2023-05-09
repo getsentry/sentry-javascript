@@ -133,6 +133,13 @@ export type UserSentryOptions = {
    * Tree shakes Sentry SDK logger statements from the bundle.
    */
   disableLogger?: boolean;
+
+  /**
+   * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configureed via`vercel.json`.
+   *
+   * Defaults to `true`.
+   */
+  automaticMonitors?: boolean;
 };
 
 export type NextConfigFunction = (phase: string, defaults: { defaultConfig: NextConfigObject }) => NextConfigObject;
