@@ -42,8 +42,8 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
             status: 'in_progress',
           },
           {
-            checkinMargin: 1, // 1 second
-            maxRuntime: 60 * 60 * 12, // (seconds) so 12 hours
+            checkinMargin: 2, // two minutes - in case Vercel has a blip
+            maxRuntime: 60 * 12, // (minutes) so 12 hours - just a very high arbitrary number since we don't know the actual duration of the users cron job
             schedule: {
               type: 'crontab',
               value: vercelCron.schedule,
