@@ -1,7 +1,12 @@
-import { captureCheckIn, runWithAsyncContext } from '@sentry/core';
+import { captureCheckIn, getCurrentHub, runWithAsyncContext } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 
 import type { VercelCronsConfig } from './types';
+
+type EdgeRequest = {
+  nextUrl: URL;
+  headers: Headers;
+};
 
 /**
  * Wraps a function with Sentry crons instrumentation by automaticaly sending check-ins for the given Vercel crons config.
@@ -11,19 +16,21 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
   vercelCronsConfig: VercelCronsConfig,
 ): F {
   return new Proxy(handler, {
-    apply: (originalFunction, thisArg, args: [NextApiRequest | undefined] | undefined) => {
+    apply: (originalFunction, thisArg, args: [NextApiRequest | EdgeRequest | undefined] | undefined) => {
       return runWithAsyncContext(() => {
         if (!args || !args[0]) {
           return originalFunction.apply(thisArg, args);
         }
+
         const [req] = args;
 
         let maybePromiseResult;
-        const cronsKey = req.url;
+        const cronsKey = 'nextUrl' in req ? req.nextUrl.pathname : req.url;
+        const userAgentHeader = 'nextUrl' in req ? req.headers.get('user-agent') : req.headers['user-agent'];
 
         if (
           !vercelCronsConfig || // do nothing if vercel crons config is missing
-          !req.headers['user-agent']?.includes('vercel-cron') // do nothing if endpoint is not called from vercel crons
+          !userAgentHeader?.includes('vercel-cron') // do nothing if endpoint is not called from vercel crons
         ) {
           return originalFunction.apply(thisArg, args);
         }
@@ -42,7 +49,6 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
             status: 'in_progress',
           },
           {
-            checkinMargin: 2, // two minutes - in case Vercel has a blip
             maxRuntime: 60 * 12, // (minutes) so 12 hours - just a very high arbitrary number since we don't know the actual duration of the users cron job
             schedule: {
               type: 'crontab',
