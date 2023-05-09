@@ -1,4 +1,4 @@
-import { captureCheckIn, getCurrentHub, runWithAsyncContext } from '@sentry/core';
+import { captureCheckIn, runWithAsyncContext } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 
 import type { VercelCronsConfig } from './types';
