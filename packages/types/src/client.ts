@@ -1,4 +1,5 @@
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
+import type { CheckIn, MonitorConfig } from './checkin';
 import type { EventDropReason } from './clientreport';
 import type { DataCategory } from './datacategory';
 import type { DsnComponents } from './dsn';
@@ -66,6 +67,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param session Session to be delivered
    */
   captureSession?(session: Session): void;
+
+  /**
+   * Create a cron monitor check in and send it to Sentry. This method is not available on all clients.
+   *
+   * @param checkIn An object that describes a check in.
+   * @param upsertMonitorConfig An optional object that describes a monitor config. Use this if you want
+   * to create a monitor automatically when sending a check in.
+   * @returns A string representing the id of the check in.
+   */
+  captureCheckIn?(checkIn: CheckIn, monitorConfig?: MonitorConfig): string;
 
   /** Returns the current Dsn. */
   getDsn(): DsnComponents | undefined;
