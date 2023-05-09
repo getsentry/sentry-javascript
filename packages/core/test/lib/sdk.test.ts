@@ -1,4 +1,4 @@
-import { Scope, getCurrentHub, captureCheckIn } from '@sentry/core';
+import { captureCheckIn, getCurrentHub } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
 
 import { installedIntegrations } from '../../src/integration';
