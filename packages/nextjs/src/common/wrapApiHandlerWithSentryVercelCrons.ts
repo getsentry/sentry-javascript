@@ -42,6 +42,8 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
             status: 'in_progress',
           },
           {
+            checkinMargin: 1, // 1 second
+            maxRuntime: 60 * 60 * 12, // (seconds) so 12 hours
             schedule: {
               type: 'crontab',
               value: vercelCron.schedule,
