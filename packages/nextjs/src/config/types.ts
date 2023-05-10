@@ -135,7 +135,7 @@ export type UserSentryOptions = {
   disableLogger?: boolean;
 
   /**
-   * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configureed via`vercel.json`.
+   * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via`vercel.json`.
    *
    * Defaults to `true`.
    */
