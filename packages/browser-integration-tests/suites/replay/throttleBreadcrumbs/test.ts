@@ -89,7 +89,7 @@ sentryTest(
     expect(breadcrumbs.filter(({ category }) => category === 'replay.throttled').length).toBe(1);
 
     // Now we wait for 6s (5s + some wiggle room), and make some requests again
-    await page.waitForTimeout(6_000);
+    await page.waitForTimeout(7_000);
     await forceFlushReplay();
 
     const reqPromise2 = waitForReplayRequest(
