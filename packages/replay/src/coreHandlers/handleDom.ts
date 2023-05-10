@@ -10,7 +10,7 @@ import { getAttributesToRecord } from './util/getAttributesToRecord';
 
 export interface DomHandlerData {
   name: string;
-  event: Node | { target: Node };
+  event: Node | { target: EventTarget };
 }
 
 export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void =
@@ -29,39 +29,21 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
     addBreadcrumbEvent(replay, result);
   };
 
-/**
- * An event handler to react to DOM events.
- * Exported for tests only.
- */
-export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
-  let target;
-  let targetNode: Node | INode | undefined;
-
-  const isClick = handlerData.name === 'click';
-
-  // Accessing event.target can throw (see getsentry/raven-js#838, #768)
-  try {
-    targetNode = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
-    target = htmlTreeAsString(targetNode, { maxStringLength: 200 });
-  } catch (e) {
-    target = '<unknown>';
-  }
-
+/** Get the base DOM breadcrumb. */
+export function getBaseDomBreadcrumb(target: Node | INode | null, message: string): Breadcrumb {
   // `__sn` property is the serialized node created by rrweb
-  const serializedNode =
-    targetNode && '__sn' in targetNode && targetNode.__sn.type === NodeType.Element ? targetNode.__sn : null;
+  const serializedNode = target && isRrwebNode(target) && target.__sn.type === NodeType.Element ? target.__sn : null;
 
-  return createBreadcrumb({
-    category: `ui.${handlerData.name}`,
-    message: target,
+  return {
+    message,
     data: serializedNode
       ? {
           nodeId: serializedNode.id,
           node: {
             id: serializedNode.id,
             tagName: serializedNode.tagName,
-            textContent: targetNode
-              ? Array.from(targetNode.childNodes)
+            textContent: target
+              ? Array.from(target.childNodes)
                   .map(
                     (node: Node | INode) => '__sn' in node && node.__sn.type === NodeType.Text && node.__sn.textContent,
                   )
@@ -73,12 +55,46 @@ export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
           },
         }
       : {},
+  };
+}
+
+/**
+ * An event handler to react to DOM events.
+ * Exported for tests.
+ */
+export function handleDom(handlerData: DomHandlerData): Breadcrumb | null {
+  const { target, message } = getDomTarget(handlerData);
+
+  return createBreadcrumb({
+    category: `ui.${handlerData.name}`,
+    ...getBaseDomBreadcrumb(target, message),
   });
 }
 
-function getTargetNode(event: DomHandlerData['event']): Node {
+function getDomTarget(handlerData: DomHandlerData): { target: Node | INode | null; message: string } {
+  const isClick = handlerData.name === 'click';
+
+  let message: string | undefined;
+  let target: Node | INode | null = null;
+
+  // Accessing event.target can throw (see getsentry/raven-js#838, #768)
+  try {
+    target = isClick ? getClickTargetNode(handlerData.event) : getTargetNode(handlerData.event);
+    message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
+  } catch (e) {
+    message = '<unknown>';
+  }
+
+  return { target, message };
+}
+
+function isRrwebNode(node: EventTarget): node is INode {
+  return '__sn' in node;
+}
+
+function getTargetNode(event: Node | { target: EventTarget | null }): Node | INode | null {
   if (isEventWithTarget(event)) {
-    return event.target;
+    return event.target as Node | null;
   }
 
   return event;
@@ -90,7 +106,7 @@ const INTERACTIVE_SELECTOR = 'button,a';
 // If so, we use this as the target instead
 // This is useful because if you click on the image in <button><img></button>,
 // The target will be the image, not the button, which we don't want here
-function getClickTargetNode(event: DomHandlerData['event']): Node {
+function getClickTargetNode(event: DomHandlerData['event']): Node | INode | null {
   const target = getTargetNode(event);
 
   if (!target || !(target instanceof Element)) {
@@ -101,6 +117,6 @@ function getClickTargetNode(event: DomHandlerData['event']): Node {
   return closestInteractive || target;
 }
 
-function isEventWithTarget(event: unknown): event is { target: Node } {
-  return !!(event as { target?: Node }).target;
+function isEventWithTarget(event: unknown): event is { target: EventTarget | null } {
+  return typeof event === 'object' && !!event && 'target' in event;
 }
