@@ -169,13 +169,15 @@ export function constructWebpackConfigFunction(
         if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors !== false) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
-          logger.info(
-            `${chalk.cyan(
-              'info',
-            )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
-              'automaticVercelMonitors',
-            )} option to false in you Next.js config.`,
-          );
+          if (vercelCronsConfig) {
+            logger.info(
+              `${chalk.cyan(
+                'info',
+              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
+                'automaticVercelMonitors',
+              )} option to false in you Next.js config.`,
+            );
+          }
         }
       } catch (e) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
