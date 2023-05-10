@@ -1,20 +1,7 @@
 import { expect } from '@playwright/test';
-import { IncrementalSource } from '@sentry-internal/rrweb';
-import type { inputData } from '@sentry-internal/rrweb/typings/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { IncrementalRecordingSnapshot, getCustomRecordingEvents } from '../../../utils/replayHelpers';
-import {
-  getIncrementalRecordingSnapshots,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
-
-function isInputMutation(
-  snap: IncrementalRecordingSnapshot,
-): snap is IncrementalRecordingSnapshot & { data: inputData } {
-  return snap.data.source == IncrementalSource.Input;
-}
+import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
