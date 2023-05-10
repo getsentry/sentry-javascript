@@ -27,6 +27,9 @@ sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPa
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
     return getCustomRecordingEvents(res).breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.keyDown');
   });
+  const reqPromise2 = waitForReplayRequest(page, (event, res) => {
+    return getCustomRecordingEvents(res).breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.input');
+  });
 
   // Trigger keyboard unfocused
   await page.keyboard.press('a');
@@ -43,6 +46,15 @@ sentryTest('captures keyboard events', async ({ forceFlushReplay, getLocalTestPa
 
   await forceFlushReplay();
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs: breadcrumbs2 } = getCustomRecordingEvents(await reqPromise2);
+
+  // Combine the two together
+  // Usually, this should all be in a single request, but it _may_ be split out, so we combine this together here.
+  breadcrumbs2.forEach(breadcrumb => {
+    if (!breadcrumbs.some(b => b.category === breadcrumb.category && b.timestamp === breadcrumb.timestamp)) {
+      breadcrumbs.push(breadcrumb);
+    }
+  });
 
   expect(breadcrumbs).toEqual([
     {
