@@ -14,7 +14,10 @@ import {
 } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
+import type { SentryWrappedFlag } from '../common/utils';
 import { isRedirect } from '../common/utils';
+
+type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
@@ -66,11 +69,17 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
       // Type casting here because `T` cannot extend `Load` (see comment above function signature)
-      const event = args[0] as LoadEvent;
+      const event = args[0] as PatchedLoadEvent;
 
-      const patchedEvent = {
+      // Check if already wrapped
+      if (event.__sentry_wrapped__) {
+        return wrappingTarget.apply(thisArg, args);
+      }
+
+      const patchedEvent: PatchedLoadEvent = {
         ...event,
         fetch: instrumentSvelteKitFetch(event.fetch),
+        __sentry_wrapped__: true,
       };
 
       const routeId = event.route.id;

@@ -249,6 +249,13 @@ describe('wrapLoadWithSentry calls trace', () => {
       expect.any(Function),
     );
   });
+
+  it("doesn't wrap load more than once if the wrapper was applied multiple times", async () => {
+    const wrappedLoad = wrapLoadWithSentry(wrapLoadWithSentry(wrapLoadWithSentry(load)));
+    await wrappedLoad(MOCK_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('wrapServerLoadWithSentry calls trace', () => {
@@ -374,5 +381,12 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       expect.any(Function),
       expect.any(Function),
     );
+  });
+
+  it("doesn't wrap server load more than once if the wrapper was applied multiple times", async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(wrapServerLoadWithSentry(serverLoad));
+    await wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
   });
 });
