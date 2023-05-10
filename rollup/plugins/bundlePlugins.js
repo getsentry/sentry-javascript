@@ -129,6 +129,8 @@ export function makeTerserPlugin() {
           '_integrations',
           // _meta is used to store metadata of replay network events
           '_meta',
+          // Object we inject debug IDs into with bundler plugins
+          '_sentryDebugIds',
         ],
       },
     },
