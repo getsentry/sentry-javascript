@@ -2,7 +2,7 @@
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
-import { addExceptionMechanism, objectify } from '@sentry/utils';
+import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { HttpError, LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
@@ -70,10 +70,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         return wrappingTarget.apply(thisArg, args);
       }
 
-      const patchedEvent: PatchedLoadEvent = {
-        ...event,
-        __sentry_wrapped__: true,
-      };
+      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
       const routeId = event.route && event.route.id;
 
@@ -86,7 +83,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         },
       };
 
-      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry);
+      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
     },
   });
 }
@@ -124,10 +121,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         return wrappingTarget.apply(thisArg, args);
       }
 
-      const patchedEvent: PatchedServerLoadEvent = {
-        ...event,
-        __sentry_wrapped__: true,
-      };
+      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
       const routeId = event.route && event.route.id;
 
@@ -147,7 +141,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         ...traceparentData,
       };
 
-      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry);
+      return trace(traceLoadContext, () => wrappingTarget.apply(thisArg, args), sendErrorToSentry);
     },
   });
 }

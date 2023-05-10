@@ -6,6 +6,7 @@ import { captureException } from '@sentry/svelte';
 import type { ClientOptions, SanitizedRequestData } from '@sentry/types';
 import {
   addExceptionMechanism,
+  addNonEnumerableProperty,
   getSanitizedUrlString,
   objectify,
   parseFetchArgs,
@@ -79,8 +80,9 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       const patchedEvent: PatchedLoadEvent = {
         ...event,
         fetch: instrumentSvelteKitFetch(event.fetch),
-        __sentry_wrapped__: true,
       };
+
+      addNonEnumerableProperty(patchedEvent as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
       const routeId = event.route.id;
       return trace(
