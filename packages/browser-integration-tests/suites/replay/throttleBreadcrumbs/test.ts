@@ -84,7 +84,7 @@ sentryTest(
     await page.waitForFunction('window.__isLoaded()');
     await forceFlushReplay();
 
-    await waitForFunction(() => collectedBreadcrumbs.length === 1, 10_000, 100);
+    await waitForFunction(() => collectedBreadcrumbs.length === 1, 6_000, 100);
 
     // All assets have been _loaded_
     expect(scriptsLoaded).toBe(COUNT);
@@ -110,7 +110,7 @@ sentryTest(
     await page.waitForFunction('window.__isLoaded(2)');
     await forceFlushReplay();
 
-    await waitForFunction(() => collectedBreadcrumbs.length === 1, 10_000, 100);
+    await waitForFunction(() => collectedBreadcrumbs.length === 1, 6_000, 100);
 
     // All assets have been _loaded_
     expect(scriptsLoaded).toBe(COUNT * 2);
