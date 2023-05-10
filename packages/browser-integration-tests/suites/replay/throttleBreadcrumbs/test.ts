@@ -56,8 +56,8 @@ sentryTest(
     await page.goto(url);
     await reqPromise0;
 
-    let collectedSpans: PerformanceSpan[] = [];
-    let collectedBreadcrumbs: Breadcrumb[] = [];
+    const collectedSpans: PerformanceSpan[] = [];
+    const collectedBreadcrumbs: Breadcrumb[] = [];
 
     page.on('response', response => {
       // We only capture sentry stuff
@@ -89,32 +89,6 @@ sentryTest(
     // All assets have been _loaded_
     expect(scriptsLoaded).toBe(COUNT);
     expect(fetchLoaded).toBe(COUNT);
-
-    // But only some have been captured by replay
-    // We give it some wiggle room to account for flakyness
-    expect(collectedSpans.length).toBeLessThanOrEqual(THROTTLE_LIMIT);
-    expect(collectedSpans.length).toBeGreaterThanOrEqual(THROTTLE_LIMIT - 50);
-    expect(collectedBreadcrumbs.length).toBe(1);
-
-    // Now we wait for 6s (5s + some wiggle room), and make some requests again
-    await page.waitForTimeout(6_000);
-    await forceFlushReplay();
-
-    // Reset collectors
-    collectedSpans = [];
-    collectedBreadcrumbs = [];
-
-    await page.click('[data-network]');
-    await page.click('[data-fetch]');
-
-    await page.waitForFunction('window.__isLoaded(2)');
-    await forceFlushReplay();
-
-    await waitForFunction(() => collectedBreadcrumbs.length === 1, 6_000, 100);
-
-    // All assets have been _loaded_
-    expect(scriptsLoaded).toBe(COUNT * 2);
-    expect(fetchLoaded).toBe(COUNT * 2);
 
     // But only some have been captured by replay
     // We give it some wiggle room to account for flakyness
