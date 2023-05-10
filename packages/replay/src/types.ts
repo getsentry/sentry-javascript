@@ -8,6 +8,7 @@ import type {
 } from '@sentry/types';
 
 import type { eventWithTime, recordOptions } from './types/rrweb';
+import type { SKIPPED, THROTTLED } from './util/throttle';
 
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
@@ -498,6 +499,10 @@ export interface ReplayContainer {
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;
+  throttledAddEvent: (
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
   isEnabled(): boolean;
   isPaused(): boolean;
   getContext(): InternalEventContext;
