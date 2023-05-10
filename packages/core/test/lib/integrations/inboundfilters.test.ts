@@ -143,6 +143,21 @@ const EXCEPTION_EVENT_WITH_FRAMES: Event = {
   },
 };
 
+const EXCEPTION_EVENT_WITH_LINKED_ERRORS: Event = {
+  exception: {
+    values: [
+      {
+        type: 'ReferenceError',
+        value: '`tooManyTreats` is not defined',
+      },
+      {
+        type: 'TypeError',
+        value: 'incorrect type given for parameter `chewToy`: Shoe',
+      },
+    ],
+  },
+};
+
 const SENTRY_EVENT: Event = {
   exception: {
     values: [
@@ -269,6 +284,20 @@ describe('InboundFilters', () => {
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('filters on last exception when multiple present', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreErrors: ['incorrect type given for parameter `chewToy`'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS, {})).toBe(null);
+    });
+
+    it("doesn't filter on `cause` exception when multiple present", () => {
+      const eventProcessor = createInboundFiltersEventProcessor({
+        ignoreErrors: ['`tooManyTreats` is not defined'],
+      });
+      expect(eventProcessor(EXCEPTION_EVENT_WITH_LINKED_ERRORS, {})).toBe(EXCEPTION_EVENT_WITH_LINKED_ERRORS);
     });
 
     describe('on exception', () => {
