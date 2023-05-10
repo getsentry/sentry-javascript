@@ -34,6 +34,25 @@ export type IncrementalRecordingSnapshot = eventWithTime & {
 
 export type RecordingSnapshot = FullRecordingSnapshot | IncrementalRecordingSnapshot;
 
+/** Returns the replay event from the given request, or undefined if this is not a replay request. */
+export function getReplayEventFromRequest(req: Request): ReplayEvent | undefined {
+  const postData = req.postData();
+  if (!postData) {
+    return undefined;
+  }
+
+  try {
+    const event = envelopeRequestParser(req);
+
+    if (!isReplayEvent(event)) {
+      return undefined;
+    }
+
+    return event;
+  } catch {
+    return undefined;
+  }
+}
 /**
  * Waits for a replay request to be sent by the page and returns it.
  *
@@ -58,18 +77,13 @@ export function waitForReplayRequest(
     res => {
       const req = res.request();
 
-      const postData = req.postData();
-      if (!postData) {
+      const event = getReplayEventFromRequest(req);
+
+      if (!event) {
         return false;
       }
 
       try {
-        const event = envelopeRequestParser(req);
-
-        if (!isReplayEvent(event)) {
-          return false;
-        }
-
         if (callback) {
           return callback(event, res);
         }
