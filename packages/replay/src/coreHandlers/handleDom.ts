@@ -40,7 +40,9 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
     }
 
     const isClick = handlerData.name === 'click';
-    if (isClick && slowClickConfig) {
+    const event = isClick && (handlerData.event as PointerEvent);
+    // Ignore clicks if ctrl/alt/meta keys are held down as they alter behavior of clicks (e.g. open in new tab)
+    if (isClick && slowClickConfig && event && !event.altKey && !event.metaKey && !event.ctrlKey) {
       detectSlowClick(
         replay,
         slowClickConfig,
