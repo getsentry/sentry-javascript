@@ -4,6 +4,34 @@
 
 The `timestampWithMs` util is deprecated in favor of using `timestampInSeconds`.
 
+## `addTracingExtensions` replaces `addExtensionMethods` (since 7.46.0)
+
+Since the deprecation of `@sentry/tracing`, tracing extensions are now added by calling `addTracingExtensions` which is
+exported from all framework SDKs.
+
+```js
+// Before
+import * as Sentry from "@sentry/browser";
+import { addExtensionMethods } from "@sentry/tracing";
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+addExtensionMethods()
+
+// After
+import * as Sentry from "@sentry/browser";
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+Sentry.addTracingExtensions();
+```
+
 ## Remove requirement for `@sentry/tracing` package (since 7.46.0)
 
 With `7.46.0` you no longer require the `@sentry/tracing` package to use tracing and performance monitoring with the Sentry JavaScript SDKs. The `@sentry/tracing` package will be removed in a future major release, but can still be used in the meantime.
