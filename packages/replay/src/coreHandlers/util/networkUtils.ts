@@ -1,7 +1,7 @@
 import type { TextEncoderInternal } from '@sentry/types';
 import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
 
-import { NETWORK_BODY_MAX_SIZE } from '../../constants';
+import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import type {
   NetworkBody,
   NetworkMetaWarning,
@@ -234,5 +234,30 @@ function _strIsProbablyJson(str: string): boolean {
 
 /** Match an URL against a list of strings/Regex. */
 export function urlMatches(url: string, urls: (string | RegExp)[]): boolean {
-  return stringMatchesSomePattern(url, urls);
+  const fullUrl = getFullUrl(url);
+
+  return stringMatchesSomePattern(fullUrl, urls);
+}
+
+/** exported for tests */
+export function getFullUrl(url: string, baseURI = WINDOW.document.baseURI): string {
+  // Short circuit for common cases:
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith(WINDOW.location.origin)) {
+    return url;
+  }
+  const fixedUrl = new URL(url, baseURI);
+
+  // If these do not match, we are not dealing with a relative URL, so just return it
+  if (fixedUrl.origin !== new URL(baseURI).origin) {
+    return url;
+  }
+
+  const fullUrl = fixedUrl.href;
+
+  // Remove trailing slashes, if they don't match the original URL
+  if (!url.endsWith('/') && fullUrl.endsWith('/')) {
+    return fullUrl.slice(0, -1);
+  }
+
+  return fullUrl;
 }
