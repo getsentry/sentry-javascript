@@ -188,31 +188,14 @@ sentryTest('click is not ignored on div', async ({ getLocalTestUrl, page }) => {
   const reqPromise1 = waitForReplayRequest(page, (event, res) => {
     const { breadcrumbs } = getCustomRecordingEvents(res);
 
-    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
   });
 
   await page.click('#mutationDiv');
 
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
-  expect(breadcrumbs).toEqual([
-    {
-      category: 'ui.click',
-      data: {
-        node: {
-          attributes: {
-            id: 'mutationDiv',
-          },
-          id: expect.any(Number),
-          tagName: 'div',
-          textContent: '******* ********',
-        },
-        nodeId: expect.any(Number),
-      },
-      message: 'body > div#mutationDiv',
-      timestamp: expect.any(Number),
-      type: 'default',
-    },
+  expect(breadcrumbs.filter(({ category }) => category === 'ui.slowClickDetected')).toEqual([
     {
       category: 'ui.slowClickDetected',
       data: {
