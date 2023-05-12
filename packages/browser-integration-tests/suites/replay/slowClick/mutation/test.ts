@@ -234,4 +234,3 @@ sentryTest('click is not ignored on div', async ({ getLocalTestUrl, page }) => {
     },
   ]);
 });
-
