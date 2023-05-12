@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
+sentryTest('click is not ignored on div', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -50,6 +50,25 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
       message: 'body > div#mutationDiv',
       timestamp: expect.any(Number),
       type: 'default',
+    },
+    {
+      category: 'ui.slowClickDetected',
+      data: {
+        endReason: 'mutation',
+        node: {
+          attributes: {
+            id: 'mutationDiv',
+          },
+          id: expect.any(Number),
+          tagName: 'div',
+          textContent: '******* ********',
+        },
+        nodeId: expect.any(Number),
+        timeAfterClickMs: expect.any(Number),
+        url: 'http://sentry-test.io/index.html',
+      },
+      message: 'body > div#mutationDiv',
+      timestamp: expect.any(Number),
     },
   ]);
 });
