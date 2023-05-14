@@ -400,12 +400,16 @@ describe('shouldAttachHeaders', () => {
       'http://localhost:3000/test',
       'http://somewhere.com/test/localhost/123',
       'http://somewhere.com/test?url=localhost:3000&test=123',
+      '//localhost:3000/test',
     ])('return `true` for urls matching defaults (%s)', url => {
       expect(shouldAttachHeaders(url, undefined)).toBe(true);
     });
 
-    it.each(['notmydoman/api/test', 'example.com'])('return `false` for urls not matching defaults (%s)', url => {
-      expect(shouldAttachHeaders(url, undefined)).toBe(false);
-    });
+    it.each(['notmydoman/api/test', 'example.com', '//example.com'])(
+      'return `false` for urls not matching defaults (%s)',
+      url => {
+        expect(shouldAttachHeaders(url, undefined)).toBe(false);
+      },
+    );
   });
 });
