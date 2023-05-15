@@ -401,6 +401,7 @@ describe('shouldAttachHeaders', () => {
       'http://somewhere.com/test/localhost/123',
       'http://somewhere.com/test?url=localhost:3000&test=123',
       '//localhost:3000/test',
+      '/',
     ])('return `true` for urls matching defaults (%s)', url => {
       expect(shouldAttachHeaders(url, undefined)).toBe(true);
     });
