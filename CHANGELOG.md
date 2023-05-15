@@ -4,6 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+
+## 7.52.0
+
+### Important Next.js SDK changes:
+
+This release adds support Vercel Cron Jobs in the Next.js SDK.
+The SDK will automatically create [Sentry Cron Monitors](https://docs.sentry.io/product/crons/) for your [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) configured via `vercel.json` when deployed on Vercel.
+
+You can opt out of this functionality by setting the `automaticVercelMonitors` option to `false`:
+
+```js
+// next.config.js
+const nextConfig = {
+  sentry: {
+    automaticVercelMonitors: false,
+  },
+};
+```
+
+(Note: Sentry Cron Monitoring is currently in beta and subject to change. Help us make it better by letting us know what you think. Respond on [GitHub](https://github.com/getsentry/sentry/discussions/42283) or write to us at crons-feedback@sentry.io)
+
+- feat(nextjs): Add API method to wrap API routes with crons instrumentation (#8084)
+- feat(nextjs): Add automatic monitors for Vercel Cron Jobs (#8088)
+
+### Other changes
+
+- feat(replay): Capture keyboard presses for special characters (#8051)
+- fix(build): Don't mangle away global debug ID map (#8096)
+- fix(core): Return checkin id from client (#8116)
+- fix(core): Use last error for `ignoreErrors` check (#8089)
+- fix(docs): Change to `addTracingExtensions` was not documented in MIGRATION.md (#8101)
+- fix(replay): Check relative URLs correctly (#8024)
+- fix(tracing-internal): Avoid classifying protocol-relative URLs as same-origin urls (#8114)
+- ref: Hoist `createCheckinEnvelope` to core package (#8082)
+
 ## 7.51.2
 
 - fix(nextjs): Continue traces in data fetchers when there is an already active transaction on the hub (#8073)
