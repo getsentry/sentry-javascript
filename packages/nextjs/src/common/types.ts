@@ -4,3 +4,5 @@ export type ServerComponentContext = {
   sentryTraceHeader?: string;
   baggageHeader?: string;
 };
+
+export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefined;

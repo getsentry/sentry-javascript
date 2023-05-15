@@ -4,6 +4,7 @@ import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
   getBodySize,
+  getFullUrl,
   parseContentLengthHeader,
 } from '../../../../src/coreHandlers/util/networkUtils';
 
@@ -217,6 +218,31 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
       const actual = buildNetworkRequestOrResponse({}, 1, input);
 
       expect(actual).toEqual({ size: 1, headers: {}, body: expectedBody, _meta: expectedMeta });
+    });
+  });
+
+  describe('getFullUrl', () => {
+    it.each([
+      ['http://example.com', 'http://example.com', 'http://example.com'],
+      ['https://example.com', 'https://example.com', 'https://example.com'],
+      ['//example.com', 'https://example.com', 'https://example.com'],
+      ['//example.com', 'http://example.com', 'http://example.com'],
+      ['//example.com/', 'http://example.com', 'http://example.com/'],
+      ['//example.com/sub/aha.html', 'http://example.com', 'http://example.com/sub/aha.html'],
+      ['https://example.com/sub/aha.html', 'http://example.com', 'https://example.com/sub/aha.html'],
+      ['sub/aha.html', 'http://example.com', 'http://example.com/sub/aha.html'],
+      ['sub/aha.html', 'http://example.com/initial', 'http://example.com/sub/aha.html'],
+      ['sub/aha', 'http://example.com/initial/', 'http://example.com/initial/sub/aha'],
+      ['sub/aha/', 'http://example.com/initial/', 'http://example.com/initial/sub/aha/'],
+      ['sub/aha.html', 'http://example.com/initial/', 'http://example.com/initial/sub/aha.html'],
+      ['/sub/aha.html', 'http://example.com/initial/', 'http://example.com/sub/aha.html'],
+      ['./sub/aha.html', 'http://example.com/initial/', 'http://example.com/initial/sub/aha.html'],
+      ['../sub/aha.html', 'http://example.com/initial/', 'http://example.com/sub/aha.html'],
+      ['sub/aha.html', 'file:///Users/folder/file.html', 'file:///Users/folder/sub/aha.html'],
+      ['ws://example.com/sub/aha.html', 'http://example.com/initial/', 'ws://example.com/sub/aha.html'],
+    ])('works with %s & baseURI %s', (url, baseURI, expected) => {
+      const actual = getFullUrl(url, baseURI);
+      expect(actual).toBe(expected);
     });
   });
 });

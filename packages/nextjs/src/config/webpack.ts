@@ -7,6 +7,7 @@ import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
@@ -163,6 +164,31 @@ export function constructWebpackConfigFunction(
         ],
       });
 
+      let vercelCronsConfig: VercelCronsConfig = undefined;
+      try {
+        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors !== false) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
+          if (vercelCronsConfig) {
+            logger.info(
+              `${chalk.cyan(
+                'info',
+              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
+                'automaticVercelMonitors',
+              )} option to false in you Next.js config.`,
+            );
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (e.code === 'ENOENT') {
+          // noop if file does not exist
+        } else {
+          // log but noop
+          logger.error(`${chalk.red('error')} - Sentry failed to read vercel.json`, e);
+        }
+      }
+
       // Wrap api routes
       newConfig.module.rules.unshift({
         test: resourcePath => {
@@ -177,6 +203,7 @@ export function constructWebpackConfigFunction(
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
+              vercelCronsConfig,
               wrappingTargetKind: 'api-route',
             },
           },

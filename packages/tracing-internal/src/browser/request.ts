@@ -10,7 +10,7 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\//];
+export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {

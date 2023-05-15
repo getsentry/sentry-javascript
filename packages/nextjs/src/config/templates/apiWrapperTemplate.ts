@@ -13,6 +13,7 @@ import * as origModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 import * as Sentry from '@sentry/nextjs';
 import type { PageConfig } from 'next';
 
+import type { VercelCronsConfig } from '../../common/types';
 // We import this from `wrappers` rather than directly from `next` because our version can work simultaneously with
 // multiple versions of next. See note in `wrappers/types` for more.
 import type { NextApiHandler } from '../../server/types';
@@ -54,7 +55,19 @@ export const config = {
   },
 };
 
-export default userProvidedHandler ? Sentry.wrapApiHandlerWithSentry(userProvidedHandler, '__ROUTE__') : undefined;
+declare const __VERCEL_CRONS_CONFIGURATION__: VercelCronsConfig;
+
+let wrappedHandler = userProvidedHandler;
+
+if (wrappedHandler) {
+  wrappedHandler = Sentry.wrapApiHandlerWithSentry(wrappedHandler, '__ROUTE__');
+}
+
+if (wrappedHandler && __VERCEL_CRONS_CONFIGURATION__) {
+  wrappedHandler = Sentry.wrapApiHandlerWithSentryVercelCrons(wrappedHandler, __VERCEL_CRONS_CONFIGURATION__);
+}
+
+export default wrappedHandler;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
 // not include anything whose name matchs something we've explicitly exported above.

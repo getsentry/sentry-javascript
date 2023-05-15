@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { rollup } from 'rollup';
 
+import type { VercelCronsConfig } from '../../common/types';
 import type { LoaderThis } from './types';
 
 // Just a simple placeholder to make referencing module consistent
@@ -44,6 +45,7 @@ type LoaderOptions = {
   excludeServerRoutes: Array<RegExp | string>;
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component';
   sentryConfigFilePath?: string;
+  vercelCronsConfig?: VercelCronsConfig;
 };
 
 function moduleExists(id: string): boolean {
@@ -74,6 +76,7 @@ export default function wrappingLoader(
     excludeServerRoutes = [],
     wrappingTargetKind,
     sentryConfigFilePath,
+    vercelCronsConfig,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
@@ -112,6 +115,8 @@ export default function wrappingLoader(
     } else {
       throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
     }
+
+    templateCode = templateCode.replace(/__VERCEL_CRONS_CONFIGURATION__/g, JSON.stringify(vercelCronsConfig));
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));

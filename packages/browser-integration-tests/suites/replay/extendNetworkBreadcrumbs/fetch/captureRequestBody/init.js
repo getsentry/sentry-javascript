@@ -5,7 +5,7 @@ window.Replay = new Sentry.Replay({
   flushMinDelay: 200,
   flushMaxDelay: 200,
 
-  networkDetailAllowUrls: ['http://localhost:7654/foo'],
+  networkDetailAllowUrls: ['http://localhost:7654/foo', 'http://sentry-test.io/foo'],
   networkCaptureBodies: true,
 });
 
