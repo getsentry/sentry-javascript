@@ -11,6 +11,7 @@ import {
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
+import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 import { PerformanceEntryResource } from '../fixtures/performanceEntry/resource';
 import type { RecordMock } from '../index';
 import { BASE_TIMESTAMP } from '../index';
@@ -62,6 +63,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
   it('uploads a replay when `Sentry.captureException` is called and continues recording', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
@@ -82,15 +84,10 @@ describe('Integration | errorSampleRate with delayed flush', () => {
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
-        contexts: {
-          replay: {
-            error_sample_rate: 1,
-            session_sample_rate: 0,
-          },
-        },
       }),
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
         TEST_EVENT,
         {
           type: 5,
@@ -116,12 +113,6 @@ describe('Integration | errorSampleRate with delayed flush', () => {
       recordingPayloadHeader: { segment_id: 1 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
-        contexts: {
-          replay: {
-            error_sample_rate: 1,
-            session_sample_rate: 0,
-          },
-        },
       }),
       recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + 40, type: 2 }]),
     });
@@ -158,6 +149,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
   it('manually flushes replay and does not continue to record', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
@@ -178,15 +170,10 @@ describe('Integration | errorSampleRate with delayed flush', () => {
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
-        contexts: {
-          replay: {
-            error_sample_rate: 1,
-            session_sample_rate: 0,
-          },
-        },
       }),
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
         TEST_EVENT,
         {
           type: 5,
@@ -219,15 +206,10 @@ describe('Integration | errorSampleRate with delayed flush', () => {
       recordingPayloadHeader: { segment_id: 0 },
       replayEventPayload: expect.objectContaining({
         replay_type: 'buffer',
-        contexts: {
-          replay: {
-            error_sample_rate: 1,
-            session_sample_rate: 0,
-          },
-        },
       }),
       recordingData: JSON.stringify([
         { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
         TEST_EVENT,
         {
           type: 5,
@@ -536,6 +518,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
   it('has the correct timestamps with deferred root event and last replay update', async () => {
     const TEST_EVENT = { data: {}, timestamp: BASE_TIMESTAMP, type: 3 };
     mockRecord._emitter(TEST_EVENT);
+    const optionsEvent = createOptionsEvent(replay);
 
     expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
     expect(replay).not.toHaveLastSentReplay();
@@ -552,7 +535,11 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     await new Promise(process.nextTick);
 
     expect(replay).toHaveSentReplay({
-      recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
+      recordingData: JSON.stringify([
+        { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+        optionsEvent,
+        TEST_EVENT,
+      ]),
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // the exception happens roughly 10 seconds after BASE_TIMESTAMP
@@ -588,6 +575,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
     // in production, this happens at a time interval
     // session started time should be updated to this current timestamp
     mockRecord.takeFullSnapshot(true);
+    const optionsEvent = createOptionsEvent(replay);
 
     jest.runAllTimers();
     jest.advanceTimersByTime(20);
@@ -612,6 +600,7 @@ describe('Integration | errorSampleRate with delayed flush', () => {
           timestamp: BASE_TIMESTAMP + ELAPSED + 20,
           type: 2,
         },
+        optionsEvent,
       ]),
     });
   });
@@ -730,8 +719,8 @@ it('sends a replay after loading the session from storage', async () => {
     },
     autoStart: false,
   });
-  // @ts-ignore this is protected, but we want to call it for this test
-  integration._initialize();
+  integration['_initialize']();
+  const optionsEvent = createOptionsEvent(replay);
 
   jest.runAllTimers();
 
@@ -748,7 +737,12 @@ it('sends a replay after loading the session from storage', async () => {
 
   // Buffered events before error
   expect(replay).toHaveSentReplay({
-    recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }, TEST_EVENT]),
+    recordingPayloadHeader: { segment_id: 0 },
+    recordingData: JSON.stringify([
+      { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 },
+      optionsEvent,
+      TEST_EVENT,
+    ]),
   });
 
   // `startRecording()` after switching to session mode to continue recording
@@ -757,6 +751,7 @@ it('sends a replay after loading the session from storage', async () => {
   // Latest checkout when we call `startRecording` again after uploading segment
   // after an error occurs (e.g. when we switch to session replay recording)
   expect(replay).toHaveLastSentReplay({
+    recordingPayloadHeader: { segment_id: 1 },
     recordingData: JSON.stringify([
       { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + DEFAULT_FLUSH_MIN_DELAY + 40, type: 2 },
     ]),
