@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { createTransport, Scope } from '@sentry/core';
-import { MockIntegration } from '@sentry/core/test/lib/sdk.test';
 import type { Client, Integration } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
@@ -16,6 +15,14 @@ function getDefaultBrowserOptions(options: Partial<BrowserOptions> = {}): Browse
     stackParser: () => [],
     ...options,
   };
+}
+
+export class MockIntegration implements Integration {
+  public name: string;
+  public setupOnce: () => void = jest.fn();
+  public constructor(name: string) {
+    this.name = name;
+  }
 }
 
 jest.mock('@sentry/core', () => {
