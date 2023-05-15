@@ -183,6 +183,10 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
+export interface BeforeAddRecoringEvent {
+  (event: RecordingEvent): RecordingEvent | null | undefined;
+}
+
 export interface ReplayNetworkOptions {
   /**
    * Capture request/response details for XHR/Fetch requests that match the given URLs.
@@ -266,6 +270,11 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * Mask all text in recordings
    */
   maskAllText: boolean;
+
+  /**
+   * Callback before adding a recording event
+   */
+  beforeAddRecordingEvent?: BeforeAddRecoringEvent;
 
   /**
    * _experiments allows users to enable experimental or internal features.
