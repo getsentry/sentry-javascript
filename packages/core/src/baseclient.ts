@@ -114,12 +114,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     this._options = options;
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
-      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
-      this._transport = options.transport({
-        recordDroppedEvent: this.recordDroppedEvent.bind(this),
-        ...options.transportOptions,
-        url,
-      });
+      if (this._dsn) {
+        const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
+        this._transport = options.transport({
+          recordDroppedEvent: this.recordDroppedEvent.bind(this),
+          ...options.transportOptions,
+          url,
+        });
+      }
     } else {
       __DEBUG_BUILD__ && logger.warn('No DSN provided, client will not do anything.');
     }

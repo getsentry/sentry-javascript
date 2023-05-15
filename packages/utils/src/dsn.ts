@@ -1,6 +1,7 @@
 import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { SentryError } from './error';
+import { logger } from './logger';
 
 /** Regular expression used to parse a Dsn. */
 const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
@@ -100,9 +101,19 @@ function validateDsn(dsn: DsnComponents): boolean | void {
   return true;
 }
 
-/** The Sentry Dsn, identifying a Sentry instance and project. */
-export function makeDsn(from: DsnLike): DsnComponents {
-  const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
-  validateDsn(components);
-  return components;
+/**
+ * Creates a valid Sentry Dsn object, identifying a Sentry instance and project.
+ * @returns a valid DsnComponents object or `undefined` if @param from is an invalid DSN source
+ */
+export function makeDsn(from: DsnLike): DsnComponents | undefined {
+  try {
+    const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
+    validateDsn(components);
+    return components;
+  } catch (e) {
+    if (e instanceof SentryError) {
+      logger.error(e.message);
+    }
+    return undefined;
+  }
 }
