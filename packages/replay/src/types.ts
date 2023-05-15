@@ -279,6 +279,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
     traceInternals: boolean;
     mutationLimit: number;
     mutationBreadcrumbLimit: number;
+    slowClicks: {
+      threshold: number;
+      timeout: number;
+      scrollTimeout: number;
+      ignoreSelectors: string[];
+    };
   }>;
 }
 
@@ -583,3 +589,10 @@ export type ReplayNetworkRequestData = {
   request?: ReplayNetworkRequestOrResponse;
   response?: ReplayNetworkRequestOrResponse;
 };
+
+export interface SlowClickConfig {
+  threshold: number;
+  timeout: number;
+  scrollTimeout: number;
+  ignoreSelector: string;
+}

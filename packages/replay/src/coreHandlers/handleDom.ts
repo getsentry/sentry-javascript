@@ -3,8 +3,9 @@ import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
-import type { ReplayContainer } from '../types';
+import type { ReplayContainer, SlowClickConfig } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
+import { detectSlowClick } from './handleSlowClick';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getAttributesToRecord } from './util/getAttributesToRecord';
 
@@ -13,9 +14,21 @@ export interface DomHandlerData {
   event: Node | { target: EventTarget };
 }
 
-export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void =
-  (replay: ReplayContainer) =>
-  (handlerData: DomHandlerData): void => {
+export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHandlerData) => void = (
+  replay: ReplayContainer,
+) => {
+  const slowClickExperiment = replay.getOptions()._experiments.slowClicks;
+
+  const slowClickConfig: SlowClickConfig | undefined = slowClickExperiment
+    ? {
+        threshold: slowClickExperiment.threshold,
+        timeout: slowClickExperiment.timeout,
+        scrollTimeout: slowClickExperiment.scrollTimeout,
+        ignoreSelector: slowClickExperiment.ignoreSelectors ? slowClickExperiment.ignoreSelectors.join(',') : '',
+      }
+    : undefined;
+
+  return (handlerData: DomHandlerData): void => {
     if (!replay.isEnabled()) {
       return;
     }
@@ -26,8 +39,21 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: DomHa
       return;
     }
 
+    const isClick = handlerData.name === 'click';
+    const event = isClick && (handlerData.event as PointerEvent);
+    // Ignore clicks if ctrl/alt/meta keys are held down as they alter behavior of clicks (e.g. open in new tab)
+    if (isClick && slowClickConfig && event && !event.altKey && !event.metaKey && !event.ctrlKey) {
+      detectSlowClick(
+        replay,
+        slowClickConfig,
+        result as Breadcrumb & { timestamp: number },
+        getClickTargetNode(handlerData.event) as HTMLElement,
+      );
+    }
+
     addBreadcrumbEvent(replay, result);
   };
+};
 
 /** Get the base DOM breadcrumb. */
 export function getBaseDomBreadcrumb(target: Node | INode | null, message: string): Breadcrumb {
