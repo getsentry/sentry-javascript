@@ -52,6 +52,12 @@ describe('Integration | beforeAddRecordingEvent', () => {
             };
           }
 
+          // This should not do anything because callback should not be called
+          // for `event.type != 5`
+          if (event.type === 2) {
+            return null;
+          }
+
           if (eventData.tag === 'options') {
             return null;
           }
@@ -123,7 +129,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
     });
   });
 
-  it('filters out the options event', async () => {
+  it('filters out the options event, but *NOT* full snapshot', async () => {
     mockTransportSend.mockClear();
     await integration.stop();
 

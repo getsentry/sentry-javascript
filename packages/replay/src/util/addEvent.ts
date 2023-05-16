@@ -2,6 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { EventType } from '../types/rrweb';
 import { timestampToMs } from './timestampToMs';
 
 /**
@@ -41,7 +42,7 @@ export async function addEvent(
     const replayOptions = replay.getOptions();
 
     const eventAfterPossibleCallback =
-      typeof replayOptions.beforeAddRecordingEvent === 'function'
+      typeof replayOptions.beforeAddRecordingEvent === 'function' && event.type === EventType.Custom
         ? replayOptions.beforeAddRecordingEvent(event)
         : event;
 
