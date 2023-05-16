@@ -79,8 +79,6 @@ export default function wrappingLoader(
     vercelCronsConfig,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
-  this.resourcePath;
-
   this.async();
 
   let templateCode: string;
