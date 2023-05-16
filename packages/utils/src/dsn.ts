@@ -31,13 +31,14 @@ export function dsnToString(dsn: DsnComponents, withPassword: boolean = false): 
  * Parses a Dsn from a given string.
  *
  * @param str A Dsn as string
- * @returns Dsn as DsnComponents
+ * @returns Dsn as DsnComponents or undefined if @param str is not a valid DSN string
  */
-export function dsnFromString(str: string): DsnComponents {
+export function dsnFromString(str: string): DsnComponents | undefined {
   const match = DSN_REGEX.exec(str);
 
   if (!match) {
-    throw new SentryError(`Invalid Sentry Dsn: ${str}`);
+    logger.error(`Invalid Sentry Dsn: ${str}`);
+    return undefined;
   }
 
   const [protocol, publicKey, pass = '', host, port = '', lastPath] = match.slice(1);
@@ -72,30 +73,39 @@ function dsnFromComponents(components: DsnComponents): DsnComponents {
   };
 }
 
-function validateDsn(dsn: DsnComponents): boolean | void {
+function validateDsn(dsn: DsnComponents): boolean {
   if (!__DEBUG_BUILD__) {
-    return;
+    return true;
   }
 
   const { port, projectId, protocol } = dsn;
 
   const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
-  requiredComponents.forEach(component => {
+  const hasMissingRequiredComponent = requiredComponents.find(component => {
     if (!dsn[component]) {
-      throw new SentryError(`Invalid Sentry Dsn: ${component} missing`);
+      logger.error(`Invalid Sentry Dsn: ${component} missing`);
+      return true;
     }
+    return false;
   });
 
+  if (hasMissingRequiredComponent) {
+    return false;
+  }
+
   if (!projectId.match(/^\d+$/)) {
-    throw new SentryError(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
+    logger.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
+    return false;
   }
 
   if (!isValidProtocol(protocol)) {
-    throw new SentryError(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
+    logger.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
+    return false;
   }
 
   if (port && isNaN(parseInt(port, 10))) {
-    throw new SentryError(`Invalid Sentry Dsn: Invalid port ${port}`);
+    logger.error(`Invalid Sentry Dsn: Invalid port ${port}`);
+    return false;
   }
 
   return true;
@@ -106,14 +116,9 @@ function validateDsn(dsn: DsnComponents): boolean | void {
  * @returns a valid DsnComponents object or `undefined` if @param from is an invalid DSN source
  */
 export function makeDsn(from: DsnLike): DsnComponents | undefined {
-  try {
-    const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
-    validateDsn(components);
-    return components;
-  } catch (e) {
-    if (e instanceof SentryError) {
-      logger.error(e.message);
-    }
+  const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
+  if (!components || !validateDsn(components)) {
     return undefined;
   }
+  return components;
 }
