@@ -79,6 +79,8 @@ export default function wrappingLoader(
     vercelCronsConfig,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
+  this.resourcePath;
+
   this.async();
 
   let templateCode: string;
@@ -202,8 +204,10 @@ export default function wrappingLoader(
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
     }
 
-    if (sentryConfigFilePath) {
-      templateCode = `import "${sentryConfigFilePath}";`.concat(templateCode);
+    if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
+      // We need the import to be relative because webpack cannot process any absolute paths on windows:
+      // ""
+      templateCode = `import "${path.relative(this.resourcePath, sentryConfigFilePath)}";`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
