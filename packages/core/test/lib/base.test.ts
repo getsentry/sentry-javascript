@@ -70,19 +70,19 @@ describe('BaseClient', () => {
     });
 
     test('allows missing Dsn', () => {
-      expect.assertions(1);
-
       const options = getDefaultTestClientOptions();
       const client = new TestClient(options);
 
       expect(client.getDsn()).toBeUndefined();
+      expect(client.getTransport()).toBeUndefined();
     });
 
-    test('throws with invalid Dsn', () => {
-      expect.assertions(1);
-
+    test('allows being passed an invalid Dsn', () => {
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
-      expect(() => new TestClient(options)).toThrow(SentryError);
+      const client = new TestClient(options);
+
+      expect(client.getDsn()).toBeUndefined();
+      expect(client.getTransport()).toBeUndefined();
     });
   });
 
