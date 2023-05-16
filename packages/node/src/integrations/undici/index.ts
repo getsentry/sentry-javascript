@@ -6,6 +6,7 @@ import {
   stringMatchesSomePattern,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
+import { LRUMap } from 'lru_map';
 
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
@@ -29,7 +30,7 @@ export interface UndiciOptions {
    * Function determining whether or not to create spans to track outgoing requests to the given URL.
    * By default, spans will be created for all outgoing requests.
    */
-  shouldCreateSpanForRequest: (url: string) => boolean;
+  shouldCreateSpanForRequest?: (url: string) => boolean;
 }
 
 // Please note that you cannot use `console.log` to debug the callbacks registered to the `diagnostics_channel` API.
@@ -57,10 +58,13 @@ export class Undici implements Integration {
 
   private readonly _options: UndiciOptions;
 
+  private readonly _createSpanUrlMap: LRUMap<string, boolean> = new LRUMap(100);
+  private readonly _headersUrlMap: LRUMap<string, boolean> = new LRUMap(100);
+
   public constructor(_options: Partial<UndiciOptions> = {}) {
     this._options = {
       breadcrumbs: _options.breadcrumbs === undefined ? true : _options.breadcrumbs,
-      shouldCreateSpanForRequest: _options.shouldCreateSpanForRequest || (() => true),
+      shouldCreateSpanForRequest: _options.shouldCreateSpanForRequest,
     };
   }
 
@@ -85,6 +89,21 @@ export class Undici implements Integration {
       return;
     }
 
+    const shouldCreateSpan = (url: string): boolean => {
+      if (this._options.shouldCreateSpanForRequest === undefined) {
+        return true;
+      }
+
+      const cachedDecision = this._createSpanUrlMap.get(url);
+      if (cachedDecision !== undefined) {
+        return cachedDecision;
+      }
+
+      const decision = this._options.shouldCreateSpanForRequest(url);
+      this._createSpanUrlMap.set(url, decision);
+      return decision;
+    };
+
     // https://github.com/nodejs/undici/blob/e6fc80f809d1217814c044f52ed40ef13f21e43c/docs/api/DiagnosticsChannel.md
     ds.subscribe(ChannelName.RequestCreate, message => {
       const hub = getCurrentHub();
@@ -108,9 +127,8 @@ export class Undici implements Integration {
 
       if (activeSpan && client) {
         const clientOptions = client.getOptions();
-        const shouldCreateSpan = this._options.shouldCreateSpanForRequest(stringUrl);
 
-        if (shouldCreateSpan) {
+        if (shouldCreateSpan(stringUrl)) {
           const method = request.method || 'GET';
           const data: Record<string, unknown> = {
             'http.method': method,
@@ -129,11 +147,22 @@ export class Undici implements Integration {
           });
           request.__sentry__ = span;
 
-          const shouldPropagate = clientOptions.tracePropagationTargets
-            ? stringMatchesSomePattern(stringUrl, clientOptions.tracePropagationTargets)
-            : true;
+          const shouldAttachTraceData = (url: string): boolean => {
+            if (clientOptions.tracePropagationTargets === undefined) {
+              return true;
+            }
 
-          if (shouldPropagate) {
+            const cachedDecision = this._headersUrlMap.get(url);
+            if (cachedDecision !== undefined) {
+              return cachedDecision;
+            }
+
+            const decision = stringMatchesSomePattern(url, clientOptions.tracePropagationTargets);
+            this._headersUrlMap.set(url, decision);
+            return decision;
+          };
+
+          if (shouldAttachTraceData(stringUrl)) {
             request.addHeader('sentry-trace', span.toTraceparent());
             if (span.transaction) {
               const dynamicSamplingContext = span.transaction.getDynamicSamplingContext();
