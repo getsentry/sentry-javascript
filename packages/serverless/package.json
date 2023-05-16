@@ -34,8 +34,7 @@
     "find-up": "^5.0.0",
     "google-gax": "^2.9.0",
     "nock": "^13.0.4",
-    "npm-packlist": "^2.1.4",
-    "read-pkg": "^5.2.0"
+    "npm-packlist": "^2.1.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
