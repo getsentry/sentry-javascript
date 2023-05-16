@@ -203,8 +203,12 @@ export default function wrappingLoader(
     }
 
     if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
-      // We need the import to be relative because webpack cannot process any absolute paths on windows:
-      // ""
+      console.log('TEST LOG', {
+        sentryConfigFilePath,
+        rp: this.resourcePath,
+        imp: path.relative(this.resourcePath, sentryConfigFilePath),
+      });
+      // We need the import to be relative because webpack cannot process any absolute paths on windows
       templateCode = `import "${path.relative(this.resourcePath, sentryConfigFilePath)}";`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
