@@ -1,6 +1,5 @@
 import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
-import { SentryError } from './error';
 import { logger } from './logger';
 
 /** Regular expression used to parse a Dsn. */
@@ -37,7 +36,9 @@ export function dsnFromString(str: string): DsnComponents | undefined {
   const match = DSN_REGEX.exec(str);
 
   if (!match) {
-    logger.error(`Invalid Sentry Dsn: ${str}`);
+    // This should be logged to the console
+    // eslint-disable-next-line no-console
+    console.error(`Invalid Sentry Dsn: ${str}`);
     return undefined;
   }
 

@@ -77,7 +77,7 @@ describe('BaseClient', () => {
       expect(client.getTransport()).toBeUndefined();
     });
 
-    test('allows being passed an invalid Dsn', () => {
+    test('handles being passed an invalid Dsn', () => {
       const options = getDefaultTestClientOptions({ dsn: 'abc' });
       const client = new TestClient(options);
 

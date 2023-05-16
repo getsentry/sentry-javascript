@@ -5,11 +5,12 @@ function testIf(condition: boolean): jest.It {
   return condition ? test : test.skip;
 }
 
-const loggerSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('Dsn', () => {
   beforeEach(() => {
-    loggerSpy.mockClear();
+    jest.clearAllMocks();
   });
 
   describe('fromComponents', () => {
@@ -81,7 +82,7 @@ describe('Dsn', () => {
         }),
       ).toBeUndefined();
 
-      expect(logger.error).toHaveBeenCalledTimes(4);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(4);
     });
 
     testIf(__DEBUG_BUILD__)('returns `undefined` if components are invalid', () => {
@@ -103,7 +104,7 @@ describe('Dsn', () => {
         }),
       ).toBeUndefined();
 
-      expect(logger.error).toHaveBeenCalledTimes(2);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -165,7 +166,7 @@ describe('Dsn', () => {
 
     testIf(__DEBUG_BUILD__)('returns undefined when provided invalid Dsn', () => {
       expect(makeDsn('some@random.dsn')).toBeUndefined();
-      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
 
     testIf(__DEBUG_BUILD__)('returns undefined if mandatory fields are missing', () => {
@@ -173,14 +174,15 @@ describe('Dsn', () => {
       expect(makeDsn('https://@sentry.io/123')).toBeUndefined();
       expect(makeDsn('https://abc@123')).toBeUndefined();
       expect(makeDsn('https://abc@sentry.io/')).toBeUndefined();
-      expect(logger.error).toHaveBeenCalledTimes(4);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
     });
 
     testIf(__DEBUG_BUILD__)('returns undefined if fields are invalid', () => {
       expect(makeDsn('httpx://abc@sentry.io/123')).toBeUndefined();
       expect(makeDsn('httpx://abc@sentry.io:xxx/123')).toBeUndefined();
       expect(makeDsn('http://abc@sentry.io/abc')).toBeUndefined();
-      expect(logger.error).toHaveBeenCalledTimes(3);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
   });
 
