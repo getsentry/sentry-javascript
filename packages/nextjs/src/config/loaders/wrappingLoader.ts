@@ -203,7 +203,15 @@ export default function wrappingLoader(
     }
 
     if (sentryConfigFilePath) {
-      templateCode = `import "${sentryConfigFilePath}";`.concat(templateCode);
+      let importPath = sentryConfigFilePath;
+
+      // absolute paths do not work with Windows
+      // https://github.com/getsentry/sentry-javascript/issues/8133
+      if (path.isAbsolute(importPath)) {
+        importPath = path.relative(path.dirname(this.resourcePath), importPath);
+      }
+
+      templateCode = `import "${importPath.replace(/\\/g, '/')}";\n`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;
