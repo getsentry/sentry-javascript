@@ -24,6 +24,10 @@ export interface SerializedCheckIn {
   duration?: number;
   release?: string;
   environment?: string;
+  sdk?: {
+    name: string;
+    version: string;
+  };
   monitor_config?: {
     schedule: MonitorSchedule;
     // The allowed allowed margin of minutes after the expected check-in time that

@@ -103,7 +103,18 @@ export class EdgeClient extends BaseClient<EdgeClientOptions> {
       };
     }
 
-    const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
+    const sdkMetadata = this.getSdkMetadata();
+    if (sdkMetadata) {
+      const sdk = sdkMetadata.sdk;
+      if (sdk && sdk.name && sdk.version) {
+        serializedCheckIn.sdk = {
+          name: sdk.name,
+          version: sdk.version,
+        };
+      }
+    }
+
+    const envelope = createCheckInEnvelope(serializedCheckIn, sdkMetadata, tunnel, this.getDsn());
 
     __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);

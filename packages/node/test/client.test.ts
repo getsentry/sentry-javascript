@@ -319,6 +319,10 @@ describe('NodeClient', () => {
               status: 'in_progress',
               release: '1.0.0',
               environment: 'dev',
+              sdk: {
+                name: 'sentry.javascript.node',
+                version: expect.any(String),
+              },
               monitor_config: {
                 schedule: {
                   type: 'crontab',
@@ -348,6 +352,10 @@ describe('NodeClient', () => {
               status: 'ok',
               release: '1.0.0',
               environment: 'dev',
+              sdk: {
+                name: 'sentry.javascript.node',
+                version: expect.any(String),
+              },
             },
           ],
         ],
