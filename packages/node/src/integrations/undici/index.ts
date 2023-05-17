@@ -3,8 +3,9 @@ import type { EventProcessor, Integration } from '@sentry/types';
 import {
   dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
+  getSanitizedUrlString,
+  parseUrl,
   stringMatchesSomePattern,
-  stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import { LRUMap } from 'lru_map';
 
@@ -36,6 +37,15 @@ export interface UndiciOptions {
 // Please note that you cannot use `console.log` to debug the callbacks registered to the `diagnostics_channel` API.
 // To debug, you can use `writeFileSync` to write to a file:
 // https://nodejs.org/api/async_hooks.html#printing-in-asynchook-callbacks
+//
+// import { writeFileSync } from 'fs';
+// import { format } from 'util';
+//
+// function debug(...args: any): void {
+//   // Use a function like this one when debugging inside an AsyncHook callback
+//   // @ts-ignore any
+//   writeFileSync('log.out', `${format(...args)}\n`, { flag: 'a' });
+// }
 
 /**
  * Instruments outgoing HTTP requests made with the `undici` package via
@@ -113,8 +123,8 @@ export class Undici implements Integration {
 
       const { request } = message as RequestCreateMessage;
 
-      const url = new URL(request.path, request.origin);
-      const stringUrl = url.toString();
+      const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
+      const url = parseUrl(stringUrl);
 
       if (isSentryRequest(stringUrl) || request.__sentry__ !== undefined) {
         return;
@@ -133,16 +143,15 @@ export class Undici implements Integration {
           const data: Record<string, unknown> = {
             'http.method': method,
           };
-          const params = url.searchParams.toString();
-          if (params) {
-            data['http.query'] = `?${params}`;
+          if (url.search) {
+            data['http.query'] = url.search;
           }
           if (url.hash) {
             data['http.fragment'] = url.hash;
           }
           const span = activeSpan.startChild({
             op: 'http.client',
-            description: `${method} ${stripUrlQueryAndFragment(stringUrl)}`,
+            description: `${method} ${getSanitizedUrlString(url)}`,
             data,
           });
           request.__sentry__ = span;
@@ -184,8 +193,7 @@ export class Undici implements Integration {
 
       const { request, response } = message as RequestEndMessage;
 
-      const url = new URL(request.path, request.origin);
-      const stringUrl = url.toString();
+      const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
       if (isSentryRequest(stringUrl)) {
         return;
@@ -225,8 +233,7 @@ export class Undici implements Integration {
 
       const { request } = message as RequestErrorMessage;
 
-      const url = new URL(request.path, request.origin);
-      const stringUrl = url.toString();
+      const stringUrl = request.origin ? request.origin.toString() + request.path : request.path;
 
       if (isSentryRequest(stringUrl)) {
         return;
