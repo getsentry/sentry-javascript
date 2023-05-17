@@ -202,12 +202,10 @@ export default function wrappingLoader(
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
     }
 
+    // We check that `this.resourcePath` is absolte because webpack doesn't really have a contract for what the value looks like. It could basically be anything.
     if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
-      const sentryConfigFileImportPath = path
-        .relative(this.resourcePath, sentryConfigFilePath) // Get path relative to current module because webpack can't handle absolute paths on windows: https://github.com/getsentry/sentry-javascript/issues/8133
-        .replace(/\.[^/.]+$/, ''); // Remove the file extension from the import
-
-      // We need the import to be relative because webpack cannot process any absolute paths on windows
+      // Get path relative to current module because webpack can't handle absolute paths on windows: https://github.com/getsentry/sentry-javascript/issues/8133
+      const sentryConfigFileImportPath = path.relative(path.dirname(this.resourcePath), sentryConfigFilePath);
       templateCode = `import "${sentryConfigFileImportPath}";`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
