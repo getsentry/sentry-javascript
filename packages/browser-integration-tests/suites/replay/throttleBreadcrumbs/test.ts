@@ -2,25 +2,26 @@ import { expect } from '@playwright/test';
 import type { Breadcrumb } from '@sentry/types';
 
 import { sentryTest } from '../../../utils/fixtures';
-import type { PerformanceSpan } from '../../../utils/replayHelpers';
-import {
-  getCustomRecordingEvents,
-  getReplayEventFromRequest,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
+import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-const COUNT = 250;
 const THROTTLE_LIMIT = 300;
 
+function isConsole(breadcrumb: Breadcrumb) {
+  return breadcrumb.category === 'console';
+}
+
 sentryTest(
-  'throttles breadcrumbs when many requests are made at the same time',
+  'throttles breadcrumbs when many `console.log` are made at the same time',
   async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
+    const reqPromise1 = waitForReplayRequest(page, 1);
+    const reqPromise2 = waitForReplayRequest(page, 2);
+    const reqPromise3 = waitForReplayRequest(page, 3);
+    const reqPromise4 = waitForReplayRequest(page, 4);
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -30,77 +31,41 @@ sentryTest(
       });
     });
 
-    let scriptsLoaded = 0;
-    let fetchLoaded = 0;
-
-    await page.route('**/virtual-assets/script-**', route => {
-      scriptsLoaded++;
-      return route.fulfill({
-        status: 200,
-        contentType: 'text/javascript',
-        body: `const aha = ${'xx'.repeat(20_000)};`,
-      });
-    });
-
-    await page.route('**/virtual-assets/fetch-**', route => {
-      fetchLoaded++;
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ fetchResponse: 'aa'.repeat(20_000) }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await reqPromise0;
 
-    const collectedSpans: PerformanceSpan[] = [];
-    const collectedBreadcrumbs: Breadcrumb[] = [];
-
-    page.on('response', response => {
-      // We only capture sentry stuff
-      if (!response.url().includes('https://dsn.ingest.sentry')) {
-        return;
-      }
-
-      // If this is undefined, this is not a replay request
-      if (!getReplayEventFromRequest(response.request())) {
-        return;
-      }
-
-      const { performanceSpans, breadcrumbs } = getCustomRecordingEvents(response);
-
-      collectedSpans.push(
-        ...performanceSpans.filter(span => span.op === 'resource.script' || span.op === 'resource.fetch'),
-      );
-      collectedBreadcrumbs.push(...breadcrumbs.filter(breadcrumb => breadcrumb.category === 'replay.throttled'));
-    });
-
-    await page.click('[data-network]');
-    await page.click('[data-fetch]');
-
-    await page.waitForFunction('window.__isLoaded()');
+    await page.click('[data-console]');
     await forceFlushReplay();
 
-    await waitForFunction(() => collectedBreadcrumbs.length === 1, 6_000, 100);
+    const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
 
-    // All assets have been _loaded_
-    expect(scriptsLoaded).toBe(COUNT);
-    expect(fetchLoaded).toBe(COUNT);
+    // 1 click breadcrumb + 1 throttled breadcrumb is why console logs are less
+    // than throttle limit
+    expect(breadcrumbs.filter(isConsole).length).toBe(THROTTLE_LIMIT - 2);
+    expect(breadcrumbs.length).toBe(THROTTLE_LIMIT);
+    expect(breadcrumbs.filter(breadcrumb => breadcrumb.category === 'replay.throttled').length).toBe(1);
 
-    // But only some have been captured by replay
-    // We give it some wiggle room to account for flakyness
-    expect(collectedSpans.length).toBeLessThanOrEqual(THROTTLE_LIMIT);
-    expect(collectedSpans.length).toBeGreaterThanOrEqual(THROTTLE_LIMIT - 50);
-    expect(collectedBreadcrumbs.length).toBe(1);
+    await page.click('[data-console]');
+    await forceFlushReplay();
+
+    const { breadcrumbs: breadcrumbs2 } = getCustomRecordingEvents(await reqPromise2);
+
+    // No more breadcrumbs because we are still throttled
+    expect(breadcrumbs2.filter(isConsole).length).toBe(0);
+    expect(breadcrumbs2.filter(breadcrumb => breadcrumb.category === 'replay.throttled').length).toBe(0);
+
+    // XXX: This is potentially a bug? looks to be only a memory span
+    await reqPromise3;
+
+    await new Promise(resolve => setTimeout(resolve, 5500));
+    await page.click('[data-console]');
+
+    await forceFlushReplay();
+    const { breadcrumbs: breadcrumbs3 } = getCustomRecordingEvents(await reqPromise4);
+
+    expect(breadcrumbs3.filter(isConsole).length).toBe(THROTTLE_LIMIT - 1);
+    expect(breadcrumbs3.filter(breadcrumb => breadcrumb.category === 'replay.throttled').length).toBe(1);
   },
 );
-
-async function waitForFunction(cb: () => boolean, timeout = 2000, increment = 100) {
-  while (timeout > 0 && !cb()) {
-    await new Promise(resolve => setTimeout(resolve, increment));
-    await waitForFunction(cb, timeout - increment, increment);
-  }
-}
