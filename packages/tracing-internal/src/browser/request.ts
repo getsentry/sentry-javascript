@@ -175,9 +175,9 @@ export function fetchCallback(
         // TODO (kmclb) remove this once types PR goes through
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
-    
+
         const contentLength =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
         if (contentLength > 0) {
           span.setData('http.response_content_length', contentLength);
