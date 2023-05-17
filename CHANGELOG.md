@@ -4,6 +4,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.52.2
+
+- feat(replay): Do not capture replays < 5 seconds (#7949)
+- fix(nextjs): Import path issue on Windows (#8142)
+- fix(node): Add debug logging for node checkin (#8131)
+- fix(node): Add LRU map for tracePropagationTargets calculation (#8130)
+- fix(node): remove new URL usage in Undici integration (#8147)
+- fix(sveltekit): Avoid double-wrapping load functions (#8094)
+- fix(tracing): Change where content-length gets added (#8139)
+- fix(tracing): Use integer for content length (#8152)
+- fix(utils): Fail silently if the provided Dsn is invalid (#8121)
+- ref(node): Cache undici trace propagation decisions (#8136)
+- ref(serverless): Remove relay extension from AWS Layer (#8080)
+
 ## 7.52.1
 
 - feat(replay): Capture slow clicks (experimental) (#8052)
