@@ -12,10 +12,10 @@ import { TextEncoder } from 'util';
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
-const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1));
+const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
 
 const DSN2 = 'https://5678@1234.ingest.sentry.io/8765';
-const DSN2_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN2));
+const DSN2_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN2)!);
 
 const ERROR_EVENT = { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' };
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -77,6 +77,20 @@ describe('makeMultiplexedTransport', () => {
         expect(url).toBe(DSN1_URL);
       }),
       () => [],
+    );
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(ERROR_ENVELOPE);
+  });
+
+  it('Falls back to options DSN when a matched DSN is invalid', async () => {
+    expect.assertions(1);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport(url => {
+        expect(url).toBe(DSN1_URL);
+      }),
+      () => ['invalidDsn'],
     );
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });

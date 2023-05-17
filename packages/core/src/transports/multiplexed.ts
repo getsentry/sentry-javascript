@@ -51,9 +51,13 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     const fallbackTransport = createTransport(options);
     const otherTransports: Record<string, Transport> = {};
 
-    function getTransport(dsn: string): Transport {
+    function getTransport(dsn: string): Transport | undefined {
       if (!otherTransports[dsn]) {
-        const url = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(dsn));
+        const validatedDsn = dsnFromString(dsn);
+        if (!validatedDsn) {
+          return undefined;
+        }
+        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn);
         otherTransports[dsn] = createTransport({ ...options, url });
       }
 
@@ -66,7 +70,9 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         return eventFromEnvelope(envelope, eventTypes);
       }
 
-      const transports = matcher({ envelope, getEvent }).map(dsn => getTransport(dsn));
+      const transports = matcher({ envelope, getEvent })
+        .map(dsn => getTransport(dsn))
+        .filter((t): t is Transport => !!t);
 
       // If we have no transports to send to, use the fallback transport
       if (transports.length === 0) {

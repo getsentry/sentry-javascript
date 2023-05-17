@@ -12,6 +12,9 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
   const tunnelRouteOption = globalWithInjectedValues.__sentryRewritesTunnelPath__;
   if (tunnelRouteOption && options.dsn) {
     const dsnComponents = dsnFromString(options.dsn);
+    if (!dsnComponents) {
+      return;
+    }
     const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
     if (sentrySaasDsnMatch) {
       const orgId = sentrySaasDsnMatch[1];

@@ -9,7 +9,7 @@ const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
 const _metadata = { sdk: { name: 'sentry.javascript.browser', version: '12.31.12' } } as ClientOptions['_metadata'];
 
-const dsnPublicComponents = makeDsn(dsnPublic);
+const dsnPublicComponents = makeDsn(dsnPublic)!;
 
 describe('API', () => {
   describe('getEnvelopeEndpointWithUrlEncodedAuth', () => {
