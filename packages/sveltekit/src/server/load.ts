@@ -2,11 +2,15 @@
 import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
-import { addExceptionMechanism, objectify } from '@sentry/utils';
+import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { HttpError, LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
+import type { SentryWrappedFlag } from '../common/utils';
 import { isRedirect } from '../common/utils';
 import { getTracePropagationData } from './utils';
+
+type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
+type PatchedServerLoadEvent = ServerLoadEvent & SentryWrappedFlag;
 
 function isHttpError(err: unknown): err is HttpError {
   return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
@@ -59,7 +63,15 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
   return new Proxy(origLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
       // Type casting here because `T` cannot extend `Load` (see comment above function signature)
-      const event = args[0] as LoadEvent;
+      // Also, this event possibly already has a sentry wrapped flag attached
+      const event = args[0] as PatchedLoadEvent;
+
+      if (event.__sentry_wrapped__) {
+        return wrappingTarget.apply(thisArg, args);
+      }
+
+      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+
       const routeId = event.route && event.route.id;
 
       const traceLoadContext: TransactionContext = {
@@ -102,7 +114,15 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
   return new Proxy(origServerLoad, {
     apply: (wrappingTarget, thisArg, args: Parameters<T>) => {
       // Type casting here because `T` cannot extend `ServerLoad` (see comment above function signature)
-      const event = args[0] as ServerLoadEvent;
+      // Also, this event possibly already has a sentry wrapped flag attached
+      const event = args[0] as PatchedServerLoadEvent;
+
+      if (event.__sentry_wrapped__) {
+        return wrappingTarget.apply(thisArg, args);
+      }
+
+      addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
+
       const routeId = event.route && event.route.id;
 
       const { dynamicSamplingContext, traceparentData } = getTracePropagationData(event);
