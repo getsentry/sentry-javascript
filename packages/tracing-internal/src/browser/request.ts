@@ -175,6 +175,13 @@ export function fetchCallback(
         // TODO (kmclb) remove this once types PR goes through
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
+
+        const contentLength =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+        if (contentLength > 0) {
+          span.setData('http.response_content_length', contentLength);
+        }
       } else if (handlerData.error) {
         span.setStatus('internal_error');
       }
@@ -186,9 +193,6 @@ export function fetchCallback(
     return;
   }
 
-  const contentLength =
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
   const currentScope = getCurrentHub().getScope();
   const currentSpan = currentScope && currentScope.getSpan();
   const activeTransaction = currentSpan && currentSpan.transaction;
@@ -199,7 +203,6 @@ export function fetchCallback(
       data: {
         url,
         type: 'fetch',
-        ...(contentLength ? { 'http.response_content_length': contentLength } : {}),
         'http.method': method,
       },
       description: `${method} ${url}`,
