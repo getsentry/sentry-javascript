@@ -40,6 +40,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
         timestamp: expect.any(Number),
         trace_id: expect.any(String),
         status: expect.any(String),
+        'http.response_content_length': expect.any(String),
       }),
     ]),
   );
