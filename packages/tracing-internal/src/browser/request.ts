@@ -176,11 +176,13 @@ export function fetchCallback(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         span.setHttpStatus(handlerData.response.status);
 
-        const contentLength =
+        const contentLength: string =
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-        if (contentLength > 0) {
-          span.setData('http.response_content_length', contentLength);
+
+        const contentLengthNum = parseInt(contentLength);
+        if (contentLengthNum > 0) {
+          span.setData('http.response_content_length', contentLengthNum);
         }
       } else if (handlerData.error) {
         span.setStatus('internal_error');
