@@ -214,7 +214,7 @@ describe('callbacks', () => {
       expect(newSpan).toBeUndefined();
     });
 
-    it.only('adds content-length to span data on finish', () => {
+    it('adds content-length to span data on finish', () => {
       const spans: Record<string, Span> = {};
 
       // triggered by request being sent
