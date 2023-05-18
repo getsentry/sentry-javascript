@@ -30,7 +30,8 @@ export function parseStackFrames(stackParser: StackParser, error: Error): StackF
  */
 export function exceptionFromError(stackParser: StackParser, error: Error): Exception {
   const exception: Exception = {
-    type: error.name || error.constructor.name,
+    // This is necessary in order to get the name of user-defined errors which subclass `Error`
+    type: error.constructor.name,
     value: error.message,
   };
 

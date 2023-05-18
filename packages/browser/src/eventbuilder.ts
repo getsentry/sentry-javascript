@@ -22,7 +22,8 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   const frames = parseStackFrames(stackParser, ex);
 
   const exception: Exception = {
-    type: ex && ex.name,
+    // This is necessary in order to get the name of user-defined errors which subclass `Error`
+    type: ex && ex.constructor.name,
     value: extractMessage(ex),
   };
 
