@@ -183,6 +183,10 @@ export interface WorkerResponse {
 
 export type AddEventResult = void;
 
+export interface BeforeAddRecordingEvent {
+  (event: RecordingEvent): RecordingEvent | null | undefined;
+}
+
 export interface ReplayNetworkOptions {
   /**
    * Capture request/response details for XHR/Fetch requests that match the given URLs.
@@ -266,6 +270,19 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * Mask all text in recordings
    */
   maskAllText: boolean;
+
+  /**
+   * Callback before adding a custom recording event
+   *
+   * Events added by the underlying DOM recording library can *not* be modified,
+   * only custom recording events from the Replay integration will trigger the
+   * callback listeners. This can be used to scrub certain fields in an event (e.g. URLs from navigation events).
+   *
+   * Returning a `null` will drop the event completely. Note, dropping a recording
+   * event is not the same as dropping the replay, the replay will still exist and
+   * continue to function.
+   */
+  beforeAddRecordingEvent?: BeforeAddRecordingEvent;
 
   /**
    * _experiments allows users to enable experimental or internal features.

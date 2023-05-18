@@ -214,9 +214,8 @@ describe('callbacks', () => {
       expect(newSpan).toBeUndefined();
     });
 
-    it('adds content-length to span data', () => {
-      const spans = {};
-      fetchHandlerData['response'] = { headers: { 'content-length': 123 } };
+    it('adds content-length to span data on finish', () => {
+      const spans: Record<string, Span> = {};
 
       // triggered by request being sent
       fetchCallback(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
@@ -224,8 +223,21 @@ describe('callbacks', () => {
       const newSpan = transaction.spanRecorder?.spans[1] as Span;
 
       expect(newSpan).toBeDefined();
-      expect(newSpan).toBeInstanceOf(Span);
-      expect(newSpan.data).toEqual({
+
+      const postRequestFetchHandlerData = {
+        ...fetchHandlerData,
+        endTimestamp,
+        response: { status: 404, headers: { get: () => 123 } },
+      };
+
+      // triggered by response coming back
+      fetchCallback(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
+
+      const finishedSpan = transaction.spanRecorder?.spans[1] as Span;
+
+      expect(finishedSpan).toBeDefined();
+      expect(finishedSpan).toBeInstanceOf(Span);
+      expect(finishedSpan.data).toEqual({
         'http.response_content_length': 123,
         'http.method': 'GET',
         type: 'fetch',
