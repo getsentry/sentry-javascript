@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/types';
 
 import { defaultStackParser } from '../../src';
-import { eventFromPlainObject } from '../../src/eventbuilder';
+import { eventFromPlainObject, exceptionFromError } from '../../src/eventbuilder';
 
 jest.mock('@sentry/core', () => {
   const original = jest.requireActual('@sentry/core');
@@ -59,6 +59,28 @@ describe('eventFromPlainObject', () => {
           },
         },
       },
+    });
+  });
+});
+
+describe('exceptionFromError ', () => {
+  it('correctly reads error type and value from built-in `Error` subclass', () => {
+    const exceptionJSON = exceptionFromError(() => [], new TypeError("Expected type 'ChewToy', got type 'Shoe'"));
+
+    expect(exceptionJSON).toEqual({
+      type: 'TypeError',
+      value: "Expected type 'ChewToy', got type 'Shoe'",
+    });
+  });
+
+  it('correctly reads error type and value from user-defined `Error` subclass', () => {
+    class DidNotFetch extends Error {}
+
+    const exceptionJSON = exceptionFromError(() => [], new DidNotFetch("Failed to fetch requested object: 'ball'"));
+
+    expect(exceptionJSON).toEqual({
+      type: 'DidNotFetch',
+      value: "Failed to fetch requested object: 'ball'",
     });
   });
 });
