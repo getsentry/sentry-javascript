@@ -2,6 +2,7 @@ import { createStackParser } from '@sentry/utils';
 
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser, opera10StackLineParser, opera11StackLineParser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 const operaParser = createStackParser(opera10StackLineParser, opera11StackLineParser);
 const chromiumParser = defaultStackParser;
@@ -30,7 +31,7 @@ describe('Tracekit - Opera Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(operaParser, OPERA_10);
+    const ex = exceptionFromError(operaParser, makeMockError(OPERA_10));
 
     expect(ex).toEqual({
       value: 'Statement on line 42: Type mismatch (usually non-object value supplied where object required)',
@@ -76,7 +77,7 @@ describe('Tracekit - Opera Tests', () => {
         '    foo();',
     };
 
-    const ex = exceptionFromError(operaParser, OPERA_11);
+    const ex = exceptionFromError(operaParser, makeMockError(OPERA_11));
 
     expect(ex).toEqual({
       value: "'this.undef' is not a function",
@@ -113,7 +114,7 @@ describe('Tracekit - Opera Tests', () => {
         '    dumpException3();',
     };
 
-    const ex = exceptionFromError(operaParser, OPERA_12);
+    const ex = exceptionFromError(operaParser, makeMockError(OPERA_12));
 
     expect(ex).toEqual({
       value: "Cannot convert 'x' to object",
@@ -157,7 +158,7 @@ describe('Tracekit - Opera Tests', () => {
         '    at bar (http://path/to/file.js:108:168)',
     };
 
-    const ex = exceptionFromError(chromiumParser, OPERA_25);
+    const ex = exceptionFromError(chromiumParser, makeMockError(OPERA_25));
 
     expect(ex).toEqual({
       value: "Cannot read property 'undef' of null",

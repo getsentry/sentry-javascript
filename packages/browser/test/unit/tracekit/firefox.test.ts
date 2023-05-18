@@ -1,5 +1,6 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 describe('Tracekit - Firefox Tests', () => {
   it('should parse Firefox 3 error', () => {
@@ -19,7 +20,7 @@ describe('Tracekit - Firefox Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_3);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_3));
 
     expect(ex).toEqual({
       value: 'this.undef is not a function',
@@ -55,7 +56,7 @@ describe('Tracekit - Firefox Tests', () => {
         '',
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_7);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_7));
 
     expect(ex).toEqual({
       value: 'bar',
@@ -87,7 +88,7 @@ describe('Tracekit - Firefox Tests', () => {
       lineNumber: 48,
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_14);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_14));
 
     expect(ex).toEqual({
       value: 'x is null',
@@ -116,7 +117,7 @@ describe('Tracekit - Firefox Tests', () => {
       columnNumber: 12,
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_31);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_31));
 
     expect(ex).toEqual({
       value: 'Default error',
@@ -151,7 +152,7 @@ describe('Tracekit - Firefox Tests', () => {
       result: 2147500037,
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_44_NS_EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_44_NS_EXCEPTION));
 
     expect(ex).toEqual({
       value: 'No error message',
@@ -186,7 +187,7 @@ describe('Tracekit - Firefox Tests', () => {
       name: 'TypeError',
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_50_RESOURCE_URL);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_50_RESOURCE_URL));
 
     expect(ex).toEqual({
       value: 'this.props.raw[this.state.dataSource].rows is undefined',
@@ -234,7 +235,7 @@ describe('Tracekit - Firefox Tests', () => {
         '@http://localhost:8080/file.js:33:9',
     };
 
-    const ex = exceptionFromError(parser, FIREFOX_43_EVAL);
+    const ex = exceptionFromError(parser, makeMockError(FIREFOX_43_EVAL));
 
     expect(ex).toEqual({
       value: 'message string',
@@ -260,7 +261,7 @@ describe('Tracekit - Firefox Tests', () => {
           @http://localhost:5000/test:24:7`,
     };
 
-    const stacktrace = exceptionFromError(parser, FIREFOX66_NATIVE_CODE_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, makeMockError(FIREFOX66_NATIVE_CODE_EXCEPTION));
 
     expect(stacktrace).toEqual({
       value: 'test',
@@ -290,7 +291,7 @@ describe('Tracekit - Firefox Tests', () => {
           @http://localhost:5000/:50:19`,
     };
 
-    const stacktrace = exceptionFromError(parser, FIREFOX66_EVAL_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, makeMockError(FIREFOX66_EVAL_EXCEPTION));
 
     expect(stacktrace).toEqual({
       value: 'aha',
@@ -324,7 +325,7 @@ describe('Tracekit - Firefox Tests', () => {
       name: 'TypeError',
     };
 
-    const stacktrace = exceptionFromError(parser, FIREFOX_FILE_IN_IDENTIFIER);
+    const stacktrace = exceptionFromError(parser, makeMockError(FIREFOX_FILE_IN_IDENTIFIER));
 
     expect(stacktrace).toEqual({
       stacktrace: {

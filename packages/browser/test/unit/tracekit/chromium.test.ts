@@ -1,10 +1,11 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {
     const NO_LOCATION = { message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' };
-    const ex = exceptionFromError(parser, NO_LOCATION);
+    const ex = exceptionFromError(parser, makeMockError(NO_LOCATION));
 
     expect(ex).toEqual({
       value: 'foo',
@@ -26,7 +27,7 @@ describe('Tracekit - Chrome Tests', () => {
         '    at http://path/to/file.js:24:4',
     };
 
-    const ex = exceptionFromError(parser, CHROME_15);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_15));
 
     expect(ex).toEqual({
       value: "Object #<Object> has no method 'undef'",
@@ -53,7 +54,7 @@ describe('Tracekit - Chrome Tests', () => {
         '    at I.e.fn.(anonymous function) [as index] (http://localhost:8080/file.js:10:3651)',
     };
 
-    const ex = exceptionFromError(parser, CHROME_36);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_36));
 
     expect(ex).toEqual({
       value: 'Default error',
@@ -99,7 +100,7 @@ describe('Tracekit - Chrome Tests', () => {
         '   at TESTTESTTEST.proxiedMethod(webpack:///./~/react-proxy/modules/createPrototypeProxy.js?:44:30)',
     };
 
-    const ex = exceptionFromError(parser, CHROME_XX_WEBPACK);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_XX_WEBPACK));
 
     expect(ex).toEqual({
       value: "Cannot read property 'error' of undefined",
@@ -152,7 +153,7 @@ describe('Tracekit - Chrome Tests', () => {
         'at http://localhost:8080/file.js:31:13\n',
     };
 
-    const ex = exceptionFromError(parser, CHROME_48_EVAL);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_48_EVAL));
 
     expect(ex).toEqual({
       value: 'message string',
@@ -184,7 +185,7 @@ describe('Tracekit - Chrome Tests', () => {
         '    at n.handle (blob:http%3A//localhost%3A8080/abfc40e9-4742-44ed-9dcd-af8f99a29379:7:2863)',
     };
 
-    const ex = exceptionFromError(parser, CHROME_48_BLOB);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_48_BLOB));
 
     expect(ex).toEqual({
       value: 'Error: test',
@@ -247,7 +248,7 @@ describe('Tracekit - Chrome Tests', () => {
             at examplescheme://examplehost/cd351f7250857e22ceaa.worker.js:70179:15`,
     };
 
-    const ex = exceptionFromError(parser, CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME);
+    const ex = exceptionFromError(parser, makeMockError(CHROMIUM_EMBEDDED_FRAMEWORK_CUSTOM_SCHEME));
 
     expect(ex).toEqual({
       value: 'message string',
@@ -277,7 +278,7 @@ describe('Tracekit - Chrome Tests', () => {
           at http://localhost:5000/test:24:7`,
     };
 
-    const ex = exceptionFromError(parser, CHROME73_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(CHROME73_NATIVE_CODE_EXCEPTION));
 
     expect(ex).toEqual({
       value: 'test',
@@ -310,7 +311,7 @@ describe('Tracekit - Chrome Tests', () => {
           at http://localhost:5000/:50:19`,
     };
 
-    const ex = exceptionFromError(parser, CHROME73_EVAL_EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(CHROME73_EVAL_EXCEPTION));
 
     expect(ex).toEqual({
       value: 'bad',
@@ -342,7 +343,7 @@ describe('Tracekit - Chrome Tests', () => {
           at test (http://localhost:5000/:33:23)`,
     };
 
-    const ex = exceptionFromError(parser, CHROME_109_ASYNC_URL);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_109_ASYNC_URL));
 
     expect(ex).toEqual({
       value: 'bad',
@@ -368,7 +369,7 @@ describe('Tracekit - Chrome Tests', () => {
             at Global code (http://localhost:5000/test:24:7)`,
     };
 
-    const ex = exceptionFromError(parser, EDGE44_NATIVE_CODE_EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(EDGE44_NATIVE_CODE_EXCEPTION));
 
     expect(ex).toEqual({
       value: 'test',
@@ -401,7 +402,7 @@ describe('Tracekit - Chrome Tests', () => {
             at Anonymous function (http://localhost:5000/:50:8)`,
     };
 
-    const ex = exceptionFromError(parser, EDGE44_EVAL_EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(EDGE44_EVAL_EXCEPTION));
 
     expect(ex).toEqual({
       value: 'aha',
@@ -437,7 +438,7 @@ describe('Tracekit - Chrome Tests', () => {
             at TESTTESTTEST.someMethod (C:\\Users\\user\\path\\to\\file.js:295:108)`,
     };
 
-    const ex = exceptionFromError(parser, CHROME_ELECTRON_RENDERER);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_ELECTRON_RENDERER));
 
     expect(ex).toEqual({
       value: "Cannot read property 'error' of undefined",
@@ -469,7 +470,7 @@ describe('Tracekit - Chrome Tests', () => {
       at commitLayoutEffects (react-dom.development.js?f8c1:23426:1)`,
     };
 
-    const ex = exceptionFromError(parser, EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(EXCEPTION));
 
     expect(ex).toEqual({
       value: 'aha',
@@ -535,7 +536,7 @@ describe('Tracekit - Chrome Tests', () => {
         at Array.reduce(<anonymous>)`,
     };
 
-    const ex = exceptionFromError(parser, EXCEPTION);
+    const ex = exceptionFromError(parser, makeMockError(EXCEPTION));
 
     expect(ex).toEqual({
       value: 'aha',
@@ -582,7 +583,7 @@ describe('Tracekit - Chrome Tests', () => {
           at more (http://localhost:5000/(some)/(thing)/index.html:25:7)`,
     };
 
-    const ex = exceptionFromError(parser, CHROME_BRACES_URL);
+    const ex = exceptionFromError(parser, makeMockError(CHROME_BRACES_URL));
 
     expect(ex).toEqual({
       value: 'bad',
@@ -620,7 +621,7 @@ describe('Tracekit - Chrome Tests', () => {
           at http://localhost:5000/:50:19`,
     };
 
-    const ex = exceptionFromError(parser, LONG_FRAME);
+    const ex = exceptionFromError(parser, makeMockError(LONG_FRAME));
 
     expect(ex).toEqual({
       value: 'bad',

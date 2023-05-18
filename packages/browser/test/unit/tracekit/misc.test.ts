@@ -1,5 +1,6 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 describe('Tracekit - Misc Tests', () => {
   it('should parse PhantomJS 1.19 error', () => {
@@ -12,7 +13,7 @@ describe('Tracekit - Misc Tests', () => {
         '    at foo (http://path/to/file.js:4283)\n' +
         '    at http://path/to/file.js:4287',
     };
-    const ex = exceptionFromError(parser, PHANTOMJS_1_19);
+    const ex = exceptionFromError(parser, makeMockError(PHANTOMJS_1_19));
 
     expect(ex).toEqual({
       value: 'bar',
@@ -47,7 +48,7 @@ describe('Tracekit - Misc Tests', () => {
         '   at playTimer.current(./app/components/replays/replayContext.tsx:397:62)\n' +
         '   at sentryWrapped(../node_modules/@sentry/browser/esm/helpers.js:90:17)',
     };
-    const ex = exceptionFromError(parser, SECURITY_ERROR);
+    const ex = exceptionFromError(parser, makeMockError(SECURITY_ERROR));
 
     expect(ex).toEqual({
       type: 'SecurityError',

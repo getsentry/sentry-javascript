@@ -1,5 +1,6 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 describe('Tracekit - React Native Tests', () => {
   it('should parse exceptions for react-native-v8', () => {
@@ -15,7 +16,7 @@ describe('Tracekit - React Native Tests', () => {
           at Object.y(index.android.bundle:93:571)
           at P(index.android.bundle:93:714)`,
     };
-    const stacktrace = exceptionFromError(parser, REACT_NATIVE_V8_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, makeMockError(REACT_NATIVE_V8_EXCEPTION));
 
     expect(stacktrace).toEqual({
       value: 'Manually triggered crash to test Sentry reporting',
@@ -62,7 +63,7 @@ describe('Tracekit - React Native Tests', () => {
           p@/data/user/0/com.sentrytest/files/.expo-internal/bundle-613EDD44F3305B9D75D4679663900F2BCDDDC326F247CA3202A3A4219FD412D3:96:385
           forEach@[native code]`,
     };
-    const stacktrace = exceptionFromError(parser, REACT_NATIVE_EXPO_EXCEPTION);
+    const stacktrace = exceptionFromError(parser, makeMockError(REACT_NATIVE_EXPO_EXCEPTION));
 
     expect(stacktrace).toEqual({
       value: 'Test Error Expo',
@@ -123,7 +124,7 @@ describe('Tracekit - React Native Tests', () => {
         'at this(/home/username/sample-workspace/sampleapp.collect.react/node_modules/react-native/Libraries/Renderer/src/renderers/native/ReactNativeBaseComponent.js:74:41)\n',
     };
 
-    const ex = exceptionFromError(parser, ANDROID_REACT_NATIVE);
+    const ex = exceptionFromError(parser, makeMockError(ANDROID_REACT_NATIVE));
 
     expect(ex).toEqual({
       value: 'Error: test',
@@ -242,7 +243,7 @@ describe('Tracekit - React Native Tests', () => {
         '[native code]',
     };
 
-    const ex = exceptionFromError(parser, ANDROID_REACT_NATIVE_PROD);
+    const ex = exceptionFromError(parser, makeMockError(ANDROID_REACT_NATIVE_PROD));
 
     expect(ex).toEqual({
       value: 'Error: test',
@@ -353,7 +354,7 @@ describe('Tracekit - React Native Tests', () => {
         'at value (address at index.android.bundle:1:32776)\n' +
         'at value (address at index.android.bundle:1:31561)',
     };
-    const ex = exceptionFromError(parser, ANDROID_REACT_NATIVE_HERMES);
+    const ex = exceptionFromError(parser, makeMockError(ANDROID_REACT_NATIVE_HERMES));
 
     expect(ex).toEqual({
       value: 'Error: lets throw!',

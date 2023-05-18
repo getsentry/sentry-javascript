@@ -1,5 +1,6 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { makeMockError } from '../helper/error-object';
 
 describe('Tracekit - IE Tests', () => {
   it('should parse IE 10 error', () => {
@@ -15,7 +16,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const ex = exceptionFromError(parser, IE_10);
+    const ex = exceptionFromError(parser, makeMockError(IE_10));
 
     // TODO: func should be normalized
     expect(ex).toEqual({
@@ -44,7 +45,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823281,
     };
 
-    const ex = exceptionFromError(parser, IE_11);
+    const ex = exceptionFromError(parser, makeMockError(IE_11));
 
     // TODO: func should be normalized
     expect(ex).toEqual({
@@ -73,7 +74,7 @@ describe('Tracekit - IE Tests', () => {
       number: -2146823279,
     };
 
-    const ex = exceptionFromError(parser, IE_11_EVAL);
+    const ex = exceptionFromError(parser, makeMockError(IE_11_EVAL));
 
     expect(ex).toEqual({
       value: "'getExceptionProps' is undefined",
