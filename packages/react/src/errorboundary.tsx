@@ -125,7 +125,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // See: https://github.com/getsentry/sentry-javascript/issues/6167
       if (isAtLeastReact17(React.version) && isError(error)) {
         const errorBoundaryError = new Error(error.message);
-        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        // Once `errorBoundaryError` is constructed, the only thing we need its constructor for is its name. Since the
+        // real constructor's `name` property is read-only, we just replace the entire constructor with an object that
+        // has what we need.
+        errorBoundaryError.constructor = {
+          name: `React ErrorBoundary ${errorBoundaryError.name}`,
+        } as typeof errorBoundaryError.constructor;
         errorBoundaryError.stack = componentStack;
 
         // Using the `LinkedErrors` integration to link the errors together.
