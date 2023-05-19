@@ -128,6 +128,9 @@ function checkCallForSentReplay(
   };
 }
 
+/**
+* Only want calls that send replay events, i.e. ignore error events
+*/
 function getReplayCalls(calls: any[][][]) {
   return calls.map(call => {
     const arg = call[0];
@@ -158,7 +161,6 @@ const toHaveSentReplay = function (
 
   const expectedKeysLength = expected ? ('sample' in expected ? Object.keys(expected.sample) : Object.keys(expected)).length : 0;
 
-  // Only want calls that send replay events (ignore error events)
   const replayCalls = getReplayCalls(calls)
 
   for (const currentCall of replayCalls) {
