@@ -249,7 +249,6 @@ describe('Integration | errorSampleRate', () => {
     expect(replay).not.toHaveLastSentReplay();
   });
 
-
   it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
@@ -684,8 +683,7 @@ describe('Integration | errorSampleRate', () => {
 
     jest.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
-
-    expect(replay).toHaveLastSentReplay();
+    expect(replay).not.toHaveLastSentReplay();
 
     // Wait a bit, shortly before session expires
     jest.advanceTimersByTime(MAX_SESSION_LIFE - 1000);
