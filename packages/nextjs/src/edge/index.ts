@@ -126,6 +126,13 @@ export function lastEventId(): string | undefined {
   return getCurrentHub().lastEventId();
 }
 
+/**
+ * Just a passthrough in case this is imported from the client.
+ */
+export function withSentryConfig<T>(exportedUserNextConfig: T): T {
+  return exportedUserNextConfig;
+}
+
 export { flush } from './utils/flush';
 
 export * from '@sentry/core';
