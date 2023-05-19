@@ -234,6 +234,22 @@ describe('Integration | errorSampleRate', () => {
     });
   });
 
+  // This tests a regression where we were calling flush indiscriminantly in `stop()`
+  it('does not upload a replay event if error is not sampled', async () => {
+    // We are trying to replicate the case where error rate is 0 and session
+    // rate is > 0, we can't set them both to 0 otherwise
+    // `_loadAndCheckSession` is not called when initializing the plugin.
+    replay.stop();
+    replay['_options']['errorSampleRate'] = 0;
+    replay['_loadAndCheckSession']();
+
+    jest.runAllTimers();
+    await new Promise(process.nextTick);
+    expect(mockRecord.takeFullSnapshot).not.toHaveBeenCalled();
+    expect(replay).not.toHaveLastSentReplay();
+  });
+
+
   it('does not send a replay when triggering a full dom snapshot when document becomes visible after [SESSION_IDLE_EXPIRE_DURATION]ms', async () => {
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
