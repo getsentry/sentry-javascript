@@ -330,7 +330,7 @@ export interface ReplayIntegrationPrivacyOptions {
   /**
    * A callback function to customize how your text is masked.
    */
-  maskFn?: Pick<RecordingOptions, 'maskTextFn'>;
+  maskFn?: (s: string) => string;
 }
 
 // These are optional for ReplayPluginOptions because the plugin sets default values
