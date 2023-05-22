@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- feat(replay): Add `beforeAddRecordingEvent` Replay option
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 7.52.1

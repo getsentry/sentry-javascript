@@ -202,8 +202,13 @@ export default function wrappingLoader(
       templateCode = templateCode.replace(/__COMPONENT_TYPE__/g, 'Unknown');
     }
 
-    if (sentryConfigFilePath) {
-      templateCode = `import "${sentryConfigFilePath}";`.concat(templateCode);
+    // We check whether `this.resourcePath` is absolute because there is no contract by webpack that says it is absolute,
+    // however we can only create relative paths to the sentry config from absolute paths.Examples where this could possibly be non - absolute are virtual modules.
+    if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
+      const sentryConfigImportPath = path
+        .relative(path.dirname(this.resourcePath), sentryConfigFilePath) // Absolute paths do not work with Windows: https://github.com/getsentry/sentry-javascript/issues/8133
+        .replace(/\\/g, '/');
+      templateCode = `import "${sentryConfigImportPath}";\n`.concat(templateCode);
     }
   } else if (wrappingTargetKind === 'middleware') {
     templateCode = middlewareWrapperTemplateCode;

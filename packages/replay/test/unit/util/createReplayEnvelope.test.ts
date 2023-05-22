@@ -42,7 +42,7 @@ describe('Unit | util | createReplayEnvelope', () => {
     projectId: '123',
     protocol: 'https',
     publicKey: 'abc',
-  });
+  })!;
 
   it('creates an envelope for a given Replay event', () => {
     const envelope = createReplayEnvelope(replayEvent, payloadWithSequence, dsn);
