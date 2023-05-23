@@ -17,6 +17,13 @@ vi.mock('fs', async () => {
   };
 });
 
+vi.spyOn(console, 'log').mockImplementation(() => {
+  /* noop */
+});
+vi.spyOn(console, 'warn').mockImplementation(() => {
+  /* noop */
+});
+
 describe('sentryVite()', () => {
   it('returns an array of Vite plugins', async () => {
     const plugins = await sentrySvelteKit();
