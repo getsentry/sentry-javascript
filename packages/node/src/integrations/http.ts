@@ -138,7 +138,7 @@ function _createWrappedRequestMethodFactory(
 ): WrappedRequestMethodFactory {
   // We're caching results so we don't have to recompute regexp every time we create a request.
   const createSpanUrlMap = new LRUMap<string, boolean>(100);
-  const headersUrlMap: Record<string, boolean> = {};
+  const headersUrlMap = new LRUMap<string, boolean>(100);
 
   const shouldCreateSpan = (url: string): boolean => {
     if (tracingOptions?.shouldCreateSpanForRequest === undefined) {
@@ -160,13 +160,14 @@ function _createWrappedRequestMethodFactory(
       return true;
     }
 
-    if (headersUrlMap[url]) {
-      return headersUrlMap[url];
+    const cachedDecision = headersUrlMap.get(url);
+    if (cachedDecision !== undefined) {
+      return cachedDecision;
     }
 
-    headersUrlMap[url] = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
-
-    return headersUrlMap[url];
+    const decision = stringMatchesSomePattern(url, tracingOptions.tracePropagationTargets);
+    headersUrlMap.set(url, decision);
+    return decision;
   };
 
   return function wrappedRequestMethodFactory(originalRequestMethod: OriginalRequestMethod): WrappedRequestMethod {

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as rimraf from 'rimraf';
 
 import { ensureBundleBuildPrereqs } from '../../../scripts/ensure-bundle-deps';
+import { version } from '../package.json';
 
 /**
  * Run the given shell command, piping the shell process's `stdin`, `stdout`, and `stderr` to that of the current
@@ -46,6 +47,11 @@ async function buildLambdaLayer(): Promise<void> {
     '../build/npm/cjs/awslambda-auto.js',
     'build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/dist/awslambda-auto.js',
   );
+
+  const zipFilename = `sentry-node-serverless-${version}.zip`;
+  console.log(`Creating final layer zip file ${zipFilename}.`);
+  // need to preserve the symlink above with -y
+  run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
 }
 
 void buildLambdaLayer();

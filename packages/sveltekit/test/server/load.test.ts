@@ -48,70 +48,80 @@ function getById(_id?: string) {
   throw new Error('error');
 }
 
-const MOCK_LOAD_ARGS: any = {
-  params: { id: '123' },
-  route: {
-    id: '/users/[id]',
-  },
-  url: new URL('http://localhost:3000/users/123'),
-};
+function getLoadArgs() {
+  return {
+    params: { id: '123' },
+    route: {
+      id: '/users/[id]',
+    },
+    url: new URL('http://localhost:3000/users/123'),
+  };
+}
 
-const MOCK_LOAD_NO_ROUTE_ARGS: any = {
-  params: { id: '123' },
-  url: new URL('http://localhost:3000/users/123'),
-};
+function getLoadArgsWithoutRoute() {
+  return {
+    params: { id: '123' },
+    url: new URL('http://localhost:3000/users/123'),
+  };
+}
 
-const MOCK_SERVER_ONLY_LOAD_ARGS: any = {
-  ...MOCK_LOAD_ARGS,
-  request: {
-    method: 'GET',
-    headers: {
-      get: (key: string) => {
-        if (key === 'sentry-trace') {
-          return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
-        }
+function getServerOnlyArgs() {
+  return {
+    ...getLoadArgs(),
+    request: {
+      method: 'GET',
+      headers: {
+        get: (key: string) => {
+          if (key === 'sentry-trace') {
+            return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
+          }
 
-        if (key === 'baggage') {
-          return (
-            'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-            'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
-            'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
-          );
-        }
+          if (key === 'baggage') {
+            return (
+              'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
+              'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+              'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
+            );
+          }
 
-        return null;
+          return null;
+        },
       },
     },
-  },
-};
+  };
+}
 
-const MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS: any = {
-  ...MOCK_LOAD_ARGS,
-  request: {
-    method: 'GET',
-    headers: {
-      get: (_: string) => {
-        return null;
+function getServerArgsWithoutTracingHeaders() {
+  return {
+    ...getLoadArgs(),
+    request: {
+      method: 'GET',
+      headers: {
+        get: (_: string) => {
+          return null;
+        },
       },
     },
-  },
-};
+  };
+}
 
-const MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS: any = {
-  ...MOCK_LOAD_ARGS,
-  request: {
-    method: 'GET',
-    headers: {
-      get: (key: string) => {
-        if (key === 'sentry-trace') {
-          return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
-        }
+function getServerArgsWithoutBaggageHeader() {
+  return {
+    ...getLoadArgs(),
+    request: {
+      method: 'GET',
+      headers: {
+        get: (key: string) => {
+          if (key === 'sentry-trace') {
+            return '1234567890abcdef1234567890abcdef-1234567890abcdef-1';
+          }
 
-        return null;
+          return null;
+        },
       },
     },
-  },
-};
+  };
+}
 
 beforeAll(() => {
   addTracingExtensions();
@@ -136,7 +146,7 @@ describe.each([
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    const res = wrappedLoad(getLoadArgs());
     await expect(res).rejects.toThrow();
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
@@ -162,7 +172,7 @@ describe.each([
       }
 
       const wrappedLoad = wrapLoadWithSentry(load);
-      const res = wrappedLoad({ ...MOCK_LOAD_ARGS });
+      const res = wrappedLoad(getLoadArgs());
       await expect(res).rejects.toThrow();
 
       expect(mockCaptureException).toHaveBeenCalledTimes(times);
@@ -170,12 +180,12 @@ describe.each([
   });
 
   it("doesn't call captureException for thrown `Redirect`s", async () => {
-    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+    async function load(_params: any): Promise<ReturnType<Load>> {
       throw redirect(300, 'other/route');
     }
 
     const wrappedLoad = wrapLoadWithSentry(load);
-    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    const res = wrappedLoad(getLoadArgs());
     await expect(res).rejects.toThrow();
 
     expect(mockCaptureException).not.toHaveBeenCalled();
@@ -194,7 +204,7 @@ describe.each([
     }
 
     const wrappedLoad = sentryLoadWrapperFn.call(this, load);
-    const res = wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
+    const res = wrappedLoad(getServerOnlyArgs());
     await expect(res).rejects.toThrow();
 
     expect(addEventProcessorSpy).toBeCalledTimes(1);
@@ -206,7 +216,7 @@ describe.each([
   });
 });
 describe('wrapLoadWithSentry calls trace', () => {
-  async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+  async function load({ params }): Promise<ReturnType<Load>> {
     return {
       post: params.id,
     };
@@ -214,7 +224,7 @@ describe('wrapLoadWithSentry calls trace', () => {
 
   it('with the context of the universal load function', async () => {
     const wrappedLoad = wrapLoadWithSentry(load);
-    await wrappedLoad(MOCK_LOAD_ARGS);
+    await wrappedLoad(getLoadArgs());
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
     expect(mockTrace).toHaveBeenCalledWith(
@@ -233,7 +243,7 @@ describe('wrapLoadWithSentry calls trace', () => {
 
   it('falls back to the raw url if `event.route.id` is not available', async () => {
     const wrappedLoad = wrapLoadWithSentry(load);
-    await wrappedLoad(MOCK_LOAD_NO_ROUTE_ARGS);
+    await wrappedLoad(getLoadArgsWithoutRoute());
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
     expect(mockTrace).toHaveBeenCalledWith(
@@ -249,10 +259,17 @@ describe('wrapLoadWithSentry calls trace', () => {
       expect.any(Function),
     );
   });
+
+  it("doesn't wrap load more than once if the wrapper was applied multiple times", async () => {
+    const wrappedLoad = wrapLoadWithSentry(wrapLoadWithSentry(wrapLoadWithSentry(load)));
+    await wrappedLoad(getLoadArgs());
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('wrapServerLoadWithSentry calls trace', () => {
-  async function serverLoad({ params }: Parameters<ServerLoad>[0]): Promise<ReturnType<ServerLoad>> {
+  async function serverLoad({ params }): Promise<ReturnType<ServerLoad>> {
     return {
       post: params.id,
     };
@@ -260,7 +277,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
   it('attaches trace data if available', async () => {
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
-    await wrappedLoad(MOCK_SERVER_ONLY_LOAD_ARGS);
+    await wrappedLoad(getServerOnlyArgs());
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
     expect(mockTrace).toHaveBeenCalledWith(
@@ -294,7 +311,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
   it("doesn't attach trace data if it's not available", async () => {
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
-    await wrappedLoad(MOCK_SERVER_ONLY_NO_TRACE_LOAD_ARGS);
+    await wrappedLoad(getServerArgsWithoutTracingHeaders());
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
     expect(mockTrace).toHaveBeenCalledWith(
@@ -316,7 +333,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
   it("doesn't attach the DSC data if the baggage header not available", async () => {
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
-    await wrappedLoad(MOCK_SERVER_ONLY_NO_BAGGAGE_LOAD_ARGS);
+    await wrappedLoad(getServerArgsWithoutBaggageHeader());
 
     expect(mockTrace).toHaveBeenCalledTimes(1);
     expect(mockTrace).toHaveBeenCalledWith(
@@ -341,7 +358,8 @@ describe('wrapServerLoadWithSentry calls trace', () => {
   });
 
   it('falls back to the raw url if `event.route.id` is not available', async () => {
-    const event = { ...MOCK_SERVER_ONLY_LOAD_ARGS };
+    const event = getServerOnlyArgs();
+    // @ts-ignore - this is fine (just tests here)
     delete event.route;
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(event);
@@ -374,5 +392,12 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       expect.any(Function),
       expect.any(Function),
     );
+  });
+
+  it("doesn't wrap server load more than once if the wrapper was applied multiple times", async () => {
+    const wrappedLoad = wrapServerLoadWithSentry(wrapServerLoadWithSentry(serverLoad));
+    await wrappedLoad(getServerOnlyArgs());
+
+    expect(mockTrace).toHaveBeenCalledTimes(1);
   });
 });

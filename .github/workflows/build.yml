@@ -253,43 +253,6 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_pack_aws_lambda_layer:
-    name: Pack and Upload AWS Lambda Layer
-    needs: [job_get_metadata, job_build]
-    # only upload the zipped layer file if we're about to release
-    if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Get SDK version
-        # `jq` reads JSON files, and `tee` pipes its input to the given location and to stdout. (Adding `-a` is the
-        # equivalent of using >> rather than >.)
-        run: |
-          export SDK_VERSION=$(cat packages/core/package.json | jq --raw-output '.version')
-          echo "SDK_VERSION=$SDK_VERSION" | tee -a $GITHUB_ENV
-      - name: Move dist-serverless to root directory (requirement for zipping action)
-        run: |
-          mv ./packages/serverless/build/aws/dist-serverless .
-      - name: Create and upload final zip file
-        uses: getsentry/action-build-aws-lambda-extension@v1
-        with:
-          artifact_name: ${{ env.HEAD_COMMIT }}
-          zip_file_name: sentry-node-serverless-${{ env.SDK_VERSION }}.zip
-          build_cache_paths: ${{ env.CACHED_BUILD_PATHS }}
-          build_cache_key: ${{ env.BUILD_CACHE_KEY }}
-
   job_size_check:
     name: Size Check
     needs: [job_get_metadata, job_build]
@@ -399,6 +362,7 @@ jobs:
             ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
+            ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
 
   job_browser_unit_tests:
     name: Browser Unit Tests

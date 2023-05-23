@@ -2,6 +2,7 @@ import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { AddEventResult, RecordingEvent, ReplayContainer } from '../types';
+import { EventType } from '../types/rrweb';
 import { timestampToMs } from './timestampToMs';
 
 /**
@@ -38,7 +39,18 @@ export async function addEvent(
       replay.eventBuffer.clear();
     }
 
-    return await replay.eventBuffer.addEvent(event);
+    const replayOptions = replay.getOptions();
+
+    const eventAfterPossibleCallback =
+      typeof replayOptions.beforeAddRecordingEvent === 'function' && event.type === EventType.Custom
+        ? replayOptions.beforeAddRecordingEvent(event)
+        : event;
+
+    if (!eventAfterPossibleCallback) {
+      return;
+    }
+
+    return await replay.eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
     __DEBUG_BUILD__ && logger.error(error);
     await replay.stop('addEvent');

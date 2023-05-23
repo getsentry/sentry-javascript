@@ -38,7 +38,7 @@ const REPLAY_EVENT: ReplayEvent = {
   replay_type: 'buffer',
 };
 
-const DSN = dsnFromString('https://public@dsn.ingest.sentry.io/1337');
+const DSN = dsnFromString('https://public@dsn.ingest.sentry.io/1337')!;
 
 const DATA = 'nothing';
 
