@@ -4,6 +4,8 @@
   </a>
 </p>
 
+> ⚠️ **Deprecation Notice:** From SDK versions >= `7.47.0` onwards, the `@sentry/tracing` package is officially deprecated. This package will be removed in a future major release. More details can be found in the [migration docs](https://github.com/getsentry/sentry-javascript/blob/7.47.0/MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460).
+
 # Sentry Tracing Extensions
 
 [![npm version](https://img.shields.io/npm/v/@sentry/tracing.svg)](https://www.npmjs.com/package/@sentry/tracing)

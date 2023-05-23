@@ -9,7 +9,7 @@ import next from 'next';
 // Type not exported from NextJS
 // @ts-ignore
 export const createNextServer = async config => {
-  const app = next(config);
+  const app = next({ ...config, customServer: false }); // customServer: false because: https://github.com/vercel/next.js/pull/49805#issuecomment-1557321794
   const handle = app.getRequestHandler();
   await app.prepare();
 
