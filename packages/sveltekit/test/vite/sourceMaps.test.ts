@@ -6,7 +6,7 @@ const mockedSentryVitePlugin = {
   buildStart: vi.fn(),
   resolveId: vi.fn(),
   renderChunk: vi.fn(),
-  transform: vi.fn(),
+  transform: vi.fn().mockImplementation((code: string, _id: string) => code),
   writeBundle: vi.fn(),
 };
 
@@ -52,6 +52,15 @@ describe('makeCustomSentryVitePlugin()', () => {
         },
         test: {},
       });
+    });
+
+    it('injects the output dir into the server hooks file', async () => {
+      const plugin = await makeCustomSentryVitePlugin();
+      // @ts-ignore this function exists!
+      const transformedCode = await plugin.transform('foo', '/src/hooks.server.ts');
+      const expectedtransformedCode = 'foo\nglobal.__sentry_sveltekit_output_dir = ".svelte-kit/output";\n';
+      expect(mockedSentryVitePlugin.transform).toHaveBeenCalledWith(expectedtransformedCode, '/src/hooks.server.ts');
+      expect(transformedCode).toEqual(expectedtransformedCode);
     });
 
     it('uploads source maps during the SSR build', async () => {

@@ -11,7 +11,8 @@ import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
-import { getAdapterOutputDir, loadSvelteConfig } from './svelteConfig';
+import type { SupportedSvelteKitAdapters } from './detectAdapter';
+import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
 
 // sorcery has no types, so these are some basic type definitions:
 type Chain = {
@@ -24,6 +25,10 @@ type Sorcery = {
 
 type SentryVitePluginOptionsOptionalInclude = Omit<SentryVitePluginOptions, 'include'> & {
   include?: SentryVitePluginOptions['include'];
+};
+
+type CustomSentryVitePluginOptions = SentryVitePluginOptionsOptionalInclude & {
+  adapter: SupportedSvelteKitAdapters;
 };
 
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
@@ -46,18 +51,15 @@ const release = detectSentryRelease();
  *
  * @returns the custom Sentry Vite plugin
  */
-export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptionsOptionalInclude): Promise<Plugin> {
+export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePluginOptions): Promise<Plugin> {
   const svelteConfig = await loadSvelteConfig();
 
-  const outputDir = await getAdapterOutputDir(svelteConfig);
+  const usedAdapter = options?.adapter || 'other';
+  const outputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
   const hasSentryProperties = fs.existsSync(path.resolve(process.cwd(), 'sentry.properties'));
 
   const defaultPluginOptions: SentryVitePluginOptions = {
-    include: [
-      { paths: [`${outputDir}/client`] },
-      { paths: [`${outputDir}/server/chunks`] },
-      { paths: [`${outputDir}/server`], ignore: ['chunks/**'] },
-    ],
+    include: [{ paths: [`${outputDir}/client`] }, { paths: [`${outputDir}/server`] }],
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
     release,
   };
@@ -74,6 +76,8 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
 
   let isSSRBuild = true;
 
+  const serverHooksFile = getHooksFileName(svelteConfig, 'server');
+
   const customPlugin: Plugin = {
     name: 'sentry-upload-source-maps',
     apply: 'build', // only apply this plugin at build time
@@ -84,7 +88,6 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
     buildStart,
     resolveId,
     renderChunk,
-    transform,
 
     // Modify the config to generate source maps
     config: config => {
@@ -107,6 +110,18 @@ export async function makeCustomSentryVitePlugin(options?: SentryVitePluginOptio
       if (!config.build.ssr) {
         isSSRBuild = false;
       }
+    },
+
+    transform: async (code, id) => {
+      let modifiedCode = code;
+      const isServerHooksFile = new RegExp(`\/${escapeStringForRegex(serverHooksFile)}(\.(js|ts|mjs|mts))?`).test(id);
+
+      if (isServerHooksFile) {
+        let injectedCode = `global.__sentry_sveltekit_output_dir = "${outputDir || 'undefined'}";\n`;
+        modifiedCode = `${code}\n${injectedCode}`;
+      }
+      // @ts-ignore - this hook exists on the plugin!
+      return sentryPlugin.transform(modifiedCode, id);
     },
 
     // We need to start uploading source maps later than in the original plugin

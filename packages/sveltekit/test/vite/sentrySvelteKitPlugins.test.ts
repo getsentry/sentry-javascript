@@ -72,6 +72,7 @@ describe('sentrySvelteKit()', () => {
         ignore: ['bar.js'],
       },
       autoInstrument: false,
+      adapter: 'vercel',
     });
     const plugin = plugins[0];
 
@@ -80,6 +81,7 @@ describe('sentrySvelteKit()', () => {
       debug: true,
       ignore: ['bar.js'],
       include: ['foo.js'],
+      adapter: 'vercel',
     });
   });
 
