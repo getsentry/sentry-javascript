@@ -5,6 +5,16 @@ import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/u
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
 
+const DEFAULT_IGNORE_TRANSACTIONS = [
+  /^.*healthcheck.*$/,
+  /^.*healthy.*$/,
+  /^.*live.*$/,
+  /^.*ready.*$/,
+  /^.*heartbeat.*$/,
+  /^.*\/health$/,
+  /^.*\/healthz$/
+];
+
 /** Options for the InboundFilters integration */
 export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
@@ -26,7 +36,7 @@ export class InboundFilters implements Integration {
    */
   public name: string = InboundFilters.id;
 
-  public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) {}
+  public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) { }
 
   /**
    * @inheritDoc
@@ -64,7 +74,11 @@ export function _mergeOptions(
       ...(clientOptions.ignoreErrors || []),
       ...DEFAULT_IGNORE_ERRORS,
     ],
-    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
+    ignoreTransactions: [
+      ...(internalOptions.ignoreTransactions || []),
+      ...(clientOptions.ignoreTransactions || []),
+      ...DEFAULT_IGNORE_TRANSACTIONS,
+    ],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
