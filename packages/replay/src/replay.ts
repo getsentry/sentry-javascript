@@ -327,7 +327,9 @@ export class ReplayContainer implements ReplayContainerInterface {
       this._debouncedFlush.cancel();
       // See comment above re: `_isEnabled`, we "force" a flush, ignoring the
       // `_isEnabled` state of the plugin since it was disabled above.
-      await this._flush({ force: true });
+      if (this.recordingMode === 'session') {
+        await this._flush({ force: true });
+      }
 
       // After flush, destroy event buffer
       this.eventBuffer && this.eventBuffer.destroy();
