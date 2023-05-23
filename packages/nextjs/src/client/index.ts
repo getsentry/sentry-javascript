@@ -123,6 +123,13 @@ function addClientIntegrations(options: BrowserOptions): void {
   options.integrations = integrations;
 }
 
+/**
+ * Just a passthrough in case this is imported from the client.
+ */
+export function withSentryConfig<T>(exportedUserNextConfig: T): T {
+  return exportedUserNextConfig;
+}
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   withSentryServerSideGetInitialProps,
