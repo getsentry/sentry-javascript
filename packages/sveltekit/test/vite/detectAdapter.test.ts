@@ -24,11 +24,19 @@ describe('detectAdapter', () => {
     };
   });
 
-  it.each(['auto', 'vercel', 'node'])('returns the adapter name (adapter %s)', async adapter => {
-    pkgJson.dependencies[`@sveltejs/adapter-${adapter}`] = '1.0.0';
-    const detectedAdapter = await detectAdapter();
-    expect(detectedAdapter).toEqual(adapter);
-  });
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+  it.each(['auto', 'vercel', 'node'])(
+    'returns the adapter name (adapter %s) and logs it to the console',
+    async adapter => {
+      pkgJson.dependencies[`@sveltejs/adapter-${adapter}`] = '1.0.0';
+      const detectedAdapter = await detectAdapter(true);
+      expect(detectedAdapter).toEqual(adapter);
+      expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining(`Detected SvelteKit ${adapter} adapter`));
+    },
+  );
 
   it('returns "other" if no supported adapter was found', async () => {
     pkgJson.dependencies['@sveltejs/adapter-netlify'] = '1.0.0';
@@ -36,10 +44,15 @@ describe('detectAdapter', () => {
     expect(detectedAdapter).toEqual('other');
   });
 
-  it('returns "other" if package.json isnt available and emits a warning log', async () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('logs a warning if in debug mode and no supported adapter was found', async () => {
+    pkgJson.dependencies['@sveltejs/adapter-netlify'] = '1.0.0';
+    const detectedAdapter = await detectAdapter(true);
+    expect(detectedAdapter).toEqual('other');
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining("Couldn't detect SvelteKit adapter"));
+  });
 
+  it('returns "other" if package.json isnt available and emits a warning log', async () => {
     existsFile = false;
     const detectedAdapter = await detectAdapter();
     expect(detectedAdapter).toEqual('other');

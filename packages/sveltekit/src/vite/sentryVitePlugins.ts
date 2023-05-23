@@ -79,6 +79,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
+    adapter: options.adapter || (await detectAdapter(options.debug || false)),
   };
 
   const sentryPlugins: Plugin[] = [];
@@ -99,10 +100,6 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    // TODO: pass to makeCosutmSentryVitePlugin
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const adapter = mergedOptions.adapter || (await detectAdapter());
-
     const pluginOptions = {
       ...mergedOptions.sourceMapsUploadOptions,
       debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
