@@ -8,13 +8,14 @@ import type {
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
+import type { AllPerformanceEntry } from './performance';
 import type { eventWithTime, recordOptions } from './types/rrweb';
 import type { SKIPPED, THROTTLED } from './util/throttle';
 
+export * from './types/replayFrame';
+
 export type RecordingEvent = eventWithTime;
 export type RecordingOptions = recordOptions;
-
-export type AllPerformanceEntry = PerformancePaintTiming | PerformanceResourceTiming | PerformanceNavigationTiming;
 
 export interface SendReplayData {
   recordingData: ReplayRecordingData;
@@ -40,138 +41,6 @@ export interface WorkerRequest {
   method: 'clear' | 'addEvent' | 'finish';
   arg?: string;
 }
-
-// PerformancePaintTiming and PerformanceNavigationTiming are only available with TS 4.4 and newer
-// Therefore, we're exporting them here to make them available in older TS versions
-export type PerformancePaintTiming = PerformanceEntry;
-export type PerformanceNavigationTiming = PerformanceEntry &
-  PerformanceResourceTiming & {
-    type: string;
-    transferSize: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the user agent
-     * sets the document's readyState to "interactive".
-     */
-    domInteractive: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the current
-     * document's DOMContentLoaded event handler starts.
-     */
-    domContentLoadedEventStart: number;
-    /**
-     * A DOMHighResTimeStamp representing the time immediately after the current
-     * document's DOMContentLoaded event handler completes.
-     */
-    domContentLoadedEventEnd: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the current
-     * document's load event handler starts.
-     */
-    loadEventStart: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately after the current
-     * document's load event handler completes.
-     */
-    loadEventEnd: number;
-
-    /**
-     * A DOMHighResTimeStamp representing the time immediately before the user agent
-     * sets the document's readyState to "complete".
-     */
-    domComplete: number;
-
-    /**
-     * A number representing the number of redirects since the last non-redirect
-     * navigation in the current browsing context.
-     */
-    redirectCount: number;
-  };
-export type ExperimentalPerformanceResourceTiming = PerformanceResourceTiming & {
-  // Experimental, see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
-  // Requires Chrome 109
-  responseStatus?: number;
-};
-
-export type PaintData = undefined;
-
-/**
- * See https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming
- *
- * Note `navigation.push` will not have any data
- */
-export type NavigationData = Partial<
-  Pick<
-    PerformanceNavigationTiming,
-    | 'decodedBodySize'
-    | 'encodedBodySize'
-    | 'duration'
-    | 'domInteractive'
-    | 'domContentLoadedEventEnd'
-    | 'domContentLoadedEventStart'
-    | 'loadEventStart'
-    | 'loadEventEnd'
-    | 'domComplete'
-    | 'redirectCount'
-  >
-> & {
-  /**
-   * Transfer size of resource
-   */
-  size?: number;
-};
-
-export type ResourceData = Pick<PerformanceResourceTiming, 'decodedBodySize' | 'encodedBodySize'> & {
-  /**
-   * Transfer size of resource
-   */
-  size: number;
-  /**
-   * HTTP status code. Note this is experimental and not available on all browsers.
-   */
-  statusCode?: number;
-};
-
-export interface LargestContentfulPaintData {
-  /**
-   * Render time (in ms) of the LCP
-   */
-  value: number;
-  size: number;
-  /**
-   * The recording id of the LCP node. -1 if not found
-   */
-  nodeId?: number;
-}
-
-/**
- * Entries that come from window.performance
- */
-export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData;
-
-export interface MemoryData {
-  memory: {
-    jsHeapSizeLimit: number;
-    totalJSHeapSize: number;
-    usedJSHeapSize: number;
-  };
-}
-
-export interface NetworkRequestData {
-  method?: string;
-  statusCode?: number;
-  requestBodySize?: number;
-  responseBodySize?: number;
-}
-
-export interface HistoryData {
-  previous: string;
-}
-
-export type AllEntryData = AllPerformanceEntryData | MemoryData | NetworkRequestData | HistoryData;
 
 /**
  * The response from the worker
@@ -563,33 +432,6 @@ export interface ReplayContainer {
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
   getCurrentRoute(): string | undefined;
-}
-
-export interface ReplayPerformanceEntry<T> {
-  /**
-   * One of these types https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/entryType
-   */
-  type: string;
-
-  /**
-   * A more specific description of the performance entry
-   */
-  name: string;
-
-  /**
-   * The start timestamp in seconds
-   */
-  start: number;
-
-  /**
-   * The end timestamp in seconds
-   */
-  end: number;
-
-  /**
-   * Additional unstructured data to be included
-   */
-  data: T;
 }
 
 type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;

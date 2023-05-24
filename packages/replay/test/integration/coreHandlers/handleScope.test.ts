@@ -23,10 +23,10 @@ describe('Integration | coreHandlers | handleScope', () => {
 
     expect(mockHandleScopeListener).toHaveBeenCalledTimes(1);
 
-    getCurrentHub().getScope()?.addBreadcrumb({ message: 'testing' });
+    getCurrentHub().getScope()?.addBreadcrumb({ category: 'console', message: 'testing' });
 
     expect(mockHandleScope).toHaveBeenCalledTimes(1);
-    expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ message: 'testing' }));
+    expect(mockHandleScope).toHaveReturnedWith(expect.objectContaining({ category: 'console', message: 'testing' }));
 
     mockHandleScope.mockClear();
 
