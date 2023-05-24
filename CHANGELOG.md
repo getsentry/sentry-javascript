@@ -2,8 +2,15 @@
 
 ## Unreleased
 
-
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 7.53.1
+
+- chore(deps): bump socket.io-parser from 4.2.1 to 4.2.3 (#8196)
+- chore(svelte): Bump magic-string to 0.30.0 (#8197)
+- fix(core): Fix racecondition that modifies in-flight sessions (#8203)
+- fix(node): Catch `os.uptime()` throwing because of EPERM (#8206)
+- fix(replay): Fix buffered replays creating replay w/o error occuring (#8168)
 
 ## 7.53.0
 
