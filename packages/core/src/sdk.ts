@@ -2,6 +2,7 @@ import type { Client, ClientOptions } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './hub';
+import { wrapErrorClass } from './utils/wrapErrorClass';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -32,4 +33,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 
   const client = new clientClass(options);
   hub.bindClient(client);
+
+  // Make it so that Errors always have the correct `name` property, even if they're `Error` subclasses
+  wrapErrorClass();
 }

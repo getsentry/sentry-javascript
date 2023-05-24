@@ -16,10 +16,25 @@ import type { Integration } from '@sentry/types';
 
 import type { SdkSource } from './env';
 
+// This and the `ErrorConstructor` interface are based on the TS definitions, with the optional `cause` property added in.
+interface Error {
+  name: string;
+  message: string;
+  stack?: string;
+  cause?: unknown;
+}
+
+interface ErrorConstructor {
+  (message?: string, options?: { cause?: unknown }): Error;
+  readonly prototype: Error;
+  new (message?: string): Error;
+}
+
 /** Internal global with common properties and Sentry extensions  */
 export interface InternalGlobal {
   navigator?: { userAgent?: string };
   console: Console;
+  Error: ErrorConstructor;
   Sentry?: {
     Integrations?: Integration[];
   };

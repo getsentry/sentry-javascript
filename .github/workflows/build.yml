@@ -2,9 +2,9 @@ name: 'Build & Test'
 on:
   push:
     branches:
-      - develop
-      - master
-      - release/**
+      # - develop
+      # - master
+      # - release/**
   pull_request:
   workflow_dispatch:
     inputs:
