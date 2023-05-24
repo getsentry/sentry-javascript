@@ -58,7 +58,10 @@ describe('detectAdapter', () => {
     expect(detectedAdapter).toEqual('other');
 
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
-    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Couldn't load package.json"),
+      expect.any(Error),
+    );
   });
 
   it('prefers all other adapters over adapter auto', async () => {

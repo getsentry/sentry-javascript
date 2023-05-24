@@ -14,14 +14,14 @@ export type SupportedSvelteKitAdapters = 'node' | 'auto' | 'vercel' | 'other';
 export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKitAdapters> {
   const pkgJson = await loadPackageJson();
 
-  const allDependencies = [...Object.keys(pkgJson.dependencies || {}), ...Object.keys(pkgJson.devDependencies || {})];
+  const allDependencies = pkgJson ? { ...pkgJson.dependencies, ...pkgJson.devDependencies } : {};
 
   let adapter: SupportedSvelteKitAdapters = 'other';
-  if (allDependencies.find(dep => dep === '@sveltejs/adapter-vercel')) {
+  if (allDependencies['@sveltejs/adapter-vercel']) {
     adapter = 'vercel';
-  } else if (allDependencies.find(dep => dep === '@sveltejs/adapter-node')) {
+  } else if (allDependencies['@sveltejs/adapter-node']) {
     adapter = 'node';
-  } else if (allDependencies.find(dep => dep === '@sveltejs/adapter-auto')) {
+  } else if (allDependencies['@sveltejs/adapter-auto']) {
     adapter = 'auto';
   }
 
@@ -43,12 +43,12 @@ export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKit
 /**
  * Imports the pacakge.json file and returns the parsed JSON object.
  */
-async function loadPackageJson(): Promise<Partial<Package>> {
+async function loadPackageJson(): Promise<Package | undefined> {
   const pkgFile = path.join(process.cwd(), 'package.json');
 
   try {
     if (!fs.existsSync(pkgFile)) {
-      throw `File ${pkgFile} doesn't exist}`;
+      throw new Error(`File ${pkgFile} doesn't exist}`);
     }
 
     const pkgJsonContent = (await fs.promises.readFile(pkgFile, 'utf-8')).toString();
@@ -56,10 +56,7 @@ async function loadPackageJson(): Promise<Partial<Package>> {
     return JSON.parse(pkgJsonContent);
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.warn("[Sentry SvelteKit Plugin] Couldn't load package.json:");
-    // eslint-disable-next-line no-console
-    console.log(e);
-
-    return {};
+    console.warn("[Sentry SvelteKit Plugin] Couldn't load package.json:", e);
+    return undefined;
   }
 }
