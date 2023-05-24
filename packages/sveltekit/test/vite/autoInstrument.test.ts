@@ -188,7 +188,7 @@ describe('canWrapLoad', () => {
       `import type { LayoutLoad } from './$types';
        export const load :  LayoutLoad = async () => { return { props: { msg: "hi" } } }`,
     ],
-  ])('returns `true` if a load declaration  (%s) exists and no Sentry code was found', async (_, code) => {
+  ])('returns `true` if a load declaration  (%s) exists', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
   });
@@ -208,13 +208,5 @@ describe('canWrapLoad', () => {
   ])('returns `false` if no load declaration exists', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
-  });
-
-  it.each([
-    'import * as Sentry from "@sentry/sveltekit"; export const prerender = true;',
-    'export const a = 1; import { init } from "@sentry/sveltekit"; export const load = () => {}',
-  ])('returns `false` if Sentry code was found', async code => {
-    fileContent = code;
-    expect(await canWrapLoad('+page.ts', false)).toEqual(false);
   });
 });

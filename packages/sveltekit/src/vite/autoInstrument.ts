@@ -93,13 +93,6 @@ export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> 
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
   const mod = parseModule(code);
 
-  const hasSentryContent = mod.imports.$items.find(importExpression => importExpression.from === '@sentry/sveltekit');
-  if (hasSentryContent) {
-    // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrapping ${id} because it already contains Sentry code`);
-    return false;
-  }
-
   const program = mod.$ast.type === 'Program' && mod.$ast;
   if (!program) {
     // eslint-disable-next-line no-console
