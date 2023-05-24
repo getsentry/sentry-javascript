@@ -320,6 +320,24 @@ describe('handleSentry', () => {
 
       expect(ref).toBeUndefined();
     });
+
+    it("Creates a transaction if there's no route but `handleUnknownRequests` is true", async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', (transaction: Transaction) => {
+        ref = transaction;
+      });
+
+      try {
+        await sentryHandle({ handleUnknownRoutes: true })({
+          event: mockEvent({ route: undefined }),
+          resolve: resolve(type, isError),
+        });
+      } catch {
+        //
+      }
+
+      expect(ref).toBeDefined();
+    });
   });
 });
 
