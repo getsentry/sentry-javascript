@@ -7,6 +7,24 @@ import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { getTracePropagationData } from './utils';
 
+export type SentryHandleOptions = {
+  /**
+   * Controls whether the SDK should capture errors and traces in requests that don't belong to a
+   * route defined in your SvelteKit application.
+   *
+   * By default, this option is set to `false` to reduce noise (e.g. bots sending random requests to your server).
+   *
+   * Set this option to `true` if you want to monitor requests events without a route. This might be useful in certain
+   * scenarios, for instance if you registered other handlers that handle these requests.
+   * If you set this option, you might want adjust the the transaction name in the `beforeSendTransaction`
+   * callback of your server-side `Sentry.init` options. You can also use `beforeSendTransaction` to filter out
+   * transactions that you still don't want to be sent to Sentry.
+   *
+   * @default false
+   */
+  handleUnknownRoutes?: boolean;
+};
+
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
   // store a seen flag on it.
@@ -59,33 +77,42 @@ export const transformPageChunk: NonNullable<ResolveOptions['transformPageChunk'
  * // export const handle = sequence(sentryHandle(), yourCustomHandler);
  * ```
  */
-export function sentryHandle(): Handle {
+export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
+  const options = {
+    handleUnknownRoutes: false,
+    ...handlerOptions,
+  };
+
+  const sentryRequestHandler: Handle = input => {
+    // if there is an active transaction, we know that this handle call is nested and hence
+    // we don't create a new domain for it. If we created one, nested server calls would
+    // create new transactions instead of adding a child span to the currently active span.
+    if (getCurrentHub().getScope().getSpan()) {
+      return instrumentHandle(input, options);
+    }
+    return runWithAsyncContext(() => {
+      return instrumentHandle(input, options);
+    });
+  };
+
   return sentryRequestHandler;
 }
 
-const sentryRequestHandler: Handle = input => {
-  // if there is an active transaction, we know that this handle call is nested and hence
-  // we don't create a new domain for it. If we created one, nested server calls would
-  // create new transactions instead of adding a child span to the currently active span.
-  if (getCurrentHub().getScope().getSpan()) {
-    return instrumentHandle(input);
+function instrumentHandle({ event, resolve }: Parameters<Handle>[0], options: SentryHandleOptions): ReturnType<Handle> {
+  if (!event.route?.id && !options.handleUnknownRoutes) {
+    return resolve(event);
   }
-  return runWithAsyncContext(() => {
-    return instrumentHandle(input);
-  });
-};
 
-function instrumentHandle({ event, resolve }: Parameters<Handle>[0]): ReturnType<Handle> {
   const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
 
   return trace(
     {
       op: 'http.server',
-      name: `${event.request.method} ${event.route.id}`,
+      name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
       status: 'ok',
       ...traceparentData,
       metadata: {
-        source: 'route',
+        source: event.route?.id ? 'route' : 'url',
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
     },

@@ -305,6 +305,21 @@ describe('handleSentry', () => {
       expect(mockResolve).toHaveBeenCalledTimes(1);
       expect(mockResolve).toHaveBeenCalledWith(event, { transformPageChunk: expect.any(Function) });
     });
+
+    it("doesn't create a transaction if there's no route", async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', (transaction: Transaction) => {
+        ref = transaction;
+      });
+
+      try {
+        await sentryHandle()({ event: mockEvent({ route: undefined }), resolve: resolve(type, isError) });
+      } catch {
+        //
+      }
+
+      expect(ref).toBeUndefined();
+    });
   });
 });
 
