@@ -121,6 +121,7 @@ describe('canWrapLoad', () => {
     ['export variable declaration - function pointer', 'export const load=   loadPageData'],
     ['export variable declaration - factory function call', 'export const load    =loadPageData()'],
     ['export variable declaration - inline function', 'export const load = () => { return { props: { msg: "hi" } } }'],
+    ['export variable declaration - inline function let', 'export let load = () => {}'],
     [
       'export variable declaration - inline async function',
       'export const load = async () => { return { props: { msg: "hi" } } }',
@@ -139,14 +140,14 @@ describe('canWrapLoad', () => {
       'variable declaration (let)',
       `import {something} from 'somewhere';
       let load = async () => {};
-      export prerender = true;
+      export const prerender = true;
       export { load}`,
     ],
     [
       'variable declaration (var)',
       `import {something} from 'somewhere';
       var    load=async () => {};
-      export prerender = true;
+      export const prerender = true;
       export { load}`,
     ],
 
@@ -176,13 +177,18 @@ describe('canWrapLoad', () => {
        async function somethingElse(){};
        export { somethingElse as  load, foo }`,
     ],
-
+    [
+      'function declaration with different string literal name',
+      `import { foo } from 'somewhere';
+       async function somethingElse(){};
+       export { somethingElse as "load", foo }`,
+    ],
     [
       'export variable declaration - inline function with assigned type',
       `import type { LayoutLoad } from './$types';
        export const load :  LayoutLoad = async () => { return { props: { msg: "hi" } } }`,
     ],
-  ])('returns `true` if a load declaration  (%s) exists and no Sentry code was found', async (_, code) => {
+  ])('returns `true` if a load declaration  (%s) exists', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
   });
@@ -202,15 +208,5 @@ describe('canWrapLoad', () => {
   ])('returns `false` if no load declaration exists', async (_, code) => {
     fileContent = code;
     expect(await canWrapLoad('+page.ts', false)).toEqual(true);
-  });
-
-  it('returns `false` if Sentry code was found', async () => {
-    fileContent = 'import * as Sentry from "@sentry/sveltekit";';
-    expect(await canWrapLoad('+page.ts', false)).toEqual(false);
-  });
-
-  it('returns `false` if Sentry code was found', async () => {
-    fileContent = 'import * as Sentry from "@sentry/sveltekit";';
-    expect(await canWrapLoad('+page.ts', false)).toEqual(false);
   });
 });
