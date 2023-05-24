@@ -19,7 +19,7 @@
     "@sentry/browser": "7.53.0",
     "@sentry/types": "7.53.0",
     "@sentry/utils": "7.53.0",
-    "magic-string": "^0.26.2",
+    "magic-string": "^0.30.0",
     "tslib": "^1.9.3"
   },
   "peerDependencies": {

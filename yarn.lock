@@ -17958,13 +17958,6 @@ magic-string@^0.25.0, magic-string@^0.25.1, magic-string@^0.25.7:
   dependencies:
     sourcemap-codec "^1.4.8"
 
-magic-string@^0.26.2:
-  version "0.26.3"
-  resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.26.3.tgz#25840b875140f7b4785ab06bddc384270b7dd452"
-  integrity sha512-u1Po0NDyFcwdg2nzHT88wSK0+Rih0N1M+Ph1Sp08k8yvFFU3KR72wryS7e1qMPJypt99WB7fIFVCA92mQrMjrg==
-  dependencies:
-    sourcemap-codec "^1.4.8"
-
 magic-string@^0.29.0:
   version "0.29.0"
   resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.29.0.tgz#f034f79f8c43dba4ae1730ffb5e8c4e084b16cf3"
