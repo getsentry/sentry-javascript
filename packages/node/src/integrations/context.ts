@@ -195,10 +195,17 @@ function getAppContext(): AppContext {
 export function getDeviceContext(deviceOpt: DeviceContextOptions | true): DeviceContext {
   const device: DeviceContext = {};
 
+  // Sometimes os.uptime() throws due to lacking permissions: https://github.com/getsentry/sentry-javascript/issues/8202
+  let uptime;
+  try {
+    uptime = os.uptime && os.uptime();
+  } catch (e) {
+    // noop
+  }
+
   // os.uptime or its return value seem to be undefined in certain environments (e.g. Azure functions).
   // Hence, we only set boot time, if we get a valid uptime value.
   // @see https://github.com/getsentry/sentry-javascript/issues/5856
-  const uptime = os.uptime && os.uptime();
   if (typeof uptime === 'number') {
     device.boot_time = new Date(Date.now() - uptime * 1000).toISOString();
   }
