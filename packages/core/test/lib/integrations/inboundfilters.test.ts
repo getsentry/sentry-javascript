@@ -392,6 +392,14 @@ describe('InboundFilters', () => {
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
       expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
     });
+
+    it('disable default filters', () => {
+      const eventProcessor = createInboundFiltersEventProcessor({ disableDefaults: true });
+      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(TRANSACTION_EVENT_HEALTH);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
+      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
+    });
   });
 
   describe('denyUrls/allowUrls', () => {

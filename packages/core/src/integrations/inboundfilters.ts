@@ -22,6 +22,7 @@ export interface InboundFiltersOptions {
   ignoreErrors: Array<string | RegExp>;
   ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
+  disableDefaults: boolean;
 }
 
 /** Inbound filters configurable by the user */
@@ -66,18 +67,22 @@ export function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
+
+  if (internalOptions.disableDefaults === true) {
+
+  }
   return {
     allowUrls: [...(internalOptions.allowUrls || []), ...(clientOptions.allowUrls || [])],
     denyUrls: [...(internalOptions.denyUrls || []), ...(clientOptions.denyUrls || [])],
     ignoreErrors: [
       ...(internalOptions.ignoreErrors || []),
       ...(clientOptions.ignoreErrors || []),
-      ...DEFAULT_IGNORE_ERRORS,
+      ...(internalOptions.disableDefaults === true ? [] : DEFAULT_IGNORE_ERRORS),
     ],
     ignoreTransactions: [
       ...(internalOptions.ignoreTransactions || []),
       ...(clientOptions.ignoreTransactions || []),
-      ...DEFAULT_IGNORE_TRANSACTIONS,
+      ...(internalOptions.disableDefaults === true ? [] : DEFAULT_IGNORE_TRANSACTIONS),
     ],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
