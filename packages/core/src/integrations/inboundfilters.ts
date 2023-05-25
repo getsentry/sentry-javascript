@@ -12,7 +12,7 @@ const DEFAULT_IGNORE_TRANSACTIONS = [
   /^.*ready.*$/,
   /^.*heartbeat.*$/,
   /^.*\/health$/,
-  /^.*\/healthz$/
+  /^.*\/healthz$/,
 ];
 
 /** Options for the InboundFilters integration */
@@ -37,7 +37,7 @@ export class InboundFilters implements Integration {
    */
   public name: string = InboundFilters.id;
 
-  public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) { }
+  public constructor(private readonly _options: Partial<InboundFiltersOptions> = {}) {}
 
   /**
    * @inheritDoc
