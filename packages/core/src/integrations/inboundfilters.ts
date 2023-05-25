@@ -67,10 +67,6 @@ export function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
   clientOptions: Partial<InboundFiltersOptions> = {},
 ): Partial<InboundFiltersOptions> {
-
-  if (internalOptions.disableDefaults === true) {
-
-  }
   return {
     allowUrls: [...(internalOptions.allowUrls || []), ...(clientOptions.allowUrls || [])],
     denyUrls: [...(internalOptions.denyUrls || []), ...(clientOptions.denyUrls || [])],
