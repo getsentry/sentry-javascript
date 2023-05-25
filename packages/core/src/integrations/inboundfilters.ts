@@ -73,7 +73,7 @@ export function _mergeOptions(
     ignoreErrors: [
       ...(internalOptions.ignoreErrors || []),
       ...(clientOptions.ignoreErrors || []),
-      ...(internalOptions.disableDefaults === true ? [] : DEFAULT_IGNORE_ERRORS),
+      ...(internalOptions.disableDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
     ignoreTransactions: [
       ...(internalOptions.ignoreTransactions || []),
