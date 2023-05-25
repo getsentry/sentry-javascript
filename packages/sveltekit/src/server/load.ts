@@ -3,18 +3,14 @@ import { trace } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { TransactionContext } from '@sentry/types';
 import { addExceptionMechanism, addNonEnumerableProperty, objectify } from '@sentry/utils';
-import type { HttpError, LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
+import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
-import { isRedirect } from '../common/utils';
+import { isHttpError, isRedirect } from '../common/utils';
 import { getTracePropagationData } from './utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
 type PatchedServerLoadEvent = ServerLoadEvent & SentryWrappedFlag;
-
-function isHttpError(err: unknown): err is HttpError {
-  return typeof err === 'object' && err !== null && 'status' in err && 'body' in err;
-}
 
 function sendErrorToSentry(e: unknown): unknown {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can

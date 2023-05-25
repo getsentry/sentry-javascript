@@ -2,6 +2,7 @@ import { addTracingExtensions, Hub, makeMain, Scope } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { sentryHandle, transformPageChunk } from '../../src/server/handle';
@@ -69,7 +70,18 @@ const enum Type {
   Async = 'async',
 }
 
-function resolve(type: Type, isError: boolean): Parameters<Handle>[0]['resolve'] {
+function resolve(
+  type: Type,
+  isError: boolean,
+  throwSpecialError?: 'redirect' | 'http',
+): Parameters<Handle>[0]['resolve'] {
+  if (throwSpecialError === 'redirect') {
+    throw redirect(302, '/redirect');
+  }
+  if (throwSpecialError === 'http') {
+    throw { status: 404, body: 'Not found' };
+  }
+
   if (type === Type.Sync) {
     return (..._args: unknown[]) => {
       if (isError) {
@@ -289,6 +301,22 @@ describe('handleSentry', () => {
           {},
           { handled: false, type: 'sveltekit', data: { function: 'handle' } },
         );
+      }
+    });
+
+    it("doesn't send redirects in a request handler to Sentry", async () => {
+      try {
+        await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'redirect') });
+      } catch (e) {
+        expect(mockCaptureException).toBeCalledTimes(0);
+      }
+    });
+
+    it("doesn't send Http 4xx errors in a request handler to Sentry", async () => {
+      try {
+        await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'http') });
+      } catch (e) {
+        expect(mockCaptureException).toBeCalledTimes(0);
       }
     });
 

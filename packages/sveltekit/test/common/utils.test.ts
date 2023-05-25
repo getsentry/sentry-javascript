@@ -1,4 +1,6 @@
-import { isRedirect } from '../../src/common/utils';
+import { redirect } from '@sveltejs/kit';
+
+import { isHttpError, isRedirect } from '../../src/common/utils';
 
 describe('isRedirect', () => {
   it.each([
@@ -22,4 +24,20 @@ describe('isRedirect', () => {
   ])('returns `false` for invalid Redirect objects', redirectObject => {
     expect(isRedirect(redirectObject)).toBe(false);
   });
+});
+
+describe('isHttpError', () => {
+  it.each([
+    { status: 404, body: 'Not found' },
+    { status: 500, body: 'Internal server error' },
+  ])('returns `true` for valid HttpError objects (%s)', httpErrorObject => {
+    expect(isHttpError(httpErrorObject)).toBe(true);
+  });
+
+  it.each([new Error(), redirect(301, '/users/id'), 'string error', { status: 404 }, { body: 'Not found' }])(
+    'returns `false` for other thrown objects (%s)',
+    httpErrorObject => {
+      expect(isHttpError(httpErrorObject)).toBe(false);
+    },
+  );
 });
