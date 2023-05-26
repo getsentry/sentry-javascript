@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <button id="mutationButton">Trigger mutation</button>
+    <div id="mutationDiv">Trigger mutation</div>
+    <button id="mutationButtonImmediately">Trigger mutation immediately</button>
+    <button
+      id="mutationButtonInline"
+      onclick="() =>  document.getElementById('out').innerHTML += 'mutationButtonInline clicked<br>'"
+    >
+      Trigger mutation immediately
+    </button>
+    <button id="mutationButtonLate">Trigger mutation late</button>
+    <button id="consoleLogButton">Trigger console log</button>
+    <button id="scrollButton">Trigger scroll</button>
+    <button id="scrollLateButton">Trigger scroll late</button>
+    <button id="mutationIgnoreButton" class="ignore-class">Trigger scroll late</button>
+
+    <a href="#" id="link">Link</a>
+    <a href="#" target="_blank" id="linkExternal">Link external</a>
+    <a href="" download id="linkDownload">Link download</a>
+    <input type="button" id="inputButton" value="Input button" />
+    <input type="submit" id="inputSubmit" value="Input submit" />
+    <input type="text" id="inputText" />
+
+    <h1 id="h1">Heading</h1>
+
+    <div id="out" style="min-height: 1000px"></div>
+
+    <h1 id="h2">Bottom</h1>
+
+    <script>
+      document.getElementById('mutationButton').addEventListener('click', () => {
+        setTimeout(() => {
+          document.getElementById('out').innerHTML += 'mutationButton clicked<br>';
+        }, 400);
+      });
+      document.getElementById('mutationIgnoreButton').addEventListener('click', () => {
+        setTimeout(() => {
+          document.getElementById('out').innerHTML += 'mutationIgnoreButton clicked<br>';
+        }, 400);
+      });
+      document.getElementById('mutationDiv').addEventListener('click', () => {
+        setTimeout(() => {
+          document.getElementById('out').innerHTML += 'mutationDiv clicked<br>';
+        }, 400);
+      });
+      document.getElementById('mutationButtonLate').addEventListener('click', () => {
+        setTimeout(() => {
+          document.getElementById('out').innerHTML += 'mutationButtonLate clicked<br>';
+        }, 3000);
+      });
+      document.getElementById('mutationButtonImmediately').addEventListener('click', () => {
+        document.getElementById('out').innerHTML += 'mutationButtonImmediately clicked<br>';
+      });
+      document.getElementById('scrollButton').addEventListener('click', () => {
+        document.getElementById('h2').scrollIntoView({ behavior: 'smooth' });
+      });
+      document.getElementById('scrollLateButton').addEventListener('click', () => {
+        setTimeout(() => {
+          document.getElementById('h2').scrollIntoView({ behavior: 'smooth' });
+        }, 400);
+      });
+      document.getElementById('consoleLogButton').addEventListener('click', () => {
+        setTimeout(() => {
+          console.log('DONE');
+        }, 400);
+      });
+
+      // Do nothing on these elements
+      document
+        .querySelectorAll('#link,#linkExternal,#linkDownload,#inputButton,#inputSubmit,#inputText')
+        .forEach(link => {
+          link.addEventListener('click', e => {
+            e.preventDefault();
+          });
+        });
+    </script>
+  </body>
+</html>

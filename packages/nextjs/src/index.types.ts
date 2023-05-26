@@ -39,6 +39,8 @@ export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 export declare const Span: typeof edgeSdk.Span;
 export declare const Transaction: typeof edgeSdk.Transaction;
 
+export { withSentryConfig } from './config';
+
 /**
  * @deprecated Use `wrapApiHandlerWithSentry` instead
  */

@@ -83,6 +83,9 @@ const defaultOptions = {
   textEncoder,
 };
 
+// empty function to keep test output clean
+const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
 describe('makeNewHttpTransport()', () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -403,7 +406,6 @@ describe('makeNewHttpTransport()', () => {
   });
 
   it('should warn if an invalid url is passed', async () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn');
     const transport = makeNodeTransport({ ...defaultOptions, url: 'invalid url' });
     await transport.send(EVENT_ENVELOPE);
     expect(consoleWarnSpy).toHaveBeenCalledWith(

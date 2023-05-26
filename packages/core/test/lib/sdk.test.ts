@@ -47,7 +47,7 @@ describe('captureCheckIn', () => {
       } as unknown as Client;
     });
 
-    expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
+    expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual('some-id-wasd-1234');
   });
 
   it('returns an id when client is undefined', () => {

@@ -1,4 +1,3 @@
-import { addBreadcrumb } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -50,13 +49,6 @@ export function handleGlobalEventListener(
       event.tags = { ...event.tags, replayId: replay.getSessionId() };
     }
 
-    if (__DEBUG_BUILD__ && replay.getOptions()._experiments.traceInternals && isErrorEvent(event)) {
-      const exc = getEventExceptionValues(event);
-      addInternalBreadcrumb({
-        message: `Tagging event (${event.event_id}) - ${event.message} - ${exc.type}: ${exc.value}`,
-      });
-    }
-
     // In cases where a custom client is used that does not support the new hooks (yet),
     // we manually call this hook method here
     if (afterSendHandler) {
@@ -65,24 +57,5 @@ export function handleGlobalEventListener(
     }
 
     return event;
-  };
-}
-
-function addInternalBreadcrumb(arg: Parameters<typeof addBreadcrumb>[0]): void {
-  const { category, level, message, ...rest } = arg;
-
-  addBreadcrumb({
-    category: category || 'console',
-    level: level || 'debug',
-    message: `[debug]: ${message}`,
-    ...rest,
-  });
-}
-
-function getEventExceptionValues(event: Event): { type: string; value: string } {
-  return {
-    type: 'Unknown',
-    value: 'n/a',
-    ...(event.exception && event.exception.values && event.exception.values[0]),
   };
 }

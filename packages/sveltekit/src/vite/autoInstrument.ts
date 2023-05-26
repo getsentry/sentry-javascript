@@ -1,5 +1,7 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
+import type { ExportNamedDeclaration } from '@babel/types';
 import * as fs from 'fs';
+import { parseModule } from 'magicast';
 import * as path from 'path';
 import type { Plugin } from 'vite';
 
@@ -89,24 +91,50 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
  */
 export async function canWrapLoad(id: string, debug: boolean): Promise<boolean> {
   const code = (await fs.promises.readFile(id, 'utf8')).toString();
+  const mod = parseModule(code);
 
-  const codeWithoutComments = code.replace(/(\/\/.*| ?\/\*[^]*?\*\/)(,?)$/gm, '');
-
-  const hasSentryContent = codeWithoutComments.includes('@sentry/sveltekit');
-  if (hasSentryContent) {
+  const program = mod.$ast.type === 'Program' && mod.$ast;
+  if (!program) {
     // eslint-disable-next-line no-console
-    debug && console.log(`Skipping wrapping ${id} because it already contains Sentry code`);
+    debug && console.log(`Skipping wrapping ${id} because it doesn't contain valid JavaScript or TypeScript`);
+    return false;
   }
 
-  const hasLoadDeclaration = /((const|let|var|function)\s+load\s*(=|\(|:))|as\s+load\s*(,|})/gm.test(
-    codeWithoutComments,
-  );
+  const hasLoadDeclaration = program.body
+    .filter((statement): statement is ExportNamedDeclaration => statement.type === 'ExportNamedDeclaration')
+    .find(exportDecl => {
+      // find `export const load = ...`
+      if (exportDecl.declaration && exportDecl.declaration.type === 'VariableDeclaration') {
+        const variableDeclarations = exportDecl.declaration.declarations;
+        return variableDeclarations.find(decl => decl.id.type === 'Identifier' && decl.id.name === 'load');
+      }
+
+      // find `export function load = ...`
+      if (exportDecl.declaration && exportDecl.declaration.type === 'FunctionDeclaration') {
+        const functionId = exportDecl.declaration.id;
+        return functionId?.name === 'load';
+      }
+
+      // find `export { load, somethingElse as load, somethingElse as "load" }`
+      if (exportDecl.specifiers) {
+        return exportDecl.specifiers.find(specifier => {
+          return (
+            (specifier.exported.type === 'Identifier' && specifier.exported.name === 'load') ||
+            (specifier.exported.type === 'StringLiteral' && specifier.exported.value === 'load')
+          );
+        });
+      }
+
+      return false;
+    });
+
   if (!hasLoadDeclaration) {
     // eslint-disable-next-line no-console
     debug && console.log(`Skipping wrapping ${id} because it doesn't declare a \`load\` function`);
+    return false;
   }
 
-  return !hasSentryContent && hasLoadDeclaration;
+  return true;
 }
 
 /**

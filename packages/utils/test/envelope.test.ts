@@ -36,7 +36,7 @@ describe('envelope', () => {
       expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
     });
 
-    it.only('serializes an envelope with attachments', () => {
+    it('serializes an envelope with attachments', () => {
       const items: EventEnvelope[1] = [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
         [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],

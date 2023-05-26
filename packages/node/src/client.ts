@@ -186,6 +186,8 @@ export class NodeClient extends BaseClient<NodeClientOptions> {
     }
 
     const envelope = createCheckInEnvelope(serializedCheckIn, this.getSdkMetadata(), tunnel, this.getDsn());
+
+    __DEBUG_BUILD__ && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
     void this._sendEnvelope(envelope);
     return id;
   }

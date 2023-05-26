@@ -4,7 +4,7 @@ import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
-import type { Session, SessionAggregates } from './session';
+import type { SerializedSession, Session, SessionAggregates } from './session';
 import type { Transaction } from './transaction';
 import type { UserFeedback } from './user';
 
@@ -76,7 +76,8 @@ export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
-  | BaseEnvelopeItem<SessionItemHeaders, Session>
+  // TODO(v8): Only allow serialized session here (as opposed to Session or SerializedSesison)
+  | BaseEnvelopeItem<SessionItemHeaders, Session | SerializedSession>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
