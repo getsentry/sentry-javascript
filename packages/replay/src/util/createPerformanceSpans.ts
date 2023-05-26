@@ -1,17 +1,16 @@
 import { EventType } from '@sentry-internal/rrweb';
 
 import type { AddEventResult, AllEntryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
-import { addEvent } from './addEvent';
 
 /**
- * Create a "span" for each performance entry. The parent transaction is `this.replayEvent`.
+ * Create a "span" for each performance entry.
  */
 export function createPerformanceSpans(
   replay: ReplayContainer,
   entries: ReplayPerformanceEntry<AllEntryData>[],
 ): Promise<AddEventResult | null>[] {
-  return entries.map(({ type, start, end, name, data }) =>
-    addEvent(replay, {
+  return entries.map(({ type, start, end, name, data }) => {
+    const response = replay.throttledAddEvent({
       type: EventType.Custom,
       timestamp: start,
       data: {
@@ -24,6 +23,9 @@ export function createPerformanceSpans(
           data,
         },
       },
-    }),
-  );
+    });
+
+    // If response is a string, it means its either THROTTLED or SKIPPED
+    return typeof response === 'string' ? Promise.resolve(null) : response;
+  });
 }

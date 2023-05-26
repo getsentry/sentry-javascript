@@ -24,6 +24,7 @@ import type {
   EventBuffer,
   InternalEventContext,
   PopEventContext,
+  RecordingEvent,
   RecordingOptions,
   ReplayContainer as ReplayContainerInterface,
   ReplayPluginOptions,
@@ -42,6 +43,8 @@ import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { sendReplay } from './util/sendReplay';
+import type { SKIPPED } from './util/throttle';
+import { throttle, THROTTLED } from './util/throttle';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
@@ -74,6 +77,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     sessionIdleExpire: SESSION_IDLE_EXPIRE_DURATION,
     maxSessionLife: MAX_SESSION_LIFE,
   } as const;
+
+  private _throttledAddEvent: (
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ) => typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null>;
 
   /**
    * Options to pass to `rrweb.record()`
@@ -136,6 +144,14 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush = debounce(() => this._flush(), this._options.flushMinDelay, {
       maxWait: this._options.flushMaxDelay,
     });
+
+    this._throttledAddEvent = throttle(
+      (event: RecordingEvent, isCheckout?: boolean) => addEvent(this, event, isCheckout),
+      // Max 300 events...
+      300,
+      // ... per 5s
+      5,
+    );
   }
 
   /** Get the event context. */
@@ -566,6 +582,39 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /**
+   * Add a breadcrumb event, that may be throttled.
+   * If it was throttled, we add a custom breadcrumb to indicate that.
+   */
+  public throttledAddEvent(
+    event: RecordingEvent,
+    isCheckout?: boolean,
+  ): typeof THROTTLED | typeof SKIPPED | Promise<AddEventResult | null> {
+    const res = this._throttledAddEvent(event, isCheckout);
+
+    // If this is THROTTLED, it means we have throttled the event for the first time
+    // In this case, we want to add a breadcrumb indicating that something was skipped
+    if (res === THROTTLED) {
+      const breadcrumb = createBreadcrumb({
+        category: 'replay.throttled',
+      });
+
+      this.addUpdate(() => {
+        void addEvent(this, {
+          type: EventType.Custom,
+          timestamp: breadcrumb.timestamp || 0,
+          data: {
+            tag: 'breadcrumb',
+            payload: breadcrumb,
+            metric: true,
+          },
+        });
+      });
+    }
+
+    return res;
+  }
+
+  /**
    * Initialize and start all listeners to varying events (DOM,
    * Performance Observer, Recording, Sentry SDK, etc)
    */
@@ -803,7 +852,7 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _createCustomBreadcrumb(breadcrumb: Breadcrumb): void {
     this.addUpdate(() => {
-      void addEvent(this, {
+      void this.throttledAddEvent({
         type: EventType.Custom,
         timestamp: breadcrumb.timestamp || 0,
         data: {

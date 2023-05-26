@@ -3,7 +3,6 @@ import type { Breadcrumb } from '@sentry/types';
 import { normalize } from '@sentry/utils';
 
 import type { ReplayContainer } from '../../types';
-import { addEvent } from '../../util/addEvent';
 
 /**
  * Add a breadcrumb event to replay.
@@ -20,7 +19,7 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
   }
 
   replay.addUpdate(() => {
-    void addEvent(replay, {
+    void replay.throttledAddEvent({
       type: EventType.Custom,
       // TODO: We were converting from ms to seconds for breadcrumbs, spans,
       // but maybe we should just keep them as milliseconds
