@@ -586,6 +586,7 @@ export class ReplayContainer implements ReplayContainerInterface {
           data: {
             tag: 'breadcrumb',
             payload: breadcrumb,
+            metric: true,
           },
         });
       });
