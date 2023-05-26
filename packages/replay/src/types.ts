@@ -286,6 +286,23 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   beforeAddRecordingEvent?: BeforeAddRecordingEvent;
 
   /**
+   * Threshold of number of mutations that will be processed before creating a warning breadcrumb.
+   */
+  /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will create
+   * a breadcrumb in the recording when the limit has been reached.
+   */
+  mutationBreadcrumbLimit?: number;
+
+  /**
+   * A high number of DOM mutations (in a single event loop) can cause
+   * performance regressions in end-users' browsers. This setting will cause
+   * recording to stop when the limit has been reached.
+   */
+  mutationLimit?: number;
+
+  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
