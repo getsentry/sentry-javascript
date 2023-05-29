@@ -1,7 +1,12 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getReplayRecordingContent, getReplaySnapshot, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
+import {
+  getReplayRecordingContent,
+  getReplaySnapshot,
+  shouldSkipReplayTest,
+  waitForReplayRequest,
+} from '../../../../utils/replayHelpers';
 
 sentryTest(
   'handles large mutations by stopping replay when `mutationLimit` configured',
@@ -53,7 +58,7 @@ sentryTest(
     const replayData1 = getReplayRecordingContent(res1);
     expect(replayData1.fullSnapshots.length).toBe(0);
     expect(replayData1.incrementalSnapshots.length).toBeGreaterThan(0);
-    expect(replayData1.breadcrumbs.map(({category}) => category).sort()).toEqual(['replay.mutations', 'ui.click']);
+    expect(replayData1.breadcrumbs.map(({ category }) => category).sort()).toEqual(['replay.mutations', 'ui.click']);
 
     replay = await getReplaySnapshot(page);
     expect(replay.session).toBe(undefined);
