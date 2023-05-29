@@ -4,9 +4,7 @@ window.Sentry = Sentry;
 window.Replay = new Sentry.Replay({
   flushMinDelay: 500,
   flushMaxDelay: 500,
-  _experiments: {
-    mutationLimit: 250,
-  },
+  mutationLimit: 250,
 });
 
 Sentry.init({
