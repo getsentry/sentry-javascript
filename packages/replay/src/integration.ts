@@ -61,7 +61,7 @@ export class Replay implements Integration {
     blockAllMedia = true,
 
     mutationBreadcrumbLimit = 750,
-    mutationLimit = 1500,
+    mutationLimit = 10_000,
 
     networkDetailAllowUrls = [],
     networkCaptureBodies = true,
