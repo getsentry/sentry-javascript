@@ -114,7 +114,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
 
     transform: async (code, id) => {
       let modifiedCode = code;
-      const isServerHooksFile = new RegExp(`\/${escapeStringForRegex(serverHooksFile)}(\.(js|ts|mjs|mts))?`).test(id);
+      const isServerHooksFile = new RegExp(`\/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
         let injectedCode = `global.__sentry_sveltekit_output_dir = "${outputDir || 'undefined'}";\n`;
